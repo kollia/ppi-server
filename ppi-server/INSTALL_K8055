@@ -1,0 +1,27 @@
+
+
+If you need access to the Vellemann experimental board k8055
+install also this k8055 package
+You find more information about k8055 under http://libk8055.sourceforge.net/
+
+QUICK INSTALL:
+
+1. Install packages
+      libusb-0.1.9 or newer is for kernel 2.4.18 or newer
+1. Download and unpack owfs (you can find it on sourceforge:
+     http://sourceforge.net/projects/libk8055/ )
+2. cd k8055 directory
+3. make
+5. as root make install
+
+
+
+
+
+
+
+
+
+
+
+

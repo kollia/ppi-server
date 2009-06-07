@@ -1,0 +1,130 @@
+<layout>
+  <head>
+    <title name="Komponenten" />
+  </head>
+  <body>
+    This is an example for all components which can be set.<br />
+    For an description see in workdir of port-server<br />
+    subdirectory client the file named layout_description.txt<br />
+    The source layout from this side is in the same subdirectory,<br />
+    called components.layout<br />
+    <table border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td>
+	  <component type="checkbox" result="outline[1]:holder" />
+	  CHECKBOX<br />
+	  <component type="radio" name="myradio" value="0" result="outline[1]:holder" />
+	  RADIOBUTTON<br />
+	  <component type="radio" name="myradio" value="1" result="outline[1]:holder" />
+	  RADIOBUTTON
+	</td>
+	<td>
+	  <table cellpadding="5">
+	    <tr>
+	      <td>
+		<component type="push" value="PUSH" result="outline[1]:holder" />
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+		<component type="toggle" value="TOGGLE" result="outline[1]:holder" />
+	      </td>
+	    </tr>
+	  </table>
+	</td>
+	<td>
+	  <table border="0">
+	    <tr>
+	      <td>
+	      </td>
+	      <td colspan="2">
+		UPBUTTON
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+		LEFTBUTTON
+	      </td>
+	      <td>
+		<component type="upbutton" result="outline[1]:holder" />
+	      </td>
+	    </tr>
+	    <tr>
+	      <td align="right">
+		<component type="leftbutton" result="outline[1]:holder" />
+	      </td>
+	      <td>
+	      </td>
+	      <td>
+		<component type="rightbutton" result="outline[1]:holder" />
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+	      </td>
+	      <td>
+		<component type="downbutton" result="outline[1]:holder" />
+	      </td>
+	      <td width="300" align="right">
+		.        RIGHTBUTTON
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+	      </td>
+	      <td colspan="2">
+		DOWNBUTTON
+	      </td>
+	    </tr>
+	  </table>
+	</td>
+      </tr>
+      <tr>
+	<td colspan="3">
+	  <table border="0">
+	    <tr>
+	      <td>
+		<component type="input" result="outline[1]:holder" value="us" />
+		INPUT
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+		<component type="slider" result="outline[1]:holder" />
+		SLIDER
+	      </td>
+	      <td>
+		<component type="spinner" result="outline[1]:holder" />
+		SPINNER
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+		<component type="scale" width="200" result="outline[1]:holder" />
+		SCALE
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+		<component type="combo" size="1" result="outline[1]:holder">
+		  <option value="0">Anwesend</option>
+		  <option value="1">Urlaub</option>
+		</component>
+		COMBO
+	      </td>
+	      <td>
+		<component type="combo" size="3" height="50" result="outline[1]:holder">
+		  <option>Anwesend</option>
+		  <option>Urlaub</option>
+		  <option>3er Componente</option>
+		  <option>4er Componente</option>
+		</component>
+		COMBO
+	      </td>
+	    </tr>
+	  </table>
+	</td>
+      </tr>
+    </table>
+  </body>
+</layout>
