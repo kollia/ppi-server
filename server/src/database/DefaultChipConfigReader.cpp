@@ -220,7 +220,7 @@ namespace ports
 			dbwrite= property->needValue("dbwrite");
 		}/*else
 		{
-			dbwrite= property->getValue("dbwrite", /*warning*false);
+			dbwrite= property->getValue("dbwrite", *warning*false);
 			if(dbwrite != "")
 				read= true;
 		}*/
