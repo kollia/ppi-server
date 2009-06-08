@@ -373,7 +373,7 @@ bool Starter::execute(vector<string> options)
 	serverArg_t serverArgs;
 	meash_t *pCurrentMeasure= NULL;
 
-	meash_t::clientPath= URL::addPath(m_sWorkdir, PPICLIENTAPTH, /*always*/false);
+	meash_t::clientPath= URL::addPath(m_sWorkdir, PPICLIENTPATH, /*always*/false);
 	LOG(LOG_INFO, "Read layout content for clients from " + meash_t::clientPath);
 	serverArgs.clientFolder= meash_t::clientPath;
 	serverArgs.pFirstMeasureThreads= NULL;
