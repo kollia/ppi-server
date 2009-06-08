@@ -1,5 +1,22 @@
+/**
+ *   This file is part of ppi-server.
+ *
+ *   ppi-server is free software: you can redistribute it and/or modify
+ *   it under the terms of the Lesser GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   ppi-server is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   Lesser GNU General Public License for more details.
+ *
+ *   You should have received a copy of the Lesser GNU General Public License
+ *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-
+you find an project description on <http://code.google.com/p/ppi-server/>
+currently it's maintained from Alexander Kolli <ppi@magnificat.at>
 This package uses the cmake methods
 
 QUICK INSTALL:
@@ -16,7 +33,7 @@ QUICK INSTALL:
 
 2. DOWNLOAD
   Download and unpack ppi-server[version]
-  (you can find it on google: http://code.google.com )
+  (you can find it on http://code.google.com/p/ppi-server/downloads/list )
      
 3. CONFIGURATION
   cd ppi-server[version]/build
@@ -55,9 +72,9 @@ Full Installation
 	      
 
 1. DOWNLOAD
-  Download ppi-server from http://code.google.com
+  Download ppi-server from http://code.google.com/p/ppi-server/downloads/list
   unpack with tar -zxvf ppi-server[version].tar.gz
-  you can also downlad ppi-java-client for better access to server
+  you can also downlad ppi-server-java-client for better access to server
   read there the installation file
   
   
@@ -68,7 +85,7 @@ Full Installation
   for the first configuration
   type cmake ..
   If you want also install the packages owfs or K8055
-  or changing the install directories or running user under
+  or changing the install directories or running server under other user
   type ccmake ..
       
   - you need also the packages owfs or k8055
@@ -81,7 +98,7 @@ Full Installation
       INSTALL_CLIENT_PATH 	- path for the *.desktop files, additional /ppi-server/client
 				  this place is for ppi-java-client or any other client
 				  read there after installation, or in this ziped package
-				  under directory client the layout_description.txt
+				  under directory client the layout_description.txt for better descriptios
       INSTALL_CONFIG_PATH 	- directory for all configuration files, additional /ppi-config
       INSTALL_DATABASE_PATH	- path for the server to save database entrys, additional /ppi-server/database
       INSTALL_LOGGING_PATH	- path where archive logging information, additional /ppi-server
@@ -99,14 +116,19 @@ Full Installation
    
 6. start SERVER
   type as root
-  /usr/local/bin/ppi-server start
+  ${CMAKE_INSTALL_PREFIX}/bin/ppi-server start
+  all further commands if you want to use the C++ client on command line
+  you can see with ${CMAKE_INSTALL_PREFIX}/bin/ppi-server -?
   you can also write an link into the runnlevel
   to start the server by booting
   
   
 7. DEVELOPMENT
   for developing you can use this content as workspace.
-  If you use the cmake gerator for the Makefile
+  better you check out from the repository
+  http://ppi-server.googlecode.com/svn/trunk/server/
+  the latest resolution
+  If you use the cmake generator for the Makefile
   change the install path to
       INSTALL_CLIENT_PATH 	- client
       INSTALL_CONFIG_PATH 	- conf
@@ -118,7 +140,7 @@ Full Installation
   otherwise when you have an own Makefile, the path will be set
   in src/util/debug.h the same definition, you have nothing to do.  
   In this case you have to set also for other packages
-  the symbols -D in the Makefile for make
+  the symbols -D in the Makefile for make if you need
   _OWFSLIBRARY for maxim/dallas owfs and/or
   _K8055LIBRARY for Vellemann K8055
   
