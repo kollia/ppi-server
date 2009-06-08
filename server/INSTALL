@@ -92,6 +92,9 @@ Full Installation
       set the corresponding flags to ON
 	  USE_OWFS
 	  USE_K8055
+	you have to insert also the access to the decices in server.conf
+	  entry VK8055 to jumper
+	  or maximinit to maybe -u for all maxim usb devices
 
   - you want to change the install directories
       CMAKE_INSTALL_PREFIX 	- is the path for the binary, additional /bin
