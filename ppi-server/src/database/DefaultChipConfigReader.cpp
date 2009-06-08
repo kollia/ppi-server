@@ -83,7 +83,7 @@ namespace ports
 			msg= "### ERROR: cannot read default configuration 'default.conf'\n";
 			msg+= "           for all chips";
 			cerr << msg << endl;
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			return;
 		}
 		sections= properties.getSections();
@@ -120,7 +120,7 @@ namespace ports
 			msg+= fileName + "'\n           for server ";
 			msg+= server;
 			cerr << msg << endl;
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			return;
 		}
 		sections= properties.getSections();
@@ -248,7 +248,7 @@ namespace ports
 
 					msg= property->getMsgHead(/*ERROR*/true);
 					msg+= "range should have 2 double values separated with an colon";
-					LOG(AKERROR, msg);
+					LOG(LOG_ERROR, msg);
 					cerr << msg << endl;
 				}else
 				{
@@ -277,7 +277,7 @@ namespace ports
 					msg= property->getMsgHead(/*error*/false);
 					msg+= "float have to be 'true' or 'false', can not read '";
 					msg+= sfloat + "'. Set float to false.";
-					LOG(AKWARNING, msg);
+					LOG(LOG_WARNING, msg);
 					cerr << msg << endl;
 				}
 			}
@@ -292,7 +292,7 @@ namespace ports
 					msg= property->getMsgHead(/*error*/false);
 					msg+= "writable have to be 'true' or 'false', can not read '";
 					msg+= writable + "'. Set writable to false.";
-					LOG(AKWARNING, msg);
+					LOG(LOG_WARNING, msg);
 					cerr << msg << endl;
 				}
 			}
@@ -546,7 +546,7 @@ namespace ports
 				msg << property->getMsgHead(/*error*/false);
 				msg << "dbolder is undefined, check values after all ";
 				msg << dec << older->more << " month";
-				LOG(AKWARNING, msg.str());
+				LOG(LOG_WARNING, msg.str());
 				cerr << msg.str() << endl;
 			}else
 				older->unit= d[0];
@@ -565,7 +565,7 @@ namespace ports
 				msg= property->getMsgHead(/*error*/false);
 				msg+= "dbwrite can be 'all', 'fractions', 'highest:<range>' or 'kill', can not read '";
 				msg+= dbwrite+ "'. Set dbwrite to all.";
-				LOG(AKWARNING, msg);
+				LOG(LOG_WARNING, msg);
 				cerr << msg << endl;
 				older->dbwrite= "all";
 			}else
@@ -604,7 +604,7 @@ namespace ports
 						msg << property->getMsgHead(/*error*/false);
 						msg << "dbwrite is undefined, check values after all ";
 						msg << dec << older->highest->between << " day(s)";
-						LOG(AKWARNING, msg.str());
+						LOG(LOG_WARNING, msg.str());
 						cerr << msg.str() << endl;
 					}else
 						older->highest->t= d[0];
@@ -634,7 +634,7 @@ namespace ports
 				string msg(property->getMsgHead(/*error*/false));
 
 				msg+= "dbinterval only be used when dbwrite is set to 'fractions'";
-				LOG(AKWARNING, msg);
+				LOG(LOG_WARNING, msg);
 				cerr << msg << endl;
 			}else {
 				older->fraction->dbinterval= atof(dbinterval.c_str());
@@ -645,7 +645,7 @@ namespace ports
 				string msg(property->getMsgHead(/*error*/false));
 
 				msg+= "dbafter only be used when dbwrite is set to 'fractions";
-				LOG(AKWARNING, msg);
+				LOG(LOG_WARNING, msg);
 				cerr << msg << endl;
 			}else {
 				string d;
@@ -670,7 +670,7 @@ namespace ports
 
 					msg= property->getMsgHead(/*error*/false);
 					msg+= "dbafter value is undefined save value after every 1 hour";
-					LOG(AKWARNING, msg);
+					LOG(LOG_WARNING, msg);
 					cerr << msg << endl;
 				}
 			}
@@ -715,7 +715,7 @@ namespace ports
 				msg= "ALERT ERROR: found no defined running server '";
 				msg+= server + "' for chip '";
 				msg+= chip + "'";
-				LOG(AKALERT, msg);
+				LOG(LOG_ALERT, msg);
 				cerr << msg << endl;
 				return;
 			}
@@ -728,7 +728,7 @@ namespace ports
 					msg= "ERROR: found no family code with spezification '";
 					msg+= family + "' for chip '";
 					msg+= chip + "'";
-					LOG(AKERROR, msg);
+					LOG(LOG_ERROR, msg);
 					cerr << msg << endl;
 					return;
 
@@ -743,7 +743,7 @@ namespace ports
 					msg= "ERROR: found no type code with spezification '";
 					msg+= type + "' for chip '";
 					msg+= chip + "'";
-					LOG(AKERROR, msg);
+					LOG(LOG_ERROR, msg);
 					cerr << msg << endl;
 					return;
 
@@ -757,7 +757,7 @@ namespace ports
 
 					msg= "ERROR: do not found chip '";
 					msg+= chip + "'";
-					LOG(AKERROR, msg);
+					LOG(LOG_ERROR, msg);
 					cerr << msg << endl;
 					return;
 
@@ -772,7 +772,7 @@ namespace ports
 					msg= "ERROR: found no correct pin '";
 					msg+= pin + "' for chip '";
 					msg+= chip + "'";
-					LOG(AKERROR, msg);
+					LOG(LOG_ERROR, msg);
 					cerr << msg << endl;
 					return;
 
@@ -848,7 +848,7 @@ namespace ports
 			msg= "ERROR: found no server '";
 			msg+= server + "' for chip '";
 			msg+= chip + "' in used chips";
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			cerr << msg << endl;
 			return;
 		}
@@ -859,7 +859,7 @@ namespace ports
 			msg= "ERROR: found no chip '";
 			msg+= chip + "' for server '";
 			msg+= server + "' in used chips";
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			cerr << msg << endl;
 			return;
 		}

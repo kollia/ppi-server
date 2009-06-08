@@ -69,7 +69,7 @@ namespace ports
 				warningOut+= getSubroutineName();
 				warningOut+= "\n             on set parameter 'out' and 'in', ";
 				warningOut+= warning + "will be ignored.";
-				LOG(AKINFO, warningOut);
+				LOG(LOG_INFO, warningOut);
 				cout << warningOut << endl;
 			}
 			return TimeMeasure::init(properties);
@@ -113,7 +113,7 @@ namespace ports
 			warningOut+= "\n             if not set both parameter 'out' and 'in', RESISTANCE do not measure own time";
 			warningOut+= "\n             so parameters ";
 			warningOut+= warning + " will be ignored";
-			LOG(AKINFO, warningOut);
+			LOG(LOG_INFO, warningOut);
 			cout << warningOut << endl;
 		}
 		sMValue= properties.needValue("mvalue");
@@ -136,7 +136,7 @@ namespace ports
 		msg= "measured resistance:";
 		msg+= buf;
 		msg+=" Ohm";
-		TIMELOG(AKINFO, getFolderName(), msg);
+		TIMELOG(LOG_INFO, getFolderName(), msg);
 		if(isDebug())
 			cout << msg << endl;
 		return true;

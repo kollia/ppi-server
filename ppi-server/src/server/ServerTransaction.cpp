@@ -124,7 +124,7 @@ namespace server
 			msg= "connection to client:";
 			msg+=  descriptor.getHostAddressName();
 			msg+= " is brocken";
-			LOG(AKSERVER, msg);
+			LOG(LOG_SERVER, msg);
 
 #ifndef DEBUG
 #ifdef SERVERDEBUG
@@ -214,7 +214,7 @@ namespace server
 					{
 						string msg("ERROR: client givs no correct ID. Send ERROR code 010");
 
-						LOG(AKSERVER, msg);
+						LOG(LOG_SERVER, msg);
 						sendmsg= "ERROR 010";
 					}
 				}/*else
@@ -312,7 +312,7 @@ namespace server
 							if(!descriptor.getBoolean("access"))
 								msg+= ", so permission denied";
 						}
-						LOG(AKERROR, msg);
+						LOG(LOG_ERROR, msg);
 						sleep(2);
 	#ifdef SERVERDEBUG
 						cerr << "send: " << sendmsg << endl;
@@ -349,7 +349,7 @@ namespace server
 				msg+= input;
 				msg+= "'";
 				msg+= "\nsend ERROR 002";
-				LOG(AKERROR, msg);
+				LOG(LOG_ERROR, msg);
 				sendmsg= "ERROR 002\n";
 				descriptor << sendmsg;
 		#ifdef SERVERDEBUG
@@ -373,7 +373,7 @@ namespace server
 					msg+= "client want to stop server with no root user '";
 					msg+= descriptor.getString("username") + "'\n";
 					msg+= "permisson denied, send ERROR 013";
-					LOG(AKERROR, msg);
+					LOG(LOG_ERROR, msg);
 					sendmsg= "ERROR 013\n";
 					descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -384,7 +384,7 @@ namespace server
 				cout << endl;
 				cout << "stopping:" << endl;
 				cout << "measureThreads " << flush;
-				LOG(AKINFO, "user stop server with foreign application");
+				LOG(LOG_INFO, "user stop server with foreign application");
 				while(pCurrent)
 				{ // stopping all measure threads
 					pCurrent->pMeasure->stop(/*wait*/false);
@@ -480,7 +480,7 @@ namespace server
 							msg+= input + "'\ncannot found OWServer with ID ";
 							msg+= sID;
 							msg+= "\nsend ERROR 017";
-							LOG(AKERROR, msg);
+							LOG(LOG_ERROR, msg);
 							sendmsg= "ERROR 017\n";
 							descriptor << sendmsg;
 #ifdef SERVERDEBUG
@@ -541,7 +541,7 @@ namespace server
 						msg+= "client ask for '";
 						msg+= input + "'\ncannot found folder";
 						msg+= "\nsend ERROR 004";
-						LOG(AKERROR, msg);
+						LOG(LOG_ERROR, msg);
 						sendmsg= "ERROR 004\n";
 						descriptor << sendmsg;
 			#ifdef SERVERDEBUG
@@ -566,7 +566,7 @@ namespace server
 					msg+= "client ask for '";
 					msg+= input + "'\n";
 					msg+= "\nsend ERROR 007";
-					LOG(AKERROR, msg);
+					LOG(LOG_ERROR, msg);
 					sendmsg= "ERROR 007\n";
 					descriptor << sendmsg;
 				}else
@@ -607,7 +607,7 @@ namespace server
 						msg+= "client ask for '";
 						msg+= input + "'\n";
 						msg+= "\nsend ERROR 008";
-						LOG(AKERROR, msg);
+						LOG(LOG_ERROR, msg);
 						sendmsg= "ERROR 008\n";
 						descriptor << sendmsg;
 		#ifdef SERVERDEBUG
@@ -664,7 +664,7 @@ namespace server
 					msg+= "client ask for '";
 					msg+= input + "'\n";
 					msg+= "send ERROR 009";
-					LOG(AKERROR, msg);
+					LOG(LOG_ERROR, msg);
 					sendmsg= "<error number=\"009\" />\n";
 					descriptor << sendmsg;
 		#ifdef SERVERDEBUG
@@ -713,7 +713,7 @@ namespace server
 							msg+= buffer;
 							msg+= " is incorrect";
 							msg+= "\nsend ERROR 003 0";
-							LOG(AKERROR, msg);
+							LOG(LOG_ERROR, msg);
 							sendmsg= "ERROR 003\n";
 							descriptor << sendmsg;
 							bWait= false;
@@ -738,7 +738,7 @@ namespace server
 							msg+= buffer;
 							msg+= " is incorrect";
 							msg+= "\nsend ERROR 003 1";
-							LOG(AKERROR, msg);
+							LOG(LOG_ERROR, msg);
 							sendmsg= "ERROR 003 1\n";
 							descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -796,7 +796,7 @@ namespace server
 												msg+= input + "'\n";
 												msg+= "but subroutine has no correct acces to device\n";
 												msg+= "send ERROR 016";
-												LOG(AKERROR, msg);
+												LOG(LOG_ERROR, msg);
 #ifdef SERVERDEBUG
 												cerr << msg << endl;
 #endif
@@ -812,7 +812,7 @@ namespace server
 											msg+= "but user '";
 											msg+= descriptor.getString("username") + "' has no permisson to subroutine\n";
 											msg+= "so permisson denied, send ERROR 013";
-											LOG(AKERROR, msg);
+											LOG(LOG_ERROR, msg);
 											sendmsg= "ERROR 013\n";
 											descriptor << sendmsg;
 											bWait= false;
@@ -829,7 +829,7 @@ namespace server
 										msg+= "user '";
 										msg+= descriptor.getString("username") + "' but server has no correct chip contact\n";
 										msg+= "send ERROR 014";
-										LOG(AKERROR, msg);
+										LOG(LOG_ERROR, msg);
 										sendmsg= "ERROR 014\n";
 										descriptor << sendmsg;
 										bWait= false;
@@ -848,7 +848,7 @@ namespace server
 									msg+= " in folder ";
 									msg+= values[0];
 									msg+= "\nsend ERROR 005";
-									LOG(AKERROR, msg);
+									LOG(LOG_ERROR, msg);
 									sendmsg= "ERROR 005\n";
 									descriptor << sendmsg;
 									bWait= false;
@@ -866,7 +866,7 @@ namespace server
 							msg+= "cannot found folder ";
 							msg+= values[0];
 							msg+= "\nsend ERROR 004";
-							LOG(AKERROR, msg);
+							LOG(LOG_ERROR, msg);
 			#ifdef SERVERDEBUG
 							cout << "send: ERROR 004" << endl;
 			#endif
@@ -932,7 +932,7 @@ namespace server
 					msg+= entry;
 					msg+= " is incorrect";
 					msg+= "\nsend ERROR 003 1";
-					LOG(AKERROR, msg);
+					LOG(LOG_ERROR, msg);
 					sendmsg= "ERROR 003 1\n";
 					descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -950,7 +950,7 @@ namespace server
 						msg+= "cannot found folder ";
 						msg+= split[0];
 						msg+= "\nsend ERROR 004";
-						LOG(AKERROR, msg);
+						LOG(LOG_ERROR, msg);
 	#ifdef SERVERDEBUG
 						cout << "send: ERROR 004" << endl;
 	#endif
@@ -970,7 +970,7 @@ namespace server
 							msg+= " in folder ";
 							msg+= split[0];
 							msg+= "\nsend ERROR 005";
-							LOG(AKERROR, msg);
+							LOG(LOG_ERROR, msg);
 							sendmsg= "ERROR 005\n";
 							descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -985,7 +985,7 @@ namespace server
 							msg+= "user '";
 							msg+= descriptor.getString("username") + "' but server has no correct chip contact\n";
 							msg+= "send ERROR 014";
-							LOG(AKERROR, msg);
+							LOG(LOG_ERROR, msg);
 							sendmsg= "ERROR 014\n";
 							descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -1019,7 +1019,7 @@ namespace server
 								msg+= "user '";
 								msg+= descriptor.getString("username") + "' but has no permisson to subroutine\n";
 								msg+= "so permisson denied, send ERROR 013";
-								LOG(AKERROR, msg);
+								LOG(LOG_ERROR, msg);
 								sendmsg= "ERROR 013\n";
 								descriptor << sendmsg;
 		#ifdef SERVERDEBUG
@@ -1036,7 +1036,7 @@ namespace server
 				msg+= input;
 				msg+= "'";
 				msg+= "\nsend ERROR 002";
-				LOG(AKERROR, msg);
+				LOG(LOG_ERROR, msg);
 				sendmsg= "ERROR 002\n";
 				descriptor << sendmsg;
 		#ifdef SERVERDEBUG
@@ -1111,7 +1111,7 @@ namespace server
 				msg+= "link ";
 				msg+= name;
 				msg+= " is not showen";
-				TIMELOG(AKERROR, name+"client_folder_link", msg);
+				TIMELOG(LOG_ERROR, name+"client_folder_link", msg);
 				cerr << msg << endl;
 
 			}else if(	dirName->d_type == DT_DIR

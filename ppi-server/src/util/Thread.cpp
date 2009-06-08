@@ -81,7 +81,7 @@ void *Thread::start(void *args, bool bHold)
 
 	if(nRv != 0)
 	{
-		LOG(AKALERT, "Error by creating thread " + threadName + "\n-> does not start thread");
+		LOG(LOG_ALERT, "Error by creating thread " + threadName + "\n-> does not start thread");
 		return NULL;
 	}
 	if(bHold)
@@ -90,7 +90,7 @@ void *Thread::start(void *args, bool bHold)
 		nRv= pthread_join(m_nPosixThreadID, &Rv);
 		if(nRv != 0)
 		{
-			LOG(AKALERT, "ERROR: cannot join correctly to thread " + threadName);
+			LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
 		}
 		return Rv;
 	}else
@@ -106,7 +106,7 @@ void *Thread::start(void *args, bool bHold)
 				nRv= pthread_join(m_nPosixThreadID, &Rv);
 				if(nRv != 0)
 				{
-					LOG(AKALERT, "ERROR: cannot join correctly to thread " + threadName);
+					LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
 				}
 				return Rv;
 			}
@@ -132,7 +132,7 @@ void Thread::run()
 	m_nThreadId= gettid();
 	initstatus(getThreadName(), this);
 	startmsg+= thname + "'";
-	LOG(AKDEBUG, startmsg);
+	LOG(LOG_DEBUG, startmsg);
 #ifdef SERVERDEBUG
 	cout << startmsg << endl;
 #endif // SERVERDEBUG
@@ -156,7 +156,7 @@ void Thread::run()
 			error+= "### thread ";
 			error+= thname;
 			error+= " cannot inital correcty";
-			LOG(AKERROR, error);
+			LOG(LOG_ERROR, error);
 			LOCK(m_STOPTHREAD);
 			m_bStop= true;
 			UNLOCK(m_STOPTHREAD);
@@ -178,7 +178,7 @@ void Thread::run()
 			{
 				error+= "execute thread ";
 				error+= thname;
-				LOG(AKALERT, error);
+				LOG(LOG_ALERT, error);
 				cerr << error << endl;
 			}
 		}
@@ -186,7 +186,7 @@ void Thread::run()
 	{
 		error+= "initialisation on thread ";
 		error+= thname;
-		LOG(AKALERT, error);
+		LOG(LOG_ALERT, error);
 		cerr << error << endl;
 	}
 	ending();
@@ -197,7 +197,7 @@ void Thread::run()
 
 	msg+= getThreadName() + " do stopping";
 	if(!LogThread::instance()->stopping())
-		LOG(AKDEBUG, msg);
+		LOG(LOG_DEBUG, msg);
 #ifdef DEBUG
 	cout << msg << endl;
 #endif
@@ -416,7 +416,7 @@ void Thread::removestatus(pid_t threadid)
 		msg << "cannot found own thread ";
 		msg << dec << threadid;
 		msg << getStatusInfo("");
-		LOG(AKERROR, msg.str());
+		LOG(LOG_ERROR, msg.str());
 		msg << endl;
 		cerr << msg.str();
 	}
@@ -470,13 +470,13 @@ pthread_mutex_t* Thread::getMutex(string name)
 		char msg[40];
 
 		sprintf(msg, "ERROR:: cannot lock mutex -> error:%d", result);
-		LOG(AKALERT, msg);
+		LOG(LOG_ALERT, msg);
 	}else
 	{
 		int error= pthread_mutex_lock(&g_READMUTEX);
 		if(error != 0)
 		{
-			LOG(AKERROR, "error by mutex lock " + getMutexName(mutex));
+			LOG(LOG_ERROR, "error by mutex lock " + getMutexName(mutex));
 		}
 
 		tName.name= name;
@@ -486,7 +486,7 @@ pthread_mutex_t* Thread::getMutex(string name)
 		error= pthread_mutex_unlock(&g_READMUTEX);
 		if(error != 0)
 		{
-			LOG(AKERROR, "error by mutex unlock " + getMutexName(mutex));
+			LOG(LOG_ERROR, "error by mutex unlock " + getMutexName(mutex));
 		}
 	}
 	return mutex;
@@ -525,13 +525,13 @@ pthread_cond_t* Thread::getCondition(string name)
 		char msg[40];
 
 		sprintf(msg, "ERROR:: cannot lock mutex -> error:%d", result);
-		LOG(AKALERT, msg);
+		LOG(LOG_ALERT, msg);
 	}else
 	{
 		int error= pthread_mutex_lock(&g_READMUTEX);
 		if(error != 0)
 		{
-			LOG(AKERROR, "error by mutex lock " + getConditionName(cond));
+			LOG(LOG_ERROR, "error by mutex lock " + getConditionName(cond));
 		}
 
 		g_mCondition[cond]= name;
@@ -539,7 +539,7 @@ pthread_cond_t* Thread::getCondition(string name)
 		error= pthread_mutex_unlock(&g_READMUTEX);
 		if(error != 0)
 		{
-			LOG(AKERROR, "error by mutex unlock " + getConditionName(cond));
+			LOG(LOG_ERROR, "error by mutex unlock " + getConditionName(cond));
 		}
 	}
 	return cond;
@@ -556,7 +556,7 @@ string Thread::getMutexName(pthread_mutex_t* mutex)
 	error= pthread_mutex_lock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOG(AKERROR, "error by mutex lock READMUTEX by get name");
+		LOG(LOG_ERROR, "error by mutex lock READMUTEX by get name");
 		return "unknown";
 	}
 	i= g_mMutex.find(mutex);
@@ -576,7 +576,7 @@ string Thread::getMutexName(pthread_mutex_t* mutex)
 	error= pthread_mutex_unlock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOG(AKERROR, "error by mutex unlock READMUTEX by get name");
+		LOG(LOG_ERROR, "error by mutex unlock READMUTEX by get name");
 	}
 
 
@@ -593,7 +593,7 @@ string Thread::getConditionName(pthread_cond_t *cond)
 	error= pthread_mutex_lock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOG(AKERROR, "error by mutex lock READMUTEX by get condition name");
+		LOG(LOG_ERROR, "error by mutex lock READMUTEX by get condition name");
 		return "unknown";
 	}
 	i= g_mCondition.find(cond);
@@ -604,7 +604,7 @@ string Thread::getConditionName(pthread_cond_t *cond)
 	error= pthread_mutex_unlock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOG(AKERROR, "error by mutex unlock READMUTEX by get condition name");
+		LOG(LOG_ERROR, "error by mutex unlock READMUTEX by get condition name");
 	}
 	return name;
 }
@@ -661,7 +661,7 @@ int Thread::mutex_lock(string file, int line, pthread_mutex_t *mutex)
 		string msg("error by mutex lock ");
 
 		msg+= getMutexName(mutex);
-		LOG(AKERROR, msg);
+		LOG(LOG_ERROR, msg);
 #ifdef MUTEXLOCKDEBUG
 		cerr << msg << endl;
 #endif // MUTEXLOCKDEBUG
@@ -740,7 +740,7 @@ int Thread::mutex_trylock(string file, int line, pthread_mutex_t *mutex)
 		&&
 		error != EBUSY	)
 	{
-		LOG(AKERROR, "error by try to lock mutex " + getMutexName(mutex));
+		LOG(LOG_ERROR, "error by try to lock mutex " + getMutexName(mutex));
 	}
 #ifdef MUTEXLOCKDEBUG
 	if(error == 0)
@@ -828,7 +828,7 @@ int Thread::mutex_unlock(string file, int line, pthread_mutex_t *mutex)
 	error= pthread_mutex_unlock(mutex);
 	if(error != 0)
 	{
-		LOG(AKERROR, "error by mutex unlock " + getMutexName(mutex));
+		LOG(LOG_ERROR, "error by mutex unlock " + getMutexName(mutex));
 	}
 	return error;
 }
@@ -874,7 +874,7 @@ void Thread::destroyMutex(string file, int line, pthread_mutex_t* mutex)
 	error= pthread_mutex_lock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOG(AKERROR, "error by mutex lock READMUTEX by destroy");
+		LOG(LOG_ERROR, "error by mutex lock READMUTEX by destroy");
 		return;
 	}
 	i= g_mMutex.find(mutex);
@@ -883,7 +883,7 @@ void Thread::destroyMutex(string file, int line, pthread_mutex_t* mutex)
 	error= pthread_mutex_unlock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOG(AKERROR, "error by mutex unlock READMUTEX by destroy");
+		LOG(LOG_ERROR, "error by mutex unlock READMUTEX by destroy");
 	}
 	pthread_mutex_destroy(mutex);
 }
@@ -945,7 +945,7 @@ void Thread::destroyCondition(string file, int line, pthread_cond_t *cond)
 	error= pthread_mutex_lock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOG(AKERROR, "error by mutex lock READMUTEX by destroy condition");
+		LOG(LOG_ERROR, "error by mutex lock READMUTEX by destroy condition");
 		return;
 	}
 	i= g_mCondition.find(cond);
@@ -955,7 +955,7 @@ void Thread::destroyCondition(string file, int line, pthread_cond_t *cond)
 	error= pthread_mutex_unlock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOG(AKERROR, "error by mutex unlock READMUTEX by destroy condition");
+		LOG(LOG_ERROR, "error by mutex unlock READMUTEX by destroy condition");
 	}
 	pthread_cond_destroy(cond);
 }
@@ -1034,7 +1034,7 @@ int Thread::conditionWait(string file, int line, pthread_cond_t* cond, pthread_m
 		msg << "   on LINE: " << dec << line << " from FILE:" << file << endl;
 		msg << "   is not locked" << endl;
 		cerr << msg.str();
-		LOG(AKERROR, msg.str());
+		LOG(LOG_ERROR, msg.str());
 	}
 	pthread_mutex_unlock(&g_READMUTEX);
 #endif // CONDITIONSDEBUG
@@ -1092,7 +1092,7 @@ int Thread::conditionWait(string file, int line, pthread_cond_t* cond, pthread_m
 		else if(retcode == EINTR)
 			msg << "EINTR) condition was interrupted by an signal";
 		else msg << "UNKNOWN) unknown return code ";
-		TIMELOG(AKERROR, t.str(), msg.str());
+		TIMELOG(LOG_ERROR, t.str(), msg.str());
 #ifdef CONDITIONSDEBUG
 		cerr << msg.str() << endl;
 #endif //CONDITIONSDEBUG
@@ -1184,7 +1184,7 @@ int Thread::arouseCondition(string file, int line, pthread_cond_t *cond)
 
 		msg+= getConditionName(cond) + "\n       ";
 		msg+= strerror(errno);
-		LOG(AKERROR, msg);
+		LOG(LOG_ERROR, msg);
 	}
 	return error;
 }
@@ -1239,7 +1239,7 @@ int Thread::arouseAllCondition(string file, int line, pthread_cond_t *cond)
 
 		msg+= getConditionName(cond) + "\n       ";
 		msg+= strerror(errno);
-		LOG(AKERROR, msg);
+		LOG(LOG_ERROR, msg);
 	}
 	return error;
 }
@@ -1255,7 +1255,7 @@ int Thread::detach()
 		msg+= getThreadName() + "\n           ";
 		msg+= strerror(nRv);
 		if(LogThread::instance()->running())
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 #ifdef DEBUG
 		cerr << msg << endl;
 #endif
@@ -1292,10 +1292,10 @@ void *Thread::stop(const bool *bWait)
 #ifdef DEBUG
 				cerr << msg << endl;
 #endif // DEBUG
-				LOG(AKERROR,  msg);
+				LOG(LOG_ERROR,  msg);
 			}
 		}else
-			LOG(AKERROR, "application cannot stop own thread with stop(true)");
+			LOG(LOG_ERROR, "application cannot stop own thread with stop(true)");
 	}
 	UNLOCK(m_STARTSTOPTHREAD);
 

@@ -58,7 +58,7 @@ namespace ports
 			msg+= sfolder + " with subroutine ";
 			msg+= getSubroutineName();
 			cout << msg << endl;
-			TIMELOG(AKERROR, "mvalue", msg);
+			TIMELOG(LOG_ERROR, "mvalue", msg);
 			mvalue= 0;
 		}
 
@@ -69,7 +69,7 @@ namespace ports
 			msg+= sfolder + " with subroutine ";
 			msg+= getSubroutineName();
 			cout << msg << endl;
-			TIMELOG(AKERROR, "begin", msg);
+			TIMELOG(LOG_ERROR, "begin", msg);
 			dBegin= 0;
 		}*/
 

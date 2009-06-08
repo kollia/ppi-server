@@ -145,7 +145,7 @@ namespace ports
 			msg+= prop->getValue("name", /*warning*/false);
 			msg+= " is not correct for the k8055 port";
 			cerr << msg << endl;
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			return 0;
 		}
 		id= getChipTypeID(pin);
@@ -173,7 +173,7 @@ namespace ports
 			os <<  "### ERROR: Could not open the k8055 (port:" << dec << m_nID << ")";
 			if(errno != 0)
 				   os << "\n    ERRNO(" << dec << errno << "): " << strerror(errno);
-			TIMELOG(AKERROR, m_nID+"Vellemannk8055", os.str());
+			TIMELOG(LOG_ERROR, m_nID+"Vellemannk8055", os.str());
 			if(!failt)
 			{
 				cerr << os.str() << endl;

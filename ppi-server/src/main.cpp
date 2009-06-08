@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 		{
 			if(getuid() != 0)
 			{
-				cerr << "process must be start as root" << endl;
+				cerr << "process have to start as root" << endl;
 				return EXIT_FAILURE;
 			}
 		}
@@ -216,7 +216,7 @@ int main(int argc, char* argv[])
 	if(param == "start")
 		cout << "LogServer" << endl;
 	if(param == "stop")
-		LOG(AKINFO, "### -> server application was stopping!");
+		LOG(LOG_INFO, "### -> server application was stopping!");
 	if(LogThread::instance() == NULL)
 		cerr << "### ERROR: LogThread has stoped before" << endl;
 	else
@@ -266,7 +266,6 @@ void help(char* cpSelf)
 	printf("                    an second connection to server,\n");
 	printf("                    where the client get changes which are set\n");
 	printf("                    with the command 'HEAR'\n");
-	printf("            -f    - set new config file (ppi-dist.conf)\n");
 	printf("            -t    - showes by status info all threads with running information,\n");
 	printf("                    otherwise the command status tell only how much threads are running\n");
 	printf("            -c    - like -t but also showes all communication-threads with wich client-ID they are connected,\n");

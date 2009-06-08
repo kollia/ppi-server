@@ -76,7 +76,7 @@ namespace server
 					msg+=               "'is not valid\n";
 					msg+= "             so listen only on localhost";
 					inet_pton(m_kSocket.ss_family, "127.0.0.1", &address.sin_addr);
-					LOG(AKWARNING, msg);
+					LOG(LOG_WARNING, msg);
 #ifndef DEBUG
 					cout << msg << endl;
 #endif // DEBUG
@@ -105,7 +105,7 @@ namespace server
 			msg=  "ERROR: server cannot connect to socket!\n       ";
 			msg+= strerror(errno);
 			msg+= "\n       server does not start\n";
-			LOG(AKALERT, msg);
+			LOG(LOG_ALERT, msg);
 			cout << msg << endl;
 			return false;
 		}
@@ -126,7 +126,7 @@ namespace server
 			msg+= strerror(errno);
 			msg+= "\n       maybe found no running server";
 			msg+= "\n       client does not start\n";
-			LOG(AKALERT, msg);
+			LOG(LOG_ALERT, msg);
 			cout << msg << endl;
 			return false;
 		}

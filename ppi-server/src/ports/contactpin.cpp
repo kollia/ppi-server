@@ -52,7 +52,7 @@ namespace ports
 				msg+= "pin '";
 				msg+= split[1] + "' for parameter in is no correct pin on port '";
 				msg+= split[0];
-				LOG(AKERROR, msg);
+				LOG(LOG_ERROR, msg);
 				cerr << msg << endl;
 				return false;
 			}
@@ -62,7 +62,7 @@ namespace ports
 
 			msg+= "undefined <port>:<pin> ";
 			msg+= value + " for parameter in";
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			cerr << msg << endl;
 			return false;
 		}
@@ -87,7 +87,7 @@ namespace ports
 					msg+= "pin '";
 					msg+= split[1] + "' for parameter out is no correct pin on port '";
 					msg+= split[0];
-					LOG(AKWARNING, msg);
+					LOG(LOG_WARNING, msg);
 					cerr << msg << endl;
 					m_tOut.ePin= NONE;
 				}else
@@ -98,7 +98,7 @@ namespace ports
 
 				msg+= "undefined <port>:<pin> ";
 				msg+= value + " for parameter out";
-				LOG(AKWARNING, msg);
+				LOG(LOG_WARNING, msg);
 				cerr << msg << endl;
 				m_tOut.ePin= NONE;
 			}

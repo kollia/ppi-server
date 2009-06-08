@@ -197,7 +197,7 @@ namespace util {
 				*output+= msg;
 			else
 				cout << msg << endl;
-			LOG(AKWARNING, msg);
+			LOG(LOG_WARNING, msg);
 		}
 	}
 

@@ -44,7 +44,7 @@ bool Shell::init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder
 
 		msg= properties.getMsgHead(/*error*/true);
 		msg+= "no command (begincommand/whilecommand/endcommand) be set";
-		LOG(AKERROR, msg);
+		LOG(LOG_ERROR, msg);
 		cerr << msg << endl;
 		return false;
 	}
@@ -71,7 +71,7 @@ bool Shell::measure()
 			{
 				msg+= m_sBeginCom;
 				msg+= "' for beginning";
-				TIMELOG(AKINFO, getFolderName(), msg);
+				TIMELOG(LOG_INFO, getFolderName(), msg);
 				if(isDebug())
 					cout << msg << endl;
 				system(m_sBeginCom.c_str());
@@ -84,7 +84,7 @@ bool Shell::measure()
 			{
 				msg+= m_sWhileCom;
 				msg+= "' while during contact exists";
-				TIMELOG(AKINFO, getFolderName(), msg);
+				TIMELOG(LOG_INFO, getFolderName(), msg);
 				if(isDebug())
 					cout << msg << endl;
 				system(m_sWhileCom.c_str());
@@ -98,7 +98,7 @@ bool Shell::measure()
 			{
 				msg+= m_sEndCom;
 				msg+= "' for ending";
-				TIMELOG(AKDEBUG, getFolderName(), msg);
+				TIMELOG(LOG_DEBUG, getFolderName(), msg);
 				if(isDebug())
 					cout << msg << endl;
 				system(m_sEndCom.c_str());
@@ -124,7 +124,7 @@ void Shell::system(const char *command)
 
 		msg+= command;
 		msg+= "'";
-		LOG(AKALERT, msg);
+		LOG(LOG_ALERT, msg);
 		return;
 	}
 
@@ -136,7 +136,7 @@ void Shell::system(const char *command)
 
 			msg+= command;
 			msg+= "'";
-			LOG(AKALERT, msg);
+			LOG(LOG_ALERT, msg);
 		}
 		//cout << "ending child witch starting command '" << command << "'" << endl;
 		//cout << "------------------------------------------------------------------------------------------" << endl;

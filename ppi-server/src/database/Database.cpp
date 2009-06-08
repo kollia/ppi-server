@@ -87,6 +87,7 @@ Database::Database(string dbDir, string confDir, IPropertyPattern* properties, u
 	m_nAfter= (unsigned int)(newdbafter * 1000000);
 	if(m_sWorkDir.substr(m_sWorkDir.length()-1, 1) != "/")
 		m_sWorkDir+= "/";
+	LOG(LOG_INFO, "Storage database " + m_sWorkDir);
 }
 
 void Database::initial(string workDir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep)
@@ -204,7 +205,7 @@ bool Database::init(void *args)
 			error+= "           start no database\n    ERRNO: ";
 			error+= strerror(errno);
 			cerr << endl << error << endl;
-			LOG(AKALERT, error);
+			LOG(LOG_ALERT, error);
 			return false;
 		}
 		while(!file.eof())
@@ -289,7 +290,7 @@ string Database::getLastDbFile(string path, string filter, off_t &size)
 		msg+= "    ERRNO: ";
 		msg+= strerror(errno);
 		cout << msg << endl;
-		LOG(AKALERT, msg);
+		LOG(LOG_ALERT, msg);
 		return "";
 	}
 	while((dirName= readdir(dir)) != NULL)
@@ -334,7 +335,7 @@ string Database::getLastDbFile(string path, string filter, off_t &size)
 			error+= "): ";
 			error+= strerror(errno);
 			error+= "\n   create an new one          ";
-			LOG(AKERROR, error);
+			LOG(LOG_ERROR, error);
 			cerr << endl << error;
 			size= 15000001;// to create an new file
 		}else
@@ -395,7 +396,7 @@ bool Database::createNewDbFile(bool bCheck)
 			error+= "): ";
 			error+= strerror(errno);
 			error+= "\n   create no new one";
-			LOG(AKERROR, error);
+			LOG(LOG_ERROR, error);
 			return false;
 		}
 		if(fileStat.st_size < (int)m_nAfter)
@@ -615,7 +616,7 @@ bool Database::needSubroutines(unsigned long connection, string name)
 	iEntrys= sEntrys->second.find("value");
 	if(iEntrys == sEntrys->second.end())
 	{
-		LOG(AKALERT, "found correct folder and subroutine but no entry for 'value'");
+		LOG(LOG_ALERT, "found correct folder and subroutine but no entry for 'value'");
 		UNLOCK(m_DBCURRENTENTRY);
 		return false;
 	}
@@ -931,7 +932,7 @@ void Database::ending()
 		msg+= "    ERRNO: ";
 		msg+= strerror(errno);
 		cout << msg << endl;
-		LOG(AKERROR, msg);
+		LOG(LOG_ERROR, msg);
 	}
 
 }
@@ -978,7 +979,7 @@ void Database::writeDb(db_t entry, ofstream* dbfile/*= NULL*/)
 			if(!m_bError)
 				cout << error << endl;
 			m_bError= true;
-			TIMELOG(AKALERT, "opendatabase", error);
+			TIMELOG(LOG_ALERT, "opendatabase", error);
 			delete dbfile;
 			return;
 		}
@@ -1053,7 +1054,7 @@ map<string, string> Database::readDirectory(const string& path, const string& be
 		msg+= "    ERRNO: ";
 		msg+= strerror(errno);
 		cout << msg << endl;
-		TIMELOG(AKALERT, "readdirectory", msg);
+		TIMELOG(LOG_ALERT, "readdirectory", msg);
 		return files;
 	}
 	while((dirName= readdir(dir)) != NULL)
@@ -1199,7 +1200,7 @@ bool Database::thinDatabase(const bool ask)
 										msg+= "    ERRNO: ";
 										msg+= strerror(errno);
 										cout << msg << endl;
-										TIMELOG(AKALERT, "writenewfile", msg);
+										TIMELOG(LOG_ALERT, "writenewfile", msg);
 										file.close();
 										return false;
 									}
@@ -1243,7 +1244,7 @@ bool Database::thinDatabase(const bool ask)
 							msg+= "    ERRNO: ";
 							msg+= strerror(errno);
 							cout << msg << endl;
-							TIMELOG(AKALERT, "writenewfile", msg);
+							TIMELOG(LOG_ALERT, "writenewfile", msg);
 							file.close();
 							return false;
 						}
@@ -1271,7 +1272,7 @@ bool Database::thinDatabase(const bool ask)
 							msg+= "    ERRNO: ";
 							msg+= strerror(errno);
 							cout << msg << endl;
-							TIMELOG(AKALERT, "writenewfile", msg);
+							TIMELOG(LOG_ALERT, "writenewfile", msg);
 							file.close();
 							return false;
 						}
@@ -1307,7 +1308,7 @@ bool Database::thinDatabase(const bool ask)
 							msg+= "    ERRNO: ";
 							msg+= strerror(errno);
 							cout << msg << endl;
-							TIMELOG(AKALERT, "writenewfile", msg);
+							TIMELOG(LOG_ALERT, "writenewfile", msg);
 							file.close();
 							return false;
 						}
@@ -1346,7 +1347,7 @@ bool Database::thinDatabase(const bool ask)
 						msg+= "    ERRNO: ";
 						msg+= strerror(errno);
 						cout << msg << endl;
-						TIMELOG(AKALERT, "writenewfile", msg);
+						TIMELOG(LOG_ALERT, "writenewfile", msg);
 						file.close();
 						return false;
 					}
@@ -1398,7 +1399,7 @@ bool Database::thinDatabase(const bool ask)
 		msg+= "    ERRNO: ";
 		msg+= strerror(errno);
 		cout << msg << endl;
-		TIMELOG(AKERROR, "readdirectory", msg);
+		TIMELOG(LOG_ERROR, "readdirectory", msg);
 		return false;
 	}
 	// maybe an next file is to thin

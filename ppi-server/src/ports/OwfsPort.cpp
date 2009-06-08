@@ -101,7 +101,7 @@ namespace ports
 			if(first)
 				cerr << msg << endl;
 			first= false;
-			TIMELOG(AKWARNING, log, msg);
+			TIMELOG(LOG_WARNING, log, msg);
 			setDeviceAccess(false);
 			return true;// no error try again later
 		}
@@ -151,7 +151,7 @@ namespace ports
 				msg+= "ID ";
 				msg+= m_sChipID + " for owserver ";
 				msg+= m_sServer + " cannot read correctly";
-				LOG(AKERROR, msg);
+				LOG(LOG_ERROR, msg);
 			}
 			if(!m_pOWServer)
 			{

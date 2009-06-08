@@ -176,7 +176,7 @@ namespace server
 			msg+= "       getting '";
 			msg+= result + "'";
 			cerr << msg << endl;
-			LOG(AKALERT, msg);
+			LOG(LOG_ALERT, msg);
 			return false;
 		}
 
@@ -423,7 +423,7 @@ namespace server
 			logMsg= "client send command '";
 			logMsg+= m_sCommand;
 			logMsg+= "'";
-			LOG(AKDEBUG, logMsg);
+			LOG(LOG_DEBUG, logMsg);
 
 			if(	m_sCommand.substr(0, 3) == "DIR"
 				||
@@ -452,7 +452,7 @@ namespace server
 				{
 					cerr << endl;
 					cerr << "ERROR: lost connection to server" << endl;
-					LOG(AKSERVER, "ERROR: lost connection to server");
+					LOG(LOG_SERVER, "ERROR: lost connection to server");
 					return false;
 				}
 				if(result.substr(0, 6) == "ERROR ")

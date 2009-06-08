@@ -39,7 +39,7 @@ namespace server
 		m_kSocket.bindSocket = accept(m_kSocket.serverSocket, (struct sockaddr *) &m_kSocket.rec_addres, &m_kSocket.adrlaenge);
 		if (m_kSocket.bindSocket < 0)
 		{
-			LOG(AKERROR, "Error by starting new connection\n");
+			LOG(LOG_ERROR, "Error by starting new connection\n");
 			return NULL;
 		}
 		fp = fdopen (m_kSocket.bindSocket, "w+");
@@ -47,14 +47,14 @@ namespace server
 		msg= "connect to client with IP-address ";
 		msg+= ip_address;
 		POSS("#server#has-client", ip_address);
-		LOG(AKSERVER, msg);
+		LOG(LOG_SERVER, msg);
 	#ifdef SERVERDEBUG
 		cout << msg << endl;
 	#endif // SERVERDEBUG
 		descriptor= new FileDescriptor(m_pTransfer, fp, ip_address, m_nPort);
 		if(!descriptor->init())
 		{
-			LOG(AKERROR, msg+"\ninitialization fault ");
+			LOG(LOG_ERROR, msg+"\ninitialization fault ");
 			//fclose(fp);
 			delete descriptor;
 			return NULL;
@@ -84,20 +84,20 @@ namespace server
 			msg= "ERROR: by binding on server\n       ";
 			msg+= strerror(errno);
 			msg+= "\n       server does not start\n";
-			LOG(AKALERT, msg);
+			LOG(LOG_ALERT, msg);
 			cout << msg << endl;
 			return false;
 		}
 		if (::listen(m_kSocket.serverSocket, 5) < 0)
 		{
-			LOG(AKALERT, "ERROR: by listen on socket");
+			LOG(LOG_ALERT, "ERROR: by listen on socket");
 			//sleep(60);
 			return false;
 		}
 		msg= "listen on IP ";
 		msg+= m_psHost;
 		msg+= "\n server is running ...";
-		LOG(AKINFO, msg);
+		LOG(LOG_INFO, msg);
 		cout << msg << endl;
 		return true;
 	}

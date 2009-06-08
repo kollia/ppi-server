@@ -82,6 +82,7 @@ void *LogThread::stop(bool bWait)
 
 void LogThread::setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays)
 {
+	LOG(LOG_INFO, "Storage Log-files " + logFile);
 	m_sConfLogFile= logFile;
 	m_nMinLogLevel= minLogLevel;
 	m_nTimeLogWait= logAllSec;
@@ -294,22 +295,22 @@ void LogThread::execute()
 					logfile << "*  ";
 					switch((*pvLogVector)[n].type)
 					{
-						case AKDEBUG:
+						case LOG_DEBUG:
 							logfile << "DEBUG info";
 							break;
-						case AKINFO:
+						case LOG_INFO:
 							logfile << "INFO";
 							break;
-						case AKWARNING:
+						case LOG_WARNING:
 							logfile << "WARNING";
 							break;
-						case AKSERVER:
+						case LOG_SERVER:
 							logfile << "SERVER";
 							break;
-						case AKERROR:
+						case LOG_ERROR:
 							logfile << "ERROR";
 							break;
-						case AKALERT:
+						case LOG_ALERT:
 							logfile << "ALERT error";
 							break;
 						default:

@@ -140,7 +140,7 @@ namespace ports
 				msg+= "): ";
 				msg+= strerror(errno);
 				cerr << msg << endl;
-				LOG(AKERROR, msg);
+				LOG(LOG_ERROR, msg);
 			}
 			for(short nPin= 0; nPin < 8; ++nPin)
 			{
@@ -242,7 +242,7 @@ namespace ports
 
 			msg+= "do not found dallas chip id ";
 			msg+= chipID;
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			cerr << msg << endl;
 			return 0;
 		}
@@ -273,7 +273,7 @@ namespace ports
 
 				msg+= "write is set but chip in ";
 				msg+= getDefaultFileName() + " is only set for readable";
-				LOG(AKWARNING, msg);
+				LOG(LOG_WARNING, msg);
 				cerr << msg << endl;
 				read= true;
 				write= false;
@@ -310,7 +310,7 @@ namespace ports
 			string msg(prop->getMsgHead(true));
 
 			msg+= "no pin is set for chip";
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			cerr << msg << endl;
 			return 0;
 		}
@@ -326,7 +326,7 @@ namespace ports
 				string msg(prop->getMsgHead(false));
 
 				msg+= "action cache or writecache only for writing and will be ignored";
-				LOG(AKWARNING, msg);
+				LOG(LOG_WARNING, msg);
 				cout << msg << endl;
 				cacheWrite= false;
 
@@ -337,7 +337,7 @@ namespace ports
 				string msg(prop->getMsgHead(false));
 
 				msg+= "action current only for reading and will be ignored";
-				LOG(AKWARNING, msg);
+				LOG(LOG_WARNING, msg);
 				cout << msg << endl;
 			}
 			if(!read && !write)
@@ -393,7 +393,7 @@ namespace ports
 			if(cacheWrite)
 				msg+= "cache ";
 			msg+= " be only for DS2408 (family:29) and will be ignored";
-			LOG(AKWARNING, msg);
+			LOG(LOG_WARNING, msg);
 			cout << msg << endl;
 		}
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -515,7 +515,7 @@ namespace ports
 			{
 				// successful trying to connect,
 				// but have not found any port with init
-				TIMELOG(AKERROR, log.str(), "ERROR: no correct OW_init, but no errno be set");
+				TIMELOG(LOG_ERROR, log.str(), "ERROR: no correct OW_init, but no errno be set");
 				return true;
 			}
 			msg << "### ERROR: can not initial owfs one wire device with string '";
@@ -525,7 +525,7 @@ namespace ports
 			if(!failt)
 				cerr << msg.str() << endl;
 			failt= true;
-			TIMELOG(AKERROR, log.str(), msg.str());
+			TIMELOG(LOG_ERROR, log.str(), msg.str());
 			return false;
 		}
 		m_bConnected= true;
@@ -536,7 +536,7 @@ namespace ports
 			{
 				string msg("### ERROR: input ouptput error -> cannot read directory from maximchips correctly");
 
-				LOG(AKERROR, msg);
+				LOG(LOG_ERROR, msg);
 				m_bConnected= false;
 #ifdef DEBUG
 				cerr << msg << endl;
@@ -549,7 +549,7 @@ namespace ports
 			string msg("first initialization of owfs one wire device with string '");
 
 			msg+= m_sInit + "'";
-			LOG(AKINFO, msg);
+			LOG(LOG_INFO, msg);
 			cout << msg << endl;
 		}
 		return true;
@@ -613,7 +613,7 @@ namespace ports
 			msg+= "): ";
 			msg+= strerror(errno);
 			cerr << msg << endl;
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			if(size > 0)
 				free(buf);
 			return "";
@@ -658,7 +658,7 @@ namespace ports
 			else
 				msg+= strerror(errno);
 			cerr << msg << endl;
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			if(size > 0)
 				free(buf);
 			return "";
@@ -726,7 +726,7 @@ namespace ports
 			msg+= "): ";
 			msg+= strerror(errno);
 			cerr << msg << endl;
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			if(s > 0)
 				free(buf);
 			return false;
@@ -762,7 +762,7 @@ namespace ports
 		}
 		// set second parameter for TIMELOG to founded directory length
 		// because if reading from directorys changed it should write into log
-		TIMELOG(AKINFO, dirStr, msg);
+		TIMELOG(LOG_INFO, dirStr, msg);
 #ifdef DEBUG
 		cout << msg << endl;
 #endif
@@ -848,7 +848,7 @@ namespace ports
 
 				msg+= "         so do not read sequence inside defined cache.\n";
 				msg+= "         In this case measureing only in sequence back to back";
-				TIMELOG(AKWARNING, "gettimeofday", msg);
+				TIMELOG(LOG_WARNING, "gettimeofday", msg);
 			}else
 			{
 				msg= "write on " + path;
@@ -859,7 +859,7 @@ namespace ports
 				msg+= " mikrosec:";
 				snprintf(stlbuf, 15, "%ld", stltv.tv_usec);
 				msg+= stlbuf;
-				LOG(AKINFO, msg);
+				LOG(LOG_INFO, msg);
 			}
 #endif // SERVERTIMELOG
 		//size= OW_lwrite(path.c_str(), inval.c_str(), inval.length(), 0 );
@@ -872,7 +872,7 @@ namespace ports
 
 				msg+= "         so do not read sequence inside defined cache.\n";
 				msg+= "         In this case measureing only in sequence back to back";
-				TIMELOG(AKWARNING, "gettimeofday", msg);
+				TIMELOG(LOG_WARNING, "gettimeofday", msg);
 			}else
 			{
 				msg= "writing finished on " + path;
@@ -882,7 +882,7 @@ namespace ports
 				msg+= " mikrosec:";
 				snprintf(stlbuf, 15, "%ld", stltv.tv_usec);
 				msg+= stlbuf;
-				LOG(AKINFO, msg);
+				LOG(LOG_INFO, msg);
 			}
 #endif // SERVERTIMELOG
 		if(size <= 0)
@@ -891,7 +891,7 @@ namespace ports
 			string msg("by writing on path ");
 
 			msg+= path + " some error occured.\nmake new connection";
-			LOG(AKDEBUG, msg);
+			LOG(LOG_DEBUG, msg);
 			if(	!connect()
 				||
 				OW_put(path.c_str(), inval.c_str(), inval.length())	<= 0	)
@@ -907,7 +907,7 @@ namespace ports
 				msg+= "): ";
 				msg+= strerror(errno);
 				cerr << msg << endl;
-				LOG(AKERROR, msg);
+				LOG(LOG_ERROR, msg);
 #ifdef DEBUG
 				cerr << msg << endl;
 #endif //DEBUG
@@ -952,7 +952,7 @@ namespace ports
 
 				msg+= pin->chipid + " for uniqe pin ";
 				msg+= pin->id + " in m_nConductors witch is in UsedChips";
-				LOG(AKALERT, msg);
+				LOG(LOG_ALERT, msg);
 #ifdef debug
 				cerr << msg << endl;
 #endif // debug
@@ -980,7 +980,7 @@ namespace ports
 
 									msg << "### ERROR: cannot write into " << path << "\n";
 									msg << "    ERRNO(" << errno << "); " << strerror(errno);
-									TIMELOG(AKERROR, path, msg.str());
+									TIMELOG(LOG_ERROR, path, msg.str());
 								}else
 								{
 									char buf[4];
@@ -1050,7 +1050,7 @@ namespace ports
 				msg+= strerror(errno);
 			//cerr << msg << endl;
 			incorrectChip(getChipID(id));
-			TIMELOG(AKERROR, "maximread"+path, msg);
+			TIMELOG(LOG_ERROR, "maximread"+path, msg);
 #ifdef DEBUG
 				cerr << msg << endl;
 #endif //DEBUG
@@ -1079,7 +1079,7 @@ namespace ports
 					snprintf(buff, 50, "%lf", value);
 					msg+= buff;
 					msg+= ", maybe VCC is not correct 5 V";
-					TIMELOG(AKERROR, "convertingOver100", msg);
+					TIMELOG(LOG_ERROR, "convertingOver100", msg);
 					value/= 10;
 					//snprintf(result, 50, "%lf", v);
 					return -1;
@@ -1179,7 +1179,7 @@ namespace ports
 
 			msg+= pin;
 			msg+= "\nby define range in MaximChipAccess class";
-			TIMELOG(AKERROR, "maximrangedef" + pin, msg);
+			TIMELOG(LOG_ERROR, "maximrangedef" + pin, msg);
 			cerr << "### ERROR: " << msg << endl;
 			min= 0;
 			max= 1;

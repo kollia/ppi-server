@@ -98,7 +98,7 @@ namespace util
 			value+= "parameter " + property;
 			value+= " is not allowed";
 			cerr << value << endl;
-			LOG(AKWARNING, value);
+			LOG(LOG_WARNING, value);
 			return true;
 		}
 		return false;

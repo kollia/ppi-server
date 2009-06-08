@@ -53,7 +53,7 @@ namespace ports
 					msg+= " double";
 				else
 					msg+= " integer";
-				LOG(AKWARNING, msg);
+				LOG(LOG_WARNING, msg);
 				cerr << msg << endl;
 			}
 		}

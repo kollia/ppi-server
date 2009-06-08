@@ -359,7 +359,7 @@ bool switchClass::getSubResult(char *str, measurefolder_t* pStartFolder, string 
 		msg+= cOperator;
 		msg+= "' in result:\n";
 		msg+= str;
-		TIMELOG(AKERROR, sFolder, msg);
+		TIMELOG(LOG_ERROR, sFolder, msg);
 		if(debug)
 			cout << msg << endl;
 		delete[] pcCurrent;
@@ -417,7 +417,7 @@ bool switchClass::calculateResult(const char* pcCurrent, double &dResult)
 		msg+= pcCurrent;
 		msg+= "' in any folder\nfrom result: ";
 		msg+= pcCurrent;
-		TIMELOG(AKERROR, getFolderName(), msg);
+		TIMELOG(LOG_ERROR, getFolderName(), msg);
 		if(isDebug())
 			cout << msg << endl;
 		dResult= 0;
@@ -491,7 +491,7 @@ bool switchClass::searchResult(const char* pcCurrent, double &dResult)
 		msg+= pcCurrent;
 		msg+= "' in any folder\nfrom result: ";
 		msg+= pcCurrent;
-		TIMELOG(AKERROR, getFolderName(), msg);
+		TIMELOG(LOG_ERROR, getFolderName(), msg);
 		if(isDebug())
 			cout << msg << endl;
 		dResult= 0;

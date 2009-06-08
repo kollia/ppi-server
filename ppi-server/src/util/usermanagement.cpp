@@ -71,7 +71,7 @@ namespace user
 			msg+= " ";
 			msg+= strerror(errno);
 			cerr << msg;
-			LOG(AKALERT, msg);
+			LOG(LOG_ALERT, msg);
 			return false;
 		}
 
@@ -93,7 +93,7 @@ namespace user
 
 				msg+= param + "' is undefined string, so set rootlogin as false";
 
-				LOG(AKWARNING, msg);
+				LOG(LOG_WARNING, msg);
 				cout << msg << endl;
 			}
 		}
@@ -101,7 +101,7 @@ namespace user
 		{
 			string msg("### fatal ERROR: root name should not containe an double point ':'");
 
-			LOG(AKALERT, msg);
+			LOG(LOG_ALERT, msg);
 			cerr << msg << endl;
 			return false;
 		}
@@ -129,7 +129,7 @@ namespace user
 		{
 			string msg("## fatal ERROR: no user are defined in access.conf");
 
-			LOG(AKALERT, msg);
+			LOG(LOG_ALERT, msg);
 			cerr << msg << endl;
 			return false;
 		}

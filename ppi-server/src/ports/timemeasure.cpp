@@ -64,7 +64,7 @@ bool TimeMeasure::init(ConfigPropertyCasher &properties)
 		errorOut+= "\n           parameter ";
 		errorOut+= error;
 		errorOut+= " does not be set correctly";
-		LOG(AKERROR, errorOut);
+		LOG(LOG_ERROR, errorOut);
 		cout << errorOut << endl;
 		return false;
 	}
@@ -146,7 +146,7 @@ bool TimeMeasure::measure()
 		msg= "measured time:";
 		msg+= buf;
 		msg+=" us";
-		TIMELOG(AKINFO, getFolderName(), msg);
+		TIMELOG(LOG_INFO, getFolderName(), msg);
 		cout << msg << endl;
 	}
 	return true;
@@ -195,7 +195,7 @@ unsigned long TimeMeasure::getMeasuredTime()
 		sprintf(cError, "%d: ", errno);
 		msg+= cError;
 		msg+= "cannot read correctly time";
-		LOG(AKERROR, msg);
+		LOG(LOG_ERROR, msg);
 		return m_maxMeasuredTime;
 	}else
 	{
@@ -224,7 +224,7 @@ unsigned long TimeMeasure::getMeasuredTime()
 
 		sprintf(cError, "%lu", m_maxMeasuredTime);
 		msg+= cError;
-		LOG(AKERROR, msg);
+		LOG(LOG_ERROR, msg);
 		mikroSleepTime= m_maxMeasuredTime;
 		msleeptime= m_maxMeasuredTime;
 	}
@@ -346,7 +346,7 @@ unsigned long TimeMeasure::getNewMikroseconds(vector<ohm> *elkoCorrection)
 #endif // DEBUG
 	logString+= "\n";
 	logString+= logString2;
-	LOG(AKINFO, logString);
+	LOG(LOG_INFO, logString);
 	return time;
 }
 
@@ -470,7 +470,7 @@ correction_t TimeMeasure::getNewCorrection(correction_t tCorrection, vector<ohm>
 
 	logString+= "\n";
 	logString+= logString2;
-	LOG(AKINFO, logString);
+	LOG(LOG_INFO, logString);
 	tRv.be= tCorrection.be;
 	tRv.nMikrosec= time;
 	tRv.correction= correction;
@@ -496,7 +496,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 #ifndef DEBUG
 	cout << logString << endl;
 #endif // DEBUUG
-	LOG(AKINFO, logString);
+	LOG(LOG_INFO, logString);
 
 	m_nMeasuredness= 1;
 	maxtime= 0;
@@ -556,7 +556,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 		}
 		sleep(sleeptime);
 	}
-	LOG(AKINFO, endlog);
+	LOG(LOG_INFO, endlog);
 #ifdef DEBUG
 	cout << endlog << endl << endl;
 #endif // DEBUG
@@ -588,7 +588,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 	sprintf(res, "%lu", (maxtime-mintime));
 	logString+= res;
 	logString+= ".\n";
-	LOG(AKINFO, logString);
+	LOG(LOG_INFO, logString);
 #ifndef DEBUG
 	cout << logString << endl;
 #endif //DEBUG

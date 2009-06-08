@@ -1,7 +1,4 @@
 
-find_file(srcs REGEX MATCH ".*\.cpp" PATHS ${CMAKE_SOURCE_DIR}/src)
-message(STATUS "found ${srcs}")
-
 set(mainSrcs 	main.cpp 
 		starter.cpp				)
 set(databaseSrcs database/Database.cpp 

@@ -124,12 +124,12 @@ class LogThread : public Thread
 		vector<struct log> *getLogVector();
 };
 
-#define AKDEBUG 0
-#define AKINFO  1
-#define AKSERVER 2
-#define AKWARNING 3
-#define AKERROR 4
-#define AKALERT 5
+#define LOG_DEBUG 0
+#define LOG_INFO  1
+#define LOG_SERVER 2
+#define LOG_WARNING 3
+#define LOG_ERROR 4
+#define LOG_ALERT 5
 
 #define LOG(type, message) LogThread::instance()->log(__FILE__, __LINE__, type, message)
 #define TIMELOG(type, identif, message) LogThread::instance()->log(__FILE__, __LINE__, type, message, identif)

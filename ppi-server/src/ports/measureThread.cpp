@@ -89,7 +89,7 @@ bool MeasureThread::init(void *arg)
 
 	/*if(ioperm(COM1, 8, 1))
 	{
-		LOG(AKERROR, "cannot open port");
+		LOG(LOG_ERROR, "cannot open port");
 		return false;
 	}*/
 	m_pvlPorts= tArg.ports;
@@ -129,7 +129,7 @@ void MeasureThread::execute()
 		string msg("### DEBUGGING for folder ");
 
 		msg+= thread + " is aktivated!";
-		TIMELOG(AKWARNING, thread, msg);
+		TIMELOG(LOG_WARNING, thread, msg);
 	}
 	if(!bSleeped)
 	{
@@ -142,7 +142,7 @@ void MeasureThread::execute()
 		if(isDebug())
 			cout << msg << endl;
 		sleep(time);
-		TIMELOG(AKDEBUG, "sleep" + getgid(), msg.str());
+		TIMELOG(LOG_DEBUG, "sleep" + getgid(), msg.str());
 	}
 }
 
@@ -221,7 +221,7 @@ bool MeasureThread::measure()
 
 				msg+= " for folder ";
 				msg+= thread;
-				TIMELOG(AKDEBUG, thread, msg);
+				TIMELOG(LOG_DEBUG, thread, msg);
 				if(isDebug())
 					cout << msg << endl;
 				bSleeped= true;

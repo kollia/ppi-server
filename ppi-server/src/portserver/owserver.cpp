@@ -163,7 +163,7 @@ namespace server
 		{
 			string msg(" connection to device was failed, try to connect all seconds");
 
-			LOG(AKINFO, msg);
+			LOG(LOG_INFO, msg);
 			cout << "### WARNING: " << msg << endl;
 		}else
 			m_bConnected= true;
@@ -202,7 +202,7 @@ namespace server
 			string msg(properties->getMsgHead(true));
 
 			msg+= "actions read and write cannot used both in same subroutine";
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			cerr << msg << endl;
 			return 0;
 		}
@@ -214,7 +214,7 @@ namespace server
 
 			msg+= "cache as parameter for sequence is only for reading";
 			cout << msg << endl;
-			LOG(AKWARNING, msg);
+			LOG(LOG_WARNING, msg);
 			dCacheSeq= 0;
 		}
 
@@ -497,7 +497,7 @@ namespace server
 
 				msg+= "         so do not read sequence inside defined cache.\n";
 				msg+= "         In this case measureing only in sequence back to back";
-				TIMELOG(AKWARNING, "gettimeofday", msg);
+				TIMELOG(LOG_WARNING, "gettimeofday", msg);
 				cerr << msg << endl;
 				m_bReadSeq= false;
 			}else
@@ -646,7 +646,7 @@ namespace server
 
 							msg+= "         so do not read sequence inside defined cache.\n";
 							msg+= "         In this case measureing only in sequence back to back";
-							TIMELOG(AKWARNING, "gettimeofday", msg);
+							TIMELOG(LOG_WARNING, "gettimeofday", msg);
 							cout << msg << endl;
 							m_bReadSeq= false;
 						}else
@@ -706,7 +706,7 @@ namespace server
 
 					msg+= "         so do not read sequence inside defined cache.\n";
 					msg+= "         In this case measureing only in sequence back to back";
-					TIMELOG(AKWARNING, "gettimeofday", msg);
+					TIMELOG(LOG_WARNING, "gettimeofday", msg);
 					cout << msg << endl;
 					m_bReadSeq= false;
 				}
@@ -852,7 +852,7 @@ namespace server
 
 				msg+= "         so do not read sequence inside defined cache.\n";
 				msg+= "         In this case measureing only in sequence back to back";
-				TIMELOG(AKWARNING, "gettimeofday", msg);
+				TIMELOG(LOG_WARNING, "gettimeofday", msg);
 			}else
 			{
 				msg= "order on " + id;
@@ -864,7 +864,7 @@ namespace server
 				msg+= " mikrosec:";
 				snprintf(stlbuf, 15, "%ld", stltv.tv_usec);
 				msg+= stlbuf;
-				LOG(AKINFO, msg);
+				LOG(LOG_INFO, msg);
 			}
 #endif // SERVERTIMELOG
 			chip->value= value;
@@ -935,7 +935,7 @@ namespace server
 			msg+= id + " ";
 			msg+= pin + " ";
 			msg+= " value:" + value;
-			LOG(AKDEBUG, msg);
+			LOG(LOG_DEBUG, msg);
 #endif //DALLASTIMELOG
 			LOCK(m_PRIORITYCACHE);
 			m_mvPriorityCache[priority].push_back(chip);
@@ -1045,7 +1045,7 @@ namespace server
 		msg= "read ";
 		msg+= value + " from chip " + id;
 		msg+= pin;
-		LOG(AKDEBUG, msg);
+		LOG(LOG_DEBUG, msg);
 		TimeMeasure::setMikrotime();
 #endif //DALLASTIMELOG
 
@@ -1065,7 +1065,7 @@ namespace server
 		msg+= " need ";
 		msg+= buf;
 		msg+= " microseconds";
-		LOG(AKDEBUG, msg);
+		LOG(LOG_DEBUG, msg);
 #endif //DALLASTIMELOG
 
 		return bRv;

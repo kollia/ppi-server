@@ -56,7 +56,7 @@ bool switchContact::init(ConfigPropertyCasher &properties, measurefolder_t *pSta
 				msg+= "pin '";
 				msg+= split[1] + "' for parameter out is no correct pin on port '";
 				msg+= split[0];
-				LOG(AKERROR, msg);
+				LOG(LOG_ERROR, msg);
 				cerr << msg << endl;
 				return false;
 			}
@@ -66,7 +66,7 @@ bool switchContact::init(ConfigPropertyCasher &properties, measurefolder_t *pSta
 
 			msg+= "undefined <port>:<pin> ";
 			msg+= value + " for parameter out";
-			LOG(AKERROR, msg);
+			LOG(LOG_ERROR, msg);
 			cerr << msg << endl;
 			return false;
 		}
@@ -108,7 +108,7 @@ bool switchContact::measure()
 			msg+= " on port ";
 			msg+= getPortName(m_tOut.nPort);
 			msg+= " to +10 Volt";
-			LOG(AKDEBUG, msg);
+			LOG(LOG_DEBUG, msg);
 			//setPin(m_tOut, true);
 			if(isDebug())
 				cout << msg << endl;
@@ -121,7 +121,7 @@ bool switchContact::measure()
 			msg+= " on port ";
 			msg+= getPortName(m_tOut.nPort);
 			msg+= " to -10 Volt";
-			LOG(AKDEBUG, msg);
+			LOG(LOG_DEBUG, msg);
 			//setPin(m_tOut, false);
 			if(isDebug())
 				cout << msg << endl;

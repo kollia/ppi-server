@@ -125,7 +125,7 @@ namespace server
 		if(print)
 			cout << msg << endl;
 #endif // DEBUG
-		LOG(AKINFO, msg);
+		LOG(LOG_INFO, msg);
 
 		clientsocket = socket(PF_INET, SOCK_STREAM, 0);
 
@@ -133,7 +133,7 @@ namespace server
 		{
 			LogThread *log= LogThread::instance();
 
-			LOG(AKALERT, "ERROR: server as client cannot connect to socket!");
+			LOG(LOG_ALERT, "ERROR: server as client cannot connect to socket!");
 			log->stop();
 			exit(1);
 		}
@@ -188,7 +188,7 @@ namespace server
 	void ServerThread::close()
 	{
 		m_pConnect->close();
-		LOG(AKDEBUG, "Server-Socket was closed");
+		LOG(LOG_DEBUG, "Server-Socket was closed");
 	}
 	ServerThread::~ServerThread()
 	{

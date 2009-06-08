@@ -81,7 +81,7 @@ bool Starter::openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsig
 #ifndef DEBUG
 	cout << msg << endl;
 #endif // DEBUG
-	LOG(AKINFO, msg);
+	LOG(LOG_INFO, msg);
 	res= ioperm(nPort, 8, 1);
 	if(res)
 		return false;
@@ -128,6 +128,7 @@ bool Starter::execute(vector<string> options)
 
 	m_sConfPath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
 	dbpath= URL::addPath(m_sWorkdir, PPIDATABASEPATH, /*always*/false);
+	LOG(LOG_INFO, "Read configuration files from " + m_sConfPath);
 
 	fileName= URL::addPath(m_sConfPath, "server.conf");
 	if(!m_oServerFileCasher.readFile(fileName))
@@ -150,22 +151,22 @@ bool Starter::execute(vector<string> options)
 	property= "log";
 	sLogLevel= m_oServerFileCasher.getValue(property, false);
 	if(sLogLevel == "DEBUG")
-		nLogLevel= AKDEBUG;
+		nLogLevel= LOG_DEBUG;
 	else if(sLogLevel == "INFO")
-		nLogLevel= AKINFO;
+		nLogLevel= LOG_INFO;
 	else if(sLogLevel == "SERVER")
-		nLogLevel= AKSERVER;
+		nLogLevel= LOG_SERVER;
 	else if(sLogLevel == "WARNING")
-		nLogLevel= AKWARNING;
+		nLogLevel= LOG_WARNING;
 	else if(sLogLevel == "ERROR")
-		nLogLevel= AKERROR;
+		nLogLevel= LOG_ERROR;
 	else if(sLogLevel == "ALERT")
-		nLogLevel= AKALERT;
+		nLogLevel= LOG_ALERT;
 	else
 	{
 		cerr << "### WARNING: undefined log level '" << sLogLevel << "' in config file server.conf" << endl;
 		cerr << "             set log-level to DEBUG" << endl;
-		nLogLevel= AKDEBUG;
+		nLogLevel= LOG_DEBUG;
 	}
 	property= "timelogSec";
 	nLogAllSec= m_oServerFileCasher.getInt(property);
@@ -186,10 +187,10 @@ bool Starter::execute(vector<string> options)
 	log->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays);
 	// starting logthread after seteuid()
 	//log->start();
-	LOG(AKINFO, "### -> starting server application.\n       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	LOG(LOG_INFO, "### -> starting server application.\n       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	if(checkServer()==true)
 	{
-		LOG(AKERROR, "### server is running\n    -> do nothing");
+		LOG(LOG_ERROR, "### server is running\n    -> do nothing");
 #ifndef DEBUG
 		printf("### server is running\n");
 		printf("    ->do nothing\n");
@@ -206,7 +207,7 @@ bool Starter::execute(vector<string> options)
 			errorMsg+= "ERROR: by connecting to port ";
 			errorMsg+= portBase::getPortName(ports[n]);
 			errorMsg+= "\n       cannot open spezified port";
-			LOG(AKALERT, errorMsg);
+			LOG(LOG_ALERT, errorMsg);
 			printf("ERROR: by connecting to port %s\n", portBase::getPortName(ports[n]));
 			printf("       cannot open spezified port\n");
 			printf("       maybe application not started as root\n\n");
@@ -322,7 +323,7 @@ bool Starter::execute(vector<string> options)
 					msg+= "for initialisation";
 					msg+= *c;
 					cerr << msg << endl;
-					LOG(AKWARNING, msg);
+					LOG(LOG_WARNING, msg);
 				}else
 				{
 					do{
@@ -372,7 +373,8 @@ bool Starter::execute(vector<string> options)
 	serverArg_t serverArgs;
 	meash_t *pCurrentMeasure= NULL;
 
-	meash_t::clientPath= m_sWorkdir + "/client";
+	meash_t::clientPath= URL::addPath(m_sWorkdir, PPICLIENTAPTH, /*always*/false);
+	LOG(LOG_INFO, "Read layout content for clients from " + meash_t::clientPath);
 	serverArgs.clientFolder= meash_t::clientPath;
 	serverArgs.pFirstMeasureThreads= NULL;
 	measurefolder_t *aktFolder= m_tFolderStart;
@@ -387,7 +389,7 @@ bool Starter::execute(vector<string> options)
 			msg+= aktFolder->name;
 			msg+= "' has no correct subroutine\n";
 			msg+= "so make no measure-instance for it";
-			LOG(AKWARNING, msg);
+			LOG(LOG_WARNING, msg);
 #ifndef DEBUG
 			cout << msg << endl;
 #endif // DEBUG
@@ -417,7 +419,7 @@ bool Starter::execute(vector<string> options)
 	{
 		LogThread *log= LogThread::instance();
 
-		LOG(AKALERT, "### start no measure-thread for any folder\n    no correct subroutines is founding\n    does not start server");
+		LOG(LOG_ALERT, "### start no measure-thread for any folder\n    no correct subroutines is founding\n    does not start server");
 		log->stop();
 #ifndef DEBUG
 				cout << "### start no measure-thread for any folder" << endl;
@@ -808,7 +810,7 @@ void Starter::createPortObjects()
 						logString+= "' from folder '";
 						logString+= aktualFolder->name;
 						logString+= "'\n           or vector don't be set correctly";
-						LOG(AKERROR, logString);
+						LOG(LOG_ERROR, logString);
 	#ifndef DEBUG
 						cout << logString << endl;
 	#endif // DEBUG
@@ -1319,7 +1321,7 @@ void Starter::readFile(vector<unsigned long> &vlRv, string fileName)
 					msg+= pin[1] + "' is no correct pin on port '";
 					msg+= pin[0] + "'\n    ERROR on line: ";
 					msg+= line + "\n    stop server!";
-					LOG(AKALERT, msg);
+					LOG(LOG_ALERT, msg);
 #ifndef DEBUG
 					cout << msg << endl;
 #endif
@@ -1360,7 +1362,7 @@ void Starter::readFile(vector<unsigned long> &vlRv, string fileName)
 					msg+= pin[1] + "' is no correct pin on port '";
 					msg+= pin[0] + "'\n    ERROR on line: ";
 					msg+= line + "\n    stop server!";
-					LOG(AKALERT, msg);
+					LOG(LOG_ALERT, msg);
 #ifndef DEBUG
 					cout << msg << endl;
 #endif
@@ -1400,7 +1402,7 @@ void Starter::readFile(vector<unsigned long> &vlRv, string fileName)
 					msg+= pin[1] + "' is no correct pin on port '";
 					msg+= pin[0] + "'\n    ERROR on line: ";
 					msg+= line + "\n    stop server!";
-					LOG(AKALERT, msg);
+					LOG(LOG_ALERT, msg);
 #ifndef DEBUG
 					cout << msg << endl;
 #endif
@@ -1562,7 +1564,7 @@ void Starter::checkAfterContact()
 								sprintf(offset, "%d", (int)(ePortPin1.nPort - i->nPort));
 								msg+= offset;
 								msg+= " can only set in this one thread!";
-								LOG(AKERROR, msg);
+								LOG(LOG_ERROR, msg);
 	#ifndef DEBUG
 								cout << msg << endl;
 	#endif // DEBUG
@@ -1616,7 +1618,7 @@ void Starter::checkAfterContact()
 				msg+= "           subroutines >> ";
 				msg+= subroutine;
 				msg+= "\n           cannot set in this folder";
-				LOG(AKERROR, msg);
+				LOG(LOG_ERROR, msg);
 #ifndef DEBUG
 				cout << msg << endl;
 #endif // DEBUG
@@ -1647,6 +1649,7 @@ bool Starter::command(vector<string> options, string command)
 		options.erase(opIt);
 	}
 	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
+	LOG(LOG_INFO, "Read configuration files from " + confpath);
 	fileName= URL::addPath(confpath, "server.conf");
 	if(!m_oServerFileCasher.readFile(fileName))
 	{
@@ -1661,22 +1664,22 @@ bool Starter::command(vector<string> options, string command)
 	property= "log";
 	sLogLevel= m_oServerFileCasher.getValue(property);
 	if(sLogLevel == "DEBUG")
-		nLogLevel= AKDEBUG;
+		nLogLevel= LOG_DEBUG;
 	else if(sLogLevel == "INFO")
-		nLogLevel= AKINFO;
+		nLogLevel= LOG_INFO;
 	else if(sLogLevel == "SERVER")
-		nLogLevel= AKSERVER;
+		nLogLevel= LOG_SERVER;
 	else if(sLogLevel == "WARNING")
-		nLogLevel= AKWARNING;
+		nLogLevel= LOG_WARNING;
 	else if(sLogLevel == "ERROR")
-		nLogLevel= AKERROR;
+		nLogLevel= LOG_ERROR;
 	else if(sLogLevel == "ALERT")
-		nLogLevel= AKALERT;
+		nLogLevel= LOG_ALERT;
 	else
 	{
 		cerr << "### WARNING: undefined log-level in config file server.conf" << endl;
 		cerr << "             set log-level to DEBUG" << endl;
-		nLogLevel= AKDEBUG;
+		nLogLevel= LOG_DEBUG;
 	}
 	property= "timelogSec";
 	nLogAllSec= m_oServerFileCasher.getInt(property);
@@ -1706,15 +1709,6 @@ bool Starter::command(vector<string> options, string command)
 	clres= clientCon->init();
 	delete clientCon;
 	return clres;
-/*	clientsocket= ServerThread::connectAsClient("127.0.0.1", nPort, false);
-	if(clientsocket==0)
-	{
-		LOG(AKINFO, "no server is running");
-#ifndef DEBUG
-		cerr << "no server is running" << endl;
-#endif // DEBUG
-		return false;
-	}*/
 }
 
 bool Starter::stop(vector<string> options)
@@ -1749,6 +1743,7 @@ bool Starter::stop(vector<string> options)
 		cerr << "             see -? for help" << endl;
 	}
 	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
+	LOG(LOG_INFO, "Read configuration files from " + confpath);
 	fileName= URL::addPath(confpath, "server.conf");
 	if(!m_oServerFileCasher.readFile(fileName))
 	{
@@ -1763,22 +1758,22 @@ bool Starter::stop(vector<string> options)
 	property= "log";
 	sLogLevel= m_oServerFileCasher.getValue(property);
 	if(sLogLevel == "DEBUG")
-		nLogLevel= AKDEBUG;
+		nLogLevel= LOG_DEBUG;
 	else if(sLogLevel == "INFO")
-		nLogLevel= AKINFO;
+		nLogLevel= LOG_INFO;
 	else if(sLogLevel == "SERVER")
-		nLogLevel= AKSERVER;
+		nLogLevel= LOG_SERVER;
 	else if(sLogLevel == "WARNING")
-		nLogLevel= AKWARNING;
+		nLogLevel= LOG_WARNING;
 	else if(sLogLevel == "ERROR")
-		nLogLevel= AKERROR;
+		nLogLevel= LOG_ERROR;
 	else if(sLogLevel == "ALERT")
-		nLogLevel= AKALERT;
+		nLogLevel= LOG_ALERT;
 	else
 	{
 		cerr << "### WARNING: undefined log-level in config file server.conf" << endl;
 		cerr << "             set log-level to DEBUG" << endl;
-		nLogLevel= AKDEBUG;
+		nLogLevel= LOG_DEBUG;
 	}
 	property= "timelogSec";
 	nLogAllSec= m_oServerFileCasher.getInt(property);
@@ -1810,10 +1805,10 @@ bool Starter::stop(vector<string> options)
 		exit(EXIT_FAILURE);
 	log->start();
 	clientsocket= ServerThread::connectAsClient("127.0.0.1", nPort);
-	LOG(AKINFO, "any user is stopping server");
+	LOG(LOG_INFO, "any user is stopping server");
 	if(clientsocket==0)
 	{
-		LOG(AKINFO, "no server is running");
+		LOG(LOG_INFO, "no server is running");
 #ifndef DEBUG
 		printf("no server is running\n");
 #endif // DEBUG
@@ -1833,7 +1828,7 @@ bool Starter::stop(vector<string> options)
 #ifndef DEBUG
 		cout << "ERROR: undefined server running on port" << endl;
 #endif // DEBUG
-		LOG(AKALERT, "ERROR: undefined server running on port");
+		LOG(LOG_ALERT, "ERROR: undefined server running on port");
 		return false;
 	}
 
@@ -1873,7 +1868,7 @@ bool Starter::stop(vector<string> options)
 			printf("ERROR: lost connection to server\n");
 			printf("       maybe server always running\n");
 #endif // DEBUG
-			LOG(AKSERVER, "ERROR: lost connection to server\n       maybe server always running");
+			LOG(LOG_SERVER, "ERROR: lost connection to server\n       maybe server always running");
 			break;
 		}
 		cout << "." << flush;
@@ -1885,7 +1880,7 @@ bool Starter::stop(vector<string> options)
 #ifdef DEBUG
 		printf("\nserver was stopped\n");
 #endif // DEBUG
-		LOG(AKSERVER, "server was stopped");
+		LOG(LOG_SERVER, "server was stopped");
 	}
 	return true;
 }
@@ -1908,7 +1903,7 @@ void Starter::signalconverting(int nSignal)
 			if(log)
 			{
 				cout << "server terminated by user" << endl;
-				LOG(AKSERVER, "server terminated by user");
+				LOG(LOG_SERVER, "server terminated by user");
 			}else
 				printf("\nserver terminated by user\n\n");
 			exit(0);
@@ -1917,7 +1912,7 @@ void Starter::signalconverting(int nSignal)
 		case SIGHUP:
 			msg= Thread::getStatusInfo("");
 			if(log)
-				LOG(AKINFO, msg);
+				LOG(LOG_INFO, msg);
 			cout << endl << msg << endl;
 			break;
 
@@ -1926,7 +1921,7 @@ void Starter::signalconverting(int nSignal)
 			if(log)
 			{
 				cout << "application close from system" << endl;
-				LOG(AKSERVER, "application close from system");
+				LOG(LOG_SERVER, "application close from system");
 				LogThread* log= LogThread::instance();
 				log->stop(true);
 				cout << "logged" << endl;
@@ -1945,7 +1940,7 @@ void Starter::printSigError(const string cpSigValue)
 	msg+= cpSigValue;
 	msg+= "\"\nSystem-ERROR: ";
 	msg+= strerror(errno);
-	LOG(AKERROR, msg);
+	LOG(LOG_ERROR, msg);
 }
 
 bool Starter::checkServer()
@@ -1991,7 +1986,7 @@ bool Starter::checkServer()
 #ifndef DEBUG
 		cout << "ERROR: undefined server running on port" << endl;
 #endif // DEBUG
-		LOG(AKALERT, "ERROR: undefined server running on port");
+		LOG(LOG_ALERT, "ERROR: undefined server running on port");
 		exit(1);
 	}
 	return true;

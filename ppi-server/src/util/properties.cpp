@@ -66,7 +66,7 @@ namespace util {
 					msg+= line + "'\n             in configuration file ";
 					msg+= filename;
 					cerr << msg << endl;
-					LOG(AKWARNING, msg);
+					LOG(LOG_WARNING, msg);
 				}
 			}
 		}else
@@ -169,7 +169,7 @@ namespace util {
 				m_mFetchErrors[property]= true;
 			else
 				cerr << msg << endl;
-			LOG(AKALERT, msg);
+			LOG(LOG_ALERT, msg);
 		}
 		mPContent= m_oPulled.find(property);
 		if(mPContent == m_oPulled.end())
@@ -236,7 +236,7 @@ namespace util {
 					m_mFetchErrors[property]= false; // because maybe the error was written with true
 			}else
 				cerr << msg << endl;
-			LOG(AKWARNING, msg);
+			LOG(LOG_WARNING, msg);
 		}
 
 		mPContent= m_oPulled.find(property);
@@ -441,7 +441,7 @@ namespace util {
 				*output= msg;
 			else
 				cout << msg << endl;
-			LOG(AKWARNING, msg);
+			LOG(LOG_WARNING, msg);
 		}
 	}
 
