@@ -94,7 +94,7 @@ namespace server
 				value= 0;
 				do{
 					res= m_poChipAccess->read((*chip)->id, value);
-				}while(res == 3);
+				}while(res == 1);
 				if(res < 0)
 				{
 					(*chip)->device= false;
