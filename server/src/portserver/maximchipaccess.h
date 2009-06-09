@@ -178,9 +178,11 @@ namespace ports
 		 *
 		 * @param id unique pin-id of dallas conductor
 		 * @param value Value which should be writing
-		 * @return 	-1 if an error occured, 0 if writing was correctly but the next time should make the same,
-		 * 			1 writing is also correctly and the pin is finished (go to the next),
-		 * 			2 when an entry was made but writing prime in an next time on an other pin (pin also finished -> go to the next)
+		 * @return 	-1 if an error occured,
+		 * 			 0 if writing was correctly and the pin is finished (go to the next),
+		 * 			 1 writing was also correctly but the next time should make the same pin,
+		 * 			 2 when an entry was made but writing prime in an next time on an other pin (pin is finished -> go to the next)
+		 * 			 3 if nothing to do (value the same as set time before -> go to the next pin)
 		 */
 		virtual short write(const string id, const double value);
 		/**
@@ -188,9 +190,11 @@ namespace ports
 		 *
 		 * @param id unique pin-id of dallas conductor
 		 * @param value Result of reading
-		 * @return 	-1 if an error occured, 0 if writing was correctly but the next time should make the same,
-		 * 			1 writing is also correctly and the pin is finished (go to the next),
-		 * 			2 when an entry was made but writing prime in an next time on an other pin (pin also finished -> go to the next)
+		 * @return 	-1 if an error occured,
+		 * 			 0 if reading was correctly and the pin is finished (go to the next),
+		 * 			 1 reading was also correctly but the next time should make the same pin (value is not the last state),
+		 * 			 2 when an entry was made but reading prime in an next time on an other pin (pin is finished -> go to the next)
+		 * 			 3 if nothing to do, value param set, was reading befor (chip wasn't read, value is correct) -> go to the next pin)
 		 */
 		virtual short read(const string id, double &value);
 		/**
