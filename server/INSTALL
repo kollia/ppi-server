@@ -130,7 +130,11 @@ Full Installation
   for developing you can use this content as workspace.
   better you check out from the repository
   http://ppi-server.googlecode.com/svn/trunk/server/
-  the latest resolution
+  the latest version. See http://code.google.com/p/support/source/checkout
+  If you want to join the project,
+  send an email to maintainer <ppi@magnificat.at>
+  showing your interest and your ability to help the project
+  
   If you use the cmake generator for the Makefile
   change the install path to
       INSTALL_CLIENT_PATH 	- client
@@ -151,6 +155,15 @@ Full Installation
   librt.so for ppi-server
   libowcapi.so for maxim/dallas owfs and/or
   libk8055.so and libusb.so for Vellemann K8055
+  
+  set workspace path client, data and log
+  to owner user in which the server should running
+  
+  
+  
+  
+  
+  
   
   
   
