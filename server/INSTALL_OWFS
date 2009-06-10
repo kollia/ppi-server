@@ -7,29 +7,35 @@ You find more information about OWFS under http//www.owfs.org
 QUICK INSTALL:
 
 1. Install packages
+      make
       automake
       autoconf 
       autotools-dev
       gcc
       g++
       libtool
-      usb
+      libusb
    follow packages only for an full configuration
       fuse-utils
       libfuse-dev
       swig
-      python2.4-dev
-      tcl8.4-dev
+      python[version]-dev
+      tcl[version]-dev
       php5-dev 
+      
 1. Download and unpack owfs (you can find it on sourceforge:
      http://www.sf.net/projects/owfs )
+     
 2. cd owfs directory
+
 3. ./bootstrap
+
 4. for configuration, we only need the libowcapi.so library
    so you can type
    ./configure --prefix=/usr/local --disable-owshell --disable-ownetlib --disable-owhttpd --disable-owftpd --disable-owserver --disable-ownet --disable-owtap --disable-owside --disable-owmon --disable-owperl --disable-owphp --disable-owpython --disable-owtcl
    if you not define --prefix to /usr/local or /usr, the installation copy into /opt/owfs and the cmake routine do not find the library
    so you have to define /opt/owfs/lib/libowcapi.so  in ccmake
+   
 5. as root > make install
 
 for more complete instructions

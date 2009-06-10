@@ -1,19 +1,19 @@
-/**
- *   This file is part of ppi-server.
- *
- *   ppi-server is free software: you can redistribute it and/or modify
- *   it under the terms of the Lesser GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   ppi-server is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   Lesser GNU General Public License for more details.
- *
- *   You should have received a copy of the Lesser GNU General Public License
- *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
- */
+
+   This file is part of ppi-server.
+
+   ppi-server is free software: you can redistribute it and/or modify
+   it under the terms of the Lesser GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   ppi-server is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   Lesser GNU General Public License for more details.
+
+   You should have received a copy of the Lesser GNU General Public License
+   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
+
 
 you find an project description on <http://code.google.com/p/ppi-server/>
 currently it's maintained from Alexander Kolli <ppi@magnificat.at>
@@ -23,20 +23,20 @@ QUICK INSTALL:
  
 1. install PACKAGES
     bash
+    make
     cmake
     gcc
     g++
-    libtool
     boost 
    (If they are to other hardware access them,
     read also point 1 and 3 from Full Installation below)
 
 2. DOWNLOAD
-  Download and unpack ppi-server[version]
+  Download and unpack ppi-server_v[xxx].tar.gz
   (you can find it on http://code.google.com/p/ppi-server/downloads/list )
      
 3. CONFIGURATION
-  cd ppi-server[version]/build
+  cd ppi-server_v[xxx]/build
   cmake ..
   # as root
   make install
@@ -60,27 +60,27 @@ Full Installation
   only available for the COM-interface.
   If they are to other hardware access them,
   install also the packages from INSTALL_OWFS for maxim/dallas semiconductors
-  or INSTALL_K8055 for the Vellemann experimantel K8055 board
+  or INSTALL_K8055 for the Vellemann experimental K8055 board
   
   for this basic installation the packages needed:
 	      bash
+	      make
 	      cmake
 	      gcc
 	      g++
-	      libtool
 	      boost 
 	      
 
 1. DOWNLOAD
   Download ppi-server from http://code.google.com/p/ppi-server/downloads/list
-  unpack with tar -zxvf ppi-server[version].tar.gz
+  unpack with tar -zxvf ppi-server_v[xxx].tar.gz
   you can also downlad ppi-server-java-client for better access to server
   read there the installation file
   
   
 3. CONFIGURATION
   go into the build directory of ppi-server
-  cd ppi-server[version]/build
+  cd ppi-server_v[xxx]/build
   
   for the first configuration
   type cmake ..
