@@ -20,10 +20,6 @@
 #include <unistd.h>
 #include <iostream>
 
-#include <openssl/rand.h>
-#include <openssl/rsa.h>
-#include <openssl/engine.h>
-
 #include "../logger/LogThread.h"
 
 #include "../util/Thread.h"
