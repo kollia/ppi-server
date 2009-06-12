@@ -1,0 +1,140 @@
+lang:
+de
+en
+
+INCORRECTTRANSFILE:
+Die Datei language.txt existiert nicht, oder ist ungültig
+file language.txt does not exist or is incorrect 
+
+NONE:
+Es existiert kein Fehler
+no error exist
+
+ABORTEDCONNECTION:
+Verbindung zum Server ist abgebrochen
+connection to server was aborted
+
+UNKNOWNERROR:
+unbekannter System-Fehler
+unknown error in system
+
+TRANSLATENOTFOUND:
+Datei translate.txt konnte nicht gefunden werden
+cannot found file translate.txt
+
+UNKNOWNHOSTEXCEPTION:
+Konnte host '@' auf Port @ nicht finden
+does not found host '@' on port @
+
+UNDEFINEDSERVER:
+Unbekannter Server auf Host @ und Port @
+undefined server on host @ and port @
+
+SOCKETIOEXCEPTION:
+Socket kann zum lesen oder schreiben /
+nicht initialisiert werden
+cannot initial socket to write or read
+
+WRITERIOEXCEPTION:
+Schreib-Stream kann nicht initialisiert werden
+cannot initial writer to port-server
+
+READERIOEXCEPTION:
+Die Verbindung kann nicht gelesen werden
+cannot read on socket
+
+IOCLOSEERROR:
+Die Verbindung zum port-server kann nicht geschlossen werden
+cannot close read - write connection to server
+
+PORTSERVERERROR001:
+Client hat die Transaktion falsch begonnen
+client beginning fault transaction
+
+PORTSERVERERROR002:
+Ungültiges Kommando
+no correct command given
+
+PORTSERVERERROR003:
+Kommando-Parameter @ ist falsch
+command parameter @ is incorrect
+
+PORTSERVERERROR004:
+es existiert kein folder mit dem Namen '@'
+folder '@' does not exist
+
+PORTSERVERERROR005:
+Soubroutine '@' in Ordner @ existiert nicht
+subroutine @ in folder @ does not exist
+
+PORTSERVERERROR006:
+Falscher Eintrag für subroutine @
+unknow value to set in subroutine @
+
+PORTSERVERERROR011:
+Es existiert kein Benutzer mit dem Namen '@'
+user '@' do not exist
+
+PORTSERVERERROR012:
+Passwort für Benutzer '@' ist ungültig
+wrong password for user '@'
+
+PORTSERVERERROR015:
+Benutzer '@' darf sich nicht als erster beim Server einloggen
+@ cannot loggin as first user
+
+UNDEFINEDPATH:
+es wurde kein korrektes Pfad-Paar '@' für die Transaktion angegeben
+no correct path '@' given for transaction
+
+okButton:
+Ok
+Ok
+
+cancelButton:
+abbrechen
+cancel
+
+dialogConnectionTitle:
+Verbindung zum port-server
+connection to port-server
+
+dialogConnectionSearchMsg:
+Versuche verbindung herzustellen
+try to connect
+
+dialogUserVerification:
+Bitte geben sie Benuztername und Passwort ein
+enter username and password
+
+dialogChangeUser:
+Benutzer Verification
+user verification
+
+W_USER:
+Benutzer
+user
+
+W_PASSWORD:
+Passwort
+password
+
+menu_top_app:
+&Applikation
+&Application
+
+menu_app_refresh:
+&aktualisieren
+&refresh
+
+menu_app_refreshAll:
+alles a&ktualisieren
+r&efresh all
+
+menu_app_changeUser:
+Ben&utzer ändern
+change &user
+
+menu_app_exit:
+&beenden
+&exit
