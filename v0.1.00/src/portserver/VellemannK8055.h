@@ -54,12 +54,13 @@ namespace ports
 			 */
 			virtual bool init(const IPropertyPattern* properties);
 			/**
-			 * return the name of default config file for every chips or pins
+			 * return normaly the name of default config file for every chips or pins.<br />
+			 * But method returning an null string, so no default config will be used
 			 *
 			 * @return name of file
 			 */
 			virtual string getDefaultFileName()
-			{ return "defaultvellemann.conf"; };
+			{ return ""; };
 			/**
 			 * access to physical port interface for the chips.<br />
 			 * this method will be called by starting in init method

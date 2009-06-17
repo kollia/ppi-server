@@ -153,10 +153,12 @@ namespace server
 
 	bool OWServer::init(void* arg)
 	{
+		string defaultConfig(m_poChipAccess->getDefaultFileName());
 		vector<string> ids;
 
 		m_oServerProperties= (IPropertyPattern*)arg;
-		DefaultChipConfigReader::instance()->define(m_poChipAccess->getServerName(), m_poChipAccess->getDefaultFileName());
+		if(defaultConfig != "")
+			DefaultChipConfigReader::instance()->define(m_poChipAccess->getServerName(), defaultConfig);
 		if(!m_poChipAccess->init(m_oServerProperties))
 			return false;
 		if(!m_poChipAccess->isConnected())

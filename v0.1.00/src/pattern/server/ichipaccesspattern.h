@@ -52,7 +52,8 @@ namespace design_pattern_world
 		 */
 		virtual bool init(const IPropertyPattern* properties)=0;
 		/**
-		 * return the name of default config file for every chips or pins
+		 * return the name of default config file for every chips or pins.<br />
+		 * If method returning an null string, no default config will be used
 		 *
 		 * @return name of file
 		 */
