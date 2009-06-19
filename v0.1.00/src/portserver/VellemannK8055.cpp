@@ -155,9 +155,13 @@ namespace ports
 	vector<string> VellemannK8055::getUnusedIDs() const
 	{
 		vector<string> unused;
+		ostringstream id;
 
 		if(!m_bUsed)
-			unused.push_back("0");
+		{
+			id << m_nID;
+			unused.push_back(id.str());
+		}
 		return unused;
 	}
 
@@ -200,18 +204,19 @@ namespace ports
 	//string VellemannK8055::getConstChipTypeID(const string ID) const
 	string VellemannK8055::getChipTypeID(const string pin)
 	{
-		return pin;
-	}
+		ostringstream id;
 
-	/*{
-		return getConstChipTypeID(ID);
-	}*/
+		id << m_nID << "_" << pin;
+		return id.str();
+	}
 
 	vector<string> VellemannK8055::getChipIDs() const
 	{
 		vector<string> ids;
+		ostringstream id;
 
-		ids.push_back("0");
+		id << m_nID;
+		ids.push_back(id.str());
 		return ids;
 	}
 
@@ -241,8 +246,10 @@ namespace ports
 		Thread::UNLOCK(m_DEBUGINFO);
 	}
 
-	short VellemannK8055::write(const string pin, const double value)
+	short VellemannK8055::write(const string id, const double value)
 	{
+		string pin(id.substr(2));
+
 		//cout << "write on pin " << pin << " value " << value << endl;
 		if(pin == "PWM1")
 		{
@@ -303,16 +310,18 @@ namespace ports
 
 	short VellemannK8055::read(const string id, double &value)
 	{
+		string spin(id.substr(2));
+
 		m_ndRead|= ReadAllDigital();
-		if(id.substr(0, 7) == "counter")
+		if(spin.substr(0, 7) == "counter")
 		{
-			long n= atoi(id.substr(7, 1).c_str());
+			long n= atoi(spin.substr(7, 1).c_str());
 
 			value= (double)ReadCounter(n);
 
-		}else if(id.substr(0, 1) == "I")
+		}else if(spin.substr(0, 1) == "I")
 		{
-			int pin= atoi(&id[1]);
+			int pin= atoi(&spin[1]);
 			int res= ReadDigitalChannel(pin);
 			int set= 1;
 			int nvalue= (int)value;
@@ -337,7 +346,7 @@ namespace ports
 			long channel;
 
 			//cout << "pin " << id << endl;
-			if(id.substr(1, 1) == "1")
+			if(spin.substr(1, 1) == "1")
 				channel= 1;
 			else
 				channel= 2;
@@ -347,8 +356,10 @@ namespace ports
 		return 0;
 	}
 
-	void VellemannK8055::range(const string pin, double& min, double& max, bool &bfloat)
+	void VellemannK8055::range(const string id, double& min, double& max, bool &bfloat)
 	{
+		string pin(id.substr(2));
+
 		bfloat= false;
 		if(pin.substr(0, 7) == "counter")
 			return; // all values are allowed

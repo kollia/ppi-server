@@ -105,7 +105,7 @@ namespace ports
 			setDeviceAccess(false);
 			return true;// no error try again later
 		}
-		chipAccess= m_pOWServer->useChip(m_pSettings, m_sChipID);
+		chipAccess= m_pOWServer->useChip(m_pSettings, m_sChipID, getFolderName(), getSubroutineName());
 		if(	chipAccess < 1
 			||
 			chipAccess > 2	)

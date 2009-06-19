@@ -247,12 +247,23 @@ namespace server
 		void range(const string pin, double& min, double& max, bool &bfloat)
 		{ m_poChipAccess->range(pin, min, max, bfloat); };
 		/**
+		 * whether chips for owserver have an default configuration file
+		 * and have to be registered
+		 *
+		 * @return whether chip shoud be registered
+		 */
+		bool haveToBeRegistered()
+		{ return (m_poChipAccess->getDefaultFileName() == "" ? false : true); };
+		/**
 		 * define dallas chip is used
 		 *
 		 * @param properties IActionProperyPattern from current subroutine
+		 * @param return value of unique chip ID
+		 * @param folder in which folder the chip is used
+		 * @param subroutine in which subroutine the chip is used
 		 * @return 0 if the pin is not correct, 1 if the pin is for reading, 2 for writing or 3 for unknown (reading/writing)
 		 */
-		short useChip(IActionPropertyMsgPattern* properties, string& unique);
+		short useChip(IActionPropertyMsgPattern* properties, string& unique, const string& folder, const string& subroutine);
 		/**
 		 * check whether all exist id's are used
 		 */

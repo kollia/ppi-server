@@ -177,7 +177,7 @@ namespace server
 		return m_poChipAccess->reachAllChips();
 	}
 
-	short OWServer::useChip(IActionPropertyMsgPattern* properties, string& unique)
+	short OWServer::useChip(IActionPropertyMsgPattern* properties, string& unique, const string& folder, const string& subroutine)
 	{
 		bool read= false;
 		bool write;
@@ -187,9 +187,10 @@ namespace server
 		unsigned int priority;
 		double dCacheSeq;
 		string prop;
-		string type;
 		chip_types_t* pchip;
 		device_debug_t tdebug;
+		DefaultChipConfigReader *reader;
+		const DefaultChipConfigReader::chips_t* defaultChip;
 
 		prop= "priority";
 		priority= properties->getInt(prop, /*warning*/false);
@@ -221,6 +222,23 @@ namespace server
 		}
 
 		res= m_poChipAccess->useChip(properties, unique);
+		if(m_poChipAccess->getDefaultFileName() == "")
+		{// chip isn't registered,
+		 // do it now
+			bool fl;
+			bool *pfl= &fl;
+			double min, max;
+			double *pmin= &min;
+			double *pmax= &max;
+			string chip, type, pin, family;
+
+			m_poChipAccess->range(unique, min, max, fl);
+			chip= properties->getValue("ID");
+			pin= properties->getValue("pin");
+			type= m_poChipAccess->getChipType(pin);
+			reader= DefaultChipConfigReader::instance();
+			reader->registerChip(m_poChipAccess->getServerName(), unique, pin, type, "unknown", pmin, pmax, pfl);
+		}
 		if(res == 0)
 			return 0;
 		else if(res == 1)
@@ -229,7 +247,26 @@ namespace server
 			write= false;
 			//*pCache= currentReading;
 			if(dCacheSeq == 0)
-				dCacheSeq= 15;
+			{
+				defaultChip= reader->getRegisteredDefaultChip(m_poChipAccess->getServerName(), unique);
+				if(	defaultChip
+					&&
+					defaultChip->dCache	!= 0	)
+				{
+					dCacheSeq= defaultChip->dCache;
+				}else
+				{
+					DefaultChipConfigReader::defValues_t def;
+					bool fl;
+					double min, max;
+
+					m_poChipAccess->range(unique, min, max, fl);
+					def= reader->getDefaultValues(min, max, fl, folder, subroutine);
+					dCacheSeq= def.dcache;
+					if(dCacheSeq == 0)
+						dCacheSeq= 15;
+				}
+			}
 			priority= 0;
 		}else if(res == 2)
 		{
@@ -251,12 +288,8 @@ namespace server
 			pchip->writecache= true;
 		else
 			pchip->writecache= false;
-		/*if(	cacheWrite
-			||
-			writecacheWrite	)
-		{*/
-			pchip->wcacheID= m_poChipAccess->getChipTypeID(unique);
-		//}
+
+		pchip->wcacheID= m_poChipAccess->getChipTypeID(unique);
 		pchip->read= read;
 		pchip->value= 0;
 		pchip->priority= priority;
