@@ -1,20 +1,33 @@
 #!/bin/bash
 ##############
 
-basefolder=$1
-clientuser=$2
+clientuser=$1
+basefolder=$2
 client=$3
 confuser=root
 config=$4
-datauser=$2
+datauser=$1
 database=$5
-loguser=$2
+loguser=$1
 logging=$6
 
+if [ "$basefolder" = "" ]
+then 
+  basefolder=..
+fi
 
-#if test -x ../../bin/ppi-server
-#then
-
+if [ "$client" = "" ]
+then
+    echo
+    echo "set permission from folder client, data and log in actual workspace to user $clientuser"
+    echo "let the current group there also writing for some changing from user"
+    chown -R $clientuser $basefolder/client
+    chmod -R g+w $basefolder/client
+    chown -R $clientuser ../data
+    chmod -R g+w $basefolder/data
+    chown -R $clientuser ../log
+    chmod -R g+w $basefolder/log
+else
 	if test -d $client
 	then
 	  echo "set permission $clientuser to all client files in $client"
@@ -43,8 +56,4 @@ logging=$6
 	chown -R $loguser $logging
 	echo ""
 	
-	#chown -R nobody:nobody /var/local/ppi-server/client
-	#chown -R nobody:nobody /var/local/ppi-server/database
-	#chown -R nobody:nobody /var/log/ppi-server
-	#chmod 600 /var/log/ppi-server/access.conf
-#fi
+fi

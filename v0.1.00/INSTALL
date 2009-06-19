@@ -136,28 +136,30 @@ Full Installation
   showing your interest and your ability to help the project
   
   If you use the cmake generator for the Makefile
-  change the install path to
-      INSTALL_CLIENT_PATH 	- client
-      INSTALL_CONFIG_PATH 	- conf
-      INSTALL_DATABASE_PATH	- data
-      INSTALL_LOGGING_PATH	- log
-  because, if not given root path / before  
-  it will be set the path into the workspace where compiled
+  delete the install path from
+      INSTALL_CLIENT_PATH
+      INSTALL_CONFIG_PATH
+      INSTALL_DATABASE_PATH
+      INSTALL_LOGGING_PATH in ccmake ..
+  and the path variables for the binary not be set
   
-  otherwise when you have an own Makefile, the path will be set
+  also when you have an own Makefile, the path will be set
   in src/util/debug.h the same definition, you have nothing to do.  
   In this case you have to set also for other packages
   the symbols -D in the Makefile for make if you need
   _OWFSLIBRARY for maxim/dallas owfs and/or
   _K8055LIBRARY for Vellemann K8055
   
-  and there needs the librarys
+  by both cases, the server needs permission 
+  to the subdirectorys client, data and log.
+  go into the cmake directory and call as root
+  ./install [defaultuser]
+  defaultuser is the same like from server.conf and ccmake (INSTALL_DEFAULTUSER)
+  
+  the binary needs also the librarys
   librt.so for ppi-server
   libowcapi.so for maxim/dallas owfs and/or
-  libk8055.so and libusb.so for Vellemann K8055
-  
-  set workspace path client, data and log
-  to owner user in which the server should running
+  libk8055.so for Vellemann K8055
   
   
   
