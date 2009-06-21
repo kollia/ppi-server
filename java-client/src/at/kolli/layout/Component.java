@@ -494,8 +494,12 @@ public class Component extends HtmTags
 				m_bCorrectName= false;
 			}else
 			{
-				double d= akt;
+				double d;
 				
+				if(akt == null)
+					d= 0;
+				else
+					d= akt;				
 				value= (int)d;
 			}
 			if(	width != -1
