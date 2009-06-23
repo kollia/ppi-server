@@ -53,7 +53,8 @@ portBase::portBase(string type, string folderName, string subroutineName)
 	m_sSubroutine= subroutineName;
 	m_bWriteDb= false;
 	m_dValue= 0;
-	m_bCorrectDevice= true;
+	// do not know access from database
+	m_pbCorrectDevice= NULL;
 	m_VALUELOCK= Thread::getMutex("VALUELOCK");
 	m_DEBUG= Thread::getMutex("portBaseDEBUG");
 	m_CORRECTDEVICEACCESS= Thread::getMutex("CORRECTDEVICEACCESS");
@@ -148,10 +149,20 @@ void portBase::setDeviceAccess(bool access)
 	Database* db;
 
 	LOCK(m_CORRECTDEVICEACCESS);
-	if(m_bCorrectDevice == access)
-		same= true;
-	else
-		m_bCorrectDevice= access;
+	if(m_pbCorrectDevice)
+	{
+		if(*m_pbCorrectDevice == access)
+			same= true;
+		else
+			*m_pbCorrectDevice= access;
+	}else
+	{// for the first definition,
+	 // database not be running
+	 // so write access value only in database message loop
+	 // and define actualy Device access
+		m_pbCorrectDevice= new bool;
+		*m_pbCorrectDevice= access;
+	}
 	UNLOCK(m_CORRECTDEVICEACCESS);
 	if(same)
 		return;
@@ -164,7 +175,12 @@ bool portBase::hasDeviceAccess() const
 	bool bDevice;
 
 	LOCK(m_CORRECTDEVICEACCESS);
-	bDevice= m_bCorrectDevice;
+	if(m_pbCorrectDevice)
+		bDevice= m_pbCorrectDevice;
+	else// if no CorrectDevice be defined
+		// the subroutine is an SWITCH, VALUE, COUNTER, TIMER or SHELL
+		// and this devices (ports) are always true
+		bDevice= true;
 	UNLOCK(m_CORRECTDEVICEACCESS);
 	return bDevice;
 }
@@ -757,6 +773,8 @@ bool portBase::measure()
 
 portBase::~portBase()
 {
+	if(m_pbCorrectDevice)
+		delete m_pbCorrectDevice;
 	DESTROYMUTEX(m_VALUELOCK);
 	DESTROYMUTEX(m_DEBUG);
 	DESTROYMUTEX(m_CORRECTDEVICEACCESS);

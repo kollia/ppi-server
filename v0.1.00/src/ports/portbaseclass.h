@@ -115,9 +115,10 @@ namespace ports
 			 */
 			bool m_bSwitch;
 			/**
-			 * wether access to device is correct
+			 * wether access to device is correct.<br />
+			 * If pointer is <code>NULL</code> object do not know access from database
 			 */
-			bool m_bCorrectDevice;
+			bool *m_pbCorrectDevice;
 			/**
 			 * min valuue which can be set.<br />
 			 * default min is 1 and max is 0 -> full range can be used

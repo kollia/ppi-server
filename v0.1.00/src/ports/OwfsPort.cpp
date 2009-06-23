@@ -110,8 +110,10 @@ namespace ports
 			||
 			chipAccess > 2	)
 		{
+			setDeviceAccess(false);
 			return false;
 		}
+		setDeviceAccess(true);
 		m_bRead= chipAccess == 1 ? true : false;
 		return true;
 	}

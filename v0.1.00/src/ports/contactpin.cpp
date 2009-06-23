@@ -33,7 +33,10 @@ namespace ports
 		properties.getValue("out", /*warning*/false);
 		value= properties.needValue("in");
 		if(value == "")
+		{
+			setDeviceAccess(false);
 			return false;
+		}
 		split= ConfigPropertyCasher::split(value, ":");
 		if(split.size() == 2)
 		{
@@ -54,6 +57,7 @@ namespace ports
 				msg+= split[0];
 				LOG(LOG_ERROR, msg);
 				cerr << msg << endl;
+				setDeviceAccess(false);
 				return false;
 			}
 		}else
@@ -64,6 +68,7 @@ namespace ports
 			msg+= value + " for parameter in";
 			LOG(LOG_ERROR, msg);
 			cerr << msg << endl;
+			setDeviceAccess(false);
 			return false;
 		}
 		value= properties.getValue("out", /*warning*/false);
@@ -104,6 +109,7 @@ namespace ports
 			}
 		}else
 			m_tOut.ePin= NONE;
+		setDeviceAccess(true);
 		return true;
 	}
 
