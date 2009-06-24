@@ -278,6 +278,8 @@ namespace ports
 				read= true;
 				write= false;
 			}
+			if(!defaultChip->bWritable)
+				read= true;
 		}
 		if(pin != "")
 		{
