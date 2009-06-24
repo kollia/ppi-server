@@ -473,8 +473,10 @@ namespace server
 		virtual bool init(void *args);
 		/**
 		 * reading all devices for first state
+		 *
+		 * @return whether OWServer is correct connected to external devices
 		 */
-		void readFirstChipState();
+		bool readFirstChipState();
 		/**
 		 * define method to running thread.<br />
 		 * This method starting again when ending without an sleeptime

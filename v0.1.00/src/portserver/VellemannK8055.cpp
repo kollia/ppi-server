@@ -57,7 +57,6 @@ namespace ports
 	{
 		if(!connect())
 			return true;// no error try to connect all seconds
-		m_bUsed= true;
 		return true;
 	}
 
@@ -110,6 +109,8 @@ namespace ports
 			pin == "reset2"		)
 		{
 			nRv= 2;
+			m_bUsed= true;
+
 		}else if(	(	pin.substr(0, 1) == "I"
 						&&
 						(	pin.substr(1, 1) == "1"
@@ -135,6 +136,7 @@ namespace ports
 							pin.substr(7, 1) == "2"	)	)	)
 		{
 			nRv= 1;
+			m_bUsed= true;
 		}else
 		{
 			msg= "pin ";
