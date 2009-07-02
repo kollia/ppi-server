@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Class-Path: lib/core.runtime.jar lib/core.commands.jar lib/equinox.common.jar lib/jface.jar lib/swt.jar lib/swt.native.jar
+Main-Class: at.kolli.automation.client.PortServerClient

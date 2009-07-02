@@ -1,0 +1,119 @@
+
+   This file is part of ppi-server.
+
+   ppi-server is free software: you can redistribute it and/or modify
+   it under the terms of the Lesser GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   ppi-server is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   Lesser GNU General Public License for more details.
+
+   You should have received a copy of the Lesser GNU General Public License
+   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
+
+
+you find an project description on <http://code.google.com/p/ppi-server/>
+currently it's maintained from Alexander Kolli <ppi@magnificat.at>
+This java package only will copy the jar with right SWT librarys to an defined folder
+
+QUICK INSTALL:
+
+1. DOWNLOAD
+  Download and unpack ppi-server-[x.x]java-client_v[xxx].zip
+  (you can find it on http://code.google.com/p/ppi-server/downloads/list )
+     
+2. INSTALL
+  for WINDOWS
+    cd ppi-server-[x.x]java-client_v[xxx]
+    # with administrator rights
+    install <folder (like /Programms/ppi-client)>
+  for LINUX
+    cd ppi-server-[x.x]java-client_v[xxx]
+    # as root
+    ./install.sh
+  for APPLE
+    I have no apple
+    and so I can't testing
+    please read under Full Installation
+ 
+3. START
+  for WINDOWS
+    open browser and click on ppi-server-java-client.jar
+  for LINUX
+    type on any place
+    > ppi-client
+  for APPLE
+    please read under Full Installation
+
+
+More complete instructions:
+---------------------------------------------------------------------
+Full Installation
+==================
+
+1. DOWNLOAD
+  Download ppi-server-java-client from http://code.google.com/p/ppi-server/downloads/list
+    
+2. INSTALL
+  for WINDOWS
+    open Browser and click on the package you hase downlaoded
+    it open an new window, where you can extract the content.
+    open an dos-shell and go into package
+    > cd ppi-server-[x.x]java-client_v[xxx]
+    start the installation script ad administrator or take an folder in your home directory
+    > install <folder>
+    as second parameter it needs the folder where you wan't install
+    maybe like /Programms/ppi-client
+  for LINUX
+    unpack the downloaded zip-file
+    > unzip ppi-server-[x.x]java-client_v[xxx].zip
+    go into directory
+    > cd ppi-server-[x.x]java-client_v[xxx]
+    start installation script as root
+    > ./install.sh
+  for APPLE
+    because I have no Mac
+    you can try to do all per hand
+    download an swt-package from <http://www.eclipse.org/swt/> under the word Stable
+    unpack it and copy the file swt.jar as swt.native.jar into the subfolder lib
+    from ppi-server-java-client
+    after them try to start the client with
+    > java -jar ppi-server-java-client.jar
+    
+   
+3. START
+  for WINDOWS
+    open browser and click on ppi-server-java-client.jar
+    or go into directory where copyd
+    and type
+    > java -jar ppi-server-java-client.jar
+    after this command you can also start the thin-client
+    with varios parameter to start it as touchscreen client
+    try -? for help
+  for LINUX
+    type on any place
+    > ppi-client
+    after this command you can also start the thin-client
+    with varios parameter to start it as touchscreen client
+    try -? for help
+  for APPLE
+    try to start the jar-file in the ppi-server-[x.x]java-client package_v[x.x.xx]
+    > java -jar ppi-server-java-client.jar
+    after this command you can also start the thin-client
+    with varios parameter to start it as touchscreen client
+    try -? for help
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
