@@ -33,7 +33,6 @@ logging=$6
 	chown root:root $config/access.conf
 	chmod 600 $config/access.conf
 	
-	echo ""
 	echo "generate database folder $database and set permission to $datauser"
 	mkdir -p $database
 	chown -R $datauser $database
