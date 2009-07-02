@@ -1,0 +1,130 @@
+
+#
+#	layout description
+#	written by Alexander Kolli
+#
+
+extenshion of files are .layout
+the server look in this subdirectory "client"
+and send the sources as folder description to the client
+the position from an folder in the tree of the left side
+can affect with the name of the layout files
+also it's posible to make subdirectory again
+to create an real tree.
+
+first all included tag is <layout> ... </layout>
+there can inherit two tags
+the <head></haead> and <body></body> tag
+in the body tag you can display also <component>'s, <table>-tags and text like HTML
+all tags which not inherit other tags
+must have an slash "/" before closing with ">"
+
+<head>:
+	elements:	attribute:			description:
+
+	<meta />	name="<string>"			name of meta tag (key)
+							allowed names:
+								permission	-	for hole side permission
+											content value is group name
+								popupwidth	-	by starting with -t --notree
+											width of pop-up button on top
+								popupheight	-	by starting with -t --notree
+											height of pop-up button on top
+								popupfont	-	character font in pop-up button
+			content="<string>"		value of meta tag
+	<title />					real title at the tree on the left side	
+			name="<string>"			the name of the title which should be display
+
+
+<body>:
+	elements:	attribute:			description:
+	
+	<table>						table to calibrate the components (near HTML)
+			cellpadding="<number>"		the with and height border witch should be indented
+							the several fields
+			cellspacing="<number>"		the same inside of the fields
+							you do not see the different when the border is not displayed
+			border="<number>"		create border of all fields inside the table
+							most time only for debugging
+
+	<tr>						an row inside of table tag (near HTML)
+			height="<number>"		the height of all fields in the row
+
+	<td>						fields inside of row tag (tr) from table (near HTML)
+			height="<number>"		height of field, if there nothing give other in the row (<tr>)
+			width="<number>"		width of field. default is 100
+			colspan="<number>"		how much columns the field require
+			rowspan="<number>"		how much rows the field require
+			align="<string>"		alignment the components in horizontal direction
+							 verifyed strings are:
+								left [DEFAULT]
+								center
+								right
+			valign="<string>"		alignment the components in vertical direction
+							 verifyed strings are:
+								top 
+								center [DEFAULT]
+								bottom
+
+	<component>					components to control the subroutines SWITCH and VALUE
+			type="<string>"			type of component can be:
+								check		-	checkbox
+								radio		-	radiobutton
+								push			click button wich only be set when you hold
+								toggle			button witch hold the value after one click
+								input			input field witch can hold an number
+								spinner			input field with up and down button
+								slider			an slider witch have botton to set more or less
+											like an scrollbar
+								scale			slider without the buttons
+								combo			pop-up box or list to select strings
+			result="<path>"			describing the position in the measure folders
+							the subroutines only can be from type SWITCH for boolean or VALUE for numbers
+							exp. "folder:subroutine"
+			width="<number>"		the width of the components beside the types check and radio
+							by the types slider or scale it shows an horizontal bar
+							if the height is not set or lower
+			height="<number>"		for type slider and scale it be shown an vertical bar
+							if the width not be set or lower
+			value="<number/string>"		for type radio or check it describe the value which should be set
+							    type push or toggle the name inside the button
+							    type input the suffix behind the number
+			name="<string>"			only for type radio
+							describe the group in which the radio button is
+			size="<number>"			only for type combo
+							describe how much rows should be displayed
+			min="<number>"			minimal-value for component slider and scale
+			max="<number>"			maximal-value for component slider and scale
+			scroll="<number>"		higher or lower value by clicking into the scroll bar
+							for components slider and scale
+			arrow="<number>"		value for get higher or lower by pressing the arrow keys
+							only for component slider
+			format="<string>"		format of displayed number beginning with '#' than a number whitch
+							representing the digits before decimal point and maby followd with an point
+							for any decimal places or with an number how much decimal places should be showen
+							exp.: "#<number>[.[<number>]]"
+								"#1"	for	12.211	=	12
+									for	 3.0	=	 3
+								"#1."	for	12.211	=	12.211
+									for	 3.0	=	 3
+								"#1.2"	for	12.211	=	12.21
+									for	 3.0	=	 3.00
+								"#2.1"	for	12.211	=	12.2
+									for	 3.0	=	03.0
+			disabled="disabled"		set the component to disabled. Component can not changed from user
+							and is grey deposited.
+			readonly="readonly"		set the component to readonly. Component can not change from user.
+							If this attribute is not set, but user have no permission to change,
+							the component is also set to readonly
+
+	<option>					tag inside of component tag
+							only if type is combo
+							to describe between the beginning and end tag
+							the strings which are displayed
+							similary about the select-tag in HTML
+			value="<number>"		the value which should be set in the result on the server
+							when the user select the string
+							if no value be defined
+							the values beginning in the sequence with 0
+
+	<br />						breaks the textline

@@ -1,0 +1,23 @@
+
+<layout>
+  <head>
+    <title name="dallas THERMOSTAT" />
+  </head>
+  <body>
+    <table cellpadding="0">
+      <tr>
+	<td colspan="2">
+	  This is an example of an maxim/dallas thermostat DS1820
+	</td>
+      </tr>
+      <tr>
+        <td>
+	  THERMOSTAT:
+	</td>
+	<td>
+	  <component type="input" value="°c" width="30" result="THERMOSTAT:thermo" />
+	</td>
+      </tr>
+    </table>
+  </body>
+</layout>
