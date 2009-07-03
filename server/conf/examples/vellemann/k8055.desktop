@@ -1,7 +1,7 @@
 
 <layout>
   <head>
-    <title name="Ausgang" />
+    <title name="Vellemann k8055" />
   </head>
   <body>
     <table cellpadding="0">
@@ -107,35 +107,7 @@
 	  <component type="input" value="" width="30" result="readVellemann0:analogA2" />
 	</td>
       </tr>
-    </table>
-	  <table>
-	    <tr>
-	      <td align="right">
-	  	MS-TL:<br />
-		Temperatur :
-		<component type="input" value="°C" format="#1.2" readonly="readonly" result="buttonlink:buttonlink_thermo1" />
-	      </td>
-	    </tr>
-	    <tr>
-	      <td align="right">
-		Licht      :
-		<component type="input" value="" format="#1.4" readonly="readonly" result="buttonlink:buttonlink_light" />
-	      </td>
-	    </tr>
-	    <tr>
-	      <td align="right">
-	  	MS-TH:<br />
-		Temperatur :
-		<component type="input" value="°C" format="#1.2" readonly="readonly" result="buttonlink:buttonlink_thermo2" />
-	      </td>
-	    </tr>
-	    <tr>
-	      <td align="right">
-		Luftfeuchte:
-		<component type="input" value="" format="#1.4" readonly="readonly" result="buttonlink:buttonlink_humidity" />
-	      </td>
-	    </tr>
-	  </table><br />
+    </table><br />
     <table border="0">
       <tr>
 	<td>
