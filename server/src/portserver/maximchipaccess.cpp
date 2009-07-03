@@ -247,7 +247,7 @@ namespace ports
 			return 0;
 		}
 		ptchip= chipIt->second;
-		defaultChip= defaultChipReader->getDefaultChip(getServerName(), ptchip->family, ptchip->type, ID);
+		defaultChip= defaultChipReader->getRegisteredDefaultChip(getServerName(), ptchip->family, ptchip->type, ID);
 		//defaultChip= defaultChipReader->getDefaultChip(getServerName(), ID);
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// seting typical chip behavior
@@ -278,6 +278,8 @@ namespace ports
 				read= true;
 				write= false;
 			}
+			if(!defaultChip->bWritable)
+				read= true;
 		}
 		if(pin != "")
 		{
@@ -1167,7 +1169,7 @@ namespace ports
 		DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
 		const DefaultChipConfigReader::chips_t *chip;
 
-		chip= reader->getDefaultChip(server, pin);
+		chip= reader->getRegisteredDefaultChip(server, pin);
 		if(chip)
 		{
 			min= chip->dmin;

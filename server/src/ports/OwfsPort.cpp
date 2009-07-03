@@ -72,7 +72,7 @@ namespace ports
 			bRv= false;
 
 		//cout << "init subroutine with pin " << m_sChipID << endl;
-		if(!switchClass::init(properties, pStartFolder))
+		if(bRv && !switchClass::init(properties, pStartFolder))
 			bRv= false;
 
 		m_sErrorHead= properties.getMsgHead(/*error message*/true);
@@ -105,22 +105,31 @@ namespace ports
 			setDeviceAccess(false);
 			return true;// no error try again later
 		}
-		chipAccess= m_pOWServer->useChip(m_pSettings, m_sChipID);
+		chipAccess= m_pOWServer->useChip(m_pSettings, m_sChipID, getFolderName(), getSubroutineName());
 		if(	chipAccess < 1
 			||
 			chipAccess > 2	)
 		{
+			setDeviceAccess(false);
 			return false;
 		}
+		setDeviceAccess(true);
 		m_bRead= chipAccess == 1 ? true : false;
 		return true;
 	}
 
 	void OwfsPort::registerSubroutine()
 	{
-		DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
+		static bool registered= false;
+		DefaultChipConfigReader *reader;
 
+		if(registered)
+			return;
+		if(!m_pOWServer)
+			return;
+		reader= DefaultChipConfigReader::instance();
 		reader->registerSubroutine(getSubroutineName(), getFolderName(), m_pOWServer->getServerName(), m_sChipID);
+		registered= true;
 	}
 
 	bool OwfsPort::range(bool& bfloat, double* min, double* max)
@@ -154,9 +163,8 @@ namespace ports
 				LOG(LOG_ERROR, msg);
 			}
 			if(!m_pOWServer)
-			{
 				return false;
-			}
+			registerSubroutine();
 		}
 		if(m_bRead)
 		{

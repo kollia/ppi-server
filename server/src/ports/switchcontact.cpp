@@ -34,7 +34,10 @@ bool switchContact::init(ConfigPropertyCasher &properties, measurefolder_t *pSta
 	portBase::portpin_address_t ePortPin;
 
 	if(!switchClass::init(properties, pStartFolder))
+	{
+		setDeviceAccess(false);
 		return false;
+	}
 	value= properties.needValue("out");
 	if(value != "")
 	{
@@ -58,6 +61,7 @@ bool switchContact::init(ConfigPropertyCasher &properties, measurefolder_t *pSta
 				msg+= split[0];
 				LOG(LOG_ERROR, msg);
 				cerr << msg << endl;
+				setDeviceAccess(false);
 				return false;
 			}
 		}else
@@ -68,10 +72,15 @@ bool switchContact::init(ConfigPropertyCasher &properties, measurefolder_t *pSta
 			msg+= value + " for parameter out";
 			LOG(LOG_ERROR, msg);
 			cerr << msg << endl;
+			setDeviceAccess(false);
 			return false;
 		}
 	}else
+	{
+		setDeviceAccess(false);
 		return false;
+	}
+	setDeviceAccess(true);
 	return true;
 }
 

@@ -57,6 +57,7 @@ namespace ports
 	{
 		if(!connect())
 			return true;// no error try to connect all seconds
+		m_bUsed= true;
 		return true;
 	}
 
@@ -109,8 +110,6 @@ namespace ports
 			pin == "reset2"		)
 		{
 			nRv= 2;
-			m_bUsed= true;
-
 		}else if(	(	pin.substr(0, 1) == "I"
 						&&
 						(	pin.substr(1, 1) == "1"
@@ -136,7 +135,6 @@ namespace ports
 							pin.substr(7, 1) == "2"	)	)	)
 		{
 			nRv= 1;
-			m_bUsed= true;
 		}else
 		{
 			msg= "pin ";
@@ -208,8 +206,9 @@ namespace ports
 	{
 		ostringstream id;
 
-		id << m_nID << ":" << pin;
-		return id.str();
+		//id << m_nID << "_" << pin;
+		//return id.str();
+		return pin;
 	}
 
 	vector<string> VellemannK8055::getChipIDs() const
@@ -250,7 +249,7 @@ namespace ports
 
 	short VellemannK8055::write(const string id, const double value)
 	{
-		string pin(id.substr(2));
+		string pin(id);//.substr(2));
 
 		//cout << "write on pin " << pin << " value " << value << endl;
 		if(pin == "PWM1")
@@ -312,7 +311,7 @@ namespace ports
 
 	short VellemannK8055::read(const string id, double &value)
 	{
-		string spin(id.substr(2));
+		string spin(id);//.substr(2));
 
 		m_ndRead|= ReadAllDigital();
 		if(spin.substr(0, 7) == "counter")
@@ -360,7 +359,7 @@ namespace ports
 
 	void VellemannK8055::range(const string id, double& min, double& max, bool &bfloat)
 	{
-		string pin(id.substr(2));
+		string pin(id);//.substr(2));
 
 		bfloat= false;
 		if(pin.substr(0, 7) == "counter")

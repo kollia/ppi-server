@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 		{
 			if(getuid() != 0)
 			{
-				cerr << "process have to start as root" << endl;
+				cerr << "process has to start as root" << endl;
 				return EXIT_FAILURE;
 			}
 		}

@@ -139,13 +139,15 @@ namespace ports
 		int errorcount= 0;
 		double errorcode;
 		double dRange;
+		double dCache= 0;
 		vector<IInterlacedPropertyPattern*> sections;
 		vector<string> split;
-		string propName(property->getSectionModifier());
+		string propName("cache");
 		string family, type, ID, pin, dbolder;
 		string range, sfloat, writable, dbwrite;
 		string folder, subroutine;
 		chips_t chip;
+		defValues_t defaultValues;
 
 		if(bDefault)
 		{
@@ -198,6 +200,10 @@ namespace ports
 			read= true;
 		else if(bDefault)
 			range= "1:0";
+		propName= "cache";
+		dCache= property->getDouble(propName, /*warning*/false);
+		if(dCache != 0)
+			read= true;
 
 		sfloat= property->getValue("float", /*warning*/false);
 		if(sfloat != "")
@@ -232,6 +238,7 @@ namespace ports
 		chip.dmin= 1;
 		chip.dmax= 0;
 		chip.bFloat= false;
+		chip.dCache= dCache;
 		chip.bWritable= false;
 		chip.older= NULL;
 
@@ -328,7 +335,12 @@ namespace ports
 						dRange= 0;
 					else
 						dRange= chip.dmax - chip.dmin;
-					m_mmmmDefaultChips[folder][subroutine][dRange][chip.bFloat]= chip.older;
+					defaultValues.dmin= chip.dmin;
+					defaultValues.dmax= chip.dmax;
+					defaultValues.bFloat= chip.bFloat;
+					defaultValues.dcache= dCache;
+					defaultValues.older= chip.older;
+					m_mmmmDefaultValues[folder][subroutine][dRange][chip.bFloat]= defaultValues;
 				}else
 					saveChip(chip, server, family, type, ID, pin);
 			}else
@@ -455,7 +467,7 @@ namespace ports
 		return NULL;
 	}
 
-	const DefaultChipConfigReader::chips_t* DefaultChipConfigReader::getDefaultChip(const string& server, const string& chip) const
+	const DefaultChipConfigReader::chips_t* DefaultChipConfigReader::getRegisteredDefaultChip(const string& server, const string& chip) const
 	{
 		map<string, map<string, chips_t> >::const_iterator sIt;
 		map<string, chips_t>::const_iterator cIt;
@@ -471,7 +483,7 @@ namespace ports
 		return &cIt->second;
 	}
 
-	const DefaultChipConfigReader::chips_t* DefaultChipConfigReader::getDefaultChip(const string& server, const string& family, const string& type, const string& chip) const
+	const DefaultChipConfigReader::chips_t* DefaultChipConfigReader::getRegisteredDefaultChip(const string& server, const string& family, const string& type, const string& chip) const
 	{
 		map<string, map<string, map<string, chips_t*> > >::const_iterator sIt;
 		map<string, map<string, chips_t*> >::const_iterator nIt;
@@ -697,7 +709,7 @@ namespace ports
 
 	void DefaultChipConfigReader::registerChip(const string& server, const string& chip, const string& pin,
 												const string& type, const string& family, const double* pdmin/*= NULL*/,
-												const double* pdmax/*= NULL*/, const bool* pbFloat/*=NULL*/)
+												const double* pdmax/*= NULL*/, const bool* pbFloat/*=NULL*/, const double* pdCache/*= NULL*/)
 	{
 		chips_t entry;
 		map<string, map<string, map<string, map<string, map<string, chips_t> > > > >::iterator servIt;
@@ -784,6 +796,14 @@ namespace ports
 			entry.type= type;
 			entry.id= chip;
 			entry.pin= pin;
+			if(pdmin)
+				entry.dmin= *pdmin;
+			if(pdmax)
+				entry.dmax= *pdmax;
+			if(pbFloat)
+				entry.bFloat= *pbFloat;
+			if(pdCache)
+				entry.dCache= *pdCache;
 			entry.older= copyOlder(pinIt->second.older);
 			m_mmUsedChips[server][chip]= entry;
 		}else
@@ -808,6 +828,10 @@ namespace ports
 			entry.dmin= min;
 			entry.dmax= max;
 			entry.bFloat= bFloat;
+			if(pdCache)
+				entry.dCache= *pdCache;
+			else
+				entry.dCache= 0;
 			entry.older= NULL;
 			m_mmmmmChips[server][family][type][chip][pin]= entry;
 			m_mmUsedChips[server][chip]= entry; //&m_mmmmmChips[server][family][type][chip][pin];
@@ -871,35 +895,44 @@ namespace ports
 		m_mmAllChips[folder][subroutine]= &usedIt->second;
 	}
 
-	DefaultChipConfigReader::otime_t* DefaultChipConfigReader::getNewDefaultChipOlder(const string& folder, const string& subroutine, const double min, const double max, const bool bFloat)
+	const DefaultChipConfigReader::defValues_t DefaultChipConfigReader::getDefaultValues(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/) const
 	{
 		bool bAll= false;
 		double dRange;
-		map<string, map<string, map<double, map<bool, otime_t*> > > >::iterator folderIt;
-		map<string, map<double, map<bool, otime_t*> > >::iterator subIt;
-		map<double, map<bool, otime_t*> >::iterator rangeIt;
-		map<double, map<bool, otime_t*> >::iterator highRange;
-		map<double, map<bool, otime_t*> >::iterator lowRange;
-		map<bool, otime_t*>::iterator floatIt;
+		map<string, map<string, map<double, map<bool, defValues_t> > > >::const_iterator folderIt;
+		map<string, map<double, map<bool, defValues_t> > >::const_iterator subIt;
+		map<double, map<bool, defValues_t> >::const_iterator rangeIt;
+		map<double, map<bool, defValues_t> >::const_iterator highRange;
+		map<double, map<bool, defValues_t> >::const_iterator lowRange;
+		map<bool, defValues_t>::const_iterator floatIt;
+		defValues_t nullDef = { 0, 0, false, 0, NULL };
 
-		folderIt= m_mmmmDefaultChips.find(folder);
-		if(folderIt == m_mmmmDefaultChips.end())
+		if(folder != "")
+			folderIt= m_mmmmDefaultValues.find(folder);
+		if(	folder == ""
+			||
+			folderIt == m_mmmmDefaultValues.end()	)
 		{
 			bAll= true;
-			folderIt= m_mmmmDefaultChips.find("###all");
-			if(folderIt == m_mmmmDefaultChips.end())
-				return NULL;
+			folderIt= m_mmmmDefaultValues.find("###all");
+			if(folderIt == m_mmmmDefaultValues.end())
+				return nullDef;
 		}
-		if(bAll == false) {
+		if(	bAll == false
+			&&
+			subroutine != ""	)
+		{
 			subIt= folderIt->second.find(subroutine);
 		}
 		if(	bAll == true
+			||
+			subroutine == ""
 			||
 			subIt == folderIt->second.end()	)
 		{
 			subIt= folderIt->second.find("###all");
 			if(subIt == folderIt->second.end())
-				return NULL;
+				return nullDef;
 		}
 		highRange= subIt->second.end();
 		lowRange= highRange;
@@ -931,7 +964,7 @@ namespace ports
 			&&
 			lowRange == subIt->second.end()	)
 		{
-			return NULL;
+			return nullDef;
 		}
 		if(lowRange == subIt->second.end())
 			lowRange= highRange;
@@ -942,16 +975,29 @@ namespace ports
 			{
 				floatIt= lowRange->second.find(true);
 				if(floatIt == lowRange->second.end())
-					return NULL;
+					return nullDef;
 			}
 		}else
 		{
 			floatIt= lowRange->second.find(true);
 			if(floatIt == lowRange->second.end())
-				return NULL;
+				return nullDef;
 		}
-		return copyOlder(floatIt->second);
+		return floatIt->second;
 	}
+
+
+	DefaultChipConfigReader::otime_t* DefaultChipConfigReader::getNewDefaultChipOlder(const string& folder, const string& subroutine, const double min, const double max, const bool bFloat)
+	{
+		defValues_t def;
+
+		def= getDefaultValues(min, max, bFloat, folder, subroutine);
+		if(!def.older)
+			return NULL;
+		return copyOlder(def.older);
+	}
+
+
 
 	DefaultChipConfigReader::write_t DefaultChipConfigReader::allowDbWriting(const string& folder, const string& subroutine, const double value, const time_t acttime, bool* newOlder/*=NULL*/)
 	{

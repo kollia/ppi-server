@@ -79,34 +79,40 @@ namespace server
 		return NULL;
 	}
 
-	void OWServer::readFirstChipState()
+	bool OWServer::readFirstChipState()
 	{
 		short res;
 		double value;
 
-		cout << "read all defined input for first state from " << m_poChipAccess->getServerName() << " ..." << endl;
-		for(map<double, vector<chip_types_t*> >::iterator it= m_mvReadingCache.begin(); it != m_mvReadingCache.end(); ++it)
+		if(!m_poChipAccess->isConnected())
+			return false;
+		if(m_mvReadingCache.size() > 0)
 		{
-			cout << "   sequence for cache " << dec << it->first << " seconds" << endl;
-			for(vector<chip_types_t*>::iterator chip= it->second.begin(); chip != it->second.end(); ++chip)
+			cout << "read all defined input for first state from " << m_poChipAccess->getServerName() << " ..." << endl;
+			for(map<double, vector<chip_types_t*> >::iterator it= m_mvReadingCache.begin(); it != m_mvReadingCache.end(); ++it)
 			{
-				cout << "      " << (*chip)->id << " has value " << flush;
-				value= 0;
-				do{
-					res= m_poChipAccess->read((*chip)->id, value);
-				}while(res == 1);
-				if(res < 0)
+				cout << "   sequence for cache " << dec << it->first << " seconds" << endl;
+				for(vector<chip_types_t*>::iterator chip= it->second.begin(); chip != it->second.end(); ++chip)
 				{
-					(*chip)->device= false;
-					cout << "(cannot read correctly)" << endl;
-				}else
-				{
-					(*chip)->device= true;
-					(*chip)->value= value;
-					cout << dec << value << endl;
+					cout << "      " << (*chip)->id << " has value " << flush;
+					value= 0;
+					do{
+						res= m_poChipAccess->read((*chip)->id, value);
+					}while(res == 1);
+					if(res < 0)
+					{
+						(*chip)->device= false;
+						cout << "(cannot read correctly)" << endl;
+					}else
+					{
+						(*chip)->device= true;
+						(*chip)->value= value;
+						cout << dec << value << endl;
+					}
 				}
 			}
 		}
+		return true;
 	}
 
 	void OWServer::endOfInitialisation()
@@ -114,8 +120,8 @@ namespace server
 		cout << endl;
 		for(map<unsigned short, OWServer*>::iterator c= m_mOwServers.begin(); c != m_mOwServers.end(); ++c)
 		{
-			c->second->readFirstChipState();
-			c->second->m_bAllInitial= true;
+			if(c->second->readFirstChipState())
+				c->second->m_bAllInitial= true;
 		}
 		cout << endl;
 	}
@@ -153,10 +159,12 @@ namespace server
 
 	bool OWServer::init(void* arg)
 	{
+		string defaultConfig(m_poChipAccess->getDefaultFileName());
 		vector<string> ids;
 
 		m_oServerProperties= (IPropertyPattern*)arg;
-		DefaultChipConfigReader::instance()->define(m_poChipAccess->getServerName(), m_poChipAccess->getDefaultFileName());
+		if(defaultConfig != "")
+			DefaultChipConfigReader::instance()->define(m_poChipAccess->getServerName(), defaultConfig);
 		if(!m_poChipAccess->init(m_oServerProperties))
 			return false;
 		if(!m_poChipAccess->isConnected())
@@ -175,7 +183,7 @@ namespace server
 		return m_poChipAccess->reachAllChips();
 	}
 
-	short OWServer::useChip(IActionPropertyMsgPattern* properties, string& unique)
+	short OWServer::useChip(IActionPropertyMsgPattern* properties, string& unique, const string& folder, const string& subroutine)
 	{
 		bool read= false;
 		bool write;
@@ -185,9 +193,10 @@ namespace server
 		unsigned int priority;
 		double dCacheSeq;
 		string prop;
-		string type;
 		chip_types_t* pchip;
 		device_debug_t tdebug;
+		DefaultChipConfigReader *reader= NULL;
+		const DefaultChipConfigReader::chips_t* defaultChip;
 
 		prop= "priority";
 		priority= properties->getInt(prop, /*warning*/false);
@@ -219,6 +228,23 @@ namespace server
 		}
 
 		res= m_poChipAccess->useChip(properties, unique);
+		if(m_poChipAccess->getDefaultFileName() == "")
+		{// chip isn't registered,
+		 // do it now
+			bool fl;
+			bool *pfl= &fl;
+			double min, max;
+			double *pmin= &min;
+			double *pmax= &max;
+			string chip, type, pin, family;
+
+			m_poChipAccess->range(unique, min, max, fl);
+			chip= properties->getValue("ID");
+			pin= properties->getValue("pin");
+			type= m_poChipAccess->getChipType(pin);
+			reader= DefaultChipConfigReader::instance();
+			reader->registerChip(m_poChipAccess->getServerName(), unique, pin, type, "unknown", pmin, pmax, pfl);
+		}
 		if(res == 0)
 			return 0;
 		else if(res == 1)
@@ -227,7 +253,27 @@ namespace server
 			write= false;
 			//*pCache= currentReading;
 			if(dCacheSeq == 0)
-				dCacheSeq= 15;
+			{
+				reader= DefaultChipConfigReader::instance();
+				defaultChip= reader->getRegisteredDefaultChip(m_poChipAccess->getServerName(), unique);
+				if(	defaultChip
+					&&
+					defaultChip->dCache	!= 0	)
+				{
+					dCacheSeq= defaultChip->dCache;
+				}else
+				{
+					DefaultChipConfigReader::defValues_t def;
+					bool fl;
+					double min, max;
+
+					m_poChipAccess->range(unique, min, max, fl);
+					def= reader->getDefaultValues(min, max, fl, folder, subroutine);
+					dCacheSeq= def.dcache;
+					if(dCacheSeq == 0)
+						dCacheSeq= 15;
+				}
+			}
 			priority= 0;
 		}else if(res == 2)
 		{
@@ -249,12 +295,8 @@ namespace server
 			pchip->writecache= true;
 		else
 			pchip->writecache= false;
-		/*if(	cacheWrite
-			||
-			writecacheWrite	)
-		{*/
-			pchip->wcacheID= m_poChipAccess->getChipTypeID(unique);
-		//}
+
+		pchip->wcacheID= m_poChipAccess->getChipTypeID(unique);
 		pchip->read= read;
 		pchip->value= 0;
 		pchip->priority= priority;

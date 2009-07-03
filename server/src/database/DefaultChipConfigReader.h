@@ -232,6 +232,16 @@ namespace ports
 			}
 		};
 		/**
+		 * default values
+		 */
+		struct defValues_t {
+			double dmin;
+			double dmax;
+			bool bFloat;
+			double dcache;
+			otime_t* older;
+		};
+		/**
 		 * structure of chip id's
 		 */
 		struct chips_t {
@@ -244,6 +254,7 @@ namespace ports
 			double dmin;
 			double dmax;
 			bool bFloat;
+			double dCache;
 			bool bWritable;
 			otime_t *older;
 		};
@@ -280,9 +291,10 @@ namespace ports
 		 * @param pdmin minimal value witch chip can has
 		 * @param pdmax maximal value witch chip can has
 		 * @param pbFloat whether chip can has floating values
+		 * @param pdCache which default cache the pin of chip have
 		 */
 		void registerChip(const string& server, const string& chip, const string& pin, const string& type, const string& family,
-							const double* pdmin= NULL, const double* pdmax= NULL, const bool* pbFloat= NULL);
+							const double* pdmin= NULL, const double* pdmax= NULL, const bool* pbFloat= NULL, const double* pdCache= NULL);
 		/**
 		 * register chip-id with pin for folder and subroutine
 		 *
@@ -294,23 +306,40 @@ namespace ports
 		 */
 		void registerSubroutine(const string& subroutine, const string& folder, const string& server, const string& chip);
 		/**
-		 * return default chip of given entrys, beginning search on backward parameter chip, type and than family
+		 * return the defined default values from default.conf.<br />
+		 * folder and subroutine set not be, or else both.<br />
+		 * Method search the default values inside of given range.
+		 * It found when the difference of <code>min</code> and <code>max</code> be smaller than in the default.conf.
+		 * If <code>float</code> is false, the default must be also false or can be true if no false be set.
 		 *
-		 * @param server name of server
-		 * @param family specified family code of chip
-		 * @param type specified type of chip
-		 * @param chip unique id of chip
+		 * @param min minimum of range
+		 * @param max maximum of range
+		 * @param bFloat whether the value in the subroutine can be an floating point variable
+		 * @param folder name of folder
+		 * @param subroutine name of subroutine
+		 * @return default values with defined older_t structure
 		 */
-		const chips_t* getDefaultChip(const string& server, const string& chip) const;
+		const defValues_t getDefaultValues(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "") const;
 		/**
-		 * return default chip of given entrys, beginning search on backward parameter chip, type and than family
+		 * return registered default chip of unique chip ID and server.<br />
+		 *
 		 *
 		 * @param server name of server
 		 * @param family specified family code of chip
 		 * @param type specified type of chip
 		 * @param chip unique id of chip
 		 */
-		const chips_t* getDefaultChip(const string& server, const string& family, const string& type, const string& chip) const;
+		const chips_t* getRegisteredDefaultChip(const string& server, const string& chip) const;
+		/**
+		 * return registered default chip if exist.
+		 * beginning search on backward parameter chip, type and than family
+		 *
+		 * @param server name of server
+		 * @param family specified family code of chip
+		 * @param type specified type of chip
+		 * @param chip unique id of chip
+		 */
+		const chips_t* getRegisteredDefaultChip(const string& server, const string& family, const string& type, const string& chip) const;
 		/**
 		 * return an older structure from the chip defined with folder and subroutine
 		 * which last older is active. By this older structure, active flag will be set to false.
@@ -385,7 +414,7 @@ namespace ports
 		 * map of all older structure from default.conf
 		 * splits in folder > subroutine > range > float value > older strutures otime_t
 		 */
-		map<string, map<string, map<double , map<bool, otime_t*> > > > m_mmmmDefaultChips;
+		map<string, map<string, map<double , map<bool, defValues_t> > > > m_mmmmDefaultValues;
 		/**
 		 * map of all defined chips splits with server > family-id > type  > chip-id > pin > dbwriting-structure t_chips
 		 */
