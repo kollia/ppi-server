@@ -35,6 +35,7 @@
 #include "database/Database.h"
 
 #include "server/ServerThread.h"
+#include "server/ServerProcess.h"
 #include "server/Communication.h"
 
 #include "portserver/owserver.h"
@@ -57,8 +58,10 @@
 #include "ports/SaveSubValue.h"
 #include "ports/OwfsPort.h"
 
+#include "server/communicationthreadstarter.h"
 #include "server/TcpServerConnection.h"
 #include "server/ServerTransaction.h"
+#include "server/ServerMethodTransaction.h"
 #include "server/ClientTransaction.h"
 
 #include "starter.h"
@@ -69,7 +72,7 @@ using namespace server;
 using namespace user;
 using namespace std;
 
-
+ServerThread* gInternetServer= NULL;
 
 bool Starter::openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsigned short nDatabits, unsigned short nStopbit)
 // : m_nPort(nPort)
@@ -184,6 +187,44 @@ bool Starter::execute(vector<string> options)
 	{
 		nLogDays= 30;
 	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// start server for communication between processes
+	string commhost;
+	unsigned short commport;
+
+
+	commhost= m_oServerFileCasher.getValue("communicationhost", /*warning*/false);
+	if(commhost == "")
+		commhost= "127.0.0.1";
+	property= "communicationport";
+	commport= m_oServerFileCasher.needUShort(property);
+	if(	commport == 0
+		&&
+		property == "#ERROR"	)
+	{
+		exit(EXIT_FAILURE);
+	}
+	ServerProcess communicate(	new CommunicationThreadStarter(0, 1),
+								new TcpServerConnection(	commhost,
+															commport,
+															new ServerMethodTransaction()	),
+								new SocketClientConnection(	SOCK_STREAM,
+															commhost,
+															commport,
+															10			)						);
+
+	if(communicate.start() != 0)
+	{
+		cerr << "### ALERT: cannot start communication server" << endl;
+		cerr << "           so the hole application is not useable" << endl;
+		cerr << "           stop server" << endl;
+		exit(EXIT_FAILURE);
+	}
+	// ------------------------------------------------------------------------------------------------------------
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 	log->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays);
 	// starting logthread after seteuid()
 	//log->start();
@@ -226,17 +267,20 @@ bool Starter::execute(vector<string> options)
 	 * define one wire server
 	 *
 	 */
-	bool bError;
-	string maximinit;
+#ifdef _EXTERNVENDORLIBRARYS
 	int nServerID= 1;
+	OWServer* owserver;
+	string maximinit("");
+	vector<string>::size_type nVk8055Count= 0;
+#endif // _EXTERNVENDORLIBRARYS
+
+#ifdef _K8055LIBRARY
+	bool bError;
 	int nVk8055Address;
 	string sVk8055Address;
 	vector<int> vVk8055;
 	vector<int>::iterator vit;
-	vector<string>::size_type nVk8055Count;
-	OWServer* owserver;
 
-#ifdef _K8055LIBRARY
 	// start Vellemann k8055 ports
 	nVk8055Count= m_oServerFileCasher.getPropertyCount("Vk8055");
 	for(vector<string>::size_type n= 0; n < nVk8055Count; ++n)
@@ -358,6 +402,7 @@ bool Starter::execute(vector<string> options)
 
 	createPortObjects();
 
+#ifdef _EXTERNVENDORLIBRARYS
 	if(	maximinit != ""
 		||
 		nVk8055Count > 0	)
@@ -365,18 +410,17 @@ bool Starter::execute(vector<string> options)
 		OWServer::checkUnused();
 		OWServer::endOfInitialisation();
 	}
+#endif // _EXTERNVENDORLIBRARYS
 
 	checkAfterContact();
 
 	bool createThread= false;
 	MeasureArgArray args;
-	serverArg_t serverArgs;
+	meash_t *pFirstMeasureThreads= NULL;
 	meash_t *pCurrentMeasure= NULL;
 
 	meash_t::clientPath= URL::addPath(m_sWorkdir, PPICLIENTPATH, /*always*/false);
 	LOG(LOG_INFO, "Read layout content for clients from " + meash_t::clientPath);
-	serverArgs.clientFolder= meash_t::clientPath;
-	serverArgs.pFirstMeasureThreads= NULL;
 	measurefolder_t *aktFolder= m_tFolderStart;
 	args.ports= ports;
 	cout << "### start measure thread(s)" << endl;
@@ -397,10 +441,10 @@ bool Starter::execute(vector<string> options)
 		{
 			cout << "                     " << aktFolder->name << endl;
 			createThread= true;
-			if(serverArgs.pFirstMeasureThreads == NULL)
+			if(pFirstMeasureThreads == NULL)
 			{
-				serverArgs.pFirstMeasureThreads= new meash_t;
-				pCurrentMeasure= serverArgs.pFirstMeasureThreads;
+				pFirstMeasureThreads= new meash_t;
+				pCurrentMeasure= pFirstMeasureThreads;
 				meash_t::firstInstance= pCurrentMeasure;
 			}else
 			{
@@ -431,7 +475,7 @@ bool Starter::execute(vector<string> options)
 
 	string host;
 	unsigned short port;
-	ServerThread *server;
+	unsigned short minThreads, maxThreads;
 
 	host= m_oServerFileCasher.getValue("listen", /*warning*/false);
 	property= "port";
@@ -442,18 +486,32 @@ bool Starter::execute(vector<string> options)
 	{
 		exit(EXIT_FAILURE);
 	}
-	serverArgs.ptFirstFolder= m_tFolderStart;
-	serverArgs.pServerConf= &m_oServerFileCasher;
 	// after creating all threads and objects
 	// all chips should be defined in DefaultChipConfigReader
 	DefaultChipConfigReader::instance()->chipsDefined(true);
 
-	server= ServerThread::initial(new TcpServerConnection(host, port, new ServerTransaction()),
-													&serverArgs,/*hold*/true);
+	property= "minconnectionthreads";
+	minThreads= m_oServerFileCasher.getUShort(property, /*warning*/true);
+	property= "maxconnectionthreads";
+	maxThreads= m_oServerFileCasher.getUShort(property, /*warning*/true);
+	if(	property == "#ERROR"
+		||
+		maxThreads < 4		)
+	{
+		maxThreads= 4;
+	}
+
+	ServerThread server(new CommunicationThreadStarter(minThreads, maxThreads),
+						new TcpServerConnection(	host,
+													port,
+													new ServerTransaction()	)	);
+
+	gInternetServer= &server;
+	server.start(NULL, true);
 
 	meash_t* delMeash;
 	//system("ps -eLf | grep ppi-server");
-	pCurrentMeasure= serverArgs.pFirstMeasureThreads;
+	pCurrentMeasure= pFirstMeasureThreads;
 	if(!pCurrentMeasure)
 		cout << "first measure thread is null" << endl;
 	while(pCurrentMeasure)
@@ -467,13 +525,13 @@ bool Starter::execute(vector<string> options)
 		delete delMeash;
 	}
 
-	delete server;
 	cout << "OWServer's" << endl;
 	OWServer::delServers();
 	cout << "Database" << endl;
 	db= Database::instance();
 	db->stop(/*wait*/true);
-	//cout << "end of execute" << endl;
+	cout << "communication server" << endl;
+	communicate.stop(/*wait*/true);
 	return true;
 }
 
@@ -1705,7 +1763,7 @@ bool Starter::command(vector<string> options, string command)
 		return false;
 
 	command= ConfigPropertyCasher::trim(command);
-	clientCon= new SocketClientConnection(SOCK_STREAM, "127.0.0.1", nPort, new ClientTransaction(options, command));
+	clientCon= new SocketClientConnection(SOCK_STREAM, "127.0.0.1", nPort, 10, new ClientTransaction(options, command));
 	clres= clientCon->init();
 	delete clientCon;
 	return clres;

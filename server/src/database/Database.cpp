@@ -752,19 +752,23 @@ bool Database::setActEntry(const db_t entry)
 	return false;
 }
 
-void* Database::stop(const bool *bWait)
+int Database::stop(const bool *bWait)
 {
-	void* vRv= NULL;
+	int nRv= 0;
 
-	Thread::stop();
+	nRv= Thread::stop();
 
 	LOCK(m_DBENTRYITEMS);
 	AROUSE(m_DBENTRYITEMSCOND);
 	UNLOCK(m_DBENTRYITEMS);
 
-	if(bWait)
-		vRv= Thread::stop(/*wait*/bWait);
-	return vRv;
+	if(	nRv == 0
+		&&
+		bWait	)
+	{
+		nRv= Thread::stop(/*wait*/bWait);
+	}
+	return nRv;
 }
 
 void Database::execute()

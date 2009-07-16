@@ -50,22 +50,22 @@ LogThread *LogThread::instance(bool asServer)
 	return _instance;
 }
 
-void* LogThread::start(void *args, bool bHold)
+int LogThread::start(void *args, bool bHold)
 {
 #ifndef SINGLETHREADING
 	if(m_bAsServer)
 		return Thread::start(args, bHold);
 #endif // SINGLETHREADING
 
-	return NULL;
+	return -11;
 }
 
-void *LogThread::stop(bool bWait)
+int LogThread::stop(bool bWait)
 {
 #ifndef SINGLETHREADING
 	if(m_bAsServer)
 	{
-		void *result;
+		int result;
 
 		result= Thread::stop(/*wait*/false);
 		LOCK(m_READLOGMESSAGES);
@@ -77,7 +77,7 @@ void *LogThread::stop(bool bWait)
 	}
 #endif // SINGLETHREADING
 
-	return NULL;
+	return -12;
 }
 
 void LogThread::setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays)

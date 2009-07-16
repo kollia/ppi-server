@@ -99,6 +99,8 @@ namespace ppi_database
 	class Database : public Thread
 	{
 	public:
+		using Thread::stop;
+
 		/**
 		 * instanciate class of database
 		 *
@@ -191,14 +193,7 @@ namespace ppi_database
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual void *stop(const bool bWait)
-		{ return stop(&bWait); };
-		/**
-		 *  external command to stop thread
-		 *
-		 * @param bWait calling rutine should wait until the thread is stopping
-		 */
-		virtual void *stop(const bool *bWait= NULL);
+		virtual int stop(const bool *bWait= NULL);
 		/**
 		 * destruct of Database
 		 */

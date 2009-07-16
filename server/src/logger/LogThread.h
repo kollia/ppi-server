@@ -74,13 +74,13 @@ class LogThread : public Thread
 		 * @param bHold should the caller wait of thread by ending.<br />
 		 * 				default is false
 		 */
-		virtual void* start(void *args= NULL, bool bHold= false);
+		virtual int start(void *args= NULL, bool bHold= false);
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual void *stop(bool bWait= true);
+		virtual int stop(bool bWait= true);
 		void setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays);
 		void setThreadName(string threadName);
 		string getThreadName(pthread_t threadID= 0);

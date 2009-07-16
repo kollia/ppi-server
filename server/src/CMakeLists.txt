@@ -28,6 +28,9 @@ set(serverSrcs	server/ClientTransaction.cpp
 		server/communicationthreadstarter.cpp
 		server/FileDescriptor.cpp
 		server/hearingthread.cpp
+		server/OutsideClientTransaction.cpp
+		server/ServerMethodTransaction.cpp
+		server/ServerProcess.cpp
 		server/ServerThread.cpp
 		server/ServerTransaction.cpp
 		server/SocketClientConnection.cpp
@@ -41,6 +44,7 @@ set(utilSrcs	util/actionproperties.cpp
 		util/interlacedproperties.cpp
 		util/process.cpp
 		util/properties.cpp
+		util/StatusLogRoutine.cpp
 		util/Terminal.cpp
 		util/Thread.cpp
 		util/URL.cpp
