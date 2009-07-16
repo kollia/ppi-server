@@ -20,6 +20,7 @@
 #include <string>
 
 #include "ITransferPattern.h"
+#include "IServerPattern.h"
 
 using namespace std;
 
@@ -37,7 +38,16 @@ namespace design_pattern_world
 		{
 		public:
 			/**
+			 * set new transfer object and delete the old one if exist
+			 *
+			 * @param transfer pattern of ITransferPattern to cumunicate with server
+			 * @param delOld whether the method should delete the transfer object set before
+			 */
+			virtual void newTranfer(ITransferPattern* transfer, const bool delOld)= 0;
+			/**
 			 * initial connection and call up transfer over ITransverPattern
+			 *
+			 * @return whether command was correct
 			 */
 			virtual bool init()=0;
 			/**
