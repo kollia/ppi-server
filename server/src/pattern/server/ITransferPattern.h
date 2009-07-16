@@ -47,6 +47,22 @@ namespace design_pattern_world
 				 */
 				virtual bool transfer(IFileDescriptorPattern& descriptor)= 0;
 				/**
+				 * returning name of transaction
+				 *
+				 * @param descriptor file handle to get variables
+				 * @return name
+				 */
+				virtual string getTransactionName(const IFileDescriptorPattern& descriptor) const= 0;
+				/**
+				 * search whether client with given defined name
+				 * is the correct one
+				 *
+				 * @param descriptor file handle to get variables
+				 * @param definition defined name to find client
+				 * @return whether client is correct with given definition
+				 */
+				virtual bool isClient(const IFileDescriptorPattern& descriptor, const string& definition) const= 0;
+				/**
 				 * destructor to dereference file
 				 */
 				virtual ~ITransferPattern() {};

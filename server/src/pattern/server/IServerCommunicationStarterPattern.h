@@ -17,6 +17,10 @@
 #ifndef ISERVERCOMMUNICATIONSTARTERPATTERN_H_
 #define ISERVERCOMMUNICATIONSTARTERPATTERN_H_
 
+#include "IClientHolderPattern.h"
+#include "IFileDescriptorPattern.h"
+#include "../util/ithreadpattern.h"
+
 namespace design_pattern_world
 {
 	namespace server_pattern
@@ -27,16 +31,10 @@ namespace design_pattern_world
 		 * @author Alexander Kolli
 		 * @version 1.0.0.
 		 */
-		class IServerCommunicationStarterPattern
+		class IServerCommunicationStarterPattern :	virtual public IClientHolderPattern,
+													virtual public util_pattern::IThreadPattern
 		{
 		public:
-			/**
-			 * whether one or more clients are connected
-			 * with any communication thread
-			 *
-			 * @return cout of clients
-			 */
-			virtual short hasClients()= 0;
 			/**
 			 * function locate the next free client id
 			 *
@@ -44,16 +42,11 @@ namespace design_pattern_world
 			 */
 			virtual unsigned int nextClientID()= 0;
 			/**
-			 * arouse condition for communication-thread-starter
-			 * to search again for needed new communication threads
-			 */
-			virtual void arouseStarterThread()= 0;
-			/**
-			 * send stop to all communication threads
+			 * fill an free communication thread with an new FileDescriptor
 			 *
-			 * @param bWait if stopping process should wait for ending
+			 * @param descriptor new client connection FileDescriptor
 			 */
-			virtual void stopCommunicationThreads(bool bWait= false)= 0;
+			virtual void setNewClient(IFileDescriptorPattern* descriptor)= 0;
 			/**
 			 * virtual destructor of pattern
 			 */

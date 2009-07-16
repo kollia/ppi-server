@@ -19,6 +19,8 @@
 
 #include <string>
 
+#include "IServerPattern.h"
+
 using namespace std;
 
 namespace design_pattern_world
@@ -72,13 +74,19 @@ namespace design_pattern_world
 				 *
 				 * @return name of host address
 				 */
-				virtual string getHostAddressName()= 0;
+				virtual string getHostAddressName() const= 0;
+				/**
+				 * returning name of transaction
+				 *
+				 * @return name
+				 */
+				virtual string getTransactionName() const= 0;
 				/**
 				 * get actual port number
 				 *
 				 * @return port number
 				 */
-				virtual short getPort()= 0;
+				virtual short getPort() const= 0;
 				/**
 				 * transfer answer from geted string to client
 				 *
@@ -86,49 +94,39 @@ namespace design_pattern_world
 				 */
 				virtual bool transfer()= 0;
 				/**
-				 * whether client has correct access to server
-				 *
-				 * @return has access
-				 */
-				//virtual bool hasAccess()= 0;
-				/**
-				 * set true access if client have access to server
-				 */
-				//virtual void setAccess(bool access= true)= 0;
-				/**
 				 * set boolean into object
 				 *
 				 * @param str name of boolean
 				 * @param boolean value of boolean
 				 */
-				virtual void setBoolean(string str, bool boolean)= 0;
+				virtual void setBoolean(const string& str, const bool boolean)= 0;
 				/**
 				 * read value of boolean
 				 *
 				 * @param str name of boolean
 				 * @return value of boolean
 				 */
-				virtual bool getBoolean(string str)= 0;
+				virtual bool getBoolean(const string& str) const= 0;
 				/**
 				 * set string into object
 				 *
 				 * @param str name of variable
 				 * @param value value of defiend string
 				 */
-				virtual void setString(string str, string value)= 0;
+				virtual void setString(const string& str, const string& value)= 0;
 				/**
 				 * read actual value of string
 				 *
 				 * @param str name of string variable
 				 * @return value of defined name
 				 */
-				virtual string getString(string str)= 0;
+				virtual string getString(const string& str) const= 0;
 				/**
 				 * get current client ID
 				 *
 				 * @return ID
 				 */
-				virtual unsigned int getClientID()= 0;
+				virtual unsigned int getClientID() const= 0;
 				/**
 				 * set ID for client
 				 *
@@ -136,17 +134,47 @@ namespace design_pattern_world
 				 */
 				virtual void setClientID(unsigned int ID)= 0;
 				/**
-				 * whether client is an speaker thread
+				 * search whether client with given defined name
+				 * is the correct one
 				 *
-				 * @return is speaker
+				 * @param definition defined name to find client
+				 * @return whether client is correct with given definition
 				 */
-				//virtual bool isSpeaker()= 0;
+				virtual bool isClient(const string& definition) const= 0;
 				/**
-				 * set client to an speaker thread if param speaker is true (default)
+				 * send string to actual <code>ITransferPattern</code>
 				 *
-				 * @param speaker true if client shoud be an speaker thread
+				 * @param str string which should send to client
+				 * @return answer from client
 				 */
-				//virtual void setToSpeaker(bool speaker= true)= 0;
+				virtual string sendString(const string& str)= 0;
+				/**
+				 * method ask for string from other client
+				 *
+				 * @param wait whether method should wait if no string was sending (default: true)
+				 * @return string from other client
+				 */
+				virtual string getOtherClientString(const bool wait= true)= 0;
+				/**
+				 * send an answer of getting string with <code>getOtherClientString()</code>
+				 *
+				 * @param asw answer of getting string
+				 */
+				virtual void sendAnswer(const string& asw)= 0;
+				/**
+				 * send string to other client with defined definition name
+				 *
+				 * @param definition defined name from other client
+				 * @param str string which should be sending
+				 * @return answer from other client
+				 */
+				virtual string sendToOtherClient(const string& definition, const string& str)= 0;
+				/**
+				 * return factory of ServerCommunicationStarter
+				 *
+				 * @return actual ServerCommunicationStarter
+				 */
+				virtual IServerPattern* getServerObject() const= 0;
 				/**
 				 * destructor to dereference file
 				 */

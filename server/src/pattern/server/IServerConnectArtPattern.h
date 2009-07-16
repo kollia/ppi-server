@@ -38,6 +38,12 @@ namespace design_pattern_world
 		{
 		public:
 			/**
+			 * set an instnace of the called server
+			 *
+			 * @param server instance of calling server
+			 */
+			virtual void setServerInstance(IServerPattern* server)= 0;
+			/**
 			 * listen on device for new connection
 			 *
 			 * @return object of ITransferPattern for communicate with client
