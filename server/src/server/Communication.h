@@ -27,6 +27,7 @@
 
 #include "../pattern/server/IServerCommunicationStarterPattern.h"
 #include "../pattern/server/IFileDescriptorPattern.h"
+#include "../pattern/server/ICommunicationPattern.h"
 
 using namespace design_pattern_world::server_pattern;
 
@@ -38,43 +39,50 @@ namespace server
 	 * representing communication threads
 	 * whitch are wating for client how connecting on server.
 	 */
-	class Communication : public Thread
+	class Communication :			public Thread,
+							virtual public ICommunicationPattern
 	{
 	public:
-		/**
-		 * next Communication object
-		 */
-		Communication* m_pnext;
-
 		/**
 		 * initial communication thread
 		 *
 		 * @param ID actual new connection id of communication
 		 * @param starter thread which start communication threads
-		 * @param first measure threads which are defined in measure.conf
-		 * @param folderStart first folder defined in measure.conf
-		 * @param clientPath path of client subdirectory
 		 */
-		Communication(unsigned int ID, StarterPattern* pStarter, meash_t* first, measurefolder_t *folderStart, string clientPath);
+		Communication(unsigned int ID, const StarterPattern* pStarter);
+		/**
+		 * set next communication object
+		 *
+		 * @param nextcomm new communication object
+		 */
+		virtual void setNextComm(ICommunicationPattern* nextcomm)
+		{ m_pnext= nextcomm; };
+		/**
+		 * get next communication object
+		 *
+		 * @return next communication object
+		 */
+		virtual ICommunicationPattern* getNextComm() const
+		{ return m_pnext; };
 		/**
 		 * commit an connection to an client
 		 *
 		 * @param access file descriptor whitch get from  IServerConnectArtPattern by listen
 		 */
-		void connection(IFileDescriptorPattern* access);
+		virtual void connection(IFileDescriptorPattern* access);
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual void *stop(const bool bWait)
+		virtual int stop(const bool bWait)
 		{ return stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual void *stop(const bool *bWait= NULL);
+		virtual int stop(const bool *bWait= NULL);
 		/**
 		 * returning the default communication ID
 		 * wich needet by starting an new connection.
@@ -82,20 +90,43 @@ namespace server
 		 *
 		 * @return default client ID
 		 */
-		unsigned int getDefaultID()
+		virtual unsigned int getDefaultID() const
 		{ return m_nDefaultID; };
 		/**
 		 * returning the actual communication ID of the thread
 		 *
 		 * @return communication ID
 		 */
-		unsigned int getConnectionID();
+		virtual unsigned int getConnectionID() const;
+		/**
+		 * returning name of transaction
+		 *
+		 * @return name
+		 */
+		virtual string getTransactionName() const
+		{ return m_hFileAccess ? m_hFileAccess->getTransactionName() : ""; };
 		/**
 		 * whether an client is connected
 		 *
 		 * @return true if an client is conected
 		 */
-		bool hasClient();
+		virtual bool hasClient() const;
+		/**
+		 * search whether client with given defined name
+		 * is the correct one
+		 *
+		 * @param definition defined name to find client
+		 * @return whether client is correct with given definition
+		 */
+		virtual bool isClient(const string& definition) const;
+		/**
+		 * send string to actual <code>ITransferPattern</code>
+		 *
+		 * @param str string which shold send to client
+		 * @return answer from client
+		 */
+		virtual string sendString(const string& str)
+		{ return m_hFileAccess->sendString(str); };
 		/**
 		 * destroy instance of communication thread
 		 */
@@ -130,9 +161,9 @@ namespace server
 
 	private:
 		/**
-		 * thread id of object
+		 * next Communication object
 		 */
-		//pid_t m_nthreadid;
+		ICommunicationPattern* m_pnext;
 		/**
 		 * default connection ID set by creating object
 		 * and will be the current ID if client set no other one
@@ -183,27 +214,12 @@ namespace server
 		/**
 		 * reference to starter thread of server
 		 */
-		StarterPattern* m_poStarter;
-		/**
-		 * first measure thread.<br />
-		 * threads are defined in measure.conf to switch boolean or ports on LPT or COM,
-		 * or measure on ports
-		 */
-		meash_t* m_pFirstMeasureThread;
-		/**
-		 * first folder name in an measure thread
-		 */
-		measurefolder_t *m_ptFolderStart;
+		const StarterPattern* m_poStarter;
 		/**
 		 * should server wait on client for more than one commands
 		 */
 		bool m_bWait;
-		/**
-		 * path of client subdirectory where the layout files
-		 */
-		string m_sClientRoot;
 
-		//bool doConversation(FILE* fp, string input);
 		/**
 		 * whether one or more clients are connected
 		 * with any communication thread

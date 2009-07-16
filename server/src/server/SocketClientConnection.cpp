@@ -32,14 +32,25 @@ using namespace std;
 namespace server
 {
 
-	SocketClientConnection::SocketClientConnection(int type, const string host, const unsigned short port, ITransferPattern* transfer)
+	SocketClientConnection::SocketClientConnection(int type, const string host, const unsigned short port, const unsigned int timeout, ITransferPattern* transfer)
+	:	m_pTransfer(transfer),
+		m_sHost(host),
+		m_nPort(port),
+		m_nSocketType(type),
+		m_nTimeout(timeout),
+		m_pDescriptor(NULL)
 	{
-		string::size_type nLen= host.length();
+	}
 
-		m_nSocketType= type;
-		m_psHost= new char[nLen + 2];
-		strncpy(m_psHost, host.c_str(), nLen + 1);
-		m_nPort= port;
+	void SocketClientConnection::newTranfer(ITransferPattern* transfer, const bool delOld/*= true*/)
+	{
+		if(	delOld
+			&&
+			m_pTransfer	)
+		{
+			delete m_pTransfer;
+			m_pTransfer= NULL;
+		}
 		m_pTransfer= transfer;
 	}
 
@@ -52,6 +63,14 @@ namespace server
 		sockaddr_in6 address6;
 		sockaddr* reference;
 
+		if(!m_pTransfer)
+			return false;
+		if(m_pDescriptor)
+		{
+			m_pDescriptor->transfer();
+			return true;
+		}
+
 		m_kSocket.ss_family= AF_INET;
 		m_kSocket.adrlaenge= sizeof(m_kSocket.rec_addres);
 
@@ -62,17 +81,17 @@ namespace server
 		memset(&address.sin_addr, 0, sizeof(address.sin_addr));
 		memset(&address6.sin6_addr, 0, sizeof(address6.sin6_addr));
 
-		if(*m_psHost != '\0')
+		if(m_sHost != "")
 		{
 			m_kSocket.ss_family= AF_INET;
-			if(!inet_pton(m_kSocket.ss_family, m_psHost, &address.sin_addr))
+			if(!inet_pton(m_kSocket.ss_family, m_sHost.c_str(), &address.sin_addr))
 			{
 				m_kSocket.ss_family= AF_INET6;
-				if(!inet_pton(m_kSocket.ss_family, m_psHost, &address6.sin6_addr))
+				if(!inet_pton(m_kSocket.ss_family, m_sHost.c_str(), &address6.sin6_addr))
 				{
 					m_kSocket.ss_family= AF_INET;
 					msg=  "### WARNING: host address '";
-					msg+=               m_psHost;
+					msg+=               m_sHost;
 					msg+=               "'is not valid\n";
 					msg+= "             so listen only on localhost";
 					inet_pton(m_kSocket.ss_family, "127.0.0.1", &address.sin_addr);
@@ -93,8 +112,7 @@ namespace server
 			reference= (sockaddr *)&address6;
 		}
 
-		delete[] m_psHost;
-		m_psHost= ip_address;
+		m_sHost= ip_address;
 		if(m_kSocket.ss_family == AF_INET)
 			pf= PF_INET;
 		else
@@ -115,12 +133,20 @@ namespace server
 
 	bool SocketClientConnection::initType(sockaddr* address)
 	{
+		int con;
+		int nsize= sizeof(*address);
+		unsigned int count= 0;
 		string msg;
-		string host(m_psHost);
 		FILE* fp;
-		IFileDescriptorPattern* descriptor;
 
-		if(connect(m_kSocket.serverSocket, address, sizeof(*address)) < 0)
+		do{
+			con= connect(m_kSocket.serverSocket, address, nsize);
+			if(con >= 0)
+				break;
+			++count;
+			sleep(1);
+		}while(count <= m_nTimeout);
+		if(con < 0)
 		{
 			msg= "ERROR: connection failed\n       ";
 			msg+= strerror(errno);
@@ -131,21 +157,27 @@ namespace server
 			return false;
 		}
 		fp= fdopen (m_kSocket.serverSocket, "w+");
-		descriptor= new FileDescriptor(m_pTransfer, fp, host, m_nPort);
-		if(!descriptor->init())
+		m_pDescriptor= new FileDescriptor(NULL, m_pTransfer, fp, m_sHost, m_nPort);
+		if(!m_pDescriptor->init())
 			return false;
-		descriptor->transfer();
+		m_pDescriptor->transfer();
 		return true;
 	}
 
 	void SocketClientConnection::close()
 	{
 		::close(m_kSocket.serverSocket);
+		if(m_pDescriptor)
+		{
+			delete m_pDescriptor;
+			m_pDescriptor= NULL;
+		}
 	}
 
 	SocketClientConnection::~SocketClientConnection()
 	{
-		delete[] m_psHost;
+		if(m_pTransfer)
+			delete m_pTransfer;
 	}
 
 }

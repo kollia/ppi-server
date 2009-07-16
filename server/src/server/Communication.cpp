@@ -42,9 +42,9 @@ using namespace user;
 
 namespace server
 {
-	Communication::Communication(unsigned int ID, StarterPattern* pStarter,
-									meash_t* first, measurefolder_t *ptFolderStart, string clientPath) :
-	Thread("communicationThread", /*defaultSleep*/0)
+	Communication::Communication(unsigned int ID, const StarterPattern* pStarter) :
+	Thread("communicationThread", /*defaultSleep*/0),
+	m_poStarter(pStarter)
 	{
 		//m_SPEAKERVARACCESS= getMutex("SPEAKERVARACCESS");
 		m_HAVECLIENT= getMutex("HAVECLIENT");
@@ -54,10 +54,6 @@ namespace server
 		m_pnext= NULL;
 		m_bHasClient= false;
 		m_nDefaultID= ID;
-		m_poStarter= pStarter;
-		m_pFirstMeasureThread= first;
-		m_ptFolderStart= ptFolderStart;
-		m_sClientRoot= clientPath;
 		m_sCR= "\n";
 		m_bSetCR= true;
 		m_bSpeakerThread= false;
@@ -238,16 +234,18 @@ namespace server
 		return sRv;
 	}
 
-	void* Communication::stop(const bool *bWait)
+	int Communication::stop(const bool *bWait)
 	{
-		void* Rv;
+		int Rv= 0;
 
 		POS("x");
 		LOCK(m_HAVECLIENT);
 		Rv= Thread::stop();// do not detach thread
 		AROUSE(m_CLIENTWAITCOND);
 		UNLOCK(m_HAVECLIENT);
-		if(	bWait
+		if(	Rv == 0
+			&&
+			bWait
 			&&
 			*bWait	)
 		{
@@ -272,14 +270,14 @@ namespace server
 		UNLOCK(m_HAVECLIENT);
 	}
 
-	unsigned int Communication::getConnectionID()
+	unsigned int Communication::getConnectionID() const
 	{
 		if(!hasClient())
 			return 0;
 		return m_hFileAccess->getClientID();
 	}
 
-	bool Communication::hasClient()
+	bool Communication::hasClient() const
 	{
 		bool bClient;
 
@@ -289,17 +287,15 @@ namespace server
 		return bClient;
 	}
 
+	bool Communication::isClient(const string& definition) const
+	{
+		return m_hFileAccess->isClient(definition);
+	}
+
 	bool Communication::hasClients()
 	{
 		return m_poStarter->hasClients();
 	}
-
-	//bool Communication::doConversation(FILE* fp, string input)
-
-	//pthread_mutex_t* g_NEXTCOMMUNICATION;
-	//Communication* g_poFirstCommunication;
-	//Communication* g_freeCommunication= NULL;
-
 
 	Communication::~Communication()
 	{

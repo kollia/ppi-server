@@ -24,6 +24,7 @@
 #include "../pattern/server/IClientConnectArtPattern.h"
 #include "../pattern/server/IFileDescriptorPattern.h"
 #include "../pattern/server/ITransferPattern.h"
+#include "../pattern/server/IServerPattern.h"
 
 using namespace design_pattern_world::server_pattern;
 
@@ -51,20 +52,33 @@ namespace server
 	{
 		public:
 			/**
-			 * constructor to initial object
+			 * constructor to initial object.<br />
+			 * object delete by ending ITransferPattern
 			 *
 			 * @param type protocol type of connection
 			 * @param host string of host as ip4, ip6 or name
 			 * @param port number of port
-			 * @param transfer pattern of ITransferPattern to cumunicate with some clients
+			 * @param timeout if client reach no server, try all seconds to reconnect and ending after timeout
+			 * @param transfer pattern of ITransferPattern to cumunicate with some server
 			 */
-			SocketClientConnection(int type, const string host, const unsigned short port, ITransferPattern* transfer);
+			SocketClientConnection(int type, const string host, const unsigned short port, const unsigned int timeout, ITransferPattern* transfer= NULL);
+			/**
+			 * set new transfer object and delete the old one if exist
+			 *
+			 * @param transfer pattern of ITransferPattern to cumunicate with server
+			 * @param delOld whether method should delete the old transfer object. default is true
+			 */
+			virtual void newTranfer(ITransferPattern* transfer, const bool delOld= true);
 			/**
 			 * initial connection
+			 *
+			 * @return whether command was correct
 			 */
 			virtual bool init();
 			/**
 			 * initial connection for client
+			 *
+			 * @return whether command was correct
 			 */
 			virtual bool initType(sockaddr* address);
 			/**
@@ -88,17 +102,25 @@ namespace server
 			/**
 			 * char string of host
 			 */
-			char* m_psHost;
+			string m_sHost;
 			/**
 			 * number of port
 			 */
-			unsigned short m_nPort;
+			const unsigned short m_nPort;
 
 		private:
 			/**
 			 * protocl type of connection
 			 */
 			int m_nSocketType;
+			/**
+			 * how ofthen the client should try to connect
+			 */
+			const unsigned int m_nTimeout;
+			/**
+			 * descriptor for transaction
+			 */
+			IFileDescriptorPattern* m_pDescriptor;
 	};
 
 }

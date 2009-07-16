@@ -42,15 +42,18 @@ namespace server
 			/**
 			 * stadard constructor to forwarding
 			 */
-			FileDescriptor();
+			FileDescriptor()
+			{ initial(NULL, NULL, NULL, "", 0); };
 			/**
 			 * constructor to initial FILE and current host address
 			 *
+			 * @param starter factory of all produced clients
 			 * @param art object of holding transaction to client or server
 			 * @param file FILE descriptor
-			 * @param address incomming host address
+			 * @param address incoming host address
 			 */
-			FileDescriptor(ITransferPattern* transfer, FILE* file, string address, unsigned short port);
+			FileDescriptor(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address, unsigned short port)
+			{ initial(server, transfer, file, address, port); };
 			/**
 			 * initial ITransferPattern with this FileDescriptor
 			 *
@@ -59,7 +62,7 @@ namespace server
 			virtual bool init();
 			/**
 			 * operator writing string value into the param,
-			 * witch comming over the transaction
+			 * witch coming over the transaction
 			 *
 			 * @param reader contains after call the value
 			 */
@@ -71,7 +74,7 @@ namespace server
 			 */
 			virtual void operator << (const string writer);
 			/**
-			 * creating an carrage return with flush
+			 * creating an carriage return with flush
 			 */
 			virtual void endl();
 			/**
@@ -89,63 +92,75 @@ namespace server
 			 *
 			 * @return name of host address
 			 */
-			virtual string getHostAddressName();
+			virtual string getHostAddressName() const;
 			/**
-			 * transfer answer from geted string to client
+			 * transfer answer from getting string to client.<br />
+			 * Method is thread save.
 			 *
 			 * @return whether server should hold transaction
 			 */
 			virtual bool transfer();
-			/**
-			 * whether client has correct access to server
-			 *
-			 * @return has access
-			 */
-			//virtual bool hasAccess();
-			/**
-			 * set true access if client have access to server
-			 */
-			//virtual void setAccess(bool access= true);
 			/**
 			 * set boolean into object
 			 *
 			 * @param str name of boolean
 			 * @param boolean value of boolean
 			 */
-			virtual void setBoolean(string str, bool boolean);
+			virtual void setBoolean(const string& str, const bool boolean);
 			/**
 			 * read value of boolean
 			 *
 			 * @param str name of boolean
 			 * @return value of boolean
 			 */
-			virtual bool getBoolean(string str);
+			virtual bool getBoolean(const string& str) const;
 			/**
 			 * set string into object
 			 *
 			 * @param str name of variable
-			 * @param value value of defiend string
+			 * @param value value of defined string
 			 */
-			virtual void setString(string str, string value);
+			virtual void setString(const string& str, const string& value);
 			/**
 			 * read actual value of string
 			 *
 			 * @param str name of string variable
 			 * @return value of defined name
 			 */
-			virtual string getString(string str);
+			virtual string getString(const string& str) const;
 			/**
 			 * get actual port number
 			 *
 			 * @return port number
 			 */
-			virtual short getPort();
+			virtual short getPort() const;
 			/**
 			 * get current client ID
 			 *
 			 * @return ID
 			 */
-			virtual unsigned int getClientID();
+			virtual unsigned int getClientID() const;
+			/**
+			 * method ask for string from other client
+			 *
+			 * @param wait whether method should wait if no string was sending (default: true)
+			 * @return string from other client
+			 */
+			virtual string getOtherClientString(const bool wait= true);
+			/**
+			 * send string to other client with defined definition name
+			 *
+			 * @param definition defined name from other client
+			 * @param str string which should be sending
+			 * @return answer from other client
+			 */
+			virtual string sendToOtherClient(const string& definition, const string& str);
+			/**
+			 * send an answer of getting string with <code>getOtherClientString()</code>
+			 *
+			 * @param asw answer of getting string
+			 */
+			virtual void sendAnswer(const string& asw);
 			/**
 			 * set ID for client
 			 *
@@ -153,19 +168,70 @@ namespace server
 			 */
 			virtual void setClientID(unsigned int ID);
 			/**
+			 * search whether client with given defined name
+			 * is the correct one.<br />
+			 * Method is thread save.
+			 *
+			 * @param definition defined name to find client
+			 * @return whether client is correct with given definition
+			 */
+			virtual bool isClient(const string& definition) const;
+			/**
+			 * returning name of transaction.<br />
+			 * Method is thread save.
+			 *
+			 * @return name
+			 */
+			virtual string getTransactionName() const;
+			/**
+			 * return factory of ServerCommunicationStarter
+			 *
+			 * @return actual ServerCommunicationStarter
+			 */
+			virtual IServerPattern* getServerObject() const
+			{ return m_poServer; };
+			/**
 			 * destructor to dereference file
 			 */
 			virtual ~FileDescriptor();
 
 		private:
 			/**
+			 * send string to actual <code>ITransferPattern</code>
+			 *
+			 * @param str string which should send to client
+			 * @return answer from client
+			 */
+			virtual string sendString(const string& str);
+
+			/**
 			 * mutex lock handle for changing or reading connection ID
 			 */
 			pthread_mutex_t *m_CONNECTIONIDACCESS;
 			/**
+			 * mutex lock handle for string from other client
+			 */
+			pthread_mutex_t *m_SENDSTRING;
+			/**
+			 * mutex lock for thread save methods between transfer, isClient and getTransferName
+			 */
+			pthread_mutex_t *m_THREADSAVEMETHODS;
+			/**
+			 * condition handle to wait for answer while was sending an string from an other client
+			 */
+			pthread_cond_t *m_SENDSTRINGCONDITION;
+			/**
+			 * condition handle to wait for an string from an other client
+			 */
+			pthread_cond_t *m_GETSTRINGCONDITION;
+			/**
 			 * transaction from server to client or backward
 			 */
 			ITransferPattern* m_pTransfer;
+			/**
+			 * factory of all produced clients
+			 */
+			IServerPattern* m_poServer;
 			/**
 			 * connection ID of communicattion thread.<br />
 			 * This ID can be chanced, if the client have more then one
@@ -201,6 +267,24 @@ namespace server
 			 * string values set from ITransferPattern object
 			 */
 			map<string, string> m_mString;
+			/**
+			 * string sending from an other client
+			 */
+			string m_sSendString;
+			/**
+			 * answer string to return to other client
+			 */
+			string m_sClientAnswer;
+
+			/**
+			 * constructor initialization for object
+			 *
+			 * @param starter factory of all produced clients
+			 * @param art object of holding transaction to client or server
+			 * @param file FILE descriptor
+			 * @param address incoming host address
+			 */
+			void initial(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address, unsigned short port);
 	};
 
 }

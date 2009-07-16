@@ -51,7 +51,7 @@ namespace server
 	#ifdef SERVERDEBUG
 		cout << msg << endl;
 	#endif // SERVERDEBUG
-		descriptor= new FileDescriptor(m_pTransfer, fp, ip_address, m_nPort);
+		descriptor= new FileDescriptor(m_pServer, m_pTransfer, fp, ip_address, m_nPort);
 		if(!descriptor->init())
 		{
 			LOG(LOG_ERROR, msg+"\ninitialization fault ");
@@ -74,6 +74,7 @@ namespace server
 	{
 		int reuse;
 		string msg;
+		ostringstream smsg;
 
 		reuse = 1;
 		if (setsockopt(m_kSocket.serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
@@ -94,11 +95,11 @@ namespace server
 			//sleep(60);
 			return false;
 		}
-		msg= "listen on IP ";
-		msg+= m_psHost;
-		msg+= "\n server is running ...";
-		LOG(LOG_INFO, msg);
-		cout << msg << endl;
+		smsg << "listen on port " << m_nPort << " with IP ";
+		smsg << m_sHost;
+		smsg << "\n server is running ...";
+		LOG(LOG_INFO, smsg.str());
+		cout << smsg.str() << endl;
 		return true;
 	}
 

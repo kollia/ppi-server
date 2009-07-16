@@ -30,7 +30,6 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "../util/Thread.h"
 #include "../util/XMLStartEndTagReader.h"
 
 #include "../ports/measureThread.h"
@@ -39,35 +38,33 @@
 
 #include "../pattern/server/IFileDescriptorPattern.h"
 
-#include "ServerThread.h"
-#include "Communication.h"
-#include "communicationthreadstarter.h"
+#include "ServerProcess.h"
 
 
 namespace server
 {
-	ServerThread::ServerThread(IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect) :
-	Thread("ServerThread", /*defaultSleep*/0),
-	m_pStarterPool(starter),
-	m_pConnect(connect)
+	ServerProcess::ServerProcess(string processName, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon/*= NULL*/, const bool wait/*= true*/)
+	:	Process(processName, extcon, wait),
+		m_pStarterPool(starter),
+		m_pConnect(connect)
 	{
 		m_pConnect->setServerInstance(this);
 	}
 
-	ServerThread::ServerThread(string processName, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect) :
-	Thread("ServerThread", /*defaultSleep*/0),
-	m_pStarterPool(starter),
-	m_pConnect(connect)
+	ServerProcess::ServerProcess(IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon/*= NULL*/, const bool wait/*= true*/)
+	:	Process("CommunicationServerProcess", extcon, wait),
+		m_pStarterPool(starter),
+		m_pConnect(connect)
 	{
 		m_pConnect->setServerInstance(this);
 	}
 
-	string ServerThread::getName() const
+	string ServerProcess::getName() const
 	{
-		return getThreadName();
+		return getProcessName();
 	}
 
-	string ServerThread::getStatusInfo(string params, pos_t& pos, time_t elapsed, string lasttime)
+	string ServerProcess::getStatusInfo(string params, pos_t& pos, time_t elapsed, string lasttime)
 	{
 		ostringstream id;
 		string param, sRv;
@@ -97,12 +94,13 @@ namespace server
 				sRv= oRv.str();
 
 			}else
-				sRv= Thread::getStatusInfo(params, pos, elapsed, lasttime);
+				sRv= Process::getStatusInfo(params, pos, elapsed, lasttime);
 		}
 		return sRv;
 	}
 
-	int ServerThread::connectAsClient(const char *ip, unsigned short port, bool print/*=true*/)
+#if 0
+	int ServerProcess::connectAsClient(const char *ip, unsigned short port, bool print/*=true*/)
 	{
 		char buf[20];
 		string msg;
@@ -123,10 +121,8 @@ namespace server
 		msg+= inet_ntoa(adresse.sin_addr);
 		msg+= " port:";
 		msg+= buf;
-#ifndef DEBUG
 		if(print)
 			cout << msg << endl;
-#endif // DEBUG
 		LOG(LOG_INFO, msg);
 
 		clientsocket = socket(PF_INET, SOCK_STREAM, 0);
@@ -147,14 +143,15 @@ namespace server
 		}
 		return clientsocket;
 	}
+#endif
 
-	bool ServerThread::init(void *args)
+	bool ServerProcess::init(void *args)
 	{
 		m_pStarterPool->start(args);
 		return m_pConnect->init();
 	}
 
-	void ServerThread::execute()
+	void ServerProcess::execute()
 	{
 		IFileDescriptorPattern* fp;
 
@@ -162,15 +159,24 @@ namespace server
 		m_pStarterPool->setNewClient(fp);
 	}
 
-	void ServerThread::close()
+	void ServerProcess::close()
 	{
-		m_pConnect->close();
-		LOG(LOG_DEBUG, "Server-Socket was closed");
+		if(m_pConnect)
+		{
+			m_pConnect->close();
+			LOG(LOG_DEBUG, "Server-Socket was closed");
+		}
 	}
-	ServerThread::~ServerThread()
+
+	void ServerProcess::ending()
 	{
+		close();
 		m_pStarterPool->stopCommunicationThreads(/*wait*/true);
 		m_pStarterPool->stop(/*wait*/true);
+	}
+
+	ServerProcess::~ServerProcess()
+	{
 		delete m_pConnect;
 		delete m_pStarterPool;
 	}

@@ -14,8 +14,8 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef CLIENTTRANSACTION_H_
-#define CLIENTTRANSACTION_H_
+#ifndef OUTSIDECLIENTTRANSACTION_H_
+#define OUTSIDECLIENTTRANSACTION_H_
 
 #include <string>
 #include <vector>
@@ -32,25 +32,44 @@ using namespace design_pattern_world::server_pattern;
 namespace server
 {
 	/**
-	 * initialication transaction from server to client
+	 * initialication transaction from from client to server from outside
 	 *
 	 * @author Alexander Kolli
 	 * @version 1.0.0
 	 */
-	class ClientTransaction : public NoCommunicateTransferAdapter
+	class OutsideClientTransaction : public NoCommunicateTransferAdapter
 	{
 		public:
 			/**
-			 * constructor to initial member variables
+			 * constructor for transaction from outside
 			 */
-			ClientTransaction(vector<string> options, string command);
+			OutsideClientTransaction()
+			:	m_bAccess(false),
+				m_bHold(false)
+				{ };
 			/**
 			 * initial all values for transaction
 			 *
 			 * @param descriptor file handle to set start values
 			 * @return whether initialization was correct
 			 */
-			virtual bool init(IFileDescriptorPattern& descriptor);
+			virtual bool init(IFileDescriptorPattern& descriptor)
+			{ return true; };
+			/**
+			 * set command from outside the transaction object
+			 *
+			 * @param command string which should send to server
+			 * @param hold whether connection should holding after sending
+			 */
+			void setCommand(const string& command, const bool& hold)
+			{ m_sCommand= command; m_bHold= hold; };
+			/**
+			 * return answer from server
+			 *
+			 * @return answer
+			 */
+			string getAnswer()
+			{ return m_sAnswer; }
 			/**
 			 * transaction protocol between client to server
 			 *
@@ -59,62 +78,30 @@ namespace server
 			 */
 			virtual bool transfer(IFileDescriptorPattern& descriptor);
 			/**
-			 * destructor of server transaction
+			 * destructor of client transaction
 			 */
-			virtual ~ClientTransaction();
+			virtual ~OutsideClientTransaction() {};
 
 		private:
 			/**
-			 * vector of all options be set on the shell
+			 * whether have correct connection
 			 */
-			vector<string> m_vOptions;
+			bool m_bAccess;
 			/**
-			 * command string from shell
+			 * whether connection should hold after sending command
+			 */
+			bool m_bHold;
+			/**
+			 * command which should send to server
 			 */
 			string m_sCommand;
 			/**
-			 * whether client should wait for an new command
+			 * answer from server
 			 */
-			bool m_bWait;
-			/**
-			 * whether transaction set to be an hearing connection
-			 */
-			bool m_bHearing;
-			/**
-			 * whether client should show ERROR number (true) or translated string (false)
-			 */
-			bool m_bShowENum;
-			/**
-			 * whether the session is set for debug an OWServer
-			 */
-			bool m_bOwDebug;
-			/**
-			 * map of all devices -> id as key and device_debug_t as value
-			 */
-			map<unsigned short, OWServer::device_debug_t> m_mOwDevices;
-			/**
-			 * max micro time for all ids
-			 */
-			map<unsigned short, long> m_mOwMaxTime;
-			/**
-			 * count of measure from devices
-			 */
-			map<unsigned short, deque<unsigned short> > m_mOwMaxCount;
-			/**
-			 * object of an second client running inside and thread
-			 */
-			HearingThread* m_o2Client;
-
-			/**
-			 * print all ERROR results as translated strings on commandline
-			 *
-			 * @param result ERROR string with number
-			 */
-			void printError(string error);
-
+			string m_sAnswer;
 
 	};
 
 }
 
-#endif /*CLIENTTRANSACTION_H_*/
+#endif /*OUTSIDECLIENTTRANSACTION_H_*/

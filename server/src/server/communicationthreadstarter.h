@@ -27,6 +27,7 @@
 #include "../pattern/util/ipropertypattern.h"
 #include "../pattern/server/IServerCommunicationStarterPattern.h"
 #include "../pattern/server/IFileDescriptorPattern.h"
+#include "../pattern/server/ICommunicationPattern.h"
 
 #include "ServerThread.h"
 #include "Communication.h"
@@ -44,18 +45,37 @@ namespace server
 	 * @author Alexander Kolli
 	 * @version 1.0
 	 */
-	class CommunicationThreadStarter : public Thread, IServerCommunicationStarterPattern
+	class CommunicationThreadStarter :	virtual	public Thread,
+										virtual public IServerCommunicationStarterPattern
 	{
 	public:
 		/**
-		 * creating new instance
+		 * constructor to create object
+		 * from CommunicationThreadStarter
 		 *
-		 * @param measureThread first object of measure thread
-		 * @param folderStart first struct of folder to reache all subroutines
-		 * @param properties <code>ConfigPropertyCasher</code> object from reading server.conf
-		 * @param defaultSleep sleeping for default time in microseconds
+		 * @param minThreads how much communication threads should be started at least.<br /> If this value is <code>NULL</code> the CommunicationThreadStarter starts no thread to control how much communication threads are running
+		 * @param maxThreads how much communication threads should be running at most.<br />This count will be starts on beginning
 		 */
-		static bool initial(IServerConnectArtPattern* connect, serverArg_t* serverArg, useconds_t defaultSleep);
+		CommunicationThreadStarter(const unsigned short& minThreads, const unsigned short& maxThreads);
+		/**
+		 * constructor to create object
+		 * of CommunicationThreadStarter
+		 *
+		 * @param threadName new name of thread
+		 * @param minThreads how much communication threads should be started at least.<br /> If this value is <code>NULL</code> the CommunicationThreadStarter starts no thread to control how much communication threads are running
+		 * @param maxThreads how much communication threads should be running at most.<br />This count will be starts on beginning
+		 */
+		CommunicationThreadStarter(const string &threadName, const unsigned short& minThreads, const unsigned short& maxThreads);
+		/**
+		 * start method to running the thread parallel only if minThreads in constructor was greater than 0.<br />
+		 * Elswhere the object only running the <code>init()</code> method and is present for the server to set an new connection
+		 * into an communication thread.
+		 *
+		 * @param args arbitrary optional defined parameter to get in initialization method init
+		 * @param bHold should the caller wait of thread by ending.<br />
+		 * 				default is false
+		 */
+		virtual int start(void *args= NULL, bool bHold= false);
 		/**
 		 * abstract method to initial the thread
 		 * in the extended class.<br />
@@ -68,14 +88,6 @@ namespace server
 		 * @return boolean whether the method execute can start
 		 */
 		virtual bool init(void *args);
-		/**
-		 * return single instance of CommunicationThreadStarter
-		 * or NULL if not initialiciced
-		 *
-		 * @return instance
-		 */
-		static CommunicationThreadStarter* instance()
-				{ return _instance; };
 		/**
 		 * function locate the next free client id
 		 *
@@ -94,18 +106,12 @@ namespace server
 		 *
 		 * @param descriptor new client connection FileDescriptor
 		 */
-		void setNewClient(IFileDescriptorPattern* descriptor);
+		virtual void setNewClient(IFileDescriptorPattern* descriptor);
 		/**
 		 * arouse condition NEXTCOMMUNICATIONCOND
 		 * to search again for needed new communication threads
 		 */
-		virtual void arouseStarterThread();
-		/**
-		 * search the next communication thread with no client
-		 *
-		 * @return communication thread
-		 */
-		//Communication* searchNextFreeCommunicationThread();
+		virtual void arouseStarterThread() const;
 		/**
 		 * calculate how much communication-threads
 		 * with or without clients running;
@@ -118,26 +124,39 @@ namespace server
 		 *
 		 * @return cout of clients
 		 */
-		short hasClients();
+		virtual short hasClients() const;
+		/**
+		 * search client with given defined name
+		 * and return this client
+		 *
+		 * @param definition defined name to find client
+		 * @return return client
+		 */
+		virtual IClientPattern* getClient(const string& definition) const;
 		/**
 		 * send stop to all communication threads
 		 *
 		 * @param bWait if stopping process should wait for ending and also by true communication-threads will be deleted
+		 * @param transactionName whether method is called from an transaction, there should be given the transaction name for no wait for this transaction. To get no dead lock
 		 */
-		void stopCommunicationThreads(bool bWait= false);
+		void stopCommunicationThreads(bool bWait= false, string transactionName= "");
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual void *stop(const bool bWait)
+		virtual int stop(const bool bWait)
 		{ return CommunicationThreadStarter::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual void *stop(const bool *bWait= NULL);
+		virtual int stop(const bool *bWait= NULL);
+		/**
+		 * destructor of CommunicationStarter
+		 */
+		virtual ~CommunicationThreadStarter();
 
 	protected:
 		/**
@@ -154,30 +173,13 @@ namespace server
 		 */
 		vector<unsigned int> m_vFreeIDs;
 		/**
-		 * propertys from reading file server.conf
-		 */
-		IPropertyPattern* m_poProperties;
-		/**
-		 * first measure Thread
-		 */
-		meash_t* m_ptMeasureThread;
-		/**
-		 * first folder which need measureThread
-		 * to reach all subroutines
-		 */
-		measurefolder_t* m_ptFirstFolder;
-		/**
-		 * all Communication objects
-		 */
-		//vector<Communication*> m_vpoCommunication;
-		/**
 		 * first Communication thread object
 		 */
-		Communication* m_poFirstCommunication;
+		ICommunicationPattern* m_poFirstCommunication;
 		/**
 		 * next free Communication thread object without any client
 		 */
-		Communication* m_poNextFree;
+		ICommunicationPattern* m_poNextFree;
 		/**
 		 * mutex lock for write or read next communication thread
 		 */
@@ -205,12 +207,26 @@ namespace server
 		 */
 		virtual string getStatusInfo(string params, pos_t& pos, time_t elapsed, string lasttime);
 		/**
+		 * return next free ID
+		 *
+		 * @return next free ID
+		 */
+		unsigned int getNextFreeID()
+		{ return m_nNextFreeID; };
+		/**
+		 * create new communication object and return them
+		 *
+		 * @param nextID next default ID for communication object
+		 * @return new communication object
+		 */
+		virtual ICommunicationPattern* getNewCommunicationThread(unsigned int nextID) const;
+		/**
 		 * sort recursivly all communication thrads<br />
 		 * and look whether enough or too much threads exists
 		 *
 		 * @param first beginning sorting on this first communication thread
 		 */
-		void checkThreads(Communication* first);
+		void checkThreads(ICommunicationPattern* first);
 		/**
 		 * abstract method to ending the thread.<br />
 		 * This method will be called if any other or own thread
@@ -226,35 +242,17 @@ namespace server
 		/**
 		 * how much communication threads should be maximal open
 		 */
-		unsigned short m_maxConnThreads;
+		const unsigned short m_maxConnThreads;
 		/**
 		 * how much communication threads should be minimal open
 		 */
-		unsigned short m_minConnThreads;
-		/**
-		 * path where all htm layout files for the client to display laying
-		 */
-		string m_sClientPath;
+		const unsigned short m_minConnThreads;
 		/**
 		 * new FileDescriptor pool filled from ServerThread
 		 * if no NextFree communication-thread be set
 		 */
 		queue<IFileDescriptorPattern*> m_qpNewClients;
 
-		/**
-		 * constructor to create private object
-		 * of CommunicationThreadStarter
-		 *
-		 * @param measureThread first object of measure thread
-		 * @param folderStart first struct of folder to reache all subroutines
-		 * @param properties <code>ConfigPropertyCasher</code> object from reading server.conf
-		 * @param defaultSleep sleeping for default time in microseconds
-		 */
-		CommunicationThreadStarter(IServerConnectArtPattern* connect, serverArg_t* serverArg, useconds_t defaultSleep);
-		/**
-		 * destructor of CommunicationStarter
-		 */
-		virtual ~CommunicationThreadStarter();
 	};
 
 }

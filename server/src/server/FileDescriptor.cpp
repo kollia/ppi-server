@@ -17,26 +17,29 @@
 #include "../util/Thread.h"
 
 #include "../pattern/server/ITransferPattern.h"
+#include "../pattern/server/IClientHolderPattern.h"
 
 #include "FileDescriptor.h"
 
+using namespace design_pattern_world::server_pattern;
 
 namespace server
 {
-	FileDescriptor::FileDescriptor()
+	void FileDescriptor::initial(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address, unsigned short port)
 	{
-		m_sAddress= "";
-		m_CONNECTIONIDACCESS= Thread::getMutex("CONNECTIONIDACCESS");
-	}
-
-	FileDescriptor::FileDescriptor(ITransferPattern* transfer, FILE* file, string address, unsigned short port)
-	{
-		m_CONNECTIONIDACCESS= Thread::getMutex("CONNECTIONIDACCESS");
-
 		m_pTransfer= transfer;
-		m_pFile= file;
+		m_poServer= server;
+		m_unConnID= 0;
+		m_bAccess= false;
 		m_sAddress= address;
 		m_nPort= port;
+		m_pFile= file;
+		m_nEOF= 0;
+		m_CONNECTIONIDACCESS= Thread::getMutex("CONNECTIONIDACCESS");
+		m_SENDSTRING= Thread::getMutex("SENDSTRING");
+		m_THREADSAVEMETHODS= Thread::getMutex("THREADSAVEMETHODS");
+		m_SENDSTRINGCONDITION= Thread::getCondition("SENDSTRINGCONDITION");
+		m_GETSTRINGCONDITION= Thread::getCondition("GETSTRINGCONDITION");
 	}
 
 	bool FileDescriptor::init()
@@ -95,39 +98,110 @@ namespace server
 		}
 	}
 
-	string FileDescriptor::getHostAddressName()
+	string FileDescriptor::getHostAddressName() const
 	{
 		return m_sAddress;
 	}
 
-	void FileDescriptor::setBoolean(string str, bool boolean)
+	void FileDescriptor::setBoolean(const string& str, const bool boolean)
 	{
 		m_mBoolean[str]= boolean;
 	}
 
-	bool FileDescriptor::getBoolean(string str)
+	bool FileDescriptor::getBoolean(const string& str) const
 	{
-		bool bRv= m_mBoolean[str];
+		map<string, bool>::const_iterator it;
 
-		return bRv;
+		it= m_mBoolean.find(str);
+		if(it == m_mBoolean.end())
+			return false;
+		return it->second;
 	}
 
-	void FileDescriptor::setString(string name, string value)
+	void FileDescriptor::setString(const string& name, const string& value)
 	{
 		m_mString[name]= value;
 	}
 
-	string FileDescriptor::getString(string name)
+	string FileDescriptor::getString(const string& name) const
 	{
-		return m_mString[name];
+		map<string, string>::const_iterator it;
+
+		it= m_mString.find(name);
+		if(it == m_mString.end())
+			return "";
+		return it->second;
 	}
 
-	short FileDescriptor::getPort()
+	short FileDescriptor::getPort() const
 	{
 		return m_nPort;
 	}
 
-	unsigned int FileDescriptor::getClientID()
+	string FileDescriptor::sendToOtherClient(const string& definition, const string& str)
+	{
+		string answer;
+		IClientHolderPattern* holder= m_poServer->getCommunicationFactory();
+		IClientPattern* client= holder->getClient(definition);
+
+		if(client == NULL)
+			return "ERROR 006";
+		UNLOCK(m_THREADSAVEMETHODS);
+		answer= client->sendString(str);
+		LOCK(m_THREADSAVEMETHODS);
+		return answer;
+	}
+
+	string FileDescriptor::sendString(const string& str)
+	{
+		string answer;
+
+		LOCK(m_SENDSTRING);
+		while(m_sSendString != "")
+		{ // if SendString is not null,
+		  // an other client wait for answer
+			CONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING);
+		}
+		m_sSendString= str;
+		AROUSE(m_GETSTRINGCONDITION);
+		CONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING);
+		answer= m_sClientAnswer;
+		m_sSendString= "";
+		AROUSE(m_SENDSTRINGCONDITION);
+		UNLOCK(m_SENDSTRING);
+		return answer;
+	}
+
+	string FileDescriptor::getOtherClientString(const bool wait/*= true*/)
+	{
+		string str;
+
+		LOCK(m_SENDSTRING);
+		if(m_sSendString == "")
+		{
+			if(!wait)
+			{
+				UNLOCK(m_SENDSTRING);
+				return "";
+			}
+			UNLOCK(m_THREADSAVEMETHODS);
+			CONDITION(m_GETSTRINGCONDITION, m_SENDSTRING);
+			LOCK(m_THREADSAVEMETHODS);
+		}
+		str= m_sSendString;
+		UNLOCK(m_SENDSTRING);
+		return str;
+	}
+
+	void FileDescriptor::sendAnswer(const string& asw)
+	{
+		LOCK(m_SENDSTRING);
+		m_sClientAnswer= asw;
+		AROUSEALL(m_SENDSTRINGCONDITION);
+		UNLOCK(m_SENDSTRING);
+	}
+
+	unsigned int FileDescriptor::getClientID() const
 	{
 		unsigned int ID;
 
@@ -144,31 +218,43 @@ namespace server
 		UNLOCK(m_CONNECTIONIDACCESS);
 	}
 
-	/*bool FileDescriptor::hasAccess()
+	bool FileDescriptor::isClient(const string& definition) const
 	{
-		bool bAccess;
+		bool bRv;
 
-		LOCK(m_HAVECLIENT);
-		bAccess= m_bAccess;
-		UNLOCK(m_HAVECLIENT);
-		return bAccess;
-	}*/
+		LOCK(m_THREADSAVEMETHODS);
+		bRv= m_pTransfer->isClient(*this, definition);
+		UNLOCK(m_THREADSAVEMETHODS);
+		return bRv;
+	}
 
-	//void FileDescriptor::setAccess(bool access/*=true*/)
-	/*{
-		LOCK(m_HAVECLIENT);
-		m_bAccess= access;
-		UNLOCK(m_HAVECLIENT);
-	}*/
+	string FileDescriptor::getTransactionName() const
+	{
+		string name;
+
+		LOCK(m_THREADSAVEMETHODS);
+		name= m_pTransfer->getTransactionName(*this);
+		UNLOCK(m_THREADSAVEMETHODS);
+		return name;
+	}
 
 	bool FileDescriptor::transfer()
 	{
-		return m_pTransfer->transfer(*this);
+		bool bRv;
+
+		LOCK(m_THREADSAVEMETHODS);
+		bRv= m_pTransfer->transfer(*this);
+		UNLOCK(m_THREADSAVEMETHODS);
+		return bRv;
 	}
 
 	FileDescriptor::~FileDescriptor()
 	{
+		DESTROYMUTEX(m_SENDSTRING);
 		DESTROYMUTEX(m_CONNECTIONIDACCESS);
+		DESTROYMUTEX(m_THREADSAVEMETHODS);
+		DESTROYCOND(m_SENDSTRINGCONDITION);
+		DESTROYCOND(m_GETSTRINGCONDITION);
 		fclose(m_pFile);
 	}
 

@@ -31,56 +31,44 @@ namespace server
 
 	CommunicationThreadStarter* CommunicationThreadStarter::_instance= NULL;
 
-	CommunicationThreadStarter::CommunicationThreadStarter(IServerConnectArtPattern* connect
-													, serverArg_t* serverArg, useconds_t defaultSleep)
-	: Thread("CommunicationThreadStarter", defaultSleep)
+	CommunicationThreadStarter::CommunicationThreadStarter(const string &threadName, const unsigned short& minThreads, const unsigned short& maxThreads)
+	: 	Thread(threadName, 0),
+		m_bWillStop(false),
+		m_nNextFreeID(1),
+		m_maxConnThreads(maxThreads),
+		m_minConnThreads(minThreads)
 	{
-		m_bWillStop= false;
-		m_ptMeasureThread= serverArg->pFirstMeasureThreads;
-		m_ptFirstFolder= serverArg->ptFirstFolder;
-		m_poProperties= serverArg->pServerConf;
-
 		m_NEXTCOMMUNICATION= getMutex("NEXTCOMMUNICATION");
 		m_NEXTCOMMUNICATIONCOND= getCondition("NEXTCOMMUNICATIONCOND");
 	}
 
-	bool CommunicationThreadStarter::initial(IServerConnectArtPattern* connect
-										, serverArg_t* serverArg, useconds_t defaultSleep)
+	CommunicationThreadStarter::CommunicationThreadStarter(const unsigned short& minThreads, const unsigned short& maxThreads)
+	: 	Thread("CommunicationThreadStarter", 0),
+		m_bWillStop(false),
+		m_nNextFreeID(1),
+		m_maxConnThreads(maxThreads),
+		m_minConnThreads(minThreads)
 	{
-		if(!_instance)
+		m_NEXTCOMMUNICATION= getMutex("NEXTCOMMUNICATION");
+		m_NEXTCOMMUNICATIONCOND= getCondition("NEXTCOMMUNICATIONCOND");
+	}
+
+	int CommunicationThreadStarter::start(void *args/*= NULL*/, bool bHold/*= false*/)
+	{
+		if(m_minConnThreads == 0)
 		{
-			_instance= new CommunicationThreadStarter(connect, serverArg, defaultSleep);
-			if(!_instance)
-				return false;
-			return true;
+			init(args);
+			return 0;
 		}
-		return false;
+		return Thread::start(args, bHold);
 	}
 
 	bool CommunicationThreadStarter::init(void* args)
 	{
-		Communication* pCurrentCom;
-		string property("minconnectionthreads");
+		ICommunicationPattern* pCurrentCom;
 
-		m_minConnThreads= m_poProperties->getUShort(property, /*warning*/true);
-		/*if(	property == "#ERROR"
-			||
-			m_minConnThreads < 2		)
-		{
-			m_minConnThreads= 2;
-		}*/
-		property= "maxconnectionthreads";
-		m_maxConnThreads= m_poProperties->getUShort(property, /*warning*/true);
-		if(	property == "#ERROR"
-			||
-			m_maxConnThreads < 4		)
-		{
-			m_maxConnThreads= 4;
-		}
-		m_sClientPath= *(string*)args;
 		cout << "### start communication threads " << flush;
-		m_nNextFreeID= 1;
-		pCurrentCom= new Communication(m_nNextFreeID, this, m_ptMeasureThread, m_ptFirstFolder, m_sClientPath);
+		pCurrentCom= getNewCommunicationThread(m_nNextFreeID);
 		++m_nNextFreeID;
 		//m_NEXTCOMMUNICATION= pCurrentCom->getMutex("NEXTCOMMUNICATION");
 		pCurrentCom->start();
@@ -89,15 +77,39 @@ namespace server
 		cout << "." << flush;
 		for(unsigned short count= 1; count<m_maxConnThreads; ++count)
 		{
-			pCurrentCom->m_pnext= new Communication(m_nNextFreeID, this, m_ptMeasureThread,
-														m_ptFirstFolder, m_sClientPath);
+			pCurrentCom->setNextComm(getNewCommunicationThread(m_nNextFreeID));
 			++m_nNextFreeID;
-			pCurrentCom= pCurrentCom->m_pnext;
+			pCurrentCom= pCurrentCom->getNextComm();
 			pCurrentCom->start();
 			cout << "." << flush;
 		}
 		cout << endl;
 		return true;
+	}
+
+	IClientPattern* CommunicationThreadStarter::getClient(const string& definition) const
+	{
+		ICommunicationPattern* pCurrentCom;
+
+		LOCK(m_NEXTCOMMUNICATION);
+		pCurrentCom= m_poFirstCommunication;
+		while(pCurrentCom)
+		{
+			if(	pCurrentCom->hasClient()
+				&&
+				pCurrentCom->isClient(definition)	)
+			{
+				break;
+			}
+			pCurrentCom= pCurrentCom->getNextComm();
+		}
+		UNLOCK(m_NEXTCOMMUNICATION);
+		return pCurrentCom;
+	}
+
+	ICommunicationPattern* CommunicationThreadStarter::getNewCommunicationThread(unsigned int nextID) const
+	{
+		return new Communication(nextID, this);
 	}
 
 	void CommunicationThreadStarter::execute()
@@ -135,7 +147,7 @@ namespace server
 		}
 	}
 
-	void CommunicationThreadStarter::arouseStarterThread()
+	void CommunicationThreadStarter::arouseStarterThread() const
 	{
 		LOCK(m_NEXTCOMMUNICATION);
 		AROUSE(m_NEXTCOMMUNICATIONCOND);
@@ -146,7 +158,7 @@ namespace server
 	{
 		unsigned int sid;
 		unsigned int id= 1;
-		Communication* cur= m_poFirstCommunication;
+		ICommunicationPattern* cur= m_poFirstCommunication;
 		set<unsigned int> setIds;
 		set<unsigned int>::iterator it;
 
@@ -158,7 +170,7 @@ namespace server
 				++id;
 			else if(sid > id)
 				setIds.insert(sid);
-			cur= cur->m_pnext;
+			cur= cur->getNextComm();
 		}
 		for(it= setIds.find(id); it != setIds.end(); ++it)
 		{
@@ -171,12 +183,12 @@ namespace server
 		return id;
 	}
 
-	void CommunicationThreadStarter::checkThreads(Communication* first)
+	void CommunicationThreadStarter::checkThreads(ICommunicationPattern* first)
 	{
 		unsigned short empty;
 		unsigned int id;
-		Communication* before= NULL;
-		Communication* cur;
+		ICommunicationPattern* before= NULL;
+		ICommunicationPattern* cur;
 		vector<unsigned int>::iterator freeIt;
 
 		LOCK(m_NEXTCOMMUNICATION);// lock NEXTCOMMUNICATION for while command on the end of the loop
@@ -204,14 +216,14 @@ namespace server
 #endif // SHOWCLIENTSONSHELL
 					if(empty == m_maxConnThreads)
 					{// more than enough Communication classes exists
-						if(cur->m_pnext)
+						if(cur->getNextComm())
 						{
 							if(before)
-								before->m_pnext= cur->m_pnext;
+								before->setNextComm(cur->getNextComm());
 							else
-								before= cur->m_pnext;
+								before= cur->getNextComm();
 						}else
-							before->m_pnext= NULL;
+							before->setNextComm(NULL);
 
 						if(cur == m_poNextFree) // have same address
 							m_poNextFree= NULL;
@@ -284,7 +296,7 @@ namespace server
 				}
 				before= cur;
 				if(cur)
-					cur= cur->m_pnext;
+					cur= cur->getNextComm();
 				UNLOCK(m_NEXTCOMMUNICATION);
 			}
 
@@ -308,9 +320,8 @@ namespace server
 #ifdef SHOWCLIENTSONSHELL
 					cout << "create communication thread with default id " << id << endl;
 #endif // SHOWCLIENTSONSHELL
-					cur->m_pnext= new Communication(id, this, m_ptMeasureThread,
-															m_ptFirstFolder, m_sClientPath);
-					cur= cur->m_pnext;
+					cur->setNextComm(getNewCommunicationThread(m_nNextFreeID));
+					cur= cur->getNextComm();
 					cur->start();
 					++empty;
 					UNLOCK(m_NEXTCOMMUNICATION);
@@ -344,7 +355,7 @@ namespace server
 				{
 					if(!m_poNextFree->hasClient())
 						break;
-					m_poNextFree= m_poNextFree->m_pnext;
+					m_poNextFree= m_poNextFree->getNextComm();
 				}
 				if(m_poNextFree != NULL)
 				{
@@ -369,7 +380,7 @@ namespace server
 	bool CommunicationThreadStarter::fillCommunicationThreads()
 	{
 		bool bDone= false;
-		Communication* pCurrent= m_poFirstCommunication;
+		ICommunicationPattern* pCurrent= m_poFirstCommunication;
 
 		LOCK(m_NEXTCOMMUNICATION);
 		if(	m_poNextFree
@@ -407,7 +418,7 @@ namespace server
 					break;
 				}
 			}
-			pCurrent= pCurrent->m_pnext;
+			pCurrent= pCurrent->getNextComm();
 		}
 		UNLOCK(m_NEXTCOMMUNICATION);
 		return bDone;
@@ -433,17 +444,17 @@ namespace server
 		return pRv;
 	}*/
 
-	short CommunicationThreadStarter::hasClients()
+	short CommunicationThreadStarter::hasClients() const
 	{
 		short nRv= 0;
-		Communication *pCurrentCom= m_poFirstCommunication;
+		ICommunicationPattern *pCurrentCom= m_poFirstCommunication;
 
 		LOCK(m_NEXTCOMMUNICATION);
 		while(pCurrentCom != NULL)
 		{
 			if(pCurrentCom->hasClient())
 				++nRv;
-			pCurrentCom= pCurrentCom->m_pnext;
+			pCurrentCom= pCurrentCom->getNextComm();
 		}
 		UNLOCK(m_NEXTCOMMUNICATION);
 		return nRv;
@@ -452,13 +463,13 @@ namespace server
 	short CommunicationThreadStarter::hasThreads()
 	{
 		short nRv= 0;
-		Communication *pCurrentCom= m_poFirstCommunication;
+		ICommunicationPattern *pCurrentCom= m_poFirstCommunication;
 
 		LOCK(m_NEXTCOMMUNICATION);
 		while(pCurrentCom != NULL)
 		{
 			++nRv;
-			pCurrentCom= pCurrentCom->m_pnext;
+			pCurrentCom= pCurrentCom->getNextComm();
 		}
 		UNLOCK(m_NEXTCOMMUNICATION);
 		return nRv;
@@ -493,46 +504,60 @@ namespace server
 		return sRv;
 	}
 
-	void CommunicationThreadStarter::stopCommunicationThreads(bool bWait)
+	void CommunicationThreadStarter::stopCommunicationThreads(bool bWait/*= false*/, string transactionName/*= ""*/)
 	{
-		Communication *pCurrentCom= m_poFirstCommunication;
-		Communication *pDel;
+		ICommunicationPattern *pCurrentCom= m_poFirstCommunication;
+		ICommunicationPattern *pDel;
 
 		LOCK(m_NEXTCOMMUNICATION);
 		m_bWillStop= true;
 		UNLOCK(m_NEXTCOMMUNICATION);
 		while(pCurrentCom != NULL)
 		{
+			bool wait= bWait;
+
 			if(pCurrentCom->running())
-				pCurrentCom->stop(bWait);
-			if(bWait)
+			{
+				if(	wait == true
+					&&
+					transactionName != ""
+					&&
+					transactionName == pCurrentCom->getTransactionName()	)
+				{
+					wait= false;
+				}
+				pCurrentCom->stop(wait);
+			}
+			if(wait)
 			{
 				pDel= pCurrentCom;
-				pCurrentCom= pCurrentCom->m_pnext;
+				pCurrentCom= pCurrentCom->getNextComm();
 				delete pDel;
 			}else
-				pCurrentCom= pCurrentCom->m_pnext;
+				pCurrentCom= pCurrentCom->getNextComm();
 		}
 		if(bWait)
 			m_poFirstCommunication= NULL;
 	}
 
-	void* CommunicationThreadStarter::stop(const bool *bWait)
+	int CommunicationThreadStarter::stop(const bool *bWait)
 	{
-		void* pRv;
+		int nRv;
 		bool* wait= false;
 
 		LOCK(m_NEXTCOMMUNICATION);
-		pRv= Thread::stop(wait);
+		nRv= Thread::stop(wait);
 		AROUSEALL(m_NEXTCOMMUNICATIONCOND);
 		UNLOCK(m_NEXTCOMMUNICATION);
-		if(	bWait
+		if(	nRv == 0
+			&&
+			bWait
 			&&
 			*bWait == true	)
 		{
-			pRv= Thread::stop(bWait);
+			nRv= Thread::stop(bWait);
 		}
-		return pRv;
+		return nRv;
 	}
 
 	void CommunicationThreadStarter::ending()
@@ -541,14 +566,14 @@ namespace server
 
 	CommunicationThreadStarter::~CommunicationThreadStarter()
 	{
-		Communication* del;
-		Communication* pCurrentCom;
+		ICommunicationPattern* del;
+		ICommunicationPattern* pCurrentCom;
 
 		pCurrentCom= m_poFirstCommunication;
 		while(pCurrentCom)
 		{
 			del= pCurrentCom;
-			pCurrentCom= pCurrentCom->m_pnext;
+			pCurrentCom= pCurrentCom->getNextComm();
 			delete del;
 		}
 		_instance= NULL;

@@ -44,8 +44,16 @@ namespace server
 			 * @param transfer pattern of ITransferPattern to cumunicate with some clients
 			 */
 			SocketServerConnection(int type, const string host, const unsigned short port, ITransferPattern* transfer)
-			:SocketClientConnection(type, host, port, transfer) { };
-
+			:	SocketClientConnection(type, host, port, 0, transfer),
+				m_pServer(NULL)
+				{ };
+			/**
+			 * set an instnace of the called server
+			 *
+			 * @param server instance of calling server
+			 */
+			virtual void setServerInstance(IServerPattern* server)
+			{ m_pServer= server; };
 			/**
 			 * initial connection for server
 			 */
@@ -70,6 +78,12 @@ namespace server
 			 * destructor of SocketServerConnection
 			 */
 			virtual ~SocketServerConnection();
+
+		protected:
+			/**
+			 * calling server instance
+			 */
+			IServerPattern* m_pServer;
 	};
 
 }

@@ -54,7 +54,7 @@ namespace server
 		options.push_back(m_sPwd);
 		if(m_bOwDebug)
 			options.push_back("-ow");
-		clientCon= new SocketClientConnection(SOCK_STREAM, m_shost, m_nPort,
+		clientCon= new SocketClientConnection(SOCK_STREAM, m_shost, m_nPort, 5,
 											new ClientTransaction(options, ""));
 		clientCon->init();
 		delete clientCon;

@@ -23,6 +23,10 @@
 #include <iostream>
 #include <sstream>
 
+#include "../pattern/server/IServerCommunicationStarterPattern.h"
+
+#include "../util/structures.h"
+
 #include "../logger/LogThread.h"
 
 #include "../ports/measureThread.h"
@@ -43,7 +47,7 @@ using namespace std;
 using namespace user;
 using namespace util;
 using namespace ppi_database;
-
+using namespace design_pattern_world::server_pattern;
 
 namespace server
 {
@@ -362,9 +366,8 @@ namespace server
 			if(input == "stop-server")
 			{
 				meash_t *pCurrent= meash_t::firstInstance;
-				ServerThread *server= ServerThread::instance();
 				UserManagement* user= UserManagement::instance();
-				CommunicationThreadStarter* starter= CommunicationThreadStarter::instance();
+				IServerCommunicationStarterPattern* starter= gInternetServer->getCommunicationFactory();
 
 				if(!user->isRoot(descriptor.getString("username")))
 				{
@@ -411,7 +414,7 @@ namespace server
 					pCurrent= pCurrent->next;
 				}
 				cout << endl << "server " << flush;
-				server->stop(false);
+				gInternetServer->stop(false);
 				// sending any command to server for stopping
 				ServerThread::connectAsClient("127.0.0.1", 20004, false);
 				cout << "." << endl;

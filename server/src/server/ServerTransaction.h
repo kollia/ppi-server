@@ -17,7 +17,11 @@
 #ifndef SERVERTRANSACTION_H_
 #define SERVERTRANSACTION_H_
 
-#include "../pattern/server/ITransferPattern.h"
+#include "ServerThread.h"
+
+#include "../pattern/server/NoCommunicateTransactionAdapter.h"
+
+extern server::ServerThread* gInternetServer;
 
 using namespace design_pattern_world::server_pattern;
 
@@ -29,7 +33,7 @@ namespace server
 	 * @author Alexander Kolli
 	 * @version 1.0.0
 	 */
-	class ServerTransaction : public ITransferPattern
+	class ServerTransaction : public NoCommunicateTransferAdapter
 	{
 		public:
 			/**
