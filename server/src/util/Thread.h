@@ -26,10 +26,12 @@
 #include <map>
 
 #include "debug.h"
+#include "StatusLogRoutine.h"
 
-#include "../pattern/util/IStatusLogPattern.h"
+#include "../pattern/util/ithreadpattern.h"
 
 using namespace design_pattern_world;
+using namespace design_pattern_world::util_pattern;
 using namespace std;
 
 struct mutexnames_t
@@ -67,16 +69,10 @@ extern map<pthread_cond_t*, string> g_mCondition;
  * @autor Alexander Kolli
  * @version 1.0.0
  */
-class Thread : public virtual IStatusLogPattern
+class Thread :	public virtual IThreadPattern,
+				public virtual StatusLogRoutine
 {
 	public:
-		/**
-		 * creating instance of thread
-		 *
-		 * @param threadName Name of thread to identify in logmessages
-		 * @param waitInit if flag is true (default), starting thread waiting until this thread initial with method init()
-		 */
-		//Thread(string threadName, bool waitInit= true);
 		/**
 		 * creating instance of thread
 		 *
@@ -93,120 +89,7 @@ class Thread : public virtual IStatusLogPattern
 		 * 				default is false
 		 * @return NULL when all ok if bHold is false, otherwise the returnvalue of the thread in an void pointer
 		 */
-		virtual void* start(void *args= NULL, bool bHold= false);
-		/**
-		 * set last position for status information
-		 *
-		 * @param file in which file the poisiton be set
-		 * @param line on which line in the file the position set
-		 * @param identif any named position identification
-		 */
-		static void position(const string file, const int line, const string identif)
-		{ positionA(file, line, identif, NULL, NULL); };
-		/**
-		 * set last position for status information
-		 *
-		 * @param file in which file the poisiton be set
-		 * @param line on which line in the file the position set
-		 * @param identif any named position identification
-		 * @param info2 varios information as an string
-		 */
-		static void position(const string file, const int line, const string identif, const string info2)
-		{ positionA(file, line, identif, &info2, NULL); };
-		/**
-		 * set last position for status information
-		 *
-		 * @param file in which file the poisiton be set
-		 * @param line on which line in the file the position set
-		 * @param identif any named position identification
-		 * @param ninfo2 variaos information as an integer
-		 */
-		static void position(const string file, const int line, const string identif, const int ninfo2)
-		{ positionA(file, line, identif, NULL, &ninfo2); };
-		/**
-		 * set last position for status information
-		 *
-		 * @param file in which file the poisiton be set
-		 * @param line on which line in the file the position set
-		 * @param identif any named position identification
-		 * @param info2 varios information as an string
-		 * @param ninfo2 variaos information as an integer
-		 */
-		static void position(const string file, const int line, const string identif, const string info2, const int ninfo2)
-		{ positionA(file, line, identif, &info2, &ninfo2); };
-		/**
-		 * set last position for status information
-		 *
-		 * @param file in which file the poisiton be set
-		 * @param line on which line in the file the position set
-		 * @param identif any named position identification
-		 * @param info2 varios information as an string
-		 * @param ninfo2 variaos information as an integer
-		 */
-		static void positionA(const string file, const int line, const string identif, const string* info2, const int* ninfo2);
-		/**
-		 * first initialization from running thread
-		 *
-		 * @param threadName name of the thread
-		 * @param thread object of an thread which contains the IStatusLogPattern
-		 */
-		void initstatus(const string threadName, IStatusLogPattern* thread);
-		/**
-		 * set status for information
-		 *
-		 * @param thread object of an thread which contains the IStatusLogPattern
-		 */
-		void statusattrib(IStatusLogPattern* thread)
-		{ statusattrib(thread, NULL, NULL); };
-		/**
-		 * set status for information
-		 *
-		 * @param ninfo1 integer information
-		 */
-		void statusattrib(int ninfo1)
-		{ statusattrib(NULL, NULL, &ninfo1); };
-		/**
-		 * set status for information
-		 *
-		 * @param info1 string information
-		 */
-		void statusattrib(string info1)
-		{ statusattrib(NULL, &info1, NULL); };
-		/**
-		 * set status for information
-		 *
-		 * @param info1 string information
-		 * @param ninfo1 integer information
-		 */
-		void statusattrib(string info1, int ninfo1)
-		{ statusattrib(NULL, &info1, &ninfo1); };
-		/**
-		 * set status for information
-		 *
-		 * @param thread object of an thread which contains the IStatusLogPattern
-		 * @param info1 string information
-		 * @param ninfo1 integer information
-		 */
-		void statusattrib(IStatusLogPattern* thread, string* info1, int* ninfo1);
-		/**
-		 * get status information for last reached position with time
-		 * for all running threads.<br />
-		 * <br />
-		 * On starting static method with no params, method returning only an number of running threads<br />
-		 * elsewhere by any params it calls for all threads the defined virtual getStatusInfo(params, pos, ...)<br />
-		 * if in the params be set 'threads:<system thread number pid_t>' this method calling only the virtual
-		 * getStatusInfo for the given thread.
-		 *
-		 * @param params to show which status info
-		 * @return status information
-		 */
-		static string getStatusInfo(string params);
-		/**
-		 * remove thread position from status list
-		 *
-		 * @param threadid id of thread which should be removed
-		 */
-		void removestatus(const pid_t threadid);
+		virtual int start(void *args= NULL, bool bHold= false);
 		/**
 		 * to ask whether the thread should stopping.<br />
 		 * This method should be call into running thread to know whether the thread should stop.
@@ -225,14 +108,14 @@ class Thread : public virtual IStatusLogPattern
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual void *stop(const bool bWait)
+		virtual int stop(const bool bWait)
 		{ return stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual void *stop(const bool *bWait= NULL);
+		virtual int stop(const bool *bWait= NULL);
 		/**
 		 * the thread will be uncoupled from the starting thread
 		 *
@@ -354,7 +237,7 @@ class Thread : public virtual IStatusLogPattern
    		 *
    		 * @return name of thread
    		 */
-		string getThreadName();
+		string getThreadName() const;
 		/**
 		 * returning thread id from OS
 		 *
@@ -388,16 +271,6 @@ class Thread : public virtual IStatusLogPattern
 		 */
 		virtual void execute()=0;
 		/**
-		 * protected initialization for given info points
-		 * to write into the status information
-		 *
-		 * @param params parameter set by call getStatusInfo from main method
-		 * @param pos position struct see pos_t
-		 * @param elapsed seconds be elapsed since last position time pos_t.time
-		 * @param time from last position pos_t.time converted in an string
-		 */
-		virtual string getStatusInfo(string params, pos_t& pos, time_t elapsed, string lasttime);
-		/**
 		 * sleep an default microseconds time.<br />
 		 * Some older computer needs to much cpu time if an thread running
 		 * all the time. This waiting time can be set in the constructor of this class.<br />
@@ -412,12 +285,6 @@ class Thread : public virtual IStatusLogPattern
 		 * calling method stop().
 		 */
 		virtual void ending()=0;
-		/**
-		 * this method defining the name whitch be showen in the log-files.
-		 *
-		 * @param threadName name which should be showen
-		 */
-		void setThreadLogName(string threadName);
 
 
 
@@ -484,27 +351,9 @@ class Thread : public virtual IStatusLogPattern
 		 * condition for start or stop thread
 		 */
 		pthread_cond_t* m_STARTSTOPTHREADCOND;
-		/**
-		 * map of position information for all threads
-		 */
-		static map<pid_t, pos_t> m_mStatus;
-		/**
-		 * mutex lock for set or reading status
-		 */
-		static pthread_mutex_t* m_POSITIONSTATUS;
 
 		void run();
 		static void * EntryPoint(void*);
-		/**
-		 * private static initialization for given info points
-		 * to write into the status information
-		 *
-		 * @param params parameter set by call getStatusInfo from main method
-		 * @param pos position struct see pos_t
-		 * @param elapsed seconds be elapsed since last position time pos_t.time
-		 * @param time from last position pos_t.time converted in an string
-		 */
-		static string getStatus(string params, pos_t& pos, time_t elapsed, string lasttime);
 
 };
 
@@ -518,9 +367,5 @@ class Thread : public virtual IStatusLogPattern
 #define AROUSEALL(cond) Thread::arouseAllCondition(__FILE__, __LINE__, cond)
 #define DESTROYMUTEX(mutex) Thread::destroyMutex(__FILE__, __LINE__, mutex)
 #define DESTROYCOND(cond) Thread::destroyCondition(__FILE__, __LINE__, cond)
-#define POS(identif) Thread::position(__FILE__, __LINE__, identif)
-#define POSS(identif, info2) Thread::position(__FILE__, __LINE__, identif, info2)
-#define POSN(identif, ninfo2) Thread::position(__FILE__, __LINE__, identif, ninfo2)
-#define POSSN(identif, info2, ninfo2) Thread::position(__FILE__, __LINE__, identif, info2, ninfo2)
 
 #endif /*THREAD_H_*/
