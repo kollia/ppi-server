@@ -428,7 +428,7 @@ namespace ppi_database
 		 * @param endfilter char atring of ending
 		 * @return map of all files as value and the date as key
 		 */
-		map<string, string> readDirectory(const string& path, const string& beginfilter, const string& endfilter);
+		static map<string, string> readDirectory(const string& path, const string& beginfilter, const string& endfilter);
 	};
 
 }
