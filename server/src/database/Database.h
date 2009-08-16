@@ -195,6 +195,15 @@ namespace ppi_database
 		 */
 		virtual int stop(const bool *bWait= NULL);
 		/**
+		 * read directory in defined path with an filter for begin and end of the files
+		 *
+		 * @param path subdirectory wich have to read
+		 * @param beginfilter char string of beginning
+		 * @param endfilter char atring of ending
+		 * @return map of all files as value and the date as key
+		 */
+		static map<string, string> readDirectory(const string& path, const string& beginfilter, const string& endfilter);
+		/**
 		 * destruct of Database
 		 */
 		virtual ~Database();
@@ -420,15 +429,6 @@ namespace ppi_database
 		 * @return spliced values
 		 */
 		db_t splitDbLine(const string& line);
-		/**
-		 * read directory in defined path with an filter for begin and end of the files
-		 *
-		 * @param path subdirectory wich have to read
-		 * @param beginfilter char string of beginning
-		 * @param endfilter char atring of ending
-		 * @return map of all files as value and the date as key
-		 */
-		static map<string, string> readDirectory(const string& path, const string& beginfilter, const string& endfilter);
 	};
 
 }
