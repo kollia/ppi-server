@@ -28,7 +28,7 @@
 
 #include "../ports/timemeasure.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../util/configpropertycasher.h"
 
@@ -157,7 +157,7 @@ namespace server
 		return false;
 	}
 
-	bool OWServer::init(void* arg)
+	int OWServer::init(void* arg)
 	{
 		string defaultConfig(m_poChipAccess->getDefaultFileName());
 		vector<string> ids;
@@ -166,7 +166,7 @@ namespace server
 		if(defaultConfig != "")
 			DefaultChipConfigReader::instance()->define(m_poChipAccess->getServerName(), defaultConfig);
 		if(!m_poChipAccess->init(m_oServerProperties))
-			return false;
+			return 1;
 		if(!m_poChipAccess->isConnected())
 		{
 			string msg(" connection to device was failed, try to connect all seconds");
@@ -175,7 +175,7 @@ namespace server
 			cout << "### WARNING: " << msg << endl;
 		}else
 			m_bConnected= true;
-		return true;
+		return 0;
 	}
 
 	bool OWServer::reachAllChips()
@@ -416,17 +416,16 @@ namespace server
 		return m_poChipAccess->isDebug();
 	}
 
-	void OWServer::execute()
+	int OWServer::execute()
 	{
 		typedef map<string, map<string, string> >::iterator cachemmiter;
 		typedef map<string, string>::iterator cachemiter;
 		typedef map<string, chip_types_t*>::iterator mmtype;
 
-
 		if(!m_bAllInitial)
 		{
 			usleep(1000);
-			return;
+			return 0;
 		}
 		if(!m_bConnected)
 		{
@@ -436,7 +435,7 @@ namespace server
 				m_poChipAccess->init(m_oServerProperties);
 				m_bConnected= true;
 			}else
-				return;
+				return 0;
 		}
 		short endWork;
 		static map<int, queue<chip_types_t*> >::iterator priorityPos= m_mvPriorityCache.begin();
@@ -777,7 +776,7 @@ namespace server
 			TIMECONDITION(m_PRIORITYCACHECOND, m_PRIORITYCACHE, &waittm);
 			UNLOCK( m_PRIORITYCACHE);
 		}
-		//usleep(1000);
+		return 0;
 	}
 
 	vector<string> OWServer::getDebugInfo()

@@ -35,7 +35,7 @@
 
 #include "../database/DefaultChipConfigReader.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 using namespace util;
 using namespace std;

@@ -468,9 +468,9 @@ namespace server
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return boolean whether the method execute can start
+		 * @return error code for not right initialization
 		 */
-		virtual bool init(void *args);
+		virtual int init(void *args);
 		/**
 		 * reading all devices for first state
 		 *
@@ -481,8 +481,10 @@ namespace server
 		 * define method to running thread.<br />
 		 * This method starting again when ending without an sleeptime
 		 * if the method stop() isn't call.
+		 *
+		 * @param error code for not correctly done
 		 */
-		virtual void execute();
+		virtual int execute();
 		/**
 		 * define method to ending the thread.<br />
 		 * This method will be called if any other or own thread

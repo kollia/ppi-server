@@ -27,8 +27,7 @@ extern "C" {
 #include <k8055.h>
 }
 
-
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../ports/portbaseclass.h"
 
