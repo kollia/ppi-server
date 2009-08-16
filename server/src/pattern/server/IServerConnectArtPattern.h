@@ -45,10 +45,18 @@ namespace design_pattern_world
 			virtual void setServerInstance(IServerPattern* server)= 0;
 			/**
 			 * listen on device for new connection
+			 * and initial descriptor which getting with <code>getDescriptor()</code>
+			 * if return code was 0
+			 *
+			 * @return error code
+			 */
+			virtual int accept()= 0;
+			/**
+			 * returning descriptor created with <code>accept()</code>
 			 *
 			 * @return object of ITransferPattern for communicate with client
 			 */
-			virtual IFileDescriptorPattern* listen()=0;
+			virtual IFileDescriptorPattern* getDescriptor()=0;
 			/**
 			 * return the address witch the comunication have reached after listen
 			 *

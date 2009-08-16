@@ -52,13 +52,13 @@ namespace design_pattern_world
 				 *
 				 * @return true if the thread should stop
 				 */
-				virtual bool stopping()= 0;
+				virtual int stopping()= 0;
 				/**
 				 * external query whether the thread is running
 				 *
 				 * @return true if thread is running
 				 */
-				virtual bool running()= 0;
+				virtual int running()= 0;
 				/**
 				 *  external command to stop thread
 				 *

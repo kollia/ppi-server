@@ -47,9 +47,28 @@ namespace design_pattern_world
 			/**
 			 * initial connection and call up transfer over ITransverPattern
 			 *
-			 * @return whether command was correct
+			 * @return error code elsewhere 0 see overview from extended class
 			 */
-			virtual bool init()=0;
+			virtual int init()=0;
+			/**
+			 * get host address to which client connect
+			 *
+			 * @return host address
+			 */
+			virtual const string getHostAddress() const= 0;
+			/**
+			 * return port address on which client connect
+			 *
+			 * @return port address
+			 */
+			virtual const unsigned short getPortAddress() const= 0;
+			/**
+			 * return string describing error number
+			 *
+			 * @param error code number of error
+			 * @return error string
+			 */
+			virtual string strerror(int error) const= 0;
 			/**
 			 * close all connections of sercer
 			 */

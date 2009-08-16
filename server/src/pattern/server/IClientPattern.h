@@ -51,9 +51,10 @@ namespace design_pattern_world {
 			 * send string to actual <code>ITransferPattern</code>
 			 *
 			 * @param str string which shold send to client
+			 * @param wait whether method should wait for an answer
 			 * @return answer from client
 			 */
-			virtual string sendString(const string& str)= 0;
+			virtual string sendString(const string& str, const bool& wait)= 0;
 			/**
 			 * dummy destructor of pattern
 			 */

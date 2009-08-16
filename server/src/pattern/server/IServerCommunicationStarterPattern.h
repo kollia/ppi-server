@@ -48,6 +48,15 @@ namespace design_pattern_world
 			 */
 			virtual void setNewClient(IFileDescriptorPattern* descriptor)= 0;
 			/**
+			 * search client with given defined name
+			 * and return this client
+			 *
+			 * @param definition defined name to find client
+			 * @param own pointer of own called descriptor witch client is not needed
+			 * @return return client
+			 */
+			virtual IClientPattern* getClient(const string& definition, IFileDescriptorPattern* own) const= 0;
+			/**
 			 * virtual destructor of pattern
 			 */
 			virtual ~IServerCommunicationStarterPattern() {};

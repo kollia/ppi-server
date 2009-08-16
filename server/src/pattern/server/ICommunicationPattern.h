@@ -28,6 +28,12 @@ namespace design_pattern_world {
 			 */
 			virtual void connection(IFileDescriptorPattern* access)= 0;
 			/**
+			 * return actual file descriptor
+			 *
+			 * @return descriptor
+			 */
+			virtual const IFileDescriptorPattern* getDescriptor() const= 0;
+			/**
 			 * returning the default communication ID
 			 * wich needet by starting an new connection.
 			 * Set by creating

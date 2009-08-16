@@ -56,14 +56,6 @@ namespace design_pattern_world
 			 */
 			virtual void stopCommunicationThreads(bool bWait= false, string transactionName= "")= 0;
 			/**
-			 * search client with given defined name
-			 * and return this client
-			 *
-			 * @param definition defined name to find client
-			 * @return return client
-			 */
-			virtual IClientPattern* getClient(const string& definition) const= 0;
-			/**
 			 * virtual destructor of pattern
 			 */
 			virtual ~IClientHolderPattern() {};

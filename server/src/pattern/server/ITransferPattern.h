@@ -63,6 +63,13 @@ namespace design_pattern_world
 				 */
 				virtual bool isClient(const IFileDescriptorPattern& descriptor, const string& definition) const= 0;
 				/**
+				 * return string describing error number
+				 *
+				 * @param error code number of error
+				 * @return error string
+				 */
+				virtual string strerror(int error) const= 0;
+				/**
 				 * destructor to dereference file
 				 */
 				virtual ~ITransferPattern() {};

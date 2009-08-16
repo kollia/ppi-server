@@ -145,9 +145,10 @@ namespace design_pattern_world
 				 * send string to actual <code>ITransferPattern</code>
 				 *
 				 * @param str string which should send to client
+				 * @param wait whether method should wait for an answer
 				 * @return answer from client
 				 */
-				virtual string sendString(const string& str)= 0;
+				virtual string sendString(const string& str, const bool& wait)= 0;
 				/**
 				 * method ask for string from other client
 				 *
@@ -166,15 +167,23 @@ namespace design_pattern_world
 				 *
 				 * @param definition defined name from other client
 				 * @param str string which should be sending
+				 * @param wait whether method should wait for an answer
 				 * @return answer from other client
 				 */
-				virtual string sendToOtherClient(const string& definition, const string& str)= 0;
+				virtual string sendToOtherClient(const string& definition, const string& str, const bool& wait)= 0;
 				/**
 				 * return factory of ServerCommunicationStarter
 				 *
 				 * @return actual ServerCommunicationStarter
 				 */
 				virtual IServerPattern* getServerObject() const= 0;
+				/**
+				 * return string describing error number
+				 *
+				 * @param error code number of error
+				 * @return error string
+				 */
+				virtual string strerror(int error) const= 0;
 				/**
 				 * destructor to dereference file
 				 */
