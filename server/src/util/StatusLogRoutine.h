@@ -208,9 +208,9 @@ class StatusLogRoutine : public virtual IStatusLogPattern
 
 };
 
-#define POS(identif) Thread::position(__FILE__, __LINE__, identif)
-#define POSS(identif, info2) Thread::position(__FILE__, __LINE__, identif, info2)
-#define POSN(identif, ninfo2) Thread::position(__FILE__, __LINE__, identif, ninfo2)
-#define POSSN(identif, info2, ninfo2) Thread::position(__FILE__, __LINE__, identif, info2, ninfo2)
+#define POS(identif) StatusLogRoutine::position(__FILE__, __LINE__, identif)
+#define POSS(identif, info2) StatusLogRoutine::position(__FILE__, __LINE__, identif, info2)
+#define POSN(identif, ninfo2) StatusLogRoutine::position(__FILE__, __LINE__, identif, ninfo2)
+#define POSSN(identif, info2, ninfo2) StatusLogRoutine::position(__FILE__, __LINE__, identif, info2, ninfo2)
 
 #endif /*STATUSLOGROUTINE_H_*/

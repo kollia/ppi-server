@@ -27,12 +27,13 @@
 #include <iostream>
 
 #include "Thread.h"
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../util/configpropertycasher.h"
 
 using namespace std;
 using namespace util;
+using namespace logger;
 
 
 pthread_mutex_t g_READMUTEX;
@@ -130,7 +131,8 @@ void Thread::run()
 	m_nThreadId= gettid();
 	initstatus(getThreadName(), this);
 	startmsg+= thname + "'";
-	LOG(LOG_DEBUG, startmsg);
+	if(LogInterface::instance())
+		LOG(LOG_DEBUG, startmsg);
 #ifdef SERVERDEBUG
 	cout << startmsg << endl;
 #endif // SERVERDEBUG
@@ -144,7 +146,7 @@ void Thread::run()
 			UNLOCK(m_RUNTHREAD);
 		}
 		LOCK(m_STARTSTOPTHREAD);
-		if(init(m_pArgs))
+		if(init(m_pArgs) == 0)
 		{
 			LOCK(m_RUNTHREAD);
 			m_bRun= true;
@@ -154,7 +156,8 @@ void Thread::run()
 			error+= "### thread ";
 			error+= thname;
 			error+= " cannot inital correcty";
-			LOG(LOG_ERROR, error);
+			if(LogInterface::instance())
+				LOG(LOG_ERROR, error);
 			LOCK(m_STOPTHREAD);
 			m_bStop= true;
 			UNLOCK(m_STOPTHREAD);
@@ -176,7 +179,8 @@ void Thread::run()
 			{
 				error+= "execute thread ";
 				error+= thname;
-				LOG(LOG_ALERT, error);
+				if(LogInterface::instance())
+					LOG(LOG_ALERT, error);
 				cerr << error << endl;
 			}
 		}
@@ -184,7 +188,8 @@ void Thread::run()
 	{
 		error+= "initialisation on thread ";
 		error+= thname;
-		LOG(LOG_ALERT, error);
+		if(LogInterface::instance())
+			LOG(LOG_ALERT, error);
 		cerr << error << endl;
 	}
 	ending();
@@ -194,7 +199,7 @@ void Thread::run()
 	string msg("thread ");
 
 	msg+= getThreadName() + " do stopping";
-	if(!LogThread::instance()->stopping())
+	if(!LogInterface::instance()->stopping())
 		LOG(LOG_DEBUG, msg);
 #ifdef DEBUG
 	cout << msg << endl;
@@ -1042,7 +1047,7 @@ int Thread::detach()
 
 		msg+= getThreadName() + "\n           ";
 		msg+= strerror(nRv);
-		if(LogThread::instance()->running())
+		if(LogInterface::instance()->running())
 			LOG(LOG_ERROR, msg);
 #ifdef DEBUG
 		cerr << msg << endl;
@@ -1055,7 +1060,7 @@ int Thread::stop(const bool *bWait)
 {
 #ifndef SINGLETHREADING
 	int nRv;
-	LogThread *log= LogThread::instance();
+//	LogInterface* log= LogInterface::instance();
 
 	LOCK(m_STARTSTOPTHREAD);
 	LOCK(m_STOPTHREAD);
@@ -1067,8 +1072,8 @@ int Thread::stop(const bool *bWait)
 	{
 		if(!running())
 			return 5;
-		if(!log->ownThread(getThreadName(), pthread_self()))
-		{
+//		if(!log->ownThread(getThreadName(), pthread_self()))
+//		{
 			nRv= CONDITION(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD);
 			if(nRv != 0)
 			{
@@ -1081,8 +1086,8 @@ int Thread::stop(const bool *bWait)
 #endif // DEBUG
 				LOG(LOG_ERROR,  msg);
 			}
-		}else
-			LOG(LOG_ERROR, "application cannot stop own thread with stop(true)");
+//		}else
+//			LOG(LOG_ERROR, "application cannot stop own thread with stop(true)");
 	}
 	UNLOCK(m_STARTSTOPTHREAD);
 
@@ -1100,26 +1105,26 @@ string Thread::getThreadName() const
 	return name;
 }
 
-bool Thread::stopping()
+int Thread::stopping()
 {
-	bool bRv;
+	int nRv= 0;
 
 	LOCK(m_STOPTHREAD);
-	bRv= m_bStop;
+	if(m_bStop)
+		nRv= 1;
 	UNLOCK(m_STOPTHREAD);
-	return bRv;
+	return nRv;
 }
 
-bool Thread::running()
+int Thread::running()
 {
+	int nRv= 0;
+
 	LOCK(m_RUNTHREAD);
 	if(m_bRun)
-	{
-		UNLOCK(m_RUNTHREAD);
-		return true;
-	}
+		nRv= 1;
 	UNLOCK(m_RUNTHREAD);
-	return false;
+	return nRv;
 }
 
 Thread::~Thread()

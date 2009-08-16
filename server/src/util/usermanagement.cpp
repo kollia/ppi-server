@@ -22,7 +22,7 @@
 
 #include "usermanagement.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../util/configpropertycasher.h"
 

@@ -24,37 +24,76 @@
 #include "StatusLogRoutine.h"
 #include "Thread.h"
 
-#include "../server/OutsideClientTransaction.h"
+#include "../util/ExternClientInputTemplate.h"
+
 #include "../pattern/util/ithreadpattern.h"
-#include "../pattern/server/IClientConnectArtPattern.h"
-
-using namespace server;
-
 namespace util
 {
 	using namespace std;
-	using namespace design_pattern_world::util_pattern;
-	using namespace design_pattern_world::server_pattern;
 
 	/**
 	 * base class for all Process with fork.<br />
 	 * <br />
-	 * error codes for <code>start()</code> and <code>stop()</code>:
+	 * error codes:<br />
+	 * (all codes over 0 be errors and under warnings)<br />
 	 * <table>
 	 * 	<tr>
 	 * 		<td>
-	 * 			0 (EXIT_SUCCESS)
+	 * 			0
 	 * 		</td>
 	 * 		<td>
-	 * 			no error occurred
+	 * 			<table>
+	 * 				<tr>
+	 * 					<td>
+	 * 						<code>start()</code> and<br />
+	 * 						<code>stop()</code>
+	 * 					</td>
+	 * 					<td>
+	 * 						no error occurred
+	 * 					</td>
+	 * 				</tr>
+	 * 				<tr>
+	 * 					<td>
+	 * 						<code>running()</code>
+	 * 					</td>
+	 * 					<td>
+	 * 						process do not run
+	 * 					</td>
+	 * 				</tr>
+	 * 				<tr>
+	 * 					<td>
+	 * 						<code>stopping()</code>
+	 * 					</td>
+	 * 					<td>
+	 * 						process run and do not stop in the next time
+	 * 					</td>
+	 * 				</tr>
+	 * 			</table>
 	 * 		</td>
 	 * 	</tr>
 	 * 	<tr>
 	 * 		<td>
-	 * 			1 (EXIT_FAILURE)
+	 * 			1
 	 * 		</td>
 	 * 		<td>
-	 * 			undefined error occurred
+	 * 			<table>
+	 * 				<tr>
+	 * 					<td>
+	 * 						<code>running()</code>
+	 * 					</td>
+	 * 					<td>
+	 * 						process is running
+	 * 					</td>
+	 * 				</tr>
+	 * 				<tr>
+	 * 					<td>
+	 * 						<code>stopping()</code>
+	 * 					</td>
+	 * 					<td>
+	 * 						process should stop in the next time
+	 * 					</td>
+	 * 				</tr>
+	 * 			</table>
 	 * 		</td>
 	 * 	</tr>
 	 * 	<tr>
@@ -107,6 +146,7 @@ namespace util
 	 * @version 1.0.0
 	 */
 	class Process : virtual public IThreadPattern,
+							public ExternClientInputTemplate,
 							public StatusLogRoutine
 	{
 	public:
@@ -115,10 +155,12 @@ namespace util
 		 * object delete client connection by ending
 		 *
 		 * @param processName Name of process to identify in logmessages
-		 * @param connection on which connection from outside the process is reachable
+		 * @param sendConnection on which connection from outside the server to answer is reachable
+		 * @param getConnection on which connection from outside the server is reachable to get questions
 		 * @param wait whether the starting method should wait for <code>init()</code> method
 		 */
-		Process(const string& processName, IClientConnectArtPattern* connection= NULL, const bool wait= true);
+		Process(const string& processName, IClientConnectArtPattern* sendConnection,
+									IClientConnectArtPattern* getConnection, const bool wait= true);
 		/**
 		 * start method to running the process paralell
 		 *
@@ -137,25 +179,27 @@ namespace util
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return boolean whether the method execute can start
+		 * @return defined error code from extended class
 		 */
-		virtual bool init(void *args)=0;
+		virtual int init(void *args)=0;
 		/**
 		 * abstract method to running process
 		 * in the extended class.<br />
-		 * This method starting again when ending
-		 * if the method stop() isn't called.
+		 * This method starting again when ending with code 0 or lower for warnings
+		 * and if the method stop() isn't called.
+		 *
+		 * @return defined error code from extended class
 		 */
-		virtual void execute()=0;
+		virtual int execute()=0;
 		/**
 		 * external query whether the process is running.<br />
 		 * This method should be call into running process to know whether the process should stop.<br />
 		 * By calling from outside it ask over the server when connection given by constructor.
 		 * If not given the return value is always false
 		 *
-		 * @return true if thread is running
+		 * @return error or warning number see overview
 		 */
-		virtual bool running();
+		virtual int running();
 		/**
 		 *  external command to stop process
 		 *
@@ -171,17 +215,13 @@ namespace util
 		 *
 		 * @return error or warning number see overview
 		 */
-		virtual bool stopping();
+		virtual int stopping();
 		/**
-		 * send message to given server in constructor
-		 *
-		 * @param toProcess for which process the method should be
-		 * @param method name of method
-		 * @param params all parameter in an string, splited with an colon
-		 * @param hold whether the connection should ending after call
-		 * @return backward send return value from server
+		 * abstract method to ending the thread.<br />
+		 * This method will be called if any other or own thread
+		 * calling method stop().
 		 */
-		string sendMethod(const string& toProcess, const string& method, const string& params, const bool& hold= true);
+		virtual void ending()=0;
    		/**
    		 * method returning name of process
    		 *
@@ -189,6 +229,13 @@ namespace util
    		 */
 		virtual const string getProcessName() const
 		{ return m_sProcessName; };
+		/**
+		 * return string describing error number
+		 *
+		 * @param error code number of error
+		 * @return error string
+		 */
+		virtual string strerror(int error) const;
 		/**
 		 * destructor of process
 		 */
@@ -199,10 +246,6 @@ namespace util
 		 * whether starting routine should wait for <code>init()</code> method
 		 */
 		const bool m_bWaitInit;
-		/**
-		 * connection to process
-		 */
-		IClientConnectArtPattern* m_oConnect;
 		/**
 		 * id of process by running,
 		 * else where from outside the id is every time 0
@@ -229,15 +272,6 @@ namespace util
 		 */
 		void* m_pvStopRv;
 		/**
-		 * transaction to server to send methods.<br />
-		 * If not exist create an new one
-		 */
-		OutsideClientTransaction* m_pSendTransaction;
-		/**
-		 * transaction to server to get methods for questions from other processes
-		 */
-		OutsideClientTransaction* m_pGetTransaction;
-		/**
 		 * mutex lock whether process running
 		 */
 		pthread_mutex_t* m_PROCESSRUNNING;
@@ -245,18 +279,11 @@ namespace util
 		 * mutex lock whether process should stopping
 		 */
 		pthread_mutex_t* m_PROCESSSTOPPING;
-
 		/**
-		 * calculate the error code given back from server.<br />
-		 * the return error codes from server should be ERROR or WARNING.
-		 * If the given warnings are multiplied with -1 (become negative)
-		 * and both will be by return of 10 count higher.
-		 *
-		 * @param input the return string from server
-		 * @param err the calculated error code, elswhere 0
-		 * @return whether the input string was an error or warning
+		 * condition to waiting for end
 		 */
-		bool error(const string& input, int& err);
+		pthread_cond_t* m_PROCESSSTOPCOND;
+
 
 	};
 

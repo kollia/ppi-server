@@ -23,216 +23,205 @@
 #include "Thread.h"
 #include "process.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 namespace util
 {
 
-	Process::Process(const string& processName, IClientConnectArtPattern* connection/*= NULL*/, const bool wait/*= true*/) :
+	Process::Process(const string& processName, IClientConnectArtPattern* sendConnection/*= NULL*/,
+										IClientConnectArtPattern* getConnection/*= NULL*/, const bool wait/*= true*/) :
+		ExternClientInputTemplate(processName, processName, sendConnection, getConnection),
+		StatusLogRoutine(),
 		m_bWaitInit(wait),
-		m_oConnect(connection),
 		m_nProcessID(0),
 		m_sProcessName(processName),
 		m_bRun(false),
 		m_bStop(false),
 		m_pvStartRv(NULL),
-		m_pvStopRv(NULL),
-		m_pSendTransaction(NULL),
-		m_pGetTransaction(NULL)
+		m_pvStopRv(NULL)
 	{
 		m_PROCESSRUNNING= Thread::getMutex("PROCESSRUNNING");
 		m_PROCESSSTOPPING= Thread::getMutex("PROCESSSTOPPING");
+		m_PROCESSSTOPCOND= Thread::getCondition("PROCESSSTOPCOND");
 	}
 
 	int Process::stop(const bool bWait/*= true*/)
 	{
 		if(m_nProcessID == 0)
 		{
-			int err;
+			int err, err2= 0;
 			string answer;
 
-			answer= sendMethod(m_sProcessName, "stop", "", /*hold*/false);
-			if(error(answer, err))
+			err= openSendConnection();
+			if(err > 0)
 				return err;
+			answer= sendMethod(m_sProcessName, "stop", bWait);
+			if(err == 0)
+				err2= closeSendConnection();
+			err= error(answer);
+			if(err != 0)
+				return err;
+			if(err2 > 0)
+				return err2;
 			if(answer != "done")
 				return 4;
 			return 0;
 		}
 		LOCK(m_PROCESSSTOPPING);
 		m_bStop= true;
+		if(bWait)
+			CONDITION(m_PROCESSSTOPCOND, m_PROCESSSTOPPING);
 		UNLOCK(m_PROCESSSTOPPING);
 		return 0;
 	}
 
 	int Process::start(void *args/*= NULL*/, bool bHold/*= false*/)
 	{
-		string debugProcessName("CommunicationServerProcess");
+		string processName(getProcessName());
+		string debugProcessName("CommunicationServerProcess");//("");//("LogServer");//
 		pid_t nProcess;
 		ostringstream stream;
 
 		if((nProcess= fork()) < 0)
-		{
-			ostringstream msg;
-
-			msg << "### ALERT: cannot start process of " << getProcessName() << endl;
-			msg << "           errno(" << errno << "): " << strerror(errno);
-			cerr << msg.str() << endl;
-			LOG(LOG_ALERT, msg.str());
 			return 2;
-		}
-		cout << "run on ";
-		if(nProcess > 0)
-			cout << "father process with child " << nProcess << endl;
-		else
-			cout << "child process with no id" << endl;
-		if(	(	debugProcessName == getProcessName()
+		if(	(	debugProcessName == processName
 				&&
 				nProcess > 0						)
 			||
-			(	debugProcessName != getProcessName()
+			(	debugProcessName != processName
 				&&
 				nProcess == 0						)	)
 		{
+			int ret= 0;
+
 			m_bRun= true;
 			m_nProcessID= getpid();
-			setThreadLogName(getProcessName());
-			cout << "initial communication server with id:" << nProcess << endl;
-			if(!init(args))
+			ret= init(args);
+			if(ret > 0)
 			{
-				string msg("### ERROR: cannot inital server ");
-				msg+= getProcessName();
-				cerr << msg << endl;
-				LOG(LOG_ALERT, msg);
-				exit(EXIT_FAILURE);
+				cerr << "ERROR: for initial process " << getProcessName() << endl;
+				cerr << "       " << strerror(ret) << endl;
+				exit(ret);
 			}
-			while(!stopping())
-				execute();
-			exit(EXIT_SUCCESS);
+			while(	ret <= 0
+					&&
+					!stopping()	)
+			{
+				ret= execute();
+			}
+			AROUSEALL(m_PROCESSSTOPCOND);
+			ending();
+			exit(ret);
 		}
+		//if(getProcessName() == "LogServer")
+		//	sleep(5);
 		if(	m_bWaitInit	)
 		{
-			int err;
+			int err, err2= 0;
 			string answer;
 
-			answer= sendMethod(m_sProcessName, "init", "", /*hold*/false);
-			if(error(answer, err))
+			err= openSendConnection();
+			if(err > 0)
 				return err;
+			answer= sendMethod(m_sProcessName, "init", true);
+			if(err == 0)
+				err2= closeSendConnection();
+			err= error(answer);
+			if(err != 0)
+				return err;
+			if(err2 > 0)
+				return err2;
+			if(answer != "done")
+				return 3;
+		}
+		if(bHold)
+		{
+			int err, err2= 0;
+			string answer;
+
+			answer= sendMethod(m_sProcessName, "waiting", true);
+			if(err == 0)
+				err2= closeSendConnection();
+			err= error(answer);
+			if(err != 0)
+				return err;
+			if(err2 > 0)
+				return err2;
 			if(answer != "done")
 				return 3;
 		}
 		return 0;
 	}
 
-	bool Process::error(const string& input, int& err)
+	string Process::strerror(int error) const
 	{
-		bool exist= false;
-		int number;
-		string answer;
-		istringstream out(input);
+		string str;
 
-		err= 0;
-		out >> answer >> number;
-		if(answer == "###ERROR") // inside error
+		switch(error)
 		{
-			exist= true;
-			err= number;
-		}else if(answer == "ERROR")
-		{
-			exist= true;
-			err= number + 10;
-		}else if(answer == "###WARNING") // inside warning
-		{
-			exist= true;
-			err= number * -1;
-		}else if(answer == "WARNING")
-		{
-			exist= true;
-			err= (number * -1) -10;
+		case 0:
+			str= "no error occurred";
+			break;
+		case 2:
+			str= "cannot fork process";
+			break;
+		case 3:
+			str= "cannot correctly check initialization from new process, "
+		  			"maybe connection was failed or server give back wrong answer (not 'done')";
+			break;
+		case 4:
+			str= "cannot correctly check stopping from process, "
+		  			"maybe connection was failed or server give back wrong answer (not 'done')";
+			break;
+		default:
+			str= ExternClientInputTemplate::strerror(error);
+			break;
 		}
-		return exist;
+		return str;
 	}
 
-	string Process::sendMethod(const string& toProcess, const string& method, const string& params, const bool& hold/*= true*/)
+	int Process::running()
 	{
-		bool bExist;
-		bool bHold= false;
-		string command;
+		int nRv= 0;
 		string answer;
-
-		if(m_oConnect == NULL)
-			return "###WARNING 001";
-		if(m_pSendTransaction == NULL)
-		{
-			bExist= false;
-			m_pSendTransaction= new OutsideClientTransaction();
-			m_oConnect->newTranfer(m_pSendTransaction, true);
-			if(hold == true)
-				bHold= true;
-			m_pSendTransaction->setCommand(m_sProcessName + " SEND", true);
-			if(!m_oConnect->init())
-				return "ERROR 003";
-			answer= m_pSendTransaction->getAnswer();
-			if(	answer.substr(0, 5) == "ERROR"
-				||
-				answer.substr(0, 7) == "WARNING"	)
-			{
-				return answer;
-			}
-		}else
-		{
-			bExist= true;
-			bHold= true;
-		}
-		command= toProcess + " " + method;
-		if(params != "")
-		{
-			command+= " ";
-			command+= params;
-		}
-		m_pSendTransaction->setCommand(command, bHold);
-		m_oConnect->init();
-		answer= m_pSendTransaction->getAnswer();
-		if(bHold == false)
-		{
-			m_oConnect->close();
-			m_oConnect->newTranfer(NULL, /*delete old*/true);
-			m_pSendTransaction= NULL;
-		}
-		return answer;
-	}
-
-	bool Process::running()
-	{
-		bool bRv;
 
 		if(m_nProcessID == 0)
 		{
-			if(sendMethod(m_sProcessName, "running", "", /*hold*/false) != "true")
-				return false;
-			return true;
+			answer= sendMethod(m_sProcessName, "running", true);
+			if(answer == "true")
+				return 1;
+			if(answer == "false")
+				return 0;
+			return error(answer);
 		}
 		LOCK(m_PROCESSRUNNING);
-		bRv= m_bRun;
+		if(m_bRun)
+			nRv= 1;
 		UNLOCK(m_PROCESSRUNNING);
-		return bRv;
+		return nRv;
 	}
 
-	bool Process::stopping()
+	int Process::stopping()
 	{
-		bool bRv;
+		int nRv= 0;
+		string answer;
 
 		if(m_nProcessID == 0)
 		{
 			//toDo: asking over connection
 			//return false;
-			if(sendMethod(m_sProcessName, "stopping", "", /*hold*/false) != "true")
-				return false;
-			return true;
+			answer= sendMethod(m_sProcessName, "stopping", true);
+			if(answer == "true")
+				return 1;
+			if(answer == "false")
+				return 0;
+			return error(answer);
 		}
 		LOCK(m_PROCESSSTOPPING);
-		bRv= m_bStop;
+		if(m_bStop)
+			nRv= 1;
 		UNLOCK(m_PROCESSSTOPPING);
-		return bRv;
+		return nRv;
 	}
 
 	Process::~Process()

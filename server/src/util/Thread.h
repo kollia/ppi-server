@@ -96,13 +96,13 @@ class Thread :	public virtual IThreadPattern,
 		 *
 		 * @return true if the thread should stop
 		 */
-		bool stopping();
+		int stopping();
 		/**
 		 * external query whether the thread is running
 		 *
 		 * @return true if thread is running
 		 */
-		bool running();
+		int running();
 		/**
 		 *  external command to stop thread
 		 *
@@ -260,16 +260,18 @@ class Thread :	public virtual IThreadPattern,
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return boolean whether the method execute can start
+		 * @return defined error code from extended class
 		 */
-		virtual bool init(void *args)=0;
+		virtual int init(void *args)=0;
 		/**
 		 * abstract method to running thread
 		 * in the extended class.<br />
 		 * This method starting again when ending without an sleeptime
 		 * if the method stop() isn't call.
+		 *
+		 * @return defined error code from extended class
 		 */
-		virtual void execute()=0;
+		virtual int execute()=0;
 		/**
 		 * sleep an default microseconds time.<br />
 		 * Some older computer needs to much cpu time if an thread running

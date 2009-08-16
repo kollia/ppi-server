@@ -15,49 +15,33 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * URL.cpp
- *
- *  Created on: 22.05.2009
- *      Author: Alexander Kolli
- */
+#include "RunningStoppingInterfaceTemplate.h"
 
-#include "URL.h"
-
-namespace util {
-
-	string URL::addPath(string first, string second, bool always/*= true*/)
+namespace util
+{
+	bool ProcessInterfaceTemplate::running()
 	{
-		string sRv;
+		string answer;
 
-		if(first == "")
-			return second;
-		if(always)
-		{
-			int fLen= first.length();
+		answer= sendMethod(m_sSendTo, "running", true);
+		if(answer == "true")
+			return true;
+		return false;
+	}
 
-			if(	first[fLen-1] != '/'
-				&&
-				second[0] != '/'				)
-			{
-				first+= "/";
-			}else if(	first[fLen-1] == '/'
-						&&
-						second[0] == '/'				)
-			{
-				first= first.substr(0, fLen - 1);
-			}
-			sRv= first + second;
-		}else
-		{
-			if(second.substr(0, 1) != "/")
-			{
-				if(first.substr(first.length()-1) != "/")
-					first+= "/";
-				sRv= first + second;
-			}else
-				sRv= second;
-		}
-		return sRv;
+	int ProcessInterfaceTemplate::stop(const bool bWait/*= true*/)
+	{
+		string answer;
+
+		answer= sendMethod(m_sSendTo, "stop", bWait);
+		return error(answer);;
+	}
+
+	bool ProcessInterfaceTemplate::stopping()
+	{
+		string answer;
+
+		answer= sendMethod(m_sSendTo, "running", true);
+		return false;
 	}
 }

@@ -22,7 +22,7 @@
 
 #include "configpropertycasher.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 namespace util
 {

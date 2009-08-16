@@ -29,7 +29,7 @@
 
 #include "properties.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 namespace util {
 
