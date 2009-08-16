@@ -64,8 +64,27 @@ class MeasureThread : public Thread
 
 
 	protected:
-		virtual bool init(void *arg);
-		virtual void execute();
+		/**
+		 * this method will be called before running
+		 * the method execute to initial class
+		 *
+		 * @param args user defined parameter value or array,<br />
+		 * 				coming as void pointer from the external call
+		 * 				method start(void *args).
+		 * @return error code for not right initialization
+		 */
+		virtual int init(void *arg);
+		/**
+		 * This method starting again when ending with code 0 or lower for warnings
+		 * and if the method stop() isn't called.
+		 *
+		 * @param error code for not correctly done
+		 */
+		virtual int execute();
+		/**
+		 * This method will be called if any other or own thread
+		 * calling method stop().
+		 */
 		virtual void ending();
 		void clear();
 		bool measure();

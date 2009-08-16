@@ -23,7 +23,7 @@
 #include "../util/debug.h"
 #include "../util/Thread.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "measureThread.h"
 
@@ -81,7 +81,7 @@ unsigned short MeasureThread::getSleepTime()
 	return nTime;
 }
 
-bool MeasureThread::init(void *arg)
+int MeasureThread::init(void *arg)
 {
 	int nMuch;
 	portBase* port;
@@ -114,10 +114,10 @@ bool MeasureThread::init(void *arg)
 			port->setAfterContact(m_vAfterContactPorts, m_vAfterContactPins);
 		}
 	}
-	return true;
+	return 0;
 }
 
-void MeasureThread::execute()
+int MeasureThread::execute()
 {
 	bool bSleeped;
 
@@ -144,6 +144,7 @@ void MeasureThread::execute()
 		sleep(time);
 		TIMELOG(LOG_DEBUG, "sleep" + getgid(), msg.str());
 	}
+	return 0;
 }
 
 void MeasureThread::ending()
