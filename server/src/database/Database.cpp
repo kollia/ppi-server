@@ -32,7 +32,7 @@
 #include "Database.h"
 #include "DefaultChipConfigReader.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../util/URL.h"
 #include "../util/configpropertycasher.h"
@@ -147,7 +147,7 @@ db_t Database::splitDbLine(const string& line)
 	return entry;
 }
 
-bool Database::init(void *args)
+int Database::init(void *args)
 {
 	char stime[16];
 	string dbfile;
@@ -206,7 +206,7 @@ bool Database::init(void *args)
 			error+= strerror(errno);
 			cerr << endl << error << endl;
 			LOG(LOG_ALERT, error);
-			return false;
+			return 1;
 		}
 		while(!file.eof())
 		{
@@ -233,7 +233,7 @@ bool Database::init(void *args)
 	}
 
 	cout << " OK" << endl;
-	return true;
+	return 0;
 }
 
 void Database::fillMeasureCurve(const db_t entry, bool doSort/*= true*/)
@@ -771,7 +771,7 @@ int Database::stop(const bool *bWait)
 	return nRv;
 }
 
-void Database::execute()
+int Database::execute()
 {
 	bool bNewValue;
 	static bool bWait= false;
@@ -811,7 +811,7 @@ void Database::execute()
 	}else
 		bWait= !thinDatabase(/*ask*/false);
 	createNewDbFile(/*check whether*/true);
-	//usleep(1000);
+	return 0;
 }
 
 vector<convert_t> Database::getNearest(string subroutine, string definition, double value)

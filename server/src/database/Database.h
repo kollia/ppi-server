@@ -208,15 +208,17 @@ namespace ppi_database
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return boolean whether the method execute can start
+		 * @return error code for not right initialization
 		 */
-		virtual bool init(void *args= NULL);
+		virtual int init(void *args= NULL);
 		/**
 		 * method to running thread .<br />
 		 * This method starting again when ending without an sleeptime
 		 * if the method stop() isn't call.
+		 *
+		 * @return error code for not correctly done
 		 */
-		virtual void execute();
+		virtual int execute();
 		/**
 		 * method to ending the thread.<br />
 		 * This method will be called if any other or own thread

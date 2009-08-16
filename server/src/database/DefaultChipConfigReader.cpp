@@ -30,7 +30,7 @@
 
 #include "DefaultChipConfigReader.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../util/URL.h"
 #include "../util/configpropertycasher.h"
