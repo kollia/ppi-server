@@ -26,8 +26,6 @@
 #include "util/configpropertycasher.h"
 #include "util/Thread.h"
 
-#include "logger/LogThread.h"
-
 #include "portserver/LircClient.h"
 
 //#include "database/DefaultChipConfigReader.h"
@@ -190,11 +188,9 @@ int main(int argc, char* argv[])
 					command != ""	)
 				{
 					bool bRes;
-					Thread *log= (Thread*)LogThread::instance(false);
 
 					//cout << "command: " << command << endl;
 					bRes= server->command(vOptions, command);
-					log->stop();
 					if(bRes)
 						return EXIT_SUCCESS;
 					return EXIT_FAILURE;
@@ -215,12 +211,6 @@ int main(int argc, char* argv[])
 
 	if(param == "start")
 		cout << "LogServer" << endl;
-	if(param == "stop")
-		LOG(LOG_INFO, "### -> server application was stopping!");
-	if(LogThread::instance() == NULL)
-		cerr << "### ERROR: LogThread has stoped before" << endl;
-	else
-		LogThread::instance()->stop(true);
 	if(param == "stop")
 	{
 		cout << endl << "server was stopped" << endl;

@@ -29,7 +29,8 @@
 #include "util/configpropertycasher.h"
 #include "util/usermanagement.h"
 
-#include "logger/LogThread.h"
+#include "logger/LogProcess.h"
+#include "logger/LogInterface.h"
 
 #include "database/DefaultChipConfigReader.h"
 #include "database/Database.h"
@@ -71,6 +72,7 @@ using namespace util;
 using namespace server;
 using namespace user;
 using namespace std;
+using namespace logger;
 
 ServerThread* gInternetServer= NULL;
 
@@ -93,14 +95,11 @@ bool Starter::openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsig
 
 bool Starter::execute(vector<string> options)
 {
-	bool bAsServer= true;
 	unsigned int nOptions= options.size();
 	vector<unsigned long> ports; // whitch ports are needet
-	int nLogLevel, nLogAllSec, nLogDays;
 	string fileName;
 	string logpath, dbpath, sLogLevel, property;
 	Database *db;
-	LogThread *log;
 	string prop;
 
 	Starter::isNoPathDefinedStop();
@@ -131,14 +130,14 @@ bool Starter::execute(vector<string> options)
 
 	m_sConfPath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
 	dbpath= URL::addPath(m_sWorkdir, PPIDATABASEPATH, /*always*/false);
-	LOG(LOG_INFO, "Read configuration files from " + m_sConfPath);
 
 	fileName= URL::addPath(m_sConfPath, "server.conf");
 	if(!m_oServerFileCasher.readFile(fileName))
 	{
 		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
+	m_oServerFileCasher.readLine("workdir= " + m_sWorkdir);
 	readFile(ports, URL::addPath(m_sConfPath, "measure.conf"));
 
 
@@ -147,51 +146,13 @@ bool Starter::execute(vector<string> options)
 		cerr << "### ERROR: cannot read correctly 'access.conf'" << endl;
 		return false;
 	}
-	logpath= URL::addPath(m_sWorkdir, PPILOGPATH, /*always*/false);
-	logpath= URL::addPath(logpath, "ppi-server_");
-	log= LogThread::instance(bAsServer);
-	log->setThreadName("main--run-server");
-	property= "log";
-	sLogLevel= m_oServerFileCasher.getValue(property, false);
-	if(sLogLevel == "DEBUG")
-		nLogLevel= LOG_DEBUG;
-	else if(sLogLevel == "INFO")
-		nLogLevel= LOG_INFO;
-	else if(sLogLevel == "SERVER")
-		nLogLevel= LOG_SERVER;
-	else if(sLogLevel == "WARNING")
-		nLogLevel= LOG_WARNING;
-	else if(sLogLevel == "ERROR")
-		nLogLevel= LOG_ERROR;
-	else if(sLogLevel == "ALERT")
-		nLogLevel= LOG_ALERT;
-	else
-	{
-		cerr << "### WARNING: undefined log level '" << sLogLevel << "' in config file server.conf" << endl;
-		cerr << "             set log-level to DEBUG" << endl;
-		nLogLevel= LOG_DEBUG;
-	}
-	property= "timelogSec";
-	nLogAllSec= m_oServerFileCasher.getInt(property);
-	if(	nLogAllSec == 0
-		&&
-		property == "#ERROR"	)
-	{
-		nLogAllSec= 1800;
-	}
-	property= "newfileAfterDays";
-	nLogDays= m_oServerFileCasher.getInt(property);
-	if(	nLogAllSec == 0
-		&&
-		property == "#ERROR"	)
-	{
-		nLogDays= 30;
-	}
 
+	readPasswd();
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// start server for communication between processes
+	// initial interface to log server
 	string commhost;
 	unsigned short commport;
+	int nLogAllSec;
 
 
 	commhost= m_oServerFileCasher.getValue("communicationhost", /*warning*/false);
@@ -205,16 +166,39 @@ bool Starter::execute(vector<string> options)
 	{
 		exit(EXIT_FAILURE);
 	}
-	ServerProcess communicate(	new CommunicationThreadStarter(0, 1),
+
+	property= "timelogSec";
+	nLogAllSec= m_oServerFileCasher.getInt(property);
+	if(	nLogAllSec == 0
+		&&
+		property == "#ERROR"	)
+	{
+		nLogAllSec= 1800;
+	}
+	LogInterface::init(	"ppi-server",
+						new SocketClientConnection(	SOCK_STREAM,
+													commhost,
+													commport,
+													0			),
+						/*identif log*/nLogAllSec,
+						/*wait*/true								);
+	LogInterface::instance()->setThreadName("main--run-server");
+	// ------------------------------------------------------------------------------------------------------------
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// start server for communication between processes
+
+	ServerProcess communicate(	m_tDefaultUser,
+								new CommunicationThreadStarter(0, 4),
 								new TcpServerConnection(	commhost,
 															commport,
+															10,
 															new ServerMethodTransaction()	),
 								new SocketClientConnection(	SOCK_STREAM,
 															commhost,
 															commport,
 															10			)						);
 
-	if(communicate.start() != 0)
+	if(communicate.start(&m_oServerFileCasher) > 0)
 	{
 		cerr << "### ALERT: cannot start communication server" << endl;
 		cerr << "           so the hole application is not useable" << endl;
@@ -223,12 +207,29 @@ bool Starter::execute(vector<string> options)
 	}
 	// ------------------------------------------------------------------------------------------------------------
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// start logging process
+	int err;
 
+	LogProcess logger(	m_tLogUser,
+						new SocketClientConnection(	SOCK_STREAM,
+													commhost,
+													commport,
+													10			),
+						new SocketClientConnection(	SOCK_STREAM,
+													commhost,
+													commport,
+													10			)	);
 
-	log->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays);
-	// starting logthread after seteuid()
-	//log->start();
-	LOG(LOG_INFO, "### -> starting server application.\n       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	err= logger.start(&m_oServerFileCasher);
+	if(err > 0)
+	{
+		cerr << "### WARNING: cannot start log-server" << endl;
+		cerr << "             so no log can be written into any files" << endl;
+	}
+
+	// ------------------------------------------------------------------------------------------------------------
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	if(checkServer()==true)
 	{
 		LOG(LOG_ERROR, "### server is running\n    -> do nothing");
@@ -256,9 +257,9 @@ bool Starter::execute(vector<string> options)
 		}
 	}
 
-	readPasswd();
 	setuid(m_tDefaultUser);
-	log->start();
+	LOG(LOG_INFO, "### -> starting server application.\n       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	LOG(LOG_INFO, "Read configuration files from " + m_sConfPath);
 
 	Database::initial(dbpath, m_sConfPath, &m_oServerFileCasher);
 
@@ -461,15 +462,12 @@ bool Starter::execute(vector<string> options)
 	}
 	if(!createThread)
 	{
-		LogThread *log= LogThread::instance();
 
 		LOG(LOG_ALERT, "### start no measure-thread for any folder\n    no correct subroutines is founding\n    does not start server");
-		log->stop();
-#ifndef DEBUG
-				cout << "### start no measure-thread for any folder" << endl;
-				cout << "    no correct subroutines is founding" << endl;
-				cout << "    does not start server" << endl;
-#endif // DEBUG
+		// toDo: sending stop to communication server
+		cout << "### start no measure-thread for any folder" << endl;
+		cout << "    no correct subroutines is founding" << endl;
+		cout << "    does not start server" << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -504,6 +502,7 @@ bool Starter::execute(vector<string> options)
 	ServerThread server(new CommunicationThreadStarter(minThreads, maxThreads),
 						new TcpServerConnection(	host,
 													port,
+													10,
 													new ServerTransaction()	)	);
 
 	gInternetServer= &server;
@@ -923,8 +922,9 @@ Starter::~Starter()
 void Starter::readPasswd()
 {
 	string defaultUser(m_oServerFileCasher.needValue("defaultuser"));
+	string loguser(m_oServerFileCasher.getValue("loguser", /*warning*/false));
 	size_t defaultLen= defaultUser.length();
-	size_t logLen= m_sLogUser.length();
+	size_t logLen= loguser.length();
 	ifstream file("/etc/passwd");
 	string line;
 	string buffer;
@@ -940,22 +940,25 @@ void Starter::readPasswd()
 		cout << "           application must be started as root" << endl;
 		exit(1);
 	}
+	m_tDefaultUser= 0;
+	m_tLogUser= 0;
 	while(!file.eof())
 	{
 		getline(file, line);
 
 		if(line.substr(0, defaultLen) == defaultUser)
 		{
-			vector<string> vec= ConfigPropertyCasher::split(line, ":");
+			vector<string> vec(ConfigPropertyCasher::split(line, ":"));
 
-			m_tDefaultUser= atoi(&vec[2][0]);
-		}else if(	logLen > 0
-					&&
-					line.substr(0, logLen) == m_sLogUser	)
+			m_tDefaultUser= atoi(vec[2].c_str());
+		}
+		if(	logLen > 0
+			&&
+			line.substr(0, logLen) == loguser	)
 		{
-			vector<string> vec= ConfigPropertyCasher::split(line, ":");
+			vector<string> vec(ConfigPropertyCasher::split(line, ":"));
 
-			m_tLogUser= atoi(&vec[2][0]);
+			m_tLogUser= atoi(vec[2].c_str());
 		}
 	}
 	if(!m_tDefaultUser)
@@ -965,7 +968,6 @@ void Starter::readPasswd()
 	}
 	if(!m_tLogUser)
 	{
-		m_sLogUser= defaultUser;
 		m_tLogUser= m_tDefaultUser;
 	}
 }
@@ -1692,10 +1694,8 @@ bool Starter::command(vector<string> options, string command)
 {
 	bool clres;
 	unsigned short nPort;
-	int nLogLevel, nLogAllSec, nLogDays;
 	string fileName, prop;
 	string confpath, logpath, sLogLevel, property;
-	LogThread *log;
 	SocketClientConnection* clientCon;
 	vector<string>::iterator opIt;
 
@@ -1707,7 +1707,6 @@ bool Starter::command(vector<string> options, string command)
 		options.erase(opIt);
 	}
 	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
-	LOG(LOG_INFO, "Read configuration files from " + confpath);
 	fileName= URL::addPath(confpath, "server.conf");
 	if(!m_oServerFileCasher.readFile(fileName))
 	{
@@ -1715,6 +1714,7 @@ bool Starter::command(vector<string> options, string command)
 		exit(1);
 	}
 
+#if 0
 	logpath= URL::addPath(m_sWorkdir, PPILOGPATH, /*always*/false);
 	logpath= URL::addPath(logpath, "ppi-server_");
 	log= LogThread::instance(true);
@@ -1757,6 +1757,8 @@ bool Starter::command(vector<string> options, string command)
 	}
 	log->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays);
 	log->start();
+#endif
+
 	property= "port";
 	nPort= m_oServerFileCasher.needUShort(property);
 	if(property == "#ERROR")
@@ -1779,8 +1781,6 @@ bool Starter::stop(vector<string> options)
 	unsigned int nOptions= options.size();
 	unsigned short nPort;
 	string result;
-	LogThread *log;
-	int nLogLevel, nLogAllSec, nLogDays;
 	string fileName;
 	string confpath, logpath, sLogLevel, property, username;
 	UserManagement* user= UserManagement::instance();
@@ -1801,7 +1801,6 @@ bool Starter::stop(vector<string> options)
 		cerr << "             see -? for help" << endl;
 	}
 	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
-	LOG(LOG_INFO, "Read configuration files from " + confpath);
 	fileName= URL::addPath(confpath, "server.conf");
 	if(!m_oServerFileCasher.readFile(fileName))
 	{
@@ -1809,6 +1808,7 @@ bool Starter::stop(vector<string> options)
 		exit(1);
 	}
 
+#if 0
 	logpath= URL::addPath(m_sWorkdir, PPILOGPATH, /*always*/false);
 	logpath= URL::addPath(logpath, "ppi-server_");
 	log= LogThread::instance();
@@ -1849,19 +1849,19 @@ bool Starter::stop(vector<string> options)
 	{
 		nLogDays= 30;
 	}
+	log->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays);
+#endif
 	if(user == NULL)
 	{
 		if(!UserManagement::initial(URL::addPath(confpath, "access.conf", /*always*/true)))
 			return false;
 		user= UserManagement::instance();
 	}
-	log->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays);
 
 	property= "port";
 	nPort= m_oServerFileCasher.needUShort(property);
 	if(property == "#ERROR")
 		exit(EXIT_FAILURE);
-	log->start();
 	clientsocket= ServerThread::connectAsClient("127.0.0.1", nPort);
 	LOG(LOG_INFO, "any user is stopping server");
 	if(clientsocket==0)
@@ -1883,10 +1883,7 @@ bool Starter::stop(vector<string> options)
 		||
 		result.substr(0, 12) != "port-server:")
 	{
-#ifndef DEBUG
 		cout << "ERROR: undefined server running on port" << endl;
-#endif // DEBUG
-		LOG(LOG_ALERT, "ERROR: undefined server running on port");
 		return false;
 	}
 
@@ -1946,7 +1943,7 @@ bool Starter::stop(vector<string> options)
 void Starter::signalconverting(int nSignal)
 {
 	string msg;
-	LogThread *log= LogThread::instance();
+	LogInterface *log= LogInterface::instance();
 
 	if(	log
 		&&
@@ -1980,8 +1977,6 @@ void Starter::signalconverting(int nSignal)
 			{
 				cout << "application close from system" << endl;
 				LOG(LOG_SERVER, "application close from system");
-				LogThread* log= LogThread::instance();
-				log->stop(true);
 				cout << "logged" << endl;
 			}else
 				printf("\napplication close from system - no logging\n\n");

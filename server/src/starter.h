@@ -60,10 +60,6 @@ class Starter
 		 */
 		uid_t m_tDefaultUser;
 		/**
-		 * user name for loguser setting in server.conf
-		 */
-		string m_sLogUser;
-		/**
 		 * user id for loguser setting in server.conf
 		 */
 		uid_t m_tLogUser;
