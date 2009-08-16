@@ -56,14 +56,12 @@ namespace server
 	int CommunicationThreadStarter::start(void *args/*= NULL*/, bool bHold/*= false*/)
 	{
 		if(m_minConnThreads == 0)
-		{
-			init(args);
-			return 0;
-		}
+			return init(args);
+
 		return Thread::start(args, bHold);
 	}
 
-	bool CommunicationThreadStarter::init(void* args)
+	int CommunicationThreadStarter::init(void* args)
 	{
 		ICommunicationPattern* pCurrentCom;
 
@@ -84,10 +82,10 @@ namespace server
 			cout << "." << flush;
 		}
 		cout << endl;
-		return true;
+		return 0;
 	}
 
-	IClientPattern* CommunicationThreadStarter::getClient(const string& definition) const
+	IClientPattern* CommunicationThreadStarter::getClient(const string& definition, IFileDescriptorPattern* own) const
 	{
 		ICommunicationPattern* pCurrentCom;
 
@@ -95,7 +93,9 @@ namespace server
 		pCurrentCom= m_poFirstCommunication;
 		while(pCurrentCom)
 		{
-			if(	pCurrentCom->hasClient()
+			if(	own != pCurrentCom->getDescriptor()
+				&&
+				pCurrentCom->hasClient()
 				&&
 				pCurrentCom->isClient(definition)	)
 			{
@@ -112,7 +112,7 @@ namespace server
 		return new Communication(nextID, this);
 	}
 
-	void CommunicationThreadStarter::execute()
+	int CommunicationThreadStarter::execute()
 	{
 		bool bWillStop;
 		bool bAllFilled;
@@ -145,6 +145,7 @@ namespace server
 				}
 			}
 		}
+		return 0;
 	}
 
 	void CommunicationThreadStarter::arouseStarterThread() const

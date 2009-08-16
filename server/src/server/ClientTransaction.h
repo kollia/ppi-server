@@ -59,6 +59,13 @@ namespace server
 			 */
 			virtual bool transfer(IFileDescriptorPattern& descriptor);
 			/**
+			 * return string describing error number
+			 *
+			 * @param error code number of error
+			 * @return error string
+			 */
+			virtual string strerror(int error) const;
+			/**
 			 * destructor of server transaction
 			 */
 			virtual ~ClientTransaction();

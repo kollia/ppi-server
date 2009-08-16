@@ -35,7 +35,7 @@
 
 #include "../ports/measureThread.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../pattern/server/IFileDescriptorPattern.h"
 
@@ -133,7 +133,7 @@ namespace server
 
 		if (clientsocket < 0)
 		{
-			LogThread *log= LogThread::instance();
+			logger::LogInterface *log= logger::LogInterface::instance();
 
 			LOG(LOG_ALERT, "ERROR: server as client cannot connect to socket!");
 			log->stop();
@@ -148,18 +148,22 @@ namespace server
 		return clientsocket;
 	}
 
-	bool ServerThread::init(void *args)
+	int ServerThread::init(void *args)
 	{
 		m_pStarterPool->start(args);
 		return m_pConnect->init();
 	}
 
-	void ServerThread::execute()
+	int ServerThread::execute()
 	{
 		IFileDescriptorPattern* fp;
 
-		fp= m_pConnect->listen();
-		m_pStarterPool->setNewClient(fp);
+		if(m_pConnect->accept() <= 0)
+		{
+			fp= m_pConnect->getDescriptor();
+			m_pStarterPool->setNewClient(fp);
+		}
+		return 0;
 	}
 
 	void ServerThread::close()

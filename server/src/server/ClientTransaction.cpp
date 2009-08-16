@@ -24,7 +24,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../util/XMLStartEndTagReader.h"
 #include "../util/configpropertycasher.h"
@@ -487,6 +487,25 @@ namespace server
 		}while(m_bWait);
 
 		return false;
+	}
+
+	string ClientTransaction::strerror(int error) const
+	{
+		string str;
+
+		switch(error)
+		{
+		case 0:
+			str= "no error occurred";
+			break;
+		default:
+			if(error > 0)
+				str= "Undefined transaction error occurred";
+			else
+				str= "Undefined transaction warning occurred";
+			break;
+		}
+		return str;
 	}
 
 	void ClientTransaction::printError(string error)

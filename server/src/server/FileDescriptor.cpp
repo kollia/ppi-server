@@ -14,10 +14,12 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #include "../util/Thread.h"
 
 #include "../pattern/server/ITransferPattern.h"
 #include "../pattern/server/IClientHolderPattern.h"
+#include "../pattern/server/IServerCommunicationStarterPattern.h"
 
 #include "FileDescriptor.h"
 
@@ -25,7 +27,8 @@ using namespace design_pattern_world::server_pattern;
 
 namespace server
 {
-	void FileDescriptor::initial(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address, unsigned short port)
+	void FileDescriptor::initial(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address,
+			const unsigned short port)
 	{
 		m_pTransfer= transfer;
 		m_poServer= server;
@@ -52,7 +55,9 @@ namespace server
 		char *res;
 		char buf[501];
 
+		UNLOCK(m_THREADSAVEMETHODS);
 		res= fgets(buf, sizeof(buf), m_pFile);
+		LOCK(m_THREADSAVEMETHODS);
 		if(res == NULL)
 		{
 			reader= "";
@@ -108,6 +113,22 @@ namespace server
 		m_mBoolean[str]= boolean;
 	}
 
+	string FileDescriptor::strerror(int error) const
+	{
+		string str;
+
+		switch(error)
+		{
+		case 1:
+			str= "ERROR: no client found for spezified definition";
+			break;
+		default:
+			str= m_pTransfer->strerror(error > 0 ? error + 10 : error - 10);
+			break;
+		}
+		return str;
+	}
+
 	bool FileDescriptor::getBoolean(const string& str) const
 	{
 		map<string, bool>::const_iterator it;
@@ -138,57 +159,110 @@ namespace server
 		return m_nPort;
 	}
 
-	string FileDescriptor::sendToOtherClient(const string& definition, const string& str)
+	string FileDescriptor::sendToOtherClient(const string& definition, const string& str, const bool& wait)
 	{
 		string answer;
+		IServerCommunicationStarterPattern* starter;
 		IClientHolderPattern* holder= m_poServer->getCommunicationFactory();
-		IClientPattern* client= holder->getClient(definition);
+		IClientPattern* client;
 
+		//if(str == "init")
+		//	std::cout << "search definition " << definition << std::endl;
+		starter= dynamic_cast<IServerCommunicationStarterPattern*>(holder);
+		client= starter->getClient(definition, this);
 		if(client == NULL)
-			return "ERROR 006";
+		{
+			time_t t, nt;
+
+			//std::cout << "no client found for " << definition << std::endl;
+			time(&nt);
+			time(&t);
+			while(	client == NULL
+					&&
+					(nt - t) < (time_t)m_nTimeout	)
+			{
+				//std::cout << "wait for client" << std::endl;
+				sleep(1);
+				client= starter->getClient(definition, this);
+				time(&t);
+			}
+			if(client == NULL)
+			{
+				//std::cout << "found no client, return message ERROR 001" << std::endl;
+				return "ERROR 001";
+			}
+		}
 		UNLOCK(m_THREADSAVEMETHODS);
-		answer= client->sendString(str);
+		answer= client->sendString(str, wait);
 		LOCK(m_THREADSAVEMETHODS);
 		return answer;
 	}
 
-	string FileDescriptor::sendString(const string& str)
+	string FileDescriptor::sendString(const string& str, const bool& wait)
 	{
 		string answer;
 
 		LOCK(m_SENDSTRING);
-		while(m_sSendString != "")
-		{ // if SendString is not null,
-		  // an other client wait for answer
+		if(wait)
+		{
+			while(m_sSendString != "")
+			{ // if SendString is not null,
+			  // an other client wait for answer
+				CONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING);
+			}
+			m_sSendString= str;
+			AROUSE(m_GETSTRINGCONDITION);
 			CONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING);
+			answer= m_sClientAnswer;
+			m_sSendString= "";
+			AROUSE(m_SENDSTRINGCONDITION);
+		}else
+		{
+			m_qsSendStrings.push(str);
+			AROUSE(m_GETSTRINGCONDITION);
 		}
-		m_sSendString= str;
-		AROUSE(m_GETSTRINGCONDITION);
-		CONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING);
-		answer= m_sClientAnswer;
-		m_sSendString= "";
-		AROUSE(m_SENDSTRINGCONDITION);
+
 		UNLOCK(m_SENDSTRING);
 		return answer;
 	}
 
 	string FileDescriptor::getOtherClientString(const bool wait/*= true*/)
 	{
+		const unsigned short nDo= 5;
+		static unsigned short count= 0;
 		string str;
+		string waitStr;
 
 		LOCK(m_SENDSTRING);
 		if(m_sSendString == "")
 		{
-			if(!wait)
+			if(m_qsSendStrings.empty())
 			{
-				UNLOCK(m_SENDSTRING);
-				return "";
+				count= 0;
+				if(!wait)
+				{
+					UNLOCK(m_SENDSTRING);
+					return "";
+				}
+				UNLOCK(m_THREADSAVEMETHODS);
+				CONDITION(m_GETSTRINGCONDITION, m_SENDSTRING);
+				LOCK(m_THREADSAVEMETHODS);
 			}
-			UNLOCK(m_THREADSAVEMETHODS);
-			CONDITION(m_GETSTRINGCONDITION, m_SENDSTRING);
-			LOCK(m_THREADSAVEMETHODS);
 		}
+		if(	m_sSendString == ""
+			||
+			count > nDo			)	// if count greater then nDo
+									// client which wait for answer
+									// was nDo multiplied preferred
+		{							// so send the next time an string from the queue
+			waitStr= m_sSendString;
+			m_sSendString= m_qsSendStrings.front();
+			m_qsSendStrings.pop();
+			count= 0;
+		}else
+			++count;
 		str= m_sSendString;
+		m_sSendString= waitStr;
 		UNLOCK(m_SENDSTRING);
 		return str;
 	}

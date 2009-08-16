@@ -51,6 +51,13 @@ namespace server
 		 */
 		Communication(unsigned int ID, const StarterPattern* pStarter);
 		/**
+		 * return actual file descriptor
+		 *
+		 * @return descriptor
+		 */
+		virtual const IFileDescriptorPattern* getDescriptor() const
+		{ return m_hFileAccess; };
+		/**
 		 * set next communication object
 		 *
 		 * @param nextcomm new communication object
@@ -123,10 +130,11 @@ namespace server
 		 * send string to actual <code>ITransferPattern</code>
 		 *
 		 * @param str string which shold send to client
+		 * @param wait whether method should wait for an answer
 		 * @return answer from client
 		 */
-		virtual string sendString(const string& str)
-		{ return m_hFileAccess->sendString(str); };
+		virtual string sendString(const string& str, const bool& wait)
+		{ return m_hFileAccess->sendString(str, wait); };
 		/**
 		 * destroy instance of communication thread
 		 */
@@ -136,13 +144,20 @@ namespace server
 		/**
 		 * initial incomming variables from start method.<br />
 		 * first running method of thread on starting
+		 *
+		 * @param args user defined parameter value or array,<br />
+		 * 				coming as void pointer from the external call
+		 * 				method start(void *args).
+		 * @return error code for not right initialization
 		 */
-		virtual bool init(void *args);
+		virtual int init(void *args);
 		/**
-		 * execute of communication.<br />
-		 * polling while starter thread do not ending thread
+		 * This method starting again when ending with code 0 or lower for warnings
+		 * and if the method stop() isn't called.
+		 *
+		 * @param error code for not correctly done
 		 */
-		virtual void execute();
+		virtual int execute();
 		/**
 		 * protected initialization for given info points
 		 * to write into the status information

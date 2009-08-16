@@ -34,7 +34,9 @@
 
 #include "../ports/measureThread.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
+
+#include "../server/SocketClientConnection.h"
 
 #include "../pattern/server/IFileDescriptorPattern.h"
 
@@ -43,16 +45,21 @@
 
 namespace server
 {
-	ServerProcess::ServerProcess(string processName, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon/*= NULL*/, const bool wait/*= true*/)
-	:	Process(processName, extcon, wait),
+	using namespace logger;
+	using namespace design_pattern_world::server_pattern;
+
+	ServerProcess::ServerProcess(string processName, const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon/*= NULL*/, const bool wait/*= true*/)
+	:	Process(processName, extcon, NULL, wait),
+		m_uid(uid),
 		m_pStarterPool(starter),
 		m_pConnect(connect)
 	{
 		m_pConnect->setServerInstance(this);
 	}
 
-	ServerProcess::ServerProcess(IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon/*= NULL*/, const bool wait/*= true*/)
-	:	Process("CommunicationServerProcess", extcon, wait),
+	ServerProcess::ServerProcess(const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon/*= NULL*/, const bool wait/*= true*/)
+	:	Process("CommunicationServerProcess", extcon, NULL, wait),
+		m_uid(uid),
 		m_pStarterPool(starter),
 		m_pConnect(connect)
 	{
@@ -145,18 +152,47 @@ namespace server
 	}
 #endif
 
-	bool ServerProcess::init(void *args)
+	int ServerProcess::init(void *args)
 	{
+		int nLogAllSec;
+		string property("timelogSec");
+		IPropertyPattern* serverprop;
+
+		serverprop= static_cast<IPropertyPattern*>(args);
+		nLogAllSec= serverprop->getInt(property, /*warning*/false);// warning be written in starter.cpp
+		if(	nLogAllSec == 0
+			&&
+			property == "#ERROR"	)
+		{
+			nLogAllSec= 1800;
+		}
+		if(LogInterface::instance() != NULL)
+			delete LogInterface::instance();
+		LogInterface::init(	getProcessName(),
+							new SocketClientConnection(	SOCK_STREAM,
+														"127.0.0.1",
+														m_pConnect->getPortAddress(),
+														0								),
+							/*identif log wait*/nLogAllSec,
+							/*wait*/true													);
+		LogInterface::instance()->setThreadName(getProcessName());
 		m_pStarterPool->start(args);
+		setuid(m_uid);
 		return m_pConnect->init();
 	}
 
-	void ServerProcess::execute()
+	int ServerProcess::execute()
 	{
+		int ret;
 		IFileDescriptorPattern* fp;
 
-		fp= m_pConnect->listen();
-		m_pStarterPool->setNewClient(fp);
+		ret= m_pConnect->accept();
+		if(ret <= 0)
+		{
+			fp= m_pConnect->getDescriptor();
+			m_pStarterPool->setNewClient(fp);
+		}
+		return ret;
 	}
 
 	void ServerProcess::close()

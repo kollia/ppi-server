@@ -45,7 +45,7 @@ namespace server
 			 */
 			OutsideClientTransaction()
 			:	m_bAccess(false),
-				m_bHold(false)
+				m_bHold(true)
 				{ };
 			/**
 			 * initial all values for transaction
@@ -59,17 +59,21 @@ namespace server
 			 * set command from outside the transaction object
 			 *
 			 * @param command string which should send to server
-			 * @param hold whether connection should holding after sending
 			 */
-			void setCommand(const string& command, const bool& hold)
-			{ m_sCommand= command; m_bHold= hold; };
+			void setCommand(const string& command)
+			{ m_sCommand= command; };
 			/**
-			 * return answer from server
+			 * client transaction should ending by next <code>init()</code>			 *
+			 */
+			void closeConnection()
+			{ m_bHold= false; };
+			/**
+			 * return answer or question from server (other client)
 			 *
 			 * @return answer
 			 */
-			string getAnswer()
-			{ return m_sAnswer; }
+			string getReturnedString()
+			{ return ConfigPropertyCasher::trim(m_sAnswer, " \t\r\n"); }
 			/**
 			 * transaction protocol between client to server
 			 *
@@ -77,6 +81,13 @@ namespace server
 			 * @return wether need to hold the connection
 			 */
 			virtual bool transfer(IFileDescriptorPattern& descriptor);
+			/**
+			 * return string describing error number
+			 *
+			 * @param error code number of error
+			 * @return error string
+			 */
+			virtual string strerror(int error) const;
 			/**
 			 * destructor of client transaction
 			 */

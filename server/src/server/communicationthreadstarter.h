@@ -77,17 +77,15 @@ namespace server
 		 */
 		virtual int start(void *args= NULL, bool bHold= false);
 		/**
-		 * abstract method to initial the thread
-		 * in the extended class.<br />
 		 * this method will be called before running
-		 * the method execute
+		 * the method execute to initial class
 		 *
 		 * @param args user defined parameter value or array,<br />
-		 * 				comming as void pointer from the external call
+		 * 				coming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return boolean whether the method execute can start
+		 * @return error code for not right initialization
 		 */
-		virtual bool init(void *args);
+		virtual int init(void *args);
 		/**
 		 * function locate the next free client id
 		 *
@@ -130,9 +128,10 @@ namespace server
 		 * and return this client
 		 *
 		 * @param definition defined name to find client
+		 * @param own pointer of own called descriptor witch client is not needed
 		 * @return return client
 		 */
-		virtual IClientPattern* getClient(const string& definition) const;
+		virtual IClientPattern* getClient(const string& definition, IFileDescriptorPattern* own) const;
 		/**
 		 * send stop to all communication threads
 		 *
@@ -190,12 +189,12 @@ namespace server
 		pthread_cond_t* m_NEXTCOMMUNICATIONCOND;
 
 		/**
-		 * abstract method to running thread
-		 * in the extended class.<br />
-		 * This method starting again when ending without an sleeptime
-		 * if the method stop() isn't call.
+		 * This method starting again when ending with code 0 or lower for warnings
+		 * and if the method stop() isn't called.
+		 *
+		 * @param error code for not correctly done
 		 */
-		virtual void execute();
+		virtual int execute();
 		/**
 		 * protected initialization for given info points
 		 * to write into the status information

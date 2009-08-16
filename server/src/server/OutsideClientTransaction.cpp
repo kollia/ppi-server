@@ -35,10 +35,14 @@ namespace server
 	{
 		string::size_type len= m_sCommand.size();
 
-		if(m_sCommand != "")
+		if(m_bHold)
 		{
-			if(m_sCommand.substr(len -1) != "\n")
-				m_sCommand+= "\n";
+			if(len > 0)
+			{
+				if(m_sCommand.substr(len -1) != "\n")
+					m_sCommand+= "\n";
+			}else
+				m_sCommand= "\n";
 			descriptor << m_sCommand;
 			descriptor.flush();
 			if(descriptor.eof())
@@ -48,15 +52,32 @@ namespace server
 			}
 			descriptor >> m_sAnswer;
 			m_sAnswer= ConfigPropertyCasher::trim(m_sAnswer, " \t\r\n");
-		}
-		if(m_bHold == false)
+			m_sCommand= "";
+			m_bHold= true;
+		}else
 		{
 			descriptor << "ending\n";
 			descriptor.flush();
+			descriptor >> m_sAnswer;
+			m_bHold= true;//for new beginning
 			return false;
 		}
 		return true;
 	}
 
+	string OutsideClientTransaction::strerror(int error) const
+	{
+		string str;
+
+		switch(error)
+		{
+		case 1:
+			str= "ERROR: connection is broken";
+			break;
+		default:
+			str= "undefined socket client error";
+		}
+		return str;
+	}
 
 }

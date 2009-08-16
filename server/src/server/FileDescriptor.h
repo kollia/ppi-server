@@ -18,6 +18,7 @@
 #define FILEDESCRIPTOR_H_
 
 #include <string>
+#include <queue>
 #include <map>
 
 #include "../pattern/server/IFileDescriptorPattern.h"
@@ -43,6 +44,7 @@ namespace server
 			 * stadard constructor to forwarding
 			 */
 			FileDescriptor()
+			:	m_nTimeout(0)
 			{ initial(NULL, NULL, NULL, "", 0); };
 			/**
 			 * constructor to initial FILE and current host address
@@ -51,8 +53,11 @@ namespace server
 			 * @param art object of holding transaction to client or server
 			 * @param file FILE descriptor
 			 * @param address incoming host address
+			 * @param timeout waiting seconds if no second client thread waiting for answers
 			 */
-			FileDescriptor(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address, unsigned short port)
+			FileDescriptor(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address,
+					const unsigned short port, const unsigned int timeout)
+			:	m_nTimeout(timeout)
 			{ initial(server, transfer, file, address, port); };
 			/**
 			 * initial ITransferPattern with this FileDescriptor
@@ -152,9 +157,10 @@ namespace server
 			 *
 			 * @param definition defined name from other client
 			 * @param str string which should be sending
+			 * @param wait whether method should wait for an answer
 			 * @return answer from other client
 			 */
-			virtual string sendToOtherClient(const string& definition, const string& str);
+			virtual string sendToOtherClient(const string& definition, const string& str, const bool& wait);
 			/**
 			 * send an answer of getting string with <code>getOtherClientString()</code>
 			 *
@@ -191,6 +197,13 @@ namespace server
 			virtual IServerPattern* getServerObject() const
 			{ return m_poServer; };
 			/**
+			 * return string describing error number
+			 *
+			 * @param error code number of error
+			 * @return error string
+			 */
+			virtual string strerror(int error) const;
+			/**
 			 * destructor to dereference file
 			 */
 			virtual ~FileDescriptor();
@@ -200,9 +213,10 @@ namespace server
 			 * send string to actual <code>ITransferPattern</code>
 			 *
 			 * @param str string which should send to client
+			 * @param wait whether method should wait for an answer
 			 * @return answer from client
 			 */
-			virtual string sendString(const string& str);
+			virtual string sendString(const string& str, const bool& wait);
 
 			/**
 			 * mutex lock handle for changing or reading connection ID
@@ -272,9 +286,19 @@ namespace server
 			 */
 			string m_sSendString;
 			/**
+			 * string sending container from an other client,
+			 * where the other clients do not wait for answer
+			 */
+			queue<string> m_qsSendStrings;
+			/**
 			 * answer string to return to other client
 			 */
 			string m_sClientAnswer;
+			/**
+			 * timeout in seconds for waiting if no second client thread
+			 * waiting for answers
+			 */
+			const unsigned int m_nTimeout;
 
 			/**
 			 * constructor initialization for object
@@ -283,8 +307,10 @@ namespace server
 			 * @param art object of holding transaction to client or server
 			 * @param file FILE descriptor
 			 * @param address incoming host address
+			 * @param timeout waiting seconds if no second client thread waiting for answers
 			 */
-			void initial(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address, unsigned short port);
+			void initial(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address,
+					const unsigned short port);
 	};
 
 }

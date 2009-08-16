@@ -54,7 +54,7 @@ namespace server
 			 * @param extcon on which connection from outside the process is reachable
 			 * @param wait whether the starting method should wait for <code>init()</code> method
 			 */
-			ServerProcess(string processName, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon= NULL, const bool wait= true);
+			ServerProcess(string processName, const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon= NULL, const bool wait= true);
 			/**
 			 * initialization of class ServerThread.<br />
 			 * Object delete by ending instance of ServerCommunciationStarter
@@ -64,7 +64,7 @@ namespace server
 			 * @param extcon on which connection from outside the process is reachable
 			 * @param wait whether the starting method should wait for <code>init()</code> method
 			 */
-			ServerProcess(IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon= NULL, const bool wait= true);
+			ServerProcess(const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon= NULL, const bool wait= true);
 			/**
 			 * return name of server
 			 *
@@ -82,9 +82,27 @@ namespace server
 			virtual ~ServerProcess();
 
 		protected:
-
-			virtual bool init(void *args);
-			virtual void execute();
+			/**
+			 * this method will be called before running
+			 * the method execute to initial class
+			 *
+			 * @param args user defined parameter value or array,<br />
+			 * 				coming as void pointer from the external call
+			 * 				method start(void *args).
+			 * @return error code for not right initialization
+			 */
+			virtual int init(void *arg);
+			/**
+			 * This method starting again when ending with code 0 or lower for warnings
+			 * and if the method stop() isn't called.
+			 *
+			 * @param error code for not correctly done
+			 */
+			virtual int execute();
+			/**
+			 * This method will be called if any other or own thread
+			 * calling method stop().
+			 */
 			virtual void ending();
 			/**
 			 * protected initialization for given info points
@@ -98,6 +116,10 @@ namespace server
 			virtual string getStatusInfo(string params, pos_t& pos, time_t elapsed, string lasttime);
 
 		private:
+			/**
+			 * under witch user the process should be running
+			 */
+			const uid_t m_uid;
 			/**
 			 * pool to start communication threads
 			 */

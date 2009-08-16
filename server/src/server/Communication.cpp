@@ -59,7 +59,7 @@ namespace server
 		m_bSpeakerThread= false;
 	}
 
-	bool Communication::init(void *args)
+	int Communication::init(void *args)
 	{
 		// encrypt decrypt from webside http://www.daniweb.com/forums/thread23258.html
 		/*char *message ="Test Message";
@@ -125,10 +125,10 @@ namespace server
 		clear_text= (unsigned char *) malloc(strlen(message));
 		RSA_private_decrypt(strlen((char*)e_data), e_data, clear_text, aprivate, RSA_PKCS1_OAEP_PADDING);
 		cout << "read text: '" << clear_text << "'" << endl;*/
-		return true;
+		return 0;
 	}
 
-	void Communication::execute()
+	int Communication::execute()
 	{
 		bool bHave;
 		int conderror= 0;
@@ -173,6 +173,7 @@ namespace server
 #endif // DEBUG
 		}else if(conderror)
 			usleep(500000);
+		return 0;
 	}
 
 	string Communication::getStatusInfo(string params, pos_t& pos, time_t elapsed, string lasttime)

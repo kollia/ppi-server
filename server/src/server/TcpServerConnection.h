@@ -36,10 +36,11 @@ namespace server
 			 *
 			 * @param host string of host as ip4, ip6 or name
 			 * @param port number of port
+			 * @param timeout waiting seconds if no second client thread waiting for answers
 			 * @param transfer pattern of ITransferPattern to cumunicate with some clients
 			 */
-			TcpServerConnection(const string host, const unsigned short port, ITransferPattern* transfer)
-			:SocketServerConnection(SOCK_STREAM, host, port, transfer)  { };
+			TcpServerConnection(const string host, const unsigned short port, const unsigned int timeout, ITransferPattern* transfer)
+			:SocketServerConnection(SOCK_STREAM, host, port, timeout, transfer)  { };
 	};
 
 }

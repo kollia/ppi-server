@@ -27,7 +27,7 @@
 
 #include "../util/structures.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../ports/measureThread.h"
 
@@ -1079,6 +1079,81 @@ namespace server
 		}else*/
 
 		return pCurMeas;
+	}
+
+	string ServerTransaction::strerror(int error) const
+	{
+		string str;
+
+		switch(error)
+		{
+		case 0:
+			str= "no error occurred";
+			break;
+		case 1:
+			str= "client beginning fault transaction";
+			break;
+		case 2:
+			str= "no correct command given";
+			break;
+		case 3:
+			str= "command parameter is incorrect, "
+					"parameter after errornumber is position of error";
+			break;
+		case 4:
+			str= "cannot found given folder for operation";
+			break;
+		case 5:
+			str= "cannot found given subroutine in folder for operation";
+			break;
+		case 6:
+			str= "unknow value to set in subroutine";
+			break;
+		case 7:
+			str= "no filter be set for read directory";
+			break;
+		case 8:
+			str= "cannot read any directory";
+			break;
+		case 9:
+			str= "cannot found given file for read content";
+			break;
+		case 10:
+			str= "given ID from client do not exist";
+			break;
+		case 11:
+			str= "given user do not exist";
+			break;
+		case 12:
+			str= "wrong password for given user";
+			break;
+		case 13:
+			str= "user has no permission";
+			break;
+		case 14:
+			str= "subrutine isn't correct defined by the settings of config file";
+			break;
+		case 15:
+			str= "root cannot login as first user";
+			break;
+		case 16:
+			str= "subroutine has no correct access to device";
+			break;
+		case 17:
+			str= "cannot find OWServer for debugging";
+			break;
+		case 18:
+			str= "no communication thread is free for answer "
+					"(this case can behavior when the mincommunicationthreads parameter be 0)";
+			break;
+		default:
+			if(error > 0)
+				str= "Undefined transaction error";
+			else
+				str= "Undefined transaction warning";
+			break;
+		}
+		return str;
 	}
 
 	bool ServerTransaction::getDirectory(string filter, string verz, vector<string> &list)

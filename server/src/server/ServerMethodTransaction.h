@@ -229,6 +229,13 @@ namespace server
 			 */
 			virtual bool isClient(const IFileDescriptorPattern& descriptor, const string& definition) const;
 			/**
+			 * return string describing error number
+			 *
+			 * @param error code number of error
+			 * @return error string
+			 */
+			virtual string strerror(int error) const;
+			/**
 			 * destructor of server method-transaction
 			 */
 			virtual ~ServerMethodTransaction();

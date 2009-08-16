@@ -57,26 +57,23 @@ namespace server
 
 	protected:
 		/**
-		 * abstract method to initial the thread
-		 * in the extended class.<br />
 		 * this method will be called before running
-		 * the method execute
+		 * the method execute to initial class
 		 *
 		 * @param args user defined parameter value or array,<br />
-		 * 				comming as void pointer from the external call
+		 * 				coming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return boolean whether the method execute can start
+		 * @return error code for not right initialization
 		 */
-		virtual bool init(void *args);
+		virtual int init(void *args);
 		/**
-		 * abstract method to running thread
-		 * in the extended class.<br />
-		 * This method starting again when ending without an sleeptime
-		 * if the method stop() isn't call.
+		 * This method starting again when ending with code 0 or lower for warnings
+		 * and if the method stop() isn't called.
+		 *
+		 * @param error code for not correctly done
 		 */
-		virtual void execute();
+		virtual int execute();
 		/**
-		 * abstract method to ending the thread.<br />
 		 * This method will be called if any other or own thread
 		 * calling method stop().
 		 */
