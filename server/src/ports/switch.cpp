@@ -23,7 +23,7 @@
 
 #include "switch.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../util/CalculatorContainer.h"
 #include "../util/configpropertycasher.h"

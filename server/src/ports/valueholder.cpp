@@ -16,7 +16,7 @@
  */
 #include "valueholder.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 #include "../database/Database.h"
 

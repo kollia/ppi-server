@@ -21,7 +21,7 @@
 #include "measuredness.h"
 #include "switch.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/LogInterface.h"
 
 namespace ports
 {
