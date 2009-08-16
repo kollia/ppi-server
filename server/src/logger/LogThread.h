@@ -25,48 +25,22 @@
 #include <string>
 #include <vector>
 
+#include "logstructures.h"
+
 #include "../util/Thread.h"
 
 using namespace std;
-
-struct log
-{
-	time_t tmnow;
-	string file;
-	int line;
-	pthread_t thread;
-	pid_t pid;
-	pid_t tid;
-	int type;
-	string message;
-	string identif;
-};
-
-struct timelog_t
-{
-	pthread_t thread;
-	string identif;
-	string file;
-	int line;
-	time_t tmold;
-};
-
-struct threadNames
-{
-	unsigned int count;
-	pthread_t thread;
-	string name;
-};
 
 class LogThread : public Thread
 {
 	public:
 		/**
-		 * instanciate class of log-server
+		 * creating instance of LogThread
 		 *
+		 * @param check whether polling execute should check for identif strings
 		 * @param asServer whether LogThread running as server, or logging directly on harddisk
 		 */
-		static LogThread *instance(bool asServer= true);
+		LogThread(bool check, bool asServer= true);
 		/**
 		 * start method to running the thread paralell
 		 *
@@ -82,33 +56,93 @@ class LogThread : public Thread
 		 */
 		virtual int stop(bool bWait= true);
 		void setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays);
-		void setThreadName(string threadName);
-		string getThreadName(pthread_t threadID= 0);
+		/**
+		 * set name of thread to running thread-id
+		 *
+		 * @param threadName name of thread
+		 */
+		void setThreadName(const string& threadName)
+		{ setThreadName(threadName, pthread_self()); };
+		/**
+		 * set name of thread to specified thread-id
+		 *
+		 * @param threadName name of thread
+		 * @param threadID id of thread
+		 */
+		void setThreadName(const string& threadName, const pthread_t threadID);
+		/**
+		 * return name of thread from given thread-id.<br />
+		 * If no threadID is given, it returning the name of the actual running thread.
+		 *
+		 * @param threadID id of thread
+		 */
+		string getThreadName(pthread_t threadID= 0) const;
 		bool ownThread(string threadName, pid_t currentPid);
-		void log(string file, int line, int type, string message, string sTimeLogIdentif= "");
+		/**
+		 * write log message into files
+		 *
+		 * @param file name of source file witch call this method
+		 * @param line the line of the source file
+		 * @param type which type of message should be written
+		 * @param sTimeLogIdentif identification for messages whitch are not be write by every call (default= "" -> write every call)
+		 */
+		void log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif= "");
+		/**
+		 * write log message into files
+		 *
+		 * @param messageStruct structure of log message which contains all info (file, line, message, thread-id, ...)
+		 */
+		void log(const log_t& messageStruct);
 
 	protected:
+		/**
+		 * vector for all thread names with id
+		 */
 		vector<struct threadNames> m_vtThreads;
-		vector<struct log> *m_pvtLogs;
+		/**
+		 * vector for all getting log messages
+		 */
+		vector<struct log_t> *m_pvtLogs;
 
 		/**
-		 * creating instance of LogThread
+		 * this method will be called before running
+		 * the method execute to initial class
 		 *
-		 * @param asServer whether LogThread running as server, or logging directly on harddisk
+		 * @param args user defined parameter value or array,<br />
+		 * 				coming as void pointer from the external call
+		 * 				method start(void *args).
+		 * @return error code for not right initialization
 		 */
-		LogThread(bool asServer= true);
-		virtual bool init(void *arg);
-		virtual void execute();
+		virtual int init(void *arg);
+		/**
+		 * This method starting again when ending with code 0 or lower for warnings
+		 * and if the method stop() isn't called.
+		 *
+		 * @param error code for not correctly done
+		 */
+		virtual int execute();
+		/**
+		 * This method will be called if any other or own thread
+		 * calling method stop().
+		 */
 		virtual void ending();
 
 	private:
 		bool m_bAsServer;
+		/**
+		 * whether polling execute should check for identif strings.<br />
+		 * This boolean will be set to false if the check is made by an interface.
+		 */
+		bool m_bIdentifCheck;
 		int m_nMinLogLevel;
 		string m_sConfLogFile;
 		time_t m_tmbegin;
 		time_t m_tmWriteLogDays;
 		string m_sLogFile;
 		string m_sCurrentLogFile;
+		/**
+		 * how many time an log with an identif string should wait to write again into the logfile
+		 */
 		int m_nTimeLogWait;
 		pthread_mutex_t* m_READTHREADS;
 		/**
@@ -119,19 +153,12 @@ class LogThread : public Thread
 		 * condition for waiting until message vector is filled
 		 */
 		pthread_cond_t* m_READLOGMESSAGESCOND;
+		/**
+		 * all logging threads with identif strings and the last logging time
+		 */
 		vector<struct timelog_t> m_vtTimeLog;
 
-		vector<struct log> *getLogVector();
+		vector<struct log_t> *getLogVector();
 };
-
-#define LOG_DEBUG 0
-#define LOG_INFO  1
-#define LOG_SERVER 2
-#define LOG_WARNING 3
-#define LOG_ERROR 4
-#define LOG_ALERT 5
-
-#define LOG(type, message) LogThread::instance()->log(__FILE__, __LINE__, type, message)
-#define TIMELOG(type, identif, message) LogThread::instance()->log(__FILE__, __LINE__, type, message, identif)
 
 #endif /*LOGTHREAD_H_*/

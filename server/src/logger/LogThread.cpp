@@ -23,31 +23,21 @@
 
 #include "LogThread.h"
 
-LogThread::LogThread(bool asServer) :
+LogThread::LogThread(bool check, bool asServer) :
 Thread("LogThread", 0)
 {
-	m_pvtLogs= new vector<struct log>;
+	m_pvtLogs= new vector<struct log_t>;
 	m_READTHREADS= getMutex("READTHREADS");
 	m_READLOGMESSAGES= getMutex("READLOGMESSAGES");
 	m_READLOGMESSAGESCOND= getCondition("READLOGMESSAGESCOND");
 	m_bAsServer= asServer;
+	m_bIdentifCheck= check;
 	time(&m_tmbegin);
 }
 
-bool LogThread::init(void* arg)
+int LogThread::init(void* arg)
 {
-	return true;
-}
-
-LogThread *LogThread::instance(bool asServer)
-{
-	static LogThread *_instance= NULL;
-
-	if(_instance == NULL)
-	{
-		_instance= new LogThread(asServer);
-	}
-	return _instance;
+	return 0;
 }
 
 int LogThread::start(void *args, bool bHold)
@@ -82,7 +72,7 @@ int LogThread::stop(bool bWait)
 
 void LogThread::setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays)
 {
-	LOG(LOG_INFO, "Storage Log-files " + logFile);
+	log(__FILE__, __LINE__, LOG_INFO, "Storage Log-files " + logFile);
 	m_sConfLogFile= logFile;
 	m_nMinLogLevel= minLogLevel;
 	m_nTimeLogWait= logAllSec;
@@ -98,9 +88,8 @@ bool LogThread::ownThread(string threadName, pid_t currentPid)
 	return false;
 }
 
-void LogThread::setThreadName(string threadName)
+void LogThread::setThreadName(const string& threadName, const pthread_t threadID)
 {
-	pthread_t thread= pthread_self();
 	unsigned int nCount= 0;
 	unsigned int nSize;
 	threadNames tThread;
@@ -109,7 +98,7 @@ void LogThread::setThreadName(string threadName)
 	nSize= m_vtThreads.size();
 	for(unsigned int n= 0; n<nSize; n++)
 	{
-		if(pthread_equal(m_vtThreads[n].thread, thread))
+		if(pthread_equal(m_vtThreads[n].thread, threadID))
 		{
 			m_vtThreads[n].name= threadName;
 			UNLOCK(m_READTHREADS);
@@ -119,13 +108,13 @@ void LogThread::setThreadName(string threadName)
 			++nCount;
 	}
 	tThread.count= ++nCount;
-	tThread.thread= thread;
+	tThread.thread= threadID;
 	tThread.name= threadName;
 	m_vtThreads.push_back(tThread);
 	UNLOCK(m_READTHREADS);
 }
 
-string LogThread::getThreadName(pthread_t threadID)
+string LogThread::getThreadName(pthread_t threadID/*= 0*/) const
 {
 	string sThreadName("");
 	unsigned int nSize;
@@ -151,9 +140,9 @@ string LogThread::getThreadName(pthread_t threadID)
 	return sThreadName;
 }
 
-void LogThread::log(string file, int line, int type, string message, string sTimeLogIdentif)
+void LogThread::log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif/*= ""*/)
 {
-	struct log logMessage;
+	struct log_t logMessage;
 
 	time(&logMessage.tmnow);
 	logMessage.file= file;
@@ -165,23 +154,23 @@ void LogThread::log(string file, int line, int type, string message, string sTim
 	logMessage.tid= Thread::gettid();
 	logMessage.identif= sTimeLogIdentif;
 
-/*#ifdef DEBUG
-	if(sTimeLogIdentif == "")
-		cout << message << endl;
-#endif*/
+	log(logMessage);
+}
 
+inline void LogThread::log(const log_t& messageStruct)
+{
 	LOCK(m_READLOGMESSAGES);
-	m_pvtLogs->push_back(logMessage);
+	m_pvtLogs->push_back(messageStruct);
 	AROUSE(m_READLOGMESSAGESCOND);
 	UNLOCK(m_READLOGMESSAGES);
 	if(!m_bAsServer)
 		execute();
 }
 
-vector<log> *LogThread::getLogVector()
+vector<log_t> *LogThread::getLogVector()
 {
 	int conderror= 0;
-	vector<struct log> *vtRv= NULL;
+	vector<struct log_t> *vtRv= NULL;
 
 	do{
 		sleepDefaultTime();
@@ -189,7 +178,7 @@ vector<log> *LogThread::getLogVector()
 		if(m_pvtLogs->size() != 0)
 		{
 			vtRv= m_pvtLogs;
-			m_pvtLogs= new vector<struct log>;
+			m_pvtLogs= new vector<struct log_t>;
 		}else
 			conderror= CONDITION(m_READLOGMESSAGESCOND, m_READLOGMESSAGES);
 		UNLOCK(m_READLOGMESSAGES);
@@ -201,9 +190,9 @@ vector<log> *LogThread::getLogVector()
 	return vtRv;
 }
 
-void LogThread::execute()
+int LogThread::execute()
 {
-	vector<struct log> *pvLogVector= getLogVector();
+	vector<struct log_t> *pvLogVector= getLogVector();
 
 	ofstream logfile;
 	string sThreadName;
@@ -234,56 +223,59 @@ void LogThread::execute()
 			cout << "           so cannot write any logfile" << endl;
 			cout << "    ERRNO: " << strerror(errno) << endl;
 			delete pvLogVector;
-			return;
+			return 1;
 		}
 		nSize= pvLogVector->size();
 		for(unsigned int n= 0; n < nSize; n++)
 		{
-			struct log result= (*pvLogVector)[n];
+			struct log_t result= (*pvLogVector)[n];
 			if(m_nMinLogLevel <= (*pvLogVector)[n].type)
 			{
 				bool bWrite= true;
 
-				if((*pvLogVector)[n].identif != "")
+				if(m_bIdentifCheck)
 				{
-					bool bFound= false;
-					unsigned int nTLSize= m_vtTimeLog.size();
-
-					for(unsigned int count= 0; count < nTLSize; count++)
+					if((*pvLogVector)[n].identif != "")
 					{
-						if(	(*pvLogVector)[n].thread == m_vtTimeLog[count].thread
-							&&
-							(*pvLogVector)[n].identif == m_vtTimeLog[count].identif
-							&&
-							(*pvLogVector)[n].file == m_vtTimeLog[count].file
-							&&
-							(*pvLogVector)[n].line == m_vtTimeLog[count].line	)
+						bool bFound= false;
+						unsigned int nTLSize= m_vtTimeLog.size();
+
+						for(unsigned int count= 0; count < nTLSize; count++)
 						{
-							time_t newTime;
+							if(	(*pvLogVector)[n].thread == m_vtTimeLog[count].thread
+								&&
+								(*pvLogVector)[n].identif == m_vtTimeLog[count].identif
+								&&
+								(*pvLogVector)[n].file == m_vtTimeLog[count].file
+								&&
+								(*pvLogVector)[n].line == m_vtTimeLog[count].line	)
+							{
+								time_t newTime;
 
-							bFound= true;
-							newTime= m_vtTimeLog[count].tmold + (time_t)m_nTimeLogWait;
-							if((*pvLogVector)[n].tmnow < newTime)
-							{
-								bWrite= false;
-							}else
-							{
-								m_vtTimeLog[count].tmold= (*pvLogVector)[n].tmnow;
-								bWrite= true;
+								bFound= true;
+								newTime= m_vtTimeLog[count].tmold + (time_t)m_nTimeLogWait;
+								if((*pvLogVector)[n].tmnow < newTime)
+								{
+									bWrite= false;
+								}else
+								{
+									m_vtTimeLog[count].tmold= (*pvLogVector)[n].tmnow;
+									bWrite= true;
+								}
+								break;
 							}
-							break;
 						}
-					}
-					if(!bFound)
-					{
-						timelog_t tOld;
+						if(!bFound)
+						{
+							timelog_t tOld;
 
-						tOld.thread= (*pvLogVector)[n].thread;
-						tOld.identif= (*pvLogVector)[n].identif;
-						tOld.file= (*pvLogVector)[n].file;
-						tOld.line= (*pvLogVector)[n].line;
-						tOld.tmold= (*pvLogVector)[n].tmnow;
-						m_vtTimeLog.push_back(tOld);
+							tOld.thread= (*pvLogVector)[n].thread;
+							tOld.identif= (*pvLogVector)[n].identif;
+							tOld.file= (*pvLogVector)[n].file;
+							tOld.line= (*pvLogVector)[n].line;
+							tOld.tmold= (*pvLogVector)[n].tmnow;
+							m_vtTimeLog.push_back(tOld);
+						}
 					}
 				}
 				if(bWrite)
@@ -336,6 +328,7 @@ void LogThread::execute()
 	}
 	if(!stopping())
 		usleep(10000);
+	return 0;
 }
 
 void LogThread::ending()
