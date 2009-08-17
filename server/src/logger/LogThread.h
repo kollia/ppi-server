@@ -55,7 +55,16 @@ class LogThread : public Thread
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
 		virtual int stop(bool bWait= true);
-		void setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays);
+		/**
+		 * set propertys for logging thread
+		 *
+		 * @param logFile name of log file with path
+		 * @param minLogLevel minimal logging level (LOG_DEBUG, LOG_WARNING, LOG_ERROR, ...)
+		 * @param logAllSec logging after seconds for log messages with identif string
+		 * @param writeLogDays writing an new log file after this days
+		 * @param nDeleteAfter after how much days the old log files should be delete
+		 */
+		void setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays, const unsigned short nDeleteAfter);
 		/**
 		 * set name of thread to running thread-id
 		 *
@@ -134,8 +143,24 @@ class LogThread : public Thread
 		 * This boolean will be set to false if the check is made by an interface.
 		 */
 		bool m_bIdentifCheck;
+		/**
+		 * after how much days the old log files should be delete.<br />
+		 * if variable is 0, do not delete any files
+		 */
+		unsigned short m_nDeleteDays;
+		/**
+		 * next time to check whether files exist to delete
+		 */
+		time_t m_nNextDeleteTime;
 		int m_nMinLogLevel;
-		string m_sConfLogFile;
+		/**
+		 * prefix of log file
+		 */
+		string m_sLogFilePrefix;
+		/**
+		 * path of all log files
+		 */
+		string m_sLogFilePath;
 		time_t m_tmbegin;
 		time_t m_tmWriteLogDays;
 		string m_sLogFile;

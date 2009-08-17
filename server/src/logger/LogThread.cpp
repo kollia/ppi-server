@@ -14,24 +14,36 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <stdio.h>
-#include <vector>
-#include <iostream>
-#include <fstream>
 #include <errno.h>
 #include <string.h>
 
+#include <vector>
+#include <iostream>
+#include <fstream>
+
+#include "boost/algorithm/string/split.hpp"
+
 #include "LogThread.h"
 
-LogThread::LogThread(bool check, bool asServer) :
-Thread("LogThread", 0)
+#include "../database/Database.h"
+
+#include "../util/URL.h"
+
+LogThread::LogThread(bool check, bool asServer)
+:	Thread("LogThread", 0),
+	m_pvtLogs(new vector<struct log_t>()),
+	m_bAsServer(asServer),
+	m_bIdentifCheck(check),
+	m_nDeleteDays(0),
+	m_nNextDeleteTime(0)
 {
-	m_pvtLogs= new vector<struct log_t>;
 	m_READTHREADS= getMutex("READTHREADS");
 	m_READLOGMESSAGES= getMutex("READLOGMESSAGES");
 	m_READLOGMESSAGESCOND= getCondition("READLOGMESSAGESCOND");
-	m_bAsServer= asServer;
-	m_bIdentifCheck= check;
 	time(&m_tmbegin);
 }
 
@@ -70,13 +82,22 @@ int LogThread::stop(bool bWait)
 	return -12;
 }
 
-void LogThread::setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays)
+void LogThread::setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays, const unsigned short nDeleteAfter)
 {
-	log(__FILE__, __LINE__, LOG_INFO, "Storage Log-files " + logFile);
-	m_sConfLogFile= logFile;
+	vector<string> splitVec;
+
 	m_nMinLogLevel= minLogLevel;
 	m_nTimeLogWait= logAllSec;
 	m_tmWriteLogDays= (time_t)writeLogDays * 24 * 60 * 60;
+	m_nDeleteDays= nDeleteAfter;
+
+	if(logFile.substr(0, 1) == "/")
+		m_sLogFilePath= "/";
+	splitVec= boost::algorithm::split(splitVec, logFile, boost::algorithm::is_any_of("/"));
+	for(vector<string>::iterator it= splitVec.begin(); it != (splitVec.end()-1); ++it)
+		m_sLogFilePath+= *it + "/";
+	m_sLogFilePrefix= *(splitVec.end()-1);
+	log(__FILE__, __LINE__, LOG_INFO, "Storage Log-files under " + logFile + " with prefix '" + m_sLogFilePrefix + "' and suffix '.log'");
 }
 
 bool LogThread::ownThread(string threadName, pid_t currentPid)
@@ -209,7 +230,7 @@ int LogThread::execute()
 			char timeString[15];
 
 			strftime(timeString, 11, "%Y-%m-%d", gmtime(&tmnow));
-			m_sCurrentLogFile= m_sConfLogFile;
+			m_sCurrentLogFile= URL::addPath(m_sLogFilePath, m_sLogFilePrefix, /*always*/true);
 			m_sCurrentLogFile+= timeString;
 			m_sCurrentLogFile+= ".";
 			sprintf(timeString, "%d", getpid());
@@ -326,8 +347,59 @@ int LogThread::execute()
 		logfile.close();
 		delete pvLogVector;
 	}
-	if(!stopping())
-		usleep(10000);
+	time(&tmnow);
+	if(	m_nDeleteDays > 0
+		&&
+		(	m_nNextDeleteTime == 0
+			||
+			m_nNextDeleteTime < tmnow	)	)
+	{
+		struct stat fileStat;
+		map<string, string> files;
+		time_t older, tm;
+		string file;
+
+		time(&tm);
+		older= DefaultChipConfigReader::calcDate(/*newer*/false, tm, m_nDeleteDays, 'D');
+		files= ppi_database::Database::readDirectory(m_sLogFilePath, m_sLogFilePrefix, ".log");
+		for(map<string, string>::iterator it= files.begin(); it != files.end(); ++it)
+		{
+			file= URL::addPath(m_sLogFilePath, it->second, /*always*/true);
+			//cout << "read file " << file << endl;
+			if(stat(file.c_str(), &fileStat) != 0)
+			{
+				char cerrno[20];
+				string error("   cannot read date of log file ");
+
+				error+= file + "\n   ERRNO(";
+				sprintf(cerrno, "%d", errno);
+				error+= cerrno;
+				error+= "): ";
+				error+= strerror(errno);
+				log(__FILE__, __LINE__, LOG_WARNING, error);
+			}else
+			{
+				tm= fileStat.st_mtime;
+				if(tm < older)
+				{
+					if(unlink(file.c_str()) < 0)
+					{
+						char cerrno[20];
+						string error("   cannot delete log file ");
+
+						error+= file + "\n   ERRNO(";
+						sprintf(cerrno, "%d", errno);
+						error+= cerrno;
+						error+= "): ";
+						error+= strerror(errno);
+						log(__FILE__, __LINE__, LOG_ERROR, error);
+					}
+				}
+			}
+		}
+		time(&tm);
+		m_nNextDeleteTime= DefaultChipConfigReader::calcDate(/*newer*/true, tm, m_nDeleteDays, 'D');
+	}
 	return 0;
 }
 

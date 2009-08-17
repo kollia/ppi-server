@@ -37,6 +37,7 @@ Process("LogServer", sendConnection, getConnection, wait)
 int LogProcess::init(void* arg)
 {
 	int ret, nLogLevel, nLogAllSec, nLogDays;
+	unsigned short nDelete;
 	string logpath, workdir, property, sLogLevel;
 	IPropertyPattern* oServerFileCasher= static_cast<IPropertyPattern*>(arg);
 
@@ -89,13 +90,15 @@ int LogProcess::init(void* arg)
 	{
 		nLogDays= 30;
 	}
+	property= "deleteLogFiles";
+	nDelete= oServerFileCasher->getUShort(property);
 
 	/***************************************************************************************/
 
 	m_pLogThread= new LogThread(/*check identif logs*/false);
 	if(!m_pLogThread)
 		return 1;
-	m_pLogThread->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays);
+	m_pLogThread->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays, nDelete);
 	if(m_pLogThread->start() > 0)
 	{
 		closeGetConnection();
