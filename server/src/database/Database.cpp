@@ -1072,8 +1072,8 @@ map<string, string> Database::readDirectory(const string& path, const string& be
 				&&
 				(	fileLen == beginfilterLen
 					||
-					(	fileLen == (beginfilterLen + 14 + endfilterLen)
-						&&
+					(	//fileLen == (beginfilterLen + 14 + endfilterLen)
+						//&&
 						file.substr(fileLen - endfilterLen) == endfilter	)	)	)
 			{
 				string date(file.substr(beginfilterLen, 14));
