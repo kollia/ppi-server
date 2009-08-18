@@ -27,7 +27,7 @@
 
 #include "logstructures.h"
 
-#include "../util/RunningStoppingInterfaceTemplate.h"
+#include "../util/ProcessInterfaceTemplate.h"
 
 using namespace std;
 using namespace design_pattern_world::server_pattern;
