@@ -3,7 +3,9 @@ set(mainSrcs 	main.cpp
 		starter.cpp				)
 set(databaseSrcs database/Database.cpp 
 		database/DefaultChipConfigReader.cpp	)
-set(loggerSrcs	logger/LogThread.cpp			)
+set(loggerSrcs	logger/LogThread.cpp
+		logger/LogInterface.cpp
+		logger/LogProcess.cpp			)
 set(portsSrcs 	ports/contactpin.cpp
 		ports/counter.cpp
 		ports/measuredness.cpp
@@ -40,9 +42,11 @@ set(utilSrcs	util/actionproperties.cpp
 		util/CalculatorContainer.cpp
 		util/configpropertycasher.cpp
 		util/exception.cpp
+		util/ExternClientInputTemplate.cpp
 		util/interlacedactionproperties.cpp
 		util/interlacedproperties.cpp
 		util/process.cpp
+		util/ProcessInterfaceTemplate.cpp
 		util/properties.cpp
 		util/StatusLogRoutine.cpp
 		util/Terminal.cpp
@@ -51,8 +55,7 @@ set(utilSrcs	util/actionproperties.cpp
 		util/usermanagement.cpp
 		util/XMLStartEndTagReader.cpp		)
 
-SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
+
 
  
 set(INSTALL_CLIENT_PATH /var/local CACHE PATH CLIENT_PATH)
@@ -111,7 +114,6 @@ SET(Boost_USE_STATIC_LIBS ON)
 SET(Boost_USE_MULTITHREAD OFF)
 FIND_PACKAGE(Boost REQUIRED)
 
-set(CMAKE_MODULE_PATH ../cmake)
 
 #option(USE_LircClient "use lirc_client" ON)
 if(USE_LircClient)
