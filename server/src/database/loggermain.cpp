@@ -26,8 +26,8 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	// this file is now only for tesing cmake with eclipse
-	// to create an second binary
+
+	//changing
 	cout << "start ppi-log-server" << endl;
 	return 0;
 }
