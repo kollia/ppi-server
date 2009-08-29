@@ -78,7 +78,7 @@ namespace util
 	int Process::start(void *args/*= NULL*/, bool bHold/*= false*/)
 	{
 		string processName(getProcessName());
-		string debugProcessName("CommunicationServerProcess");//("");//("LogServer");//
+		string debugProcessName("LogServer");//("CommunicationServerProcess");//("");//
 		pid_t nProcess;
 		ostringstream stream;
 
@@ -92,47 +92,19 @@ namespace util
 				&&
 				nProcess == 0						)	)
 		{
-			int ret= 0;
-
-			m_bRun= true;
-			m_nProcessID= getpid();
-			ret= init(args);
-			if(ret > 0)
-			{
-				cerr << "ERROR: for initial process " << getProcessName() << endl;
-				cerr << "       " << strerror(ret) << endl;
-				exit(ret);
-			}
-			while(	ret <= 0
-					&&
-					!stopping()	)
-			{
-				ret= execute();
-			}
-			AROUSEALL(m_PROCESSSTOPCOND);
-			ending();
+			int ret;
+			ret= runprocess(args, bHold);
 			exit(ret);
 		}
 		//if(getProcessName() == "LogServer")
 		//	sleep(5);
 		if(	m_bWaitInit	)
 		{
-			int err, err2= 0;
-			string answer;
+			int ret;
 
-			err= openSendConnection();
-			if(err > 0)
-				return err;
-			answer= sendMethod(m_sProcessName, "init", true);
-			if(err == 0)
-				err2= closeSendConnection();
-			err= error(answer);
-			if(err != 0)
-				return err;
-			if(err2 > 0)
-				return err2;
-			if(answer != "done")
-				return 3;
+			ret= check();
+			if(ret > 0)
+				return ret;
 		}
 		if(bHold)
 		{
@@ -151,6 +123,50 @@ namespace util
 				return 3;
 		}
 		return 0;
+	}
+
+	int Process::check()
+	{
+		int err, err2= 0;
+		string answer;
+
+		err= openSendConnection();
+		if(err > 0)
+			return err;
+		answer= sendMethod(m_sProcessName, "init", true);
+		if(err == 0)
+			err2= closeSendConnection();
+		err= error(answer);
+		if(err != 0)
+			return err;
+		if(err2 > 0)
+			return err2;
+		if(answer != "done")
+			return 3;
+		return 0;
+	}
+
+	int Process::run(void *args/*= NULL*/)
+	{
+		return runprocess(args, false);
+	}
+
+	int Process::runprocess(void* args, bool bHold)
+	{
+		int ret= 0;
+
+		m_bRun= true;
+		m_nProcessID= getpid();
+		ret= init(args);
+		while(	ret <= 0
+				&&
+				!stopping()	)
+		{
+			ret= execute();
+		}
+		AROUSEALL(m_PROCESSSTOPCOND);
+		ending();
+		return ret;
 	}
 
 	string Process::strerror(int error) const

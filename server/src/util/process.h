@@ -123,6 +123,14 @@ namespace util
 	 * 			maybe connection was failed or server give back wrong answer (not 'done')
 	 * 		</td>
 	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>
+	 * 			5
+	 * 		</td>
+	 * 		<td>
+	 * 			ProcessStarter cannot start correctly application on harddisk
+	 * 		</td>
+	 * 	</tr>
 	 * </table>
 	 * <br />
 	 * warning codes for <code>start()</code> and <code>stop()</code>:
@@ -162,14 +170,27 @@ namespace util
 		Process(const string& processName, IClientConnectArtPattern* sendConnection,
 									IClientConnectArtPattern* getConnection, const bool wait= true);
 		/**
-		 * start method to running the process paralell
+		 * start method to fork the process parallel
 		 *
 		 * @param args arbitary optional defined parameter to get in initialisation method init
 		 * @param bHold should the caller wait of thread by ending.<br />
 		 * 				default is false
-		 * @return error code lower than 0
+		 * @return 0 for no error
 		 */
 		virtual int start(void *args= NULL, bool bHold= false);
+		/**
+		 * check only whether application is running
+		 *
+		 * @return 0 for process running
+		 */
+		virtual int check();
+		/**
+		 * start method to running the process without fork
+		 *
+		 * @param args arbitary optional defined parameter to get in initialisation method init
+		 * @return error code lower than 0
+		 */
+		virtual int run(void *args= NULL);
 		/**
 		 * abstract method to initial the thread
 		 * in the extended class.<br />
@@ -240,6 +261,17 @@ namespace util
 		 * destructor of process
 		 */
 		virtual ~Process();
+
+	protected:
+		/**
+		 * starting the process loop
+		 *
+		 * @param args arbitary optional defined parameter to get in initialisation method init
+		 * @param bHold should the caller wait of thread by ending.<br />
+		 * 				default is false
+		 * @return error code lower than 0
+		 */
+		virtual int runprocess(void *args= NULL, bool bHold= false);
 
 	private:
 		/**

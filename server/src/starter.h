@@ -28,10 +28,13 @@
 #include "util/structures.h"
 #include "util/configpropertycasher.h"
 
+#include "server/ServerThread.h"
+
 using namespace std;
 using namespace util;
 using namespace ports;
 
+extern server::ServerThread* gInternetServer;
 
 void signalconverting(int nSignal);
 

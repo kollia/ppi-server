@@ -28,14 +28,13 @@
 #include "util/URL.h"
 #include "util/configpropertycasher.h"
 #include "util/usermanagement.h"
+#include "util/ProcessStarter.h"
 
-#include "logger/LogProcess.h"
 #include "logger/LogInterface.h"
 
 #include "database/DefaultChipConfigReader.h"
 #include "database/Database.h"
 
-#include "server/ServerThread.h"
 #include "server/ServerProcess.h"
 #include "server/Communication.h"
 
@@ -74,7 +73,6 @@ using namespace user;
 using namespace std;
 using namespace logger;
 
-ServerThread* gInternetServer= NULL;
 
 bool Starter::openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsigned short nDatabits, unsigned short nStopbit)
 // : m_nPort(nPort)
@@ -95,12 +93,14 @@ bool Starter::openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsig
 
 bool Starter::execute(vector<string> options)
 {
+	bool bLog, bDb, bPorts, bCommunicate, bInternet;
 	unsigned int nOptions= options.size();
 	vector<unsigned long> ports; // whitch ports are needet
 	string fileName;
 	string logpath, dbpath, sLogLevel, property;
 	Database *db;
 	string prop;
+	ProcessStarter* process;
 
 	Starter::isNoPathDefinedStop();
 	if(signal(SIGINT, signalconverting) == SIG_ERR)
@@ -140,6 +140,72 @@ bool Starter::execute(vector<string> options)
 	m_oServerFileCasher.readLine("workdir= " + m_sWorkdir);
 	readFile(ports, URL::addPath(m_sConfPath, "measure.conf"));
 
+	// check wether shoud be start which server
+	property= m_oServerFileCasher.getValue("logserver", /*warning*/true);
+	if(	property == ""
+		||
+		(	property != "true"
+			&&
+			property != "false"	)	)
+	{
+		cerr << "###          parameter logserver not be set, so start server" << endl;
+		bLog= true;
+	}else if(property == "true")
+		bLog= true;
+	else
+		bLog= false;
+	property= m_oServerFileCasher.getValue("databaseserver", /*warning*/true);
+	if(	property == ""
+		||
+		(	property != "true"
+			&&
+			property != "false"	)	)
+	{
+		cerr << "###          parameter databaseserver not be set, so start server" << endl;
+		bDb= true;
+	}else if(property == "true")
+		bDb= true;
+	else
+		bDb= false;
+	property= m_oServerFileCasher.getValue("portserver", /*warning*/true);
+	if(	property == ""
+		||
+		(	property != "true"
+			&&
+			property != "false"	)	)
+	{
+		cerr << "###          parameter portserver not be set, so start server" << endl;
+		bPorts= true;
+	}else if(property == "true")
+		bPorts= true;
+	else
+		bPorts= false;
+	property= m_oServerFileCasher.getValue("communicateserver", /*warning*/true);
+	if(	property == ""
+		||
+		(	property != "true"
+			&&
+			property != "false"	)	)
+	{
+		cerr << "###          parameter communicateserver not be set, so start server" << endl;
+		bCommunicate= true;
+	}else if(property == "true")
+		bCommunicate= true;
+	else
+		bCommunicate= false;
+	property= m_oServerFileCasher.getValue("internetserver", /*warning*/true);
+	if(	property == ""
+		||
+		(	property != "true"
+			&&
+			property != "false"	)	)
+	{
+		cerr << "###          parameter internetserver not be set, so start server" << endl;
+		bInternet= true;
+	}else if(property == "true")
+		bInternet= true;
+	else
+		bInternet= false;
 
 	if(!UserManagement::initial(URL::addPath(m_sConfPath, "access.conf", /*always*/true)))
 	{
@@ -187,6 +253,7 @@ bool Starter::execute(vector<string> options)
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start server for communication between processes
 
+	cout << "### start ppi communication server" << endl;
 	ServerProcess communicate(	m_tDefaultUser,
 								new CommunicationThreadStarter(0, 4),
 								new TcpServerConnection(	commhost,
@@ -210,7 +277,7 @@ bool Starter::execute(vector<string> options)
 	// start logging process
 	int err;
 
-	LogProcess logger(	m_tLogUser,
+/*	LogProcess logger(	m_tLogUser,
 						new SocketClientConnection(	SOCK_STREAM,
 													commhost,
 													commport,
@@ -220,12 +287,26 @@ bool Starter::execute(vector<string> options)
 													commport,
 													10			)	);
 
-	err= logger.start(&m_oServerFileCasher);
+	err= logger.start(&m_oServerFileCasher);*/
+
+	cout << "### start ppi log client" << endl;
+	process= new ProcessStarter(	"LogServer",
+									new SocketClientConnection(	SOCK_STREAM,
+																commhost,
+																commport,
+																10			)	);
+
+	if(bLog)
+		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-log-client").c_str(), NULL);
+	else
+		err= process->check();
 	if(err > 0)
 	{
 		cerr << "### WARNING: cannot start log-server" << endl;
 		cerr << "             so no log can be written into any files" << endl;
+		cerr << "             " << process->strerror(err) << endl;
 	}
+	delete process;
 
 	// ------------------------------------------------------------------------------------------------------------
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -304,7 +385,7 @@ bool Starter::execute(vector<string> options)
 			{
 				cout << "### starting OWServer" << flush;
 				vVk8055.push_back(nVk8055Address);
-				owserver= new OWServer(nServerID, new VellemannK8055(nVk8055Address));
+				owserver= new OWServer(nServerID, new VellemannK8055(static_cast<long>(nVk8055Address)));
 				cout << " with name '" << owserver->getServerName();
 				cout << "' and ID '" << dec << nServerID << "'" << endl;
 				cout << "    k8055 USB port from Vellemann on itnerface " << dec << nVk8055Address << endl;
