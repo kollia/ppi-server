@@ -21,8 +21,6 @@
 
 #include "../pattern/server/NoCommunicateTransactionAdapter.h"
 
-extern server::ServerThread* gInternetServer;
-
 using namespace design_pattern_world::server_pattern;
 
 namespace server

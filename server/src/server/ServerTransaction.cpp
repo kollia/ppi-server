@@ -49,6 +49,8 @@ using namespace util;
 using namespace ppi_database;
 using namespace design_pattern_world::server_pattern;
 
+ServerThread* gInternetServer= NULL;
+
 namespace server
 {
 	bool ServerTransaction::init(IFileDescriptorPattern& descriptor)
