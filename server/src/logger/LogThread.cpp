@@ -240,9 +240,9 @@ int LogThread::execute()
 		logfile.open(m_sCurrentLogFile.c_str(), ios::app);
 		if(logfile.fail())
 		{
-			cout << "### ERROR: cannot open file "<< m_sLogFile << endl;
-			cout << "           so cannot write any logfile" << endl;
-			cout << "    ERRNO: " << strerror(errno) << endl;
+			cerr << "### ERROR: cannot open file '" << m_sCurrentLogFile << "'" << endl;
+			cerr << "           so cannot write any log file" << endl;
+			cerr << "    ERRNO: " << strerror(errno) << endl;
 			delete pvLogVector;
 			return 1;
 		}
