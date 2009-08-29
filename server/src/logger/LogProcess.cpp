@@ -28,8 +28,8 @@
 
 #include "../util/URL.h"
 
-LogProcess::LogProcess(const uid_t uid, IClientConnectArtPattern* getConnection, IClientConnectArtPattern* sendConnection/*= NULL*/, const bool wait/*= true*/) :
-Process("LogServer", sendConnection, getConnection, wait)
+LogProcess::LogProcess(const uid_t uid, IClientConnectArtPattern* getConnection, IClientConnectArtPattern* sendConnection/*= NULL*/, const bool wait/*= true*/)
+:	Process("LogServer", sendConnection, getConnection, wait)
 {
 	m_uid= uid;
 }
@@ -45,8 +45,14 @@ int LogProcess::init(void* arg)
 		delete logger::LogInterface::instance();
 	setuid(m_uid);
 	ret= openGetConnection();
-	if(ret > 0)
+	if(	ret > 0
+		&&
+		ret != 35	)
+	{ // by error number 35
+	  // no communication server is listening on port
+	  // try again later
 		return ret;
+	}
 
 	/***************************************************************************************
 	 **  read log properties															****/
@@ -110,10 +116,23 @@ int LogProcess::init(void* arg)
 
 int LogProcess::execute()
 {
+	int err;
 	string question, command;
 	string::size_type pos;
 
 	question= getQuestion(m_sAnswer);
+	err= error(question);
+	if(err != 0)
+	{
+		if(err < 0 || err == 35)
+		{ 	// by error number 35
+			// no communication server is listening on port
+			// or err is an warning (under 0)
+			// try again later
+			return 0;
+		}
+		return err;
+	}
 	pos= question.find(' ', 0);
 	if(pos > 0)
 	{
