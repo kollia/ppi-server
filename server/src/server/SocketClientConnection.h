@@ -58,6 +58,14 @@ namespace server
 	 * 	</tr>
 	 * 	<tr>
 	 * 		<td>
+	 * 			-2
+	 * 		</td>
+	 * 		<td>
+	 * 			transaction to server will get stop command from ITransferPattern
+	 * 		</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>
 	 * 			-1
 	 * 		</td>
 	 * 		<td>
@@ -132,6 +140,22 @@ namespace server
 	 * 		</td>
 	 * 		<td>
 	 * 			Insufficient memory was available to fulfill the request.
+	 * 		</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>
+	 * 			9
+	 * 		</td>
+	 * 		<td>
+	 * 			no ITransferPattern be set for transaction
+	 * 		</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>
+	 * 			10
+	 * 		</td>
+	 * 		<td>
+	 * 			can not initial correct new descriptor in given ITransactionPattern
 	 * 		</td>
 	 * 	</tr>
 	 * 	<tr>

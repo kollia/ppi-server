@@ -66,11 +66,12 @@ namespace server
 		sockaddr* reference;
 
 		if(!m_pTransfer)
-			return false;
+			return 9;
 		if(m_pDescriptor)
 		{
-			m_pDescriptor->transfer();
-			return true;
+			if(m_pDescriptor->transfer())
+				return 0;
+			return -2;
 		}
 
 		m_kSocket.ss_family= AF_INET;
@@ -183,7 +184,7 @@ namespace server
 				if(con == 0)
 					break;
 				errsv= errno;
-				sleep(1);
+				usleep(2000);
 				time(&nt);
 			}
 		}
@@ -275,9 +276,10 @@ namespace server
 		fp= fdopen (m_kSocket.serverSocket, "w+");
 		m_pDescriptor= new FileDescriptor(NULL, m_pTransfer, fp, m_sHost, m_nPort, m_nTimeout);
 		if(!m_pDescriptor->init())
-			return false;
-		m_pDescriptor->transfer();
-		return 0;
+			return 10;
+		if(m_pDescriptor->transfer())
+			return 0;
+		return -2;
 	}
 
 	void SocketClientConnection::close()
@@ -298,6 +300,9 @@ namespace server
 		{
 		case 0:
 			str= "no connection error occurred";
+			break;
+		case -2:
+			str="transaction to server will get stop command from ITransferPattern";
 			break;
 		case -1:
 			str= "WARNING: no valid address for host be set, so connect only to localhost";
@@ -325,6 +330,12 @@ namespace server
 			break;
 		case 8:
 			str= "ERROR: Insufficient memory was available to fulfill the request.";
+			break;
+		case 9:
+			str= "ERROR: no ITransferPattern be set for transaction";
+			break;
+		case 10:
+			str= "ERROR: can not initial correct new descriptor in given ITransactionPattern";
 			break;
 		case 20:
 			str= "ERROR: Undefined socket error.";
