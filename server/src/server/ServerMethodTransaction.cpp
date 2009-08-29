@@ -113,7 +113,7 @@ namespace server
 					bwait= false;
 					input= input.substr(6);
 				}
-				/*cout << "from client " << descriptor.getString("client");
+			/*	cout << "from client " << descriptor.getString("client");
 				cout << " in process " << descriptor.getString("process");
 				cout << " toProcess: " << process;
 				cout << " command: " << input << endl;
@@ -244,7 +244,8 @@ namespace server
 			descriptor.sendAnswer(input);
 			//cout << "log server waits for any questions" << endl;
 			input= descriptor.getOtherClientString(true);
-			//cout << "log server get question " << input << endl;
+			//cout << descriptor.getString("process") << "::" << descriptor.getString("client");
+			//cout << " get question " << input << endl;
 			if(	input == ""
 				||
 				input.substr(input.size() -1) != "\n"	)
