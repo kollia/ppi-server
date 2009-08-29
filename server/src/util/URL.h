@@ -25,27 +25,38 @@
 #ifndef URL_H_
 #define URL_H_
 
+#include "unistd.h"
+
 #include <string>
 
 using namespace std;
 
-namespace util {
+namespace util
+{
 
-	class URL {
-	public:
-		/**
-		 * add first with second path,
-		 * only if the second not beginning
-		 * with an slash
-		 *
-		 * @param first first beginning path (working directory)
-		 * @param second second path or file
-		 * @param file boolean whether second is an file.<br />
-		 * 				If parameter is true (DEFAULT),
-		 * 				the first path is only add when the second do not beginning
-		 * 				with an slash
-		 */
-		static string addPath(string first, string second, bool always= true);
+	class URL
+	{
+		public:
+			/**
+			 * add first with second path,
+			 * only if the second not beginning
+			 * with an slash
+			 *
+			 * @param first first beginning path (working directory)
+			 * @param second second path or file
+			 * @param file boolean whether second is an file.<br />
+			 * 				If parameter is true (DEFAULT),
+			 * 				the first path is only add when the second do not beginning
+			 * 				with an slash
+			 */
+			static string addPath(string first, string second, bool always= true);
+			/**
+			 * search user id in /etc/passwd
+			 *
+			 * @param user name of user
+			 * @return user id if found, elsewhere -1
+			 */
+			static uid_t getUserID(const string& user);
 	};
 
 }

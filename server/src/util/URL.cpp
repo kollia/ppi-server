@@ -22,7 +22,17 @@
  *      Author: Alexander Kolli
  */
 
+#include <iostream>
+#include <fstream>
+#include <vector>
+
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+
 #include "URL.h"
+
+using namespace boost;
+using namespace boost::algorithm;
 
 namespace util {
 
@@ -59,5 +69,30 @@ namespace util {
 				sRv= second;
 		}
 		return sRv;
+	}
+
+	uid_t URL::getUserID(const string& user)
+	{
+		uid_t nID;
+		string::size_type userLen= user.length();
+		ifstream file("/etc/passwd");
+		string line;
+		string buffer;
+
+		nID= -1;
+		while(!file.eof())
+		{
+			getline(file, line);
+
+			if(line.substr(0, userLen) == user)
+			{
+				vector<string> vec;
+
+				split(vec, line, is_any_of(":"));
+				nID= atoi(vec[2].c_str());
+				break;
+			}
+		}
+		return nID;
 	}
 }
