@@ -48,6 +48,7 @@ namespace util
 	string ExternClientInputTemplate::sendMethod(const string& toProcess, const string& methodString,
 													const bool answer/*= true*/)
 	{
+		int ret;
 		string command;
 		string result;
 
@@ -63,10 +64,11 @@ namespace util
 		command+= methodString;
 		LOCK(m_SENDMETHODLOCK);
 		m_pSendTransaction->setCommand(command);
-		if(!m_oSendConnect->init())
+		ret= m_oSendConnect->init();
+		if(ret > 0)
 		{
 			UNLOCK(m_SENDMETHODLOCK);
-			return "ERROR 003";
+			return error(ret + 10);
 		}
 		result= m_pSendTransaction->getReturnedString();
 /*		if(result != "")
@@ -75,6 +77,8 @@ namespace util
 			cout << "fail command: " << command << endl;
 		}*/
 		UNLOCK(m_SENDMETHODLOCK);
+		if(ret == -2)
+			closeSendConnection();
 		return result;
 	}
 
@@ -126,6 +130,7 @@ namespace util
 	}
 	string ExternClientInputTemplate::getQuestion(const string& lastAnswer)
 	{
+		int err;
 		string answer;
 
 		if(m_oGetConnect == NULL)
@@ -133,8 +138,6 @@ namespace util
 		LOCK(m_GETQUESTIONLOCK);
 		if(m_pGetTransaction == NULL)
 		{
-			int err;
-
 			err= openGetConnection();
 			if(err != 0)
 			{
@@ -143,10 +146,11 @@ namespace util
 			}
 		}else
 			m_pGetTransaction->setCommand(lastAnswer);
-		if(!m_oGetConnect->init())
+		err= m_oGetConnect->init();
+		if(err != 0)
 		{
 			UNLOCK(m_GETQUESTIONLOCK);
-			return "ERROR 003";
+			return error(err + 10);
 		}
 		answer= m_pGetTransaction->getReturnedString();
 		UNLOCK(m_GETQUESTIONLOCK);
