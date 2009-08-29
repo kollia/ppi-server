@@ -20,14 +20,97 @@
 
 #include <iostream>
 #include <sstream>
-#include <string>
+#include <string.h>
+#include <vector>
+
+#include <boost/algorithm/string/split.hpp>
+
+#include "LogProcess.h"
+
+#include "../util/properties.h"
+#include "../util/URL.h"
+
+#include "../server/SocketClientConnection.h"
 
 using namespace std;
+using namespace boost;
+using namespace util;
 
 int main(int argc, char* argv[])
 {
+	uid_t loguserID;
+	string loguser;
+	string workdir;
+	string commhost;
+	string property;
+	string sConfPath, fileName;
+	unsigned short commport;
+	int err;
+	vector<string> directorys;
+	vector<string>::size_type dirlen;
+	Properties oServerProperties;
 
-	//changing
-	cout << "start ppi-log-server" << endl;
+	// create working directory
+	directorys= split(directorys, argv[0], is_any_of("/"));
+	dirlen= directorys.size();
+	for(vector<string>::size_type c= 0; c < dirlen; ++c)
+	{
+		if(c == dirlen-2)
+		{// directory is bin, Debug or Release
+			if(directorys[c] == ".")
+				workdir+= "../";
+			break;
+		}
+		workdir+= directorys[c] + "/";
+	}
+	sConfPath= URL::addPath(workdir, PPICONFIGPATH, /*always*/false);
+	fileName= URL::addPath(sConfPath, "server.conf");
+	if(!oServerProperties.readFile(fileName))
+	{
+		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
+		exit(EXIT_FAILURE);
+	}
+	oServerProperties.readLine("workdir= " + workdir);
+
+	// start logging server
+	loguser= oServerProperties.getValue("loguser", /*warning*/false);
+	if(loguser == "")
+		loguser= oServerProperties.getValue("loguser", /*warning*/false);
+	if(loguser == "")
+	{
+		cerr << "### WARNING: loguser or defaultuser are not defined" << endl;
+		cerr << "             set loguser to 'nobody'" << endl;
+		loguser= "nobody";
+	}
+	loguserID= URL::getUserID(loguser);
+	commhost= oServerProperties.getValue("communicationhost", /*warning*/false);
+	if(commhost == "")
+		commhost= "127.0.0.1";
+	property= "communicationport";
+	commport= oServerProperties.needUShort(property);
+
+	LogProcess logger(	loguserID,
+						new SocketClientConnection(	SOCK_STREAM,
+													commhost,
+													commport,
+													10			),
+						new SocketClientConnection(	SOCK_STREAM,
+													commhost,
+													commport,
+													10			)	);
+
+	err= logger.run(&oServerProperties);
+	cout << "get error " << dec << err << endl;
+	if(err != 0)
+	{
+		if(err > 0)
+			cerr << "### ERROR: for ";
+		else
+			cerr << "### WARNING: by ";
+		cerr << "initial process LogServer" << endl;
+		cerr << "             " << logger.strerror(err) << endl;
+		return err;
+	}
+
 	return 0;
 }
