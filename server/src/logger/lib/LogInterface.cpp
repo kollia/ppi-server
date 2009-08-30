@@ -19,7 +19,7 @@
 
 #include "LogInterface.h"
 
-#include "../util/Thread.h"
+#include "../../util/Thread.h"
 
 using namespace util;
 
