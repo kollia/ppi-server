@@ -96,6 +96,7 @@ if(USE_K8055)
 endif(USE_K8055)
 
 add_subdirectory( src/util )
+add_subdirectory( src/logger/lib )
 add_subdirectory( src/database )
 add_subdirectory( src/ports )
 add_subdirectory( src/portserver )
