@@ -55,7 +55,6 @@
 #include "ports/SaveSubValue.h"
 #include "ports/OwfsPort.h"
 
-#include "server/libs/server/ServerProcess.h"
 #include "server/libs/server/Communication.h"
 #include "server/libs/server/communicationthreadstarter.h"
 #include "server/libs/server/TcpServerConnection.h"
@@ -94,6 +93,7 @@ bool Starter::openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsig
 bool Starter::execute(vector<string> options)
 {
 	bool bLog, bDb, bPorts, bCommunicate, bInternet;
+	int err;
 	unsigned int nOptions= options.size();
 	vector<unsigned long> ports; // whitch ports are needet
 	string fileName;
@@ -253,19 +253,18 @@ bool Starter::execute(vector<string> options)
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start server for communication between processes
 
-	cout << "### start ppi communication server" << endl;
-	ServerProcess communicate(	m_tDefaultUser,
-								new CommunicationThreadStarter(0, 4),
-								new TcpServerConnection(	commhost,
-															commport,
-															10,
-															new ServerMethodTransaction()	),
-								new SocketClientConnection(	SOCK_STREAM,
-															commhost,
-															commport,
-															10			)						);
+	cout << "### start ppi communicate server" << endl;
+	process= new ProcessStarter(	"CommunicationServerProcess",
+									new SocketClientConnection(	SOCK_STREAM,
+																commhost,
+																commport,
+																10			)	);
 
-	if(communicate.start(&m_oServerFileCasher) > 0)
+	if(bCommunicate)
+		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-communicate-server").c_str(), NULL);
+	else
+		err= process->check();
+	if(err > 0)
 	{
 		cerr << "### ALERT: cannot start communication server" << endl;
 		cerr << "           so the hole application is not useable" << endl;
@@ -275,19 +274,6 @@ bool Starter::execute(vector<string> options)
 	// ------------------------------------------------------------------------------------------------------------
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start logging process
-	int err;
-
-/*	LogProcess logger(	m_tLogUser,
-						new SocketClientConnection(	SOCK_STREAM,
-													commhost,
-													commport,
-													10			),
-						new SocketClientConnection(	SOCK_STREAM,
-													commhost,
-													commport,
-													10			)	);
-
-	err= logger.start(&m_oServerFileCasher);*/
 
 	cout << "### start ppi log client" << endl;
 	process= new ProcessStarter(	"LogServer",
@@ -610,8 +596,6 @@ bool Starter::execute(vector<string> options)
 	cout << "Database" << endl;
 	db= Database::instance();
 	db->stop(/*wait*/true);
-	cout << "communication server" << endl;
-	communicate.stop(/*wait*/true);
 	return true;
 }
 
