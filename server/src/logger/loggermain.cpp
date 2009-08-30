@@ -30,7 +30,7 @@
 #include "../util/properties.h"
 #include "../util/URL.h"
 
-#include "../server/SocketClientConnection.h"
+#include "../server/libs/client/SocketClientConnection.h"
 
 using namespace std;
 using namespace boost;

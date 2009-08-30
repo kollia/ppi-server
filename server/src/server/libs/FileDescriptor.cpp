@@ -15,11 +15,11 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "../util/Thread.h"
+#include "../../util/Thread.h"
 
-#include "../pattern/server/ITransferPattern.h"
-#include "../pattern/server/IClientHolderPattern.h"
-#include "../pattern/server/IServerCommunicationStarterPattern.h"
+#include "../../pattern/server/ITransferPattern.h"
+#include "../../pattern/server/IClientHolderPattern.h"
+#include "../../pattern/server/IServerCommunicationStarterPattern.h"
 
 #include "FileDescriptor.h"
 

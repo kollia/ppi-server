@@ -18,7 +18,7 @@
 #include <iostream>
 #include <set>
 
-#include "../database/Database.h"
+#include "../../../database/Database.h"
 
 #include "communicationthreadstarter.h"
 #include "Communication.h"

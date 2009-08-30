@@ -14,8 +14,8 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SERVERTHREAD_H_
-#define SERVERTHREAD_H_
+#ifndef SERVERPROCESS_H_
+#define SERVERPROCESS_H_
 
 #include <iostream>
 #include <sys/io.h>
@@ -25,39 +25,46 @@
 
 using namespace std;
 
-#include "../util/Thread.h"
+#include "../../../util/process.h"
 
-#include "../pattern/server/IServerPattern.h"
-#include "../pattern/server/IServerConnectArtPattern.h"
-#include "../pattern/server/IServerCommunicationStarterPattern.h"
+#include "../../../ports/measureThread.h"
+
+#include "../../../pattern/util/ipropertypattern.h"
+#include "../../../pattern/server/IServerPattern.h"
+#include "../../../pattern/server/IServerCommunicationStarterPattern.h"
+#include "../../../pattern/server/IServerConnectArtPattern.h"
 
 using namespace design_pattern_world::server_pattern;
 
 namespace server
 {
-	class ServerThread :	virtual public IServerPattern,
-							virtual public Thread
+	using namespace util;
+
+	class ServerProcess :	virtual public IServerPattern,
+							virtual public Process
 	{
 		public:
 			/**
 			 * initialization of class ServerThread.<br />
-			 * Objects (IServerCommunicationStarterPattern, IServerConnectArtPattern)
-			 * are deleting by ending instance of ServerThread
+			 * Object delete by ending instance of ServerCommunciationStarter
 			 *
 			 * @param processName new name of process
 			 * @param starter object of IServerCommunicationStarterPattern to starter communication threads
 			 * @param connect art of server connection
+			 * @param extcon on which connection from outside the process is reachable
+			 * @param wait whether the starting method should wait for <code>init()</code> method
 			 */
-			ServerThread(string processName, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect);
+			ServerProcess(string processName, const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon= NULL, const bool wait= true);
 			/**
 			 * initialization of class ServerThread.<br />
-			 * Objects (IServerCommunicationStarterPattern, IServerConnectArtPattern)
-			 * are deleting by ending instance of ServerThread
+			 * Object delete by ending instance of ServerCommunciationStarter
 			 *
 			 * @param starter object of IServerCommunicationStarterPattern to starter communication threads
 			 * @param connect art of server connection
+			 * @param extcon on which connection from outside the process is reachable
+			 * @param wait whether the starting method should wait for <code>init()</code> method
 			 */
-			ServerThread(IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect);
+			ServerProcess(const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon= NULL, const bool wait= true);
 			/**
 			 * return name of server
 			 *
@@ -71,18 +78,8 @@ namespace server
 			 */
 			IServerCommunicationStarterPattern* getCommunicationFactory() const
 			{ return m_pStarterPool; };
-
-			/**
-			 * connect to defined server
-			 *
-			 * @param ip ip-address from server
-			 * @param port on which port the server is listen
-			 * @return socket handler of connection when get, elswhere 0
-			 */
-			static int connectAsClient(const char *ip, unsigned short port, bool print= true);
 			void close();
-			bool getDirectory(string filter, string verz, vector<string> &list);
-			virtual ~ServerThread();
+			virtual ~ServerProcess();
 
 		protected:
 			/**
@@ -94,7 +91,7 @@ namespace server
 			 * 				method start(void *args).
 			 * @return error code for not right initialization
 			 */
-			virtual int init(void *args);
+			virtual int init(void *arg);
 			/**
 			 * This method starting again when ending with code 0 or lower for warnings
 			 * and if the method stop() isn't called.
@@ -106,8 +103,7 @@ namespace server
 			 * This method will be called if any other or own thread
 			 * calling method stop().
 			 */
-			virtual void ending() {};
-			bool doConversation(FILE* fp, string input);
+			virtual void ending();
 			/**
 			 * protected initialization for given info points
 			 * to write into the status information
@@ -121,6 +117,10 @@ namespace server
 
 		private:
 			/**
+			 * under witch user the process should be running
+			 */
+			const uid_t m_uid;
+			/**
 			 * pool to start communication threads
 			 */
 			IServerCommunicationStarterPattern *m_pStarterPool;
@@ -132,4 +132,4 @@ namespace server
 	};
 }
 
-#endif /*SERVERTHREAD_H_*/
+#endif /*SERVERPROCESS_H_*/

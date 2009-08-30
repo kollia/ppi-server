@@ -19,15 +19,15 @@
 
 #include <queue>
 
-#include "../util/structures.h"
-#include "../util/Thread.h"
+#include "../../../util/structures.h"
+#include "../../../util/Thread.h"
 
-#include "../ports/measureThread.h"
+#include "../../../ports/measureThread.h"
 
-#include "../pattern/util/ipropertypattern.h"
-#include "../pattern/server/IServerCommunicationStarterPattern.h"
-#include "../pattern/server/IFileDescriptorPattern.h"
-#include "../pattern/server/ICommunicationPattern.h"
+#include "../../../pattern/util/ipropertypattern.h"
+#include "../../../pattern/server/IServerCommunicationStarterPattern.h"
+#include "../../../pattern/server/IFileDescriptorPattern.h"
+#include "../../../pattern/server/ICommunicationPattern.h"
 
 #include "ServerThread.h"
 #include "Communication.h"

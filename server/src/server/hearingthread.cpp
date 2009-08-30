@@ -17,8 +17,8 @@
 #include <stdio.h>
 
 #include "hearingthread.h"
-#include "ServerThread.h"
-#include "SocketClientConnection.h"
+#include "libs/server/ServerThread.h"
+#include "libs/client/SocketClientConnection.h"
 #include "ClientTransaction.h"
 
 namespace server

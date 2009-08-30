@@ -20,12 +20,13 @@
 
 #include <iostream>
 
-#include "../logger/lib/LogInterface.h"
+#include "../../../logger/lib/LogInterface.h"
 
-#include "../util/StatusLogRoutine.h"
+#include "../../../util/StatusLogRoutine.h"
 
 #include "SocketServerConnection.h"
-#include "FileDescriptor.h"
+
+#include "../FileDescriptor.h"
 
 namespace server
 {

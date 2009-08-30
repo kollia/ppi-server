@@ -20,16 +20,16 @@
 #include <unistd.h>
 #include <iostream>
 
-#include "../logger/lib/LogInterface.h"
+#include "../../../logger/lib/LogInterface.h"
 
-#include "../util/Thread.h"
-#include "../util/XMLStartEndTagReader.h"
-#include "../util/configpropertycasher.h"
-#include "../util/usermanagement.h"
+#include "../../../util/Thread.h"
+#include "../../../util/XMLStartEndTagReader.h"
+#include "../../../util/configpropertycasher.h"
+#include "../../../util/usermanagement.h"
 
-#include "../database/Database.h"
+#include "../../../database/Database.h"
 
-#include "../pattern/server/IFileDescriptorPattern.h"
+#include "../../../pattern/server/IFileDescriptorPattern.h"
 
 #include "Communication.h"
 #include "ServerThread.h"

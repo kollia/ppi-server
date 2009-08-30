@@ -1,18 +1,9 @@
 
 
 set(serverSrcs	ClientTransaction.cpp
-        		Communication.cpp
-        		communicationthreadstarter.cpp
-        		FileDescriptor.cpp
         		hearingthread.cpp
-        		OutsideClientTransaction.cpp
         		ServerMethodTransaction.cpp
-        		ServerProcess.cpp
-        		ServerThread.cpp
-        		ServerTransaction.cpp
-        		SocketClientConnection.cpp
-        		SocketServerConnection.cpp
-        		SSLConnect.cpp			        )
+        		ServerTransaction.cpp	        )
         		
 add_library(ppiserver SHARED ${serverSrcs})
 

@@ -21,11 +21,11 @@
 #include <vector>
 #include <deque>
 
-#include "hearingthread.h"
+#include "../../hearingthread.h"
 
-#include "../portserver/owserver.h"
+#include "../../../portserver/owserver.h"
 
-#include "../pattern/server/NoCommunicateTransactionAdapter.h"
+#include "../../../pattern/server/NoCommunicateTransactionAdapter.h"
 
 using namespace design_pattern_world::server_pattern;
 

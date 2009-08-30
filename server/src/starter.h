@@ -28,7 +28,7 @@
 #include "util/structures.h"
 #include "util/configpropertycasher.h"
 
-#include "server/ServerThread.h"
+#include "server/libs/server/ServerThread.h"
 
 using namespace std;
 using namespace util;

@@ -21,8 +21,8 @@
 #include <queue>
 #include <map>
 
-#include "../pattern/server/IFileDescriptorPattern.h"
-#include "../pattern/server/IClientConnectArtPattern.h"
+#include "../../pattern/server/IFileDescriptorPattern.h"
+#include "../../pattern/server/IClientConnectArtPattern.h"
 
 using namespace std;
 using namespace design_pattern_world::server_pattern;

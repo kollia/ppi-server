@@ -17,7 +17,7 @@
 #ifndef SSLCONNECT_H_
 #define SSLCONNECT_H_
 
-#include "../util/debug.h"
+#include "../../../util/debug.h"
 #ifdef _OPENSSLLIBRARY
 
 #include <string>

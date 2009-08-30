@@ -17,9 +17,9 @@
 #ifndef SOCKETSERVERCONNECTION_H_
 #define SOCKETSERVERCONNECTION_H_
 
-#include "SocketClientConnection.h"
+#include "../client/SocketClientConnection.h"
 
-#include "../pattern/server/IServerConnectArtPattern.h"
+#include "../../../pattern/server/IServerConnectArtPattern.h"
 
 using namespace design_pattern_world::server_pattern;
 

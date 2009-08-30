@@ -35,9 +35,6 @@
 #include "database/DefaultChipConfigReader.h"
 #include "database/Database.h"
 
-#include "server/ServerProcess.h"
-#include "server/Communication.h"
-
 #include "portserver/owserver.h"
 #include "portserver/maximchipaccess.h"
 #include "portserver/VellemannK8055.h"
@@ -58,8 +55,11 @@
 #include "ports/SaveSubValue.h"
 #include "ports/OwfsPort.h"
 
-#include "server/communicationthreadstarter.h"
-#include "server/TcpServerConnection.h"
+#include "server/libs/server/ServerProcess.h"
+#include "server/libs/server/Communication.h"
+#include "server/libs/server/communicationthreadstarter.h"
+#include "server/libs/server/TcpServerConnection.h"
+
 #include "server/ServerTransaction.h"
 #include "server/ServerMethodTransaction.h"
 #include "server/ClientTransaction.h"

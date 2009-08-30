@@ -21,10 +21,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include "../pattern/server/IClientConnectArtPattern.h"
-#include "../pattern/server/IFileDescriptorPattern.h"
-#include "../pattern/server/ITransferPattern.h"
-#include "../pattern/server/IServerPattern.h"
+#include "../../../pattern/server/IClientConnectArtPattern.h"
+#include "../../../pattern/server/IFileDescriptorPattern.h"
+#include "../../../pattern/server/ITransferPattern.h"
+#include "../../../pattern/server/IServerPattern.h"
 
 using namespace design_pattern_world::server_pattern;
 

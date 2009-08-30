@@ -22,10 +22,11 @@
 
 #include <iostream>
 
-#include "../logger/lib/LogInterface.h"
+#include "../../../logger/lib/LogInterface.h"
 
 #include "SocketClientConnection.h"
-#include "FileDescriptor.h"
+
+#include "../FileDescriptor.h"
 
 using namespace std;
 

@@ -12,7 +12,7 @@
 
 #include "../pattern/server/IClientConnectArtPattern.h"
 
-#include "../server/OutsideClientTransaction.h"
+#include "../server/libs/client/OutsideClientTransaction.h"
 
 namespace util
 {

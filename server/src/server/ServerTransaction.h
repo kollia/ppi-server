@@ -17,9 +17,9 @@
 #ifndef SERVERTRANSACTION_H_
 #define SERVERTRANSACTION_H_
 
-#include "ServerThread.h"
-
 #include "../pattern/server/NoCommunicateTransactionAdapter.h"
+
+#include "libs/server/ServerThread.h"
 
 using namespace design_pattern_world::server_pattern;
 

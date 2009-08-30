@@ -30,14 +30,14 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "../util/Thread.h"
-#include "../util/XMLStartEndTagReader.h"
+#include "../../../util/Thread.h"
+#include "../../../util/XMLStartEndTagReader.h"
 
-#include "../ports/measureThread.h"
+#include "../../../ports/measureThread.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../../../logger/lib/LogInterface.h"
 
-#include "../pattern/server/IFileDescriptorPattern.h"
+#include "../../../pattern/server/IFileDescriptorPattern.h"
 
 #include "ServerThread.h"
 #include "Communication.h"

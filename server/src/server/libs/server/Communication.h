@@ -19,15 +19,15 @@
 
 #include <sys/socket.h>
 
-#include "../util/structures.h"
-#include "../util/Thread.h"
+#include "../../../util/structures.h"
+#include "../../../util/Thread.h"
 
-#include "../ports/portbaseclass.h"
-#include "../ports/measureThread.h"
+#include "../../../ports/portbaseclass.h"
+#include "../../../ports/measureThread.h"
 
-#include "../pattern/server/IServerCommunicationStarterPattern.h"
-#include "../pattern/server/IFileDescriptorPattern.h"
-#include "../pattern/server/ICommunicationPattern.h"
+#include "../../../pattern/server/IServerCommunicationStarterPattern.h"
+#include "../../../pattern/server/IFileDescriptorPattern.h"
+#include "../../../pattern/server/ICommunicationPattern.h"
 
 using namespace design_pattern_world::server_pattern;
 

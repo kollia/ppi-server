@@ -45,9 +45,10 @@
 
 #include "../database/Database.h"
 
-#include "ServerThread.h"
 #include "ServerMethodTransaction.h"
-#include "communicationthreadstarter.h"
+
+#include "libs/server/ServerThread.h"
+#include "libs/server/communicationthreadstarter.h"
 
 using namespace std;
 using namespace user;
