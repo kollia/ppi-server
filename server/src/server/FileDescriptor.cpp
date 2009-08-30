@@ -47,7 +47,12 @@ namespace server
 
 	bool FileDescriptor::init()
 	{
-		return m_pTransfer->init(*this);
+		bool bRv;
+
+		LOCK(m_THREADSAVEMETHODS);
+		bRv= m_pTransfer->init(*this);
+		UNLOCK(m_THREADSAVEMETHODS);
+		return bRv;
 	}
 
 	void FileDescriptor::operator >>(string &reader)
