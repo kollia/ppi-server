@@ -420,10 +420,6 @@ namespace server
 					return false;
 				}
 			}
-			logMsg= "client send command '";
-			logMsg+= m_sCommand;
-			logMsg+= "'";
-			LOG(LOG_DEBUG, logMsg);
 
 			if(	m_sCommand.substr(0, 3) == "DIR"
 				||
@@ -452,7 +448,6 @@ namespace server
 				{
 					cerr << endl;
 					cerr << "ERROR: lost connection to server" << endl;
-					LOG(LOG_SERVER, "ERROR: lost connection to server");
 					return false;
 				}
 				if(result.substr(0, 6) == "ERROR ")
