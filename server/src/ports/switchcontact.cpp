@@ -21,7 +21,7 @@
 
 #include "../util/structures.h"
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "switch.h"
 #include "switchcontact.h"

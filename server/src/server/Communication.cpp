@@ -20,7 +20,7 @@
 #include <unistd.h>
 #include <iostream>
 
-#include "../logger/LogThread.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "../util/Thread.h"
 #include "../util/XMLStartEndTagReader.h"

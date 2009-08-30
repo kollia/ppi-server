@@ -20,7 +20,7 @@
 
 #include <iostream>
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "../util/StatusLogRoutine.h"
 

@@ -23,7 +23,7 @@
 #include "Thread.h"
 #include "process.h"
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 namespace util
 {
@@ -78,7 +78,7 @@ namespace util
 	int Process::start(void *args/*= NULL*/, bool bHold/*= false*/)
 	{
 		string processName(getProcessName());
-		string debugProcessName("LogServer");//("CommunicationServerProcess");//("");//
+		string debugProcessName("");//("LogServer");//("CommunicationServerProcess");//
 		pid_t nProcess;
 		ostringstream stream;
 

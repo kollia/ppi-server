@@ -34,7 +34,7 @@
 
 #include "../ports/measureThread.h"
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "../server/SocketClientConnection.h"
 

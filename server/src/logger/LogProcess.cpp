@@ -24,7 +24,7 @@
 #include <boost/algorithm/string/replace.hpp>
 
 #include "LogProcess.h"
-#include "LogInterface.h"
+#include "lib/LogInterface.h"
 
 #include "../util/URL.h"
 

@@ -62,7 +62,7 @@
 // which is not defined with getCondition("<name>") it showes an error message
 // condition undefined. If an condition be set in CONDITIONDEBUG which not exist
 // no condition be showen, only if an error message occures for any conditions or it is not defined
-//#define CONDITIONSDEBUG "xyz"
+#define CONDITIONSDEBUG "xyz"
 #endif //CONDITIONSDEBUG
 
 #ifndef MUTEXLOCKDEBUG
@@ -73,8 +73,7 @@
 // who is not defined with getMutex("<name>") it showes an error message
 // mutex undefined. If an mutex be set in MUTEXLOCKDEBUG which not exist
 // no mutex be showen, only if an error messages occures for any mutex or it is not defined
-//#define MUTEXLOCKDEBUG "xyz"
-//#define MUTEXLOCKDEBUG "NEXTCOMMUNICATION CONNECTIONIDACCESS xyz"
+#define MUTEXLOCKDEBUG "xyz"
 #endif //MUTEXLOCKDEBUG
 
 #ifndef _LIRCCLIENTLIBRARY

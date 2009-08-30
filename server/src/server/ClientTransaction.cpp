@@ -24,7 +24,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "../util/XMLStartEndTagReader.h"
 #include "../util/configpropertycasher.h"

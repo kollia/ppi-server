@@ -33,7 +33,7 @@
 
 #include "../util/structures.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "../ports/measureThread.h"
 

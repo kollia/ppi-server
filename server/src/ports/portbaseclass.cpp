@@ -28,7 +28,7 @@
 
 #include "portbaseclass.h"
 
-#include "../logger/LogThread.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "../database/DefaultChipConfigReader.h"
 #include "../database/Database.h"

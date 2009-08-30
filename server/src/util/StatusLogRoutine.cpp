@@ -28,7 +28,7 @@
 
 #include "Thread.h"
 #include "StatusLogRoutine.h"
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "../util/configpropertycasher.h"
 

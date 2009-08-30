@@ -23,7 +23,7 @@
 #include "../util/debug.h"
 #include "../util/Thread.h"
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "measureThread.h"
 

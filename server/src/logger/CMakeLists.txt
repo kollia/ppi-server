@@ -1,12 +1,4 @@
-
-
-set(loggerLibSrcs	LogInterface.cpp	)
-        		
-add_library(ppilogger SHARED ${loggerLibSrcs})
-install(TARGETS ppilogger DESTINATION lib)        		
-  
-        		
-        		
+       		
 include_directories(${CMAKE_SOURCE_DIR}/lib)
 
 set(loggerSrcs	LogThread.cpp

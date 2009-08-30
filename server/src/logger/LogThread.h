@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-#include "logstructures.h"
+#include "lib/logstructures.h"
 
 #include "../util/Thread.h"
 

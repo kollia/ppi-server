@@ -26,7 +26,7 @@
 
 #include "../util/structures.h"
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "portbaseclass.h"
 #include "timemeasure.h"

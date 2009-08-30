@@ -30,7 +30,7 @@
 #include "util/usermanagement.h"
 #include "util/ProcessStarter.h"
 
-#include "logger/LogInterface.h"
+#include "logger/lib/LogInterface.h"
 
 #include "database/DefaultChipConfigReader.h"
 #include "database/Database.h"

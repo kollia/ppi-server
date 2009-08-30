@@ -27,7 +27,7 @@
 #include <iostream>
 
 #include "Thread.h"
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "../util/configpropertycasher.h"
 

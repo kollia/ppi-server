@@ -22,7 +22,7 @@
 
 #include <iostream>
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "SocketClientConnection.h"
 #include "FileDescriptor.h"

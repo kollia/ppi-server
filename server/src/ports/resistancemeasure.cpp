@@ -21,7 +21,7 @@
 #include "resistancemeasure.h"
 #include "switch.h"
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "../database/Database.h"
 

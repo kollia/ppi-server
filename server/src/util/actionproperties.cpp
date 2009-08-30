@@ -26,7 +26,7 @@
 
 #include "actionproperties.h"
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 namespace util {
 

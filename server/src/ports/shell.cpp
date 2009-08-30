@@ -20,7 +20,7 @@
 
 #include "../util/structures.h"
 
-#include "../logger/LogInterface.h"
+#include "../logger/lib/LogInterface.h"
 
 #include "shell.h"
 
