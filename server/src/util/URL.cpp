@@ -29,7 +29,12 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+#include <sys/types.h>
+#include <dirent.h>
+
 #include "URL.h"
+
+#include "../logger/lib/LogInterface.h"
 
 using namespace boost;
 using namespace boost::algorithm;
@@ -69,6 +74,53 @@ namespace util {
 				sRv= second;
 		}
 		return sRv;
+	}
+
+	map<string, string> URL::readDirectory(const string& path, const string& beginfilter, const string& endfilter)
+	{
+		struct dirent *dirName;
+		string file;
+		map<string, string> files;
+		int fileLen;
+		int beginfilterLen= beginfilter.length();
+		int endfilterLen= endfilter.length();
+		DIR *dir;
+
+		dir= opendir(&path[0]);
+		if(dir == NULL)
+		{
+			string msg("### ERROR: cannot read in subdirectory '");
+
+			msg+= path + "'\n";
+			msg+= "    ERRNO: ";
+			msg+= strerror(errno);
+			cout << msg << endl;
+			TIMELOG(LOG_ALERT, "readdirectory", msg);
+			return files;
+		}
+		while((dirName= readdir(dir)) != NULL)
+		{
+			if(dirName->d_type == DT_REG)
+			{
+				//printf ("%s\n", dirName->d_name);
+				file= dirName->d_name;
+				fileLen= file.length();
+				if(	file.substr(0, beginfilterLen) == beginfilter
+					&&
+					(	fileLen == beginfilterLen
+						||
+						(	//fileLen == (beginfilterLen + 14 + endfilterLen)
+							//&&
+							file.substr(fileLen - endfilterLen) == endfilter	)	)	)
+				{
+					string date(file.substr(beginfilterLen, 14));
+
+					files[date]= file;
+				}
+			}
+		}
+		closedir(dir);
+		return files;
 	}
 
 	uid_t URL::getUserID(const string& user)

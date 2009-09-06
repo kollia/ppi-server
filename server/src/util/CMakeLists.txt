@@ -1,6 +1,7 @@
 
 set(utilSrcs	actionproperties.cpp
 		        CalculatorContainer.cpp
+		        Calendar.cpp
         		configpropertycasher.cpp
         		exception.cpp
         		ExternClientInputTemplate.cpp
