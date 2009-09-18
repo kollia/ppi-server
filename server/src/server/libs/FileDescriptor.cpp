@@ -144,6 +144,96 @@ namespace server
 		return it->second;
 	}
 
+	void FileDescriptor::setShort(const string& str, const short value)
+	{
+		m_mShort[str]= value;
+	}
+
+	short FileDescriptor::getShort(const string& str) const
+	{
+		map<string, short>::const_iterator it;
+
+		it= m_mShort.find(str);
+		if(it == m_mShort.end())
+			return 0;
+		return it->second;
+	}
+
+	void FileDescriptor::setUShort(const string& str, const unsigned short value)
+	{
+		m_mUShort[str]= value;
+	}
+
+	unsigned short FileDescriptor::getUShort(const string& str) const
+	{
+		map<string, unsigned short>::const_iterator it;
+
+		it= m_mUShort.find(str);
+		if(it == m_mUShort.end())
+			return 0;
+		return it->second;
+	}
+
+	void FileDescriptor::setInt(const string& str, const int value)
+	{
+		m_mInt[str]= value;
+	}
+
+	int FileDescriptor::getInt(const string& str) const
+	{
+		map<string, int>::const_iterator it;
+
+		it= m_mInt.find(str);
+		if(it == m_mInt.end())
+			return 0;
+		return it->second;
+	}
+
+	void FileDescriptor::setUInt(const string& str, const unsigned int value)
+	{
+		m_mUInt[str]= value;
+	}
+
+	unsigned int FileDescriptor::getUInt(const string& str) const
+	{
+		map<string, unsigned int>::const_iterator it;
+
+		it= m_mUInt.find(str);
+		if(it == m_mUInt.end())
+			return 0;
+		return it->second;
+	}
+
+	void FileDescriptor::setFloat(const string& str, const float value)
+	{
+		m_mFloat[str]= value;
+	}
+
+	float FileDescriptor::getFloat(const string& str) const
+	{
+		map<string, float>::const_iterator it;
+
+		it= m_mFloat.find(str);
+		if(it == m_mFloat.end())
+			return 0;
+		return it->second;
+	}
+
+	void FileDescriptor::setDouble(const string& str, const double value)
+	{
+		m_mDouble[str]= value;
+	}
+
+	double FileDescriptor::getDouble(const string& str) const
+	{
+		map<string, double>::const_iterator it;
+
+		it= m_mDouble.find(str);
+		if(it == m_mDouble.end())
+			return 0;
+		return it->second;
+	}
+
 	void FileDescriptor::setString(const string& name, const string& value)
 	{
 		m_mString[name]= value;

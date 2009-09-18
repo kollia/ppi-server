@@ -120,6 +120,90 @@ namespace server
 			 */
 			virtual bool getBoolean(const string& str) const;
 			/**
+			 * set short into object
+			 *
+			 * @param str name of short
+			 * @param value value of short
+			 */
+			virtual void setShort(const string& str, const short value);
+			/**
+			 * read value of short
+			 *
+			 * @param str name of short
+			 * @return value of short
+			 */
+			virtual short getShort(const string& str) const;
+			/**
+			 * set unsigned short into object
+			 *
+			 * @param str name of unsigned short
+			 * @param value value of unsigned short
+			 */
+			virtual void setUShort(const string& str, const unsigned short value);
+			/**
+			 * read value of unsigned short
+			 *
+			 * @param str name of unsigned short
+			 * @return value of unsigned short
+			 */
+			virtual unsigned short getUShort(const string& str) const;
+			/**
+			 * set integer into object
+			 *
+			 * @param str name of integer
+			 * @param value value of integer
+			 */
+			virtual void setInt(const string& str, const int value);
+			/**
+			 * read value of integer
+			 *
+			 * @param str name of integer
+			 * @return value of integer
+			 */
+			virtual int getInt(const string& str) const;
+			/**
+			 * set unsigned integer into object
+			 *
+			 * @param str name of unsigned integer
+			 * @param value value of unsigned integer
+			 */
+			virtual void setUInt(const string& str, const unsigned int value);
+			/**
+			 * read value of unsigned integer
+			 *
+			 * @param str name of unsigned integer
+			 * @return value of unsigned integer
+			 */
+			virtual unsigned int getUInt(const string& str) const;
+			/**
+			 * set float into object
+			 *
+			 * @param str name of float
+			 * @param value value of float
+			 */
+			virtual void setFloat(const string& str, const float value);
+			/**
+			 * read value of float
+			 *
+			 * @param str name of float
+			 * @return value of float
+			 */
+			virtual float getFloat(const string& str) const;
+			/**
+			 * set double into object
+			 *
+			 * @param str name of double
+			 * @param value value of double
+			 */
+			virtual void setDouble(const string& str, const double value);
+			/**
+			 * read value of double
+			 *
+			 * @param str name of double
+			 * @return value of double
+			 */
+			virtual double getDouble(const string& str) const;
+			/**
 			 * set string into object
 			 *
 			 * @param str name of variable
@@ -277,6 +361,38 @@ namespace server
 			 * boolean values set from ITransferPattern object
 			 */
 			map<string, bool> m_mBoolean;
+			/**
+			 * boolean values set from ITransferPattern object
+			 */
+			map<string, short> m_mShort;
+			/**
+			 * boolean values set from ITransferPattern object
+			 */
+			map<string, unsigned short> m_mUShort;
+			/**
+			 * boolean values set from ITransferPattern object
+			 */
+			map<string, int> m_mInt;
+			/**
+			 * boolean values set from ITransferPattern object
+			 */
+			map<string, unsigned int> m_mUInt;
+			/**
+			 * boolean values set from ITransferPattern object
+			 */
+			map<string, long> m_mLong;
+			/**
+			 * boolean values set from ITransferPattern object
+			 */
+			map<string, unsigned long> m_mULong;
+			/**
+			 * boolean values set from ITransferPattern object
+			 */
+			map<string, float> m_mFloat;
+			/**
+			 * boolean values set from ITransferPattern object
+			 */
+			map<string, double> m_mDouble;
 			/**
 			 * string values set from ITransferPattern object
 			 */

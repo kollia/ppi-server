@@ -108,6 +108,90 @@ namespace design_pattern_world
 				 */
 				virtual bool getBoolean(const string& str) const= 0;
 				/**
+				 * set short into object
+				 *
+				 * @param str name of short
+				 * @param value value of short
+				 */
+				virtual void setShort(const string& str, const short value)= 0;
+				/**
+				 * read value of short
+				 *
+				 * @param str name of short
+				 * @return value of short
+				 */
+				virtual short getShort(const string& str) const= 0;
+				/**
+				 * set unsigned short into object
+				 *
+				 * @param str name of unsigned short
+				 * @param value value of unsigned short
+				 */
+				virtual void setUShort(const string& str, const unsigned short value)= 0;
+				/**
+				 * read value of unsigned short
+				 *
+				 * @param str name of unsigned short
+				 * @return value of unsigned short
+				 */
+				virtual unsigned short getUShort(const string& str) const= 0;
+				/**
+				 * set integer into object
+				 *
+				 * @param str name of integer
+				 * @param value value of integer
+				 */
+				virtual void setInt(const string& str, const int value)= 0;
+				/**
+				 * read value of integer
+				 *
+				 * @param str name of integer
+				 * @return value of integer
+				 */
+				virtual int getInt(const string& str) const= 0;
+				/**
+				 * set unsigned integer into object
+				 *
+				 * @param str name of unsigned integer
+				 * @param value value of unsigned integer
+				 */
+				virtual void setUInt(const string& str, const unsigned int value)= 0;
+				/**
+				 * read value of unsigned integer
+				 *
+				 * @param str name of unsigned integer
+				 * @return value of unsigned integer
+				 */
+				virtual unsigned int getUInt(const string& str) const= 0;
+				/**
+				 * set float into object
+				 *
+				 * @param str name of float
+				 * @param value value of float
+				 */
+				virtual void setFloat(const string& str, const float value)= 0;
+				/**
+				 * read value of float
+				 *
+				 * @param str name of float
+				 * @return value of float
+				 */
+				virtual float getFloat(const string& str) const= 0;
+				/**
+				 * set double into object
+				 *
+				 * @param str name of double
+				 * @param value value of double
+				 */
+				virtual void setDouble(const string& str, const double value)= 0;
+				/**
+				 * read value of double
+				 *
+				 * @param str name of double
+				 * @return value of double
+				 */
+				virtual double getDouble(const string& str) const= 0;
+				/**
 				 * set string into object
 				 *
 				 * @param str name of variable
