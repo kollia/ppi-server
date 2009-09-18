@@ -19,7 +19,7 @@
 
 #include "SaveSubValue.h"
 
-#include "../database/Database.h"
+#include "../database/lib/DbInterface.h"
 
 using namespace ppi_database;
 
@@ -63,7 +63,7 @@ namespace ports
 		bool bFound= true;
 		double value= 0;
 		vector<double> vValues;
-		Database* db= Database::instance();
+		DbInterface* db= DbInterface::instance();
 
 		//value= getResult(&);
 		switchClass::measure();

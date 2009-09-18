@@ -18,13 +18,10 @@
 #include <iostream>
 #include <set>
 
-#include "../../../database/Database.h"
-
 #include "communicationthreadstarter.h"
 #include "Communication.h"
 
 using namespace std;
-using namespace ppi_database;
 
 namespace server
 {

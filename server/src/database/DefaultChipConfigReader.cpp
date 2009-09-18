@@ -33,6 +33,7 @@
 #include "../logger/lib/LogInterface.h"
 
 #include "../util/URL.h"
+#include "../util/Calendar.h"
 #include "../util/configpropertycasher.h"
 
 
@@ -483,6 +484,16 @@ namespace ports
 		return &cIt->second;
 	}
 
+	const double* DefaultChipConfigReader::getRegisteredDefaultChipCache(const string& server, const string& chip) const
+	{
+		const chips_t *tchip;
+
+		tchip= getRegisteredDefaultChip(server, chip);
+		if(tchip == NULL)
+			return NULL;
+		return &tchip->dCache;
+	}
+
 	const DefaultChipConfigReader::chips_t* DefaultChipConfigReader::getRegisteredDefaultChip(const string& server, const string& family, const string& type, const string& chip) const
 	{
 		map<string, map<string, map<string, chips_t*> > >::const_iterator sIt;
@@ -895,6 +906,14 @@ namespace ports
 		m_mmAllChips[folder][subroutine]= &usedIt->second;
 	}
 
+	const double DefaultChipConfigReader::getDefaultCache(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/) const
+	{
+		defValues_t defValues;
+
+		defValues= getDefaultValues(min, max, bFloat, folder, subroutine);
+		return defValues.dcache;
+	}
+
 	const DefaultChipConfigReader::defValues_t DefaultChipConfigReader::getDefaultValues(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/) const
 	{
 		bool bAll= false;
@@ -1044,7 +1063,7 @@ namespace ports
 			parento= wr;
 			while(wr->older != NULL)
 			{
-				if(calcDate(/*newer*/false, thistime, wr->more, wr->unit) < acttime)
+				if(Calendar::calcDate(/*newer*/false, thistime, wr->more, wr->unit) < acttime)
 					break;
 				parento= wr;
 				wr= wr->older;
@@ -1165,7 +1184,7 @@ namespace ports
 						tRv.highest.lowtime= wr->highest->lowtime;
 					}else
 						tRv.action= "no";
-					wr->highest->nextwrite= calcDate(/*newer*/true, acttime, wr->highest->between, wr->highest->t);
+					wr->highest->nextwrite= Calendar::calcDate(/*newer*/true, acttime, wr->highest->between, wr->highest->t);
 					wr->highest->bValue= true;
 					wr->highest->highest= value;
 					wr->highest->hightime= acttime;
@@ -1247,79 +1266,6 @@ namespace ports
 			}
 		}
 		return tRv;
-	}
-
-	time_t DefaultChipConfigReader::calcDate(const bool newer, const time_t acttime, const int more, const char spez)
-	{
-		struct tm ttime;
-		time_t nRv;
-
-		if(more < 1)
-			return acttime;
-		ttime= *localtime(&acttime);
-		//ttime= *readt;
-		ttime.tm_sec= 0;
-		ttime.tm_min= 0;
-		if(spez == 'h')
-		{
-			if(newer)
-				ttime.tm_hour+= more;
-			else
-				ttime.tm_hour-= more;
-		}else if(spez == 'D')
-		{
-			ttime.tm_hour= 0;
-			if(newer)
-				ttime.tm_mday+= more;
-			else
-				ttime.tm_mday-= more;
-			ttime.tm_yday= 0;
-		}else if(spez == 'W')
-		{
-			int d= ttime.tm_wday;
-
-			if(d == 0)
-				d= 7;
-			--d;
-			ttime.tm_hour= 0;
-			if(newer)
-				ttime.tm_mday= (ttime.tm_mday - d + 7) + (7 * (more - 1));
-			else
-				ttime.tm_mday= (ttime.tm_mday - d + 7) - (7 * (more + 1));
-
-		}else if(spez == 'M')
-		{
-			if( newer
-				||
-				more == 1	)
-			{
-				ttime.tm_hour= 0;
-			}else // and what is this? only for the past when more month are calculated?
-				ttime.tm_hour= 1;
-			ttime.tm_mday= 1; // toDo: is bug? first day by calculating day is 0? why?
-			if(newer)
-				ttime.tm_mon+= more;
-			else
-				ttime.tm_mon-= more;
-		}else if(spez == 'Y')
-		{
-			ttime.tm_hour= 1; // toDo: is bug? first hour by calculating day or month is 0? why?
-			ttime.tm_mday= 1; // toDo: is bug? first day by calculating day is 0? why?
-			ttime.tm_mon= 0;
-			if(newer)
-				ttime.tm_year+= more;
-			else
-				ttime.tm_year-= more;
-		}
-		nRv= mktime(&ttime);
-#if 0
-		char stime[18];
-		strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&acttime));
-		cout << "actual time: " << stime << endl;
-		strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&nRv));
-		cout << "write next:  " << stime << endl << endl;
-#endif
-		return nRv;
 	}
 
 	DefaultChipConfigReader::~DefaultChipConfigReader()

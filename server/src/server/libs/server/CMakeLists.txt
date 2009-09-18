@@ -2,7 +2,8 @@
 
 set(serverlibserverSrcs    Communication.cpp
         		           communicationthreadstarter.cpp
-                		   ServerProcess.cpp
+                		   ServerMethodTransaction.cpp
+                           ServerProcess.cpp
                 		   ServerThread.cpp
                 		   SocketServerConnection.cpp
                 		   SSLConnect.cpp			        )

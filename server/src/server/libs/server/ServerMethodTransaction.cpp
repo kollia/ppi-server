@@ -27,33 +27,30 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-#include "../pattern/server/IClientPattern.h"
-#include "../pattern/server/IClientHolderPattern.h"
-#include "../pattern/server/IServerPattern.h"
+#include "../../../pattern/server/IClientPattern.h"
+#include "../../../pattern/server/IClientHolderPattern.h"
+#include "../../../pattern/server/IServerPattern.h"
 
-#include "../util/structures.h"
+#include "../../../util/structures.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../../../logger/lib/LogInterface.h"
 
-#include "../ports/measureThread.h"
+//#include "../../../ports/measureThread.h"
 
-#include "../portserver/owserver.h"
+//#include "../../../portserver/owserver.h"
 
-#include "../util/XMLStartEndTagReader.h"
-#include "../util/usermanagement.h"
-#include "../util/configpropertycasher.h"
-
-#include "../database/Database.h"
+//#include "../../../util/XMLStartEndTagReader.h"
+//#include "../../../util/usermanagement.h"
+//#include "../../../util/configpropertycasher.h"
 
 #include "ServerMethodTransaction.h"
 
-#include "libs/server/ServerThread.h"
-#include "libs/server/communicationthreadstarter.h"
+#include "ServerThread.h"
+#include "communicationthreadstarter.h"
 
 using namespace std;
-using namespace user;
-using namespace util;
-using namespace ppi_database;
+//using namespace user;
+//using namespace util;
 using namespace design_pattern_world::server_pattern;
 using namespace boost::algorithm;
 
@@ -171,6 +168,7 @@ namespace server
 			else
 				cout << "answer ";
 			cout << "conection " << descriptor.getClientID();
+			cout << " in " << descriptor.getServerObject()->getName();
 			cout << " from client " << descriptor.getString("client");
 			cout << " in process " << descriptor.getString("process") << endl;
 			return true;
@@ -240,6 +238,7 @@ namespace server
 				descriptor.flush();
 				return true;
 			}
+
 		}else if(!descriptor.getBoolean("asker"))
 		{
 			descriptor.sendAnswer(input);
@@ -255,6 +254,13 @@ namespace server
 			}
 			descriptor << input;
 			descriptor.flush();
+		}else if(client == descriptor.getServerObject()->getName())
+		{
+			IMethodStringStream method(input);
+
+			//cout << input << endl;
+			bRun= transfer(descriptor, method);
+
 		}else
 		{
 			if(input == "")
@@ -280,6 +286,15 @@ namespace server
 			descriptor.flush();
 		}
 		return bRun;
+	}
+
+	bool ServerMethodTransaction::transfer(IFileDescriptorPattern& descriptor, IMethodStringStream& method)
+	{
+		// dummy method to overwrite from any child class
+		descriptor << "WARNING 004";
+		descriptor.endl();
+		descriptor.flush();
+		return true;
 	}
 
 	string ServerMethodTransaction::getTransactionName(const IFileDescriptorPattern& descriptor) const

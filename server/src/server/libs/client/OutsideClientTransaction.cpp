@@ -26,6 +26,8 @@
 
 #include "OutsideClientTransaction.h"
 
+#include "../../../util/ExternClientInputTemplate.h"
+
 using namespace std;
 using namespace util;
 
@@ -33,6 +35,8 @@ namespace server
 {
 	bool OutsideClientTransaction::transfer(IFileDescriptorPattern& descriptor)
 	{
+		int err;
+		string answer;
 		string::size_type len= m_sCommand.size();
 
 		if(m_bHold)
@@ -47,18 +51,29 @@ namespace server
 			descriptor.flush();
 			if(descriptor.eof())
 			{
-				m_sAnswer= "#ERROR 001";
+				m_vAnswer.push_back("#ERROR 001");
 				return false;
 			}
-			descriptor >> m_sAnswer;
-			m_sAnswer= ConfigPropertyCasher::trim(m_sAnswer, " \t\r\n");
+			m_vAnswer.clear();
+			do{
+				descriptor >> answer;
+				answer= ConfigPropertyCasher::trim(answer, " \t\r\n");
+				m_vAnswer.push_back(answer);
+				err= ExternClientInputTemplate::error(answer);
+
+			}while(	m_sAnswerEnding != ""
+					&&
+					answer != m_sAnswerEnding
+					&&
+					err == 0					);
 			m_sCommand= "";
 			m_bHold= true;
 		}else
 		{
 			descriptor << "ending\n";
 			descriptor.flush();
-			descriptor >> m_sAnswer;
+			descriptor >> answer;
+			m_vAnswer.push_back(answer);
 			m_bHold= true;//for new beginning
 			return false;
 		}

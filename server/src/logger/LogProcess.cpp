@@ -27,6 +27,7 @@
 #include "lib/LogInterface.h"
 
 #include "../util/URL.h"
+#include "../util/IMethodStringStream.h"
 
 LogProcess::LogProcess(const uid_t uid, IClientConnectArtPattern* getConnection, IClientConnectArtPattern* sendConnection/*= NULL*/, const bool wait/*= true*/)
 :	Process("LogServer", sendConnection, getConnection, wait)
@@ -133,25 +134,16 @@ int LogProcess::execute()
 		}
 		return err;
 	}
-	pos= question.find(' ', 0);
-	if(pos > 0)
-	{
-		command= question.substr(0, pos);
-		question= question.substr(pos + 1);
-	}else
-	{
-		command= question;
-		question= "";
-	}
-	//cout << "LogServer get command '" << command << "'" << endl;
-	//cout << " content: " << question << endl;
+	IMethodStringStream stream(question);
+
+	command= stream.getMethodName();
+	//cout << "LogServer get command '" << question << "'" << endl;
 	if(command == "init")
 		m_sAnswer= "done";
 	else if(command == "setThreadName")
 	{
 		string threadName;
 		pthread_t threadID;
-		istringstream stream(question);
 
 		stream >> threadName;
 		stream >> threadID;
@@ -159,11 +151,7 @@ int LogProcess::execute()
 		m_sAnswer= "";
 	}else if(command == "log")
 	{
-		string out;
-		string message;
 		log_t tMessage;
-		istringstream stream(question);
-		string::size_type mlen;
 
 		tMessage.line= -1;
 		tMessage.pid= 0;
@@ -171,64 +159,14 @@ int LogProcess::execute()
 		tMessage.tid= 0;
 		tMessage.tmnow= 0;
 		tMessage.type= -1;
-		do{
-			stream >> out;
-			message+= " " + out;
-			mlen= message.length();
-		}while(	!stream.eof()
-				&&
-				message.substr(mlen-1, 1) != "'"	);
-		if(mlen > 1)
-			message= message.substr(1);
-		if(	mlen > 0
-			&&
-			message.substr(0, 1) == "'")
-		{
-			message= message.substr(0, 1);
-		}
-		mlen= message.length();
-		if(	mlen > 0
-			&&
-			message.substr(mlen-1, 1) == "'")
-		{
-			message= message.substr(0, mlen-1);
-		}
-		tMessage.file= message;
-		if(!stream.eof())
-			stream >> tMessage.line;
-		if(!stream.eof())
-			stream >> tMessage.type;
-		do{
-			stream >> out;
-			message+= " " + out;
-			mlen= message.length();
-		}while(	!stream.eof()
-				&&
-				(	mlen == 0
-					||
-					message.substr(mlen-1, 1) != "\""
-					||
-					mlen == 1
-					||
-					message.substr(mlen-2, 1) == "\\"	)	);
-		if(mlen > 1)
-			message= message.substr(1);
-		boost::algorithm::replace_all(message, "\\\"", "\"");
-		boost::algorithm::replace_all(message, "\\n", "\n");
-		if(message.substr(0, 1) == "\"")
-			message= message.substr(1);
-		mlen= message.length();
-		if(message.substr(mlen -1, 1) == "\"")
-			message= message.substr(0, mlen-1);
-		tMessage.message= message;
-		if(!stream.eof())
-			stream >> tMessage.pid;
-		if(!stream.eof())
-			stream >> tMessage.tid;
-		if(!stream.eof())
-			stream >> tMessage.thread;
-		if(!stream.eof())
-			stream >> tMessage.identif;
+		stream >> tMessage.file;
+		stream >> tMessage.line;
+		stream >> tMessage.type;
+		stream >> tMessage.message;
+		stream >> tMessage.pid;
+		stream >> tMessage.tid;
+		stream >> tMessage.thread;
+		stream >> tMessage.identif;
 		m_pLogThread->log(tMessage);
 		m_sAnswer= "";
 	}else

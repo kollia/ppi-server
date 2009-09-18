@@ -23,7 +23,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
-#include "../database/Database.h"
+#include "../database/lib/DbInterface.h"
 
 using namespace ppi_database;
 
@@ -147,7 +147,7 @@ namespace ports
 		double resistance;
 		double time;
 		vector<convert_t> vNearest;
-		Database* db= Database::instance();
+		DbInterface* db= DbInterface::instance();
 
 		if(m_bOwnMeasure)
 			time= (double)getMeasuredTime();

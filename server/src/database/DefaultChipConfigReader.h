@@ -321,8 +321,22 @@ namespace ports
 		 */
 		const defValues_t getDefaultValues(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "") const;
 		/**
-		 * return registered default chip of unique chip ID and server.<br />
+		 * return the defined default cache from default.conf.<br />
+		 * folder and subroutine set not be, or else both.<br />
+		 * Method search the default values inside of given range.
+		 * It found when the difference of <code>min</code> and <code>max</code> be smaller than in the default.conf.
+		 * If <code>float</code> is false, the default must be also false or can be true if no false be set.
 		 *
+		 * @param min minimum of range
+		 * @param max maximum of range
+		 * @param bFloat whether the value in the subroutine can be an floating point variable
+		 * @param folder name of folder
+		 * @param subroutine name of subroutine
+		 * @return default values with defined older_t structure
+		 */
+		const double getDefaultCache(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "") const;
+		/**
+		 * return registered default chip of unique chip ID and server.
 		 *
 		 * @param server name of server
 		 * @param family specified family code of chip
@@ -330,6 +344,15 @@ namespace ports
 		 * @param chip unique id of chip
 		 */
 		const chips_t* getRegisteredDefaultChip(const string& server, const string& chip) const;
+		/**
+		 * return cache value from registered default chip of unique chip ID and server.
+		 *
+		 * @param server name of server
+		 * @param family specified family code of chip
+		 * @param type specified type of chip
+		 * @param chip unique id of chip
+		 */
+		const double* getRegisteredDefaultChipCache(const string& server, const string& chip) const;
 		/**
 		 * return registered default chip if exist.
 		 * beginning search on backward parameter chip, type and than family
@@ -370,16 +393,6 @@ namespace ports
 		 * @return an structure of write_t witch describe the writing values
 		 */
 		write_t allowDbWriting(const string& folder, const string& subroutine, const double value, time_t acttime, bool *newOlder= NULL);
-		/**
-		 * calcuĺating the next time in seconds always on begin for the next hour, day, week, month or year
-		 *
-		 * @param newer whether should be the time in the feature (true), or past (false)
-		 * @param acttime actual time
-		 * @param more how much hours, days .. and so on the next time be calculated
-		 * @param spez specification whether variable more is for hour, day, week, ...
-		 * @return seconds for the next calculated time
-		 */
-		static time_t calcDate(const bool newer, const time_t acttime, const int more, const char spez);
 		/**
 		 * describe whether all chips for folder and subroutine are defined to allow thin older database
 		 *

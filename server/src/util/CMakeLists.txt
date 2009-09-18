@@ -5,8 +5,12 @@ set(utilSrcs	actionproperties.cpp
         		configpropertycasher.cpp
         		exception.cpp
         		ExternClientInputTemplate.cpp
+        		IMethodStringStream.cpp
         		interlacedactionproperties.cpp
         		interlacedproperties.cpp
+        		IParameterStringStream.cpp
+        		OMethodStringStream.cpp
+        		OParameterStringStream.cpp
         		process.cpp
         		ProcessStarter.cpp
         		ProcessInterfaceTemplate.cpp

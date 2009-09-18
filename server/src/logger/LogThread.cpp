@@ -29,9 +29,10 @@
 
 #include "LogThread.h"
 
-#include "../database/Database.h"
+#include "../database/lib/DbInterface.h"
 
 #include "../util/URL.h"
+#include "../util/Calendar.h"
 
 LogThread::LogThread(bool check, bool asServer)
 :	Thread("LogThread", 0),
@@ -70,6 +71,7 @@ int LogThread::stop(bool bWait)
 		int result;
 
 		result= Thread::stop(/*wait*/false);
+		stopping();
 		LOCK(m_READLOGMESSAGES);
 		AROUSE(m_READLOGMESSAGESCOND);
 		UNLOCK(m_READLOGMESSAGES);
@@ -201,7 +203,10 @@ vector<log_t> *LogThread::getLogVector()
 			vtRv= m_pvtLogs;
 			m_pvtLogs= new vector<struct log_t>;
 		}else
-			conderror= CONDITION(m_READLOGMESSAGESCOND, m_READLOGMESSAGES);
+		{
+			if(!stopping())
+				conderror= CONDITION(m_READLOGMESSAGESCOND, m_READLOGMESSAGES);
+		}
 		UNLOCK(m_READLOGMESSAGES);
 		if(conderror)
 			usleep(500000);
@@ -360,8 +365,8 @@ int LogThread::execute()
 		string file;
 
 		time(&tm);
-		older= DefaultChipConfigReader::calcDate(/*newer*/false, tm, m_nDeleteDays, 'D');
-		files= ppi_database::Database::readDirectory(m_sLogFilePath, m_sLogFilePrefix, ".log");
+		older= Calendar::calcDate(/*newer*/false, tm, m_nDeleteDays, 'D');
+		files= URL::readDirectory(m_sLogFilePath, m_sLogFilePrefix, ".log");
 		for(map<string, string>::iterator it= files.begin(); it != files.end(); ++it)
 		{
 			file= URL::addPath(m_sLogFilePath, it->second, /*always*/true);
@@ -398,7 +403,7 @@ int LogThread::execute()
 			}
 		}
 		time(&tm);
-		m_nNextDeleteTime= DefaultChipConfigReader::calcDate(/*newer*/true, tm, m_nDeleteDays, 'D');
+		m_nNextDeleteTime= Calendar::calcDate(/*newer*/true, tm, m_nDeleteDays, 'D');
 	}
 	return 0;
 }

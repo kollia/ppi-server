@@ -15,37 +15,45 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ProcessInterfaceTemplate.h"
-#include "OMethodStringStream.h"
+#ifndef IMETHODSTRINGSTREAM_H_
+#define IMETHODSTRINGSTREAM_H_
 
-namespace util
-{
-	bool ProcessInterfaceTemplate::running()
-	{
-		string answer;
-		OMethodStringStream running("running");
+//#include <iostream>
+#include <sstream>
+#include <string>
 
-		answer= sendMethod(m_sSendTo, running, true);
-		if(answer == "true")
-			return true;
-		return false;
-	}
+#include "IParameterStringStream.h"
 
-	int ProcessInterfaceTemplate::stop(const bool bWait/*= true*/)
-	{
-		string answer;
-		OMethodStringStream stop("stop");
+using namespace std;
 
-		answer= sendMethod(m_sSendTo, stop, bWait);
-		return error(answer);;
-	}
+namespace util {
 
-	bool ProcessInterfaceTemplate::stopping()
-	{
-		string answer;
-		OMethodStringStream running("running");
+class IMethodStringStream : public IParameterStringStream {
+public:
+	/**
+	 * constructor to create IMethodStringStream object
+	 */
+	IMethodStringStream(const string& method);
+	/**
+	 * output of hole method string with parameters
+	 *
+	 * @return hole string
+	 */
+	string getMethodName() const
+	{ return m_sMethod; };
+	/**
+	 * virtual destructor of object
+	 */
+	virtual ~IMethodStringStream() {};
 
-		answer= sendMethod(m_sSendTo, running, true);
-		return false;
-	}
+private:
+	/**
+	 * method of object
+	 */
+	string m_sMethod;
+
+};
+
 }
+
+#endif /* IMETHODSTRINGSTREAM_H_ */

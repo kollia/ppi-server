@@ -20,6 +20,7 @@
 #include "LogInterface.h"
 
 #include "../../util/Thread.h"
+#include "../../util/OMethodStringStream.h"
 
 using namespace util;
 
@@ -109,12 +110,11 @@ namespace logger
 
 	void LogInterface::writethread(const threadNames& thread)
 	{
-		ostringstream command;
+		OMethodStringStream command("setThreadName");
 
-		command << "setThreadName ";
-		command << thread.name << " ";
+		command << thread.name;
 		command << thread.thread;
-		sendMethod("LogServer", command.str(), false);
+		sendMethod("LogServer", command, false);
 	}
 
 	void LogInterface::log(string file, int line, int type, string message, string sTimeLogIdentif/*= ""*/)
@@ -142,7 +142,7 @@ namespace logger
 	{
 		bool bWrite= true;
 		string message(log.message);
-		ostringstream command;
+		OMethodStringStream command("log");
 
 		if(log.identif != "")
 		{
@@ -188,18 +188,14 @@ namespace logger
 		}
 		if(!bWrite)
 			return;
-		command << "log ";
-		command << "'" << log.file << "' ";
-		command << dec << log.line << " ";
-		command << dec << log.type << " ";
-		boost::algorithm::replace_all(message, "\"", "\\\"");
-		boost::algorithm::replace_all(message, "\n", "\\n");
-		command << "\"" << message << "\" ";
-		command << dec << log.pid << " ";
-		command << dec << log.tid << " ";
-		command << dec << log.thread;
-		if(log.identif != "")
-			command << " " << log.identif;
-		sendMethod("LogServer", command.str(), false);
+		command << log.file;
+		command << log.line;
+		command << log.type;
+		command << message;
+		command << log.pid;
+		command << log.tid;
+		command << log.thread;
+		command << log.identif;
+		sendMethod("LogServer", command, false);
 	}
 }

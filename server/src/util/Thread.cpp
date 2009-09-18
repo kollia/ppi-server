@@ -92,7 +92,7 @@ int Thread::start(void *args, bool bHold)
 			LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
 		}
 		return 3;
-	}else
+	}else if(m_bWaitInit)
 	{
 		LOCK(m_STARTSTOPTHREAD);
 		while(!running())

@@ -18,7 +18,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
-#include "../database/Database.h"
+#include "../database/lib/DbInterface.h"
 
 using namespace ppi_database;
 
@@ -27,9 +27,10 @@ namespace ports
 {
 	bool ValueHolder::init(ConfigPropertyCasher &properties)
 	{
-		double defaultValue, *pValue;
+		bool exist;
+		double defaultValue, value;
 		string sMin("min"), sMax("max");
-		Database* db= Database::instance();
+		DbInterface* db= DbInterface::instance();
 		string sValue("default");
 
 		m_bFloat= properties.haveAction("float");
@@ -60,6 +61,11 @@ namespace ports
 		if(!portBase::init(properties))
 			return false;
 
+/*		setting from switch different from this valueholder
+		and changed: 2009/09/06
+		because if defaultValue is not set in measure.conf
+		no standard be set
+
 		if(sValue != "#ERROR")
 		{
 			// set default value
@@ -69,7 +75,12 @@ namespace ports
 				setValue(defaultValue);
 			}else
 				delete pValue;
-		}
+		}*/
+		// set default value
+		value= db->getActEntry(exist, getFolderName(), getSubroutineName(), "value");
+		if(!exist)
+			value= defaultValue;
+		setValue(value);
 		return true;
 	}
 

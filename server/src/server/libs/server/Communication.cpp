@@ -27,8 +27,6 @@
 #include "../../../util/configpropertycasher.h"
 #include "../../../util/usermanagement.h"
 
-#include "../../../database/Database.h"
-
 #include "../../../pattern/server/IFileDescriptorPattern.h"
 
 #include "Communication.h"
@@ -36,7 +34,6 @@
 
 
 using namespace std;
-using namespace ppi_database;
 using namespace util;
 using namespace user;
 

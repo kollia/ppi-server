@@ -33,12 +33,13 @@
 #include "../util/URL.h"
 #include "../util/configpropertycasher.h"
 
-#include "../database/DefaultChipConfigReader.h"
+#include "../database/lib/DbInterface.h"
 
 #include "../logger/lib/LogInterface.h"
 
 using namespace util;
 using namespace std;
+using namespace ppi_database;
 
 namespace ports
 {
@@ -199,8 +200,8 @@ namespace ports
 		string folder, chipID, ID, path, pin;
 		string sprop;
 
-		const DefaultChipConfigReader::chips_t* defaultChip;
-		DefaultChipConfigReader *defaultChipReader= DefaultChipConfigReader::instance();
+		DbInterface::chips_t defaultChip;
+		DbInterface *defaultChipReader= DbInterface::instance();
 		chip_type_t* ptchip;
 		chip_pin_t* ptpin;
 		vector<string> vPSplit;
@@ -257,17 +258,17 @@ namespace ports
 			for(vector<string>::iterator p= ++vPSplit.begin(); p != vPSplit.end(); ++p)
 				pin= URL::addPath(pin, *p);
 		}
-		if(defaultChip)
+		if(defaultChip.exists)
 		{
 			if(	pin == ""
 				&&
-				defaultChip->pin != "###all"	)
+				defaultChip.pin != "###all"	)
 			{
-				pin= defaultChip->pin;
+				pin= defaultChip.pin;
 			}
 			if(	write
 				&&
-				!defaultChip->bWritable	)
+				!defaultChip.bWritable	)
 			{
 				string msg(prop->getMsgHead(false));
 
@@ -278,7 +279,7 @@ namespace ports
 				read= true;
 				write= false;
 			}
-			if(!defaultChip->bWritable)
+			if(!defaultChip.bWritable)
 				read= true;
 		}
 		if(pin != "")
@@ -1166,15 +1167,15 @@ namespace ports
 	void MaximChipAccess::range(const string pin, double& min, double& max, bool &bfloat)
 	{
 		string server(getServerName());
-		DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
-		const DefaultChipConfigReader::chips_t *chip;
+		DbInterface *reader= DbInterface::instance();
+		DbInterface::chips_t chip;
 
 		chip= reader->getRegisteredDefaultChip(server, pin);
-		if(chip)
+		if(chip.exists)
 		{
-			min= chip->dmin;
-			max= chip->dmax;
-			bfloat= chip->bFloat;
+			min= chip.dmin;
+			max= chip.dmax;
+			bfloat= chip.bFloat;
 		}else
 		{
 			string msg("undefined Maxim chip ");

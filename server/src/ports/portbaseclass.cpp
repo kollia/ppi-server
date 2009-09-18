@@ -30,8 +30,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
-#include "../database/DefaultChipConfigReader.h"
-#include "../database/Database.h"
+#include "../database/lib/DbInterface.h"
 
 using namespace ports;
 using namespace ppi_database;
@@ -62,9 +61,10 @@ portBase::portBase(string type, string folderName, string subroutineName)
 
 bool portBase::init(ConfigPropertyCasher &properties)
 {
-	double *pdv, dDef;
+	bool exist;
+	double ddv, dDef;
 	string prop("default");
-	Database *db= Database::instance();
+	DbInterface *db= DbInterface::instance();
 
 	dDef= properties.getDouble(prop, /*wrning*/false);
 	m_sPermission= properties.getValue("perm", /*warning*/false);
@@ -72,8 +72,8 @@ bool portBase::init(ConfigPropertyCasher &properties)
 	if(m_bWriteDb)
 		db->writeIntoDb(m_sFolder, m_sSubroutine);
 
-	pdv= db->getActEntry(m_sFolder, m_sSubroutine, "value");
-	if(pdv == NULL)
+	ddv= db->getActEntry(exist, m_sFolder, m_sSubroutine, "value");
+	if(!exist)
 	{// write alway the first value into db
 	 // if it was not in database
 	 // because the user which hearing for this subroutine
@@ -82,7 +82,7 @@ bool portBase::init(ConfigPropertyCasher &properties)
 			m_dValue= dDef;
 		db->fillValue(m_sFolder, m_sSubroutine, "value", m_dValue);
 	}else
-		m_dValue= *pdv;
+		m_dValue= ddv;
 
 	defineRange();
 	registerSubroutine();
@@ -130,7 +130,7 @@ void portBase::registerSubroutine()
 {
 	string server("measureRoutine");
 	string chip("###DefChip ");
-	DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
+	DbInterface *reader= DbInterface::instance();
 
 	chip+= m_sFolder + " ";
 	chip+= m_sSubroutine;
@@ -146,7 +146,7 @@ string portBase::getPermissionGroups()
 void portBase::setDeviceAccess(bool access)
 {
 	bool same= false;
-	Database* db;
+	DbInterface* db;
 
 	LOCK(m_CORRECTDEVICEACCESS);
 	if(m_pbCorrectDevice)
@@ -166,7 +166,7 @@ void portBase::setDeviceAccess(bool access)
 	UNLOCK(m_CORRECTDEVICEACCESS);
 	if(same)
 		return;
-	db= Database::instance();
+	db= DbInterface::instance();
 	db->fillValue(m_sFolder, m_sSubroutine, "access", (double)access);
 }
 
@@ -188,7 +188,7 @@ bool portBase::hasDeviceAccess() const
 void portBase::setValue(double value)
 {
 	double dbvalue= value;
-	Database* db;
+	DbInterface* db;
 
 	if(!m_bDefined)// if device not found by starting in init method
 		defineRange(); // try again, maybe device was found meantime
@@ -218,7 +218,7 @@ void portBase::setValue(double value)
 		m_dValue= value;
 		UNLOCK(m_VALUELOCK);
 
-		db= Database::instance();
+		db= DbInterface::instance();
 		db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
 	}
 }

@@ -22,6 +22,7 @@
 
 #include "Thread.h"
 #include "process.h"
+#include "OMethodStringStream.h"
 
 #include "../logger/lib/LogInterface.h"
 
@@ -49,13 +50,14 @@ namespace util
 	{
 		if(m_nProcessID == 0)
 		{
+			OMethodStringStream stop("stop");
 			int err, err2= 0;
 			string answer;
 
 			err= openSendConnection();
 			if(err > 0)
 				return err;
-			answer= sendMethod(m_sProcessName, "stop", bWait);
+			answer= sendMethod(m_sProcessName, stop, bWait);
 			if(err == 0)
 				err2= closeSendConnection();
 			err= error(answer);
@@ -110,8 +112,9 @@ namespace util
 		{
 			int err, err2= 0;
 			string answer;
+			OMethodStringStream waiting("waiting");
 
-			answer= sendMethod(m_sProcessName, "waiting", true);
+			answer= sendMethod(m_sProcessName, waiting, true);
 			if(err == 0)
 				err2= closeSendConnection();
 			err= error(answer);
@@ -129,11 +132,12 @@ namespace util
 	{
 		int err, err2= 0;
 		string answer;
+		OMethodStringStream init("init");
 
 		err= openSendConnection();
 		if(err > 0)
 			return err;
-		answer= sendMethod(m_sProcessName, "init", true);
+		answer= sendMethod(m_sProcessName, init, true);
 		if(err == 0)
 			err2= closeSendConnection();
 		err= error(answer);
@@ -203,7 +207,9 @@ namespace util
 
 		if(m_nProcessID == 0)
 		{
-			answer= sendMethod(m_sProcessName, "running", true);
+			OMethodStringStream running("running");
+
+			answer= sendMethod(m_sProcessName, running, true);
 			if(answer == "true")
 				return 1;
 			if(answer == "false")
@@ -224,9 +230,11 @@ namespace util
 
 		if(m_nProcessID == 0)
 		{
+			OMethodStringStream stopping("stopping");
+
 			//toDo: asking over connection
 			//return false;
-			answer= sendMethod(m_sProcessName, "stopping", true);
+			answer= sendMethod(m_sProcessName, stopping, true);
 			if(answer == "true")
 				return 1;
 			if(answer == "false")

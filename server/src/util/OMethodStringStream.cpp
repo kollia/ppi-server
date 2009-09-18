@@ -15,37 +15,26 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ProcessInterfaceTemplate.h"
 #include "OMethodStringStream.h"
 
-namespace util
+namespace util {
+
+OMethodStringStream::OMethodStringStream(const string& method)
+:	m_sMethod(method)
 {
-	bool ProcessInterfaceTemplate::running()
-	{
-		string answer;
-		OMethodStringStream running("running");
-
-		answer= sendMethod(m_sSendTo, running, true);
-		if(answer == "true")
-			return true;
-		return false;
-	}
-
-	int ProcessInterfaceTemplate::stop(const bool bWait/*= true*/)
-	{
-		string answer;
-		OMethodStringStream stop("stop");
-
-		answer= sendMethod(m_sSendTo, stop, bWait);
-		return error(answer);;
-	}
-
-	bool ProcessInterfaceTemplate::stopping()
-	{
-		string answer;
-		OMethodStringStream running("running");
-
-		answer= sendMethod(m_sSendTo, running, true);
-		return false;
-	}
 }
+
+string OMethodStringStream::str() const
+{
+	return m_sMethod + " " + OParameterStringStream::str();
+}
+
+string OMethodStringStream::parameters() const
+{
+	return OParameterStringStream::str();
+}
+
+
+OMethodStringStream::~OMethodStringStream() {}
+
+}// namespace util

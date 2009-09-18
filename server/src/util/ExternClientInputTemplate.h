@@ -14,6 +14,8 @@
 
 #include "../server/libs/client/OutsideClientTransaction.h"
 
+#include "OMethodStringStream.h"
+
 namespace util
 {
 	using namespace std;
@@ -33,6 +35,23 @@ namespace util
 			 * @param getConnection on which connection from outside the server is reachable to get questions
 			 */
 			ExternClientInputTemplate(const string& process, const string& client, IClientConnectArtPattern* sendConnection, IClientConnectArtPattern* getConnection);
+			/**
+			 * calculate the error code given back from server as string.<br />
+			 * the return error codes from server should be ERROR or WARNING.
+			 * If the returned string was an warning, the number will be multiplied with -1 (become negative)
+			 * Elsewhere the number is 0
+			 *
+			 * @param input the returned string from server
+			 * @return error number
+			 */
+			static int error(const string& input);
+			/**
+			 * calculate from an error, warning code an string
+			 *
+			 * @param nr error code
+			 * @return string of this error code
+			 */
+			static string error(const int nr);
 			/**
 			 * destructor of ExternClientInputTemplate
 			 */
@@ -96,11 +115,21 @@ namespace util
 			 * send message to given server in constructor
 			 *
 			 * @param toProcess for which process the method should be
-			 * @param methodString string which is sending to server
+			 * @param method object of method which is sending to server
 			 * @param answer whether client should wait for answer
 			 * @return backward send return value from server if answer is true, elsewhere returning null string
 			 */
-			string sendMethod(const string& toProcess, const string& methodString, const bool answer= true);
+			string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true);
+			/**
+			 * send message to given server in constructor
+			 *
+			 * @param toProcess for which process the method should be
+			 * @param method object of method which is sending to server
+			 * @param done on which getting string the answer should ending. Ending also when an ERROR or warning occurs
+			 * @param answer whether client should wait for answer
+			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
+			 */
+			vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
 			/*
 			 * close sending connection to server
 			 *
@@ -126,23 +155,6 @@ namespace util
 			 * @param answer string of answer for server
 			 */
 			void sendAnswer(const string& answer);
-			/**
-			 * calculate the error code given back from server as string.<br />
-			 * the return error codes from server should be ERROR or WARNING.
-			 * If the returned string was an warning, the number will be multiplied with -1 (become negative)
-			 * Elsewhere the number is 0
-			 *
-			 * @param input the returned string from server
-			 * @return error number
-			 */
-			int error(const string& input);
-			/**
-			 * calculate from an error, warning code an string
-			 *
-			 * @param nr error code
-			 * @return string of this error code
-			 */
-			string error(const int nr);
 			/**
 			 * return string describing error number
 			 *

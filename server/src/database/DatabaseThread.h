@@ -14,8 +14,8 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef DATABASE_H_
-#define DATABASE_H_
+#ifndef DATABASETHREAD_H_
+#define DATABASETHREAD_H_
 
 #include <unistd.h>
 
@@ -96,7 +96,7 @@ namespace ppi_database
 	 * @author Alexander Kolli
 	 * @version 1.0.0.
 	 */
-	class Database : public Thread
+	class DatabaseThread : public Thread
 	{
 	public:
 		using Thread::stop;
@@ -113,11 +113,17 @@ namespace ppi_database
 		 */
 		static void initial(string dbDir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep= 0);
 		/**
+		 * method to ask database whether database file is loaded
+		 *
+		 * @return wheter file is loaded
+		 */
+		bool isDbLoaded() const;
+		/**
 		 * return instance of database object
 		 *
 		 * @return database object
 		 */
-		static Database* instance()
+		static DatabaseThread* instance()
 					{ return _instance; };
 		/**
 		 * function set, whether need value in database,
@@ -174,6 +180,11 @@ namespace ppi_database
 		 */
 		bool needSubroutines(unsigned long connection, string name);
 		/**
+		 * whether one or more entrys are changed.<br />
+		 * method hold thread in process
+		 */
+		void isEntryChanged();
+		/**
 		 * database service for all changes in subroutines.<br />
 		 * this method returning all changes which are defined with <code>needSubroutines()</code>
 		 *
@@ -195,18 +206,9 @@ namespace ppi_database
 		 */
 		virtual int stop(const bool *bWait= NULL);
 		/**
-		 * read directory in defined path with an filter for begin and end of the files
-		 *
-		 * @param path subdirectory wich have to read
-		 * @param beginfilter char string of beginning
-		 * @param endfilter char atring of ending
-		 * @return map of all files as value and the date as key
-		 */
-		static map<string, string> readDirectory(const string& path, const string& beginfilter, const string& endfilter);
-		/**
 		 * destruct of Database
 		 */
-		virtual ~Database();
+		virtual ~DatabaseThread();
 
 	protected:
 		/**
@@ -260,7 +262,7 @@ namespace ppi_database
 		/**
 		 * single instance of database
 		 */
-		static Database* _instance;
+		static DatabaseThread* _instance;
 		/**
 		 * condition for new items filled in
 		 */
@@ -281,6 +283,10 @@ namespace ppi_database
 		 * mutex lock to fill changes
 		 */
 		pthread_mutex_t* m_CHANGINGPOOL;
+		/**
+		 * mutex lock to know whether database file is loaded
+		 */
+		pthread_mutex_t* m_DBLOADED;
 		/**
 		 * condition for client wating of new changes
 		 */
@@ -310,6 +316,10 @@ namespace ppi_database
 		 * name of database file on harddisk
 		 */
 		string m_sDbFile;
+		/**
+		 * whether database file is loaded
+		 */
+		bool m_bDbLoaded;
 		/**
 		 * current file for thin database
 		 */
@@ -353,6 +363,10 @@ namespace ppi_database
 		 */
 		map<unsigned long, vector<db_t> > m_mvoChanges;
 		/**
+		 * whether any value is changed in database
+		 */
+		bool m_bAnyChanged;
+		/**
 		 * map of all filenames with the time to thin
 		 */
 		map<string, time_t> m_mOldest;
@@ -366,7 +380,7 @@ namespace ppi_database
 		 * @param mbyte write after MB an new database file
 		 * @param defaultSleep sleeping for default time in microseconds
 		 */
-		Database(string dbdir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep);
+		DatabaseThread(string dbdir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep);
 		/**
 		 * asking for cached entrys
 		 *
@@ -433,4 +447,4 @@ namespace ppi_database
 
 }
 
-#endif /*DATABASE_H_*/
+#endif /*DATABASETHREAD_H_*/

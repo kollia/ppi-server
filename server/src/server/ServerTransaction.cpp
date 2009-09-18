@@ -37,7 +37,8 @@
 #include "../util/usermanagement.h"
 #include "../util/configpropertycasher.h"
 
-#include "../database/Database.h"
+#include "../database/lib/DbInterface.h"
+#include "../database/lib/NeedDbChanges.h"
 
 #include "libs/server/ServerThread.h"
 #include "libs/server/communicationthreadstarter.h"
@@ -60,6 +61,7 @@ namespace server
 		descriptor.setBoolean("speaker", false);
 		descriptor.setBoolean("access", false);
 		descriptor.setBoolean("wait", false);
+		descriptor.setUShort("actualized", 0);
 		return true;
 	}
 
@@ -81,35 +83,42 @@ namespace server
 
 	bool ServerTransaction::hearingPort(IFileDescriptorPattern& descriptor)
 	{
-		Database* db= Database::instance();
+		NeedDbChanges* changes= NeedDbChanges::instance();
+		DbInterface* db= DbInterface::instance();
 		vector<string> messages;
 		string sendmsg, msg;
+		unsigned short actualized= descriptor.getUShort("actualized");
 
+		actualized= changes->isEntryChanged(actualized);
+		descriptor.setUShort("actualized", actualized);
 		messages= db->getChangedEntrys(descriptor.getClientID());
 		for(vector<string>::iterator i= messages.begin(); i != messages.end(); ++i)
 		{
 			sendmsg= *i;
-#ifdef SERVERDEBUG
-			if(sendmsg == "stopclient")
+			if(sendmsg != "done")
 			{
-				msg= "server stop HEARing connection to client ";
-				msg+=  descriptor.getHostAddressName();
-				cout << msg << endl;
-			}else
-				cout << "send: " << sendmsg << endl;
+#ifdef SERVERDEBUG
+				if(sendmsg == "stopclient")
+				{
+					msg= "server stop HEARing connection to client ";
+					msg+=  descriptor.getHostAddressName();
+					cout << msg << endl;
+				}else
+					cout << "send: " << sendmsg << endl;
 #endif
 
-			if(sendmsg.size() > 10)
-				POSS("#client#send-hearing", sendmsg.substr(0, 10) + " ...");
-			else
-				POSS("#client#send-hearing", sendmsg);
-			sendmsg+= "\n";
-			descriptor << sendmsg;
-			descriptor.flush();
-			//if(descriptor.eof())	// for asking eof() after connection is broken
-									// and server only sending messages kernel throw an exception
-			if(sendmsg == "stopclient\n")
-				return false;
+				if(sendmsg.size() > 10)
+					POSS("#client#send-hearing", sendmsg.substr(0, 10) + " ...");
+				else
+					POSS("#client#send-hearing", sendmsg);
+				sendmsg+= "\n";
+				descriptor << sendmsg;
+				descriptor.flush();
+				//if(descriptor.eof())	// for asking eof() after connection is broken
+										// and server only sending messages kernel throw an exception
+				if(sendmsg == "stopclient\n")
+					return false;
+			}
 		}
 		return true;
 
@@ -125,7 +134,7 @@ namespace server
 		descriptor >> input;
 		if(descriptor.eof())
 		{
-			Database* db= Database::instance();
+			DbInterface* db= DbInterface::instance();
 
 			db->needSubroutines(descriptor.getClientID(), "stopclient");
 			msg= "connection to client:";
@@ -341,7 +350,7 @@ namespace server
 				}
 			}else if(input == "ending")
 			{
-				Database* db= Database::instance();
+				DbInterface* db= DbInterface::instance();
 
 				db->needSubroutines(descriptor.getClientID(), "stopclient");
 	#ifdef SERVERDEBUG
@@ -470,7 +479,7 @@ namespace server
 					unsigned short ID= nSleep;
 					string sID= sSleep;
 					OWServer* server;
-					Database* db= Database::instance();
+					DbInterface* db= DbInterface::instance();
 
 					if(sID == "null")
 						ID= 0;
@@ -502,7 +511,7 @@ namespace server
 							sendmsg= "ERROR 017\n";
 #ifdef SERVERDEBUG
 							cerr << "send: ERROR 017" << endl;
-							cerr << "      undifined Error in Database::needSubroutine()" << endl;
+							cerr << "      undifined Error in DbInterface::needSubroutine()" << endl;
 #endif
 							descriptor << sendmsg;
 						}else
@@ -906,7 +915,7 @@ namespace server
 			}else if(input == "NEWENTRYS")
 			{
 
-				Database* db= Database::instance();
+				DbInterface* db= DbInterface::instance();
 
 				db->needSubroutines(descriptor.getClientID(), "newentrys");
 				sendmsg= "done\n";
@@ -924,7 +933,7 @@ namespace server
 				meash_t* pCurMeas;
 				portBase* port;
 				UserManagement* user= UserManagement::instance();
-				Database* db= Database::instance();
+				DbInterface* db= DbInterface::instance();
 
 				entry= input.substr(5);
 				split= ConfigPropertyCasher::split(entry, ":");

@@ -28,7 +28,7 @@
 
 #include "portserver/LircClient.h"
 
-//#include "database/DefaultChipConfigReader.h"
+//#include "util/Calendar.cpp"
 
 #include "starter.h"
 
@@ -58,16 +58,16 @@ int main(int argc, char* argv[])
 	bool newer= false;
 	time_t t;
 	time(&t);
-	DefaultChipConfigReader::calcDate(newer, t, 1, 'h');
-	DefaultChipConfigReader::calcDate(newer, t, 3, 'h');
-	DefaultChipConfigReader::calcDate(newer, t, 1, 'D');
-	DefaultChipConfigReader::calcDate(newer, t, 5, 'D');
-	DefaultChipConfigReader::calcDate(newer, t, 1, 'W');
-	DefaultChipConfigReader::calcDate(newer, t, 4, 'W');
-	DefaultChipConfigReader::calcDate(newer, t, 1, 'M');
-	DefaultChipConfigReader::calcDate(newer, t, 4, 'M');
-	DefaultChipConfigReader::calcDate(newer, t, 1, 'Y');
-	DefaultChipConfigReader::calcDate(newer, t, 2, 'Y');
+	Calendar::calcDate(newer, t, 1, 'h');
+	Calendar::calcDate(newer, t, 3, 'h');
+	Calendar::calcDate(newer, t, 1, 'D');
+	Calendar::calcDate(newer, t, 5, 'D');
+	Calendar::calcDate(newer, t, 1, 'W');
+	Calendar::calcDate(newer, t, 4, 'W');
+	Calendar::calcDate(newer, t, 1, 'M');
+	Calendar::calcDate(newer, t, 4, 'M');
+	Calendar::calcDate(newer, t, 1, 'Y');
+	Calendar::calcDate(newer, t, 2, 'Y');
 #endif
 
 	directorys= ConfigPropertyCasher::split(workdir, "/");

@@ -23,32 +23,37 @@
 #include <string.h>
 #include <vector>
 
-
 #include <boost/algorithm/string/split.hpp>
+
+#include "../logger/lib/LogInterface.h"
 
 #include "../util/properties.h"
 #include "../util/URL.h"
 
-#include "libs/client/SocketClientConnection.h"
-#include "libs/server/TcpServerConnection.h"
-#include "libs/server/communicationthreadstarter.h"
-#include "libs/server/ServerProcess.h"
+#include "../server/libs/client/SocketClientConnection.h"
+#include "../server/libs/server/TcpServerConnection.h"
+#include "../server/libs/server/ServerProcess.h"
+#include "../server/libs/server/communicationthreadstarter.h"
 
-#include "libs/server/ServerMethodTransaction.h"
+#include "ServerDbTransaction.h"
+#include "DatabaseThread.h"
 
 using namespace std;
 using namespace boost;
 using namespace util;
-using namespace server;
+using namespace ppi_database;
+using namespace logger;
 
 int main(int argc, char* argv[])
 {
 	uid_t defaultuserID;
+	int nLogAllSec;
 	string defaultuser;
 	string workdir;
 	string commhost;
 	string property;
 	string sConfPath, fileName;
+	string dbpath;
 	unsigned short commport;
 	int err;
 	vector<string> directorys;
@@ -69,6 +74,7 @@ int main(int argc, char* argv[])
 		workdir+= directorys[c] + "/";
 	}
 	sConfPath= URL::addPath(workdir, PPICONFIGPATH, /*always*/false);
+	dbpath= URL::addPath(workdir, PPIDATABASEPATH, /*always*/false);
 	fileName= URL::addPath(sConfPath, "server.conf");
 	if(!oServerProperties.readFile(fileName))
 	{
@@ -77,7 +83,6 @@ int main(int argc, char* argv[])
 	}
 	oServerProperties.readLine("workdir= " + workdir);
 
-	// start logging server
 	defaultuser= oServerProperties.getValue("defaultuser", /*warning*/false);
 	if(defaultuser == "")
 	{
@@ -92,26 +97,51 @@ int main(int argc, char* argv[])
 	property= "communicationport";
 	commport= oServerProperties.needUShort(property);
 
-	ServerProcess communicate(	"CommunicationServerProcess", defaultuserID,
-								new CommunicationThreadStarter(0, 4),
-								new TcpServerConnection(	commhost,
-															commport,
-															10,
-															new ServerMethodTransaction()	),
-								new SocketClientConnection(	SOCK_STREAM,
-															commhost,
-															commport,
-															10			)						);
+	// initial interface to log client
 
-	err= communicate.run(&oServerProperties);
+	property= "timelogSec";
+	nLogAllSec= oServerProperties.getInt(property);
+	if(	nLogAllSec == 0
+		&&
+		property == "#ERROR"	)
+	{
+		nLogAllSec= 1800;
+	}
+	LogInterface::init(	"ppi-server",
+						new SocketClientConnection(	SOCK_STREAM,
+													commhost,
+													commport,
+													0			),
+						/*identif log*/nLogAllSec,
+						/*wait*/true								);
+
+
+
+	// start initialitation from database
+	DatabaseThread::initial(dbpath, sConfPath, &oServerProperties);
+
+	commport= commport + 1;
+	ServerProcess database(	"DatabaseServer", defaultuserID,
+							new CommunicationThreadStarter(0, 4),
+							new TcpServerConnection(	commhost,
+														commport,
+														10,
+														new ServerDbTransaction()	),
+							new SocketClientConnection(	SOCK_STREAM,
+														commhost,
+														commport,
+														10			)						);
+
+	err= database.run(&oServerProperties);
+	cout << "get error " << dec << err << endl;
 	if(err != 0)
 	{
 		if(err > 0)
 			cerr << "### ERROR: for ";
 		else
 			cerr << "### WARNING: by ";
-		cerr << "initial process communicate server" << endl;
-		cerr << "             " << communicate.strerror(err) << endl;
+		cerr << "initial database server" << endl;
+		cerr << "             " << database.strerror(err) << endl;
 		return err;
 	}
 

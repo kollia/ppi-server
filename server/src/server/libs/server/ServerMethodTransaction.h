@@ -17,9 +17,12 @@
 #ifndef SERVERMETHODTRANSACTION_H_
 #define SERVERMETHODTRANSACTION_H_
 
-#include "../pattern/server/ITransferPattern.h"
+#include "../../../pattern/server/ITransferPattern.h"
+
+#include "../../../util/IMethodStringStream.h"
 
 using namespace design_pattern_world::server_pattern;
+using namespace util;
 
 namespace server
 {
@@ -206,12 +209,22 @@ namespace server
 			 */
 			virtual bool init(IFileDescriptorPattern& descriptor);
 			/**
-			 * method transaction protocol between Server and Client<br /><br />
+			 * method transaction protocol between Server and Client
 			 *
 			 * @param descriptor file handle to get command's and send answer
-			 * @return wether need to hold the connection
+			 * @return whether need to hold the connection
 			 */
 			virtual bool transfer(IFileDescriptorPattern& descriptor);
+			/**
+			 * method transaction protocol between server to client.<br />
+			 * This method is called from main method of transfer,
+			 * if the sending string is for actual server
+			 *
+			 * @param descriptor file handle to send answer or get more commands from client
+			 * @param method object of method with parameters, which want server call
+			 * @return whether need to hold the connection
+			 */
+			virtual bool transfer(IFileDescriptorPattern& descriptor, IMethodStringStream& parameter);
 			/**
 			 * method to get name of transaction
 			 *

@@ -59,9 +59,10 @@ namespace server
 			 * set command from outside the transaction object
 			 *
 			 * @param command string which should send to server
+			 * @param ending on which string the answer should ending
 			 */
-			void setCommand(const string& command)
-			{ m_sCommand= command; };
+			void setCommand(const string& command, const string& ending= "")
+			{ m_sCommand= command; m_sAnswerEnding= ending; };
 			/**
 			 * client transaction should ending by next <code>init()</code>			 *
 			 */
@@ -72,8 +73,8 @@ namespace server
 			 *
 			 * @return answer
 			 */
-			string getReturnedString()
-			{ return ConfigPropertyCasher::trim(m_sAnswer, " \t\r\n"); }
+			vector<string> getReturnedString()
+			{ return m_vAnswer; }
 			/**
 			 * transaction protocol between client to server
 			 *
@@ -107,9 +108,13 @@ namespace server
 			 */
 			string m_sCommand;
 			/**
+			 * on which string the answer should ending
+			 */
+			string m_sAnswerEnding;
+			/**
 			 * answer from server
 			 */
-			string m_sAnswer;
+			vector<string> m_vAnswer;
 
 	};
 

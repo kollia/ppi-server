@@ -29,12 +29,13 @@
 #include <sstream>
 #include <algorithm>
 
-#include "Database.h"
+#include "DatabaseThread.h"
 #include "DefaultChipConfigReader.h"
 
 #include "../logger/lib/LogInterface.h"
 
 #include "../util/URL.h"
+#include "../util/Calendar.h"
 #include "../util/configpropertycasher.h"
 
 #include "../portserver/owserver.h"
@@ -46,12 +47,13 @@ using namespace ports;
 namespace ppi_database
 {
 
-Database* Database::_instance= NULL;
+DatabaseThread* DatabaseThread::_instance= NULL;
 
-Database::Database(string dbDir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep)
-:	Thread("database", defaultSleep, true),
+DatabaseThread::DatabaseThread(string dbDir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep)
+:	Thread("database", defaultSleep, false),
 	m_mCurrent()
 {
+	bool m_bDbLoaded;
 	float newdbafter;
 	char* pHostN= NULL;
 	char hostname[]= "HOSTNAME";
@@ -81,25 +83,37 @@ Database::Database(string dbDir, string confDir, IPropertyPattern* properties, u
 	m_DBCURRENTENTRY= getMutex("DBCURRENTENTRY");
 	m_DBMEASURECURVES= getMutex("DBMEASURECURVES");
 	m_CHANGINGPOOL= getMutex("CHANGINGPOOL");
+	m_DBLOADED= getMutex("DBLOADED");
 	m_CHANGINGPOOLCOND= getCondition("CHANGINGPOOLCOND");
 	m_sConfDir= confDir;
 	m_sWorkDir= dbDir;
 	m_nAfter= (unsigned int)(newdbafter * 1000000);
+	m_bAnyChanged= false;
 	if(m_sWorkDir.substr(m_sWorkDir.length()-1, 1) != "/")
 		m_sWorkDir+= "/";
 	LOG(LOG_INFO, "Storage database " + m_sWorkDir);
 }
 
-void Database::initial(string workDir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep)
+void DatabaseThread::initial(string workDir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep)
 {
 	if(_instance == NULL)
 	{
-		_instance= new Database(workDir, confDir, properties, defaultSleep);
+		_instance= new DatabaseThread(workDir, confDir, properties, defaultSleep);
 		_instance->start(NULL, false);
 	}
 }
 
-db_t Database::splitDbLine(const string& line)
+bool DatabaseThread::isDbLoaded() const
+{
+	bool bRv;
+
+	LOCK(m_DBLOADED);
+	bRv= m_bDbLoaded;
+	UNLOCK(m_DBLOADED);
+	return bRv;
+}
+
+db_t DatabaseThread::splitDbLine(const string& line)
 {
 	struct tm entryTime;
 	db_t entry;
@@ -109,6 +123,8 @@ db_t Database::splitDbLine(const string& line)
 	columns= ConfigPropertyCasher::split(line, "|");
 	count= columns.size();
 
+	entry.bNew= true;
+	entry.device= true;
 	if(count > 0)
 	{
 		if(strptime(columns[1].c_str(), "%Y%m%d:%H%M%S", &entryTime) == NULL)
@@ -147,7 +163,7 @@ db_t Database::splitDbLine(const string& line)
 	return entry;
 }
 
-int Database::init(void *args)
+int DatabaseThread::init(void *args)
 {
 	char stime[16];
 	string dbfile;
@@ -157,7 +173,6 @@ int Database::init(void *args)
 	off_t size;
 	map<string, string> files;
 
-	cout << "### initial database ... " << flush;
 	dbfile= getLastDbFile(m_sWorkDir, "entrys_", size);
 	if(dbfile == "")
 	{
@@ -175,12 +190,12 @@ int Database::init(void *args)
 
 	// delete all .new files because the are half finished
 	// and all .done files change to .dat
-	files= readDirectory(m_sWorkDir, "entrys_", ".new");
+	files= URL::readDirectory(m_sWorkDir, "entrys_", ".new");
 	for(map<string, string>::iterator it= files.begin(); it != files.end(); ++it)
 	{
 		unlink((m_sWorkDir + it->second).c_str());
 	}
-	files= readDirectory(m_sWorkDir, "entrys_", ".done");
+	files= URL::readDirectory(m_sWorkDir, "entrys_", ".done");
 	for(map<string, string>::iterator it= files.begin(); it != files.end(); ++it)
 	{
 		dbfile= m_sWorkDir;
@@ -213,6 +228,15 @@ int Database::init(void *args)
 			getline(file, line);
 			//cout << line << endl;
 			entry= splitDbLine(line);
+#if 0
+			if(entry.subroutine == "holder")
+			{
+				cout << "device  " << entry.folder << ":" << entry.subroutine << endl;
+				cout << " access " << boolalpha << entry.device << endl;
+				cout << " new    " << boolalpha << entry.bNew << endl;
+				cout << endl;
+			}
+#endif
 			if(entry.identif != "")
 			{
 				if(	entry.identif.substr(0, 4) == "def:"
@@ -232,11 +256,13 @@ int Database::init(void *args)
 		}
 	}
 
-	cout << " OK" << endl;
+	LOCK(m_DBLOADED);
+	m_bDbLoaded= true;
+	UNLOCK(m_DBLOADED);
 	return 0;
 }
 
-void Database::fillMeasureCurve(const db_t entry, bool doSort/*= true*/)
+void DatabaseThread::fillMeasureCurve(const db_t entry, bool doSort/*= true*/)
 {
 	bool bClear= false;
 	string vor;
@@ -271,7 +297,7 @@ void Database::fillMeasureCurve(const db_t entry, bool doSort/*= true*/)
 	UNLOCK(m_DBMEASURECURVES);
 }
 
-string Database::getLastDbFile(string path, string filter, off_t &size)
+string DatabaseThread::getLastDbFile(string path, string filter, off_t &size)
 {
 	struct dirent *dirName;
 	string file;
@@ -346,7 +372,7 @@ string Database::getLastDbFile(string path, string filter, off_t &size)
 	return lastFile;
 }
 
-double* Database::getActEntry(const string folder, const string subroutine, const string identif, const vector<double>::size_type number/*= 0*/)
+double* DatabaseThread::getActEntry(const string folder, const string subroutine, const string identif, const vector<double>::size_type number/*= 0*/)
 {
 	double* pnRv;
 	db_t tvalue;
@@ -370,7 +396,7 @@ double* Database::getActEntry(const string folder, const string subroutine, cons
 	return pnRv;
 }
 
-bool Database::createNewDbFile(bool bCheck)
+bool DatabaseThread::createNewDbFile(bool bCheck)
 {
 	typedef map<string, map<string, map<string, db_t> > >::iterator folderIter;
 	typedef map<string, map<string, db_t> >::iterator subIter;
@@ -437,7 +463,7 @@ bool Database::createNewDbFile(bool bCheck)
 	return true;
 }
 
-void Database::changeNeededIds(unsigned long oldId, unsigned long newId)
+void DatabaseThread::changeNeededIds(unsigned long oldId, unsigned long newId)
 {
 	vector<db_t> entrys;
 
@@ -448,109 +474,112 @@ void Database::changeNeededIds(unsigned long oldId, unsigned long newId)
 	UNLOCK(m_CHANGINGPOOL);
 }
 
-vector<string> Database::getChangedEntrys(unsigned long connection)
+void DatabaseThread::isEntryChanged()
 {
 	int conderror= 0;
+
+	LOCK(m_CHANGINGPOOL);
+	if(!m_bAnyChanged)
+		conderror= CONDITION(m_CHANGINGPOOLCOND, m_CHANGINGPOOL);
+	m_bAnyChanged= false;
+	UNLOCK(m_CHANGINGPOOL);
+	if(	conderror
+		&&
+		conderror != EINTR	)
+	{
+		usleep(500000);
+	}
+}
+
+vector<string> DatabaseThread::getChangedEntrys(unsigned long connection)
+{
 	map<string, map<string, map<string, db_t> > >::iterator fEntrys;
 	map<string, map<string, db_t> >::iterator sEntrys;
 	map<string, db_t>::iterator iEntrys;
 	vector<string> vsRv;
 
-	do{
-		LOCK(m_DBCURRENTENTRY);
-		LOCK(m_CHANGINGPOOL);
-		for(vector<db_t>::iterator i= m_mvoChanges[connection].begin(); i != m_mvoChanges[connection].end(); ++i)
+	LOCK(m_DBCURRENTENTRY);
+	LOCK(m_CHANGINGPOOL);
+	for(vector<db_t>::iterator i= m_mvoChanges[connection].begin(); i != m_mvoChanges[connection].end(); ++i)
+	{
+		if(i->identif == "owserver")
 		{
-			if(i->identif == "owserver")
-			{
-				OWServer* server= OWServer::getServer((unsigned short)i->tm);
+			OWServer* server= OWServer::getServer((unsigned short)i->tm);
 
-				if(server != NULL)
-				{
-					UNLOCK(m_CHANGINGPOOL);
-					UNLOCK(m_DBCURRENTENTRY);
-					return server->getDebugInfo();
-				}
-			}else
+			if(server != NULL)
 			{
-				if(	i->folder == ""
-					&&
-					i->subroutine == "stopclient"	)
+				UNLOCK(m_CHANGINGPOOL);
+				UNLOCK(m_DBCURRENTENTRY);
+				return server->getDebugInfo();
+			}
+		}else
+		{
+			if(	i->folder == ""
+				&&
+				i->subroutine == "stopclient"	)
+			{
+				vsRv.push_back("stopclient");
+				m_mvoChanges.erase(connection);
+				break;
+			}
+			fEntrys= m_mCurrent.find(i->folder);
+			if(fEntrys != m_mCurrent.end())
+			{
+				sEntrys= fEntrys->second.find(i->subroutine);
+				if(sEntrys != fEntrys->second.end())
 				{
-					vsRv.push_back("stopclient");
-					m_mvoChanges.erase(connection);
-					break;
-				}
-				fEntrys= m_mCurrent.find(i->folder);
-				if(fEntrys != m_mCurrent.end())
-				{
-					sEntrys= fEntrys->second.find(i->subroutine);
-					if(sEntrys != fEntrys->second.end())
+					iEntrys= sEntrys->second.find("value");
+					if(iEntrys != sEntrys->second.end())
 					{
-						iEntrys= sEntrys->second.find("value");
-						if(iEntrys != sEntrys->second.end())
+						double newvalue= 0;
+						double actvalue= 0;
+						db_t look= iEntrys->second;
+
+						newvalue= iEntrys->second.values.back();
+						if(!i->values.empty())
+							actvalue= i->values.back();
+						else
+							actvalue= newvalue > 0 || newvalue < 0 ? 0 : 1;
+
+						if(	i->device != iEntrys->second.device
+							||
+							newvalue < actvalue
+							||
+							newvalue > actvalue	)
 						{
-							double newvalue= 0;
-							double actvalue= 0;
+							ostringstream entry;
 
-							newvalue= iEntrys->second.values.back();
-							if(!i->values.empty())
-								actvalue= i->values.back();
-							else
-								actvalue= newvalue > 0 || newvalue < 0 ? 0 : 1;
-
-							if(	i->device != iEntrys->second.device
-								||
-								newvalue < actvalue
-								||
-								newvalue > actvalue	)
+							entry << i->folder << ":" << i->subroutine;
+							if(i->device != iEntrys->second.device)
 							{
-								ostringstream entry;
+								string device(entry.str());
 
-								entry << i->folder << ":" << i->subroutine;
-								if(i->device != iEntrys->second.device)
-								{
-									string device(entry.str());
-
-									if(iEntrys->second.device)
-										device+= " access";
-									else
-										device+= " noaccess";
-									vsRv.push_back(device);
-									i->device= iEntrys->second.device;
-								}
 								if(iEntrys->second.device)
-								{
-									entry <<  "=" << dec << newvalue;
-									vsRv.push_back(entry.str());
-									i->values.clear();
-									i->values.push_back(newvalue);
-								}
+									device+= " access";
+								else
+									device+= " noaccess";
+								vsRv.push_back(device);
+								i->device= iEntrys->second.device;
+							}
+							if(iEntrys->second.device)
+							{
+								entry <<  "=" << dec << newvalue;
+								vsRv.push_back(entry.str());
+								i->values.clear();
+								i->values.push_back(newvalue);
 							}
 						}
 					}
 				}
 			}
 		}
-		UNLOCK(m_CHANGINGPOOL);
-		UNLOCK(m_DBCURRENTENTRY);
-		if(vsRv.size() == 0)
-		{
-			LOCK(m_CHANGINGPOOL);
-			conderror= CONDITION(m_CHANGINGPOOLCOND, m_CHANGINGPOOL);
-			UNLOCK(m_CHANGINGPOOL);
-		}
-		if(	conderror
-			&&
-			conderror != EINTR	)
-		{
-			usleep(500000);
-		}
-	}while(vsRv.size() == 0);
+	}
+	UNLOCK(m_CHANGINGPOOL);
+	UNLOCK(m_DBCURRENTENTRY);
 	return vsRv;
 }
 
-bool Database::needSubroutines(unsigned long connection, string name)
+bool DatabaseThread::needSubroutines(unsigned long connection, string name)
 {
 	db_t newentry;
 	//vector<db_t> needValues;
@@ -580,6 +609,7 @@ bool Database::needSubroutines(unsigned long connection, string name)
 			changeIt->second.push_back(newentry);
 		}
 		AROUSEALL(m_CHANGINGPOOLCOND);
+		m_bAnyChanged= true;
 		UNLOCK(m_CHANGINGPOOL);
 		return true;
 	}else if(name.substr(0, 9) == "owserver-")
@@ -593,6 +623,7 @@ bool Database::needSubroutines(unsigned long connection, string name)
 			changeIt->second.clear();
 		m_mvoChanges[connection].push_back(newentry);
 		AROUSEALL(m_CHANGINGPOOLCOND);
+		m_bAnyChanged= true;
 		UNLOCK(m_CHANGINGPOOL);
 		return true;
 	}
@@ -622,9 +653,9 @@ bool Database::needSubroutines(unsigned long connection, string name)
 	}
 	newentry= iEntrys->second;
 	newentry.device= true;// if client ask for an subroutine
-						  // he always beleve the device is reached
+						  // he always believe the device is reached
 						  // so he should get an noaccess notification
-						  // every first query
+						  // every first query when server have no access to device
 	newentry.values.clear();// also for values
 	LOCK(m_CHANGINGPOOL);
 	changeIt= m_mvoChanges.find(connection);
@@ -632,10 +663,11 @@ bool Database::needSubroutines(unsigned long connection, string name)
 	{// search for exist entry
 		iNeed= find(changeIt->second.begin(), changeIt->second.end(), &newentry);
 		if(iNeed != changeIt->second.end())
-		{// subroutine is decleared for needing
+		{// subroutine is declared for needing
 		 // do not need the same value again
 			//cout << "found " << iNeed->folder << ":" << iNeed->subroutine << endl;
 			AROUSEALL(m_CHANGINGPOOLCOND);
+			m_bAnyChanged= true;
 			UNLOCK(m_CHANGINGPOOL);
 			UNLOCK(m_DBCURRENTENTRY);
 			return true;
@@ -643,13 +675,14 @@ bool Database::needSubroutines(unsigned long connection, string name)
 	}
 	m_mvoChanges[connection].push_back(newentry);
 	AROUSEALL(m_CHANGINGPOOLCOND);
+	m_bAnyChanged= true;
 	UNLOCK(m_CHANGINGPOOL);
 	UNLOCK(m_DBCURRENTENTRY);
 	return true;
 }
 
 
-bool Database::setActEntry(const db_t entry)
+bool DatabaseThread::setActEntry(const db_t entry)
 {
 	db_t tvalue;
 	string identif;
@@ -752,7 +785,7 @@ bool Database::setActEntry(const db_t entry)
 	return false;
 }
 
-int Database::stop(const bool *bWait)
+int DatabaseThread::stop(const bool *bWait)
 {
 	int nRv= 0;
 
@@ -771,7 +804,7 @@ int Database::stop(const bool *bWait)
 	return nRv;
 }
 
-int Database::execute()
+int DatabaseThread::execute()
 {
 	bool bNewValue;
 	static bool bWait= false;
@@ -799,7 +832,10 @@ int Database::execute()
 				db_t entry= *i;
 				vector<db_t>::iterator found;
 
+				LOCK(m_CHANGINGPOOL);
 				AROUSEALL(m_CHANGINGPOOLCOND);
+				m_bAnyChanged= true;
+				UNLOCK(m_CHANGINGPOOL);
 				found= find(m_vtDbValues.begin(), m_vtDbValues.end(), &entry);
 				if(found != m_vtDbValues.end())
 					writeDb(*i);
@@ -814,7 +850,7 @@ int Database::execute()
 	return 0;
 }
 
-vector<convert_t> Database::getNearest(string subroutine, string definition, double value)
+vector<convert_t> DatabaseThread::getNearest(string subroutine, string definition, double value)
 {
 
 	map<string, map<string, map<double, double> > >::iterator subIter;
@@ -890,7 +926,7 @@ vector<convert_t> Database::getNearest(string subroutine, string definition, dou
 	return result;
 }
 
-void Database::ending()
+void DatabaseThread::ending()
 {
 	unsigned int lcount= 0;
 	db_t entry;
@@ -941,7 +977,7 @@ void Database::ending()
 
 }
 
-void Database::writeDb(db_t entry, ofstream* dbfile/*= NULL*/)
+void DatabaseThread::writeDb(db_t entry, ofstream* dbfile/*= NULL*/)
 {
 	typedef vector<double>::iterator iter;
 
@@ -1020,7 +1056,7 @@ void Database::writeDb(db_t entry, ofstream* dbfile/*= NULL*/)
 	}
 }
 
-void Database::writeEntry(const db_t& entry, ofstream *dbfile)
+void DatabaseThread::writeEntry(const db_t& entry, ofstream *dbfile)
 {
 	char stime[18];
 
@@ -1039,54 +1075,7 @@ void Database::writeEntry(const db_t& entry, ofstream *dbfile)
 	*dbfile << endl;
 }
 
-map<string, string> Database::readDirectory(const string& path, const string& beginfilter, const string& endfilter)
-{
-	struct dirent *dirName;
-	string file;
-	map<string, string> files;
-	int fileLen;
-	int beginfilterLen= beginfilter.length();
-	int endfilterLen= endfilter.length();
-	DIR *dir;
-
-	dir= opendir(&path[0]);
-	if(dir == NULL)
-	{
-		string msg("### ERROR: cannot read in subdirectory '");
-
-		msg+= path + "'\n";
-		msg+= "    ERRNO: ";
-		msg+= strerror(errno);
-		cout << msg << endl;
-		TIMELOG(LOG_ALERT, "readdirectory", msg);
-		return files;
-	}
-	while((dirName= readdir(dir)) != NULL)
-	{
-		if(dirName->d_type == DT_REG)
-		{
-			//printf ("%s\n", dirName->d_name);
-			file= dirName->d_name;
-			fileLen= file.length();
-			if(	file.substr(0, beginfilterLen) == beginfilter
-				&&
-				(	fileLen == beginfilterLen
-					||
-					(	//fileLen == (beginfilterLen + 14 + endfilterLen)
-						//&&
-						file.substr(fileLen - endfilterLen) == endfilter	)	)	)
-			{
-				string date(file.substr(beginfilterLen, 14));
-
-				files[date]= file;
-			}
-		}
-	}
-	closedir(dir);
-	return files;
-}
-
-bool Database::thinDatabase(const bool ask)
+bool DatabaseThread::thinDatabase(const bool ask)
 {
 	int filecount, nextcount, count;
 	db_t entry;
@@ -1109,7 +1098,7 @@ bool Database::thinDatabase(const bool ask)
 	{ // search for the next to thin file
 
 		m_nReadPos= 0;
-		files= readDirectory(m_sWorkDir, "entrys_", ".dat");
+		files= URL::readDirectory(m_sWorkDir, "entrys_", ".dat");
 		filecount= files.size();
 		nextcount= m_mOldest.size();
 		if(ask)
@@ -1383,7 +1372,7 @@ bool Database::thinDatabase(const bool ask)
 			newOrder= true;
 		}else
 		{
-			files= readDirectory(m_sWorkDir, writeName, "");
+			files= URL::readDirectory(m_sWorkDir, writeName, "");
 			if(files.size() > 0)
 				newOrder= true;
 		}
@@ -1410,7 +1399,7 @@ bool Database::thinDatabase(const bool ask)
 	return true;
 }
 
-void Database::calcNewThinTime(time_t fromtime, const DefaultChipConfigReader::otime_t* older)
+void DatabaseThread::calcNewThinTime(time_t fromtime, const DefaultChipConfigReader::otime_t* older)
 {
 	DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
 	time_t acttime, nextThin;
@@ -1420,9 +1409,9 @@ void Database::calcNewThinTime(time_t fromtime, const DefaultChipConfigReader::o
 		if(older->older)
 			older= older->older;
 		time(&acttime);
-		nextThin= reader->calcDate(/*newer*/true, fromtime, older->more, older->unit);
+		nextThin= Calendar::calcDate(/*newer*/true, fromtime, older->more, older->unit);
 		if(nextThin <= acttime)
-			nextThin= reader->calcDate(/*newer*/true, fromtime, (older->more + 1), older->unit);
+			nextThin= Calendar::calcDate(/*newer*/true, fromtime, (older->more + 1), older->unit);
 		if(nextThin > acttime)
 		{
 			acttime= m_mOldest[m_sThinFile];
@@ -1436,7 +1425,7 @@ void Database::calcNewThinTime(time_t fromtime, const DefaultChipConfigReader::o
 	}
 }
 
-void Database::writeIntoDb(const string folder, const string subroutine)
+void DatabaseThread::writeIntoDb(const string folder, const string subroutine)
 {
 	db_t entry;
 
@@ -1445,7 +1434,7 @@ void Database::writeIntoDb(const string folder, const string subroutine)
 	m_vtDbValues.push_back(entry);
 }
 
-void Database::fillValue(string folder, string subroutine, string identif, double value, bool bNew/*=true*/)
+void DatabaseThread::fillValue(string folder, string subroutine, string identif, double value, bool bNew/*=true*/)
 {
 	vector<double> values;
 
@@ -1453,7 +1442,7 @@ void Database::fillValue(string folder, string subroutine, string identif, doubl
 	fillValue(folder, subroutine, identif, values, bNew);
 }
 
-void Database::fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew/*=true*/)
+void DatabaseThread::fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew/*=true*/)
 {
 	db_t newEntry;
 
@@ -1477,7 +1466,7 @@ void Database::fillValue(string folder, string subroutine, string identif, vecto
 	UNLOCK(m_DBENTRYITEMS);
 }
 
-vector<db_t>* Database::getDbEntryVector(bool bWait)
+vector<db_t>* DatabaseThread::getDbEntryVector(bool bWait)
 {
 	struct timespec time;
 	int conderror= 0;
@@ -1513,7 +1502,7 @@ vector<db_t>* Database::getDbEntryVector(bool bWait)
 	return pRv;
 }
 
-Database::~Database()
+DatabaseThread::~DatabaseThread()
 {
 	DESTROYMUTEX(m_DBENTRYITEMS);
 	DESTROYMUTEX(m_DBCURRENTENTRY);

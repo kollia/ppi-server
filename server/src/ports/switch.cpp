@@ -28,7 +28,7 @@
 #include "../util/CalculatorContainer.h"
 #include "../util/configpropertycasher.h"
 
-#include "../database/Database.h"
+#include "../database/lib/DbInterface.h"
 
 using namespace ppi_database;
 using namespace util;
@@ -62,8 +62,9 @@ bool switchClass::init(ConfigPropertyCasher &properties, measurefolder_t *pStart
 	measurefolder_t *pAct;
 	string on, sWhile, off, prop("default");
 	string sFolder= getFolderName();
-	Database *db= Database::instance();
-	double defaultValue, *pValue;
+	DbInterface *db= DbInterface::instance();
+	bool exist;
+	double defaultValue;
 	double value;
 
 	m_pStartFolder= pStartFolder;
@@ -104,12 +105,8 @@ bool switchClass::init(ConfigPropertyCasher &properties, measurefolder_t *pStart
 	}
 
 	// set default value
-	pValue= db->getActEntry(getFolderName(), getSubroutineName(), "value");
-	if(pValue)
-	{
-		value= *pValue;
-		delete pValue;
-	}else
+	value= db->getActEntry(exist, getFolderName(), getSubroutineName(), "value");
+	if(!exist)
 		value= defaultValue;
 	setValue(value);
 	return true;

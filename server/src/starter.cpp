@@ -32,8 +32,8 @@
 
 #include "logger/lib/LogInterface.h"
 
-#include "database/DefaultChipConfigReader.h"
-#include "database/Database.h"
+#include "database/lib/DbInterface.h"
+#include "database/lib/NeedDbChanges.h"
 
 #include "portserver/owserver.h"
 #include "portserver/maximchipaccess.h"
@@ -58,9 +58,9 @@
 #include "server/libs/server/Communication.h"
 #include "server/libs/server/communicationthreadstarter.h"
 #include "server/libs/server/TcpServerConnection.h"
+//#include "server/libs/server/ServerMethodTransaction.h"
 
 #include "server/ServerTransaction.h"
-#include "server/ServerMethodTransaction.h"
 #include "server/ClientTransaction.h"
 
 #include "starter.h"
@@ -97,8 +97,8 @@ bool Starter::execute(vector<string> options)
 	unsigned int nOptions= options.size();
 	vector<unsigned long> ports; // whitch ports are needet
 	string fileName;
-	string logpath, dbpath, sLogLevel, property;
-	Database *db;
+	string logpath, sLogLevel, property;
+	DbInterface *db;
 	string prop;
 	ProcessStarter* process;
 
@@ -129,7 +129,6 @@ bool Starter::execute(vector<string> options)
 	m_vOWServerTypes.push_back("Vk8055");
 
 	m_sConfPath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
-	dbpath= URL::addPath(m_sWorkdir, PPIDATABASEPATH, /*always*/false);
 
 	fileName= URL::addPath(m_sConfPath, "server.conf");
 	if(!m_oServerFileCasher.readFile(fileName))
@@ -296,6 +295,44 @@ bool Starter::execute(vector<string> options)
 
 	// ------------------------------------------------------------------------------------------------------------
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// start database server
+
+	cout << "### start ppi db server" << endl;
+
+	process= new ProcessStarter(	"DatabaseServer",
+									new SocketClientConnection(	SOCK_STREAM,
+																commhost,
+																commport + 1,
+																10			)	);
+
+	if(bDb)
+		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-db-server").c_str(), NULL);
+	else
+		err= process->check();
+	if(err > 0)
+	{
+		cerr << "### WARNING: cannot start database-server" << endl;
+		cerr << "           so the hole application is not useable" << endl;
+		cerr << "           stop server" << endl;
+		exit(EXIT_FAILURE);
+	}
+	delete process;
+
+	DbInterface::init(	"DatabaseServer",
+						new SocketClientConnection(	SOCK_STREAM,
+													commhost,
+													commport + 1,
+													5			)	);
+	db= DbInterface::instance();
+
+	cout << "### initial database " << flush;
+	while(!db->isDbLoaded())
+	{
+		sleep(1);
+		cout << "." << flush;
+	}
+	cout << " OK" << endl;
+	// ------------------------------------------------------------------------------------------------------------
 
 	if(checkServer()==true)
 	{
@@ -327,8 +364,6 @@ bool Starter::execute(vector<string> options)
 	setuid(m_tDefaultUser);
 	LOG(LOG_INFO, "### -> starting server application.\n       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	LOG(LOG_INFO, "Read configuration files from " + m_sConfPath);
-
-	Database::initial(dbpath, m_sConfPath, &m_oServerFileCasher);
 
 	/***********************************************************************************\
 	 *
@@ -553,7 +588,7 @@ bool Starter::execute(vector<string> options)
 	}
 	// after creating all threads and objects
 	// all chips should be defined in DefaultChipConfigReader
-	DefaultChipConfigReader::instance()->chipsDefined(true);
+	db->chipsDefined(true);
 
 	property= "minconnectionthreads";
 	minThreads= m_oServerFileCasher.getUShort(property, /*warning*/true);
@@ -566,6 +601,17 @@ bool Starter::execute(vector<string> options)
 		maxThreads= 4;
 	}
 
+	if(!NeedDbChanges::initial("ppi-server", new SocketClientConnection(	SOCK_STREAM,
+																			commhost,
+																			commport + 1,
+																			5				)	)	)
+	{
+		string msg("### WARNING: cannot start second connection to database,\n");
+
+		msg+= "             so client connection with HEAEING commands cannot be answered";
+		cerr << msg << endl;
+		LOG(LOG_WARNING, msg);
+	}
 	ServerThread server(new CommunicationThreadStarter(minThreads, maxThreads),
 						new TcpServerConnection(	host,
 													port,
@@ -594,7 +640,7 @@ bool Starter::execute(vector<string> options)
 	cout << "OWServer's" << endl;
 	OWServer::delServers();
 	cout << "Database" << endl;
-	db= Database::instance();
+	db= DbInterface::instance();
 	db->stop(/*wait*/true);
 	return true;
 }
@@ -603,7 +649,7 @@ void Starter::createPortObjects()
 {
 	bool bNewMeasure= false;
 	measurefolder_t* aktualFolder= m_tFolderStart;
-	//Database* db= Database::instance();
+	//DbInterface* db= DbInterface::instance();
 	string property("defaultSleep");
 	string sMeasureFile;
 	unsigned short nDefaultSleep= m_oServerFileCasher.getUShort(property, /*warning*/false);

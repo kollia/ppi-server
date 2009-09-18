@@ -32,9 +32,10 @@
 
 #include "../util/configpropertycasher.h"
 
-#include "../database/DefaultChipConfigReader.h"
+#include "../database/lib/DbInterface.h"
 
 using namespace ports;
+using namespace ppi_database;
 
 namespace server
 {
@@ -164,7 +165,7 @@ namespace server
 
 		m_oServerProperties= (IPropertyPattern*)arg;
 		if(defaultConfig != "")
-			DefaultChipConfigReader::instance()->define(m_poChipAccess->getServerName(), defaultConfig);
+			DbInterface::instance()->define(m_poChipAccess->getServerName(), defaultConfig);
 		if(!m_poChipAccess->init(m_oServerProperties))
 			return 1;
 		if(!m_poChipAccess->isConnected())
@@ -195,8 +196,7 @@ namespace server
 		string prop;
 		chip_types_t* pchip;
 		device_debug_t tdebug;
-		DefaultChipConfigReader *reader= NULL;
-		const DefaultChipConfigReader::chips_t* defaultChip;
+		DbInterface *reader= NULL;
 
 		prop= "priority";
 		priority= properties->getInt(prop, /*warning*/false);
@@ -242,7 +242,7 @@ namespace server
 			chip= properties->getValue("ID");
 			pin= properties->getValue("pin");
 			type= m_poChipAccess->getChipType(pin);
-			reader= DefaultChipConfigReader::instance();
+			reader= DbInterface::instance();
 			reader->registerChip(m_poChipAccess->getServerName(), unique, pin, type, "unknown", pmin, pmax, pfl);
 		}
 		if(res == 0)
@@ -254,22 +254,23 @@ namespace server
 			//*pCache= currentReading;
 			if(dCacheSeq == 0)
 			{
-				reader= DefaultChipConfigReader::instance();
-				defaultChip= reader->getRegisteredDefaultChip(m_poChipAccess->getServerName(), unique);
-				if(	defaultChip
+				bool bExist;
+				double defaultCache;
+
+				reader= DbInterface::instance();
+				defaultCache= reader->getRegisteredDefaultChipCache(m_poChipAccess->getServerName(), unique, bExist);
+				if(	bExist
 					&&
-					defaultChip->dCache	!= 0	)
+					defaultCache != 0	)
 				{
-					dCacheSeq= defaultChip->dCache;
+					dCacheSeq= defaultCache;
 				}else
 				{
-					DefaultChipConfigReader::defValues_t def;
 					bool fl;
 					double min, max;
 
 					m_poChipAccess->range(unique, min, max, fl);
-					def= reader->getDefaultValues(min, max, fl, folder, subroutine);
-					dCacheSeq= def.dcache;
+					dCacheSeq= reader->getDefaultCache(min, max, fl, folder, subroutine);
 					if(dCacheSeq == 0)
 						dCacheSeq= 15;
 				}

@@ -20,10 +20,11 @@
 
 #include "OwfsPort.h"
 
-#include "../database/DefaultChipConfigReader.h"
+#include "../database/lib/DbInterface.h"
 
 #include "../logger/lib/LogInterface.h"
 
+using namespace ppi_database;
 
 namespace ports
 {
@@ -121,13 +122,13 @@ namespace ports
 	void OwfsPort::registerSubroutine()
 	{
 		static bool registered= false;
-		DefaultChipConfigReader *reader;
+		DbInterface *reader;
 
 		if(registered)
 			return;
 		if(!m_pOWServer)
 			return;
-		reader= DefaultChipConfigReader::instance();
+		reader= DbInterface::instance();
 		reader->registerSubroutine(getSubroutineName(), getFolderName(), m_pOWServer->getServerName(), m_sChipID);
 		registered= true;
 	}

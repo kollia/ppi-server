@@ -42,40 +42,51 @@ namespace util
 			m_pSendTransaction= NULL;
 			return nRv + 10;
 		}
-		return error(m_pSendTransaction->getReturnedString());
+		return error(m_pSendTransaction->getReturnedString()[0]);
 	}
 
-	string ExternClientInputTemplate::sendMethod(const string& toProcess, const string& methodString,
+	string ExternClientInputTemplate::sendMethod(const string& toProcess, const OMethodStringStream& method,
 													const bool answer/*= true*/)
+	{
+		vector<string> result;
+
+		result= sendMethod(toProcess, method, "", answer);
+		return result[0];
+	}
+
+	vector<string> ExternClientInputTemplate::sendMethod(const string& toProcess, const OMethodStringStream& method,
+															const string& done, const bool answer/*= true*/)
 	{
 		int ret;
 		string command;
-		string result;
+		vector<string> result;
 
 		if(m_oSendConnect == NULL)
-			return "ERROR 001";
+		{
+			result.push_back("ERROR 001");
+			return result;
+		}
 		if(m_pSendTransaction == NULL)
-			return "ERROR 002";
+		{
+			result.push_back("ERROR 002");
+			return result;
+		}
 		command= toProcess + " ";
 		if(answer)
 			command+= "true ";
 		else
 			command+= "false ";
-		command+= methodString;
+		command+= method.str();
 		LOCK(m_SENDMETHODLOCK);
-		m_pSendTransaction->setCommand(command);
+		m_pSendTransaction->setCommand(command, done);
 		ret= m_oSendConnect->init();
 		if(ret > 0)
 		{
 			UNLOCK(m_SENDMETHODLOCK);
-			return error(ret + 10);
+			result.push_back(error(ret + 10));
+			return result;
 		}
 		result= m_pSendTransaction->getReturnedString();
-/*		if(result != "")
-		{
-			cout << "get result: " << result << endl;
-			cout << "fail command: " << command << endl;
-		}*/
 		UNLOCK(m_SENDMETHODLOCK);
 		if(ret == -2)
 			closeSendConnection();
@@ -110,7 +121,7 @@ namespace util
 	int ExternClientInputTemplate::openGetConnection()
 	{
 		int nRv;
-		string answer;
+		vector<string> answer;
 
 		if(m_oGetConnect == NULL)
 			return 1;
@@ -121,17 +132,21 @@ namespace util
 			m_pGetTransaction->setCommand(m_sProcess + ":" + m_sName + " GET");
 			nRv= m_oGetConnect->init();
 			if(nRv > 0)
+			{
+				m_oGetConnect->newTranfer(NULL, /*delete old*/true);
+				m_pGetTransaction= NULL;
 				return nRv + 10;
+			}
 			answer= m_pGetTransaction->getReturnedString();
-			if(answer != "done")
-				return error(answer);
+			if(answer[0] != "done")
+				return error(answer[0]);
 		}
 		return 0;
 	}
 	string ExternClientInputTemplate::getQuestion(const string& lastAnswer)
 	{
 		int err;
-		string answer;
+		vector<string> answer;
 
 		if(m_oGetConnect == NULL)
 			return "ERROR 001";
@@ -154,7 +169,7 @@ namespace util
 		}
 		answer= m_pGetTransaction->getReturnedString();
 		UNLOCK(m_GETQUESTIONLOCK);
-		return answer;
+		return answer[0];
 	}
 
 	int ExternClientInputTemplate::closeGetConnection()
@@ -166,7 +181,7 @@ namespace util
 		return nRv;
 	}
 
-	int ExternClientInputTemplate::error(const string& input)
+	inline int ExternClientInputTemplate::error(const string& input)
 	{
 		int number;
 		string answer;
@@ -180,7 +195,7 @@ namespace util
 		return 0;
 	}
 
-	string ExternClientInputTemplate::error(int err)
+	inline string ExternClientInputTemplate::error(int err)
 	{
 		ostringstream in;
 
