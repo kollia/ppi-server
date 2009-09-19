@@ -24,7 +24,10 @@
 #include <sstream>
 #include <vector>
 
+//#include <boost/algorithm/string/split.hpp>
+
 #include "owserver.h"
+#include "OwServerQuestions.h"
 
 #include "../ports/timemeasure.h"
 
@@ -34,8 +37,12 @@
 
 #include "../database/lib/DbInterface.h"
 
+#include "../server/libs/client/SocketClientConnection.h"
+
 using namespace ports;
+using namespace server;
 using namespace ppi_database;
+//using namespace boost::algorithm;
 
 namespace server
 {
@@ -160,8 +167,16 @@ namespace server
 
 	int OWServer::init(void* arg)
 	{
+		int err;
+		unsigned short port;
+		string host;
+		ostringstream questioncl;
 		string defaultConfig(m_poChipAccess->getDefaultFileName());
+		char* cHP(static_cast<char*>(arg));
+		string sHP(cHP);
+		istringstream hostport(sHP);
 		vector<string> ids;
+		OwServerQuestions* pQuestions;
 
 		m_oServerProperties= (IPropertyPattern*)arg;
 		if(defaultConfig != "")
@@ -176,6 +191,26 @@ namespace server
 			cout << "### WARNING: " << msg << endl;
 		}else
 			m_bConnected= true;
+
+		hostport >> host >> port;
+		++port;
+		questioncl << "OwServerQuestion-";
+		questioncl << m_nServerID;
+		pQuestions= new OwServerQuestions(	questioncl.str(),
+											new SocketClientConnection(	SOCK_STREAM,
+																		host,
+																		port,
+																		10			),
+											this										);
+		err= pQuestions->start();
+		if(err > 0)
+		{
+			host=  "### ERROR: cannot start question thread for one wire server " + getServerName() + "\n";
+			host+= "           " + pQuestions->strerror(err);
+			cerr << host << endl;
+			LOG(LOG_ERROR, host);
+		}
+		m_oQuestions= pQuestions;
 		return 0;
 	}
 

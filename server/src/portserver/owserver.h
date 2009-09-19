@@ -515,6 +515,11 @@ namespace server
 		 */
 		IChipAccessPattern* m_poChipAccess;
 		/**
+		 * thread for any questions to server
+		 */
+		Thread* m_oQuestions;
+
+		/**
 		 * measure time difference by debugging for reading or wirting on device
 		 *
 		 * @param device pointer to actual struct device_debug_t which hold time before
