@@ -23,7 +23,7 @@
 
 #include "../../hearingthread.h"
 
-#include "../../../portserver/owserver.h"
+//#include "../../../portserver/owserver.h"
 
 #include "../../../pattern/server/NoCommunicateTransactionAdapter.h"
 
