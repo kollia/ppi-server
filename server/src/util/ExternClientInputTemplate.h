@@ -63,6 +63,13 @@ namespace util
 			 */
 			static string error(const int nr);
 			/**
+			 * return string describing error number
+			 *
+			 * @param error code number of error
+			 * @return error string
+			 */
+			virtual string strerror(int error) const;
+			/**
 			 * destructor of ExternClientInputTemplate
 			 */
 			virtual ~ExternClientInputTemplate();
@@ -165,13 +172,6 @@ namespace util
 			 * @param answer string of answer for server
 			 */
 			void sendAnswer(const string& answer);
-			/**
-			 * return string describing error number
-			 *
-			 * @param error code number of error
-			 * @return error string
-			 */
-			virtual string strerror(int error) const;
 
 		private:
 			/**
