@@ -23,6 +23,7 @@
 #include <string.h>
 #include <vector>
 
+#include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
 #include "LogProcess.h"
@@ -33,7 +34,7 @@
 #include "../server/libs/client/SocketClientConnection.h"
 
 using namespace std;
-using namespace boost;
+using namespace boost::algorithm;
 using namespace util;
 
 int main(int argc, char* argv[])

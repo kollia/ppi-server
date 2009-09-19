@@ -29,6 +29,8 @@
 #include "../util/URL.h"
 #include "../util/IMethodStringStream.h"
 
+#include "../pattern/util/ipropertypattern.h"
+
 LogProcess::LogProcess(const uid_t uid, IClientConnectArtPattern* getConnection, IClientConnectArtPattern* sendConnection/*= NULL*/, const bool wait/*= true*/)
 :	Process("LogServer", sendConnection, getConnection, wait)
 {

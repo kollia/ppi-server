@@ -27,6 +27,7 @@
 #include "OutsideClientTransaction.h"
 
 #include "../../../util/ExternClientInputTemplate.h"
+#include "../../../util/configpropertycasher.h"
 
 using namespace std;
 using namespace util;

@@ -31,6 +31,7 @@
 #include "../util/process.h"
 
 using namespace std;
+using namespace util;
 
 class LogProcess : public Process
 {
