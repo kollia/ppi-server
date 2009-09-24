@@ -94,6 +94,18 @@ namespace design_pattern_world
 				 */
 				virtual bool transfer()= 0;
 				/**
+				 * unlock mutex of THREADSAVEMETHODS if transfer wait for any longer time.<br />
+				 * Do not unlock before getting stream from descriptor, because this operation
+				 * do also unlock this mutex.
+				 */
+				virtual void unlock()= 0;
+				/**
+				 * lock mutex of THREADSAVEMETHODS.<br />
+				 * If you have unlock this mutex, lock it again for any getting stream from descriptor,
+				 * or ending the transfer method.
+				 */
+				virtual void lock()= 0;
+				/**
 				 * set boolean into object
 				 *
 				 * @param str name of boolean

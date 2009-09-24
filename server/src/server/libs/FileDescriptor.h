@@ -106,6 +106,20 @@ namespace server
 			 */
 			virtual bool transfer();
 			/**
+			 * unlock mutex of THREADSAVEMETHODS if transfer wait for any longer time.<br />
+			 * Do not unlock before getting stream from descriptor, because this operation
+			 * do also unlock this mutex.
+			 */
+			virtual void unlock()
+			{ UNLOCK(m_THREADSAVEMETHODS); };
+			/**
+			 * lock mutex of THREADSAVEMETHODS.<br />
+			 * If you have unlock this mutex, lock it again for any getting stream from descriptor,
+			 * or ending the transfer method.
+			 */
+			virtual void lock()
+			{ LOCK(m_THREADSAVEMETHODS); }
+			/**
 			 * set boolean into object
 			 *
 			 * @param str name of boolean

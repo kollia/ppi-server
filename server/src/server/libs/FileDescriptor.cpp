@@ -93,7 +93,7 @@ namespace server
 
 	void FileDescriptor::flush()
 	{
-		if(ferror(m_pFile) != 0)
+		if(ferror(m_pFile) != 0 || feof(m_pFile) != 0)
 		{
 			m_nEOF= EOF;
 			return;
@@ -269,14 +269,15 @@ namespace server
 		{
 			time_t t, nt;
 
-			//std::cout << "no client found for " << definition << std::endl;
+			std::cout << "no client found for " << definition << " search again for " << m_nTimeout << " seconds " << std::endl;
+			std::cout << "to send: " << str << std::endl;
 			time(&nt);
 			time(&t);
 			while(	client == NULL
 					&&
-					(nt - t) < (time_t)m_nTimeout	)
+					(t - nt) < (time_t)m_nTimeout	)
 			{
-				//std::cout << "wait for client" << std::endl;
+				std::cout << "wait for client since " << (t - nt) << " seconds" << std::endl;
 				sleep(1);
 				client= starter->getClient(definition, this);
 				time(&t);
