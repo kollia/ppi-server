@@ -154,27 +154,6 @@ namespace server
 
 	int ServerProcess::init(void *args)
 	{
-		int nLogAllSec;
-		string property("timelogSec");
-		IPropertyPattern* serverprop;
-
-		serverprop= static_cast<IPropertyPattern*>(args);
-		nLogAllSec= serverprop->getInt(property, /*warning*/false);// warning be written in starter.cpp
-		if(	nLogAllSec == 0
-			&&
-			property == "#ERROR"	)
-		{
-			nLogAllSec= 1800;
-		}
-		if(LogInterface::instance() != NULL)
-			delete LogInterface::instance();
-		LogInterface::init(	getProcessName(),
-							new SocketClientConnection(	SOCK_STREAM,
-														"127.0.0.1",
-														m_pConnect->getPortAddress(),
-														0								),
-							/*identif log wait*/nLogAllSec,
-							/*wait*/true													);
 		LogInterface::instance()->setThreadName(getProcessName());
 		m_pStarterPool->start(args);
 		setuid(m_uid);
