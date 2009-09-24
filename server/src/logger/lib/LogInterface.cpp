@@ -36,7 +36,7 @@ namespace logger
 		m_WRITELOOP= Thread::getMutex("WRITELOOP");
 	}
 
-	bool LogInterface::init(const string& process, IClientConnectArtPattern* connection, const int identifwait, const bool wait/*= true*/)
+	bool LogInterface::initial(const string& process, IClientConnectArtPattern* connection, const int identifwait, const bool wait/*= true*/)
 	{
 		if(_instance == NULL)
 		{

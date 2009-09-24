@@ -46,7 +46,7 @@ namespace logger
 			 * @param wait whether connection should wait for correct access
 			 * @return whether connection to LogProccess was correct
 			 */
-			static bool init(const string& process, IClientConnectArtPattern* connection, const int identifwait, const bool wait);
+			static bool initial(const string& process, IClientConnectArtPattern* connection, const int identifwait, const bool wait);
 			/**
 			 * method to get single instance of interface
 			 */
