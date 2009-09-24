@@ -80,7 +80,8 @@ namespace server
 		if(descriptor.eof())
 		{
 			client= descriptor.getString("client");
-			input=  "ERROR: connection from " + client + " is broken\n";
+			process= descriptor.getString("process");
+			input=  "ERROR: connection from " + client + " in process " + process + " is broken\n";
 			input+= "       so close connection";
 			if(client == "LogServer")
 			{
@@ -242,7 +243,7 @@ namespace server
 		}else if(!descriptor.getBoolean("asker"))
 		{
 			descriptor.sendAnswer(input);
-			//cout << "log server waits for any questions" << endl;
+			//cout << descriptor.getString("client") << " waits for any questions" << endl;
 			input= descriptor.getOtherClientString(true);
 			//cout << descriptor.getString("process") << "::" << descriptor.getString("client");
 			//cout << " get question " << input << endl;
@@ -304,6 +305,12 @@ namespace server
 
 	bool ServerMethodTransaction::isClient(const IFileDescriptorPattern& descriptor, const string& definition) const
 	{
+	/*	if(!descriptor.getBoolean("asker"))
+		{// debug messages
+			cout << "is client '" << descriptor.getString("client") << "'" << endl;
+			cout << "the same  '" << definition << "'" << endl;
+		}else
+			cout << "client '" << descriptor.getString("client") << "' is an asker" << endl;*/
 		return (	descriptor.getBoolean("asker") == false
 					&&
 					descriptor.getString("client") == definition	) ? true : false;
