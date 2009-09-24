@@ -169,16 +169,13 @@ namespace server
 	{
 		int err;
 		unsigned short port;
-		string host;
+		string host, property("communicationport"), msg;
 		ostringstream questioncl;
 		string defaultConfig(m_poChipAccess->getDefaultFileName());
-		char* cHP(static_cast<char*>(arg));
-		string sHP(cHP);
-		istringstream hostport(sHP);
 		vector<string> ids;
 		OwServerQuestions* pQuestions;
 
-		m_oServerProperties= (IPropertyPattern*)arg;
+		m_oServerProperties= static_cast<IPropertyPattern*>(arg);
 		if(defaultConfig != "")
 			DbInterface::instance()->define(m_poChipAccess->getServerName(), defaultConfig);
 		if(!m_poChipAccess->init(m_oServerProperties))
@@ -192,25 +189,36 @@ namespace server
 		}else
 			m_bConnected= true;
 
-		hostport >> host >> port;
-		++port;
-		questioncl << "OwServerQuestion-";
-		questioncl << m_nServerID;
-		pQuestions= new OwServerQuestions(	questioncl.str(),
-											new SocketClientConnection(	SOCK_STREAM,
-																		host,
-																		port,
-																		10			),
-											this										);
-		err= pQuestions->start();
-		if(err > 0)
+		host= m_oServerProperties->getValue("communicationhost");
+		port= m_oServerProperties->getUShort(property);
+		if(port == 0 || host == "")
 		{
-			host=  "### ERROR: cannot start question thread for one wire server " + getServerName() + "\n";
-			host+= "           " + pQuestions->strerror(err);
-			cerr << host << endl;
-			LOG(LOG_ERROR, host);
+			msg=  "### ERROR: cannot start question thread for one wire server " + getServerName() + "\n";
+			msg+= "           because commhost or commport is not defined in server.conf";
+			cerr << msg << endl;
+			LOG(LOG_ERROR, msg);
+			m_oQuestions= NULL;
+		}else
+		{
+			++port;
+			questioncl << "OwServerQuestion-";
+			questioncl << m_nServerID;
+			pQuestions= new OwServerQuestions(	questioncl.str(),
+												new SocketClientConnection(	SOCK_STREAM,
+																			host,
+																			port,
+																			10			),
+												this										);
+			err= pQuestions->start();
+			if(err > 0)
+			{
+				msg=  "### ERROR: cannot start question thread for one wire server " + getServerName() + "\n";
+				msg+= "           " + pQuestions->strerror(err);
+				cerr << msg << endl;
+				LOG(LOG_ERROR, msg);
+			}
+			m_oQuestions= pQuestions;
 		}
-		m_oQuestions= pQuestions;
 		return 0;
 	}
 
@@ -273,7 +281,7 @@ namespace server
 			double *pmax= &max;
 			string chip, type, pin, family;
 
-			m_poChipAccess->range(unique, min, max, fl);
+			range(unique, min, max, fl);
 			chip= properties->getValue("ID");
 			pin= properties->getValue("pin");
 			type= m_poChipAccess->getChipType(pin);
@@ -304,7 +312,7 @@ namespace server
 					bool fl;
 					double min, max;
 
-					m_poChipAccess->range(unique, min, max, fl);
+					range(unique, min, max, fl);
 					dCacheSeq= reader->getDefaultCache(min, max, fl, folder, subroutine);
 					if(dCacheSeq == 0)
 						dCacheSeq= 15;
@@ -952,6 +960,27 @@ namespace server
 		return true;
 	}
 
+	void OWServer::range(const string pin, double& min, double& max, bool &bfloat)
+	{
+		chiprange_t chip;
+		map<string, chiprange_t>::iterator found;
+
+		found= m_mRange.find(pin);
+		if(found != m_mRange.end())
+		{
+			min= found->second.min;
+			max= found->second.max;
+			bfloat= found->second.bfloat;
+		}else
+		{
+			m_poChipAccess->range(pin, min, max, bfloat);
+			chip.min= min;
+			chip.max= max;
+			chip.bfloat= bfloat;
+			m_mRange[pin]= chip;
+		}
+	}
+
 	bool OWServer::read(const string id, double* value)
 	{
 		bool bfloat, bCorrect;
@@ -959,7 +988,7 @@ namespace server
 		map<string, chip_types_t*>::iterator chipIt;
 
 		chipIt= m_mtConductors.find(id);
-		m_poChipAccess->range(chipIt->second->id, min, max, bfloat);
+		range(chipIt->second->id, min, max, bfloat);
 		LOCK(m_READCACHE);
 		*value= chipIt->second->value;
 		bCorrect= chipIt->second->device;

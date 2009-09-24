@@ -44,6 +44,24 @@ namespace server
 	{
 	public:
 		/**
+		 * chip range getting from DbInterface
+		 * and is saved in this structure
+		 */
+		struct chiprange_t {
+			/**
+			 * minimal value
+			 */
+			double min;
+			/**
+			 * maximal value
+			 */
+			double max;
+			/**
+			 * whether the chip can hold floating values
+			 */
+			bool bfloat;
+		};
+		/**
 		 * struct to writing debug information for time reading
 		 * and writing.
 		 */
@@ -211,7 +229,7 @@ namespace server
 		 */
 		bool isDebug();
 		/**
-		 * get debug info for bechmark
+		 * get debug info for benchmark
 		 *
 		 * @return vector of string for all devices
 		 */
@@ -244,8 +262,7 @@ namespace server
 		 * @param max the maximal value
 		 * @param bfloat whether the values can be float variables
 		 */
-		void range(const string pin, double& min, double& max, bool &bfloat)
-		{ m_poChipAccess->range(pin, min, max, bfloat); };
+		void range(const string pin, double& min, double& max, bool &bfloat);
 		/**
 		 * whether chips for owserver have an default configuration file
 		 * and have to be registered
@@ -506,6 +523,11 @@ namespace server
 		 * chace writing every time if chip-type-id in this vector
 		 */
 		vector<string> m_vChipTypeIDs;
+		/**
+		 * chip range getting from DbInterface
+		 * and is saved in this structure
+		 */
+		map<string, chiprange_t> m_mRange;
 		/**
 		 * ConfigPropertyCasher which was reading from server.conf
 		 */

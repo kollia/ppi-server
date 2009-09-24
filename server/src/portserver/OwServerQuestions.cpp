@@ -64,23 +64,28 @@ int OwServerQuestions::execute()
 
 		stream >> set;
 		m_oServer->setDebug(set);
-	}else if(command == "getinfo")
+	}else if(command == "getDebugInfo")
 	{
 		vector<string>::size_type size= m_vAnswer.size();
 
-		if(size == 0)
+		++m_nPos;
+		if(size <= m_nPos)
 		{
+			m_vAnswer.clear();
 			m_vAnswer= m_oServer->getDebugInfo();
 			m_vAnswer.push_back("done");
 			m_nPos= 0;
 			m_sAnswer= m_vAnswer[m_nPos];
 		}else
-		{
-			++m_nPos;
 			m_sAnswer= m_vAnswer[m_nPos];
-			if((m_nPos + 1) == size)
-				m_vAnswer.clear();
-		}
+	}else
+	{
+		string msg("### ERROR: undefined command '");
+
+		msg+= command + "' was send to one wire server";
+		cerr << msg << endl;
+		LOG(LOG_ERROR, msg);
+		m_sAnswer= "ERROR 001";
 	}
 	return 0;
 }
