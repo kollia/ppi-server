@@ -31,7 +31,8 @@
 
 #include "../ports/measureThread.h"
 
-#include "../portserver/owserver.h"
+//#include "../portserver/owserver.h"
+#include "../portserver/lib/OWInterface.h"
 
 #include "../util/XMLStartEndTagReader.h"
 #include "../util/usermanagement.h"
@@ -48,6 +49,7 @@
 using namespace std;
 using namespace user;
 using namespace util;
+using namespace server;
 using namespace ppi_database;
 using namespace design_pattern_world::server_pattern;
 
@@ -62,6 +64,7 @@ namespace server
 		descriptor.setBoolean("access", false);
 		descriptor.setBoolean("wait", false);
 		descriptor.setUShort("actualized", 0);
+		descriptor.setBoolean("readdebuginfo", false);
 		return true;
 	}
 
@@ -85,12 +88,15 @@ namespace server
 	{
 		NeedDbChanges* changes= NeedDbChanges::instance();
 		DbInterface* db= DbInterface::instance();
-		vector<string> messages;
+		vector<string> messages, debuginfo;
 		string sendmsg, msg;
 		unsigned short actualized= descriptor.getUShort("actualized");
 
-		actualized= changes->isEntryChanged(actualized);
-		descriptor.setUShort("actualized", actualized);
+		if(descriptor.getBoolean("readdebuginfo") == false)
+		{
+			actualized= changes->isEntryChanged(actualized);
+			descriptor.setUShort("actualized", actualized);
+		}
 		messages= db->getChangedEntrys(descriptor.getClientID());
 		for(vector<string>::iterator i= messages.begin(); i != messages.end(); ++i)
 		{
@@ -111,6 +117,24 @@ namespace server
 					POSS("#client#send-hearing", sendmsg.substr(0, 10) + " ...");
 				else
 					POSS("#client#send-hearing", sendmsg);
+				if(sendmsg.substr(0, 23) == "read_owserver_debuginfo")
+				{
+					unsigned short server;
+					istringstream info(sendmsg);
+					OWInterface* ow;
+
+					descriptor.setBoolean("readdebuginfo", true);
+					info >> msg >> server;
+					ow= OWInterface::instance(server);
+					debuginfo= ow->getDebugInfo();
+					for(vector<string>::iterator it= debuginfo.begin(); it != debuginfo.end(); ++it)
+					{
+						descriptor << *it;
+						descriptor.endl();
+						descriptor.flush();
+					}
+					return true;
+				}
 				sendmsg+= "\n";
 				descriptor << sendmsg;
 				descriptor.flush();
@@ -120,6 +144,7 @@ namespace server
 					return false;
 			}
 		}
+		descriptor.setBoolean("readdebuginfo", false);
 		return true;
 
 	}
@@ -478,14 +503,16 @@ namespace server
 				{
 					unsigned short ID= nSleep;
 					string sID= sSleep;
-					OWServer* server;
+					OWInterface* server;
 					DbInterface* db= DbInterface::instance();
 
 					if(sID == "null")
-						ID= 0;
-					else
 					{
-						server= OWServer::getServer(ID);
+						ID= 0;
+						OWInterface::clearDebug();
+					}else
+					{
+						server= OWInterface::instance(ID);
 						if(server == NULL)
 						{
 							string msg;
@@ -501,9 +528,9 @@ namespace server
 #ifdef SERVERDEBUG
 							cerr << msg << endl;
 #endif
-						}
+						}else
+							server->setDebug(true);
 					}
-					OWServer::setDebug(ID);
 					if(ID != 0)
 					{
 						if(!db->needSubroutines(descriptor.getClientID(), "owserver-" + sID))
