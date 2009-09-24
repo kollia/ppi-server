@@ -26,6 +26,8 @@
 
 #include <boost/algorithm/string/split.hpp>
 
+#include "../logger/lib/LogInterface.h"
+
 #include "../util/properties.h"
 #include "../util/URL.h"
 
@@ -40,6 +42,7 @@ using namespace std;
 using namespace boost;
 using namespace util;
 using namespace server;
+using namespace logger;
 
 int main(int argc, char* argv[])
 {
@@ -51,6 +54,7 @@ int main(int argc, char* argv[])
 	string sConfPath, fileName;
 	unsigned short commport;
 	int err;
+	int nLogAllSec;
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
 	Properties oServerProperties;
@@ -85,12 +89,31 @@ int main(int argc, char* argv[])
 		cerr << "             so process run under 'nobody'" << endl;
 		defaultuser= "nobody";
 	}
+
 	defaultuserID= URL::getUserID(defaultuser);
 	commhost= oServerProperties.getValue("communicationhost", /*warning*/false);
 	if(commhost == "")
 		commhost= "127.0.0.1";
 	property= "communicationport";
 	commport= oServerProperties.needUShort(property);
+
+	// initial Log Interface
+	property= "timelogSec";
+	nLogAllSec= oServerProperties.getInt(property, /*warning*/false);// warning be written in starter.cpp
+	if(	nLogAllSec == 0
+		&&
+		property == "#ERROR"	)
+	{
+		nLogAllSec= 1800;
+	}
+	LogInterface::initial(	"ppi-communicate-server",
+							new SocketClientConnection(	SOCK_STREAM,
+														commhost,
+														commport,
+														0								),
+							/*identif log wait*/nLogAllSec,
+							/*wait*/true													);
+
 
 	ServerProcess communicate(	"CommunicationServerProcess", defaultuserID,
 								new CommunicationThreadStarter(0, 4),
