@@ -38,6 +38,7 @@
 #include "portserver/owserver.h"
 #include "portserver/maximchipaccess.h"
 #include "portserver/VellemannK8055.h"
+#include "portserver/lib/OWInterface.h"
 
 #include "ports/measureThread.h"
 #include "ports/portbaseclass.h"
@@ -240,13 +241,13 @@ bool Starter::execute(vector<string> options)
 	{
 		nLogAllSec= 1800;
 	}
-	LogInterface::init(	"ppi-server",
-						new SocketClientConnection(	SOCK_STREAM,
-													commhost,
-													commport,
-													0			),
-						/*identif log*/nLogAllSec,
-						/*wait*/true								);
+	LogInterface::initial(	"ppi-server",
+							new SocketClientConnection(	SOCK_STREAM,
+														commhost,
+														commport,
+														0			),
+							/*identif log*/nLogAllSec,
+							/*wait*/true								);
 	LogInterface::instance()->setThreadName("main--run-server");
 	// ------------------------------------------------------------------------------------------------------------
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -516,6 +517,10 @@ bool Starter::execute(vector<string> options)
 #endif // _EXTERNVENDORLIBRARYS
 
 	checkAfterContact();
+	OWInterface::init("ppi-server", new SocketClientConnection(	SOCK_STREAM,
+																commhost,
+																commport + 1,
+																5				)	);
 
 	bool createThread= false;
 	MeasureArgArray args;
