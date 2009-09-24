@@ -281,10 +281,11 @@ namespace server
 	bool ClientTransaction::transfer(IFileDescriptorPattern& descriptor)
 	{
 		bool bWaitEnd= false;
+		bool bHeader= true;
 		long nsec, nmsec, nusec;
 		char buf[10];
 		string logMsg, result, sDo;
-		string sSendbuf;
+		string sSendbuf, last;
 		XMLStartEndTagReader* xmlReader= NULL;
 		OWServer::device_debug_t tdebug;
 
@@ -292,83 +293,107 @@ namespace server
 		{
 			do{
 				descriptor >> result;
+				if(bHeader)
+				{
+					cout << "Nr.| CALL | last call        |    value     |  every   | need time | length time "
+						"| act. | chip ID / pin" << endl;
+					cout << "---------------------------------------------------------------------------------"
+						"------------------------------" << endl;
+					bHeader= false;
+				}
 				if(result != "stopclient\n")
 				{
 					if(m_bOwDebug && result.substr(0, 1) != "0")
 					{
-						istringstream devString(result);
-
-						//cout << endl << result;
-						devString >> tdebug.id;
-						devString >> tdebug.btime;
-						devString >> tdebug.act_tm.tv_sec;
-						devString >> tdebug.act_tm.tv_usec;
-						devString >> tdebug.count;
-						devString >> tdebug.read;
-						devString >> tdebug.ok;
-						devString >> tdebug.utime;
-						devString >> tdebug.value;
-						devString >> tdebug.cache;
-						devString >> tdebug.priority;
-						devString >> tdebug.device;
-
-						if(	tdebug.btime
-							&&
-							m_mOwMaxTime[tdebug.id] < tdebug.utime	)
+						if(result != "done\n")
 						{
-							m_mOwMaxTime[tdebug.id]= tdebug.utime;
-						}
-						nsec= tdebug.utime / 1000000;
-						nmsec= tdebug.utime / 1000 - (nsec * 1000);
-						nusec= tdebug.utime - (nmsec * 1000) - (nsec * 1000000);
+							istringstream devString(result);
 
-						cout.fill('0');
-						cout.width(3);
-						cout << dec << tdebug.id << " ";
-						cout.fill(' ');
-						cout.width(5);
-						cout << tdebug.count << "   ";
-						if(tdebug.btime)
-						{
-							long msec, usec;
+							//cout << endl << result;
+							devString >> tdebug.id;
+							devString >> tdebug.btime;
+							devString >> tdebug.act_tm.tv_sec;
+							devString >> tdebug.act_tm.tv_usec;
+							devString >> tdebug.count;
+							devString >> tdebug.read;
+							devString >> tdebug.ok;
+							devString >> tdebug.utime;
+							devString >> tdebug.value;
+							devString >> tdebug.cache;
+							devString >> tdebug.priority;
+							devString >> tdebug.device;
 
-							strftime(buf, sizeof(buf), "%H:%M:%S", localtime(&tdebug.act_tm.tv_sec));
-							cout << buf << " ";
-							msec= tdebug.act_tm.tv_usec / 1000;
-							usec= tdebug.act_tm.tv_usec - (msec * 1000);
+							if(	tdebug.btime
+								&&
+								m_mOwMaxTime[tdebug.id] < tdebug.utime	)
+							{
+								m_mOwMaxTime[tdebug.id]= tdebug.utime;
+							}
+							nsec= tdebug.utime / 1000000;
+							nmsec= tdebug.utime / 1000 - (nsec * 1000);
+							nusec= tdebug.utime - (nmsec * 1000) - (nsec * 1000000);
+
 							cout.fill('0');
 							cout.width(3);
-							cout << dec << msec << " ";
-							cout.width(3);
-							cout << dec << usec << "   ";
+							cout << dec << tdebug.id << " ";
+							cout.fill(' ');
+							cout.width(5);
+							cout << tdebug.count << "   ";
+							if(tdebug.btime)
+							{
+								long msec, usec;
 
-						}else
-							cout << "-------- --- ---   ";
-						if(tdebug.read)
-							sDo= "read ";
-						else
-							sDo= "write";
-						cout.setf(ios_base::fixed);
-						cout.fill(' ');
-						if(tdebug.ok)
-						{
-							cout.precision(6);
-							cout.width(12);
-							cout << dec << tdebug.value << "   ";
-						}else
-							cout << "cannot " << sDo << "   ";
-						if(tdebug.read)
-						{
-							cout.precision(4);
-							cout.width(8);
-							cout << dec << tdebug.cache << "   ";
-						}else
-						{
-							cout.width(4);
-							cout << dec << tdebug.priority << "       ";
-						}
-						if(tdebug.btime)
-						{
+								strftime(buf, sizeof(buf), "%H:%M:%S", localtime(&tdebug.act_tm.tv_sec));
+								cout << buf << " ";
+								msec= tdebug.act_tm.tv_usec / 1000;
+								usec= tdebug.act_tm.tv_usec - (msec * 1000);
+								cout.fill('0');
+								cout.width(3);
+								cout << dec << msec << " ";
+								cout.width(3);
+								cout << dec << usec << "   ";
+
+							}else
+								cout << "-------- --- ---   ";
+							if(tdebug.read)
+								sDo= "read ";
+							else
+								sDo= "write";
+							cout.setf(ios_base::fixed);
+							cout.fill(' ');
+							if(tdebug.ok)
+							{
+								cout.precision(6);
+								cout.width(12);
+								cout << dec << tdebug.value << "   ";
+							}else
+								cout << "cannot " << sDo << "   ";
+							if(tdebug.read)
+							{
+								cout.precision(4);
+								cout.width(8);
+								cout << dec << tdebug.cache << "   ";
+							}else
+							{
+								cout.width(4);
+								cout << dec << tdebug.priority << "       ";
+							}
+							if(tdebug.btime)
+							{
+								cout.fill('0');
+								cout.width(2);
+								cout << dec << nsec << " ";
+								cout.width(3);
+								cout << dec << nmsec << " ";
+								cout.width(3);
+								cout << dec << nusec << "   ";
+
+							}else
+								cout << "-- --- ---   ";
+							// measure max time
+							nsec= m_mOwMaxTime[tdebug.id] / 1000000;
+							nmsec= m_mOwMaxTime[tdebug.id] / 1000 - (nsec * 1000);
+							nusec= m_mOwMaxTime[tdebug.id] - (nmsec * 1000) - (nsec * 1000000);
 							cout.fill('0');
 							cout.width(2);
 							cout << dec << nsec << " ";
@@ -377,21 +402,12 @@ namespace server
 							cout.width(3);
 							cout << dec << nusec << "   ";
 
+							cout << sDo << " " << tdebug.device << endl;
 						}else
-							cout << "-- --- ---   ";
-						// measure max time
-						nsec= m_mOwMaxTime[tdebug.id] / 1000000;
-						nmsec= m_mOwMaxTime[tdebug.id] / 1000 - (nsec * 1000);
-						nusec= m_mOwMaxTime[tdebug.id] - (nmsec * 1000) - (nsec * 1000000);
-						cout.fill('0');
-						cout.width(2);
-						cout << dec << nsec << " ";
-						cout.width(3);
-						cout << dec << nmsec << " ";
-						cout.width(3);
-						cout << dec << nusec << "   ";
-
-						cout << sDo << " " << tdebug.device << endl;
+						{
+							cout << endl;
+							bHeader= true;
+						}
 					}else
 						cout << result;
 				}
