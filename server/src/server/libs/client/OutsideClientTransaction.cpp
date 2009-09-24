@@ -40,6 +40,7 @@ namespace server
 		string answer;
 		string::size_type len= m_sCommand.size();
 
+		m_vAnswer.clear();
 		if(m_bHold)
 		{
 			if(len > 0)
@@ -48,15 +49,14 @@ namespace server
 					m_sCommand+= "\n";
 			}else
 				m_sCommand= "\n";
-			descriptor << m_sCommand;
-			descriptor.flush();
-			if(descriptor.eof())
-			{
-				m_vAnswer.push_back("#ERROR 001");
-				return false;
-			}
-			m_vAnswer.clear();
 			do{
+				descriptor << m_sCommand;
+				descriptor.flush();
+				if(descriptor.eof())
+				{
+					m_vAnswer.push_back("ERROR 001");
+					return false;
+				}
 				descriptor >> answer;
 				answer= ConfigPropertyCasher::trim(answer, " \t\r\n");
 				m_vAnswer.push_back(answer);
@@ -71,10 +71,13 @@ namespace server
 			m_bHold= true;
 		}else
 		{
-			descriptor << "ending\n";
-			descriptor.flush();
-			descriptor >> answer;
-			m_vAnswer.push_back(answer);
+			if(!descriptor.eof())
+			{
+				descriptor << "ending\n";
+				descriptor.flush();
+				descriptor >> answer;
+				m_vAnswer.push_back(answer);
+			}
 			m_bHold= true;//for new beginning
 			return false;
 		}
