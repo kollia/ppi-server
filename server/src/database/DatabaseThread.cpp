@@ -37,8 +37,9 @@
 #include "../util/URL.h"
 #include "../util/Calendar.h"
 #include "../util/configpropertycasher.h"
+#include "../util/ExternClientInputTemplate.h"
 
-#include "../portserver/owserver.h"
+#include "../pattern/server/IClientPattern.h"
 
 using namespace util;
 using namespace server;
@@ -491,6 +492,28 @@ void DatabaseThread::isEntryChanged()
 	}
 }
 
+vector<string> DatabaseThread::getDebugInfo(const unsigned short server)
+{
+	int err;
+	IClientPattern* client;
+	ostringstream definition;
+	vector<string> vRv;
+	string answer;
+
+	definition << "OwServerQuestion-" << server;
+	client= m_pStarter->getClient(definition.str(), NULL);
+	if(client != NULL)
+	{
+		do{
+			answer= client->sendString("getinfo", true);
+			err= ExternClientInputTemplate::error(answer);
+			vRv.push_back(answer);
+
+		}while(answer != "done" && err <= 0);
+	}
+	return vRv;
+}
+
 vector<string> DatabaseThread::getChangedEntrys(unsigned long connection)
 {
 	map<string, map<string, map<string, db_t> > >::iterator fEntrys;
@@ -504,14 +527,13 @@ vector<string> DatabaseThread::getChangedEntrys(unsigned long connection)
 	{
 		if(i->identif == "owserver")
 		{
-			OWServer* server= OWServer::getServer((unsigned short)i->tm);
+			ostringstream info;
 
-			if(server != NULL)
-			{
-				UNLOCK(m_CHANGINGPOOL);
-				UNLOCK(m_DBCURRENTENTRY);
-				return server->getDebugInfo();
-			}
+			info << "read_owserver_debuginfo " << i->tm;
+			vsRv.push_back(info.str());
+/*			UNLOCK(m_CHANGINGPOOL);
+			UNLOCK(m_DBCURRENTENTRY);
+			return getDebugInfo(i->tm);*/
 		}else
 		{
 			if(	i->folder == ""

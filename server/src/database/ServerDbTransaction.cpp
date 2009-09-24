@@ -42,10 +42,12 @@ namespace server
 		DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
 		DatabaseThread *db= DatabaseThread::instance();
 
-		//cout << method << "(" << object.parameters() << ")" << endl;
+		//cout << "work on command: " << method << endl;
 		if(method == "isEntryChanged")
 		{
+			descriptor.unlock();
 			db->isEntryChanged();
+			descriptor.lock();
 			descriptor << "changed";
 
 		}else if(method == "isDbLoaded")
@@ -149,6 +151,7 @@ namespace server
 				descriptor << *it;
 				descriptor.endl();
 				descriptor.flush();
+				descriptor >> method;
 			}
 			descriptor << "done";
 
@@ -296,6 +299,8 @@ namespace server
 		}
 		descriptor.endl();
 		descriptor.flush();
+		//cout << "finish work on command: " << method << endl;
+		return true;
 	}
 
 	ServerDbTransaction::~ServerDbTransaction()

@@ -29,8 +29,11 @@
 #include "../util/Thread.h"
 #include "../util/structures.h"
 
+#include "../pattern/server/IServerCommunicationStarterPattern.h"
+
 using namespace std;
 using namespace ports;
+using namespace design_pattern_world::server_pattern;
 
 namespace ppi_database
 {
@@ -193,12 +196,26 @@ namespace ppi_database
 		 */
 		vector<string> getChangedEntrys(unsigned long connection);
 		/**
+		 * get debug info for benchmark
+		 *
+		 * @param server ID from one wire server
+		 * @return vector of string for all devices
+		 */
+		vector<string> getDebugInfo(const unsigned short server);
+		/**
 		 * change the communication ID to an new one
 		 *
 		 * @param oldId old communication ID
 		 * @param newId new communication ID
 		 */
 		void changeNeededIds(unsigned long oldId, unsigned long newId);
+		/**
+		 * set client starter for communication with any client
+		 *
+		 * @param starter pointer to an IServerCommunicationStarterPattern
+		 */
+		void setCommunicator(IServerCommunicationStarterPattern* starter)
+		{ m_pStarter= starter; };
 		/**
 		 *  external command to stop thread
 		 *
@@ -370,6 +387,10 @@ namespace ppi_database
 		 * map of all filenames with the time to thin
 		 */
 		map<string, time_t> m_mOldest;
+		/**
+		 * starter pool for communication with any client
+		 */
+		IServerCommunicationStarterPattern* m_pStarter;
 
 		/**
 		 * private initialization of Database

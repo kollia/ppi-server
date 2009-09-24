@@ -59,6 +59,8 @@ int main(int argc, char* argv[])
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
 	Properties oServerProperties;
+	DatabaseThread* db;
+	CommunicationThreadStarter* starter;
 
 	// create working directory
 	directorys= split(directorys, argv[0], is_any_of("/"));
@@ -107,22 +109,30 @@ int main(int argc, char* argv[])
 	{
 		nLogAllSec= 1800;
 	}
-	LogInterface::init(	"ppi-server",
-						new SocketClientConnection(	SOCK_STREAM,
-													commhost,
-													commport,
-													0			),
-						/*identif log*/nLogAllSec,
-						/*wait*/true								);
+	LogInterface::initial(	"ppi-db-server",
+							new SocketClientConnection(	SOCK_STREAM,
+														commhost,
+														commport,
+														0			),
+							/*identif log*/nLogAllSec,
+							/*wait*/true								);
 
 
 
+	/*************************************************************
+	 * need follow communication threads
+	 * 		for all process one log client
+	 * 		for all one wire server an answer client
+	 * 		for all one wire server an question client
+	 */
+	starter= new CommunicationThreadStarter(0, 6);
 	// start initialitation from database
 	DatabaseThread::initial(dbpath, sConfPath, &oServerProperties);
+	db= DatabaseThread::instance();
+	db->setCommunicator(starter);
 
 	commport= commport + 1;
-	ServerProcess database(	"DatabaseServer", defaultuserID,
-							new CommunicationThreadStarter(0, 4),
+	ServerProcess database(	"DatabaseServer", defaultuserID, starter,
 							new TcpServerConnection(	commhost,
 														commport,
 														10,
@@ -133,7 +143,6 @@ int main(int argc, char* argv[])
 														10			)						);
 
 	err= database.run(&oServerProperties);
-	cout << "get error " << dec << err << endl;
 	if(err != 0)
 	{
 		if(err > 0)
