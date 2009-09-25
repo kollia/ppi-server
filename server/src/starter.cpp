@@ -101,7 +101,7 @@ bool Starter::execute(vector<string> options)
 	string logpath, sLogLevel, property;
 	DbInterface *db;
 	string prop;
-	ProcessStarter* process;
+	ProcessStarter *process, *logprocess;
 
 	Starter::isNoPathDefinedStop();
 	if(signal(SIGINT, signalconverting) == SIG_ERR)
@@ -214,6 +214,7 @@ bool Starter::execute(vector<string> options)
 	}
 
 	readPasswd();
+
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// initial interface to log server
 	string commhost;
@@ -251,6 +252,28 @@ bool Starter::execute(vector<string> options)
 	LogInterface::instance()->setThreadName("main--run-server");
 	// ------------------------------------------------------------------------------------------------------------
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// start logging process
+
+	cout << "### start ppi log client" << endl;
+	logprocess= new ProcessStarter(	"LogServer",
+									new SocketClientConnection(	SOCK_STREAM,
+																commhost,
+																commport,
+																10			), false	);
+
+	err= 0;
+	if(bLog)
+		err= logprocess->start(URL::addPath(m_sWorkdir, "bin/ppi-log-client").c_str(), NULL);
+	if(err > 0)
+	{
+		cerr << "### WARNING: cannot start log-server" << endl;
+		cerr << "             so no log can be written into any files" << endl;
+		cerr << "             " << process->strerror(err) << endl;
+	}
+
+	// ------------------------------------------------------------------------------------------------------------
+#if 0
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start server for communication between processes
 
 	cout << "### start ppi communicate server" << endl;
@@ -272,38 +295,16 @@ bool Starter::execute(vector<string> options)
 		exit(EXIT_FAILURE);
 	}
 	// ------------------------------------------------------------------------------------------------------------
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// start logging process
-
-	cout << "### start ppi log client" << endl;
-	process= new ProcessStarter(	"LogServer",
-									new SocketClientConnection(	SOCK_STREAM,
-																commhost,
-																commport,
-																10			)	);
-
-	if(bLog)
-		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-log-client").c_str(), NULL);
-	else
-		err= process->check();
-	if(err > 0)
-	{
-		cerr << "### WARNING: cannot start log-server" << endl;
-		cerr << "             so no log can be written into any files" << endl;
-		cerr << "             " << process->strerror(err) << endl;
-	}
-	delete process;
-
-	// ------------------------------------------------------------------------------------------------------------
+#endif
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start database server
 
 	cout << "### start ppi db server" << endl;
 
-	process= new ProcessStarter(	"DatabaseServer",
+	process= new ProcessStarter(	"ppi-db-server",
 									new SocketClientConnection(	SOCK_STREAM,
 																commhost,
-																commport + 1,
+																commport,
 																10			)	);
 
 	if(bDb)
@@ -312,18 +313,36 @@ bool Starter::execute(vector<string> options)
 		err= process->check();
 	if(err > 0)
 	{
-		cerr << "### WARNING: cannot start database-server" << endl;
-		cerr << "           so the hole application is not useable" << endl;
-		cerr << "           stop server" << endl;
+		string msg;
+
+		msg=  "### WARNING: cannot start database-server\n";
+		msg+= "             " + process->strerror(err);
+		msg+= "             so the hole application is not useable stop server";
+		cerr << msg << endl;
 		exit(EXIT_FAILURE);
 	}
 	delete process;
+	// ------------------------------------------------------------------------------------------------------------
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// check whether log client is available
 
-	DbInterface::init(	"DatabaseServer",
-						new SocketClientConnection(	SOCK_STREAM,
-													commhost,
-													commport + 1,
-													5			)	);
+	err= logprocess->check();
+	if(err > 0)
+	{
+		cerr << "### WARNING: cannot start log-server" << endl;
+		cerr << "             so no log can be written into any files" << endl;
+		cerr << "             " << logprocess->strerror(err) << endl;
+	}
+	delete logprocess;
+	// ------------------------------------------------------------------------------------------------------------
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// start database interface and check whether database is loaded
+
+	DbInterface::initial(	"ppi-db-server",
+							new SocketClientConnection(	SOCK_STREAM,
+														commhost,
+														commport,
+														5			)	);
 	db= DbInterface::instance();
 
 	cout << "### initial database " << flush;
@@ -517,10 +536,10 @@ bool Starter::execute(vector<string> options)
 #endif // _EXTERNVENDORLIBRARYS
 
 	checkAfterContact();
-	OWInterface::init("ppi-server", new SocketClientConnection(	SOCK_STREAM,
-																commhost,
-																commport + 1,
-																5				)	);
+	OWInterface::initial("ppi-server", new SocketClientConnection(	SOCK_STREAM,
+																	commhost,
+																	commport,
+																	5				)	);
 
 	bool createThread= false;
 	MeasureArgArray args;
@@ -608,7 +627,7 @@ bool Starter::execute(vector<string> options)
 
 	if(!NeedDbChanges::initial("ppi-server", new SocketClientConnection(	SOCK_STREAM,
 																			commhost,
-																			commport + 1,
+																			commport,
 																			5				)	)	)
 	{
 		string msg("### WARNING: cannot start second connection to database,\n");

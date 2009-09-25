@@ -48,7 +48,7 @@ namespace ppi_database
 
 	map<short, DbInterface*> DbInterface::_instance;
 
-	short DbInterface::init(const string& process, IClientConnectArtPattern* connection)
+	short DbInterface::initial(const string& process, IClientConnectArtPattern* connection)
 	{
 		short n;
 		int ret;
@@ -86,7 +86,7 @@ namespace ppi_database
 		string sRv;
 		OMethodStringStream loaded("isDbLoaded");
 
-		sRv= sendMethod("DatabaseServer", loaded, true);
+		sRv= sendMethod("ppi-db-server", loaded, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -117,7 +117,7 @@ namespace ppi_database
 
 		command << folder;
 		command << subroutine;
-		sRv= sendMethod("DatabaseServer", command, false);
+		sRv= sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -156,7 +156,7 @@ namespace ppi_database
 		command << bNew;
 		for(vector<double>::iterator o= values.begin(); o != values.end(); ++o)
 			command << *o;
-		sRv= sendMethod("DatabaseServer", command, false);
+		sRv= sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -182,7 +182,7 @@ namespace ppi_database
 		string sRv;
 		OMethodStringStream command("isEntryChanged");
 
-		sRv= sendMethod("DatabaseServer", command, false);
+		sRv= sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -213,7 +213,7 @@ namespace ppi_database
 		command << subroutine;
 		command << identif;
 		command << number;
-		sRv= sendMethod("DatabaseServer", command, false);
+		sRv= sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -253,7 +253,7 @@ namespace ppi_database
 		command << subroutine;
 		command << definition;
 		command << value;
-		vsRv= sendMethod("DatabaseServer", command, "done", true);
+		vsRv= sendMethod("ppi-db-server", command, "done", true);
 
 		istringstream oRv;
 		for(vector<string>::iterator o= vsRv.begin(); o != vsRv.end(); ++o)
@@ -294,7 +294,7 @@ namespace ppi_database
 
 		command << connection;
 		command << name;
-		sRv= sendMethod("DatabaseServer", command, false);
+		sRv= sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -324,7 +324,7 @@ namespace ppi_database
 		OMethodStringStream command("getChangedEntrys");
 
 		command << connection;
-		vRv= sendMethod("DatabaseServer", command, "done", true);
+		vRv= sendMethod("ppi-db-server", command, "done", true);
 		for(vector<string>::iterator o= vRv.begin(); o != vRv.end(); ++o)
 		{
 			err= error(*o);
@@ -355,7 +355,7 @@ namespace ppi_database
 
 		command << oldId;
 		command << newId;
-		sRv= sendMethod("DatabaseServer", command, false);
+		sRv= sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -381,7 +381,7 @@ namespace ppi_database
 		OMethodStringStream command("chipsDefined");
 
 		command << defined;
-		sRv= sendMethod("DatabaseServer", command, false);
+		sRv= sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -408,7 +408,7 @@ namespace ppi_database
 
 		command << server;
 		command << config;
-		sRv= sendMethod("DatabaseServer", command, true);
+		sRv= sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -443,7 +443,7 @@ namespace ppi_database
 		command << pdmax;
 		command << pbFloat;
 		command << pdCache;
-		sRv= sendMethod("DatabaseServer", command, true);
+		sRv= sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -472,7 +472,7 @@ namespace ppi_database
 		command << folder;
 		command << server;
 		command << chip;
-		sRv= sendMethod("DatabaseServer", command, true);
+		sRv= sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -500,7 +500,7 @@ namespace ppi_database
 
 		command << server;
 		command << chip;
-		sRv= sendMethod("DatabaseServer", command, true);
+		sRv= sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -560,7 +560,7 @@ namespace ppi_database
 			command << type;
 		}
 		command << chip;
-		sRv= sendMethod("DatabaseServer", command, true);
+		sRv= sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -620,7 +620,7 @@ namespace ppi_database
 		command << bFloat;
 		command << folder;
 		command << subroutine;
-		sRv= sendMethod("DatabaseServer", command, true);
+		sRv= sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{

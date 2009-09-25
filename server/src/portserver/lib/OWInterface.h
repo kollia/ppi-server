@@ -38,7 +38,7 @@ public:
 	 * @param process name of process in which the interface running
 	 * @param connection to which server this interface should connect to send messages
 	 */
-	static void init(const string& process, IClientConnectArtPattern* connection);
+	static void initial(const string& process, IClientConnectArtPattern* connection);
 	/**
 	 * get instance for OWServer
 	 *

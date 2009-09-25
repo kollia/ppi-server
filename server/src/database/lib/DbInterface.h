@@ -69,7 +69,7 @@ namespace ppi_database
 		 * @param connection to which server this interface should connect to send messages
 		 * @return return number of instance, elsewhere by error -1
 		 */
-		static short init(const string& process, IClientConnectArtPattern* connection);
+		static short initial(const string& process, IClientConnectArtPattern* connection);
 		/**
 		 * return instance of database object
 		 *

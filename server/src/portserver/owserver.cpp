@@ -200,7 +200,6 @@ namespace server
 			m_oQuestions= NULL;
 		}else
 		{
-			++port;
 			questioncl << "OwServerQuestion-";
 			questioncl << m_nServerID;
 			pQuestions= new OwServerQuestions(	questioncl.str(),

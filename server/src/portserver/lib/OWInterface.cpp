@@ -27,7 +27,7 @@ map<unsigned short, OWInterface*> OWInterface::_instances;
 IClientConnectArtPattern* OWInterface::m_pCon= NULL;
 string OWInterface::m_sProcess;
 
-void OWInterface::init(const string& process, IClientConnectArtPattern* connection)
+void OWInterface::initial(const string& process, IClientConnectArtPattern* connection)
 {
 	m_sProcess= process;
 	m_pCon= connection;

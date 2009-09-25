@@ -131,8 +131,7 @@ int main(int argc, char* argv[])
 	db= DatabaseThread::instance();
 	db->setCommunicator(starter);
 
-	commport= commport + 1;
-	ServerProcess database(	"DatabaseServer", defaultuserID, starter,
+	ServerProcess database(	"ppi-db-server", defaultuserID, starter,
 							new TcpServerConnection(	commhost,
 														commport,
 														10,
