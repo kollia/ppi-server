@@ -322,6 +322,11 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		bool m_bHold;
 		/**
+		 * error number from thread if exist
+		 * elsewhere 0
+		 */
+		int m_nEndValue;
+		/**
 		 * default sleep time in microseconds.<br />
 		 * Some older computer needs to much cpu time if an thread running
 		 * all the time. This time can be set in the constructor of this class.<br />

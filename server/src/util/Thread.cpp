@@ -46,6 +46,7 @@ Thread::Thread(string threadName, useconds_t defaultSleep, bool waitInit)
 	m_nPosixThreadID= 0;
 	m_bRun= false;
 	m_bStop= false;
+	m_nEndValue= 0;
 	m_sThreadName= threadName;
 	m_nDefaultSleep= defaultSleep;
 	m_bWaitInit= waitInit;
@@ -90,34 +91,38 @@ int Thread::start(void *args, bool bHold)
 		if(nRv != 0)
 		{
 			LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
+			return 3;
 		}
-		return 3;
-	}else if(m_bWaitInit)
+		return 0;
+	}else
 	{
-		LOCK(m_STARTSTOPTHREAD);
-		while(!running())
+		detach();
+		if(m_bWaitInit)
 		{
+			LOCK(m_STARTSTOPTHREAD);
+			while(!running() && !stopping())
+			{
 #ifdef DEBUG
-			cout << "." << flush;
+				cout << "." << flush;
 #endif
-			if(stopping())
-			{// an error is occured in init methode
-				nRv= pthread_join(m_nPosixThreadID, &Rv);
-				if(nRv != 0)
-				{
-					LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
+				if(stopping())
+				{// an error is occured in init methode
+					nRv= pthread_join(m_nPosixThreadID, &Rv);
+					if(nRv != 0)
+					{
+						LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
+					}
+					return 4;
 				}
-				return 4;
+				CONDITION(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD);
 			}
-			CONDITION(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD);
 		}
 		UNLOCK(m_STARTSTOPTHREAD);
 #ifdef DEBUG
 		cout << endl;
 #endif
 	}
-	detach();
-	return 0;
+	return m_nEndValue;
 #endif // else SUNGLETHREADING
 }
 
@@ -127,6 +132,7 @@ void Thread::run()
 	string thname(getThreadName());
 	string startmsg("starting thread with name '");
 	pos_t pos;
+	int err;
 
 	m_nThreadId= gettid();
 	initstatus(getThreadName(), this);
@@ -146,13 +152,15 @@ void Thread::run()
 			UNLOCK(m_RUNTHREAD);
 		}
 		LOCK(m_STARTSTOPTHREAD);
-		if(init(m_pArgs) == 0)
+		err= init(m_pArgs);
+		if(err == 0)
 		{
 			LOCK(m_RUNTHREAD);
 			m_bRun= true;
 			UNLOCK(m_RUNTHREAD);
 		}else
 		{
+			m_nEndValue= err;
 			error+= "### thread ";
 			error+= thname;
 			error+= " cannot inital correcty";
