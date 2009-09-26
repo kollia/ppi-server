@@ -224,6 +224,7 @@ int DatabaseThread::init(void *args)
 			LOG(LOG_ALERT, error);
 			return 1;
 		}
+		LOG(LOG_DEBUG, "beginning to read database file " + m_sDbFile);
 		while(!file.eof())
 		{
 			getline(file, line);
@@ -250,6 +251,7 @@ int DatabaseThread::init(void *args)
 			}
 		}
 		file.close();
+		LOG(LOG_DEBUG, "reading of database file " + m_sDbFile + " is finished");
 
 		if(size > 15000000)
 		{// create an new database file

@@ -99,7 +99,8 @@ void LogThread::setProperties(string logFile, int minLogLevel, int logAllSec, in
 	for(vector<string>::iterator it= splitVec.begin(); it != (splitVec.end()-1); ++it)
 		m_sLogFilePath+= *it + "/";
 	m_sLogFilePrefix= *(splitVec.end()-1);
-	log(__FILE__, __LINE__, LOG_INFO, "Storage Log-files under " + logFile + " with prefix '" + m_sLogFilePrefix + "' and suffix '.log'");
+	log->setThreadName("LogThread");
+	log(__FILE__, __LINE__, LOG_INFO, "Storage Log-files under " + m_sLogFilePath + " with prefix '" + m_sLogFilePrefix + "' and suffix '.log'");
 }
 
 bool LogThread::ownThread(string threadName, pid_t currentPid)

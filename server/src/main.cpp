@@ -139,12 +139,14 @@ int main(int argc, char* argv[])
 		{
 			pthread_mutex_init(&g_READMUTEX, NULL);
 			result= server->execute(vOptions);
+			cout << "### ending app-starter process with all threads" << endl;
 		}else if(param == "stop")
 		{
 			result= server->stop(vOptions);
 		}else if(param == "restart")
 		{
 			server->stop(vOptions);
+			cout << "### restart ppi-server" << endl;
 			result= server->execute(vOptions);
 		}else if(param == "-?")
 		{

@@ -152,6 +152,6 @@ int main(int argc, char* argv[])
 		cerr << "             " << database.strerror(err) << endl;
 		return err;
 	}
-
+	cout << "### ending database process with all threads" << endl;
 	return 0;
 }

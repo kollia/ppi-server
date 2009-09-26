@@ -101,7 +101,6 @@ int main(int argc, char* argv[])
 													10			)	);
 
 	err= logger.run(&oServerProperties);
-	cout << "get error " << dec << err << endl;
 	if(err != 0)
 	{
 		if(err > 0)
@@ -112,6 +111,7 @@ int main(int argc, char* argv[])
 		cerr << "             " << logger.strerror(err) << endl;
 		return err;
 	}
+	cout << "### ending logging process with all threads" << endl;
 
-	return 0;
+	return err;
 }

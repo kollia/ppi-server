@@ -249,8 +249,8 @@ bool Starter::execute(vector<string> options)
 														0			),
 							/*identif log*/nLogAllSec,
 							/*wait*/true								);
-	LogInterface::instance()->setThreadName("main--run-server");
 	// ------------------------------------------------------------------------------------------------------------
+
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start logging process
 
@@ -259,7 +259,8 @@ bool Starter::execute(vector<string> options)
 									new SocketClientConnection(	SOCK_STREAM,
 																commhost,
 																commport,
-																10			), false	);
+																10			),
+									/* wait for initialisation*/false			);
 
 	err= 0;
 	if(bLog)
@@ -323,6 +324,7 @@ bool Starter::execute(vector<string> options)
 	}
 	delete process;
 	// ------------------------------------------------------------------------------------------------------------
+
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// check whether log client is available
 
@@ -334,6 +336,9 @@ bool Starter::execute(vector<string> options)
 		cerr << "             " << logprocess->strerror(err) << endl;
 	}
 	delete logprocess;
+
+	LogInterface::instance()->setThreadName("ppi-server");
+	LOG(LOG_DEBUG, "check logging of starter in ppi-server");
 	// ------------------------------------------------------------------------------------------------------------
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start database interface and check whether database is loaded
