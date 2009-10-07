@@ -83,11 +83,10 @@ namespace server
 			process= descriptor.getString("process");
 			input=  "ERROR: connection from " + client + " in process " + process + " is broken\n";
 			input+= "       so close connection";
-			if(client == "LogServer")
-			{
+#ifdef ALLOCATEONMETHODSERVER
+			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
 				cerr << input << endl;
-				return false;
-			}
+#endif // ALLOCATEONMETHODSERVER
 			boost::algorithm::replace_all(input, "\n", "\\n");
 			input= "LogServer false log 'SereverMethodTransaction.cpp' 93 5 \"" + input +"\"";
 			bRun= false;
@@ -163,15 +162,20 @@ namespace server
 				descriptor.setBoolean("own", true);
 			descriptor << "done\n";
 			descriptor.flush();
-			cout << "allocate ";
-			if(descriptor.getBoolean("asker"))
-				cout << "sending ";
-			else
-				cout << "answer ";
-			cout << "conection " << descriptor.getClientID();
-			cout << " in " << descriptor.getServerObject()->getName();
-			cout << " from client " << descriptor.getString("client");
-			cout << " in process " << descriptor.getString("process") << endl;
+#ifdef ALLOCATEONMETHODSERVER
+			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
+			{
+				cout << "allocate ";
+				if(descriptor.getBoolean("asker"))
+					cout << "sending ";
+				else
+					cout << "answer ";
+				cout << "conection " << descriptor.getClientID();
+				cout << " in " << descriptor.getServerObject()->getName();
+				cout << " from client " << descriptor.getString("client");
+				cout << " in process " << descriptor.getString("process") << endl;
+			}
+#endif // ALLOCATEONMETHODSERVER
 			return true;
 		}
 		if(	client == ""
@@ -184,9 +188,14 @@ namespace server
 			descriptor.setString("client", "");
 			descriptor << "done\n";
 			descriptor.flush();
-			cout << "finish connection with ID " << descriptor.getClientID();
-			cout << "  from client " << descriptor.getString("client");
-			cout << " in process " << descriptor.getString("process") << endl;
+#ifdef ALLOCATEONMETHODSERVER
+			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
+			{
+				cout << "finish connection with ID " << descriptor.getClientID();
+				cout << "  from client " << descriptor.getString("client");
+				cout << " in process " << descriptor.getString("process") << endl;
+			}
+#endif // ALLOCATEONMETHODSERVER
 			return false;
 		}
 		if(descriptor.getBoolean("own"))
