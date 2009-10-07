@@ -57,7 +57,7 @@ namespace ppi_database
 		n= _instance.size();
 		pdb= new DbInterface(process, connection);
 		ret= pdb->openSendConnection();
-		if(ret > 0)
+		if(ret > 0 && ret != 35)
 		{
 			cerr << pdb->strerror(ret) << endl;
 			delete pdb;
@@ -118,6 +118,34 @@ namespace ppi_database
 		command << folder;
 		command << subroutine;
 		sRv= sendMethod("ppi-db-server", command, false);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}
+	}
+
+	void DbInterface::setValue(string folder, string subroutine, double value)
+	{
+		int err;
+		string sRv;
+		OMethodStringStream command("setValue");
+
+		command << folder;
+		command << subroutine;
+		command << value;
+		sRv= sendMethod("ProcessChecker", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -201,7 +229,51 @@ namespace ppi_database
 		}
 	}
 
-	double DbInterface::getActEntry(bool& exist, const string folder, const string subroutine, const string identif, const double number/*= 0*/)
+	unsigned short DbInterface::existEntry(const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number)
+	{
+		int err;
+		unsigned short Rv= 0;
+		string sRv;
+		OMethodStringStream command("existEntry");
+
+		command << folder;
+		command << subroutine;
+		command << identif;
+		command << number;
+		sRv= sendMethod("ppi-db-server", command, false);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+			return 0;
+		}
+		if(sRv == "exist")
+			return 5;
+		if(sRv == "noaccess")
+			return 4;
+		if(sRv == "novalue")
+			return 3;
+		if(sRv == "noidentif")
+			return 2;
+		if(sRv == "nosubroutine")
+			return 1;
+		if(sRv == "nofolder")
+			return 0;
+		return 0;
+	}
+
+	double DbInterface::getActEntry(bool& exist, const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number/*= 0*/)
 	{
 		int err;
 		double dRv= 0;
@@ -644,5 +716,30 @@ namespace ppi_database
 		return dRv;
 	}
 
+	string DbInterface::stopall()
+	{
+		int err;
+		string sRv;
+		OMethodStringStream command("stop-all");
+
+		sRv= sendMethod("ppi-db-server", command, true);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}
+		return sRv;
+	}
 
 }

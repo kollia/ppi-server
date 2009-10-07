@@ -96,8 +96,19 @@ namespace ppi_database
 		 */
 		void writeIntoDb(const string folder, const string subroutine);
 		/**
+		 * set double value into measure list
+		 *
+		 * @param folder folder name from the running thread
+		 * @param subroutine mame of the subroutine in the folder
+		 * @param value value whitch should write into database
+		 */
+		void setValue(string folder, string subroutine, double value);
+		/**
 		 * fill double value into database
 		 *
+		 * @param folder folder name from the running thread
+		 * @param subroutine mame of the subroutine in the folder
+		 * @param identif identification of which value be set
 		 * @param value value whitch should write into database
 		 * @param bNew whether database should write only new values default= true
 		 */
@@ -112,6 +123,17 @@ namespace ppi_database
 		 */
 		void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= true);
 		/**
+		 * ask whether entry of folder:subroutine exist
+		 *
+		 * @param folder measure folder defined in measure.conf
+		 * @param subroutine subroutine inside of given folder
+		 * @param identif identification of which value be set
+		 * @param number count of double value which is required
+		 * @return 4 when all exists, 3 when number of value not exist, 2 when value with identifier not exist, 1 if subroutine not exist and 0 when folder not exist
+		 */
+		unsigned short existEntry(const string& folder, const string& subroutine, const string& identif,
+																const vector<double>::size_type number= 0);
+		/**
 		 * returns actual value of subroutine in folder
 		 *
 		 * @param folder measure folder defined in measure.conf
@@ -121,7 +143,8 @@ namespace ppi_database
 		 * @param exist whether asking value for subroutine exist in the database
 		 * @return current value of given parameters
 		 */
-		double getActEntry(bool& exist, const string folder, const string subroutine, const string identif, const double number= 0);
+		double getActEntry(bool& exist, const string& folder, const string& subroutine, const string& identif,
+																	const vector<double>::size_type number= 0);
 		/**
 		 * returns two convert values which have between the given value
 		 *
@@ -244,6 +267,10 @@ namespace ppi_database
 		 * @return default values with defined older_t structure
 		 */
 		const double getDefaultCache(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "");
+		/**
+		 * send stop-all command to ProcessChecker and stop also own database
+		 */
+		string stopall();
 		/**
 		 * destruct of Database
 		 */
