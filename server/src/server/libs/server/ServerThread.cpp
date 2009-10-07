@@ -43,6 +43,7 @@
 #include "Communication.h"
 #include "communicationthreadstarter.h"
 
+using namespace logger;
 
 namespace server
 {
@@ -123,11 +124,11 @@ namespace server
 		msg+= inet_ntoa(adresse.sin_addr);
 		msg+= " port:";
 		msg+= buf;
-#ifndef DEBUG
+
 		if(print)
 			cout << msg << endl;
-#endif // DEBUG
-		LOG(LOG_INFO, msg);
+		if(LogInterface::instance())
+			LOG(LOG_INFO, msg);
 
 		clientsocket = socket(PF_INET, SOCK_STREAM, 0);
 
