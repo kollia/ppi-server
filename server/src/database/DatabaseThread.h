@@ -153,6 +153,17 @@ namespace ppi_database
 		 */
 		void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= true);
 		/**
+		 * ask whether entry of folder:subroutine exist
+		 *
+		 * @param folder measure folder defined in measure.conf
+		 * @param subroutine subroutine inside of given folder
+		 * @param identif identification of which value be set
+		 * @param number count of double value which is required
+		 * @return 4 when all exists, 3 when number of value not exist, 2 when value with identifier not exist, 1 if subroutine not exist and 0 when folder not exist
+		 */
+		unsigned short existEntry(const string& folder, const string& subroutine, const string& identif,
+																const vector<double>::size_type number= 0);
+		/**
 		 * returns actual value of subroutine in folder
 		 *
 		 * @param folder measure folder defined in measure.conf
@@ -161,7 +172,7 @@ namespace ppi_database
 		 * @param number count of double value which is required
 		 * @return current value of given parameters
 		 */
-		double* getActEntry(const string folder, const string subroutine, const string identif,
+		double* getActEntry(const string& folder, const string& subroutine, const string& identif,
 								const vector<double>::size_type number= 0);
 		/**
 		 * returns two convert values which have between the given value
