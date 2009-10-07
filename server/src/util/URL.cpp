@@ -147,4 +147,37 @@ namespace util {
 		}
 		return nID;
 	}
+
+	string URL::getPath(const string& filestring)
+	{
+	/*	typedef reverse_iterator<	vector<string>::iterator,
+									string,
+									vector<string>::reference_type,
+									vector<string>::difference_type>	reverse_iterator;*/
+		typedef vector<string>::reverse_iterator reverse;
+
+		string sRv;
+		vector<string> dirs;
+		reverse rfirst;
+		reverse rlast;
+		string::size_type nLen= filestring.size();
+
+		if(nLen > 0 && filestring.substr((nLen-2), 1) == "/")
+			return filestring;
+		split(dirs, filestring, is_any_of("/"));
+		rfirst= dirs.rbegin();
+		rlast= dirs.rend();
+		while(*rfirst == "" && rfirst != rlast)
+			++rfirst;
+		++rfirst;
+		while(rfirst != rlast)
+		{
+			if(*rfirst != "")
+				sRv= "/" + *rfirst + sRv;
+			++rfirst;
+		}
+		if(nLen > 1 && filestring.substr(0, 1) != "/")
+			sRv= sRv.substr(1);
+		return sRv;
+	}
 }
