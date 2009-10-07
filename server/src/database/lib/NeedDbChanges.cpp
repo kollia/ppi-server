@@ -54,6 +54,19 @@ int NeedDbChanges::init(void* args)
 
 int NeedDbChanges::execute()
 {
+	if(!m_oDb->hasOpenSendConnection())
+	{
+		int ret;
+
+		ret= m_oDb->openSendConnection();
+		if(ret > 0 && ret != 35)
+		{
+			cerr << m_oDb->strerror(ret) << endl;
+			return ret;
+		}
+		if(ret == 35)
+			return 0; // try again later
+	}
 	m_oDb->isEntryChanged();
 	if(stopping())
 	{
