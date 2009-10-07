@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
 	 * 		for all one wire server an answer client
 	 * 		for all one wire server an question client
 	 */
-	starter= new CommunicationThreadStarter(0, 6);
+	starter= new CommunicationThreadStarter(0, 10);
 	// start initialitation from database
 	DatabaseThread::initial(dbpath, sConfPath, &oServerProperties);
 	db= DatabaseThread::instance();

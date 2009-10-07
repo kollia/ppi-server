@@ -375,7 +375,42 @@ string DatabaseThread::getLastDbFile(string path, string filter, off_t &size)
 	return lastFile;
 }
 
-double* DatabaseThread::getActEntry(const string folder, const string subroutine, const string identif, const vector<double>::size_type number/*= 0*/)
+unsigned short DatabaseThread::existEntry(const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number/*= 0*/)
+{
+	unsigned short nRv;
+	map<string, map<string, map<string, db_t> > >::iterator fEntrys;
+	map<string, map<string, db_t> >::iterator sEntrys;
+	map<string, db_t>::iterator iEntrys;
+
+	LOCK(m_DBCURRENTENTRY);
+	fEntrys= m_mCurrent.find(folder);
+	if(fEntrys != m_mCurrent.end())
+	{
+		sEntrys= fEntrys->second.find(subroutine);
+		if(sEntrys != fEntrys->second.end())
+		{
+			iEntrys= sEntrys->second.find(identif);
+			if(iEntrys != sEntrys->second.end())
+			{
+				if(iEntrys->second.values.size() > number)
+				{
+					if(iEntrys->second.device)
+						nRv= 5;// device exist correctly
+					else
+						nRv= 4; // no correct access to device
+				}else
+					nRv= 3; // count of value do not exist
+			}else
+				nRv= 2; // entry have not given identifier
+		}else
+			nRv= 1; // subroutine do not exist in folder
+	}else
+		nRv= 0; // no folder with given name defined
+	UNLOCK(m_DBCURRENTENTRY);
+	return nRv;
+}
+
+double* DatabaseThread::getActEntry(const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number/*= 0*/)
 {
 	double* pnRv;
 	db_t tvalue;
