@@ -32,10 +32,11 @@ namespace user
 			/**
 			 * static method to create single object of UserManagement
 			 *
-			 * @param file file whitch have configuration of access
+			 * @param access file witch have configuration of access
+			 * @param measure file with path for measure.conf
 			 * @return whether an new object is created
 			 */
-			static bool initial(const string file);
+			static bool initial(const string& access, const string& measure);
 			/**
 			 * static method to get instance of UserManagement
 			 *
@@ -48,7 +49,7 @@ namespace user
 			 * @param user name of user
 			 * @return whether user is root
 			 */
-			bool isRoot(const string user) const;
+			bool isRoot(const string& user) const;
 			/**
 			 * whether root can login as first user
 			 *
@@ -74,14 +75,14 @@ namespace user
 			 * @param user name of user
 			 * @return passord from user
 			 */
-			string getPassword(const string user) const;
+			string getPassword(const string& user) const;
 			/**
 			 * returns true if given user exists
 			 *
 			 * @param user name of user
 			 * @return whether user exist
 			 */
-			bool isUser(const string user) const;
+			bool isUser(const string& user) const;
 			/**
 			 * returns true if given user has permission to system
 			 * with given passord
@@ -91,7 +92,25 @@ namespace user
 			 * @param login whether access request is first login or change user
 			 * @return whether user have permission
 			 */
-			bool hasAccess(const string user, const string password, const bool login) const;
+			bool hasAccess(const string& user, const string& password, const bool login) const;
+			/**
+			 * return all set groups for subroutine in measure.conf
+			 *
+			 * @param folder name of folder
+			 * @param subroutine name of subroutine
+			 * @return groups
+			 */
+			string getAccessGroups(const string& folder, const string& subroutine);
+			/**
+			 * whether user has access to given groups
+			 *
+			 * @param user name of user
+			 * @param folder name of folder
+			 * @param subroutine name of subroutine
+			 * @param access look access for given param. can be 'read' or 'write'
+			 * @return whether user has access
+			 */
+			bool hasPermission(const string& user, const string& folder, const string& subroutine, const string& access);
 			/**
 			 * whether user has access to given groups
 			 *
@@ -100,7 +119,7 @@ namespace user
 			 * @param access look access for given param. can be 'read' or 'write'
 			 * @return whether user has access
 			 */
-			bool hasPermission(string user, string groups, string access);
+			bool hasPermission(const string& user, const string& groups, const string& access);
 			/**
 			 * destructor of user-management
 			 */
@@ -133,6 +152,10 @@ namespace user
 			 * instance of own single object
 			 */
 			static UserManagement* _instance;
+			/**
+			 * permission groups for folder and subroutines
+			 */
+			map<string, map<string, string> > m_mmGroups;
 
 			/**
 			 * constructor of creating an user-management
@@ -141,10 +164,11 @@ namespace user
 			/**
 			 * private method to load the access properties from harddisk
 			 *
-			 * @param file file whitch have configuration of access
+			 * @param access file witch have configuration of access
+			 * @param measure file with path for measure.conf
 			 * @return whether the file loading was successful
 			 */
-			bool init(const string filename);
+			bool init(const string& access, const string& measure);
 			/**
 			 * private method do found for given group all real defined group with permission
 			 * read or write
@@ -153,7 +177,7 @@ namespace user
 			 * @param groups set of groups whitch contains all original groups after call the method.<br />should be empty before
 			 * @param exist allallocations from refered groups to an group whitch are readed before
 			 */
-			void referedGroups(const string group, set<string>* groups, const map<string, set<string> > exist);
+			void referedGroups(const string& group, set<string>* groups, const map<string, set<string> > exist);
 	};
 
 }

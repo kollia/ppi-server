@@ -24,6 +24,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
+#include "../util/interlacedproperties.h"
 #include "../util/configpropertycasher.h"
 
 using namespace std;
@@ -39,21 +40,22 @@ namespace user
 
 	}
 
-	bool UserManagement::initial(const string file)
+	bool UserManagement::initial(const string& accessfile, const string& measurefile)
 	{
 		if(!_instance)
 		{
 			_instance= new UserManagement();
-			if(_instance->init(file))
+			if(_instance->init(accessfile, measurefile))
 				return true;
 		}
 		return false;
 	}
 
-	bool UserManagement::init(const string filename)
+	bool UserManagement::init(const string& accessfile, const string& measurefile)
 	{
 		string param;
 		Properties casher;
+		InterlacedProperties mproperties;
 		set<string> fGroups;
 		set<string>::iterator git;
 		vector<string> split;
@@ -61,11 +63,29 @@ namespace user
 		map<string, set<string> > msGroupGroup;
 		map<string, set<string> >::iterator ggit;
 
-		if(!casher.readFile(filename))
+		mproperties.modifier("folder");
+		mproperties.setMsgParameter("folder");
+		mproperties.modifier("name");
+		mproperties.setMsgParameter("name", "subroutine");
+		//mproperties.allowLaterModifier(true);
+		if(!mproperties.readFile(measurefile))
+		{
+			string msg("### fatal ERROR: cannot read correctly measure file '");
+
+			msg+= measurefile + "\n";
+			msg+= "                 ";
+			msg+= errno;
+			msg+= " ";
+			msg+= strerror(errno);
+			cerr << msg;
+			LOG(LOG_ALERT, msg);
+			return false;
+		}
+		if(!casher.readFile(accessfile))
 		{
 			string msg("### fatal ERROR: cannot read access config file ");
 
-			msg+= filename + "\n";
+			msg+= accessfile + "\n";
 			msg+= "                 ";
 			msg+= errno;
 			msg+= " ";
@@ -182,6 +202,25 @@ namespace user
 				msg+= "             this user will be ignored";
 			}
 		}
+
+		// read all permission groups for folder:subroutines in file measure.conf
+		typedef vector<IInterlacedPropertyPattern*>::iterator sit;
+
+		string folder, subroutine, groups;
+		vector<IInterlacedPropertyPattern*> fsection, ssection;
+
+		fsection= mproperties.getSections();
+		for(sit vfit= fsection.begin(); vfit != fsection.end(); ++vfit)
+		{
+			ssection= (*vfit)->getSections();
+			for(sit vsit= ssection.begin(); vsit != ssection.end(); ++vsit)
+			{
+				folder= (*vfit)->getSectionValue();
+				subroutine= (*vsit)->getSectionValue();
+				groups= (*vsit)->getValue("perm", /*warning*/false);
+				m_mmGroups[folder][subroutine]= groups;
+			}
+		}
 		return true;
 	}
 
@@ -203,7 +242,7 @@ namespace user
 		return m_sroot;
 	}
 
-	string UserManagement::getPassword(const string user) const
+	string UserManagement::getPassword(const string& user) const
 	{
 		map<string, string>::const_iterator fu;
 
@@ -213,7 +252,7 @@ namespace user
 		return "";
 	}
 
-	bool UserManagement::isUser(const string user) const
+	bool UserManagement::isUser(const string& user) const
 	{
 		map<string, string>::const_iterator fu;
 
@@ -223,7 +262,7 @@ namespace user
 		return false;
 	}
 
-	bool UserManagement::isRoot(const string user) const
+	bool UserManagement::isRoot(const string& user) const
 	{
 		if(m_sroot == user)
 			return true;
@@ -235,7 +274,7 @@ namespace user
 		return m_bRootLogin;
 	}
 
-	bool UserManagement::hasAccess(const string user, const string password, const bool login) const
+	bool UserManagement::hasAccess(const string& user, const string& password, const bool login) const
 	{
 		map<string, string>::const_iterator fu;
 
@@ -256,7 +295,29 @@ namespace user
 		return false;
 	}
 
-	bool UserManagement::hasPermission(string user, string groups, string access)
+	string UserManagement::getAccessGroups(const string& folder, const string& subroutine)
+	{
+		map<string, map<string, string> >::iterator fit;
+		map<string, string>::iterator sit;
+
+		fit= m_mmGroups.find(folder);
+		if(fit == m_mmGroups.end())
+			return "";
+		sit= fit->second.find(subroutine);
+		if(sit == fit->second.end())
+			return "";
+		return sit->second;
+	}
+
+	bool UserManagement::hasPermission(const string& user, const string& folder, const string& subroutine, const string& access)
+	{
+		string groups;
+
+		groups= getAccessGroups(folder, subroutine);
+		return hasPermission(user, groups, access);
+	}
+
+	bool UserManagement::hasPermission(const string& user, const string& groups, const string& access)
 	{
 		map<string, set<string> >::iterator fu;
 		map<string, string>::iterator fg;
@@ -291,7 +352,7 @@ namespace user
 		return false;
 	}
 
-	void UserManagement::referedGroups(const string group, set<string>* groups, const map<string, set<string> > exist)
+	void UserManagement::referedGroups(const string& group, set<string>* groups, const map<string, set<string> > exist)
 	{
 		map<string, string>::iterator fg;
 		map<string, set<string> >::const_iterator fe;
