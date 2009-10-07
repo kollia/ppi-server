@@ -34,18 +34,33 @@ namespace util
 		m_GETQUESTIONLOCK= Thread::getMutex("GETQUESTIONLOCK");
 	}
 
-	int ExternClientInputTemplate::openSendConnection()
+	int ExternClientInputTemplate::openSendConnection(string toopen/*= ""*/)
+	{
+		if(m_oSendConnect == NULL)
+			return 1;
+		return openSendConnection(m_oSendConnect->getTimeout(), toopen);
+	}
+
+	int ExternClientInputTemplate::openSendConnection(const unsigned int timeout, string toopen/*= ""*/)
 	{
 		int nRv= 0;
+		unsigned int old;
 
 		if(m_pSendTransaction)
 			return -1;
 		if(m_oSendConnect == NULL)
 			return 1;
+		if(toopen == "")
+			toopen= m_sProcess + ":" + m_sName + " SEND";
+		old= m_oSendConnect->getTimeout();
+		if(old != timeout)
+			m_oSendConnect->setTimeout(timeout);
 		m_pSendTransaction= new OutsideClientTransaction();
 		m_oSendConnect->newTranfer(m_pSendTransaction, true);
-		m_pSendTransaction->setCommand(m_sProcess + ":" + m_sName + " SEND");
+		m_pSendTransaction->setCommand(toopen);
 		nRv= m_oSendConnect->init();
+		if(old != timeout)
+			m_oSendConnect->setTimeout(old);
 		if(nRv > 0)
 		{
 			m_oSendConnect->newTranfer(NULL, /*delete old*/true);

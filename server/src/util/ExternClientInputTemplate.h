@@ -70,11 +70,53 @@ namespace util
 			 */
 			virtual string strerror(int error) const;
 			/**
-			 * destructor of ExternClientInputTemplate
+			 * open the connection to server for sending questions
+			 * <b>errorcodes:</b>
+			 * <table>
+			 * 	<tr>
+			 * 		<td>
+			 * 			0
+			 * 		</td>
+			 * 		<td>
+			 * 			no error occurred
+			 * 		</td>
+			 * 	</tr>
+			 * 	<tr>
+			 * 		<td>
+			 * 			-1
+			 * 		</td>
+			 * 		<td>
+			 * 			WARNING: connection exist before
+			 * 		</td>
+			 * 	</tr>
+			 * 	<tr>
+			 * 		<td>
+			 * 			1
+			 * 		</td>
+			 * 		<td>
+			 * 			ERROR: no <code>IClientConnectArtPattern</code> be given for sending
+			 * 		</td>
+			 * 	</tr>
+			 * 	<tr>
+			 * 		<td>
+			 * 			2
+			 * 		</td>
+			 * 		<td>
+			 * 			cannot connect with server, or initialization was fail
+			 * 		</td>
+			 * 	</tr>
+			 * 	<tr>
+			 * 		<td colspan="2">
+			 * 			all other ERRORs or WARNINGs see in <code>IClientConnectArtPattern</code>
+			 * 			for beginning connection by sending
+			 * 		</td>
+			 * 	</tr>
+			 * </table>
+			 *
+			 * @param toopen string for open question, otherwise by null string the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
+			 * @return error number
 			 */
-			virtual ~ExternClientInputTemplate();
-
-		protected:
+			int openSendConnection(string toopen= "");
 			/**
 			 * open the connection to server for sending questions
 			 * <b>errorcodes:</b>
@@ -119,15 +161,73 @@ namespace util
 			 * 	</tr>
 			 * </table>
 			 *
+			 * @param toopen string for open question, otherwise by null string the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
+			 * @param timeout timeout in seconds by finding no connection in first step
 			 * @return error number
 			 */
-			int openSendConnection();
+			int openSendConnection(const unsigned int timeout, string toopen= "");
 			/**
 			 * open the connection to server to get questions and answer this
 			 *
 			 * @return error code
 			 */
 			int openGetConnection();
+			/**
+			 * whether object has open connection to send questions to server
+			 *
+			 * @return whether connection is open
+			 */
+			bool hasOpenSendConnection()
+			{ return m_pSendTransaction == NULL ? false : true; };
+			/**
+			 * whether object has open connection to get questions from server
+			 *
+			 * @return whether connection is open
+			 */
+			bool hasOpenGetConnection()
+			{ return m_pGetTransaction == NULL ? false : true; };
+			/**
+			 * return address of connecting host for sending
+			 *
+			 * @return host address
+			 */
+			const string getSendHostAddress()
+			{ return m_oSendConnect->getHostAddress(); };
+			/**
+			 * return address of connecting host from witch should get questions
+			 *
+			 * @return host address
+			 */
+			const string getGetHostAddress()
+			{ return m_oGetConnect->getHostAddress(); };
+			/**
+			 * return address of connecting port for sending
+			 *
+			 * @return port address
+			 */
+			const unsigned short getSendPortAddress()
+			{ return m_oSendConnect->getPortAddress(); };
+			/**
+			 * return address of connecting port from witch should get questions
+			 *
+			 * @return port address
+			 */
+			const unsigned short getGetPortAddress()
+			{ return m_oGetConnect->getPortAddress(); };
+			/**
+			 * last answer from send question.<br />
+			 * There also the answer by open connection.
+			 *
+			 * @return vector of answers
+			 */
+			vector<string> lastSendAnswer()
+			{ return m_vSendAnswer; };
+			/**
+			 * destructor of ExternClientInputTemplate
+			 */
+			virtual ~ExternClientInputTemplate();
+
+		protected:
 			/**
 			 * send message to given server in constructor
 			 *
@@ -200,6 +300,10 @@ namespace util
 			 * If not exist create an new one
 			 */
 			OutsideClientTransaction* m_pGetTransaction;
+			/**
+			 * last answer from sending question
+			 */
+			vector<string> m_vSendAnswer;
 			/**
 			 * lock for sending method
 			 */
