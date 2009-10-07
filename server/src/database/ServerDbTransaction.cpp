@@ -23,7 +23,10 @@
 #include <iostream>
 #include <sstream>
 
+#include "../pattern/server/IServerPattern.h"
+
 #include "../util/OParameterStringStream.h"
+#include "../util/OMethodStringStream.h"
 
 #include "ServerDbTransaction.h"
 #include "DatabaseThread.h"
@@ -32,6 +35,7 @@
 using namespace std;
 using namespace util;
 using namespace ppi_database;
+using namespace design_pattern_world::server_pattern;
 
 namespace server
 {
@@ -70,17 +74,54 @@ namespace server
 			double value;
 			vector<double> values;
 			string folder, subroutine, identif;
+			OMethodStringStream command("fillValue");
 
 			object >> folder;
+			command << folder;
 			object >> subroutine;
+			command << subroutine;
 			object >> identif;
 			object >> bNew;
 			while(!object.empty())
 			{
 				object >> value;
 				values.push_back(value);
+				command << value;
 			}
 			db->fillValue(folder, subroutine, identif, values, bNew);
+
+		}else if(method == "existEntry")
+		{
+			int number= 0;
+			unsigned short nRv;
+			string folder, subroutine, identif;
+
+			object >> folder;
+			object >> subroutine;
+			object >> identif;
+			if(!object.empty())
+				object >> number;
+			nRv= db->existEntry(folder, subroutine, identif, number);
+			switch(nRv)
+			{
+			case 5:
+				descriptor << "exist";
+				break;
+			case 4:
+				descriptor << "noaccess";
+				break;
+			case 3:
+				descriptor << "novalue";
+				break;
+			case 2:
+				descriptor << "noidentif";
+				break;
+			case 1:
+				descriptor << "nosubroutine";
+				break;
+			default: // inherit 0
+				descriptor << "nofolder";
+			}
 
 		}else if(method == "getActEntry")
 		{
@@ -293,8 +334,48 @@ namespace server
 
 			oRv << dRv;
 			descriptor << oRv.str();
+		}else if(method == "stop-all")
+		{
+			string sRv;
+			static unsigned short stopdb= 0;
+
+			if(stopdb == 0)
+			{
+				db->stop(false);
+				++stopdb;
+			}
+			if(stopdb == 1)
+			{
+				sRv= descriptor.sendToOtherClient("ProcessChecker", "stop-all", true);
+				if(sRv == "done")
+				{
+					++stopdb;
+					descriptor.sendToOtherClient("ProcessChecker", "OK", false);
+				}else
+					sRv= "database";
+			}
+			if(stopdb == 2)
+			{
+				IServerPattern* server;
+
+				if(db->running() || sRv == "database")	// the first step coming from stopdb(1)
+					sRv= "database";					// give back database
+				else
+				{
+					server= descriptor.getServerObject();
+					server->getCommunicationFactory()->stopCommunicationThreads(/*wait*/false);
+					server->stop(false);
+					sRv= "done";
+					descriptor.endl();
+					descriptor.flush();
+					return false;
+				}
+			}
+			descriptor << sRv;
+
 		}else
 		{
+			// undefined command was sending
 			descriptor << "ERROR 010";
 		}
 		descriptor.endl();
