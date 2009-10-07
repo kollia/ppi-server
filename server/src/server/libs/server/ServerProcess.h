@@ -52,9 +52,11 @@ namespace server
 			 * @param starter object of IServerCommunicationStarterPattern to starter communication threads
 			 * @param connect art of server connection
 			 * @param extcon on which connection from outside the process is reachable
+			 * @param open string for open connection, otherwise by null string the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
 			 * @param wait whether the starting method should wait for <code>init()</code> method
 			 */
-			ServerProcess(string processName, const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon= NULL, const bool wait= true);
+			ServerProcess(string processName, const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect,
+										IClientConnectArtPattern* extcon= NULL, const string& open= "", const bool wait= true);
 			/**
 			 * initialization of class ServerThread.<br />
 			 * Object delete by ending instance of ServerCommunciationStarter
@@ -62,9 +64,11 @@ namespace server
 			 * @param starter object of IServerCommunicationStarterPattern to starter communication threads
 			 * @param connect art of server connection
 			 * @param extcon on which connection from outside the process is reachable
+			 * @param open string for open connection, otherwise by null string the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
 			 * @param wait whether the starting method should wait for <code>init()</code> method
 			 */
-			ServerProcess(const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon= NULL, const bool wait= true);
+			ServerProcess(const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon= NULL,
+												const string& open= "", const bool wait= true);
 			/**
 			 * return name of server
 			 *
@@ -128,6 +132,10 @@ namespace server
 			 * holder IServerConnectArtPattern to verify connection to client
 			 */
 			IServerConnectArtPattern* m_pConnect;
+			/**
+			 * string for open connection, otherwise by null string the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
+			 */
+			string m_sOpenConnection;
 
 	};
 }

@@ -31,6 +31,7 @@
 #include <string.h>
 
 #include "../../../util/XMLStartEndTagReader.h"
+#include "../../../util/ExternClientInputTemplate.h"
 
 #include "../../../ports/measureThread.h"
 
@@ -48,20 +49,24 @@ namespace server
 	using namespace logger;
 	using namespace design_pattern_world::server_pattern;
 
-	ServerProcess::ServerProcess(string processName, const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon/*= NULL*/, const bool wait/*= true*/)
+	ServerProcess::ServerProcess(string processName, const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect,
+										IClientConnectArtPattern* extcon/*= NULL*/, const string& open/*= ""*/, const bool wait/*= true*/)
 	:	Process(processName, extcon, NULL, wait),
 		m_uid(uid),
 		m_pStarterPool(starter),
-		m_pConnect(connect)
+		m_pConnect(connect),
+		m_sOpenConnection(open)
 	{
 		m_pConnect->setServerInstance(this);
 	}
 
-	ServerProcess::ServerProcess(const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect, IClientConnectArtPattern* extcon/*= NULL*/, const bool wait/*= true*/)
+	ServerProcess::ServerProcess(const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect,
+											IClientConnectArtPattern* extcon/*= NULL*/, const string& open/*= ""*/, const bool wait/*= true*/)
 	:	Process("CommunicationServerProcess", extcon, NULL, wait),
 		m_uid(uid),
 		m_pStarterPool(starter),
-		m_pConnect(connect)
+		m_pConnect(connect),
+		m_sOpenConnection(open)
 	{
 		m_pConnect->setServerInstance(this);
 	}
@@ -154,6 +159,25 @@ namespace server
 
 	int ServerProcess::init(void *args)
 	{
+		int ret;
+		const unsigned short port= getSendPortAddress();
+		string host(getSendHostAddress());
+		//ExternClientInputTemplate run(getName(), getName(), m_pConnect, NULL);
+
+		if(host != "127.0.0.1")
+		{
+			cerr << "### " << getProcessName() << " should running on other computer," << endl;
+			cerr << "    so do not start any server process" << endl;
+			return 10;
+		}
+		cout << "### checking socket on IP:127.0.0.1 port:" << port << endl;
+		ret= openSendConnection(0, m_sOpenConnection);
+		if(ret == 0)
+		{
+			closeSendConnection();
+			cerr << "### any server running on port, so do not start server" << endl;
+			return 10;
+		}
 		LogInterface::instance()->setThreadName(getProcessName());
 		m_pStarterPool->start(args);
 		setuid(m_uid);
