@@ -63,6 +63,18 @@ namespace design_pattern_world
 			 */
 			virtual const unsigned short getPortAddress() const= 0;
 			/**
+			 * return timeout by finding no connection
+			 *
+			 * @return timeout in seconds
+			 */
+			virtual unsigned int getTimeout() const= 0;
+			/**
+			 * set timeout by finding no connection
+			 *
+			 * @param time timeout in seconds
+			 */
+			virtual void setTimeout(const unsigned int time)= 0;
+			/**
 			 * return string describing error number
 			 *
 			 * @param error code number of error

@@ -434,6 +434,20 @@ namespace server
 			virtual const unsigned short getPortAddress() const
 			{ return m_nPort; };
 			/**
+			 * return timeout by finding no connection
+			 *
+			 * @return timeout in seconds
+			 */
+			virtual unsigned int getTimeout() const
+			{ return m_nTimeout; };
+			/**
+			 * set timeout by finding no connection
+			 *
+			 * @param time timeout in seconds
+			 */
+			virtual void setTimeout(const unsigned int time)
+			{ m_nTimeout= time; };
+			/**
 			 * close all connections of client
 			 */
 			virtual void close();
@@ -469,7 +483,7 @@ namespace server
 			/**
 			 * how ofthen the client should try to connect
 			 */
-			const unsigned int m_nTimeout;
+			unsigned int m_nTimeout;
 
 		private:
 			/**
