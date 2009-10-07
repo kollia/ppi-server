@@ -1,11 +1,18 @@
 
 
-set(serverSrcs	ClientTransaction.cpp
-        		hearingthread.cpp
+set(clientLibSrcs   ClientTransaction.cpp 
+                    hearingthread.cpp       )
+add_library(ppiclientlib STATIC ${clientLibSrcs})
+
+
+
+set(serverSrcs	internetservermain.cpp
         		ServerTransaction.cpp	        )
         		
-add_library(ppiserver SHARED ${serverSrcs})
-install(TARGETS ppiserver DESTINATION lib)
+add_executable(ppi-internet-server ${serverSrcs})
+target_link_libraries(ppi-internet-server ppiutil ppiserverlib ppiserverlibserver ppiserverlibclient ppiclientlib ppidb ppiow ppilogger ${RT_LIBRARIES} 
+                              ppiports ppiportserver ${OWFS_LIBRARIES} ${USB_LIBRARIES} ${K8055_LIBRARIES} ) # for debug-info from owserver
+install(TARGETS ppi-internet-server DESTINATION bin)
 
 
 

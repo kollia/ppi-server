@@ -27,13 +27,12 @@
 #include "util/debug.h"
 #include "util/URL.h"
 #include "util/configpropertycasher.h"
-#include "util/usermanagement.h"
 #include "util/ProcessStarter.h"
+#include "util/usermanagement.h"
 
 #include "logger/lib/LogInterface.h"
 
 #include "database/lib/DbInterface.h"
-#include "database/lib/NeedDbChanges.h"
 
 #include "portserver/owserver.h"
 #include "portserver/maximchipaccess.h"
@@ -65,6 +64,7 @@
 #include "server/ClientTransaction.h"
 
 #include "starter.h"
+#include "ProcessChecker.h"
 
 using namespace ppi_database;
 using namespace util;
@@ -93,7 +93,7 @@ bool Starter::openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsig
 
 bool Starter::execute(vector<string> options)
 {
-	bool bLog, bDb, bPorts, bCommunicate, bInternet;
+	bool bLog, bDb, bPorts, bInternet;
 	int err;
 	unsigned int nOptions= options.size();
 	vector<unsigned long> ports; // whitch ports are needet
@@ -140,7 +140,7 @@ bool Starter::execute(vector<string> options)
 	m_oServerFileCasher.readLine("workdir= " + m_sWorkdir);
 	readFile(ports, URL::addPath(m_sConfPath, "measure.conf"));
 
-	// check wether shoud be start which server
+	// check whether should be start which server
 	property= m_oServerFileCasher.getValue("logserver", /*warning*/true);
 	if(	property == ""
 		||
@@ -180,19 +180,6 @@ bool Starter::execute(vector<string> options)
 		bPorts= true;
 	else
 		bPorts= false;
-	property= m_oServerFileCasher.getValue("communicateserver", /*warning*/true);
-	if(	property == ""
-		||
-		(	property != "true"
-			&&
-			property != "false"	)	)
-	{
-		cerr << "###          parameter communicateserver not be set, so start server" << endl;
-		bCommunicate= true;
-	}else if(property == "true")
-		bCommunicate= true;
-	else
-		bCommunicate= false;
 	property= m_oServerFileCasher.getValue("internetserver", /*warning*/true);
 	if(	property == ""
 		||
@@ -207,11 +194,6 @@ bool Starter::execute(vector<string> options)
 	else
 		bInternet= false;
 
-	if(!UserManagement::initial(URL::addPath(m_sConfPath, "access.conf", /*always*/true)))
-	{
-		cerr << "### ERROR: cannot read correctly 'access.conf'" << endl;
-		return false;
-	}
 
 	readPasswd();
 
@@ -301,7 +283,6 @@ bool Starter::execute(vector<string> options)
 	// start database server
 
 	cout << "### start ppi db server" << endl;
-
 	process= new ProcessStarter(	"ppi-db-server",
 									new SocketClientConnection(	SOCK_STREAM,
 																commhost,
@@ -358,16 +339,6 @@ bool Starter::execute(vector<string> options)
 	}
 	cout << " OK" << endl;
 	// ------------------------------------------------------------------------------------------------------------
-
-	if(checkServer()==true)
-	{
-		LOG(LOG_ERROR, "### server is running\n    -> do nothing");
-#ifndef DEBUG
-		printf("### server is running\n");
-		printf("    ->do nothing\n");
-#endif
-		return false;
-	}
 
 	for(unsigned int n= 0; n < ports.size(); n++)
 	{
@@ -618,38 +589,46 @@ bool Starter::execute(vector<string> options)
 	// after creating all threads and objects
 	// all chips should be defined in DefaultChipConfigReader
 	db->chipsDefined(true);
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// start internet server
 
-	property= "minconnectionthreads";
-	minThreads= m_oServerFileCasher.getUShort(property, /*warning*/true);
-	property= "maxconnectionthreads";
-	maxThreads= m_oServerFileCasher.getUShort(property, /*warning*/true);
-	if(	property == "#ERROR"
-		||
-		maxThreads < 4		)
+	cout << "### start ppi internet server" << endl;
+	process= new ProcessStarter(	"ppi-internet-server",
+									new SocketClientConnection(	SOCK_STREAM,
+																host,
+																port,
+																10			)	);
+
+	if(bInternet)
+		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-internet-server").c_str(), NULL);
+	else
+		err= process->check();
+	if(err > 0)
 	{
-		maxThreads= 4;
-	}
+		string msg;
 
-	if(!NeedDbChanges::initial("ppi-server", new SocketClientConnection(	SOCK_STREAM,
-																			commhost,
-																			commport,
-																			5				)	)	)
-	{
-		string msg("### WARNING: cannot start second connection to database,\n");
-
-		msg+= "             so client connection with HEAEING commands cannot be answered";
+		msg=  "### WARNING: cannot start database-server\n";
+		msg+= "             " + process->strerror(err);
+		msg+= "             so no communication from outside (any client) is available";
 		cerr << msg << endl;
-		LOG(LOG_WARNING, msg);
+		LOG(LOG_ERROR, msg);
 	}
-	ServerThread server(new CommunicationThreadStarter(minThreads, maxThreads),
-						new TcpServerConnection(	host,
-													port,
-													10,
-													new ServerTransaction()	)	);
+	delete process;
+	// ------------------------------------------------------------------------------------------------------------
 
-	gInternetServer= &server;
-	server.start(NULL, true);
+	// start ProcessChecker
+	ProcessChecker checker(	new SocketClientConnection(	SOCK_STREAM,
+														commhost,
+														commport,
+														5				),
+							new SocketClientConnection(	SOCK_STREAM,
+														commhost,
+														commport,
+														5				) );
+	checker.start(pFirstMeasureThreads, true);
 
+
+	// ending process ppi-server
 	meash_t* delMeash;
 	//system("ps -eLf | grep ppi-server");
 	pCurrentMeasure= pFirstMeasureThreads;
@@ -1993,7 +1972,8 @@ bool Starter::stop(vector<string> options)
 #endif
 	if(user == NULL)
 	{
-		if(!UserManagement::initial(URL::addPath(confpath, "access.conf", /*always*/true)))
+		if(!UserManagement::initial(URL::addPath(confpath, "access.conf", /*always*/true),
+									URL::addPath(confpath, "measure.conf", /*always*/true)))
 			return false;
 		user= UserManagement::instance();
 	}
@@ -2003,7 +1983,6 @@ bool Starter::stop(vector<string> options)
 	if(property == "#ERROR")
 		exit(EXIT_FAILURE);
 	clientsocket= ServerThread::connectAsClient("127.0.0.1", nPort);
-	LOG(LOG_INFO, "any user is stopping server");
 	if(clientsocket==0)
 	{
 		LOG(LOG_INFO, "no server is running");
@@ -2072,10 +2051,7 @@ bool Starter::stop(vector<string> options)
 	close(clientsocket);
 	if(!strcmp(buf, "OK\n"))
 	{
-#ifdef DEBUG
 		printf("\nserver was stopped\n");
-#endif // DEBUG
-		LOG(LOG_SERVER, "server was stopped");
 	}
 	return true;
 }

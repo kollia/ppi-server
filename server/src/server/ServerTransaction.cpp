@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <iostream>
 #include <string.h>
 
 #include <iostream>
@@ -37,6 +38,7 @@
 #include "../util/XMLStartEndTagReader.h"
 #include "../util/usermanagement.h"
 #include "../util/configpropertycasher.h"
+#include "../util/URL.h"
 
 #include "../database/lib/DbInterface.h"
 #include "../database/lib/NeedDbChanges.h"
@@ -45,6 +47,8 @@
 #include "libs/server/communicationthreadstarter.h"
 
 #include "ServerTransaction.h"
+
+extern string global_clientpath;
 
 using namespace std;
 using namespace user;
@@ -402,7 +406,8 @@ namespace server
 		{
 			if(input == "stop-server")
 			{
-				meash_t *pCurrent= meash_t::firstInstance;
+				string action;
+				DbInterface* db= DbInterface::instance();
 				UserManagement* user= UserManagement::instance();
 				IServerCommunicationStarterPattern* starter= gInternetServer->getCommunicationFactory();
 
@@ -421,36 +426,20 @@ namespace server
 	#endif
 					return descriptor.getBoolean("wait");
 				}
-				cout << endl;
-				cout << "stopping:" << endl;
-				cout << "measureThreads " << flush;
 				LOG(LOG_INFO, "user stop server with foreign application");
-				while(pCurrent)
-				{ // stopping all measure threads
-					pCurrent->pMeasure->stop(/*wait*/false);
-					pCurrent= pCurrent->next;
-				}
-				starter->stopCommunicationThreads();
-				pCurrent= meash_t::firstInstance;
-				while(pCurrent)
-				{ // waiting for threads are Stopping
-					sendmsg= "wait\n";
-					cout << "." << flush;
-					while(pCurrent->pMeasure->running())
+				cout << endl;
+				do{
+					cout << "send stop-all to database" << endl;
+					action= db->stopall();
+					if(action != "done")
 					{
-						descriptor << sendmsg;
+						descriptor << action;
+						descriptor.endl();
 						descriptor.flush();
-		#ifdef DEBUG
-						cout << "wait for MeasureThread" << endl;
-		#endif
-		#ifdef SERVERDEBUG
-					cout << "send: wait" << endl;
-		#endif
-						sleep(1);
 					}
-					pCurrent= pCurrent->next;
-				}
+				}while(action != "done");
 				cout << endl << "server " << flush;
+				starter->stopCommunicationThreads();
 				gInternetServer->stop(false);
 				// sending any command to server for stopping
 				ServerThread::connectAsClient("127.0.0.1", 20004, false);
@@ -727,8 +716,10 @@ namespace server
 				string sSubroutine;
 				stringstream ss(input);
 				vector<string> values;
+				unsigned short nExist= 6;
 				meash_t *pCurMeas= NULL;
 				portBase* port= NULL;
+				DbInterface* db= DbInterface::instance();
 
 				while(ss >> buffer)
 				{
@@ -788,118 +779,101 @@ namespace server
 	#endif
 							bWait= false;
 						}else
-							pCurMeas= getMeasurePort(values[0]);
+							nExist= db->existEntry(values[0], values[1], "value", 0);
 
-						if(pCurMeas)
+						if(nExist == 5)
 						{
 							bool bCorrect;
 							double value;
-							char cValue[500];
-							string groups, command;
+							string command;
 							UserManagement* user= UserManagement::instance();
 
-							if(pCurMeas)
+							if(bGet)
+								command= "read";
+							else
+								command= "write";
+							if(user->hasPermission(descriptor.getString("username"), values[0], values[1], command))
 							{
-								port= pCurMeas->pMeasure->getPortClass(values[1], bCorrect);
-								if(port)
+								if(bGet)
 								{
-									if(bCorrect)
-									{
-										groups= port->getPermissionGroups();
-										if(bGet)
-											command= "read";
-										else
-											command= "write";
-										if(user->hasPermission(descriptor.getString("username"), groups, command))
-										{
-											if(port->hasDeviceAccess())
-											{
-												if(bGet)
-												{
-													value= port->getValue("e:"+descriptor.getString("username"));
-													sprintf(cValue, "%lf", value);
-													sendmsg= cValue;
+									ostringstream ovalue;
+
+														// bCorrect must be always true
+									value= db->getActEntry(bCorrect, values[0], values[1], "value");
+									//value= port->getValue("e:"+descriptor.getString("username"));
+									ovalue << value;
+									sendmsg= ovalue.str();
 #ifdef SERVERDEBUG
-													cout << "send: " << sendmsg << endl;
+									cout << "send: " << sendmsg << endl;
 #endif
-													sendmsg+= "\n";
-													descriptor << sendmsg;
-													bWait= false;
-												}else
-												{
-													sSubroutine= values[1];
-													bWait= true;
-												}
-											}else
-											{
-												string msg;
-
-												msg+= "client ask for '";
-												msg+= input + "'\n";
-												msg+= "but subroutine has no correct acces to device\n";
-												msg+= "send ERROR 016";
-												LOG(LOG_ERROR, msg);
-#ifdef SERVERDEBUG
-												cerr << msg << endl;
-#endif
-												descriptor << "ERROR 016\n";
-											}
-
-										}else
-										{
-											string msg;
-
-											msg+= "client ask for '";
-											msg+= input + "'\n";
-											msg+= "but user '";
-											msg+= descriptor.getString("username") + "' has no permisson to subroutine\n";
-											msg+= "so permisson denied, send ERROR 013";
-											LOG(LOG_ERROR, msg);
-											sendmsg= "ERROR 013\n";
-											descriptor << sendmsg;
-											bWait= false;
-#ifdef SERVERDEBUG
-											cerr << msg << endl;
-#endif
-										}
-									}else
-									{
-										string msg;
-
-										msg+= "client ask for '";
-										msg+= input + "'\n";
-										msg+= "user '";
-										msg+= descriptor.getString("username") + "' but server has no correct chip contact\n";
-										msg+= "send ERROR 014";
-										LOG(LOG_ERROR, msg);
-										sendmsg= "ERROR 014\n";
-										descriptor << sendmsg;
-										bWait= false;
-				#ifdef SERVERDEBUG
-										cerr << msg << endl;
-				#endif
-									}
-								}else
-								{
-									string msg;
-
-									msg+= "client ask for '";
-									msg+= input + "'\n";
-									msg+= "cannot find subroutine ";
-									msg+= values[1];
-									msg+= " in folder ";
-									msg+= values[0];
-									msg+= "\nsend ERROR 005";
-									LOG(LOG_ERROR, msg);
-									sendmsg= "ERROR 005\n";
+									sendmsg+= "\n";
 									descriptor << sendmsg;
 									bWait= false;
+								}else
+								{
+									double value;
+
+									ss >> value;
+									db->setValue(values[0], values[1], value);
+									sendmsg= "done";
+#ifdef SERVERDEBUG
+									cout << "send: " << sendmsg << endl;
+#endif
+									sendmsg+= "\n";
+									descriptor << sendmsg;
+									bWait= false;
+								}
+
+							}else
+							{
+								string msg;
+
+								msg+= "client ask for '";
+								msg+= input + "'\n";
+								msg+= "but user '";
+								msg+= descriptor.getString("username") + "' has no permisson to subroutine\n";
+								msg+= "so permisson denied, send ERROR 013";
+								LOG(LOG_ERROR, msg);
+								sendmsg= "ERROR 013\n";
+								descriptor << sendmsg;
+								bWait= false;
+#ifdef SERVERDEBUG
+								cerr << msg << endl;
+#endif
+							}
+						}else if(nExist == 4)
+						{
+							string msg;
+
+							msg+= "client ask for '";
+							msg+= input + "'\n";
+							msg+= "but subroutine has no correct acces to device\n";
+							msg+= "send ERROR 016";
+							LOG(LOG_ERROR, msg);
+#ifdef SERVERDEBUG
+							cerr << msg << endl;
+#endif
+							descriptor << "ERROR 016\n";
+
+						}else if(nExist == 1)
+						{
+							string msg;
+
+							msg+= "client ask for '";
+							msg+= input + "'\n";
+							msg+= "cannot find subroutine ";
+							msg+= values[1];
+							msg+= " in folder ";
+							msg+= values[0];
+							msg+= "\nsend ERROR 005";
+							LOG(LOG_ERROR, msg);
+							sendmsg= "ERROR 005\n";
+							descriptor << sendmsg;
+							bWait= false;
 			#ifdef SERVERDEBUG
 									cerr << msg << endl;
 			#endif
-								}
-							}
-						}else
+						}else if(nExist == 0)
 						{
 							string msg;
 
@@ -918,19 +892,6 @@ namespace server
 						}
 						break;
 
-					case 2:
-						double nValue;
-
-						nValue= atof(buffer.c_str());
-						port->setValue(nValue);
-						sendmsg= "done";
-	#ifdef SERVERDEBUG
-						cout << "send: " << sendmsg << endl;
-	#endif
-						sendmsg+= "\n";
-						descriptor << sendmsg;
-						bWait= false;
-						break;
 					}
 					if(!bWait)
 					{
@@ -1200,11 +1161,12 @@ namespace server
 		//struct dirent **namelist;
 		struct dirent *dirName;
 		struct stat fileStat;
-		string path(meash_t::clientPath);
+		string path(global_clientpath);
 		string folder;
 		//int result;
 		size_t filterLen= filter.length();
 		DIR *dir;
+		//map<string, string> result;
 
 		if(	path.substr(path.length()-1, 1) != "/"
 			&&
@@ -1215,6 +1177,10 @@ namespace server
 			path+= "/";
 		}
 		path+= verz;
+		//result= URL::readDirectory(path, "", filter);
+		//for(map<string, string>::iterator o= result.begin(); o != result.end(); ++o)
+		//	cout << "first:" << o->first << " second:" << o->second << endl;
+		//return true;
 		dir= opendir(&path[0]);
 		if(dir == NULL)
 			return false;

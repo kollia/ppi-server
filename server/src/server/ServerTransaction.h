@@ -187,7 +187,7 @@ namespace server
 			 *       014
 			 *     </td>
 			 *     <td>
-			 *       subrutine isn't correct defined by the settings of config file
+			 *       [not set]
 			 *     </td>
 			 *   </tr>
 			 *   <tr>

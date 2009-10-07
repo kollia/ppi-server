@@ -1,5 +1,6 @@
 
-set(mainSrcs 	main.cpp 
+set(mainSrcs 	main.cpp
+                ProcessChecker.cpp 
 		        starter.cpp				)
 
 
@@ -11,7 +12,7 @@ endif(FULL_CLIENT_PATH)
 
 add_executable(ppi-server ${mainSrcs} ${databaseSrcs} ${loggerSrcs} ${portsSrcs} ${portserverSrcs} ${serverSrcs} ${INSTALL_SCRIPT})
 
-target_link_libraries(ppi-server ppiutil ppilogger ppiports ppidb ppiportserver ppiow ppiserver ppiserverlib ppiserverlibclient ppiserverlibserver 
+target_link_libraries(ppi-server ppiutil ppilogger ppiports ppidb ppiportserver ppiow ppiserverlib ppiserverlibclient ppiclientlib ppiserverlibserver 
                         ${RT_LIBRARIES} ${OWFS_LIBRARIES} ${USB_LIBRARIES} ${K8055_LIBRARIES} ${OPENSSL_LIBRARIES} ${LircClient_LIBRARIES})
 
 install(TARGETS ppi-server DESTINATION bin)
