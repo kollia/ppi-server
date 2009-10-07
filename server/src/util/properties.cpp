@@ -28,6 +28,7 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include "properties.h"
+#include "URL.h"
 
 #include "../logger/lib/LogInterface.h"
 
@@ -40,6 +41,7 @@ namespace util {
 
 	bool Properties::readFile(const string& filename)
 	{
+		string path, newfile;
 		param_t param;
 		string line;
 		ifstream file(filename.c_str());
@@ -55,8 +57,22 @@ namespace util {
 					if(param.read)
 					{
 						if(param.parameter == "file")
-							readFile(param.value);
-						else
+						{
+							if(path == "")
+								path= URL::getPath(filename);
+							newfile= URL::addPath(path, param.value);
+							if(!readFile(newfile))
+							{
+								string msg;
+
+								msg=  "### WARNING: cannot read new file: '";
+								msg+= newfile + "'\n";
+								msg+= "             in configuration file ";
+								msg+= filename;
+								cerr << msg << endl;
+								LOG(LOG_WARNING, msg);
+							}
+						}else
 							readLine(line);
 					}
 				}else
