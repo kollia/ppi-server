@@ -229,7 +229,7 @@ void *Thread::EntryPoint(void *pthis)
 {
 	Thread *pt = (Thread*)pthis;
 	pt->run();
-	pthread_exit(NULL);
+	return NULL;
 }
 
 pid_t Thread::gettid()
