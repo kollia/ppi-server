@@ -68,7 +68,15 @@ namespace util
 			 * @param error code number of error
 			 * @return error string
 			 */
-			virtual string strerror(int error) const;
+			virtual string strerror(int error);
+			/**
+			 * get maximal error or warning number in positive values
+			 * from own class and all imply run through classes
+			 *
+			 * @param byerror whether needs error number (true) or warning number (false)
+			 * @return maximal error or warning number
+			 */
+			virtual unsigned int getMaxErrorNums(const bool byerror) const;
 			/**
 			 * open the connection to server for sending questions
 			 * <b>errorcodes:</b>
@@ -186,6 +194,18 @@ namespace util
 			 */
 			bool hasOpenGetConnection()
 			{ return m_pGetTransaction == NULL ? false : true; };
+			/*
+			 * close sending connection to server
+			 *
+			 * @return error code
+			 */
+			int closeSendConnection();
+			/**
+			 * close get connection for questions from server (other client)
+			 *
+			 * @return error code
+			 */
+			int closeGetConnection();
 			/**
 			 * return address of connecting host for sending
 			 *
@@ -247,12 +267,6 @@ namespace util
 			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
 			 */
 			vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
-			/*
-			 * close sending connection to server
-			 *
-			 * @return error code
-			 */
-			int closeSendConnection();
 			/**
 			 * ask server for question from any client
 			 *
@@ -260,12 +274,6 @@ namespace util
 			 * @return guestion from client
 			 */
 			string getQuestion(const string& lastAnswer);
-			/**
-			 * close get connection for questions from server (other client)
-			 *
-			 * @return error code
-			 */
-			int closeGetConnection();
 			/**
 			 * send answer back to server
 			 *

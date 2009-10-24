@@ -19,8 +19,12 @@
 
 #include "../server/libs/server/ServerMethodTransaction.h"
 
+#include "../util/Thread.h"
+
 namespace server
 {
+	using namespace util;
+
 	/**
 	 * initial method transaction from server to client.<br />
 	 * <br />
@@ -197,6 +201,10 @@ namespace server
 	{
 		public:
 			/**
+			 * constructor to create instance
+			 */
+			ServerDbTransaction();
+			/**
 			 * method transaction protocol between server to client.<br />
 			 * This method is called from main method of transfer,
 			 * if the sending string is for actual server
@@ -212,13 +220,50 @@ namespace server
 			 * @param error code number of error
 			 * @return error string
 			 */
-			// toDo: write error handling
-			//virtual string strerror(int error) const;
+			virtual string strerror(int error) const;
+			/**
+			 * get maximal error or warning number in positive values from own class
+			 *
+			 * @param byerror whether needs error number (true) or warning number (false)
+			 * @return maximal error or warning number
+			 */
+			virtual unsigned int getMaxErrorNums(const bool byerror) const;
 			/**
 			 * destructor of server method-transaction
 			 */
 			virtual ~ServerDbTransaction();
 
+		protected:
+			/**
+			 * this method will be called if any connection allocate to server
+			 *
+			 * @param ID client id
+			 * @param client name of client witch allocate
+			 */
+			virtual void allocateConnection(IFileDescriptorPattern& descriptor);
+			/**
+			 * this method will be called, if any connection disolve to server
+			 *
+			 * @param ID client id
+			 * @param client name of client witch allocate
+			 */
+			virtual void dissolveConnection(IFileDescriptorPattern& descriptor);
+			/**
+			 * return count of how much one wire clients are connected
+			 *
+			 * @return number of one wire clients
+			 */
+			unsigned short getOwClientCount();
+
+		private:
+			/**
+			 * how much one wire clients are connected
+			 */
+			unsigned short m_nOwClients;
+			/**
+			 * mutex to count one wire clients
+			 */
+			pthread_mutex_t* m_ONEWIRECLIENTSMUTEX;
 	};
 
 }

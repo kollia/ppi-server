@@ -82,7 +82,32 @@ namespace server
 			 */
 			IServerCommunicationStarterPattern* getCommunicationFactory() const
 			{ return m_pStarterPool; };
+			/**
+			 * allow new connections from any client
+			 *
+			 * @param allow whether connections are allowed
+			 */
+			virtual void allowNewConnections(const bool allow);
+			/**
+			 * ask for whether new connections are allowed
+			 *
+			 * @return whether connection allowed
+			 */
+			bool connectionsAllowed();
+			/**
+			 * close server connection on port
+			 */
 			void close();
+			/**
+			 *  external command to stop process
+			 *
+			 * @param bWait calling rutine should wait until the process is stopping
+			 * @return error or warning number see overview
+			 */
+			virtual int stop(const bool bWait= true);
+			/**
+			 * desstructor to delete created objects
+			 */
 			virtual ~ServerProcess();
 
 		protected:
@@ -125,6 +150,10 @@ namespace server
 			 */
 			const uid_t m_uid;
 			/**
+			 * whether new connections are allowed
+			 */
+			bool m_bNewConnections;
+			/**
 			 * pool to start communication threads
 			 */
 			IServerCommunicationStarterPattern *m_pStarterPool;
@@ -136,6 +165,14 @@ namespace server
 			 * string for open connection, otherwise by null string the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
 			 */
 			string m_sOpenConnection;
+			/**
+			 * mutex lock to get new connections
+			 */
+			pthread_mutex_t* m_NEWCONNECTIONS;
+			/**
+			 * condition to wait while new connections are not allowed
+			 */
+			pthread_cond_t* m_NOCONWAITCONDITION;
 
 	};
 }

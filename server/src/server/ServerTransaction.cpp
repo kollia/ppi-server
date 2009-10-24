@@ -53,14 +53,21 @@ extern string global_clientpath;
 using namespace std;
 using namespace user;
 using namespace util;
+using namespace logger;
 using namespace server;
 using namespace ppi_database;
 using namespace design_pattern_world::server_pattern;
 
-ServerThread* gInternetServer= NULL;
+//ServerThread* gInternetServer= NULL;
 
 namespace server
 {
+	ServerTransaction::ServerTransaction()
+	:	m_bStopServer(false)
+	{
+		m_SERVERISSTOPPINGMUTEX= Thread::getMutex("SERVERISSTOPPINGMUTEX");
+	}
+
 	bool ServerTransaction::init(IFileDescriptorPattern& descriptor)
 	{
 		descriptor.setString("username", "");
@@ -75,10 +82,27 @@ namespace server
 	bool ServerTransaction::transfer(IFileDescriptorPattern& descriptor)
 	{
 		bool hold;
+		bool bServerStops;
 
-		if(	descriptor.getBoolean("access")
-			&&
-			descriptor.getBoolean("speaker")	)
+		LOCK(m_SERVERISSTOPPINGMUTEX);
+		bServerStops= m_bStopServer;
+		UNLOCK(m_SERVERISSTOPPINGMUTEX);
+		if(bServerStops)
+		{
+			string in;
+
+			descriptor >> in;
+			if(!descriptor.eof())
+			{
+				descriptor << "ERROR 019";
+				descriptor.endl();
+				descriptor.flush();
+			}
+			hold= false;
+
+		}else if(	descriptor.getBoolean("access")
+					&&
+					descriptor.getBoolean("speaker")	)
 		{
 			hold= hearingPort(descriptor);
 
@@ -108,7 +132,9 @@ namespace server
 			if(sendmsg != "done")
 			{
 #ifdef SERVERDEBUG
-				if(sendmsg == "stopclient")
+				if( sendmsg == "stopclient"
+					||
+					sendmsg == "serverisstopping"	)
 				{
 					msg= "server stop HEARing connection to client ";
 					msg+=  descriptor.getHostAddressName();
@@ -139,13 +165,20 @@ namespace server
 					}
 					return true;
 				}
+				if(sendmsg == "serverisstopping")
+					sendmsg= "ERROR 019";
 				sendmsg+= "\n";
 				descriptor << sendmsg;
 				descriptor.flush();
 				//if(descriptor.eof())	// for asking eof() after connection is broken
 										// and server only sending messages kernel throw an exception
-				if(sendmsg == "stopclient\n")
+				if( sendmsg == "stopclient\n"
+					||
+					sendmsg == "serverisstopping"	)
+				{
+
 					return false;
+				}
 			}
 		}
 		descriptor.setBoolean("readdebuginfo", false);
@@ -408,8 +441,11 @@ namespace server
 			{
 				string action;
 				DbInterface* db= DbInterface::instance();
+				LogInterface* logger= LogInterface::instance();
 				UserManagement* user= UserManagement::instance();
-				IServerCommunicationStarterPattern* starter= gInternetServer->getCommunicationFactory();
+				NeedDbChanges* dbchanges= NeedDbChanges::instance();
+				IServerPattern* server= descriptor.getServerObject();
+				IClientHolderPattern* starter= server->getCommunicationFactory();
 
 				if(!user->isRoot(descriptor.getString("username")))
 				{
@@ -428,8 +464,20 @@ namespace server
 				}
 				LOG(LOG_INFO, "user stop server with foreign application");
 				cout << endl;
+				server->allowNewConnections(false);
+				OWInterface::clearDebug();
+				LOCK(m_SERVERISSTOPPINGMUTEX);
+				m_bStopServer= true;
+				UNLOCK(m_SERVERISSTOPPINGMUTEX);
+				dbchanges->stop(false);
+				db->needSubroutines(0, "serverisstopping");
+				descriptor << "send stop command to clients";
+				descriptor.endl();
+				descriptor.flush();
+				sleep(1);
+				logger->closeSendConnection();
 				do{
-					cout << "send stop-all to database" << endl;
+					//cout << "send stop-all to database" << endl;
 					action= db->stopall();
 					if(action != "done")
 					{
@@ -438,18 +486,34 @@ namespace server
 						descriptor.flush();
 					}
 				}while(action != "done");
-				cout << endl << "server " << flush;
-				starter->stopCommunicationThreads();
-				gInternetServer->stop(false);
-				// sending any command to server for stopping
-				ServerThread::connectAsClient("127.0.0.1", 20004, false);
-				cout << "." << endl;
-				sendmsg= "OK\n";
+				cout << "### stopping database server is performed" << endl;
+				//db->closeSendConnection();
+				//delete logger;
+				//DbInterface::deleteAll();
+				descriptor << "stop internet clients";
+				descriptor.endl();
+				descriptor.flush();
+				while(!starter->stopCommunicationThreads(descriptor.getClientID(), /*wait*/true))
+				{
+					descriptor << "stop internet clients";
+					descriptor.endl();
+					descriptor.flush();
+				}
+				descriptor << "stop internet clients";
+				descriptor.endl();
+				descriptor.flush();
+				sendmsg= "OK";
 				descriptor << sendmsg;
+				descriptor.endl();
+				descriptor.flush();
 		#ifdef SERVERDEBUG
 					cout << "send: OK" << endl;
 					cout << "MeasureThreads are be stopping" << endl;
 		#endif
+				server->stop(false);
+				// toDo: server do not stop always correctly
+				exit(EXIT_SUCCESS);
+
 			}else if(	length > 10
 						&&
 						input.substr(0, 10) == "PERMISSION"	)
@@ -841,54 +905,11 @@ namespace server
 								cerr << msg << endl;
 #endif
 							}
-						}else if(nExist == 4)
+						}else
 						{
-							string msg;
-
-							msg+= "client ask for '";
-							msg+= input + "'\n";
-							msg+= "but subroutine has no correct acces to device\n";
-							msg+= "send ERROR 016";
-							LOG(LOG_ERROR, msg);
-#ifdef SERVERDEBUG
-							cerr << msg << endl;
-#endif
-							descriptor << "ERROR 016\n";
-
-						}else if(nExist == 1)
-						{
-							string msg;
-
-							msg+= "client ask for '";
-							msg+= input + "'\n";
-							msg+= "cannot find subroutine ";
-							msg+= values[1];
-							msg+= " in folder ";
-							msg+= values[0];
-							msg+= "\nsend ERROR 005";
-							LOG(LOG_ERROR, msg);
-							sendmsg= "ERROR 005\n";
-							descriptor << sendmsg;
-							bWait= false;
-			#ifdef SERVERDEBUG
-									cerr << msg << endl;
-			#endif
-						}else if(nExist == 0)
-						{
-							string msg;
-
-							msg+= "client ask for >> ";
-							msg+= input;
-							msg+= "cannot found folder ";
-							msg+= values[0];
-							msg+= "\nsend ERROR 004";
-							LOG(LOG_ERROR, msg);
-			#ifdef SERVERDEBUG
-							cout << "send: ERROR 004" << endl;
-			#endif
-							sendmsg= "ERROR 004\n";
-							descriptor << sendmsg;
-							bWait= false;
+							descriptor << getNoExistErrorCode(nExist, values[0], values[1]);
+							if(nExist != 4)
+								bWait= false;
 						}
 						break;
 
@@ -923,6 +944,7 @@ namespace server
 				UserManagement* user= UserManagement::instance();
 				DbInterface* db= DbInterface::instance();
 
+
 				entry= input.substr(5);
 				split= ConfigPropertyCasher::split(entry, ":");
 				if(split.size() < 2)
@@ -943,94 +965,45 @@ namespace server
 	#endif
 				}else
 				{
-					pCurMeas= getMeasurePort(split[0]);
-					if(pCurMeas == NULL)
-					{
-						string msg;
+					unsigned short nExist;
 
-						msg+= "client ask for >> ";
-						msg+= input;
-						msg+= "cannot found folder ";
-						msg+= split[0];
-						msg+= "\nsend ERROR 004";
-						LOG(LOG_ERROR, msg);
-	#ifdef SERVERDEBUG
-						cout << "send: ERROR 004" << endl;
-	#endif
-						sendmsg= "ERROR 004\n";
-						descriptor << sendmsg;
-					}else
+					nExist= db->existEntry(split[0], split[1], "value", 0);
+					if(nExist > 3)
 					{
-						port= pCurMeas->pMeasure->getPortClass(split[1], bCorrect);
-						if(port == NULL)
+						if(user->hasPermission(descriptor.getString("username"), split[0], split[1], "read"))
 						{
-							string msg;
+							if(!db->needSubroutines(descriptor.getClientID(), entry))
+							{
+								sendmsg= "ERROR 005\n";
+#ifdef SERVERDEBUG
+								cerr << "send: ERROR 005" << endl;
+								cerr << "      cannot found given folder or subroutine" << endl;
+#endif
+								descriptor << sendmsg;
+							}else
+							{
+								sendmsg= "done\n";
+								descriptor << sendmsg;
+							}
 
-							msg+= "client ask for '";
-							msg+= input + "'\n";
-							msg+= "cannot find subroutine ";
-							msg+= split[1];
-							msg+= " in folder ";
-							msg+= split[0];
-							msg+= "\nsend ERROR 005";
-							LOG(LOG_ERROR, msg);
-							sendmsg= "ERROR 005\n";
-							descriptor << sendmsg;
-	#ifdef SERVERDEBUG
-							cerr << msg << endl;
-	#endif
-						}else if(!bCorrect)
+						}else
 						{
 							string msg;
 
 							msg+= "client ask for '";
 							msg+= input + "'\n";
 							msg+= "user '";
-							msg+= descriptor.getString("username") + "' but server has no correct chip contact\n";
-							msg+= "send ERROR 014";
+							msg+= descriptor.getString("username") + "' but has no permisson to subroutine\n";
+							msg+= "so permisson denied, send ERROR 013";
 							LOG(LOG_ERROR, msg);
-							sendmsg= "ERROR 014\n";
+							sendmsg= "ERROR 013\n";
 							descriptor << sendmsg;
 	#ifdef SERVERDEBUG
 							cerr << msg << endl;
 	#endif
-						}else
-						{
-							groups= port->getPermissionGroups();
-							if(user->hasPermission(descriptor.getString("username"), groups, "read"))
-							{
-								if(!db->needSubroutines(descriptor.getClientID(), entry))
-								{
-									sendmsg= "ERROR 005\n";
-	#ifdef SERVERDEBUG
-									cerr << "send: ERROR 005" << endl;
-									cerr << "      cannot found given folder or subroutine" << endl;
-	#endif
-									descriptor << sendmsg;
-								}else
-								{
-									sendmsg= "done\n";
-									descriptor << sendmsg;
-								}
-
-							}else
-							{
-								string msg;
-
-								msg+= "client ask for '";
-								msg+= input + "'\n";
-								msg+= "user '";
-								msg+= descriptor.getString("username") + "' but has no permisson to subroutine\n";
-								msg+= "so permisson denied, send ERROR 013";
-								LOG(LOG_ERROR, msg);
-								sendmsg= "ERROR 013\n";
-								descriptor << sendmsg;
-		#ifdef SERVERDEBUG
-								cerr << msg << endl;
-		#endif
-							}
 						}
-					}
+					}else
+						descriptor << getNoExistErrorCode(nExist, split[0], split[1]);
 				}
 			}else
 			{
@@ -1049,6 +1022,56 @@ namespace server
 			}
 		}
 		return descriptor.getBoolean("wait");
+	}
+
+	string ServerTransaction::getNoExistErrorCode(const unsigned short err, const string& folder, const string& subroutine)
+	{
+		string sRv;
+		string msg;
+
+		switch(err)
+		{
+		case 4:
+			msg+= "client ask for '";
+			msg+= folder + ":" + subroutine + "'\n";
+			msg+= "but subroutine has no correct acces to device\n";
+			msg+= "send ERROR 016";
+			LOG(LOG_ERROR, msg);
+#ifdef SERVERDEBUG
+			cerr << msg << endl;
+#endif
+			sRv= "ERROR 016\n";
+			break;
+
+		case 1:
+			msg+= "client ask for '";
+			msg+= folder + ":" + subroutine + "'\n";
+			msg+= "cannot find subroutine ";
+			msg+= subroutine;
+			msg+= " in folder ";
+			msg+= folder;
+			msg+= "\nsend ERROR 005";
+			LOG(LOG_ERROR, msg);
+			sRv= "ERROR 005\n";
+#ifdef SERVERDEBUG
+			cerr << msg << endl;
+#endif
+			break;
+
+		case 0:
+			msg+= "client ask for >> ";
+			msg+= folder + ":" + subroutine;
+			msg+= "cannot find folder ";
+			msg+= folder;
+			msg+= "\nsend ERROR 004";
+			LOG(LOG_ERROR, msg);
+	#ifdef SERVERDEBUG
+			cout << "send: ERROR 004" << endl;
+	#endif
+			sRv= "ERROR 004\n";
+			break;
+		}
+		return sRv;
 	}
 
 	meash_t* ServerTransaction::getMeasurePort(string folder)
@@ -1154,6 +1177,13 @@ namespace server
 			break;
 		}
 		return str;
+	}
+
+	inline unsigned int ServerTransaction::getMaxErrorNums(const bool byerror) const
+	{
+		if(byerror)
+			return 20;
+		return 0;
 	}
 
 	bool ServerTransaction::getDirectory(string filter, string verz, vector<string> &list)

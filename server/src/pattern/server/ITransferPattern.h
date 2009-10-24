@@ -70,6 +70,13 @@ namespace design_pattern_world
 				 */
 				virtual string strerror(int error) const= 0;
 				/**
+				 * get maximal error or warning number in positive values from own class
+				 *
+				 * @param byerror whether needs error number (true) or warning number (false)
+				 * @return maximal error or warning number
+				 */
+				virtual unsigned int getMaxErrorNums(const bool byerror) const= 0;
+				/**
 				 * destructor to dereference file
 				 */
 				virtual ~ITransferPattern() {};

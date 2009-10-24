@@ -256,7 +256,7 @@ namespace util
 		 * @param error code number of error
 		 * @return error string
 		 */
-		virtual string strerror(int error) const;
+		virtual string strerror(int error);
 		/**
 		 * destructor of process
 		 */

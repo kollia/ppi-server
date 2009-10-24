@@ -295,12 +295,23 @@ namespace server
 			virtual IServerPattern* getServerObject() const
 			{ return m_poServer; };
 			/**
+			 * close connection to client
+			 */
+			virtual void closeConnection();
+			/**
 			 * return string describing error number
 			 *
 			 * @param error code number of error
 			 * @return error string
 			 */
 			virtual string strerror(int error) const;
+			/**
+			 * get maximal error or warning number in positive values from own class
+			 *
+			 * @param byerror whether needs error number (true) or warning number (false)
+			 * @return maximal error or warning number
+			 */
+			virtual unsigned int getMaxErrorNums(const bool byerror) const;
 			/**
 			 * destructor to dereference file
 			 */
@@ -351,9 +362,9 @@ namespace server
 			 */
 			unsigned int m_unConnID;
 			/**
-			 * whether client has access to server
+			 * whether object have an opened file handle
 			 */
-			bool m_bAccess;
+			bool m_bFileAccess;
 			/**
 			 * address from witch incomming values be
 			 */

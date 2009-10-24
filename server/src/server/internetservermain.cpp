@@ -34,6 +34,8 @@
 
 #include "../database/lib/NeedDbChanges.h"
 
+#include "../portserver/lib/OWInterface.h"
+
 #include "libs/client/SocketClientConnection.h"
 #include "libs/server/TcpServerConnection.h"
 #include "libs/server/communicationthreadstarter.h"
@@ -164,6 +166,10 @@ int main(int argc, char* argv[])
 		cerr << "### ERROR: cannot read correctly 'access.conf'" << endl;
 		return false;
 	}
+	OWInterface::initial("ppi-internet-server", new SocketClientConnection(	SOCK_STREAM,
+																			commhost,
+																			commport,
+																			5				)	);
 
 	ServerProcess internetserver(	"ppi-internet-server", defaultuserID,
 									new CommunicationThreadStarter(minThreads, maxThreads),

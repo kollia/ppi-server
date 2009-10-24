@@ -459,6 +459,13 @@ namespace server
 			 */
 			virtual string strerror(int error) const;
 			/**
+			 * get maximal error or warning number in positive values
+			 *
+			 * @param byerror whether needs error number (true) or warning number (false)
+			 * @return maximal error or warning number
+			 */
+			virtual unsigned int getMaxErrorNums(const bool byerror) const;
+			/**
 			 * destructor of SocketClientConnection
 			 */
 			virtual ~SocketClientConnection();

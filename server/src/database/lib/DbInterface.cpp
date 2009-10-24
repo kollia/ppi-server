@@ -203,7 +203,7 @@ namespace ppi_database
 		}
 	}
 
-	void DbInterface::isEntryChanged()
+	string DbInterface::isEntryChanged()
 	{
 		int err;
 		unsigned int nRv= 0;
@@ -227,6 +227,7 @@ namespace ppi_database
 				cout << "### " << msg << endl;
 			}
 		}
+		return sRv;
 	}
 
 	unsigned short DbInterface::existEntry(const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number)

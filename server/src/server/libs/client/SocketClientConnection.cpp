@@ -428,6 +428,17 @@ namespace server
 		return str;
 	}
 
+	inline unsigned int SocketClientConnection::getMaxErrorNums(const bool byerror) const
+	{
+		unsigned int nRv;
+
+		if(byerror)
+			nRv= 50;
+		else
+			nRv= 10;
+		return nRv;
+	}
+
 	SocketClientConnection::~SocketClientConnection()
 	{
 		if(m_pTransfer)

@@ -24,6 +24,8 @@
 #include <errno.h>
 #include <list>
 
+#include <boost/algorithm/string/trim.hpp>
+
 #include "util/debug.h"
 #include "util/URL.h"
 #include "util/configpropertycasher.h"
@@ -37,7 +39,6 @@
 #include "portserver/owserver.h"
 #include "portserver/maximchipaccess.h"
 #include "portserver/VellemannK8055.h"
-#include "portserver/lib/OWInterface.h"
 
 #include "ports/measureThread.h"
 #include "ports/portbaseclass.h"
@@ -95,6 +96,7 @@ bool Starter::execute(vector<string> options)
 {
 	bool bLog, bDb, bPorts, bInternet;
 	int err;
+	unsigned short nDbConnectors;
 	unsigned int nOptions= options.size();
 	vector<unsigned long> ports; // whitch ports are needet
 	string fileName;
@@ -279,6 +281,29 @@ bool Starter::execute(vector<string> options)
 	}
 	// ------------------------------------------------------------------------------------------------------------
 #endif
+
+	//*********************************************************************************
+	//* calculate how much communication threads should be running
+
+	//*		for all one wire server an answer client and question client in ppi-internet-server
+	property= "maximinit";
+	nDbConnectors=  static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
+	property= "Vk8055";
+	nDbConnectors+= static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
+	nDbConnectors*= 2; //question clients
+	//*		for all process one log client
+	//			ppi-server, ppi-log-client, ppi-db-server, ppi-internet-server
+	nDbConnectors+= 4;
+	//*		for all process without db server an db client
+	//			ppi-server, ppi-log-client, ppi-internet-server
+	nDbConnectors+= 3;
+#ifdef ALLOCATEONMETHODSERVER
+	// only for debugging to know whether the allocated connections to db are ok
+	nDbConnectors+= 2;
+#endif // ALLOCATEONMETHODSERVER
+	//*********************************************************************************
+
+
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start database server
 
@@ -290,15 +315,19 @@ bool Starter::execute(vector<string> options)
 																10			)	);
 
 	if(bDb)
-		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-db-server").c_str(), NULL);
-	else
+	{
+		ostringstream oDbConnectors;
+
+		oDbConnectors << nDbConnectors;
+		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-db-server").c_str(), oDbConnectors.str().c_str(), NULL);
+	}else
 		err= process->check();
 	if(err > 0)
 	{
 		string msg;
 
 		msg=  "### WARNING: cannot start database-server\n";
-		msg+= "             " + process->strerror(err);
+		msg+= "             " + process->strerror(err) + "\n";
 		msg+= "             so the hole application is not useable stop server";
 		cerr << msg << endl;
 		exit(EXIT_FAILURE);
@@ -512,10 +541,6 @@ bool Starter::execute(vector<string> options)
 #endif // _EXTERNVENDORLIBRARYS
 
 	checkAfterContact();
-	OWInterface::initial("ppi-server", new SocketClientConnection(	SOCK_STREAM,
-																	commhost,
-																	commport,
-																	5				)	);
 
 	bool createThread= false;
 	MeasureArgArray args;
@@ -607,8 +632,8 @@ bool Starter::execute(vector<string> options)
 	{
 		string msg;
 
-		msg=  "### WARNING: cannot start database-server\n";
-		msg+= "             " + process->strerror(err);
+		msg=  "### WARNING: cannot start internet server for communication\n";
+		msg+= "             " + process->strerror(err) + "\n";
 		msg+= "             so no communication from outside (any client) is available";
 		cerr << msg << endl;
 		LOG(LOG_ERROR, msg);
@@ -645,11 +670,10 @@ bool Starter::execute(vector<string> options)
 		delete delMeash;
 	}
 
-	cout << "OWServer's" << endl;
 	OWServer::delServers();
-	cout << "Database" << endl;
-	db= DbInterface::instance();
-	db->stop(/*wait*/true);
+	DbInterface::deleteAll();
+	delete LogInterface::instance();
+	sleep(1);
 	return true;
 }
 
@@ -1894,6 +1918,7 @@ bool Starter::stop(vector<string> options)
 {
 	char	buf[64];
 	string  sendbuf("GET\n");
+	string 	stopping, dostop;
 	char	stopServer[]= "stop-server\n";
 	FILE 	*fp;
 	int clientsocket;
@@ -2045,14 +2070,20 @@ bool Starter::stop(vector<string> options)
 			LOG(LOG_SERVER, "ERROR: lost connection to server\n       maybe server always running");
 			break;
 		}
-		cout << "." << flush;
+		dostop= buf;
+		boost::trim(dostop);
+		if(stopping == dostop)
+			cout << "." << flush;
+		else
+		{
+			stopping= dostop;
+			if(stopping != "OK" && stopping != "")
+				cout << endl << stopping  << " ." << flush;
+		}
 	}
 	fclose(fp);
 	close(clientsocket);
-	if(!strcmp(buf, "OK\n"))
-	{
-		printf("\nserver was stopped\n");
-	}
+	cout << endl;
 	return true;
 }
 

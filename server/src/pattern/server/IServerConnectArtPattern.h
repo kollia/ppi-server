@@ -58,12 +58,6 @@ namespace design_pattern_world
 			 */
 			virtual IFileDescriptorPattern* getDescriptor()=0;
 			/**
-			 * return the address witch the comunication have reached after listen
-			 *
-			 * @return name of adress
-			 */
-			//virtual string getLastDescriptorAddress()=0;
-			/**
 			 * destructor for pattern
 			 */
 			virtual ~IServerConnectArtPattern() {};

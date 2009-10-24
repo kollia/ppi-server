@@ -55,12 +55,26 @@ int main(int argc, char* argv[])
 	string sConfPath, fileName;
 	string dbpath;
 	unsigned short commport;
+	unsigned short nDbConnectors= 0;
 	int err;
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
 	Properties oServerProperties;
 	DatabaseThread* db;
 	CommunicationThreadStarter* starter;
+
+	if(argc >= 2)
+	{ // read how much clients db-server for communication thre
+		istringstream oConnT(argv[1]);
+
+		oConnT >> nDbConnectors;
+	}
+	if(nDbConnectors == 0)
+	{
+		cerr << "database server need an valid integer variable to know how much communication clients should be started" << endl;
+		cerr << " syntax: ppi-db-server <communication threads>" << endl << endl;
+		return EXIT_FAILURE;
+	}
 
 	// create working directory
 	directorys= split(directorys, argv[0], is_any_of("/"));
@@ -119,13 +133,7 @@ int main(int argc, char* argv[])
 
 
 
-	/*************************************************************
-	 * need follow communication threads
-	 * 		for all process one log client
-	 * 		for all one wire server an answer client
-	 * 		for all one wire server an question client
-	 */
-	starter= new CommunicationThreadStarter(0, 10);
+	starter= new CommunicationThreadStarter(0, nDbConnectors);
 	// start initialitation from database
 	DatabaseThread::initial(dbpath, sConfPath, &oServerProperties);
 	db= DatabaseThread::instance();
@@ -153,5 +161,5 @@ int main(int argc, char* argv[])
 		return err;
 	}
 	cout << "### ending database process with all threads" << endl;
-	return 0;
+	return EXIT_SUCCESS;
 }

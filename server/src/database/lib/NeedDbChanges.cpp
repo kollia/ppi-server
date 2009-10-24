@@ -87,8 +87,12 @@ unsigned short NeedDbChanges::isEntryChanged(unsigned short actualized)
 	if(stopping())
 		return 0;
 	LOCK(m_CHANGEQUESTION);
-	if(actualized == m_nChanged)
+	if(	actualized == m_nChanged
+		&&
+		!stopping()					)
+	{
 		CONDITION(m_CHANGEQUESTIONCOND, m_CHANGEQUESTION);
+	}
 	actualized= m_nChanged;
 	UNLOCK(m_CHANGEQUESTION);
 	return actualized;

@@ -173,7 +173,7 @@ namespace util
 		return ret;
 	}
 
-	string Process::strerror(int error) const
+	string Process::strerror(int error)
 	{
 		string str;
 

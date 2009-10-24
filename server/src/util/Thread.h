@@ -30,6 +30,16 @@
 
 #include "../pattern/util/ithreadpattern.h"
 
+// reading in c't extra programmieren
+// article: Tauziehen (Programmieren mit POSIX-Threads) under side 62
+// adjustment from cacheline to 128 bit
+#define CACHE_LINE_SIZE 128
+#if defined(WIN32) && !defined(BCC32)
+#define CAHCE_ALIGN __declespec(align(CACHE_LINE_SIZE))
+#else
+#define CACHE_ALIGN __attribute__((aligned(CACHE_LINE_SIZE), packed))
+#endif
+
 using namespace design_pattern_world;
 using namespace design_pattern_world::util_pattern;
 using namespace std;
@@ -182,6 +192,18 @@ class Thread :	public virtual IThreadPattern,
    		 * @return 0 if successful, ETIMEDOUT if end of time reached, otherwise an error occured
    		 */
    		static int conditionWait(string file, int line, pthread_cond_t* cond, pthread_mutex_t* mutex, const struct timespec *time= NULL, const bool absolute= true);
+   		/**
+   		 * method should wait to get condition
+   		 *
+   		 * @param file in which file this method be called
+   		 * @param line on which line in the file this method be called
+   		 * @param cond pointer to condition
+   		 * @param mutex pointer to mutex in witch he should wait
+   		 * @param sec how much seconds the method maximal should wait if set
+   		 * @param absolute if time be set, this parameter define whether the time is relative or absolute (default:false)
+   		 * @return 0 if successful, ETIMEDOUT if end of time reached, otherwise an error occured
+   		 */
+   		static int conditionWait(string file, int line, pthread_cond_t* cond, pthread_mutex_t* mutex, const time_t sec, const bool absolute= false);
    		/**
    		 * arose one or more threads which wating for given condition
    		 *

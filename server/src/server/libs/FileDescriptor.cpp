@@ -33,7 +33,7 @@ namespace server
 		m_pTransfer= transfer;
 		m_poServer= server;
 		m_unConnID= 0;
-		m_bAccess= false;
+		m_bFileAccess= true;
 		m_sAddress= address;
 		m_nPort= port;
 		m_pFile= file;
@@ -60,6 +60,12 @@ namespace server
 		char *res;
 		char buf[501];
 
+		if(!m_bFileAccess)
+		{
+			reader= "";
+			m_nEOF= EOF;
+			return;
+		}
 		UNLOCK(m_THREADSAVEMETHODS);
 		res= fgets(buf, sizeof(buf), m_pFile);
 		LOCK(m_THREADSAVEMETHODS);
@@ -74,17 +80,21 @@ namespace server
 
 	void FileDescriptor::operator <<(string writer)
 	{
+		if(!m_bFileAccess)
+			return;
 		m_nEOF= fputs(writer.c_str(), m_pFile);
 	}
 
 	void FileDescriptor::endl()
 	{
+		if(!m_bFileAccess)
+			return;
 		m_nEOF= fputs("\n", m_pFile);
 	}
 
 	bool FileDescriptor::eof()
 	{
-		if(m_nEOF == EOF)
+		if(!m_bFileAccess || m_nEOF == EOF)
 			return true;
 		if(feof(m_pFile) != 0)
 			return true;
@@ -93,7 +103,7 @@ namespace server
 
 	void FileDescriptor::flush()
 	{
-		if(ferror(m_pFile) != 0 || feof(m_pFile) != 0)
+		if(!m_bFileAccess || ferror(m_pFile) != 0 || feof(m_pFile) != 0)
 		{
 			m_nEOF= EOF;
 			return;
@@ -127,11 +137,21 @@ namespace server
 		case 1:
 			str= "ERROR: no client found for spezified definition";
 			break;
+		case 2:
+			str= "connection to hearing client is broken";
+			break;
 		default:
 			str= m_pTransfer->strerror(error > 0 ? error + 10 : error - 10);
 			break;
 		}
 		return str;
+	}
+
+	inline unsigned int FileDescriptor::getMaxErrorNums(const bool byerror) const
+	{
+		if(byerror)
+			return 2;
+		return 0;
 	}
 
 	bool FileDescriptor::getBoolean(const string& str) const
@@ -275,10 +295,14 @@ namespace server
 			time(&t);
 			while(	client == NULL
 					&&
+					!eof()
+					&&
 					(t - nt) < (time_t)m_nTimeout	)
 			{
 				std::cout << "wait for client since " << (t - nt) << " seconds" << std::endl;
+				UNLOCK(m_THREADSAVEMETHODS);
 				sleep(1);
+				LOCK(m_THREADSAVEMETHODS);
 				client= starter->getClient(definition, this);
 				time(&t);
 			}
@@ -308,7 +332,14 @@ namespace server
 			}
 			m_sSendString= str;
 			AROUSE(m_GETSTRINGCONDITION);
-			CONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING);
+			do{
+				RELTIMECONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING, 3);
+				if(eof())
+				{
+					m_sClientAnswer= "ERROR 002";
+					break;
+				}
+			}while(m_sClientAnswer == "");
 			answer= m_sClientAnswer;
 			m_sSendString= "";
 			AROUSE(m_SENDSTRINGCONDITION);
@@ -418,14 +449,30 @@ namespace server
 		return bRv;
 	}
 
+	void FileDescriptor::closeConnection()
+	{
+		LOCK(m_THREADSAVEMETHODS);
+		if(m_bFileAccess)
+		{
+			fclose(m_pFile);
+			m_bFileAccess= false;
+			AROUSEALL(m_SENDSTRINGCONDITION);
+			AROUSEALL(m_GETSTRINGCONDITION);
+			UNLOCK(m_THREADSAVEMETHODS);
+			usleep(10000);	// to give foreign clients and own
+			return;			// an chance to ending correctly
+		}
+		UNLOCK(m_THREADSAVEMETHODS);
+	}
+
 	FileDescriptor::~FileDescriptor()
 	{
+		closeConnection();
 		DESTROYMUTEX(m_SENDSTRING);
 		DESTROYMUTEX(m_CONNECTIONIDACCESS);
 		DESTROYMUTEX(m_THREADSAVEMETHODS);
 		DESTROYCOND(m_SENDSTRINGCONDITION);
 		DESTROYCOND(m_GETSTRINGCONDITION);
-		fclose(m_pFile);
 	}
 
 }

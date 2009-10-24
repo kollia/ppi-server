@@ -249,9 +249,34 @@ namespace server
 			 */
 			virtual string strerror(int error) const;
 			/**
+			 * get maximal error or warning number in positive values from own class
+			 *
+			 * @param byerror whether needs error number (true) or warning number (false)
+			 * @return maximal error or warning number
+			 */
+			virtual unsigned int getMaxErrorNums(const bool byerror) const;
+			/**
 			 * destructor of server method-transaction
 			 */
 			virtual ~ServerMethodTransaction();
+
+		protected:
+			/**
+			 * this method will be called if any connection allocate to server
+			 * and is only for overwriting
+			 *
+			 * @param ID client id
+			 * @param client name of client witch allocate
+			 */
+			virtual void allocateConnection(IFileDescriptorPattern& descriptor) {};
+			/**
+			 * this method will be called, if any connection dissolve to server
+			 * and is only for overwriting
+			 *
+			 * @param ID client id
+			 * @param client name of client witch allocate
+			 */
+			virtual void dissolveConnection(IFileDescriptorPattern& descriptor) {};
 
 	};
 

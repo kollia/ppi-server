@@ -502,40 +502,70 @@ namespace server
 		return sRv;
 	}
 
-	void CommunicationThreadStarter::stopCommunicationThreads(bool bWait/*= false*/, string transactionName/*= ""*/)
+	bool CommunicationThreadStarter::stopCommunicationThreads(const unsigned int connectionID, bool bWait/*= false*/)
 	{
-		ICommunicationPattern *pCurrentCom= m_poFirstCommunication;
-		ICommunicationPattern *pDel;
+		bool wait= bWait;
+		ICommunicationPattern *pCurrentCom;
+		ICommunicationPattern *pDel, *pBefore;
 
 		LOCK(m_NEXTCOMMUNICATION);
 		m_bWillStop= true;
+		pBefore= m_poFirstCommunication;
+		pCurrentCom= m_poFirstCommunication;
 		UNLOCK(m_NEXTCOMMUNICATION);
 		while(pCurrentCom != NULL)
 		{
-			bool wait= bWait;
-
-			if(pCurrentCom->running())
+			pDel= NULL;
+			if(connectionID != pCurrentCom->getConnectionID())
 			{
-				if(	wait == true
+				pCurrentCom->stop(false);
+				if(	wait
 					&&
-					transactionName != ""
-					&&
-					transactionName == pCurrentCom->getTransactionName()	)
+					pCurrentCom->running()	)
 				{
+					for(short c= 0; c < 4; ++c)
+					{// giving the client from outside an chance to stopping self
+						if(!pCurrentCom->running())
+							break;
+						usleep(250000);
+					}
+					if(pCurrentCom->running())
+						pCurrentCom->stop(true); // kill connection
 					wait= false;
 				}
-				pCurrentCom->stop(wait);
-			}
-			if(wait)
-			{
-				pDel= pCurrentCom;
-				pCurrentCom= pCurrentCom->getNextComm();
-				delete pDel;
+				if(!pCurrentCom->running())
+				{
+					pDel= pCurrentCom;
+					LOCK(m_NEXTCOMMUNICATION);
+					if(pDel == m_poFirstCommunication)
+					{
+						m_poFirstCommunication= m_poFirstCommunication->getNextComm();
+						pBefore= m_poFirstCommunication;
+					}else
+						pBefore->setNextComm(pCurrentCom->getNextComm());
+					UNLOCK(m_NEXTCOMMUNICATION);
+				}
+
 			}else
-				pCurrentCom= pCurrentCom->getNextComm();
+			{
+				LOCK(m_NEXTCOMMUNICATION);
+				if(m_poFirstCommunication != pCurrentCom)
+				{
+					pBefore->setNextComm(m_poFirstCommunication);
+					m_poFirstCommunication->setNextComm(pCurrentCom->getNextComm());
+					m_poFirstCommunication= pCurrentCom;
+				}
+				UNLOCK(m_NEXTCOMMUNICATION);
+			}
+			if(pDel == NULL)
+				pBefore= pCurrentCom;
+			pCurrentCom= pCurrentCom->getNextComm();
+			if(pDel != NULL)
+				delete pDel;
 		}
-		if(bWait)
-			m_poFirstCommunication= NULL;
+		if(!bWait || m_poFirstCommunication->getNextComm() == NULL)
+			return true;
+		return false;
 	}
 
 	int CommunicationThreadStarter::stop(const bool *bWait)

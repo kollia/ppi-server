@@ -49,12 +49,17 @@ namespace design_pattern_world
 			 */
 			virtual void arouseStarterThread() const= 0;
 			/**
-			 * send stop to all communication threads
+			 * send stop to all communication threads beside the own.
+			 * If bWait is true, the method coming back with result false for every stopped client.
+			 * Primary when all threads, beside the own, are stopped, the return value is true.
+			 * By default value from bWait (false), all threads of clients getting the stop command
+			 * and the return value is always true.
 			 *
+			 * @param connectionID connection id from current client to know which should not stopping
 			 * @param bWait if stopping process should wait for ending
-			 * @param transactionName whether method is called from an transaction, there should be given the transaction name for no wait for this transaction. To get no dead lock
+			 * @return whether all threads are stopped, beside the own
 			 */
-			virtual void stopCommunicationThreads(bool bWait= false, string transactionName= "")= 0;
+			virtual bool stopCommunicationThreads(const unsigned int connectionID, bool bWait= false)= 0;
 			/**
 			 * virtual destructor of pattern
 			 */

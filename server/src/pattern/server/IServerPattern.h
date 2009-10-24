@@ -51,6 +51,12 @@ namespace design_pattern_world
 				 */
 				virtual IClientHolderPattern* getCommunicationFactory() const= 0;
 				/**
+				 * allow new connections from any client
+				 *
+				 * @param allow whether connections are allowed
+				 */
+				virtual void allowNewConnections(const bool allow)= 0;
+				/**
 				 * dummy destructor of pattern
 				 */
 				virtual ~IServerPattern() {};

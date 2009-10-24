@@ -32,7 +32,7 @@ namespace design_pattern_world {
 			 *
 			 * @return descriptor
 			 */
-			virtual const IFileDescriptorPattern* getDescriptor() const= 0;
+			virtual IFileDescriptorPattern* getDescriptor() const= 0;
 			/**
 			 * returning the default communication ID
 			 * wich needet by starting an new connection.

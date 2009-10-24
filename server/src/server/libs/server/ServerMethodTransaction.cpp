@@ -79,16 +79,22 @@ namespace server
 		descriptor >> input;
 		if(descriptor.eof())
 		{
-			client= descriptor.getString("client");
-			process= descriptor.getString("process");
-			input=  "ERROR: connection from " + client + " in process " + process + " is broken\n";
-			input+= "       so close connection";
+			ostringstream msg;
+
+			msg << "WARNING: conection " << descriptor.getClientID();
+			msg << " in " << descriptor.getServerObject()->getName();
+			msg << " from client " << descriptor.getString("client");
+			msg << " in process " << descriptor.getString("process") << " is broken" << endl;
+			msg << "         so close connection";
 #ifdef ALLOCATEONMETHODSERVER
 			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
-				cerr << input << endl;
+				cerr << msg.str() << endl;
 #endif // ALLOCATEONMETHODSERVER
+			input= msg.str();
 			boost::algorithm::replace_all(input, "\n", "\\n");
-			input= "LogServer false log 'SereverMethodTransaction.cpp' 93 5 \"" + input +"\"";
+			input= "LogServer false log 'SereverMethodTransaction.cpp' 95 5 \"" + input +"\"";
+			descriptor.setBoolean("access", false);
+			dissolveConnection(descriptor);
 			bRun= false;
 		}
 		wasinput= input;
@@ -149,7 +155,7 @@ namespace server
 			}
 			if(access == false)
 			{
-				descriptor << "ERROR 005\n";
+				descriptor << "ERROR 002\n";
 				descriptor.flush();
 				descriptor.setBoolean("asker", true);
 				descriptor.setBoolean("access", false);
@@ -162,6 +168,7 @@ namespace server
 				descriptor.setBoolean("own", true);
 			descriptor << "done\n";
 			descriptor.flush();
+			allocateConnection(descriptor);
 #ifdef ALLOCATEONMETHODSERVER
 			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
 			{
@@ -182,12 +189,6 @@ namespace server
 			&&
 			input == "ending"			)
 		{
-			descriptor.setBoolean("asker", true);
-			descriptor.setBoolean("access", false);
-			descriptor.setBoolean("own", false);
-			descriptor.setString("client", "");
-			descriptor << "done\n";
-			descriptor.flush();
 #ifdef ALLOCATEONMETHODSERVER
 			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
 			{
@@ -196,6 +197,13 @@ namespace server
 				cout << " in process " << descriptor.getString("process") << endl;
 			}
 #endif // ALLOCATEONMETHODSERVER
+			dissolveConnection(descriptor);
+			descriptor.setBoolean("asker", true);
+			descriptor.setBoolean("access", false);
+			descriptor.setBoolean("own", false);
+			descriptor.setString("client", "");
+			descriptor << "done\n";
+			descriptor.flush();
 			return false;
 		}
 		if(descriptor.getBoolean("own"))
@@ -233,7 +241,8 @@ namespace server
 			}else if(input == "stop")
 			{
 				server= descriptor.getServerObject();
-				server->getCommunicationFactory()->stopCommunicationThreads(/*wait*/true, descriptor.getString("client"));
+				while(!server->getCommunicationFactory()->stopCommunicationThreads(descriptor.getClientID(), /*wait*/true))
+					{};
 				server->stop(/*wait*/false);
 				descriptor << "done\n";
 				descriptor.flush();
@@ -273,16 +282,6 @@ namespace server
 
 		}else
 		{
-			if(input == "")
-			{
-				//cout << "get null command from client " << descriptor.getString("client");
-				//cout << " in process " << descriptor.getString("process") << "  -------------------" << endl;
-				//cout << wasinput << endl;
-				descriptor << "WARNING 111";
-				descriptor.endl();
-				descriptor.flush();
-				return true;
-			}
 			//cout << "send input '" << input <<"' to " << client << endl;
 			input= descriptor.sendToOtherClient(client, input, bwait);
 			//cout << "send answer '" << input << "' back to client" << endl;
@@ -301,7 +300,7 @@ namespace server
 	bool ServerMethodTransaction::transfer(IFileDescriptorPattern& descriptor, IMethodStringStream& method)
 	{
 		// dummy method to overwrite from any child class
-		descriptor << "WARNING 004";
+		descriptor << "ERROR 003";
 		descriptor.endl();
 		descriptor.flush();
 		return true;
@@ -337,6 +336,12 @@ namespace server
 		case 1:
 			str= "ERROR: undefined command for own process";
 			break;
+		case 2:
+			str= "ERROR: connection was opened with wrong command";
+			break;
+		case 3:
+			str= "class have no own commands to administered";
+			break;
 		default:
 			if(error > 0)
 				str= "Undefined error for transaction";
@@ -345,6 +350,13 @@ namespace server
 			break;
 		}
 		return str;
+	}
+
+	inline unsigned int ServerMethodTransaction::getMaxErrorNums(const bool byerror) const
+	{
+		if(byerror)
+			return 10;
+		return 0;
 	}
 
 	ServerMethodTransaction::~ServerMethodTransaction()

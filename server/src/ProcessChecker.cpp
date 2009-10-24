@@ -90,7 +90,7 @@ int ProcessChecker::execute()
 				pCurrent->pMeasure->stop(/*wait*/false);
 				pCurrent= pCurrent->next;
 			}
-			m_sAnswer= "measure threads";
+			m_sAnswer= "stop measure threads";
 			++m_nEndPos;
 			pCurrent= meash_t::firstInstance;
 			break;
@@ -112,7 +112,7 @@ int ProcessChecker::execute()
 					}
 				}
 			}
-			m_sAnswer= "measure threads";
+			m_sAnswer= "stop measure threads";
 			break;
 
 		case 2:

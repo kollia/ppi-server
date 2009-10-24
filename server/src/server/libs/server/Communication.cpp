@@ -151,12 +151,17 @@ namespace server
 				if(!m_hFileAccess->eof())
 					m_hFileAccess->flush();
 			}
-			string msg;
+			//string msg;
 
-			msg= "Server stop connection to client:";
-			msg+=  m_hFileAccess->getHostAddressName();
-			delete m_hFileAccess;
+			//msg= "Server stop connection to client:";
+			//msg+=  m_hFileAccess->getHostAddressName();
 			LOCK(m_HAVECLIENT);
+			if(m_hFileAccess)
+			{
+				m_hFileAccess->closeConnection();
+				delete m_hFileAccess;
+				m_hFileAccess= NULL;
+			}
 			m_bHasClient= false;
 			UNLOCK(m_HAVECLIENT);
 			m_poStarter->arouseStarterThread();
@@ -235,10 +240,16 @@ namespace server
 	int Communication::stop(const bool *bWait)
 	{
 		int Rv= 0;
+		bool client= hasClient();
 
-		POS("x");
 		LOCK(m_HAVECLIENT);
 		Rv= Thread::stop();// do not detach thread
+		if(*bWait && client && m_hFileAccess)
+		{
+			m_hFileAccess->closeConnection();
+			delete m_hFileAccess;
+			m_hFileAccess= NULL;
+		}
 		AROUSE(m_CLIENTWAITCOND);
 		UNLOCK(m_HAVECLIENT);
 		if(	Rv == 0
@@ -280,13 +291,18 @@ namespace server
 		bool bClient;
 
 		LOCK(m_HAVECLIENT);
-		bClient= m_bHasClient;
+		if(m_hFileAccess == NULL)
+			bClient= false;
+		else
+			bClient= m_bHasClient;
 		UNLOCK(m_HAVECLIENT);
 		return bClient;
 	}
 
 	bool Communication::isClient(const string& definition) const
 	{
+		if(!hasClient())
+			return false;
 		return m_hFileAccess->isClient(definition);
 	}
 

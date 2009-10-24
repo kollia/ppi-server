@@ -55,7 +55,7 @@ namespace server
 		 *
 		 * @return descriptor
 		 */
-		virtual const IFileDescriptorPattern* getDescriptor() const
+		virtual IFileDescriptorPattern* getDescriptor() const
 		{ return m_hFileAccess; };
 		/**
 		 * set next communication object

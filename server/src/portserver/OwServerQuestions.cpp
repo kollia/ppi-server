@@ -78,6 +78,10 @@ int OwServerQuestions::execute()
 			m_sAnswer= m_vAnswer[m_nPos];
 		}else
 			m_sAnswer= m_vAnswer[m_nPos];
+	}else if(command == "stop-owclient")
+	{
+		closeGetConnection();
+		stop(false);
 	}else
 	{
 		string msg("### ERROR: undefined command '");

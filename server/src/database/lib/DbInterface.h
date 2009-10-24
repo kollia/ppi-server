@@ -168,9 +168,9 @@ namespace ppi_database
 		 * whether one or more entrys are changed
 		 * and hold thread in process
 		 *
-		 * @return number of changed values
+		 * @return strings of changed, stop or error number
 		 */
-		void isEntryChanged();
+		string isEntryChanged();
 		/**
 		 * database service for all changes in subroutines.<br />
 		 * this method returning all changes which are defined with <code>needSubroutines()</code>

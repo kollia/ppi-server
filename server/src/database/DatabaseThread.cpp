@@ -568,16 +568,15 @@ vector<string> DatabaseThread::getChangedEntrys(unsigned long connection)
 
 			info << "read_owserver_debuginfo " << i->tm;
 			vsRv.push_back(info.str());
-/*			UNLOCK(m_CHANGINGPOOL);
-			UNLOCK(m_DBCURRENTENTRY);
-			return getDebugInfo(i->tm);*/
 		}else
 		{
 			if(	i->folder == ""
 				&&
-				i->subroutine == "stopclient"	)
+				(	i->subroutine == "stopclient"
+					||
+					i->subroutine == "serverisstopping"	)	)
 			{
-				vsRv.push_back("stopclient");
+				vsRv.push_back(i->subroutine);
 				m_mvoChanges.erase(connection);
 				break;
 			}
@@ -671,6 +670,21 @@ bool DatabaseThread::needSubroutines(unsigned long connection, string name)
 		m_bAnyChanged= true;
 		UNLOCK(m_CHANGINGPOOL);
 		return true;
+
+	}else if(name == "serverisstopping")
+	{
+		LOCK(m_CHANGINGPOOL);
+		for(map<unsigned long, vector<db_t> >::iterator it= m_mvoChanges.begin(); it != m_mvoChanges.end(); ++it)
+		{
+			it->second.clear();
+			newentry.folder= "";
+			newentry.subroutine= "serverisstopping";
+			it->second.push_back(newentry);
+		}
+		AROUSEALL(m_CHANGINGPOOLCOND);
+		UNLOCK(m_CHANGINGPOOL);
+		return true;
+
 	}else if(name.substr(0, 9) == "owserver-")
 	{
 		newentry.identif= "owserver";
@@ -852,6 +866,7 @@ int DatabaseThread::stop(const bool *bWait)
 
 	LOCK(m_DBENTRYITEMS);
 	AROUSE(m_DBENTRYITEMSCOND);
+	AROUSEALL(m_CHANGINGPOOLCOND);
 	UNLOCK(m_DBENTRYITEMS);
 
 	if(	nRv == 0

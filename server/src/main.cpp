@@ -139,7 +139,15 @@ int main(int argc, char* argv[])
 		{
 			pthread_mutex_init(&g_READMUTEX, NULL);
 			result= server->execute(vOptions);
-			cout << "### ending app-starter process with all threads" << endl;
+			cout << "### ppi-server starter process was stopped ";
+			if(!result)
+			{
+				cout << "with an ERROR" << endl;
+				return EXIT_FAILURE;
+			}
+			cout << "successfully" << endl;
+			return EXIT_SUCCESS;
+
 		}else if(param == "stop")
 		{
 			result= server->stop(vOptions);

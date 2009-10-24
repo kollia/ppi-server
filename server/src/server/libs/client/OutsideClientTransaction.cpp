@@ -50,6 +50,11 @@ namespace server
 			}else
 				m_sCommand= "\n";
 			do{
+				if(descriptor.eof())
+				{
+					m_vAnswer.push_back("ERROR 001");
+					return false;
+				}
 				descriptor << m_sCommand;
 				descriptor.flush();
 				if(descriptor.eof())
@@ -59,8 +64,13 @@ namespace server
 				}
 				descriptor >> answer;
 				answer= ConfigPropertyCasher::trim(answer, " \t\r\n");
-				m_vAnswer.push_back(answer);
 				err= ExternClientInputTemplate::error(answer);
+				if(err != 0)
+				{
+					err+= (err > 0 ? getMaxErrorNums(/*error*/true) : (getMaxErrorNums(/*error*/false) * -1));
+					answer= ExternClientInputTemplate::error(err);
+				}
+				m_vAnswer.push_back(answer);
 
 			}while(	m_sAnswerEnding != ""
 					&&
@@ -97,6 +107,13 @@ namespace server
 			str= "undefined socket client error";
 		}
 		return str;
+	}
+
+	inline unsigned int OutsideClientTransaction::getMaxErrorNums(const bool byerror) const
+	{
+		if(byerror)
+			return 1;
+		return 0;
 	}
 
 }

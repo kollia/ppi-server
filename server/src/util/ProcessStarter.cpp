@@ -108,7 +108,7 @@ namespace util
 		return nRv;
 	}
 
-	string ProcessStarter::strerror(int error) const
+	string ProcessStarter::strerror(int error)
 	{
 		string str;
 

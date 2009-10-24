@@ -53,22 +53,27 @@ namespace server
 										IClientConnectArtPattern* extcon/*= NULL*/, const string& open/*= ""*/, const bool wait/*= true*/)
 	:	Process(processName, extcon, NULL, wait),
 		m_uid(uid),
+		m_bNewConnections(true),
 		m_pStarterPool(starter),
 		m_pConnect(connect),
 		m_sOpenConnection(open)
 	{
 		m_pConnect->setServerInstance(this);
+		m_NEWCONNECTIONS= Thread::getMutex("NEWCONNECTIONS");
+		m_NOCONWAITCONDITION= Thread::getCondition("NOCONWAITCONDITION");
 	}
 
 	ServerProcess::ServerProcess(const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect,
 											IClientConnectArtPattern* extcon/*= NULL*/, const string& open/*= ""*/, const bool wait/*= true*/)
 	:	Process("CommunicationServerProcess", extcon, NULL, wait),
 		m_uid(uid),
+		m_bNewConnections(true),
 		m_pStarterPool(starter),
 		m_pConnect(connect),
 		m_sOpenConnection(open)
 	{
 		m_pConnect->setServerInstance(this);
+		m_NEWCONNECTIONS= Thread::getMutex("NEWCONNECTIONS");
 	}
 
 	string ServerProcess::getName() const
@@ -111,52 +116,6 @@ namespace server
 		return sRv;
 	}
 
-#if 0
-	int ServerProcess::connectAsClient(const char *ip, unsigned short port, bool print/*=true*/)
-	{
-		char buf[20];
-		string msg;
-		struct sockaddr_in	adresse;
-		struct in_addr	inadr;
-
-		int	clientsocket;
-		string result;
-
-		inet_aton(ip, &inadr);
-		adresse.sin_family = AF_INET;
-		adresse.sin_port   = htons(port);
-
-		memcpy(&adresse.sin_addr, &inadr.s_addr, sizeof(adresse.sin_addr));
-
-		sprintf(buf, "%d", port);
-		msg= "### checking socket on IP:";
-		msg+= inet_ntoa(adresse.sin_addr);
-		msg+= " port:";
-		msg+= buf;
-		if(print)
-			cout << msg << endl;
-		LOG(LOG_INFO, msg);
-
-		clientsocket = socket(PF_INET, SOCK_STREAM, 0);
-
-		if (clientsocket < 0)
-		{
-			LogThread *log= LogThread::instance();
-
-			LOG(LOG_ALERT, "ERROR: server as client cannot connect to socket!");
-			log->stop();
-			exit(1);
-		}
-
-		if (connect(clientsocket, (struct sockaddr *) &adresse, sizeof(adresse)) != 0)
-		{
-			// no Server is running
-			return 0;
-		}
-		return clientsocket;
-	}
-#endif
-
 	int ServerProcess::init(void *args)
 	{
 		int ret;
@@ -186,11 +145,23 @@ namespace server
 
 	int ServerProcess::execute()
 	{
-		int ret;
+		bool allowed= true;
+		int ret= 0;
 		IFileDescriptorPattern* fp;
 
-		ret= m_pConnect->accept();
-		if(ret <= 0)
+		if(!connectionsAllowed())
+		{
+			if(!stopping())
+			{
+				LOCK(m_NEWCONNECTIONS);
+				CONDITION(m_NOCONWAITCONDITION, m_NEWCONNECTIONS);
+				UNLOCK(m_NEWCONNECTIONS);
+			}
+			allowed= false;
+		}else
+			ret= m_pConnect->accept();
+
+		if(allowed && connectionsAllowed() && !stopping() && ret <= 0)
 		{
 			fp= m_pConnect->getDescriptor();
 			m_pStarterPool->setNewClient(fp);
@@ -198,13 +169,40 @@ namespace server
 		return ret;
 	}
 
+	inline bool ServerProcess::connectionsAllowed()
+	{
+		bool allow;
+
+		LOCK(m_NEWCONNECTIONS);
+		allow= m_bNewConnections;
+		UNLOCK(m_NEWCONNECTIONS);
+		return allow;
+	}
+
+	void ServerProcess::allowNewConnections(const bool allow)
+	{
+		LOCK(m_NEWCONNECTIONS);
+		m_bNewConnections= allow;
+		UNLOCK(m_NEWCONNECTIONS);
+	}
+
 	void ServerProcess::close()
 	{
 		if(m_pConnect)
-		{
 			m_pConnect->close();
-			LOG(LOG_DEBUG, "Server-Socket was closed");
-		}
+	}
+
+	int ServerProcess::stop(const bool bWait/*= true*/)
+	{
+		int nRv;
+
+		allowNewConnections(false);
+		nRv= Process::stop(false);
+		close();
+		AROUSE(m_NOCONWAITCONDITION);
+		if(bWait)
+			nRv= Process::stop(true);
+		return nRv;
 	}
 
 	void ServerProcess::ending()
@@ -218,5 +216,7 @@ namespace server
 	{
 		delete m_pConnect;
 		delete m_pStarterPool;
+		DESTROYMUTEX(m_NEWCONNECTIONS);
+		DESTROYCOND(m_NOCONWAITCONDITION);
 	}
 }

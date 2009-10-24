@@ -207,7 +207,7 @@ void Thread::run()
 	string msg("thread ");
 
 	msg+= getThreadName() + " do stopping";
-	if(!LogInterface::instance()->stopping())
+	if(LogInterface::instance() && !LogInterface::instance()->stopping())
 		LOG(LOG_DEBUG, msg);
 #ifdef DEBUG
 	cout << msg << endl;
@@ -775,6 +775,15 @@ void Thread::destroyAllConditions()
 	UNLOCK(&g_READMUTEX);
 }
 
+int Thread::conditionWait(string file, int line, pthread_cond_t* cond, pthread_mutex_t* mutex, const time_t sec, const bool absolute)
+{
+	timespec time;
+
+	time.tv_sec= sec;
+	time.tv_nsec= 0;
+	return conditionWait(file, line, cond, mutex, &time, absolute);
+}
+
 int Thread::conditionWait(string file, int line, pthread_cond_t* cond, pthread_mutex_t* mutex, const struct timespec *time, const bool absolute)
 {
 	int retcode;
@@ -899,6 +908,11 @@ int Thread::conditionWait(string file, int line, pthread_cond_t* cond, pthread_m
 #endif //CONDITIONSDEBUG
 	}
 #ifdef CONDITIONSDEBUG
+	pthread_mutex_lock(&g_READMUTEX);
+	i= g_mMutex.find(mutex);
+	if(i != g_mMutex.end())
+		i->second.threadid= gettid();
+	pthread_mutex_unlock(&g_READMUTEX);
 	if(	bSet
 		&&
 		retcode == 0	)

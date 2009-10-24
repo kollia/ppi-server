@@ -183,6 +183,8 @@ void LogThread::log(const string& file, const int line, const int type, const st
 
 inline void LogThread::log(const log_t& messageStruct)
 {
+	if(!running())
+		return;
 	LOCK(m_READLOGMESSAGES);
 	m_pvtLogs->push_back(messageStruct);
 	AROUSE(m_READLOGMESSAGESCOND);

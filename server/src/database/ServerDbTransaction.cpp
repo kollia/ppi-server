@@ -28,17 +28,26 @@
 #include "../util/OParameterStringStream.h"
 #include "../util/OMethodStringStream.h"
 
+#include "../logger/lib/LogInterface.h"
+
 #include "ServerDbTransaction.h"
 #include "DatabaseThread.h"
 #include "DefaultChipConfigReader.h"
 
 using namespace std;
 using namespace util;
+using namespace logger;
 using namespace ppi_database;
 using namespace design_pattern_world::server_pattern;
 
 namespace server
 {
+	ServerDbTransaction::ServerDbTransaction()
+	:	m_nOwClients(0)
+	{
+		m_ONEWIRECLIENTSMUTEX= Thread::getMutex("ONEWIRECLIENTSMUTEX");
+	}
+
 	bool ServerDbTransaction::transfer(IFileDescriptorPattern& descriptor, IMethodStringStream& object)
 	{
 		string method(object.getMethodName());
@@ -337,46 +346,105 @@ namespace server
 		}else if(method == "stop-all")
 		{
 			string sRv;
+			static short minus= 0;
+			static short count= 0;
+			static unsigned short oldclient= 0;
 			static unsigned short stopdb= 0;
+			unsigned short client;
+			ostringstream owclient;
+			IServerPattern* server;
+			IClientHolderPattern* holder;
+			LogInterface* log;
 
 			if(stopdb == 0)
 			{
 				db->stop(false);
 				++stopdb;
 			}
-			if(stopdb == 1)
+			switch(stopdb)
 			{
+			case 1:
+
+				client= getOwClientCount();
+				client-= minus;
+				if(oldclient != client)
+					count= 0;
+				else if(count > 5)
+				{
+					cerr << "### ERROR: cannot stop one wire client with ID " << client << endl;
+					++minus;
+					--client;
+					count= 0;
+				}
+				if(client > 0)
+				{
+					oldclient= client;
+					owclient << "OwServerQuestion-";
+					owclient << client;
+					descriptor.sendToOtherClient(owclient.str(), "stop-owclient", false);
+					usleep(500000);
+					client= getOwClientCount();
+					client-= minus;
+				}
+				if(client == 0)
+					++stopdb;
+				++count;
+				sRv= "one wire clients";
+				break;
+
+			case 2:
 				sRv= descriptor.sendToOtherClient("ProcessChecker", "stop-all", true);
 				if(sRv == "done")
 				{
 					++stopdb;
 					descriptor.sendToOtherClient("ProcessChecker", "OK", false);
-				}else
-					sRv= "database";
-			}
-			if(stopdb == 2)
-			{
-				IServerPattern* server;
-
-				if(db->running() || sRv == "database")	// the first step coming from stopdb(1)
-					sRv= "database";					// give back database
-				else
-				{
-					server= descriptor.getServerObject();
-					server->getCommunicationFactory()->stopCommunicationThreads(/*wait*/false);
-					server->stop(false);
-					sRv= "done";
-					descriptor.endl();
-					descriptor.flush();
-					return false;
+					sRv= "stop measure threads";
 				}
+				break;
+
+			case 3:
+				sRv= "stop database";
+				if(!db->running())
+					++stopdb;
+				else
+					usleep(500000);
+				break;
+
+			case 4:
+				sRv= descriptor.sendToOtherClient("LogServer", "stop", true);
+				if(sRv == "done")
+				{
+					++stopdb;
+					descriptor.sendToOtherClient("LogServer", "stop-OK", false);
+					sRv= "stop logging client";
+					log= LogInterface::instance();
+					//log->stop(false);
+					delete log;
+
+				}
+				break;
+
+			case 5:
+				descriptor << "done";
+				descriptor.endl();
+				descriptor.flush();
+				usleep(500000);// waiting for ending connections from internet server
+				server= descriptor.getServerObject();
+				holder= server->getCommunicationFactory();
+				holder->stopCommunicationThreads(descriptor.getClientID(), /*wait*/false);
+				//LogInterface::instance()->closeSendConnection();
+				server->stop(false);
+				// toDo: server do not stop always correctly
+				exit(EXIT_SUCCESS);
+				return false;
+				break;
 			}
 			descriptor << sRv;
 
 		}else
 		{
 			// undefined command was sending
-			descriptor << "ERROR 010";
+			descriptor << "ERROR 011";
 		}
 		descriptor.endl();
 		descriptor.flush();
@@ -384,8 +452,70 @@ namespace server
 		return true;
 	}
 
+	string ServerDbTransaction::strerror(int error) const
+	{
+		string str;
+
+		switch(error)
+		{
+		case 0:
+			str= "no error occured";
+			break;
+		case 11:
+			str= "undefined command was send to database server";
+			break;
+		default:
+			if(error >= (ServerMethodTransaction::getMaxErrorNums(false) * -1) && error <= ServerMethodTransaction::getMaxErrorNums(true))
+				str= ServerMethodTransaction::strerror(error);
+			if(error > 0)
+				str= "Undefined error for transaction";
+			else
+				str= "Undefined warning for transaction";
+			break;
+		}
+		return str;
+	}
+
+	inline unsigned int ServerDbTransaction::getMaxErrorNums(const bool byerror) const
+	{
+		if(byerror)
+			return 15;
+		return 0;
+	}
+
+	void ServerDbTransaction::allocateConnection(IFileDescriptorPattern& descriptor)
+	{
+		if(!descriptor.getBoolean("asker") && descriptor.getString("client").substr(0, 17) == "OwServerQuestion-")
+		{
+			LOCK(m_ONEWIRECLIENTSMUTEX);
+			++m_nOwClients;
+			UNLOCK(m_ONEWIRECLIENTSMUTEX);
+		}
+	}
+
+	void ServerDbTransaction::dissolveConnection(IFileDescriptorPattern& descriptor)
+	{
+		if(!descriptor.getBoolean("asker") && descriptor.getString("client").substr(0, 17) == "OwServerQuestion-")
+		{
+			LOCK(m_ONEWIRECLIENTSMUTEX);
+			--m_nOwClients;
+			UNLOCK(m_ONEWIRECLIENTSMUTEX);
+		}
+	}
+
+	unsigned short ServerDbTransaction::getOwClientCount()
+	{
+		unsigned short nRv;
+
+		LOCK(m_ONEWIRECLIENTSMUTEX);
+		nRv= m_nOwClients;
+		UNLOCK(m_ONEWIRECLIENTSMUTEX);
+		return nRv;
+	}
+
 	ServerDbTransaction::~ServerDbTransaction()
 	{
+		DESTROYMUTEX(m_ONEWIRECLIENTSMUTEX);
 	}
 
 }

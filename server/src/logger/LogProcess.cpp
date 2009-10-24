@@ -171,6 +171,21 @@ int LogProcess::execute()
 		stream >> tMessage.identif;
 		m_pLogThread->log(tMessage);
 		m_sAnswer= "";
+	}else if(command == "stop")
+	{
+		m_pLogThread->stop(false);
+		if(m_pLogThread->running())
+		{
+			m_sAnswer= "stop logging client";
+			usleep(500000);
+		}else
+			m_sAnswer= "done";
+
+	}else if(command == "stop-OK")
+	{
+		closeGetConnection();
+		stop(false);
+
 	}else
 	{
 		log_t msg;

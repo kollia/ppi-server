@@ -35,6 +35,10 @@ namespace server
 	{
 		public:
 			/**
+			 * constructor to create ServerTransaction object
+			 */
+			ServerTransaction();
+			/**
 			 * initial all values for transaction
 			 *
 			 * @param descriptor file handle to set start values
@@ -230,6 +234,14 @@ namespace server
 			 *       no communication thread is free for answer<br /Y
 			 *       (this case can behavior when the mincommunicationthreads parameter be 0)
 			 *     </td>
+			 *     <td width="30">
+			 *     </td>
+			 *     <td align="right">
+			 *       019
+			 *     </td>
+			 *     <td>
+			 *       server will be stopping from administrator
+			 *     </td>
 			 *   </tr>
 			 * </table>
 			 *
@@ -246,11 +258,27 @@ namespace server
 			 */
 			virtual string strerror(int error) const;
 			/**
+			 * get maximal error or warning number in positive values from own class
+			 *
+			 * @param byerror whether needs error number (true) or warning number (false)
+			 * @return maximal error or warning number
+			 */
+			virtual unsigned int getMaxErrorNums(const bool byerror) const;
+			/**
 			 * destructor of server transaction
 			 */
 			virtual ~ServerTransaction();
 
 		private:
+			/**
+			 * whether server will be stopping, do not connect again hearing port
+			 */
+			bool m_bStopServer;
+			/**
+			 * mutex lock for StopServer variable
+			 */
+			pthread_mutex_t* m_SERVERISSTOPPINGMUTEX;
+
 			/**
 			 * search measure port for given folder
 			 *
@@ -282,6 +310,15 @@ namespace server
 			 * @return bool true wehn workdir + verz exists otherwise false
 			 */
 			bool getDirectory(string filter, string verz, vector<string> &list);
+			/**
+			 * return error code from returned number of method <code>DbInterface::existEntry()</code>
+			 *
+			 * @param err error number
+			 * @param folder name of folder for log message
+			 * @param subroutine name of subroutine for log message
+			 * @return string of error code to send back to client
+			 */
+			string getNoExistErrorCode(const unsigned short err, const string& folder, const string& subroutine);
 	};
 
 }

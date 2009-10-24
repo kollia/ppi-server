@@ -59,7 +59,7 @@ public:
 	/**
 	 * virtual destructor of object
 	 */
-	virtual ~NeedDbChanges() {};
+	virtual ~NeedDbChanges() { };
 
 protected:
 	/**
@@ -96,7 +96,7 @@ protected:
 	 * This method will be called if any other or own thread
 	 * calling method stop().
 	 */
-	virtual void ending() {};
+	virtual void ending() { delete m_oDb; };
 
 private:
 	/**
