@@ -59,6 +59,14 @@ namespace server
 			 */
 			virtual bool transfer(IFileDescriptorPattern& descriptor);
 			/**
+			 * set warning and error number which can occur outside of ClientTransaction
+			 *
+			 * @param warning highest warning number as positive integer
+			 * @param error highes error number
+			 */
+			void setErrors(const unsigned int warning, const unsigned int error)
+			{ m_nOutsideWarn= warning; m_nOutsideErr= error; };
+			/**
 			 * return string describing error number
 			 *
 			 * @param error code number of error
@@ -119,6 +127,14 @@ namespace server
 			 * object of an second client running inside and thread
 			 */
 			HearingThread* m_o2Client;
+			/**
+			 * warning number which can occur outside of ClientTransaction as positive integer
+			 */
+			unsigned int m_nOutsideWarn;
+			/**
+			 * error number which can occur outside of ClientTransaction
+			 */
+			unsigned int m_nOutsideErr;
 
 			/**
 			 * print all ERROR results as translated strings on commandline

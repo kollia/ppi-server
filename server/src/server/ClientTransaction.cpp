@@ -448,6 +448,22 @@ namespace server
 #ifdef SERVERDEBUG
 			cout << "send: '" << m_sCommand << "'" << endl;
 #endif // SERVERDEBUG
+			if(m_sCommand.substr(0, 15) == "GETERRORSTRING ")
+			{
+				string com;
+				int number;
+				istringstream icommand(m_sCommand);
+				ostringstream ocommand;
+
+				icommand >> com;
+				icommand >> number;
+				if(number > 0)
+					number+= m_nOutsideErr;
+				else
+					number-= m_nOutsideWarn;
+				ocommand << com << " " << number;
+				m_sCommand= ocommand.str();
+			}
 			m_sCommand+= "\n";
 			descriptor << m_sCommand;
 			descriptor.flush();
@@ -488,6 +504,18 @@ namespace server
 							xmlReader= NULL;
 							break;
 						}
+					}else if(m_sCommand == "GETMINMAXERRORNUMS")
+					{
+						int warn, err;
+						istringstream iresult(result);
+						ostringstream oresult;
+
+						iresult >> warn;
+						iresult >> err;
+						oresult << (warn - m_nOutsideWarn);
+						oresult << " ";
+						oresult << (err + m_nOutsideErr);
+						result= oresult.str();
 					}
 					cout << result << endl;
 				}
@@ -527,7 +555,21 @@ namespace server
 		stringstream ss(error);
 
 		if(m_bShowENum)
-			cerr << error << endl;
+		{
+			ostringstream newerr;
+
+			ss >> buffer;
+			ss >> nErrorNum;
+			if(buffer == "ERROR")
+				nErrorNum+= m_nOutsideErr;
+			else
+				nErrorNum+= m_nOutsideWarn;
+			newerr << buffer << " ";
+			newerr.width(3);
+			newerr.fill('0');
+			newerr << nErrorNum;
+			cerr << newerr.str() << endl;
+		}
 		while(ss >> buffer)
 		{
 			if(buffer != "ERROR")
