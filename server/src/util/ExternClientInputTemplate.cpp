@@ -27,6 +27,10 @@ namespace util
 		m_sName(client),
 		m_oSendConnect(sendConnection),
 		m_oGetConnect(getConnection),
+		m_sOpenSendCommand(process + ":" + client + " SEND"),
+		m_sEndingSendCommand("ending"),
+		m_sOpenGetCommand(process + ":" + client + " GET"),
+		m_sEndingGetCommand("ending"),
 		m_pSendTransaction(NULL),
 		m_pGetTransaction(NULL)
 	{
@@ -58,35 +62,39 @@ namespace util
 			return 1;
 		}
 		if(toopen == "")
-			toopen= m_sProcess + ":" + m_sName + " SEND";
+			toopen= m_sOpenSendCommand;
 		old= m_oSendConnect->getTimeout();
 		if(old != timeout)
 			m_oSendConnect->setTimeout(timeout);
 		m_pSendTransaction= new OutsideClientTransaction();
-		m_oSendConnect->newTranfer(m_pSendTransaction, true);
-		m_pSendTransaction->setCommand(toopen);
-		nRv= m_oSendConnect->init();
-		if(old != timeout)
-			m_oSendConnect->setTimeout(old);
-		if(nRv > 0)
+		if(toopen != "")
 		{
-			m_oSendConnect->newTranfer(NULL, /*delete old*/true);
-			m_pSendTransaction= NULL;
+			m_oSendConnect->newTranfer(m_pSendTransaction, true);
+			m_pSendTransaction->setCommand(toopen);
+			nRv= m_oSendConnect->init();
+			if(old != timeout)
+				m_oSendConnect->setTimeout(old);
+			if(nRv > 0)
+			{
+				m_oSendConnect->newTranfer(NULL, /*delete old*/true);
+				m_pSendTransaction= NULL;
+				UNLOCK(m_SENDMETHODLOCK);
+				return nRv += getMaxErrorNums(/*error*/true);
+			}
+			err= error(m_pSendTransaction->getReturnedString()[0]);
+			if(err != 0)
+			{
+				err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
+				err+= (err > 0 ? m_oSendConnect->getMaxErrorNums(true) : (m_oSendConnect->getMaxErrorNums(false) * -1));
+				UNLOCK(m_SENDMETHODLOCK);
+				return err;
+			}
+			if(nRv < 0)
+				nRv-= getMaxErrorNums(false);
 			UNLOCK(m_SENDMETHODLOCK);
-			return nRv += getMaxErrorNums(/*error*/true);
+			return nRv;
 		}
-		err= error(m_pSendTransaction->getReturnedString()[0]);
-		if(err != 0)
-		{
-			err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
-			err+= (err > 0 ? m_oSendConnect->getMaxErrorNums(true) : (m_oSendConnect->getMaxErrorNums(false) * -1));
-			UNLOCK(m_SENDMETHODLOCK);
-			return err;
-		}
-		if(nRv < 0)
-			nRv-= getMaxErrorNums(false);
-		UNLOCK(m_SENDMETHODLOCK);
-		return nRv;
+		return 0;
 	}
 
 	string ExternClientInputTemplate::sendMethod(const string& toProcess, const OMethodStringStream& method,
@@ -158,13 +166,13 @@ namespace util
 		int nRv;
 
 		LOCK(m_SENDMETHODLOCK);
-		nRv= closeConnection(m_oSendConnect, m_pSendTransaction);
+		nRv= closeConnection(m_oSendConnect, m_pSendTransaction, m_sEndingSendCommand);
 		m_pSendTransaction= NULL;
 		UNLOCK(m_SENDMETHODLOCK);
 		return nRv;
 	}
 
-	int ExternClientInputTemplate::closeConnection(IClientConnectArtPattern* connection, OutsideClientTransaction* transaction)
+	int ExternClientInputTemplate::closeConnection(IClientConnectArtPattern* connection, OutsideClientTransaction* transaction, const string& command)
 	{
 		int nRv= 0;
 
@@ -172,7 +180,7 @@ namespace util
 			return 1;
 		if(transaction == NULL)
 			return 2;
-		transaction->closeConnection();
+		transaction->closeConnection(command);
 		if(!connection->init())
 			nRv= 3;
 		connection->close();
@@ -194,31 +202,34 @@ namespace util
 		if(m_pGetTransaction == NULL)
 		{
 			m_pGetTransaction= new OutsideClientTransaction();
-			m_oGetConnect->newTranfer(m_pGetTransaction, true);
-			m_pGetTransaction->setCommand(m_sProcess + ":" + m_sName + " GET");
-			nRv= m_oGetConnect->init();
-			if(nRv > 0)
+			if(m_sOpenGetCommand != "")
 			{
-				m_oGetConnect->newTranfer(NULL, /*delete old*/true);
-				m_pGetTransaction= NULL;
-				UNLOCK(m_GETQUESTIONLOCK);
-				return nRv + getMaxErrorNums(true);
-			}
-			answer= m_pGetTransaction->getReturnedString();
-			if(answer[0] != "done")
-			{
-				int err;
-
-				UNLOCK(m_GETQUESTIONLOCK);
-				err= error(answer[0]);
-				if(err != 0)
+				m_oGetConnect->newTranfer(m_pGetTransaction, true);
+				m_pGetTransaction->setCommand(m_sOpenGetCommand);
+				nRv= m_oGetConnect->init();
+				if(nRv > 0)
 				{
-					err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
-					err+= (err > 0 ? m_oGetConnect->getMaxErrorNums(true) : (m_oGetConnect->getMaxErrorNums(false) * -1));
-					return err;
+					m_oGetConnect->newTranfer(NULL, /*delete old*/true);
+					m_pGetTransaction= NULL;
+					UNLOCK(m_GETQUESTIONLOCK);
+					return nRv + getMaxErrorNums(true);
 				}
-				if(nRv < 0)
-					return nRv - getMaxErrorNums(false);
+				answer= m_pGetTransaction->getReturnedString();
+				if(answer[0] != "done")
+				{
+					int err;
+
+					UNLOCK(m_GETQUESTIONLOCK);
+					err= error(answer[0]);
+					if(err != 0)
+					{
+						err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
+						err+= (err > 0 ? m_oGetConnect->getMaxErrorNums(true) : (m_oGetConnect->getMaxErrorNums(false) * -1));
+						return err;
+					}
+					if(nRv < 0)
+						return nRv - getMaxErrorNums(false);
+				}
 			}
 		}
 		UNLOCK(m_GETQUESTIONLOCK);
@@ -269,7 +280,7 @@ namespace util
 		int nRv;
 
 		LOCK(m_GETQUESTIONLOCK);
-		nRv= closeConnection(m_oGetConnect, m_pGetTransaction);
+		nRv= closeConnection(m_oGetConnect, m_pGetTransaction, m_sEndingGetCommand);
 		m_pGetTransaction= NULL;
 		UNLOCK(m_GETQUESTIONLOCK);
 		return nRv;
@@ -305,7 +316,7 @@ namespace util
 		return in.str();
 	}
 
-	string ExternClientInputTemplate::strerror(int err)
+	string ExternClientInputTemplate::strerror(int err, const bool bSend/*= true*/)
 	{
 		int min, max;
 		string str;
@@ -334,68 +345,116 @@ namespace util
 				err-= (err > 0 ? max : min);
 				min= 0;
 				max= 0;
-				if(m_oGetConnect)
+				if(bSend && m_oSendConnect)
+				{
+					min= m_oSendConnect->getMaxErrorNums(/*error*/false) * -1;
+					max= m_oSendConnect->getMaxErrorNums(/*error*/true);
+
+				}else if(m_oGetConnect)
 				{
 					min= m_oGetConnect->getMaxErrorNums(/*error*/false) * -1;
 					max= m_oGetConnect->getMaxErrorNums(/*error*/true);
 
-				}else if(m_oSendConnect)
-				{
-					min= m_oSendConnect->getMaxErrorNums(/*error*/false) * -1;
-					max= m_oSendConnect->getMaxErrorNums(/*error*/true);
 				}
 				if(err >= min && err <= max)
 				{
-					if(m_oGetConnect)
-					{
-						str= m_oGetConnect->strerror(err);
-						break;
-					}else if(m_oSendConnect)
+					if(bSend && m_oSendConnect)
 					{
 						str= m_oSendConnect->strerror(err);
+						break;
+
+					}else if(m_oGetConnect)
+					{
+						str= m_oGetConnect->strerror(err);
 						break;
 					}
 				}else
 				{
+					bool open= false;
+					string answer;
+					OMethodStringStream command("getMinMaxErrorNums");
+
 					err-= (err > 0 ? max : min);
 					min= 0;
 					max= 0;
-					if(m_pGetTransaction)
+					if(bSend && m_oSendConnect)
 					{
-						min= m_pGetTransaction->getMaxErrorNums(/*error*/false) * -1;
-						max= m_pGetTransaction->getMaxErrorNums(/*error*/true);
-
-					}else if(m_pSendTransaction)
-					{
+						if(!m_pSendTransaction)
+						{
+							openSendConnection();
+							open= true;
+						}
 						min= m_pSendTransaction->getMaxErrorNums(/*error*/false) * -1;
 						max= m_pSendTransaction->getMaxErrorNums(/*error*/true);
-					}
-					if(err >= min && err <= max)
-					{
-						if(m_pGetTransaction)
-						{
-							str= m_pGetTransaction->strerror(err);
-							break;
-						}else if(m_pSendTransaction)
+						if(err >= min && err <= max)
 						{
 							str= m_pSendTransaction->strerror(err);
 							break;
 						}
-					}else
-					{
-						err-= (err > 0 ? max : min);
-						min= 0;
-						max= 0;
-						if(m_pSendTransaction)
-						{
-							int err2;
-							OMethodStringStream command("getErrorString");
+						answer= sendMethod(m_sName, command);
+						if(open)
+							closeSendConnection();
 
+					}else if(m_oGetConnect)
+					{
+						if(!m_pGetTransaction)
+						{
+							openGetConnection();
+							open= true;
+						}
+						min= m_pGetTransaction->getMaxErrorNums(/*error*/false) * -1;
+						max= m_pGetTransaction->getMaxErrorNums(/*error*/true);
+						if(err >= min && err <= max)
+						{
+							str= m_pGetTransaction->strerror(err);
+							break;
+						}
+						answer= sendMethod(m_sName, command, true);
+						if(open)
+							closeGetConnection();
+					}
+					err-= (err > 0 ? max : min);
+					if(error(answer) == 0)
+					{
+						int err2;
+						OMethodStringStream command("getErrorString");
+						istringstream ianswer(answer);
+
+						ianswer >> min;
+						ianswer >> max;
+						if(err >= min && err <= max)
+						{
+							min= 0;
+							max= 0;
 							command << err;
-							str= sendMethod(m_sName, command, /*answer*/true);
-							err2= error(str);
-							if(err2 == 0 && str != "")
-								break;
+							if(bSend && m_oSendConnect)
+							{
+								if(!m_pSendTransaction)
+								{
+									openSendConnection();
+									open= true;
+								}
+								str= sendMethod(m_sName, command, /*answer*/true);
+								if(open)
+									closeSendConnection();
+								err2= error(str);
+								if(err2 == 0 && str != "")
+									break;
+
+							}if(m_oGetConnect)
+							{
+								if(!m_pGetTransaction)
+								{
+									openGetConnection();
+									open= true;
+								}
+								str= getQuestion(command.str());
+								if(open)
+									closeGetConnection();
+								err2= error(str);
+								if(err2 == 0 && str != "")
+									break;
+							}
 						}
 					}
 				}

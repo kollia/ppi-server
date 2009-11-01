@@ -66,9 +66,11 @@ namespace util
 			 * return string describing error number
 			 *
 			 * @param error code number of error
+			 * @param bSend whether need error string for sending connections (true is default) or get question connection (false).<br />
+			 *              If no sending connection is set, but bSend is true, method ask even by get question connection
 			 * @return error string
 			 */
-			virtual string strerror(int error);
+			virtual string strerror(const int error, const bool bSend= true);
 			/**
 			 * get maximal error or warning number in positive values
 			 * from own class and all imply run through classes
@@ -180,6 +182,32 @@ namespace util
 			 * @return error code
 			 */
 			int openGetConnection();
+			/**
+			 * sending commands to open and ending the sending connection.<br />
+			 * By default this method not be called, by open the connection it would be sending
+			 * <processName:clientName> set in constructor with following the word SEND.
+			 * Also as default before close the connection it will be sending the word 'ending'.<br />
+			 * If this method called but no ending or open parameter be set, the developer have to perform
+			 * this command self and the object do not sending any commands
+			 *
+			 * @param open first command after open connection
+			 * @param ending command before closing connection
+			 */
+			void openendSendConnection(const string& open= "", const string& ending= "")
+			{ m_sOpenSendCommand= open; m_sEndingSendCommand= ending; };
+			/**
+			 * sending commands to open and ending the get question connection.<br />
+			 * By default this method not be called, by open the connection it would be sending
+			 * <processName:clientName> set in constructor with following the word GET.
+			 * Also as default before close the connection it will be sending the word 'ending'.<br />
+			 * If this method called but no ending or open parameter be set, the developer have to perform
+			 * this command self and the object do not sending any commands
+			 *
+			 * @param open first command after open connection
+			 * @param ending command before closing connection
+			 */
+			void openendGetConnection(const string& open= "", const string& ending= "")
+			{ m_sOpenGetCommand= open; m_sEndingGetCommand= ending; };
 			/**
 			 * whether object has open connection to send questions to server
 			 *
@@ -299,6 +327,30 @@ namespace util
 			 */
 			IClientConnectArtPattern* m_oGetConnect;
 			/**
+			 * with witch command the sending connection should open.
+			 * If not set the open command is <processName:processName>
+			 */
+			string m_sOpenSendCommand;
+			/**
+			 * with witch command the sending connection should ending.
+			 * If m_sOpenSendCommand not be set the m_sEndingSendCommand is 'ending'.
+			 * By set m_sOpenSendCommand and m_sEndingSendCommand not be set, no ending command will be sending
+			 * and the connection is only cutting
+			 */
+			string m_sEndingSendCommand;
+			/**
+			 * with witch command the get question connection should open.
+			 * If not set the open command is <processName:processName>
+			 */
+			string m_sOpenGetCommand;
+			/**
+			 * with witch command the get question connection should ending.
+			 * If m_sOpenGetCommand not be set the m_sEndingGetCommand is 'ending'.
+			 * By set m_sOpenGetCommand and m_sEndingGetCommand not be set, no ending command will be sending
+			 * and the connection is only cutting
+			 */
+			string m_sEndingGetCommand;
+			/**
 			 * transaction to server to send methods.<br />
 			 * If not exist create an new one
 			 */
@@ -326,9 +378,10 @@ namespace util
 			 *
 			 * @param connection ClientConnectArtPattern from sending or get question
 			 * @param transaction own created transaction object
+			 * @param command command sending before close connection
 			 * @return error code
 			 */
-			int closeConnection(IClientConnectArtPattern* connection, OutsideClientTransaction* transaction);
+			int closeConnection(IClientConnectArtPattern* connection, OutsideClientTransaction* transaction, const string& command);
 	};
 }
 
