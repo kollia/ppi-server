@@ -81,9 +81,10 @@ namespace server
 			m_bHold= true;
 		}else
 		{
-			if(!descriptor.eof())
+			if(m_sEnding != "" && !descriptor.eof())
 			{
-				descriptor << "ending\n";
+				descriptor << m_sEnding;
+				descriptor.endl();
 				descriptor.flush();
 				descriptor >> answer;
 				m_vAnswer.push_back(answer);

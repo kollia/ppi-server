@@ -64,10 +64,12 @@ namespace server
 			void setCommand(const string& command, const string& ending= "")
 			{ m_sCommand= command; m_sAnswerEnding= ending; };
 			/**
-			 * client transaction should ending by next <code>init()</code>			 *
+			 * client transaction should ending by next <code>init()</code>
+			 *
+			 * @param endcommand send before ending this command
 			 */
-			void closeConnection()
-			{ m_bHold= false; };
+			void closeConnection(const string& endcommand)
+			{ m_bHold= false; m_sEnding= endcommand; };
 			/**
 			 * return answer or question from server (other client)
 			 *
@@ -122,6 +124,10 @@ namespace server
 			 * answer from server
 			 */
 			vector<string> m_vAnswer;
+			/**
+			 * send before ending this command
+			 */
+			string m_sEnding;
 
 	};
 
