@@ -295,21 +295,7 @@ namespace server
 						LOG(LOG_SERVER, msg);
 						sendmsg= "ERROR 010";
 					}
-				}/*else
-				{
-					if(!m_bConnected)
-					{// if client send in second time an GET command
-					 // do not give the connection an new ID
-						ID= m_poStarter->nextClientID();
-						mutex_lock(m_CONNECTIONIDACCESS);
-						m_unConnID= ID;
-						mutex_unlock(m_CONNECTIONIDACCESS);
-						mutex_lock(m_SPEAKERVARACCESS);
-						m_bSpeakerThread= false;
-						mutex_unlock(m_SPEAKERVARACCESS);
-						m_bConnected= true;
-					}
-				}*/
+				}
 
 				if(sendmsg == "")
 				{
@@ -419,6 +405,48 @@ namespace server
 				cout << "client stop connection" << endl;
 	#endif
 				return false;
+			}else if(	input == "init"
+						||
+						input == "ppi-internet-server true init"	)
+			{
+				descriptor << "done";
+				descriptor.endl();
+				descriptor.flush();
+				ok= true;
+
+			}else if(	input == "GETMINMAXERRORNUMS"
+						||
+						input == "ppi-internet-server true getMinMaxErrorNums"	)
+			{
+				ostringstream output;
+
+				output << getMaxErrorNums(false) * -1;
+				output << " ";
+				output << getMaxErrorNums(true);
+				descriptor << output.str();
+				descriptor.endl();
+				descriptor.flush();
+				ok= true;
+
+			}else if(	input.substr(0, 15) == "GETERRORSTRING "
+						||
+						input.substr(0, 40) == "ppi-internet-server true getErrorString "	)
+			{
+				istringstream in(input);
+				string strings;
+				int errnr;
+
+				in >> strings;
+				if(strings == "ppi-internet-server")
+				{
+					in >> strings;// = 'true'
+					in >> strings;// = 'getErrorString'
+				}
+				in >> errnr;
+				descriptor << strerror(errnr);
+				descriptor.endl();
+				descriptor.flush();
+				ok= true;
 			}
 			if(!ok)
 			{
