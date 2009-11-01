@@ -516,7 +516,7 @@ namespace server
 		while(pCurrentCom != NULL)
 		{
 			pDel= NULL;
-			if(connectionID != pCurrentCom->getConnectionID())
+			if(connectionID != pCurrentCom->getConnectionID() || connectionID == 0 )
 			{
 				pCurrentCom->stop(false);
 				if(	wait
@@ -571,19 +571,21 @@ namespace server
 	int CommunicationThreadStarter::stop(const bool *bWait)
 	{
 		int nRv;
-		bool* wait= false;
 
+		stopCommunicationThreads(0, false);
 		LOCK(m_NEXTCOMMUNICATION);
-		nRv= Thread::stop(wait);
+		nRv= Thread::stop(false);
 		AROUSEALL(m_NEXTCOMMUNICATIONCOND);
 		UNLOCK(m_NEXTCOMMUNICATION);
-		if(	nRv == 0
+		if(	nRv <= 0
 			&&
 			bWait
 			&&
 			*bWait == true	)
 		{
-			nRv= Thread::stop(bWait);
+			while(!stopCommunicationThreads(0, true))
+			{};
+			nRv= Thread::stop(true);
 		}
 		return nRv;
 	}

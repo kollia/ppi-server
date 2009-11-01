@@ -186,10 +186,9 @@ namespace server
 		UNLOCK(m_NEWCONNECTIONS);
 	}
 
-	void ServerProcess::close()
+	inline void ServerProcess::close()
 	{
-		if(m_pConnect)
-			m_pConnect->close();
+		m_pConnect->close();
 	}
 
 	int ServerProcess::stop(const bool bWait/*= true*/)
@@ -208,7 +207,8 @@ namespace server
 	void ServerProcess::ending()
 	{
 		close();
-		m_pStarterPool->stopCommunicationThreads(/*wait*/true);
+		while(!m_pStarterPool->stopCommunicationThreads(0, /*wait*/true))
+		{};
 		m_pStarterPool->stop(/*wait*/true);
 	}
 
