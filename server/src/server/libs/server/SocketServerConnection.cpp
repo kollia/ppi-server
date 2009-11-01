@@ -40,9 +40,7 @@ namespace server
 		IFileDescriptorPattern* descriptor;
 
 		POS("#server#wait-client");
-		cout << "wait of new connection" << endl;
 		m_kSocket.bindSocket = ::accept(m_kSocket.serverSocket, (struct sockaddr *) &m_kSocket.rec_addres, &m_kSocket.adrlaenge);
-		cout << "has new connection" << endl << endl;
 		if (m_kSocket.bindSocket < 0)
 		{
 			switch(errno)
