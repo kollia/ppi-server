@@ -389,7 +389,7 @@ namespace server
 				if(client == 0)
 					++stopdb;
 				++count;
-				sRv= "one wire clients";
+				sRv= "stop one wire clients";
 				break;
 
 			case 2:
@@ -418,7 +418,6 @@ namespace server
 					descriptor.sendToOtherClient("LogServer", "stop-OK", false);
 					sRv= "stop logging client";
 					log= LogInterface::instance();
-					//log->stop(false);
 					delete log;
 
 				}
