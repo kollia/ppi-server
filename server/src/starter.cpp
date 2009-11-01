@@ -623,6 +623,7 @@ bool Starter::execute(vector<string> options)
 																host,
 																port,
 																10			)	);
+	process->openendSendConnection("GET wait", "ending");
 
 	if(bInternet)
 		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-internet-server").c_str(), NULL);
@@ -1835,12 +1836,14 @@ void Starter::checkAfterContact()
 
 bool Starter::command(vector<string> options, string command)
 {
-	bool clres;
+	bool bRv;
+	int clres;
 	unsigned short nPort;
 	string fileName, prop;
 	string confpath, logpath, sLogLevel, property;
 	SocketClientConnection* clientCon;
 	vector<string>::iterator opIt;
+	istringstream icommand(command);
 
 	Starter::isNoPathDefinedStop();
 	opIt= find(options.begin(), options.end(), "-f");
@@ -1907,11 +1910,52 @@ bool Starter::command(vector<string> options, string command)
 	if(property == "#ERROR")
 		return false;
 
+	bool askServer= true;
+	unsigned int err, warn, ask;
+	ClientTransaction* pClient= new ClientTransaction(options, command);
+	string co;
+
+	bRv= true;
 	command= ConfigPropertyCasher::trim(command);
-	clientCon= new SocketClientConnection(SOCK_STREAM, "127.0.0.1", nPort, 10, new ClientTransaction(options, command));
-	clres= clientCon->init();
+	clientCon= new SocketClientConnection(SOCK_STREAM, "127.0.0.1", nPort, 10, pClient);
+	err= clientCon->getMaxErrorNums(true);
+	warn= clientCon->getMaxErrorNums(false);
+	pClient->setErrors(warn, err);
+	icommand >> co;
+	if(co == "GETERRORSTRING")
+	{
+		icommand >> ask;
+		if(	ask >= (warn*-1)
+			&&
+			ask <= err		)
+		{
+			cout << clientCon->strerror(ask) << endl;
+			askServer= false;
+		}
+	}
+	if(askServer)
+	{
+		clres= clientCon->init();
+		if(clres != 0)
+		{
+			string output;
+
+			opIt= find(options.begin(), options.end(), "-e");
+			if(opIt != options.end())
+				output= ExternClientInputTemplate::error(clres);
+			else
+				output= clientCon->strerror(clres);
+
+			if(clres > 0)
+			{
+				cerr << output << endl;
+				bRv= false;
+			}else
+				cout << output << endl;
+		}
+	}
 	delete clientCon;
-	return clres;
+	return bRv;
 }
 
 bool Starter::stop(vector<string> options)

@@ -182,6 +182,12 @@ int main(int argc, char* argv[])
 				||
 				param == "status"
 				||
+				param == "init"
+				||
+				param == "GETMINMAXERRORNUMS"
+				||
+				param == "GETERRORSTRING"
+				||
 				(	bWait
 					&&
 					param == ""	)	)
@@ -275,6 +281,9 @@ void help(char* cpSelf)
 	printf("                start    -     starting server\n");
 	printf("                stop     -     stopping server\n");
 	printf("                restart  -     restarting the hole server\n");
+	printf("                init     -     whether the Internet server is running. Answer with 'done' when server running,\n");
+	printf("                               or in most case 'ERROR: The target address was not listening for connections or refused the connection request.'\n");
+	printf("                               when the option -e not be set, elswhere 'ERROR 025'\n");
 	printf("                status   -     show how much threads for process are running.\n");
 	printf("                               see also for options -t or -c\n");
 	printf("                CHANGE <username>:<password>\n");
@@ -303,5 +312,11 @@ void help(char* cpSelf)
 	printf("                               if folder is -ow client get DEBUG info for bechmark OWServer\n");
 	printf("                               and sleeptime should be number of OWServer.\n");
 	printf("                               if folder set as string 'null' debugging is ending\n");
+	printf("                GETMINMAXERRORNUMS\n");
+	printf("                         -     return two integer for maximal warning- and error-number.\n");
+	printf("                               The first number is the higest negative warning number (from number to -1) or 0,\n");
+	printf("                               the second the highest positive error number (from 1 to number) or 0\n");
+	printf("                GETERRORSTRING <errornumber>\n");
+	printf("                         -     return for positive errornuber or negative warning number as an string definition\n");
 	printf("\n");
 }
