@@ -1912,11 +1912,12 @@ bool Starter::command(vector<string> options, string command)
 
 	bool askServer= true;
 	unsigned int err, warn, ask;
-	ClientTransaction* pClient= new ClientTransaction(options, command);
+	ClientTransaction* pClient;
 	string co;
 
 	bRv= true;
 	command= ConfigPropertyCasher::trim(command);
+	pClient= new ClientTransaction(options, command);
 	clientCon= new SocketClientConnection(SOCK_STREAM, "127.0.0.1", nPort, 10, pClient);
 	err= clientCon->getMaxErrorNums(true);
 	warn= clientCon->getMaxErrorNums(false);
