@@ -23,5 +23,5 @@ set(utilSrcs	actionproperties.cpp
         		XMLStartEndTagReader.cpp		)
 
 add_library(ppiutil SHARED ${utilSrcs})
-
+set_target_properties(ppiutil PROPERTIES VERSION ${PPIUTIL_LIB_VERSION} SOVERSION ${PPIUTIL_LIB_SOVERSION})
 install(TARGETS ppiutil DESTINATION lib)

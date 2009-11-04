@@ -17,5 +17,5 @@ set(portsSrcs 	contactpin.cpp
         		valueholder.cpp			)
         		
 add_library(ppiports SHARED ${portsSrcs})
-
+set_target_properties(ppiports PROPERTIES VERSION ${PPIPORTS_LIB_VERSION} SOVERSION ${PPIPORTS_LIB_SOVERSION})
 install(TARGETS ppiports DESTINATION lib)
