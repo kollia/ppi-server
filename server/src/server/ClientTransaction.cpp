@@ -60,6 +60,7 @@ namespace server
 		bool bOp= true;
 		bool bSecConn= false;
 		bool bRightServer= true;
+		bool bLogin= true;
 		bool bStatus= false;
 		unsigned int nOptions= m_vOptions.size();
 		unsigned short owserver;
@@ -101,6 +102,14 @@ namespace server
 				else
 					bOp= false;
 			}
+		}
+		if(	!m_bWait
+			&&
+			(	m_sCommand == "GETMINMAXERRORNUMS"
+				||
+				m_sCommand.substr(0, 15) == "GETERRORSTRING "	)	)
+		{
+			bLogin= false;
 		}
 		if(!bOp)
 		{
@@ -188,16 +197,11 @@ namespace server
 			t= time(NULL);
 			strftime(stime, sizeof(stime), "%H:%M:%S %d.%m.%Y", localtime(&t));
 			cout << endl << "actual time " << stime << endl;
+			bLogin= false;
 		}
 		if(	m_bWait
 			||
-			bSecConn
-			||
-			user != ""
-			||
-			pwd != ""
-			||
-			!bStatus	)
+			bLogin		)
 		{
 			int c;
 			struct termios term, backup;
@@ -458,9 +462,9 @@ namespace server
 				icommand >> com;
 				icommand >> number;
 				if(number > 0)
-					number+= m_nOutsideErr;
+					number-= m_nOutsideErr;
 				else
-					number-= m_nOutsideWarn;
+					number+= m_nOutsideWarn;
 				ocommand << com << " " << number;
 				m_sCommand= ocommand.str();
 			}
@@ -482,9 +486,12 @@ namespace server
 					cerr << "ERROR: lost connection to server" << endl;
 					return false;
 				}
-				if(result.substr(0, 6) == "ERROR ")
+				if(	result.substr(0, 6) == "ERROR "
+					||
+					result.substr(0, 8) == "WARNING "	)
 				{
 					printError(result);
+
 				}else if(result == "done")
 				{
 					bWaitEnd= false;
@@ -525,7 +532,7 @@ namespace server
 
 		}while(m_bWait);
 
-		return false;
+		return true;
 	}
 
 	string ClientTransaction::strerror(int error) const

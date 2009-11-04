@@ -225,6 +225,8 @@ namespace server
 		cout << "get: " << input << endl;
 #endif // SERVERDEBUG
 
+		// --------------------------------------------------
+		// first all server transaction which do not need an loggin
 		if(input.substr(0, 6) == "status")
 		{
 			string param;
@@ -241,13 +243,61 @@ namespace server
 #endif
 			descriptor << "done\n";
 
+		}else if(input == "ending")
+		{
+			DbInterface* db= DbInterface::instance();
+
+			db->needSubroutines(descriptor.getClientID(), "stopclient");
+#ifdef SERVERDEBUG
+			cout << "client stop connection" << endl;
+#endif
+			return false;
+
+		}else if(	input == "init"
+					||
+					input == "ppi-internet-server true init"	)
+		{
+			descriptor << "done";
+			descriptor.endl();
+			descriptor.flush();
+
+		}else if(	input == "GETMINMAXERRORNUMS"
+					||
+					input == "ppi-internet-server true getMinMaxErrorNums"	)
+		{
+			ostringstream output;
+
+			output << getMaxErrorNums(false) * -1;
+			output << " ";
+			output << getMaxErrorNums(true);
+			descriptor << output.str();
+			descriptor.endl();
+			descriptor.flush();
+
+		}else if(	input.substr(0, 15) == "GETERRORSTRING "
+					||
+					input.substr(0, 40) == "ppi-internet-server true getErrorString "	)
+		{
+			istringstream in(input);
+			string strings;
+			int errnr;
+
+			in >> strings;
+			if(strings == "ppi-internet-server")
+			{
+				in >> strings;// = 'true'
+				in >> strings;// = 'getErrorString'
+			}
+			in >> errnr;
+			descriptor << strerror(errnr);
+			descriptor.endl();
+			descriptor.flush();
+
 		}else if(	!descriptor.getBoolean("access")
 					||
 					(	length > 6
 						&&
-						input.substr(0, 6) == "CHANGE"	)
-					||
-					input == "ending"						)
+						input.substr(0, 6) == "CHANGE"	)	)
 		{
 			bool ok= false;
 
@@ -396,57 +446,6 @@ namespace server
 					descriptor.flush();
 					return true;
 				}
-			}else if(input == "ending")
-			{
-				DbInterface* db= DbInterface::instance();
-
-				db->needSubroutines(descriptor.getClientID(), "stopclient");
-	#ifdef SERVERDEBUG
-				cout << "client stop connection" << endl;
-	#endif
-				return false;
-			}else if(	input == "init"
-						||
-						input == "ppi-internet-server true init"	)
-			{
-				descriptor << "done";
-				descriptor.endl();
-				descriptor.flush();
-				ok= true;
-
-			}else if(	input == "GETMINMAXERRORNUMS"
-						||
-						input == "ppi-internet-server true getMinMaxErrorNums"	)
-			{
-				ostringstream output;
-
-				output << getMaxErrorNums(false) * -1;
-				output << " ";
-				output << getMaxErrorNums(true);
-				descriptor << output.str();
-				descriptor.endl();
-				descriptor.flush();
-				ok= true;
-
-			}else if(	input.substr(0, 15) == "GETERRORSTRING "
-						||
-						input.substr(0, 40) == "ppi-internet-server true getErrorString "	)
-			{
-				istringstream in(input);
-				string strings;
-				int errnr;
-
-				in >> strings;
-				if(strings == "ppi-internet-server")
-				{
-					in >> strings;// = 'true'
-					in >> strings;// = 'getErrorString'
-				}
-				in >> errnr;
-				descriptor << strerror(errnr);
-				descriptor.endl();
-				descriptor.flush();
-				ok= true;
 			}
 			if(!ok)
 			{
@@ -796,9 +795,9 @@ namespace server
 				}
 
 
-			}else if(	input.substr(0, 3) == "SET"
+			}else if(	input.substr(0, 4) == "SET "
 						||
-						input.substr(0, 3) == "GET"	)
+						input.substr(0, 4) == "GET "	)
 			{
 				bool bGet= true;
 				bool bWait= false;
@@ -839,7 +838,7 @@ namespace server
 							msg+= " is incorrect";
 							msg+= "\nsend ERROR 003 0";
 							LOG(LOG_ERROR, msg);
-							sendmsg= "ERROR 003\n";
+							sendmsg= "ERROR 003 0\n";
 							descriptor << sendmsg;
 							bWait= false;
 		#ifdef SERVERDEBUG
