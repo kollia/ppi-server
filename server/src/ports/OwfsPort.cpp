@@ -30,38 +30,10 @@ namespace ports
 {
 	bool OwfsPort::init(measurefolder_t *pStartFolder, ConfigPropertyCasher &properties)
 	{
-		typedef vector<string>::size_type s_t;
-
 		bool bRv= true;
-		string begin, swhile, end, prop;
 
 		m_pSettings= &properties;
 		m_bRead= false;
-		begin= properties.getValue("begin", /*warning*/false);
-		swhile= properties.getValue("while", /*warning*/false);
-		end= properties.getValue("end", /*warning*/false);
-		properties.notAllowedAction("outside");
-
-		/******************************************************
-		 **
-		 **    ask properties which be ask in object OWServer
-		 **    because if no server found for ID
-		 **    method useChip will be not called
-		 **    and server should not give warnings
-		 **    for not allowed actions
-		 **
-		 ******************************************************/
-		prop= "priority";
-		properties.getInt(prop, /*warning*/false);
-		prop= "cache";
-		properties.getDouble(prop, /*warning*/false);
-		properties.getValue("pin", /*warning*/false);
-		properties.haveAction("cache");
-		properties.haveAction("writecache");
-		properties.haveAction("current");
-		properties.haveAction("read");
-		properties.haveAction("write");
-		/******************************************************/
 
 		m_sServer= properties.needValue("type");
 		if(m_sServer == "")
@@ -106,6 +78,7 @@ namespace ports
 			setDeviceAccess(false);
 			return true;// no error try again later
 		}
+		m_pOWServer->usePropActions(m_pSettings);
 		chipAccess= m_pOWServer->useChip(m_pSettings, m_sChipID, getFolderName(), getSubroutineName());
 		if(	chipAccess < 1
 			||
