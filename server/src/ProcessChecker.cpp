@@ -1,4 +1,4 @@
-/**
+	/**
  *   This file is part of ppi-server.
  *
  *   ppi-server is free software: you can redistribute it and/or modify
@@ -73,6 +73,36 @@ int ProcessChecker::execute()
 
 		}else
 			m_sAnswer= "nofolder";
+
+	}else if(method == "debugFolder")
+	{
+		bool bFound= false;
+		string folder;
+		meash_t* pCurMeas= meash_t::firstInstance;
+
+		object >> folder;
+		while(pCurMeas)
+		{
+			if(pCurMeas->pMeasure->getThreadName() == folder)
+			{
+				pCurMeas->pMeasure->setDebug(true, 3);
+				bFound= true;
+			}else
+				pCurMeas->pMeasure->setDebug(false, 0);
+			pCurMeas= pCurMeas->next;
+		}
+		if(!bFound)
+			m_sAnswer= "nofolder";
+
+	}else if(method == "clearFolderDebug")
+	{
+		meash_t* pCurMeas= meash_t::firstInstance;
+
+		while(pCurMeas)
+		{
+			pCurMeas->pMeasure->setDebug(false, 0);
+			pCurMeas= pCurMeas->next;
+		}
 
 	}else if(method == "stop-all")
 	{
