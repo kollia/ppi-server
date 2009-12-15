@@ -59,6 +59,41 @@ namespace ports
 		return true;
 	}
 
+	void VellemannK8055::usePropActions(const IActionPropertyPattern* properties) const
+	{
+		bool read;
+		string pin;
+
+		properties->getValue("ID");
+		pin= properties->getValue("pin").substr(0, 1);
+
+		if(	pin == "I" // digital
+			||
+			pin == "A" // analog
+			||
+			pin == "d" // debounce
+			||
+			pin == "r" ) // reset
+		{
+			read= false;
+		}else
+			read= true;
+
+		if(read)
+		{
+			properties->getValue("cache", /*warning*/false);
+			properties->haveAction("current", /*warning*/false);
+
+		}else
+		{
+			properties->getValue("priority", /*warning*/false);
+			properties->haveAction("cache", /*warning*/false);
+		}
+
+		properties->haveAction("db");
+		properties->haveAction("perm");
+	}
+
 	short VellemannK8055::useChip(const IActionPropertyMsgPattern* prop, string& id)
 	{
 		short nRv= 0;

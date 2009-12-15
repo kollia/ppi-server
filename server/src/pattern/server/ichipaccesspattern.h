@@ -42,18 +42,24 @@ namespace design_pattern_world
 		 */
 		virtual string getServerName()= 0;
 		/**
-		 * first connection and initialisation to the chips.<br />
+		 * select all properties and actions whitch are uesed in interface
+		 *
+		 * @param properties reading properties from the main configure file
+		 */
+		virtual void usePropActions(const IActionPropertyPattern* properties) const= 0;
+		/**
+		 * first connection and initialization to the chips.<br />
 		 * This method allocate the first connection and abort also with true if faild.
-		 * On faild the owserver call the connect method in 1 second time.
+		 * On failed the owserver call the connect method in 1 second time.
 		 * After them if one connection was ok, the server access this method again.
 		 *
-		 * @param properties reading properties from the main config file
-		 * @return wether the initialisation was correct but not chure the connection
+		 * @param properties reading properties from the main configure file
+		 * @return wether the initialization was correct but not chure the connection
 		 */
 		virtual bool init(const IPropertyPattern* properties)=0;
 		/**
-		 * return the name of default config file for every chips or pins.<br />
-		 * If method returning an null string, no default config will be used
+		 * return the name of default configure file for every chips or pins.<br />
+		 * If method returning an null string, no default configure will be used
 		 *
 		 * @return name of file
 		 */
@@ -79,7 +85,7 @@ namespace design_pattern_world
 		/**
 		 * define that dallas semicoductor is used
 		 *
-		 * @param prop properties from current subroutine
+		 * @param prop properties from current subroutine in measure.conf
 		 * @param id this param get unique id of pin to identify reading or writing
 		 * @return 0 if the pin is not correct, 1 if the pin is for reading, 2 for writing or 3 for unknown (reading/writing)
 		 */

@@ -47,6 +47,12 @@ namespace ports
 			 */
 			VellemannK8055(long ID);
 			/**
+			 * select all properties and actions whitch are uesed in interface
+			 *
+			 * @param properties reading properties from the main config file
+			 */
+			virtual void usePropActions(const IActionPropertyPattern* properties) const;
+			/**
 			 * first connection and initialisation to the chips.<br />
 			 *
 			 * @param properties reading properties from the main config file

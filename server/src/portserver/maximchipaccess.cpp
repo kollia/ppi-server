@@ -61,6 +61,19 @@ namespace ports
 		++m_nInterface;
 	}
 
+	void MaximChipAccess::usePropActions(const IActionPropertyPattern* prop) const
+	{
+		prop->getValue("ID");
+		prop->getValue("pin");
+		prop->getValue("priority", /*warning*/false);
+		prop->getValue("cache", /*warning*/false);
+		prop->haveAction("read");
+		prop->haveAction("cache");
+		prop->haveAction("current");
+		prop->haveAction("db");
+		prop->haveAction("perm");
+	}
+
 	bool MaximChipAccess::init(const IPropertyPattern* properties)
 	{
 		string adapter, msg;
