@@ -284,7 +284,7 @@ string portBase::getBinString(const long value, const size_t bits)
 	//long* pvalue= value;
 	long bit= 0x01;
 
-	memset(byte, '0', sizeof(byte));
+	memset(byte, '0', bits);
 	byte[bits]= '\0';
 	for(size_t n= bits-1; n>=0; n--)
 	{
@@ -304,7 +304,7 @@ void portBase::printBin(int* value, unsigned long nPort)
 {
 	string byte;
 
-	byte= getBinString((long)value, 8);
+	byte= getBinString((long)*value, 8);
 	printf("%s(bin) 0x%03X(hex) %3d(dez)  on port:0x%3X\n", byte.c_str(), *(unsigned*)value, *value, (unsigned int)nPort);
 	//cout << byte << endl;
 	//cout << *value << endl;
@@ -443,7 +443,9 @@ portBase::Pins portBase::getPinsStruct(string sPin)
 		tRv.ePin= NONE;
 	}else
 	{
+		tRv.sPort= pin[0];
 		tRv.nPort= getPortAddress(pin[0]);
+		tRv.sPin= pin[1];
 		tRv.ePin= getPinEnum(pin[1]);
 	}
 	return tRv;

@@ -75,7 +75,9 @@ namespace ports
 			struct Pins
 			{
 				unsigned long nPort;
+				string sPort;
 				Pin ePin;
+				string sPin;
 
 				int operator == (const Pins &other) const
 				{
