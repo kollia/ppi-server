@@ -567,13 +567,13 @@ namespace server
 			}else if(input.substr(0, 5) == "DEBUG")
 			{
 				bool bWait= false;
-				bool bFoundFolder= false;
 				unsigned short nSleep;
 				//unsigned int nFolderPos;
 				string sCommand, sFolder, sSleep;
 				stringstream ss(input);
 				vector<string> values;
 				meash_t *pCurMeas= NULL;
+				DbInterface* db= DbInterface::instance();
 
 				ss >> sCommand;
 				ss >> sFolder;
@@ -584,7 +584,6 @@ namespace server
 					unsigned short ID= nSleep;
 					string sID= sSleep;
 					OWInterface* server;
-					DbInterface* db= DbInterface::instance();
 
 					if(sID == "null")
 					{
@@ -634,29 +633,18 @@ namespace server
 					}
 				}else
 				{
-					if(nSleep == 0)
-						nSleep= 3;
 					if(sFolder == "null")
-						bFoundFolder= true;
-
-					pCurMeas= meash_t::firstInstance;
-					while(pCurMeas)
 					{
-						//cout << "'" << pCurMeas->pMeasure->getThreadName() << "' == '" << values[0] << "'" << endl;
-						if(pCurMeas->pMeasure->getThreadName() == sFolder)
-						{
-							bFoundFolder= true;
-							pCurMeas->pMeasure->setDebug(true, nSleep);
-						}else
-							pCurMeas->pMeasure->setDebug(false, 0);
-						pCurMeas= pCurMeas->next;
-					}
-					if(bFoundFolder)
-					{
+						db->clearFolderDebug();
 						sendmsg= "done\n";
 						descriptor << sendmsg;
-					}
-					else
+
+					}else if(db->existFolder(sFolder))
+					{
+						db->debugFolder(sFolder);
+						sendmsg= "done\n";
+						descriptor << sendmsg;
+					}else
 					{
 						string msg;
 
@@ -748,7 +736,7 @@ namespace server
 			{
 				string line;
 				std::ifstream file;
-				string path(meash_t::clientPath);
+				string path(global_clientpath);
 				string fileName(ConfigPropertyCasher::trim(input.substr(7)));
 				XMLStartEndTagReader reader;
 
