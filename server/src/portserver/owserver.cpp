@@ -486,6 +486,7 @@ namespace server
 		//unsigned short nCount= 0;
 		bool bDebug= false;
 		bool bDo= false;
+		bool bHasStarterSeq;
 		mmtype chipTypeIt;
 
 		if(isDebug())
@@ -544,6 +545,11 @@ namespace server
 					break;
 				}
 				priorityPos->second.pop();
+				if(priorityPos->second.size() == 0)
+				{
+					m_mvPriorityCache.erase(priorityPos);
+					priorityPos= m_mvPriorityCache.begin();
+				}
 				if(endWork == 0)
 				{// reading was correctly and the pin is finished (go to the next),
 					if(bDebug)
@@ -667,7 +673,6 @@ namespace server
 							devIt->value= 0;
 							measureTimeDiff(&(*devIt));
 						}
-						endWork= 0; // chip is finished go to the next
 						bDo= true;
 						break;
 					case 0:
@@ -680,9 +685,11 @@ namespace server
 							devIt->ok= true;
 							measureTimeDiff(&(*devIt));
 						}
-						(*pActChip)->value= value;
-						++pActChip;
-						pActSeq->second.nextUnique= *pActChip;
+						if((*pActChip)->value != value)
+						{
+							(*pActChip)->value= value;
+							// toDo: fill database
+						}
 						bDo= true;
 						break;
 					case 1:
@@ -711,7 +718,7 @@ namespace server
 						(*pActChip)->device= false;
 						break;
 					}
-					if(endWork != 3)
+					if(endWork == 1)
 						break;
 					++pActChip;
 					pActSeq->second.nextUnique= *pActChip;
@@ -812,11 +819,21 @@ namespace server
 					}
 				}
 			}
+			if(m_mStartSeq.size() == 0)
+				bHasStarterSeq= false;
+			else
+				bHasStarterSeq= true;
 			UNLOCK(m_READCACHE);
 			waittm.tv_sec= shorttm.tv_sec;
 			waittm.tv_nsec= shorttm.tv_usec * 1000;
 			LOCK(m_PRIORITYCACHE);
-			TIMECONDITION(m_PRIORITYCACHECOND, m_PRIORITYCACHE, &waittm);
+			if(m_mvPriorityCache.size() == 0)
+			{
+				if(bHasStarterSeq)
+					TIMECONDITION(m_PRIORITYCACHECOND, m_PRIORITYCACHE, &waittm);
+				else
+					CONDITION(m_PRIORITYCACHECOND, m_PRIORITYCACHE);
+			}
 			UNLOCK( m_PRIORITYCACHE);
 		}
 		return 0;
