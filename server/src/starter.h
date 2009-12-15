@@ -80,9 +80,17 @@ class Starter
 		 */
 		void createPortObjects();
 		void isNoPathDefinedStop();
+		/**
+		 * search entry in an vector of used ports
+		 *
+		 * @param vec vector of used ports
+		 * @param port which port should be find
+		 * @return pointer to entry, or point of last
+		 */
+		vector<pair<string, PortTypes> >::iterator find(vector<pair<string, PortTypes> >& vec, string port);
 
 	protected:
-		bool openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsigned short nDatabits, unsigned short nStopbit);
+		//bool openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsigned short nDatabits, unsigned short nStopbit);
 		bool checkServer();
 		/**
 		 * read etc/passwd to find user id for setting
@@ -113,7 +121,8 @@ class Starter
 		bool stop(vector<string> options);
 		bool command(vector<string> options, string command);
 		//vector<unsigned long> readFile(string fileName, string subName= "", string type= "", void *changeValue= NULL);
-		void readFile(vector<unsigned long> &vlRv, string fileName);
+		//whitch ports as string are needet. Second pair object bool is whether the port is defined for pin reading with ioperm()
+		void readFile(vector<pair<string, PortTypes> > &vlRv, string fileName);
 		/**
 		 * signal converting for all threads
 		 *

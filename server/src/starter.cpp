@@ -25,6 +25,8 @@
 #include <list>
 
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 #include "util/debug.h"
 #include "util/URL.h"
@@ -37,6 +39,7 @@
 #include "database/lib/DbInterface.h"
 
 #include "portserver/owserver.h"
+#include "portserver/ExternPorts.h"
 #include "portserver/maximchipaccess.h"
 #include "portserver/VellemannK8055.h"
 
@@ -67,6 +70,8 @@
 #include "starter.h"
 #include "ProcessChecker.h"
 
+using namespace boost;
+using namespace boost::algorithm;
 using namespace ppi_database;
 using namespace util;
 using namespace server;
@@ -75,30 +80,13 @@ using namespace std;
 using namespace logger;
 
 
-bool Starter::openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsigned short nDatabits, unsigned short nStopbit)
-// : m_nPort(nPort)
-{
-	int res;
-	char msg[50];
-
-	sprintf(msg, "### open interface to port %s", portBase::getPortName(nPort));
-#ifndef DEBUG
-	cout << msg << endl;
-#endif // DEBUG
-	LOG(LOG_INFO, msg);
-	res= ioperm(nPort, 8, 1);
-	if(res)
-		return false;
-	return true;
-}
-
 bool Starter::execute(vector<string> options)
 {
 	bool bLog, bDb, bPorts, bInternet;
 	int err;
 	unsigned short nDbConnectors;
 	unsigned int nOptions= options.size();
-	vector<unsigned long> ports; // whitch ports are needet
+	vector<pair<string, PortTypes> > ports; // whitch ports as string are needet. Second pair object bool is whether the port is defined for pin reading with ioperm()
 	string fileName;
 	string logpath, sLogLevel, property;
 	DbInterface *db;
@@ -113,10 +101,6 @@ bool Starter::execute(vector<string> options)
 	if(signal(SIGSEGV, signalconverting) == SIG_ERR)
 		printSigError("SIGSEGV");
 
-#ifdef SINGLETHREADING
-	bAsServer= false;
-#endif // SINGLETHREADING
-
 	bool bOp= true;
 	for(unsigned int o= 0; o<nOptions; ++o)
 	{
@@ -128,6 +112,8 @@ bool Starter::execute(vector<string> options)
 		cerr << "             see -? for help" << endl;
 	}
 
+	m_vOWServerTypes.push_back("PORT");
+	m_vOWServerTypes.push_back("MPORT");
 	m_vOWServerTypes.push_back("OWFS");
 	m_vOWServerTypes.push_back("Vk8055");
 
@@ -257,33 +243,12 @@ bool Starter::execute(vector<string> options)
 	}
 
 	// ------------------------------------------------------------------------------------------------------------
-#if 0
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// start server for communication between processes
-
-	cout << "### start ppi communicate server" << endl;
-	process= new ProcessStarter(	"CommunicationServerProcess",
-									new SocketClientConnection(	SOCK_STREAM,
-																commhost,
-																commport,
-																10			)	);
-
-	if(bCommunicate)
-		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-communicate-server").c_str(), NULL);
-	else
-		err= process->check();
-	if(err > 0)
-	{
-		cerr << "### ALERT: cannot start communication server" << endl;
-		cerr << "           so the hole application is not useable" << endl;
-		cerr << "           stop server" << endl;
-		exit(EXIT_FAILURE);
-	}
-	// ------------------------------------------------------------------------------------------------------------
-#endif
 
 	//*********************************************************************************
 	//* calculate how much communication threads should be running
+	bool bPort= false;
+	bool bMPort= false;
+	unsigned short nPortThreads= 0;
 
 	//*		for all one wire server an answer client and question client in ppi-internet-server
 	property= "maximinit";
@@ -291,6 +256,21 @@ bool Starter::execute(vector<string> options)
 	property= "Vk8055";
 	nDbConnectors+= static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
 	nDbConnectors*= 2; //question clients
+	for(vector<pair<string, PortTypes> >::iterator it= ports.begin(); it != ports.end(); ++it)
+	{
+		if(	!bPort && it->second == PORT	)
+		{
+			nDbConnectors+= 2;
+			bPort= true;
+
+		}else if(	!bMPort && it->second == MPORT	)
+		{
+			nDbConnectors+= 2;
+			bPort= true;
+
+		}else if(it->second == RWPORT)
+			nDbConnectors+= 2;
+	}
 	//*		for all process one log client
 	//			ppi-server, ppi-log-client, ppi-db-server, ppi-internet-server
 	nDbConnectors+= 4;
@@ -298,6 +278,19 @@ bool Starter::execute(vector<string> options)
 	//			ppi-server, ppi-log-client, ppi-internet-server
 	nDbConnectors+= 3;
 #ifdef ALLOCATEONMETHODSERVER
+	short spaces= 14;
+	ostringstream conns;
+
+	conns << nDbConnectors;
+	cout << " ******************************************************************" << endl;
+	cout << " ***                                                            ***" << endl;
+	cout << " ***   for database server are "
+						   << conns.str() << " clients configured";
+	for(short c= 0; c < (spaces - conns.str().size()); ++c)
+		cout << " ";
+	cout <<                                                                 "***" << endl;
+	cout << " ***                                                            ***" << endl;
+	cout << " ******************************************************************" << endl;
 	// only for debugging to know whether the allocated connections to db are ok
 	nDbConnectors+= 2;
 #endif // ALLOCATEONMETHODSERVER
@@ -369,24 +362,7 @@ bool Starter::execute(vector<string> options)
 	cout << " OK" << endl;
 	// ------------------------------------------------------------------------------------------------------------
 
-	for(unsigned int n= 0; n < ports.size(); n++)
-	{
-		if(!openPort(ports[n], 1200, 'N', 8, 1))
-		{
-			string errorMsg("");
 
-			errorMsg+= "ERROR: by connecting to port ";
-			errorMsg+= portBase::getPortName(ports[n]);
-			errorMsg+= "\n       cannot open spezified port";
-			LOG(LOG_ALERT, errorMsg);
-			printf("ERROR: by connecting to port %s\n", portBase::getPortName(ports[n]));
-			printf("       cannot open spezified port\n");
-			printf("       maybe application not started as root\n\n");
-			return false;
-		}
-	}
-
-	setuid(m_tDefaultUser);
 	LOG(LOG_INFO, "### -> starting server application.\n       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	LOG(LOG_INFO, "Read configuration files from " + m_sConfPath);
 
@@ -395,12 +371,58 @@ bool Starter::execute(vector<string> options)
 	 * define one wire server
 	 *
 	 */
-#ifdef _EXTERNVENDORLIBRARYS
 	int nServerID= 1;
 	OWServer* owserver;
+
+#ifdef _EXTERNVENDORLIBRARYS
 	string maximinit("");
 	vector<string>::size_type nVk8055Count= 0;
 #endif // _EXTERNVENDORLIBRARYS
+
+	if(ports.size() > 0)
+	{
+		vector<string> sPorts;
+
+		// starting OWServer for write or read pins on any ports
+		for(vector<pair<string, PortTypes> >::iterator it= ports.begin(); it != ports.end(); ++it)
+		{
+			if(it->second == PORT)
+				sPorts.push_back(it->first);
+		}
+		if(sPorts.size() > 0)
+		{
+			cout << "### starting OWServer" << flush;
+			owserver= new OWServer(nServerID, new ExternPorts(sPorts, PORT));
+			cout << " with name '" << owserver->getServerName();
+			cout << "' and ID '" << dec << nServerID << "'" << endl;
+			cout << "    for all used external ports" << endl;
+			if(owserver->start(&m_oServerFileCasher))
+				OWServer::delServers(owserver);
+			else
+				++nServerID;
+			sPorts.clear();
+		}
+
+		// starting OWServer to measure on ports
+		for(vector<pair<string, PortTypes> >::iterator it= ports.begin(); it != ports.end(); ++it)
+		{
+			if(it->second == MPORT)
+			{
+				sPorts.push_back(it->first);
+				cout << "### starting OWServer" << flush;
+				owserver= new OWServer(nServerID, new ExternPorts(sPorts, MPORT));
+				cout << " with name '" << owserver->getServerName();
+				cout << "' and ID '" << dec << nServerID << "'" << endl;
+				cout << "    to measure time on port" << endl;
+				if(owserver->start(&m_oServerFileCasher))
+					OWServer::delServers(owserver);
+				else
+					++nServerID;
+				sPorts.clear();
+			}
+		}
+
+	}
 
 #ifdef _K8055LIBRARY
 	bool bError;
@@ -426,7 +448,7 @@ bool Starter::execute(vector<string> options)
 			bError= true;
 		}else
 		{
-			vit= find(vVk8055.begin(), vVk8055.end(), nVk8055Address);
+			vit= ::find(vVk8055.begin(), vVk8055.end(), nVk8055Address);
 			if(vit == vVk8055.end())
 			{
 				cout << "### starting OWServer" << flush;
@@ -437,7 +459,8 @@ bool Starter::execute(vector<string> options)
 				cout << "    k8055 USB port from Vellemann on itnerface " << dec << nVk8055Address << endl;
 				if(owserver->start(&m_oServerFileCasher))
 					OWServer::delServers(owserver);
-				++nServerID;
+				else
+					++nServerID;
 			}else
 				bError= true;
 		}
@@ -461,7 +484,8 @@ bool Starter::execute(vector<string> options)
 		cout << "    OWFS device - initial with '" << maximinit << "'" << endl;
 		if(owserver->start(&m_oServerFileCasher))
 			OWServer::delServers(owserver);
-		++nServerID;
+		else
+			++nServerID;
 		//owserver= new OWServer(new MaximChipAccess());
 		//if(owserver->start(&m_oServerFileCasher))
 		//	OWServer::delServers(owserver);
@@ -533,7 +557,15 @@ bool Starter::execute(vector<string> options)
 #ifdef _EXTERNVENDORLIBRARYS
 	if(	maximinit != ""
 		||
-		nVk8055Count > 0	)
+		nVk8055Count > 0
+		||
+		ports.size() > 0	)
+	{
+		OWServer::checkUnused();
+		OWServer::endOfInitialisation();
+	}
+#else // _EXTERNVENDORLIBRARYS
+	if(	ports.size() > 0	)
 	{
 		OWServer::checkUnused();
 		OWServer::endOfInitialisation();
@@ -640,6 +672,12 @@ bool Starter::execute(vector<string> options)
 		LOG(LOG_ERROR, msg);
 	}
 	delete process;
+	// ------------------------------------------------------------------------------------------------------------
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// set process id to default user
+
+	setuid(m_tDefaultUser);
 	// ------------------------------------------------------------------------------------------------------------
 
 	// start ProcessChecker
@@ -918,11 +956,11 @@ void Starter::createPortObjects()
 					aktualFolder->subroutines[n].portClass= obj;
 				}else
 					delete obj;
-			}else if(find(m_vOWServerTypes.begin(), m_vOWServerTypes.end(), aktualFolder->subroutines[n].type) != m_vOWServerTypes.end())
+			}else if(::find(m_vOWServerTypes.begin(), m_vOWServerTypes.end(), aktualFolder->subroutines[n].type) != m_vOWServerTypes.end())
 			{// type is reached over an OWServer instance
 				OwfsPort* obj= NULL;
 
-				//cout << aktualFolder->subroutines[n].name << endl;
+				//cout << "subroutine " << aktualFolder->subroutines[n].name << " from type " << aktualFolder->subroutines[n].type << endl;
 				obj= new OwfsPort(	aktualFolder->subroutines[n].type,
 									aktualFolder->name,
 									aktualFolder->subroutines[n].name	);
@@ -1116,8 +1154,19 @@ void Starter::readPasswd()
 	}
 }
 
-//vector<unsigned long> Starter::readFile(string fileName, string subName/*= ""*/, string wtype/*= ""*/, void *changeValue/*= NULL*/)
-void Starter::readFile(vector<unsigned long> &vlRv, string fileName)
+inline vector<pair<string, PortTypes> >::iterator Starter::find(vector<pair<string, PortTypes> >& vec, string port)
+{
+	vector<pair<string, PortTypes> >::iterator portIt;
+
+	for(portIt = vec.begin(); portIt != vec.end(); ++portIt)
+	{
+		if(portIt->first == port)
+			break;
+	}
+	return portIt;
+}
+
+void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 {
 	static short nFolderID= 0;
 	//Properties::param_t pparam;
@@ -1152,107 +1201,7 @@ void Starter::readFile(vector<unsigned long> &vlRv, string fileName)
 			string value("");
 			string::size_type pos;
 
-			if(	subdir
-				&&
-				subdir->type != ""	)
-/*				(	subdir->type == "SAVE"
-					||
-					subdir->type == "RESISTANCE"
-					||
-					subdir->type == "TIMEMEASURE"
-					||
-					subdir->type == "COUNTER"
-					||
-					subdir->type == "MEASUREDNESS"
-					||
-					subdir->type == "SWITCH"
-					|| // or is defined for an OWServer instnace
-					find(m_vOWServerTypes.begin(), m_vOWServerTypes.end(), subdir->type) != m_vOWServerTypes.end()	)	)*/
-			{
-				double dSleep;
-				string prop;
 
-				if(!subdir->property)
-				{
-					char cID[20];
-					string sFID("_folderID=");
-
-					snprintf(cID, 20, "%d", nFolderID);
-					sFID+= cID;
-					subdir->property= new ConfigPropertyCasher();
-					subdir->property->setDefault("folder", aktualFolder->name);
-					subdir->property->setDefault("name", subdir->name);
-					subdir->property->readLine(sFID);
-					subdir->property->readLine("type="+subdir->type);
-					// to get no error if the _folderID not fetch,
-					// fetch it now
-					subdir->property->getValue("_folderID");
-					subdir->property->getValue("type");
-				}
-				subdir->property->readLine(line);
-				if(!subdir->property->newSubroutine().correct)
-					continue;
-				if(	subdir->type == "GETCONTACT"
-					||
-					subdir->type == "SWITCHCONTACT"
-					||
-					subdir->type == "TEMP"
-					||
-					subdir->type == "TIMEMEASURE"
-					||
-					subdir->type == "RESISTANCE"	)
-				{
-					portBase::Pins pin;
-					string value;
-					vector<string> need;
-					vector<unsigned long>::iterator portIt;
-
-					if(	subdir->type == "GETCONTACT"
-						||
-						subdir->type == "TEMP"			)
-					{
-						need.push_back("in");
-						need.push_back("out");
-					}else if(subdir->type == "SWITCHCONTACT")
-					{
-						need.push_back("out");
-					}else if(	subdir->type == "TIMEMEASURE"
-								||
-								subdir->type == "RESISTANCE"	)
-					{
-						need.push_back("in");
-						need.push_back("out");
-						need.push_back("neg");
-					}
-
-					for(vector<string>::iterator it= need.begin(); it != need.end(); ++it)
-					{
-						value= subdir->property->getValue(*it, /*warning*/false);
-						pin= portBase::getPinsStruct(value);
-						if(pin.nPort != 0)
-						{
-							portIt= find(vlRv.begin(), vlRv.end(), pin.nPort);
-							if(portIt == vlRv.end())
-								vlRv.push_back(pin.nPort);
-							if(	*it == "in"
-								&&
-								pin.ePin != portBase::NONE	)
-							{
-								aktualFolder->needInPorts.insert(pin);
-							}
-						}
-					}
-				}
-				prop= "sleep";
-				dSleep= subdir->property->getDouble(prop, /*wrning*/false);
-				if(prop != "#ERROR")
-				{
-					subdir->sleep= (unsigned short)dSleep;
-					dSleep-= subdir->sleep;
-					dSleep*= 1000000;
-					subdir->usleep= (unsigned long)dSleep;
-				}
-			}
 			while(ss >> buffer)
 			{
 				if(buffer.substr(0, 1) != "#")
@@ -1284,6 +1233,142 @@ void Starter::readFile(vector<unsigned long> &vlRv, string fileName)
 					}
 				}else
 					break;
+			}
+			if(	subdir
+				&&
+				subdir->type != ""	)
+			{
+				double dSleep;
+				string prop;
+
+				if(!subdir->property)
+				{
+					char cID[20];
+					string sFID("_folderID=");
+
+					snprintf(cID, 20, "%d", nFolderID);
+					sFID+= cID;
+					subdir->property= new ConfigPropertyCasher();
+					subdir->property->setDefault("folder", aktualFolder->name);
+					subdir->property->setDefault("name", subdir->name);
+					subdir->property->readLine(sFID);
+					subdir->property->readLine("type="+subdir->type);
+					// to get no error if the _folderID not fetch,
+					// fetch it now
+					subdir->property->getValue("_folderID");
+					subdir->property->getValue("type");
+				}
+				if(	(	type == "ID"
+						&&
+						(	subdir->type == "PORT"
+							||
+							subdir->type == "MPORT"
+							||
+							subdir->type == "RWPORT"	)	)
+					||
+					(	subdir->type == "MPORT"
+						&&
+						(	value.substr(0, 3) == "COM"
+							||
+							value.substr(0, 3) == "LPT"	)
+						&&
+						(	type == "out"
+							||
+							type == "neg"	)	)				)
+				{
+					bool bInsert= true;
+					PortTypes act;
+					string port(value);
+
+					if(	value.substr(0, 3) == "COM"
+						||
+						value.substr(0, 3) == "LPT"	)
+					{
+						vector<string> spl;
+
+						split(spl, value, is_any_of(":"));
+						port= spl[0];
+					}
+					if(subdir->type == "PORT")
+						act= PORT;
+					else if(subdir->type == "MPORT")
+						act= MPORT;
+					else
+						act= RWPORT;
+					for(vector<pair<string, PortTypes> >::iterator it= vlRv.begin(); it != vlRv.end(); ++it)
+					{
+						if(	it->first == port
+							&&
+							it->second == act	)
+						{
+							bInsert= false;
+							break;
+						}
+					}
+					if(bInsert)
+						vlRv.push_back(pair<string, PortTypes>(value, act));
+				}
+				subdir->property->readLine(line);
+				if(!subdir->property->newSubroutine().correct)
+					continue;
+				if(	subdir->type == "MPORTS"
+					||
+					subdir->type == "TEMP"
+					||
+					subdir->type == "TIMEMEASURE"
+					||
+					subdir->type == "RESISTANCE"	)
+				{
+					portBase::Pins pin;
+					string value;
+					vector<string> need;
+					vector<pair<string, PortTypes> >::iterator portIt;
+
+					if(	subdir->type == "GETCONTACT"
+						||
+						subdir->type == "TEMP"			)
+					{
+						need.push_back("pin");
+						need.push_back("out");
+					}else if(subdir->type == "SWITCHCONTACT")
+					{
+						need.push_back("out");
+					}else if(	subdir->type == "TIMEMEASURE"
+								||
+								subdir->type == "RESISTANCE"	)
+					{
+						need.push_back("pin");
+						need.push_back("out");
+						need.push_back("neg");
+					}
+
+					for(vector<string>::iterator it= need.begin(); it != need.end(); ++it)
+					{
+						value= subdir->property->getValue(*it, /*warning*/false);
+						pin= portBase::getPinsStruct(value);
+						if(pin.nPort != 0)
+						{
+							portIt= find(vlRv, pin.sPort);
+							if(portIt == vlRv.end())
+								vlRv.push_back(pair<string, PortTypes>(pin.sPort, MPORT));
+							if(	*it == "in"
+								&&
+								pin.ePin != portBase::NONE	)
+							{
+								aktualFolder->needInPorts.insert(pin);
+							}
+						}
+					}
+				}
+				prop= "sleep";
+				dSleep= subdir->property->getDouble(prop, /*wrning*/false);
+				if(prop != "#ERROR")
+				{
+					subdir->sleep= (unsigned short)dSleep;
+					dSleep-= subdir->sleep;
+					dSleep*= 1000000;
+					subdir->usleep= (unsigned long)dSleep;
+				}
 			}
 
 			/*if(type != "")
@@ -1494,36 +1579,35 @@ void Starter::readFile(vector<unsigned long> &vlRv, string fileName)
 
 			}else if(type == "out")
 			{
+				portBase::Pins ePort= portBase::getPinsStruct(value);
 				portBase::portpin_address_t ePortPin;
-				vector<string> pin= ConfigPropertyCasher::split(value, ":");
 				bool bInsert= true;
-				unsigned long port;
 
-				port= portBase::getPortAddress(pin[0]);
-				for(unsigned int v= 0; v<vlRv.size(); v++)
+				for(vector<pair<string, PortTypes> >::iterator it= vlRv.begin(); it != vlRv.end(); ++it)
 				{
-					if(vlRv[v]==port)
+					if(	it->first == ePort.sPort
+						&&
+						it->second == MPORT		)
 					{
 						bInsert= false;
 						break;
 					}
 				}
 				if(bInsert)
-					vlRv.push_back(port);
-				subdir->out.nPort= port;
-				subdir->out.ePin= portBase::getPinEnum(pin[1]);
+					vlRv.push_back(pair<string, PortTypes>(ePort.sPort, MPORT));
+				subdir->out= ePort;
 				ePortPin= portBase::getPortPinAddress(subdir->out, false);
 				if(	subdir->out.ePin == portBase::NONE
 					||
-					ePortPin.ePort != portBase::getPortType(pin[0])
+					ePortPin.ePort != portBase::getPortType(ePort.sPort)
 					||
 					ePortPin.eDescript == portBase::GETPIN			)
 				{
 					string msg("### on subroutine ");
 
 					msg+= subdir->name + ", pin '";
-					msg+= pin[1] + "' is no correct pin on port '";
-					msg+= pin[0] + "'\n    ERROR on line: ";
+					msg+= ePort.sPin + "' is no correct pin on port '";
+					msg+= ePort.sPort + "'\n    ERROR on line: ";
 					msg+= line + "\n    stop server!";
 					LOG(LOG_ALERT, msg);
 #ifndef DEBUG
@@ -1534,37 +1618,36 @@ void Starter::readFile(vector<unsigned long> &vlRv, string fileName)
 				}
 			}else if(type == "in")
 			{
+				portBase::Pins ePort= portBase::getPinsStruct(value);
 				portBase::portpin_address_t ePortPin;
-				vector<string> pin= ConfigPropertyCasher::split(value, ":");
 				bool bInsert= true;
-				unsigned long port;
 
-				port= portBase::getPortAddress(pin[0]);
-				for(unsigned int v= 0; v<vlRv.size(); v++)
+				for(vector<pair<string, PortTypes> >::iterator it= vlRv.begin(); it != vlRv.end(); ++it)
 				{
-					if(vlRv[v]==port)
+					if(	it->first == ePort.sPort
+						&&
+						it->second == MPORT		)
 					{
 						bInsert= false;
 						break;
 					}
 				}
 				if(bInsert)
-					vlRv.push_back(port);
-				subdir->in.nPort= port;
-				subdir->in.ePin= portBase::getPinEnum(pin[1]);
+					vlRv.push_back(pair<string, PortTypes>(ePort.sPort, MPORT));
+				subdir->in= ePort;
 				aktualFolder->needInPorts.insert(subdir->in);
 				ePortPin= portBase::getPortPinAddress(subdir->in, false);
 				if(	subdir->in.ePin == portBase::NONE
 					||
-					ePortPin.ePort != portBase::getPortType(pin[0])
+					ePortPin.ePort != portBase::getPortType(ePort.sPort)
 					||
 					ePortPin.eDescript == portBase::SETPIN			)
 				{
 					string msg("### on subroutine ");
 
 					msg+= subdir->name + ", pin '";
-					msg+= pin[1] + "' is no correct pin on port '";
-					msg+= pin[0] + "'\n    ERROR on line: ";
+					msg+= ePort.sPin + "' is no correct pin on port '";
+					msg+= ePort.sPort + "'\n    ERROR on line: ";
 					msg+= line + "\n    stop server!";
 					LOG(LOG_ALERT, msg);
 #ifndef DEBUG
@@ -1575,36 +1658,35 @@ void Starter::readFile(vector<unsigned long> &vlRv, string fileName)
 				}
 			}else if(type == "neg")
 			{
+				portBase::Pins ePort= portBase::getPinsStruct(value);
 				portBase::portpin_address_t ePortPin;
-				vector<string> pin= ConfigPropertyCasher::split(value, ":");
 				bool bInsert= true;
-				unsigned long port;
 
-				port= portBase::getPortAddress(pin[0]);
-				for(unsigned int v= 0; v<vlRv.size(); v++)
+				for(vector<pair<string, PortTypes> >::iterator it= vlRv.begin(); it != vlRv.end(); ++it)
 				{
-					if(vlRv[v]==port)
+					if(	it->first == ePort.sPort
+						&&
+						it->second == MPORT		)
 					{
 						bInsert= false;
 						break;
 					}
 				}
 				if(bInsert)
-					vlRv.push_back(port);
-				subdir->negative.nPort= port;
-				subdir->negative.ePin= portBase::getPinEnum(pin[1]);
+					vlRv.push_back(pair<string, PortTypes>(ePort.sPort, MPORT));
+				subdir->negative= ePort;
 				ePortPin= portBase::getPortPinAddress(subdir->negative, false);
 				if(	subdir->negative.ePin == portBase::NONE
 					||
-					ePortPin.ePort != portBase::getPortType(pin[0])
+					ePortPin.ePort != portBase::getPortType(ePort.sPort)
 					||
 					ePortPin.eDescript == portBase::GETPIN			)
 				{
 					string msg("### on subroutine ");
 
 					msg+= subdir->name + ", pin '";
-					msg+= pin[1] + "' is no correct pin on port '";
-					msg+= pin[0] + "'\n    ERROR on line: ";
+					msg+= ePort.sPin + "' is no correct pin on port '";
+					msg+= ePort.sPort + "'\n    ERROR on line: ";
 					msg+= line + "\n    stop server!";
 					LOG(LOG_ALERT, msg);
 #ifndef DEBUG
@@ -1846,7 +1928,7 @@ bool Starter::command(vector<string> options, string command)
 	istringstream icommand(command);
 
 	Starter::isNoPathDefinedStop();
-	opIt= find(options.begin(), options.end(), "-f");
+	opIt= ::find(options.begin(), options.end(), "-f");
 	if(opIt != options.end())
 	{
 		fileName= opIt->substr(3);
@@ -1941,7 +2023,7 @@ bool Starter::command(vector<string> options, string command)
 		{
 			string output;
 
-			opIt= find(options.begin(), options.end(), "-e");
+			opIt= ::find(options.begin(), options.end(), "-e");
 			if(opIt != options.end())
 				output= ExternClientInputTemplate::error(clres);
 			else
