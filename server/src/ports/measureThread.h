@@ -26,7 +26,7 @@
 
 struct MeasureArgArray
 {
-	vector<unsigned long> ports;
+	vector<pair<string, PortTypes> > ports;
 	vector<sub> *subroutines;
 	//set<unsigned long> afterContact;
 	set<portBase::Pins> tAfterContactPins;
@@ -90,7 +90,7 @@ class MeasureThread : public Thread
 		bool measure();
 
 	private:
-		vector<unsigned long> m_pvlPorts;
+		vector<pair<string, PortTypes> > m_pvlPorts;
 		vector<sub> *m_pvtSubroutines;
 		set<portBase::Pins> m_vAfterContactPins;
 		map<unsigned long, unsigned> m_vAfterContactPorts;
