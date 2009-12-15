@@ -232,7 +232,12 @@ namespace util {
 			if(itDefault != m_mDefault.end())
 				value= itDefault->second.value;
 		}else
-			value= mContent->second[index];
+		{
+			if(index >= 0 && index < mContent->second.size())
+				value= mContent->second[index];
+			else
+				value= "";
+		}
 
 		if(	warning
 			&&
