@@ -134,6 +134,24 @@ namespace ppi_database
 		unsigned short existEntry(const string& folder, const string& subroutine, const string& identif,
 																const vector<double>::size_type number= 0);
 		/**
+		 * ask whether folder exist
+		 *
+		 * @param folder name of folder
+		 * @return whether folder exist
+		 */
+		bool existFolder(const string& folder);
+		/**
+		 * set hole folder to output state meassage
+		 *
+		 * @param folder name of folder
+		 */
+		void debugFolder(const string& folder);
+		/**
+		 * clear all debug states from any folders,
+		 * which should write output messages
+		 */
+		void clearFolderDebug();
+		/**
 		 * returns actual value of subroutine in folder
 		 *
 		 * @param folder measure folder defined in measure.conf

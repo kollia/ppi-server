@@ -230,6 +230,16 @@ namespace ppi_database
 		return sRv;
 	}
 
+	bool DbInterface::existFolder(const string& folder)
+	{
+		unsigned short res;
+
+		res= existEntry(folder, "", "", 0);
+		if(res > 0)// result should be 1 (subroutine do not exist)
+			return true; // in this case, folder exist
+		return false;
+	}
+
 	unsigned short DbInterface::existEntry(const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number)
 	{
 		int err;
@@ -272,6 +282,57 @@ namespace ppi_database
 		if(sRv == "nofolder")
 			return 0;
 		return 0;
+	}
+
+	void DbInterface::debugFolder(const string& folder)
+	{
+		int err;
+		string sRv;
+		OMethodStringStream command("debugFolder");
+
+		command << folder;
+		sRv= sendMethod("ppi-db-server", command, false);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}
+	}
+
+	void DbInterface::clearFolderDebug()
+	{
+		int err;
+		string sRv;
+		OMethodStringStream command("clearFolderDebug");
+
+		sRv= sendMethod("ppi-db-server", command, false);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}
 	}
 
 	double DbInterface::getActEntry(bool& exist, const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number/*= 0*/)

@@ -132,6 +132,17 @@ namespace server
 				descriptor << "nofolder";
 			}
 
+		}else if(method == "debugFolder")
+		{
+			string folder;
+
+			object >> folder;
+			descriptor.sendToOtherClient("ProcessChecker", "debugFolder \"" + folder + "\"", false);
+
+		}else if(method == "clearFolderDebug")
+		{
+			descriptor.sendToOtherClient("ProcessChecker", "clearFolderDebug", false);
+
 		}else if(method == "getActEntry")
 		{
 			int number= 0;
@@ -149,6 +160,7 @@ namespace server
 			{
 				od << *pdRv;
 				descriptor << od.str();
+				delete pdRv;
 			}else
 				descriptor << "NULL";
 
