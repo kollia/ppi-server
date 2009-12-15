@@ -235,6 +235,13 @@ namespace server
 		 */
 		vector<string> getDebugInfo();
 		/**
+		 * select all properties and actions whitch are uesed in interface
+		 *
+		 * @param properties reading properties from the main config file
+		 */
+		void usePropActions(const IActionPropertyPattern* properties) const
+		{ m_poChipAccess->usePropActions(properties); };
+		/**
 		 * write to chip direct if pin is set to uncached,<br />
 		 * or write into cache for writing later
 		 *
