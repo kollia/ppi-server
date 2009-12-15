@@ -45,6 +45,20 @@ namespace design_pattern_world
 			 */
 			virtual bool isAction(const string& spez) const= 0;
 			/**
+			 * set the default parameter name for reading actions.<br />
+			 * Default set is </code>action</code>
+			 *
+			 * @param name which name the parameter should have
+			 */
+			virtual void setDefaultActionName(const string& name)= 0;
+			/**
+			 * question to have defined an string for default action in configuration file
+			 *
+			 * @param defined whether string is defined in action
+			 * @return true if action be set
+			 */
+			virtual bool haveAction(const string& defined) const= 0;
+			/**
 			 * question to have defined an string for action in configuration file
 			 *
 			 * @param action name of action

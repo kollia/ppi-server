@@ -50,7 +50,9 @@ namespace util {
 			 * 					or elsewhere by invoke <code>checkProperties()</code> (true) (default= false).
 			 */
 			ActionProperties(const bool byCheck= false)
-			:	Properties(byCheck) {};
+			:	m_sDefault("action"),
+				Properties(byCheck)
+				{};
 			/**
 			 * read line and save into variables
 			 *
@@ -70,6 +72,21 @@ namespace util {
 			 * @param spez whether name is an action
 			 */
 			virtual bool isAction(const string& spez) const;
+			/**
+			 * set the default parameter name for reading actions.<br />
+			 * Default set is </code>action</code>
+			 *
+			 * @param name which name the parameter should have
+			 */
+			virtual void setDefaultActionName(const string& name);
+			/**
+			 * question to have defined an string for default action in configuration file
+			 *
+			 * @param defined whether string is defined in action
+			 * @return true if action be set
+			 */
+			virtual bool haveAction(const string& defined) const
+			{ return haveAction(m_sDefault, defined); };
 			/**
 			 * question to have defined an string for action in configuration file
 			 *
@@ -112,6 +129,10 @@ namespace util {
 			 */
 			virtual ~ActionProperties();
 		protected:
+			/**
+			 * default action
+			 */
+			string m_sDefault;
 			/**
 			 * hold all allowed actions
 			 */

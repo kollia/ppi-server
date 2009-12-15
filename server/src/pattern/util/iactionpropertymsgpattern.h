@@ -36,13 +36,6 @@ namespace design_pattern_world
 	{
 	public:
 		/**
-		 * question to have given action
-		 *
-		 * @param action name of action
-		 * @return true if action be set
-		 */
-		virtual bool haveAction(const string& action) const= 0;
-		/**
 		 * whether found an new modifier defined on constructor
 		 *
 		 * @return string of modifier name, elsewhere an null string ("")

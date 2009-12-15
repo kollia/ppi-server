@@ -70,13 +70,6 @@ namespace util
 		 */
 		static vector<string> split(const string str, const string delimiter);
 		/**
-		 * question to have given action
-		 *
-		 * @param action name of action
-		 * @return true if action be set
-		 */
-		virtual bool haveAction(const string& action) const;
-		/**
 		 * if this method be set, the parameter is not allowed.<br />
 		 * When the parameter will be fetched in an base class,
 		 * it get's the second parameter as default value

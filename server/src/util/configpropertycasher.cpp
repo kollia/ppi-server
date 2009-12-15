@@ -59,11 +59,6 @@ namespace util
 		return false;
 	}
 
-	bool ConfigPropertyCasher::haveAction(const string& action) const
-	{
-		return ActionProperties::haveAction("action", action);
-	}
-
 	bool ConfigPropertyCasher::notAllowedAction(const string& defined, bool set)
 	{
 		return ActionProperties::notAllowedAction("action", defined, set);

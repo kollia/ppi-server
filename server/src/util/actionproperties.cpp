@@ -98,6 +98,12 @@ namespace util {
 		return false;
 	}
 
+	void ActionProperties::setDefaultActionName(const string& name)
+	{
+		if(name != "")
+			m_sDefault= name;
+	}
+
 	bool ActionProperties::haveAction(const string& action, const string& defined) const
 	{
 		map<string, vector<string> >::const_iterator mit;
