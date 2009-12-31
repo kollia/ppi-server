@@ -355,6 +355,162 @@ namespace server
 
 			oRv << dRv;
 			descriptor << oRv.str();
+		}else if(method == "existOWServer")
+		{
+			string res;
+			unsigned short max;
+			unsigned short owServer;
+
+			object >> owServer;
+			res= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true);
+
+			istringstream smax(res);
+
+			smax >> max;
+			if(owServer > 0 && owServer <= max)
+				descriptor << "true";
+			else
+				descriptor << "false";
+
+		}else if(method == "getOWDebugInfo")
+		{
+			unsigned short ow;
+			ostringstream def;
+			string command("getDebugInfo");
+			string res;
+
+			object >> ow;
+			def << "OwServerQuestion-" << ow;
+			while((res= descriptor.sendToOtherClient(def.str(), command, true)) != "done")
+			{
+				descriptor << res;
+				descriptor.endl();
+			}
+			descriptor << "done";
+
+		}else if(method == "setOWDebug")
+		{
+			bool set;
+			bool bDo= false;
+			string res;
+			unsigned short serverID;
+			unsigned int connectionID;
+			list<unsigned int>::iterator conn;
+			map<unsigned short, list<unsigned int> >::iterator found;
+
+			object >> serverID;
+			object >> connectionID;
+			object >> set;
+			if(set)
+			{
+				bool bInsert= false;
+
+				found= m_msiOpenedOWServer.find(serverID);
+				if(found != m_msiOpenedOWServer.end())
+				{
+					conn= find(found->second.begin(), found->second.end(), connectionID);
+					if(conn == found->second.end())
+						bInsert= true;
+				}else
+					bInsert= true;
+				if(bInsert)
+				{
+					m_msiOpenedOWServer[serverID].push_back(connectionID);
+					bDo= true;
+				}
+			}else
+			{
+				found= m_msiOpenedOWServer.find(serverID);
+				if(found != m_msiOpenedOWServer.end())
+				{
+					conn= find(found->second.begin(), found->second.end(), connectionID);
+					if(conn != found->second.end())
+						found->second.erase(conn);
+					if(found->second.empty())
+						bDo= true;
+				}
+			}
+			if(bDo)
+			{
+				ostringstream server;
+				ostringstream command;
+
+				server << "OwServerQuestion-" << serverID;
+				command << "setDebug " << set;
+				res= descriptor.sendToOtherClient(server.str(), command.str(), false);
+				descriptor << res;
+			}else
+				descriptor << "done";
+
+		}else if(method == "clearOWDebug")
+		{
+			bool bSend= false;
+			unsigned int connectionID;
+			list<unsigned int>::iterator conn;
+
+			object >> connectionID;
+			for(map<unsigned short, list<unsigned int> >::iterator it= m_msiOpenedOWServer.begin(); it != m_msiOpenedOWServer.end(); ++it)
+			{
+				bSend= false;
+				if(connectionID > 0)
+				{
+					conn= find(it->second.begin(), it->second.end(), connectionID);
+					if(conn != it->second.end())
+					{
+						it->second.erase(conn);
+						if(it->second.empty())
+							bSend= true;
+					}
+				}else
+					bSend= true;
+				if(bSend)
+				{
+					ostringstream server;
+
+					server << "OwServerQuestion-" << it->first;
+					descriptor.sendToOtherClient(server.str(), "setDebug false", false);
+				}
+			}
+			descriptor << "done";
+
+		}else if(method == "checkUnused")
+		{
+			string res;
+			unsigned short max;
+
+			res= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true);
+
+			istringstream smax(res);
+
+			smax >> max;
+			for(unsigned short n= 0; n <= max; ++n)
+			{
+				ostringstream server;
+
+				server << "OwServerQuestion-" << n;
+				descriptor.sendToOtherClient(server.str(), "checkUnused", true);
+			}
+			descriptor << "done";
+
+		}else if(method == "endOfInitialisation")
+		{
+			string res;
+			unsigned short max;
+
+			res= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true);
+
+			istringstream smax(res);
+
+			smax >> max;
+			for(unsigned short n= 0; n <= max; ++n)
+			{
+				ostringstream server;
+
+				server << "OwServerQuestion-" << n;
+				descriptor.sendToOtherClient(server.str(), "endOfInitialisation", true);
+			}
+			descriptor << "done";
+
 		}else if(method == "stop-all")
 		{
 			string sRv;

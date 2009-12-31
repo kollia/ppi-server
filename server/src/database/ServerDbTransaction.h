@@ -17,6 +17,8 @@
 #ifndef SERVERDBTRANSACTION_H_
 #define SERVERDBTRANSACTION_H_
 
+#include <list>
+
 #include "../server/libs/server/ServerMethodTransaction.h"
 
 #include "../util/Thread.h"
@@ -264,6 +266,10 @@ namespace server
 			 * mutex to count one wire clients
 			 */
 			pthread_mutex_t* m_ONEWIRECLIENTSMUTEX;
+			/**
+			 * opened one wire server
+			 */
+			map<unsigned short, list<unsigned int> > m_msiOpenedOWServer;
 	};
 
 }
