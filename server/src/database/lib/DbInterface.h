@@ -286,6 +286,34 @@ namespace ppi_database
 		 */
 		const double getDefaultCache(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "");
 		/**
+		 * check whether one wire server does exist
+		 *
+		 * @param sID ID of one wire server
+		 * @return whether reader exist
+		 */
+		bool existOWServer(const unsigned short ID);
+		/**
+		 * set one wire server to read debug info
+		 *
+		 * @param serverID ID of one wire server
+		 * @param connectionID ID of connection in internet-server to hold debugging open for more users
+		 * @param set whether debug should set or not
+		 */
+		void setOWDebug(const unsigned short serverID, const unsigned int connectionID, const bool set);
+		/**
+		 * lift all one wire debugging for the given connection
+		 *
+		 * @param connectionID ID of connection in internet-server to know which all debugging should lift
+		 */
+		void clearOWDebug(const unsigned int connectionID);
+		/**
+		 * debug info for defined OWServer for benchmark
+		 *
+		 * @param ID ID of OWServer
+		 * @return benchmark strings
+		 */
+		vector<string> getOWDebugInfo(const unsigned short ID);
+		/**
 		 * send stop-all command to ProcessChecker and stop also own database
 		 */
 		string stopall();

@@ -778,6 +778,102 @@ namespace ppi_database
 		return dRv;
 	}
 
+	bool DbInterface::existOWServer(const unsigned short sID)
+	{
+		string res;
+		OMethodStringStream command("existOWServer");
+
+		command << sID;
+		res= sendMethod("ppi-db-server", command, true);
+		if(res == "true")
+			return true;
+		return false;
+	}
+
+	vector<string> DbInterface::getOWDebugInfo(const unsigned short ID)
+	{
+		int err;
+		vector<string> vRv;
+		OMethodStringStream command("getOWDebugInfo");
+
+		command << ID;
+		vRv= sendMethod("ppi-db-server", command, "done", true);
+		for(vector<string>::iterator o= vRv.begin(); o != vRv.end(); ++o)
+		{
+			err= error(*o);
+			if(err != 0)
+			{
+				string msg;
+
+				msg= strerror(err);
+				if(err > 0)
+				{
+					LOG(LOG_ERROR, msg);
+					cerr << "### " << msg << endl;
+				}else
+				{
+					LOG(LOG_WARNING, msg);
+					cout << "### " << msg << endl;
+				}
+			}
+		}
+		return vRv;
+	}
+
+	void DbInterface::setOWDebug(const unsigned short serverID, const unsigned int connectionID, const bool set)
+	{
+		int err;
+		string res;
+		OMethodStringStream command("setOWDebug");
+
+		command << serverID;
+		command << connectionID;
+		command << set;
+		res= sendMethod("ppi-db-server", command, false);
+		err= error(res);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}
+	}
+
+	void DbInterface::clearOWDebug(const unsigned int connectionID)
+	{
+		int err;
+		string res;
+		OMethodStringStream command("setOWDebug");
+
+		command << connectionID;
+		res= sendMethod("ppi-db-server", command, false);
+		err= error(res);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}
+	}
+
 	string DbInterface::stopall()
 	{
 		int err;
