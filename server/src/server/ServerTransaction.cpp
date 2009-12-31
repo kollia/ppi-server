@@ -26,6 +26,8 @@
 
 #include "../pattern/server/IServerCommunicationStarterPattern.h"
 
+#include "../server/libs/client/SocketClientConnection.h"
+
 #include "../util/structures.h"
 
 #include "../logger/lib/LogInterface.h"
@@ -151,12 +153,10 @@ namespace server
 				{
 					unsigned short server;
 					istringstream info(sendmsg);
-					OWInterface* ow;
 
 					descriptor.setBoolean("readdebuginfo", true);
 					info >> msg >> server;
-					ow= OWInterface::instance(server);
-					debuginfo= ow->getDebugInfo();
+					debuginfo= db->getOWDebugInfo(server);
 					for(vector<string>::iterator it= debuginfo.begin(); it != debuginfo.end(); ++it)
 					{
 						descriptor << *it;
@@ -492,7 +492,7 @@ namespace server
 				LOG(LOG_INFO, "user stop server with foreign application");
 				cout << endl;
 				server->allowNewConnections(false);
-				OWInterface::clearDebug();
+				db->clearOWDebug(0);
 				LOCK(m_SERVERISSTOPPINGMUTEX);
 				m_bStopServer= true;
 				UNLOCK(m_SERVERISSTOPPINGMUTEX);
@@ -578,21 +578,19 @@ namespace server
 				ss >> sCommand;
 				ss >> sFolder;
 				ss >> sSleep;
-				nSleep= atoi(&sSleep[0]);
+				nSleep= atoi(sSleep.c_str());
 				if(sFolder == "-ow")
 				{
 					unsigned short ID= nSleep;
 					string sID= sSleep;
-					OWInterface* server;
 
 					if(sID == "null")
 					{
 						ID= 0;
-						OWInterface::clearDebug();
+						db->clearOWDebug(descriptor.getClientID());
 					}else
 					{
-						server= OWInterface::instance(ID);
-						if(server == NULL)
+						if(!db->existOWServer(ID))
 						{
 							string msg;
 
@@ -608,7 +606,7 @@ namespace server
 							cerr << msg << endl;
 #endif
 						}else
-							server->setDebug(true);
+							db->setOWDebug(ID, descriptor.getClientID(), true);
 					}
 					if(ID != 0)
 					{

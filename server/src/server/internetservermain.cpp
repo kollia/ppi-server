@@ -166,10 +166,6 @@ int main(int argc, char* argv[])
 		cerr << "### ERROR: cannot read correctly 'access.conf'" << endl;
 		return false;
 	}
-	OWInterface::initial("ppi-internet-server", new SocketClientConnection(	SOCK_STREAM,
-																			commhost,
-																			commport,
-																			5				)	);
 
 	ServerProcess internetserver(	"ppi-internet-server", defaultuserID,
 									new CommunicationThreadStarter(minThreads, maxThreads),
