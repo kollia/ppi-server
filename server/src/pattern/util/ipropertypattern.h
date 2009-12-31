@@ -230,6 +230,33 @@ namespace design_pattern_world
 		 */
 		virtual bool notAllowedParameter(const string property, const string& sDefault= "") =0;
 		/**
+		 * return an string of all properties
+		 *
+		 * @return string of properties
+		 */
+		virtual string str() const= 0;
+		/**
+		 * read properties from the created tag with method <code>str()</code>
+		 *
+		 * @param tag propertie tag
+		 */
+		virtual void tag(const string& tag)= 0;
+		/**
+		 * for streaming all pulled parameters.<br />
+		 * (This method is <code>const</code>, because it make no changes in object
+		 * other than fill all pulled parameters which are <code>mutable</code>)
+		 *
+		 * @param params pulled parameters in an string tag
+		 */
+		virtual void pulled(const string& params) const= 0;
+		/**
+		 * return all pulled parameters in an string tag
+		 *
+		 * @return pulled parameters
+		 */
+		virtual string pulled() const= 0;
+
+		/**
 		 * method write WARNINGS on command line if any action not nessered
 		 * and if propertys be set, but not needet
 		 *

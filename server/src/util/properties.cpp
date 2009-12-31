@@ -25,12 +25,19 @@
 #include <iostream>
 #include <fstream>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include "properties.h"
 #include "URL.h"
+#include "IParameterStringStream.h"
 
 #include "../logger/lib/LogInterface.h"
+
+
+using namespace boost;
+using namespace boost::algorithm;
 
 namespace util {
 
@@ -270,6 +277,121 @@ namespace util {
 		}else
 			m_oPulled[property].push_back(index);
 		return value;
+	}
+
+	string Properties::str() const
+	{
+		string stream("<properties "), sProp;
+		map<string, param_t>::const_iterator itDefault;
+		map<string, vector<string> >::const_iterator mContent;
+		map<string, string>::const_iterator mNotAllowed;
+		OParameterStringStream props;
+
+		for(mContent= m_mvPropertyMap.begin(); mContent != m_mvPropertyMap.end(); ++mContent)
+		{
+			mNotAllowed= m_oNotAllowedParams.find(mContent->first);
+			if(mNotAllowed == m_oNotAllowedParams.end())
+			{
+				for(vector<string>::const_iterator it= mContent->second.begin(); it != mContent->second.end(); ++it)
+				{
+					sProp= mContent->first + "=" + *it;
+					props << sProp;
+				}
+			}else
+			{
+				if(mNotAllowed->second != "")
+				{
+					sProp= mNotAllowed->first + "=" + mNotAllowed->second;
+					props << sProp;
+				}
+
+			}
+		}
+		for(itDefault= m_mDefault.begin(); itDefault != m_mDefault.end(); ++itDefault)
+		{
+			mNotAllowed= m_oNotAllowedParams.find(mContent->first);
+			if(mNotAllowed == m_oNotAllowedParams.end())
+			{
+				mContent= m_mvPropertyMap.find(itDefault->first);
+				if(mContent == m_mvPropertyMap.end())
+				{
+					sProp= itDefault->first + "=" + itDefault->second.value;
+					props << sProp;
+				}
+			}
+		}
+		stream+= props.str() + " />";
+		return stream;
+	}
+
+	void Properties::tag(const string& tag)
+	{
+		string param;
+		string::size_type nLen= tag.length();
+		vector<string> spl;
+
+		if(nLen < 15 || tag.substr(0, 12) != "<properties ")
+			return;
+
+		IParameterStringStream params(tag.substr(12, nLen - 15));
+		while(!params.empty())
+		{
+			params >> param;
+			readLine(param);
+		}
+	}
+
+	string Properties::pulled() const
+	{
+		string stream("<pulledproperties "), sProp;
+		vector<vector<string>::size_type>::const_iterator i;
+		map<string, vector<vector<string>::size_type> >::const_iterator mPC;
+		OParameterStringStream props;
+
+		for(mPC= m_oPulled.begin(); mPC != m_oPulled.end(); ++mPC)
+		{
+			OParameterStringStream p;
+
+			sProp= mPC->first + "='";
+			for(i= mPC->second.begin(); i != mPC->second.end(); ++i)
+				p << *i;
+			sProp+= p.str() + "'";
+			props << sProp;
+		}
+		stream+= props.str() + " />";
+		return stream;
+	}
+
+	void Properties::pulled(const string& params) const
+	{
+		string nParams;
+		vector<string>::size_type index;
+		string parameter, value;
+		string::size_type nLen= params.length();
+
+		if(nLen < 20 || params.substr(0, 18) != "<pulledproperties ")
+			return;
+		nParams= params.substr(18, nLen - 20);
+
+		IParameterStringStream ps(nParams);
+
+		while(!ps.empty())
+		{
+			ps >> parameter;
+			nLen= parameter.find("=");
+			if(nLen < parameter.length())
+			{
+				value= parameter.substr(nLen + 2, parameter.length() - 1);
+				parameter= parameter.substr(0, nLen);
+
+				IParameterStringStream oIdx(value);
+				while(!oIdx.empty())
+				{
+					oIdx >> index;
+					m_oPulled[parameter].push_back(index);
+				}
+			}
+		}
 	}
 
 	int Properties::needInt(string &property, vector<string>::size_type index/*= 0*/) const

@@ -24,9 +24,18 @@
 
 #include <iostream>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
 #include "actionproperties.h"
 
 #include "../logger/lib/LogInterface.h"
+
+#include "IParameterStringStream.h"
+
+using namespace boost;
+using namespace boost::algorithm;
 
 namespace util {
 
@@ -136,6 +145,92 @@ namespace util {
 		}
 		m_mvAllowed[action].push_back(defined);
 		return true;
+	}
+
+	string ActionProperties::str() const
+	{
+		string stream, sAction;
+		map<string, vector<string> >::const_iterator mit;
+		vector<string>::const_iterator vit;
+		map<string, map<string, bool> >::const_iterator nallowAction;
+		map<string, bool>::const_iterator nallowValue;
+		OParameterStringStream oAction;
+
+		stream= Properties::str();
+		stream= stream.substr(0, stream.length() - 2);
+		for(mit= m_mvActions.begin(); mit != m_mvActions.end(); ++mit)
+		{
+			nallowAction= m_mmNotAllowed.find(mit->first);
+			if(nallowAction == m_mmNotAllowed.end())
+			{
+				sAction= mit->first + "=";
+				for(vit= mit->second.begin(); vit != mit->second.end(); ++vit)
+				{
+					if(allowedAction(mit->first, *vit))
+						sAction+= *vit + "|";
+				}
+				sAction= sAction.substr(0, sAction.length() - 1);
+				oAction << sAction;
+			}
+		}
+		stream+= oAction.str() + " />";
+		return stream;
+	}
+
+	string ActionProperties::pulled() const
+	{
+		string pull;
+		OParameterStringStream actions;
+		map<string, vector<string> >::const_iterator mit;
+		vector<string>::const_iterator vit;
+
+		for(mit= m_mvAllowed.begin(); mit != m_mvAllowed.end(); ++mit)
+		{
+			pull= mit->first + "=";
+			for(vit= mit->second.begin(); vit != mit->second.end(); ++vit)
+				pull+= *vit + "|";
+			actions << pull.substr(0, pull.length() - 1);
+		}
+		pull= Properties::pulled();
+		pull= pull.substr(0, pull.length() - 2);
+		pull+= actions.str() + " />";
+		return pull;
+	}
+
+	void ActionProperties::pulled(const string& params) const
+	{
+		string newParams;
+		string paramstr, parameter, value;
+		string::size_type nLen= params.length();
+		OParameterStringStream oNew;
+
+		if(nLen < 20 || params.substr(0, 18) != "<pulledproperties ")
+			return;
+		newParams= params.substr(18, nLen - 20);
+
+		IParameterStringStream ps(newParams);
+
+		while(!ps.empty())
+		{
+			ps >> paramstr;
+			nLen= paramstr.find("=");
+			if(nLen < paramstr.length())
+			{
+				value= paramstr.substr(nLen + 1, paramstr.length() - 2);
+				parameter= paramstr.substr(0, nLen);
+				if(value[0] != '\'')
+				{
+					vector<string> actions;
+
+					split(actions, value, is_any_of("|"));
+					for(vector<string>::iterator it= actions.begin(); it != actions.end(); ++it)
+						m_mvAllowed[parameter].push_back(*it);
+				}else
+					oNew << paramstr;
+			}
+		}
+		newParams= "<pulledproperties " + oNew.str() + " />";
+		Properties::pulled(newParams);
 	}
 
 	bool ActionProperties::notAllowedAction(const string& action, const string& defined, const bool set/*= false*/)

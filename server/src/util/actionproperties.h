@@ -116,6 +116,26 @@ namespace util {
 			 */
 			virtual bool notAllowedAction(const string& action, const string& defined, const bool set= false);
 			/**
+			 * return an string of all properties
+			 *
+			 * @return string of properties
+			 */
+			virtual string str() const;
+			/**
+			 * for streaming insert all pulled parameters and actions.<br />
+			 * (This method is <code>const</code>, because it make no changes in object
+			 * other than fill all pulled parameters which are <code>mutable</code>)
+			 *
+			 * @param params pulled parameters in an string tag
+			 */
+			virtual void pulled(const string& params) const;
+			/**
+			 * return all pulled action parameters in an string tag
+			 *
+			 * @return pulled action parameters
+			 */
+			virtual string pulled() const;
+			/**
 			 * method write WARNINGS on command line if any action not necessary
 			 * and if properties be set, but not needed
 			 *
