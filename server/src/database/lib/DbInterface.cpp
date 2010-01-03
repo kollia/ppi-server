@@ -145,7 +145,7 @@ namespace ppi_database
 		command << folder;
 		command << subroutine;
 		command << value;
-		sRv= sendMethod("ProcessChecker", command, false);
+		sRv= sendMethod("ProcessChecker", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
