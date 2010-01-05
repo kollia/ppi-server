@@ -260,14 +260,14 @@ namespace server
 
 		}else if(!descriptor.getBoolean("asker"))
 		{
-			/*if(descriptor.getString("client") == "OwServerQuestion-1")
+			/*if(descriptor.getString("client") == "ProcessChecker")// || descriptor.getString("client") == "OwServerQuestion-1")
 			{ // DEBUG display
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
 				cout << " give Answer '" << input << "'" << endl;
 			}*/
 			descriptor.sendAnswer(input);
 			input= descriptor.getOtherClientString(true);
-			/*if(descriptor.getString("client") == "OwServerQuestion-1")
+			/*if(descriptor.getString("client") == "ProcessChecker")// || descriptor.getString("client") == "OwServerQuestion-1")
 			{ // DEBUG display
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
 				cout << " get question '" << input << "'" << endl;
@@ -289,16 +289,16 @@ namespace server
 
 		}else
 		{
-			/*if(client == "OwServerQuestion-1")
+			/*if(client == "ProcessChecker")// || client == "OwServerQuestion-1")
 			{ // DEBUG display
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
 				cout << " send question '" << input <<"' to " << client << endl;
 			}*/
 			input= descriptor.sendToOtherClient(client, input, bwait);
-			/*if(client == "OwServerQuestion-1")
+			/*if(client == "ProcessChecker")// || client == "OwServerQuestion-1")
 			{ // DEBUG display
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
-				cout << " send answer '" << input << "' back to client" << endl << endl;
+				cout << " send answer '" << input << "' back to client" << endl;
 			}*/
 			if(	input == ""
 				||

@@ -151,10 +151,21 @@ namespace server
 				if(!m_hFileAccess->eof())
 					m_hFileAccess->flush();
 			}
-			//string msg;
+#ifndef DEBUG
+#ifdef SERVERDEBUG
+			string msg;
 
-			//msg= "Server stop connection to client:";
-			//msg+=  m_hFileAccess->getHostAddressName();
+			msg= "Server stop connection to client:";
+			msg+=  m_hFileAccess->getHostAddressName();
+			cout << msg << endl;
+#endif // SERVERDEBUG
+#else // DEBUG
+			string msg;
+
+			msg= "Server stop connection to client:";
+			msg+=  m_hFileAccess->getHostAddressName();
+			cout << msg << endl;
+#endif // DEBUG
 			LOCK(m_HAVECLIENT);
 			if(m_hFileAccess)
 			{
@@ -166,13 +177,6 @@ namespace server
 			UNLOCK(m_HAVECLIENT);
 			m_poStarter->arouseStarterThread();
 
-#ifndef DEBUG
-#ifdef SERVERDEBUG
-			cout << msg << endl;
-#endif // SERVERDEBUG
-#else // DEBUG
-			cout << msg << endl;
-#endif // DEBUG
 		}else if(conderror)
 			usleep(500000);
 		return 0;
