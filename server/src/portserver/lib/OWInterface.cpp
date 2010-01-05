@@ -184,8 +184,8 @@ bool OWInterface::read(const string& id, double* value)
 
 	IParameterStringStream result(res);
 
-	result >> *value;
 	result >> bRv;
+	result >> *value;
 	return bRv;
 }
 
