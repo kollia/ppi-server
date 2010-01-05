@@ -17,6 +17,8 @@
 
 #include "../../logger/lib/LogInterface.h"
 
+#include "../../util/IParameterStringStream.h"
+
 #include "OWInterface.h"
 
 namespace server {
@@ -24,35 +26,37 @@ namespace server {
 using namespace logger;
 
 map<unsigned short, OWInterface*> OWInterface::_instances;
-IClientConnectArtPattern* OWInterface::m_pCon= NULL;
-string OWInterface::m_sProcess;
 
-void OWInterface::initial(const string& process, IClientConnectArtPattern* connection)
+inline OWInterface* OWInterface::getServer(const unsigned short serverID)
 {
-	m_sProcess= process;
-	m_pCon= connection;
+	return getServer("", NULL, serverID);
 }
 
-OWInterface* OWInterface::instance(const unsigned short serverID)
+OWInterface* OWInterface::getServer(const string& process, IClientConnectArtPattern* connection, const unsigned short serverID)
 {
 	int err;
 	ostringstream sID;
 	map<unsigned short, OWInterface*>::iterator it;
 
-	if(m_sProcess == "")
+	it= _instances.find(serverID);
+	if(it != _instances.end())
+	{
+		if(connection)
+			delete connection;
+		return it->second;
+	}
+	sID << serverID;
+	if(!connection)
 	{
 		string msg;
 
-		msg=  "### ERROR: get instance is not OK before OWInterface::init()!";
+		msg=  "### ERROR: no instance for ID ";
+		msg+= sID.str() + " exist! Create first with getServer(processName, connection, serverID).";
 		cerr << msg << endl;
 		LOG(LOG_ERROR, msg);
 		return NULL;
 	}
-	it= _instances.find(serverID);
-	if(it != _instances.end())
-		return it->second;
-	sID << serverID;
-	_instances[serverID]= new OWInterface(m_sProcess, sID.str(), m_pCon);
+	_instances[serverID]= new OWInterface(process, sID.str(), connection);
 	err= _instances[serverID]->openSendConnection();
 	if(err > 0)
 	{
@@ -66,6 +70,76 @@ OWInterface* OWInterface::instance(const unsigned short serverID)
 		return NULL;
 	}
 	return _instances[serverID];
+}
+
+OWInterface* OWInterface::getServer(const string& type, const string& chipID)
+{
+	for(map<unsigned short, OWInterface*>::iterator it= _instances.begin(); it != _instances.end(); ++it)
+	{
+		if(it->second->isServer(type, chipID))
+			return it->second;
+	}
+	return NULL;
+}
+
+string OWInterface::getServerName()
+{
+	string sRv;
+	OMethodStringStream method("getServerName");
+
+	sRv= sendMethod(m_stoClient, method, true);
+	return sRv;
+}
+
+void OWInterface::endOfInitialisation()
+{
+	OWInterface *pFirst;
+	OMethodStringStream method("endOfInitialisation");
+
+	pFirst= _instances.begin()->second;
+	pFirst->sendMethod("ppi-db-server", method, false);
+}
+
+bool OWInterface::isServer(const string& type, const string& chipID)
+{
+	string res;
+	OMethodStringStream method("isServer");
+
+	method << type;
+	method << chipID;
+	res= sendMethod(m_stoClient, method, true);
+	if(res == "true")
+		return true;
+	return false;
+}
+
+string OWInterface::getChipType(const string& ID)
+{
+	string sRv;
+	OMethodStringStream method("getChipType");
+
+	method << ID;
+	sRv= sendMethod(m_stoClient, method, true);
+	return sRv;
+}
+
+string OWInterface::getChipFamily(const string& ID)
+{
+	string sRv;
+	OMethodStringStream method("getChipFamily");
+
+	method << ID;
+	sRv= sendMethod(m_stoClient, method, true);
+	return sRv;
+}
+
+vector<string> OWInterface::getChipIDs()
+{
+	vector<string> vRv;
+	OMethodStringStream method("getChipIDs");
+
+	vRv= sendMethod(m_stoClient, method, "done", true);
+	return vRv;
 }
 
 vector<string> OWInterface::getDebugInfo()
@@ -85,10 +159,111 @@ void OWInterface::setDebug(bool set)
 	sendMethod(m_stoClient, method, false);
 }
 
-void OWInterface::clearDebug()
+bool OWInterface::write(const string& id, const double value)
 {
-	for(map<unsigned short, OWInterface*>::iterator it= _instances.begin(); it != _instances.end(); ++it)
-		it->second->setDebug(false);
+	string res;
+	OMethodStringStream method("write");
+
+	method << id;
+	method << value;
+	res= sendMethod(m_stoClient, method, true);
+	if(res == "true")
+		return true;
+	return false;
+}
+
+bool OWInterface::read(const string& id, double* value)
+{
+	bool bRv;
+	string res;
+	OMethodStringStream method("read");
+
+	method << id;
+	method << *value;
+	res= sendMethod(m_stoClient, method, true);
+
+	IParameterStringStream result(res);
+
+	result >> *value;
+	result >> bRv;
+	return bRv;
+}
+
+void OWInterface::range(const string& pin, double& min, double& max, bool& bfloat)
+{
+	string res;
+	OMethodStringStream method("range");
+
+	method << pin;
+	res= sendMethod(m_stoClient, method, true);
+
+	IParameterStringStream result(res);
+
+	result >> min;
+	result >> max;
+	result >> bfloat;
+}
+
+bool OWInterface::haveToBeRegistered()
+{
+	string res;
+	OMethodStringStream method("haveToBeRegistered");
+
+	res= sendMethod(m_stoClient, method, true);
+	if(res == "true")
+		return true;
+	return false;
+}
+
+short OWInterface::useChip(IActionPropertyPattern* properties, string& unique, const string& folder, const string& subroutine)
+{
+	short nRv;
+	string res;
+	OMethodStringStream method("useChip");
+
+	method << properties->str();
+	method << unique;
+	method << folder;
+	method << subroutine;
+	res= sendMethod(m_stoClient, method, true);
+
+	IParameterStringStream result(res);
+
+	result >> nRv;
+	result >> res;
+	properties->pulled(res);
+	result >> unique;
+	return nRv;
+}
+
+void OWInterface::usePropActions(const IActionPropertyPattern* properties)
+{
+	string pulled;
+	OMethodStringStream method("usePropActions");
+
+	method << properties->str();
+	pulled= sendMethod(m_stoClient, method, /*wait*/true);
+	properties->pulled(pulled);
+}
+
+void OWInterface::checkUnused()
+{
+	OWInterface *pFirst;
+	OMethodStringStream method("checkUnused");
+
+	pFirst= _instances.begin()->second;
+	pFirst->sendMethod("ppi-db-server", method, true);// wait for ending
+}
+
+bool OWInterface::reachAllChips()
+{
+	string res;
+	OMethodStringStream method("reachAllChips");
+
+	res= sendMethod(m_stoClient, method, true);
+	if(res == "true")
+		return true;
+	return false;
 }
 
 void OWInterface::deleteAll()
