@@ -163,26 +163,7 @@ namespace server
 		 * @param chipID specific ID which the server should holded
 		 * @return whether server has ID
 		 */
-		bool isServer(const string type, const string chipID);
-		/**
-		 * return instance of server with given id
-		 *
-		 * @param ID id of server
-		 */
-		static OWServer* getServer(const unsigned short ID);
-		/**
-		 * method returning the right server for an specific chip ID.<br />
-		 * All OWServer instaces be defined in an vector in the constructor
-		 *
-		 * @param type type of server (OWFS, Vk8055, ...)
-		 * @param chipID specific ID which the server should holded
-		 * @return the server instance
-		 */
-		static OWServer* getServer(const string type, const string chipID);
-		/**
-		 * delete all exist server
-		 */
-		static void delServers(OWServer* server= NULL);
+		bool isServer(const string& type, const string& chipID);
 		/**
 		 * function reading in one wire filesystem
 		 * from the chip with the ID as subdirectory
@@ -191,7 +172,7 @@ namespace server
 		 * @param ID XX.XXXXXXXXXX id from the chip beginning with two cahracter famaly code
 		 * @return string of type from dallas semicontactor beginning with 'DS'
 		 */
-		string getChipType(string &ID);
+		string getChipType(const string &ID);
 		/**
 		 * function reading in one wire filesystem
 		 * from the chip with the ID as subdirectory
@@ -200,7 +181,7 @@ namespace server
 		 * @param ID XX.XXXXXXXXXX id from the chip beginning with two cahracter family code
 		 * @return two Hexa character family code geted from chip
 		 */
-		string getChipFamily(const string ID);
+		string getChipFamily(const string& ID);
 		/**
 		 * returning all chip id's in an vector
 		 *
@@ -235,9 +216,9 @@ namespace server
 		 */
 		vector<string> getDebugInfo();
 		/**
-		 * select all properties and actions whitch are uesed in interface
+		 * select all properties and actions which are used in interface
 		 *
-		 * @param properties reading properties from the main config file
+		 * @param properties reading properties from the main configuration file
 		 */
 		void usePropActions(const IActionPropertyPattern* properties) const
 		{ m_poChipAccess->usePropActions(properties); };
@@ -249,7 +230,7 @@ namespace server
 		 * @param value Value which should be writing
 		 * @return whether writing on the device was by the last one correct
 		 */
-		bool write(const string id, const double value);
+		bool write(const string& id, const double value);
 		/**
 		 * read from chipdirect if pin is set to uncached,<br />
 		 * or read from cahe which be actualiced in defined time
@@ -258,7 +239,7 @@ namespace server
 		 * @param value Value which should be writing
 		 * @return whether the reading on device was correct
 		 */
-		bool read(const string id, double* value);
+		bool read(const string& id, double* value);
 		/**
 		 * set min and max parameter to the range which can be set for the pin.<br />
 		 * If the pin is set from 0 to 1 for writing, in the config file can be set begin while and end.
@@ -269,7 +250,7 @@ namespace server
 		 * @param max the maximal value
 		 * @param bfloat whether the values can be float variables
 		 */
-		void range(const string pin, double& min, double& max, bool &bfloat);
+		void range(const string& pin, double& min, double& max, bool &bfloat);
 		/**
 		 * whether chips for owserver have an default configuration file
 		 * and have to be registered

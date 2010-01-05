@@ -66,16 +66,7 @@ namespace server
 		m_mOwServers[ID]= this;
 	}
 
-	OWServer* OWServer::getServer(const unsigned short ID)
-	{
-		map<unsigned short, OWServer*>::const_iterator it= m_mOwServers.find(ID);
-
-		if(it != m_mOwServers.end())
-			return it->second;
-		return NULL;
-	}
-
-	OWServer* OWServer::getServer(const string type, const string chipID)
+	/*OWServer* OWServer::getServer(const string type, const string chipID)
 	{
 		if(chipID == "")
 			return NULL;
@@ -85,7 +76,7 @@ namespace server
 				return c->second;
 		}
 		return NULL;
-	}
+	}*/
 
 	bool OWServer::readFirstChipState()
 	{
@@ -134,7 +125,7 @@ namespace server
 		cout << endl;
 	}
 
-	void OWServer::delServers(OWServer* server/*= NULL*/)
+/*	void OWServer::delServers(OWServer* server*= NULL*)
 	{
 		map<unsigned short, OWServer*>::iterator o;
 
@@ -156,9 +147,9 @@ namespace server
 			m_mOwServers.erase(o);
 			o= m_mOwServers.begin();
 		}
-	}
+	}*/
 
-	bool OWServer::isServer(const string type, const string chipID)
+	bool OWServer::isServer(const string& type, const string& chipID)
 	{
 		if(m_poChipAccess->existID(type, chipID))
 			return true;
@@ -432,7 +423,7 @@ namespace server
 		}
 	}
 
-	string OWServer::getChipType(string &ID)
+	string OWServer::getChipType(const string &ID)
 	{
 		return m_poChipAccess->getChipType(ID);
 	}
@@ -507,6 +498,7 @@ namespace server
 			{
 				chip_types_t* chip;
 				vector<device_debug_t>::iterator devIt;
+				//queue<chip_types_t*> *chipque= &priorityPos->second;
 
 				chip= priorityPos->second.front();
 				if(bDebug)
@@ -907,7 +899,7 @@ namespace server
 		++device->count;
 	}
 
-	bool OWServer::write(const string id, const double value)
+	bool OWServer::write(const string& id, const double value)
 	{
 		bool write= false;
 		chip_types_t* chip;
@@ -976,7 +968,7 @@ namespace server
 		return true;
 	}
 
-	void OWServer::range(const string pin, double& min, double& max, bool &bfloat)
+	void OWServer::range(const string& pin, double& min, double& max, bool &bfloat)
 	{
 		chiprange_t chip;
 		map<string, chiprange_t>::iterator found;
@@ -997,7 +989,7 @@ namespace server
 		}
 	}
 
-	bool OWServer::read(const string id, double* value)
+	bool OWServer::read(const string& id, double* value)
 	{
 		bool bfloat, bCorrect;
 		double min, max;
