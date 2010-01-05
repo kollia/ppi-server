@@ -20,6 +20,7 @@
 #include "../logger/lib/LogInterface.h"
 
 #include "../util/IMethodStringStream.h"
+#include "../util/configpropertycasher.h"
 
 namespace server {
 
@@ -58,12 +59,55 @@ int OwServerQuestions::execute()
 	if(command == "exist")
 	{
 		m_vAnswer.push_back("true");
+
+	}else if(command == "getServerName")
+	{
+		m_sAnswer= m_oServer->getServerName();
+
+	}else if(command == "endOfInitialisation")
+	{
+		m_oServer->endOfInitialisation();
+		m_sAnswer= "done";
+
+	}else if(command == "isServer")
+	{
+		bool bIs;
+		string type, chipID;
+
+		stream >> type;
+		stream >> chipID;
+		bIs= m_oServer->isServer(type, chipID);
+		if(bIs)
+			m_sAnswer= "true";
+		else
+			m_sAnswer= "false";
+
+	}else if(command == "getChipType")
+	{
+		string chip;
+
+		stream >> chip;
+		m_sAnswer= m_oServer->getChipType(chip);
+
+	}/*else if(command == "getChipFamily")
+	{
+		string chip, family;
+
+		stream >> chip;
+		family= m_oServer->getChipFamily(chip);
+		m_vAnswer.push_back(family);
+
+	}*/else if(command == "getChipIDs")
+	{
+		m_vAnswer= m_oServer->getChipIDs();
+
 	}else if(command == "setDebug")
 	{
 		bool set;
 
 		stream >> set;
 		m_oServer->setDebug(set);
+
 	}else if(command == "getDebugInfo")
 	{
 		vector<string>::size_type size= m_vAnswer.size();
@@ -78,6 +122,109 @@ int OwServerQuestions::execute()
 			m_sAnswer= m_vAnswer[m_nPos];
 		}else
 			m_sAnswer= m_vAnswer[m_nPos];
+
+	}else if(command == "usePropActions")
+	{
+		string prop;
+		ConfigPropertyCasher properties;
+
+		stream >> prop;
+		properties.tag(prop);
+		m_oServer->usePropActions(&properties);
+		m_sAnswer= properties.pulled();
+
+	}else if(command == "write")
+	{
+		bool bRv;
+		string chip;
+		double value;
+
+		stream >> chip;
+		stream >> value;
+		bRv= m_oServer->write(chip, value);
+		if(bRv)
+			m_sAnswer= "true";
+		else
+			m_sAnswer= "false";
+
+	}else if(command == "read")
+	{
+		bool bRv;
+		string chip;
+		double value;
+		OParameterStringStream answer;
+
+		stream >> chip;
+		stream >> value;
+		bRv= m_oServer->read(chip, &value);
+		answer << bRv;
+		answer << value;
+		m_sAnswer= answer.str();
+
+	}else if(command == "range")
+	{
+		bool bFloat;
+		double min, max;
+		string pin, res;
+		OParameterStringStream answer;
+
+		stream >> pin;
+		m_oServer->range(pin, min, max, bFloat);
+		answer << min;
+		answer << max;
+		answer << bFloat;
+		m_sAnswer= answer.str();
+
+	}else if(command == "haveToBeRegistered")
+	{
+		bool bRv;
+		string res;
+
+		bRv= m_oServer->haveToBeRegistered();
+		if(bRv)
+			m_sAnswer= "true";
+		else
+			m_sAnswer= "false";
+
+	}else if(command == "useChip")
+	{
+		short res;
+		ConfigPropertyCasher properties;
+		string prop, unique, folder, subroutine;
+		OParameterStringStream answer;
+
+		stream >> prop;
+		properties.tag(prop);
+		stream >> unique;
+		stream >> folder;
+		stream >> subroutine;
+		res= m_oServer->useChip(&properties, unique, folder, subroutine);
+		answer << res;
+		answer << properties.pulled();
+		answer << unique;
+		prop= answer.str();
+		m_sAnswer= prop;
+
+	}else if(command == "hasUnusedIDs")
+	{
+		bool bRv;
+
+		bRv= m_oServer->hasUnusedIDs();
+		if(bRv)
+			m_sAnswer= "true";
+		else
+			m_sAnswer= "false";
+
+	}else if(command == "reachAllChips")
+	{
+		bool bRv;
+
+		bRv= m_oServer->reachAllChips();
+		if(bRv)
+			m_sAnswer= "true";
+		else
+			m_sAnswer= "false";
+
 	}else if(command == "stop-owclient")
 	{
 		closeGetConnection();
