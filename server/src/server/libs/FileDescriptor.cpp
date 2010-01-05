@@ -15,6 +15,8 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
+
 #include "../../util/Thread.h"
 
 #include "../../pattern/server/ITransferPattern.h"
@@ -23,6 +25,7 @@
 
 #include "FileDescriptor.h"
 
+using namespace std;
 using namespace design_pattern_world::server_pattern;
 
 namespace server
@@ -281,9 +284,9 @@ namespace server
 		IClientHolderPattern* holder= m_poServer->getCommunicationFactory();
 		IClientPattern* client;
 
-		//if(str == "init")
-		//	std::cout << "search definition " << definition << std::endl;
+		//std::cout << "sendToOtherClient search other client " << definition << std::endl;
 		starter= dynamic_cast<IServerCommunicationStarterPattern*>(holder);
+		UNLOCK(m_THREADSAVEMETHODS);
 		client= starter->getClient(definition, this);
 		if(client == NULL)
 		{
@@ -300,19 +303,18 @@ namespace server
 					(t - nt) < (time_t)m_nTimeout	)
 			{
 				std::cout << "wait for client since " << (t - nt) << " seconds" << std::endl;
-				UNLOCK(m_THREADSAVEMETHODS);
 				sleep(1);
-				LOCK(m_THREADSAVEMETHODS);
 				client= starter->getClient(definition, this);
 				time(&t);
 			}
 			if(client == NULL)
 			{
 				//std::cout << "found no client, return message ERROR 001" << std::endl;
+				LOCK(m_THREADSAVEMETHODS);
 				return "ERROR 001";
 			}
 		}
-		UNLOCK(m_THREADSAVEMETHODS);
+		//std::cout << "sendToOtherClient found other client " << std::endl;
 		answer= client->sendString(str, wait);
 		LOCK(m_THREADSAVEMETHODS);
 		return answer;
