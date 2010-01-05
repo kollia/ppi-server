@@ -251,25 +251,26 @@ bool Starter::execute(vector<string> options)
 	unsigned short nPortThreads= 0;
 
 	//*		for all one wire server an answer client and question client in ppi-internet-server
+	//                 and also an question client in the polling folder list from ppi-starter
 	property= "maximinit";
 	nDbConnectors=  static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
 	property= "Vk8055";
 	nDbConnectors+= static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
-	nDbConnectors*= 2; //question clients
+	nDbConnectors*= 3; //question clients
 	for(vector<pair<string, PortTypes> >::iterator it= ports.begin(); it != ports.end(); ++it)
 	{
 		if(	!bPort && it->second == PORT	)
 		{
-			nDbConnectors+= 2;
+			nDbConnectors+= 3;
 			bPort= true;
 
 		}else if(	!bMPort && it->second == MPORT	)
 		{
-			nDbConnectors+= 2;
+			nDbConnectors+= 3;
 			bPort= true;
 
 		}else if(it->second == RWPORT)
-			nDbConnectors+= 2;
+			nDbConnectors+= 3;
 	}
 	//*		for all process one log client
 	//			ppi-server, ppi-log-client, ppi-db-server, ppi-internet-server
@@ -396,10 +397,17 @@ bool Starter::execute(vector<string> options)
 			cout << " with name '" << owserver->getServerName();
 			cout << "' and ID '" << dec << nServerID << "'" << endl;
 			cout << "    for all used external ports" << endl;
-			if(owserver->start(&m_oServerFileCasher))
-				OWServer::delServers(owserver);
-			else
+			if(owserver->start(&m_oServerFileCasher) == 0)
+			{
+				OWInterface::getServer(	"ppi-starter",
+										new SocketClientConnection(	SOCK_STREAM,
+																	commhost,
+																	commport,
+																	5			),
+										nServerID									);
 				++nServerID;
+			}else
+				delete owserver;
 			sPorts.clear();
 		}
 
@@ -414,10 +422,17 @@ bool Starter::execute(vector<string> options)
 				cout << " with name '" << owserver->getServerName();
 				cout << "' and ID '" << dec << nServerID << "'" << endl;
 				cout << "    to measure time on port" << endl;
-				if(owserver->start(&m_oServerFileCasher))
-					OWServer::delServers(owserver);
-				else
+				if(owserver->start(&m_oServerFileCasher) == 0)
+				{
+					OWInterface::getServer(	"ppi-starter",
+											new SocketClientConnection(	SOCK_STREAM,
+																		commhost,
+																		commport,
+																		5			),
+											nServerID									);
 					++nServerID;
+				}else
+					delete owserver;
 				sPorts.clear();
 			}
 		}
@@ -457,10 +472,17 @@ bool Starter::execute(vector<string> options)
 				cout << " with name '" << owserver->getServerName();
 				cout << "' and ID '" << dec << nServerID << "'" << endl;
 				cout << "    k8055 USB port from Vellemann on itnerface " << dec << nVk8055Address << endl;
-				if(owserver->start(&m_oServerFileCasher))
-					OWServer::delServers(owserver);
-				else
+				if(owserver->start(&m_oServerFileCasher) == 0)
+				{
+					OWInterface::getServer(	"ppi-starter",
+											new SocketClientConnection(	SOCK_STREAM,
+																		commhost,
+																		commport,
+																		5			),
+											nServerID									);
 					++nServerID;
+				}else
+					delete owserver;
 			}else
 				bError= true;
 		}
@@ -482,10 +504,17 @@ bool Starter::execute(vector<string> options)
 		cout << " with name '" << owserver->getServerName();
 		cout << "' and ID '" << dec << nServerID << "'" << endl;
 		cout << "    OWFS device - initial with '" << maximinit << "'" << endl;
-		if(owserver->start(&m_oServerFileCasher))
-			OWServer::delServers(owserver);
-		else
+		if(owserver->start(&m_oServerFileCasher) == 0)
+		{
+			OWInterface::getServer(	"ppi-starter",
+									new SocketClientConnection(	SOCK_STREAM,
+																commhost,
+																commport,
+																5			),
+									nServerID									);
 			++nServerID;
+		}else
+			delete owserver;
 		//owserver= new OWServer(new MaximChipAccess());
 		//if(owserver->start(&m_oServerFileCasher))
 		//	OWServer::delServers(owserver);
@@ -688,7 +717,8 @@ bool Starter::execute(vector<string> options)
 							new SocketClientConnection(	SOCK_STREAM,
 														commhost,
 														commport,
-														5				) );
+														5				),
+							--nServerID										);
 	checker.start(pFirstMeasureThreads, true);
 
 
@@ -709,7 +739,7 @@ bool Starter::execute(vector<string> options)
 		delete delMeash;
 	}
 
-	OWServer::delServers();
+	//OWServer::delServers();
 	DbInterface::deleteAll();
 	delete LogInterface::instance();
 	sleep(1);
@@ -1169,6 +1199,7 @@ inline vector<pair<string, PortTypes> >::iterator Starter::find(vector<pair<stri
 void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 {
 	static short nFolderID= 0;
+	bool bRead;
 	//Properties::param_t pparam;
 	string line;
 	//string sAktSubName;
@@ -1233,6 +1264,92 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 					}
 				}else
 					break;
+			}
+			/*if(type != "")
+			{
+				cout << " >> found TYPE:\"" << type << "\" with value \"" << value << "\"" << flush;
+				cout << endl;
+			}*/
+			bRead= false;
+			if(type=="file")
+			{
+				readFile(vlRv, URL::addPath(m_sConfPath, value));
+				bRead= true;
+
+			}else if(type=="folder")
+			{
+				++nFolderID;
+				if(aktualFolder==NULL)
+				{
+					aktualFolder= new measurefolder_t;
+					aktualFolder->next= NULL;
+					m_tFolderStart= aktualFolder;
+					aktualFolder->name= value;
+					aktualFolder->bCorrect= false;
+				}else
+				{
+					if(subdir!=NULL)
+					{
+						aktualFolder->subroutines.push_back(*subdir);
+						delete subdir;
+						subdir= NULL;
+					}
+					aktualFolder= m_tFolderStart;
+					while(aktualFolder->next != NULL)
+					{
+						if(aktualFolder->name == value)
+							break;
+						aktualFolder= aktualFolder->next;
+					}
+					if(aktualFolder->name != value)
+					{
+						aktualFolder->next= new measurefolder_t;
+						aktualFolder= aktualFolder->next;
+						aktualFolder->next= NULL;
+						aktualFolder->name= value;
+						aktualFolder->bCorrect= false;
+					}
+				}
+				bRead= true;
+
+			}else if(type == "name")
+			{
+				for(unsigned int n= 0; n<names.size(); n++)
+				{
+					if(names[n] == value)
+					{
+						cout << "### found ambigous name \"" << value << "\" in " << fileName << endl;
+						cout << "### STOP server" << endl;
+						exit(0);
+					}
+				}
+				if(subdir!=NULL)
+				{
+					aktualFolder->subroutines.push_back(*subdir);
+					delete subdir;
+					subdir= NULL;
+				}
+				subdir= new sub;
+				subdir->name= value;
+				subdir->bCorrect= false;
+				subdir->type= "";
+				subdir->producerBValue= -1;
+				subdir->out.nPort= 0x00;
+				subdir->out.ePin= portBase::NONE;
+				subdir->in.nPort= 0x00;
+				subdir->in.ePin= portBase::NONE;
+				subdir->defaultValue= 0;
+				subdir->negative.nPort= 0x00;
+				subdir->negative.ePin= portBase::NONE;
+				subdir->sleep= 0;
+				subdir->usleep= 0;
+				subdir->tmlong= 0;
+				subdir->bAfterContact= false;
+				subdir->measuredness= 0;
+				subdir->property= NULL;
+				string result;
+				bRead= true;
+
 			}
 			if(	subdir
 				&&
@@ -1371,16 +1488,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				}
 			}
 
-			/*if(type != "")
-			{
-				cout << " >> found TYPE:\"" << type << "\" with value \"" << value << "\"" << flush;
-				cout << endl;
-			}*/
-			if(type=="file")
-			{
-				readFile(vlRv, URL::addPath(m_sConfPath, value));
-
-			}else if(type=="measuredness")
+			if(type=="measuredness")
 			{
 				if(subdir)
 				{
@@ -1398,77 +1506,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 			}else if(type=="microsecCount")
 			{
 				m_nMicrosecCount=  (unsigned short)atoi(value.c_str());
-
-			}else if(type=="folder")
-			{
-				++nFolderID;
-				if(aktualFolder==NULL)
-				{
-					aktualFolder= new measurefolder_t;
-					aktualFolder->next= NULL;
-					m_tFolderStart= aktualFolder;
-					aktualFolder->name= value;
-					aktualFolder->bCorrect= false;
-				}else
-				{
-					if(subdir!=NULL)
-					{
-						aktualFolder->subroutines.push_back(*subdir);
-						delete subdir;
-						subdir= NULL;
-					}
-					aktualFolder= m_tFolderStart;
-					while(aktualFolder->next != NULL)
-					{
-						if(aktualFolder->name == value)
-							break;
-						aktualFolder= aktualFolder->next;
-					}
-					if(aktualFolder->name != value)
-					{
-						aktualFolder->next= new measurefolder_t;
-						aktualFolder= aktualFolder->next;
-						aktualFolder->next= NULL;
-						aktualFolder->name= value;
-						aktualFolder->bCorrect= false;
-					}
-				}
-			}else if(type == "name")
-			{
-				for(unsigned int n= 0; n<names.size(); n++)
-				{
-					if(names[n] == value)
-					{
-						cout << "### found ambigous name \"" << value << "\" in " << fileName << endl;
-						cout << "### STOP server" << endl;
-						exit(0);
-					}
-				}
-				if(subdir!=NULL)
-				{
-					aktualFolder->subroutines.push_back(*subdir);
-					delete subdir;
-					subdir= NULL;
-				}
-				subdir= new sub;
-				subdir->name= value;
-				subdir->bCorrect= false;
-				subdir->type= "";
-				subdir->producerBValue= -1;
-				subdir->out.nPort= 0x00;
-				subdir->out.ePin= portBase::NONE;
-				subdir->in.nPort= 0x00;
-				subdir->in.ePin= portBase::NONE;
-				subdir->defaultValue= 0;
-				subdir->negative.nPort= 0x00;
-				subdir->negative.ePin= portBase::NONE;
-				subdir->sleep= 0;
-				subdir->usleep= 0;
-				subdir->tmlong= 0;
-				subdir->bAfterContact= false;
-				subdir->measuredness= 0;
-				subdir->property= NULL;
-				string result;
 
 			}else if(type == "type")
 			{
@@ -1720,18 +1757,13 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 					subdir->bAfterContact= true;
 				}
 
-			}else if(type == "port")
-			{
-				//toDo: implement for type PROTOCOL
-			}else if(type == "file")
-			{
-				//toDo: implement for type PROTOCOL
-
 			}else if(type == "default")
 			{
 				subdir->defaultValue= atof(&value[0]);
 
-			}else if(	line != ""
+			}else if(	!bRead
+						&&
+						line != ""
 						&&
 						line.substr(0, 1) != "#")
 			{
@@ -2239,7 +2271,7 @@ void Starter::signalconverting(int nSignal)
 			break;
 
 		case SIGHUP:
-			msg= Thread::getStatusInfo("");
+			msg= Thread::getStatusInfo("clients");
 			if(log)
 				LOG(LOG_INFO, msg);
 			cout << endl << msg << endl;

@@ -34,10 +34,11 @@ public:
 	 *
 	 * @param getConnection on which connection from outside the server is reachable to get questions
 	 */
-	ProcessChecker(IClientConnectArtPattern* sendConnection, IClientConnectArtPattern* getConnection)
+	ProcessChecker(IClientConnectArtPattern* sendConnection, IClientConnectArtPattern* getConnection, const unsigned short nExistOW)
 	:	Thread("ProcessChecker", 0, true),
 		ExternClientInputTemplate("ppi-server", "ProcessChecker", sendConnection, getConnection),
-		m_nEndPos(0)
+		m_nEndPos(0),
+		m_nExistOW(nExistOW)
 		{};
 	/**
 	 * destructor of object
@@ -82,6 +83,10 @@ private:
 	 * position of ending
 	 */
 	unsigned short m_nEndPos;
+	/**
+	 * how much one wire server exists
+	 */
+	const unsigned short m_nExistOW;
 };
 
 #endif /* PROCESSCHECKER_H_ */

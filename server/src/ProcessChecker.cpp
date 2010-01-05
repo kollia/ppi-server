@@ -104,6 +104,13 @@ int ProcessChecker::execute()
 			pCurMeas= pCurMeas->next;
 		}
 
+	}else if(method == "getOWMaxCount")
+	{
+		ostringstream count;
+
+		count << m_nExistOW;
+		m_sAnswer= count.str();
+
 	}else if(method == "stop-all")
 	{
 		static meash_t* pCurrent;
