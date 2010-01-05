@@ -60,7 +60,7 @@ namespace ports
 		static bool first= true;
 		short chipAccess;
 
-		m_pOWServer= OWServer::getServer(m_sServer, m_sChipID);
+		m_pOWServer= OWInterface::getServer(m_sServer, m_sChipID);
 		if(!m_pOWServer)
 		{
 			string msg;

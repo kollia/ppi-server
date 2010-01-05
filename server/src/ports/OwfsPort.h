@@ -19,7 +19,7 @@
 
 #include <map>
 
-#include "../portserver/owserver.h"
+#include "../portserver/lib/OWInterface.h"
 
 #include "../util/configpropertycasher.h"
 
@@ -141,7 +141,7 @@ namespace ports
 		/**
 		 * server which read an write on one wire device
 		 */
-		OWServer* m_pOWServer;
+		OWInterface* m_pOWServer;
 		/**
 		 * settings from measure config file for defined subroutine
 		 */
