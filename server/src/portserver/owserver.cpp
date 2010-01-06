@@ -472,9 +472,7 @@ namespace server
 				return 0;
 		}
 		short endWork;
-		static map<int, queue<chip_types_t*> >::iterator priorityPos= m_mvPriorityCache.begin();
-		//static unsigned short nActCount= 0;
-		//unsigned short nCount= 0;
+		map<int, queue<chip_types_t*> >::iterator priorityPos;
 		bool bDebug= false;
 		bool bDo= false;
 		bool bHasStarterSeq;
@@ -487,8 +485,7 @@ namespace server
 		}
 		// in first case look about write to chips with priority
 		LOCK(m_PRIORITYCACHE);
-		if(priorityPos == m_mvPriorityCache.end())
-			priorityPos= m_mvPriorityCache.begin();
+		priorityPos= m_mvPriorityCache.begin();
 		while(priorityPos != m_mvPriorityCache.end())
 		{
 			if(m_mvPriorityCache.size() == 0)
@@ -498,7 +495,6 @@ namespace server
 			{
 				chip_types_t* chip;
 				vector<device_debug_t>::iterator devIt;
-				//queue<chip_types_t*> *chipque= &priorityPos->second;
 
 				chip= priorityPos->second.front();
 				if(bDebug)
@@ -538,10 +534,7 @@ namespace server
 				}
 				priorityPos->second.pop();
 				if(priorityPos->second.size() == 0)
-				{
 					m_mvPriorityCache.erase(priorityPos);
-					priorityPos= m_mvPriorityCache.begin();
-				}
 				if(endWork == 0)
 				{// reading was correctly and the pin is finished (go to the next),
 					if(bDebug)
@@ -557,8 +550,6 @@ namespace server
 				break;
 			++priorityPos;
 		}
-		if(priorityPos == m_mvPriorityCache.end())
-			priorityPos= m_mvPriorityCache.begin();
 		UNLOCK(m_PRIORITYCACHE);
 
 		// if there by priority cache nothing to do
