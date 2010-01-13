@@ -20,8 +20,7 @@
 
 #include <vector>
 
-#include "../util/Thread.h"
-#include "../util/ExternClientInputTemplate.h"
+#include "../util/process.h"
 
 #include "owserver.h"
 
@@ -30,19 +29,18 @@ namespace server {
 using namespace util;
 using namespace design_pattern_world::server_pattern;
 
-class OwServerQuestions :	public Thread,
-							public ExternClientInputTemplate {
+class OwServerQuestions :	public Process {
 public:
 	/**
 	 * constructor to create question port for owserver
 	 *
+	 * @param process in which process the question-server is running
 	 * @param client name of client to identify by server
 	 * @param getConnection on which connection from outside the server is reachable to get questions
 	 * @param own pointer to own OWServer in which running
 	 */
-	OwServerQuestions(const string& client, IClientConnectArtPattern* getConnection, OWServer* own)
-	:	Thread(client, 0, true),
-		ExternClientInputTemplate("ppi-ow-client", client, NULL, getConnection),
+	OwServerQuestions(const string& process, const string& client, IClientConnectArtPattern* getConnection, OWServer* own)
+	:	Process(process, client, NULL, getConnection, true),
 		m_oServer(own),
 		m_nPos(0)
 	{ };

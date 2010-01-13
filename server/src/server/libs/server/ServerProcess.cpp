@@ -51,7 +51,7 @@ namespace server
 
 	ServerProcess::ServerProcess(string processName, const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect,
 										IClientConnectArtPattern* extcon/*= NULL*/, const string& open/*= ""*/, const bool wait/*= true*/)
-	:	Process(processName, extcon, NULL, wait),
+	:	Process(processName, processName, extcon, NULL, wait),
 		m_uid(uid),
 		m_bNewConnections(true),
 		m_pStarterPool(starter),
@@ -65,7 +65,7 @@ namespace server
 
 	ServerProcess::ServerProcess(const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect,
 											IClientConnectArtPattern* extcon/*= NULL*/, const string& open/*= ""*/, const bool wait/*= true*/)
-	:	Process("CommunicationServerProcess", extcon, NULL, wait),
+	:	Process("CommunicationServerProcess", "CommunicationServerProcess", extcon, NULL, wait),
 		m_uid(uid),
 		m_bNewConnections(true),
 		m_pStarterPool(starter),

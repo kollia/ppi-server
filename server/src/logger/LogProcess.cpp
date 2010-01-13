@@ -32,7 +32,7 @@
 #include "../pattern/util/ipropertypattern.h"
 
 LogProcess::LogProcess(const uid_t uid, IClientConnectArtPattern* getConnection, IClientConnectArtPattern* sendConnection/*= NULL*/, const bool wait/*= true*/)
-:	Process("LogServer", sendConnection, getConnection, wait)
+:	Process("LogServer", "LogServer", sendConnection, getConnection, wait)
 {
 	m_uid= uid;
 }

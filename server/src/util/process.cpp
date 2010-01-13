@@ -29,13 +29,14 @@
 namespace util
 {
 
-	Process::Process(const string& processName, IClientConnectArtPattern* sendConnection/*= NULL*/,
+	Process::Process(const string& ownProcess, const string& toClient, IClientConnectArtPattern* sendConnection/*= NULL*/,
 										IClientConnectArtPattern* getConnection/*= NULL*/, const bool wait/*= true*/) :
-		ExternClientInputTemplate(processName, processName, sendConnection, getConnection),
+		ExternClientInputTemplate(ownProcess, toClient, sendConnection, getConnection),
 		StatusLogRoutine(),
 		m_bWaitInit(wait),
 		m_nProcessID(0),
-		m_sProcessName(processName),
+		m_sProcessName(ownProcess),
+		m_sToClient(toClient),
 		m_bRun(false),
 		m_bStop(false),
 		m_pvStartRv(NULL),
@@ -57,7 +58,7 @@ namespace util
 			err= openSendConnection();
 			if(err > 0)
 				return err;
-			answer= sendMethod(m_sProcessName, stop, bWait);
+			answer= sendMethod(m_sToClient, stop, bWait);
 			if(err == 0)
 				err2= closeSendConnection();
 			err= error(answer);
@@ -114,7 +115,7 @@ namespace util
 			string answer;
 			OMethodStringStream waiting("waiting");
 
-			answer= sendMethod(m_sProcessName, waiting, true);
+			answer= sendMethod(m_sToClient, waiting, true);
 			if(err == 0)
 				err2= closeSendConnection();
 			err= error(answer);
@@ -137,7 +138,7 @@ namespace util
 		err= openSendConnection();
 		if(err > 0)
 			return err;
-		answer= sendMethod(m_sProcessName, init, true);
+		answer= sendMethod(m_sToClient, init, true);
 		if(err == 0)
 			err2= closeSendConnection();
 		err= error(answer);
@@ -209,7 +210,7 @@ namespace util
 		{
 			OMethodStringStream running("running");
 
-			answer= sendMethod(m_sProcessName, running, true);
+			answer= sendMethod(m_sToClient, running, true);
 			if(answer == "true")
 				return 1;
 			if(answer == "false")
@@ -234,7 +235,7 @@ namespace util
 
 			//toDo: asking over connection
 			//return false;
-			answer= sendMethod(m_sProcessName, stopping, true);
+			answer= sendMethod(m_sToClient, stopping, true);
 			if(answer == "true")
 				return 1;
 			if(answer == "false")

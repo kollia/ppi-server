@@ -242,12 +242,13 @@ namespace util
 			 * creating instance to start external process<br />
 			 * object delete client connection by ending
 			 *
-			 * @param processName Name of process to identify in logmessages
+			 * @param ownProcess Name of process to identify in by server
+			 * qparam toClient Name of Client to which connect
 			 * @param sendConnection on which connection from outside the server to answer is reachable
 			 * @param wait whether the starting method should wait for <code>init()</code> method
 			 */
-			ProcessStarter(const string& processName, IClientConnectArtPattern* sendConnection, const bool wait= true)
-			:	Process(processName, sendConnection, NULL, wait)
+			ProcessStarter(const string& ownProcess, const string& toClient, IClientConnectArtPattern* sendConnection, const bool wait= true)
+			:	Process(ownProcess, toClient, sendConnection, NULL, wait)
 			{};
 			/**
 			 * start external application in an fork with execev()

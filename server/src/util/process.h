@@ -162,12 +162,13 @@ namespace util
 		 * creating instance of one process<br />
 		 * object delete client connection by ending
 		 *
-		 * @param processName Name of process to identify in logmessages
+		 * @param ownProcess Name of process to identify in by server
+		 * qparam toClient Name of Client to which connect
 		 * @param sendConnection on which connection from outside the server to answer is reachable
 		 * @param getConnection on which connection from outside the server is reachable to get questions
 		 * @param wait whether the starting method should wait for <code>init()</code> method
 		 */
-		Process(const string& processName, IClientConnectArtPattern* sendConnection,
+		Process(const string& ownProcess, const string& toClient, IClientConnectArtPattern* sendConnection,
 									IClientConnectArtPattern* getConnection, const bool wait= true);
 		/**
 		 * start method to fork the process parallel
@@ -287,6 +288,10 @@ namespace util
 		 * name of process
 		 */
 		const string m_sProcessName;
+		/**
+		 * name of client to which sending commands
+		 */
+		const string m_sToClient;
 		/**
 		 * whether process is running
 		 */
