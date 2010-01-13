@@ -69,8 +69,10 @@ public:
 	/**
 	 * all initialication of subroutines
 	 * are done
+	 *
+	 * @param maxServer count of running one wire reader
 	 */
-	static void endOfInitialisation();
+	static void endOfInitialisation(const int maxServer);
 	/**
 	 * whether server has type and chipID
 	 *
@@ -169,8 +171,10 @@ public:
 	short useChip(IActionPropertyPattern* properties, string& unique, const string& folder, const string& subroutine);
 	/**
 	 * check whether all exist id's are used
+	 *
+	 * @param maxServer count of running one wire reader
 	 */
-	static void checkUnused();
+	static void checkUnused(const int maxServer);
 	/**
 	 * return true when an chip in measure.conf is not defined
 	 */

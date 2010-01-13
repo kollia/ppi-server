@@ -91,11 +91,12 @@ string OWInterface::getServerName()
 	return sRv;
 }
 
-void OWInterface::endOfInitialisation()
+void OWInterface::endOfInitialisation(const int maxServer)
 {
 	OWInterface *pFirst;
 	OMethodStringStream method("endOfInitialisation");
 
+	method << maxServer;
 	pFirst= _instances.begin()->second;
 	pFirst->sendMethod("ppi-db-server", method, false);
 }
@@ -246,11 +247,12 @@ void OWInterface::usePropActions(const IActionPropertyPattern* properties)
 	properties->pulled(pulled);
 }
 
-void OWInterface::checkUnused()
+void OWInterface::checkUnused(const int maxServer)
 {
 	OWInterface *pFirst;
 	OMethodStringStream method("checkUnused");
 
+	method << maxServer;
 	pFirst= _instances.begin()->second;
 	pFirst->sendMethod("ppi-db-server", method, true);// wait for ending
 }

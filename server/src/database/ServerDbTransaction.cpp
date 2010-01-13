@@ -478,12 +478,8 @@ namespace server
 			string res;
 			unsigned short max;
 
-			res= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true);
-
-			istringstream smax(res);
-
-			smax >> max;
-			for(unsigned short n= 0; n <= max; ++n)
+			object >> max;
+			for(unsigned short n= 1; n <= max; ++n)
 			{
 				ostringstream server;
 
@@ -497,12 +493,8 @@ namespace server
 			string res;
 			unsigned short max;
 
-			res= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true);
-
-			istringstream smax(res);
-
-			smax >> max;
-			for(unsigned short n= 0; n <= max; ++n)
+			object >> max;
+			for(unsigned short n= 1; n <= max; ++n)
 			{
 				ostringstream server;
 
