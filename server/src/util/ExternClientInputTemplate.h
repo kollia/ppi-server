@@ -271,6 +271,20 @@ namespace util
 			vector<string> lastSendAnswer()
 			{ return m_vSendAnswer; };
 			/**
+			 * returning name of actual process in which running
+			 *
+			 * @return process name
+			 */
+			const string getProcessName()
+			{ return m_sProcess; };
+			/**
+			 * returning name of client to which is connected or should be
+			 *
+			 * @return client name
+			 */
+			const string getClientName()
+			{ return m_sName; };
+			/**
 			 * destructor of ExternClientInputTemplate
 			 */
 			virtual ~ExternClientInputTemplate();
