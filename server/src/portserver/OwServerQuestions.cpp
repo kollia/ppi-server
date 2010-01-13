@@ -56,7 +56,35 @@ int OwServerQuestions::execute()
 	IMethodStringStream stream(question);
 
 	command= stream.getMethodName();
-	if(command == "exist")
+	if(command == "write")
+	{
+		bool bRv;
+		string chip;
+		double value;
+
+		stream >> chip;
+		stream >> value;
+		bRv= m_oServer->write(chip, value);
+		if(bRv)
+			m_sAnswer= "true";
+		else
+			m_sAnswer= "false";
+
+	}else if(command == "read")
+	{
+		bool bRv;
+		string chip;
+		double value;
+		OParameterStringStream answer;
+
+		stream >> chip;
+		stream >> value;
+		bRv= m_oServer->read(chip, &value);
+		answer << bRv;
+		answer << value;
+		m_sAnswer= answer.str();
+
+	}else if(command == "exist")
 	{
 		m_vAnswer.push_back("true");
 
@@ -67,6 +95,11 @@ int OwServerQuestions::execute()
 	}else if(command == "endOfInitialisation")
 	{
 		m_oServer->endOfInitialisation();
+		m_sAnswer= "done";
+
+	}else if(command == "checkUnused")
+	{
+		m_oServer->checkUnused();
 		m_sAnswer= "done";
 
 	}else if(command == "isServer")
@@ -133,34 +166,6 @@ int OwServerQuestions::execute()
 		m_oServer->usePropActions(&properties);
 		m_sAnswer= properties.pulled();
 
-	}else if(command == "write")
-	{
-		bool bRv;
-		string chip;
-		double value;
-
-		stream >> chip;
-		stream >> value;
-		bRv= m_oServer->write(chip, value);
-		if(bRv)
-			m_sAnswer= "true";
-		else
-			m_sAnswer= "false";
-
-	}else if(command == "read")
-	{
-		bool bRv;
-		string chip;
-		double value;
-		OParameterStringStream answer;
-
-		stream >> chip;
-		stream >> value;
-		bRv= m_oServer->read(chip, &value);
-		answer << bRv;
-		answer << value;
-		m_sAnswer= answer.str();
-
 	}else if(command == "range")
 	{
 		bool bFloat;
@@ -224,6 +229,22 @@ int OwServerQuestions::execute()
 			m_sAnswer= "true";
 		else
 			m_sAnswer= "false";
+
+	}else if(command == "init")
+	{
+		m_sAnswer= "done";
+
+	}else if(command == "getMinMaxErrorNums")
+	{
+		int nums;
+		ostringstream errornums;
+
+		nums= getMaxErrorNums(false);
+		errornums << nums << " ";
+		nums= getMaxErrorNums(true);
+		nums+= 1; // for undefined command sending;
+		errornums << nums;
+		m_sAnswer= errornums.str();
 
 	}else if(command == "stop-owclient")
 	{
