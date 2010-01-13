@@ -292,8 +292,10 @@ namespace server
 		{
 			time_t t, nt;
 
+#ifdef ALLOCATEONMETHODSERVER
 			std::cout << "no client found for " << definition << " search again for " << m_nTimeout << " seconds " << std::endl;
-			std::cout << "to send: " << str << std::endl;
+			std::cout << "  to send: " << str << std::endl;
+#endif // ALLOCATEONMETHODSERVER
 			time(&nt);
 			time(&t);
 			while(	client == NULL
@@ -302,7 +304,9 @@ namespace server
 					&&
 					(t - nt) < (time_t)m_nTimeout	)
 			{
-				std::cout << "wait for client since " << (t - nt) << " seconds" << std::endl;
+#ifdef ALLOCATEONMETHODSERVER
+				std::cout << "wait for client " << definition << " since " << (t - nt) << " seconds" << std::endl;
+#endif // ALLOCATEONMETHODSERVER
 				sleep(1);
 				client= starter->getClient(definition, this);
 				time(&t);
