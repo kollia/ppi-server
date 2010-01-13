@@ -10,10 +10,9 @@ if(FULL_CLIENT_PATH)
   set(INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/install.sh)
 endif(FULL_CLIENT_PATH)
 
-add_executable(ppi-server ${mainSrcs} ${databaseSrcs} ${loggerSrcs} ${portsSrcs} ${portserverSrcs} ${serverSrcs} ${INSTALL_SCRIPT})
+add_executable(ppi-server ${mainSrcs} ${INSTALL_SCRIPT})
 
-target_link_libraries(ppi-server ppiutil ppilogger ppiports ppidb ppiportserver ppiow ppiserverlib ppiserverlibclient ppiclientlib ppiserverlibserver 
-                        ${RT_LIBRARIES} ${OWFS_LIBRARIES} ${USB_LIBRARIES} ${K8055_LIBRARIES} ${OPENSSL_LIBRARIES} ${LircClient_LIBRARIES})
+target_link_libraries(ppi-server ppiutil ppilogger ppiports ppidb ppiow ppiserverlib ppiserverlibclient ppiclientlib ppiserverlibserver ${RT_LIBRARIES})
 
 install(TARGETS ppi-server DESTINATION bin)
 

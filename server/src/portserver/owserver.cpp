@@ -158,13 +158,7 @@ namespace server
 
 	int OWServer::init(void* arg)
 	{
-		int err;
-		unsigned short port;
-		string host, property("communicationport"), msg;
-		ostringstream questioncl;
 		string defaultConfig(m_poChipAccess->getDefaultFileName());
-		vector<string> ids;
-		OwServerQuestions* pQuestions;
 
 		m_oServerProperties= static_cast<IPropertyPattern*>(arg);
 		if(defaultConfig != "")
@@ -180,35 +174,6 @@ namespace server
 		}else
 			m_bConnected= true;
 
-		host= m_oServerProperties->getValue("communicationhost");
-		port= m_oServerProperties->getUShort(property);
-		if(port == 0 || host == "")
-		{
-			msg=  "### ERROR: cannot start question thread for one wire server " + getServerName() + "\n";
-			msg+= "           because commhost or commport is not defined in server.conf";
-			cerr << msg << endl;
-			LOG(LOG_ERROR, msg);
-			m_oQuestions= NULL;
-		}else
-		{
-			questioncl << "OwServerQuestion-";
-			questioncl << m_nServerID;
-			pQuestions= new OwServerQuestions(	questioncl.str(),
-												new SocketClientConnection(	SOCK_STREAM,
-																			host,
-																			port,
-																			10			),
-												this										);
-			err= pQuestions->start();
-			if(err > 0)
-			{
-				msg=  "### ERROR: cannot start question thread for one wire server " + getServerName() + "\n";
-				msg+= "           " + pQuestions->strerror(err);
-				cerr << msg << endl;
-				LOG(LOG_ERROR, msg);
-			}
-			m_oQuestions= pQuestions;
-		}
 		return 0;
 	}
 
@@ -929,6 +894,7 @@ namespace server
 			timeval stltv;
 			string msg;
 			char stlbuf[20];
+			ostringstream ovalue;
 
 			if(gettimeofday(&stltv, NULL))
 			{
@@ -939,9 +905,10 @@ namespace server
 				TIMELOG(LOG_WARNING, "gettimeofday", msg);
 			}else
 			{
+				ovalue << value;
 				msg= "order on " + id;
 				msg+= " to write value ";
-				msg+= value + "\n";
+				msg+= ovalue.str() + "\n";
 				msg+= "\n";
 				strftime(stlbuf, 15, "%H:%M:%S", localtime(&stltv.tv_sec));
 				msg+= stlbuf;

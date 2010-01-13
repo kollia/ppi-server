@@ -225,7 +225,7 @@ bool Starter::execute(vector<string> options)
 	// start logging process
 
 	cout << "### start ppi log client" << endl;
-	logprocess= new ProcessStarter(	"LogServer",
+	logprocess= new ProcessStarter(	"ppi-starter", "LogServer",
 									new SocketClientConnection(	SOCK_STREAM,
 																commhost,
 																commport,
@@ -249,35 +249,44 @@ bool Starter::execute(vector<string> options)
 	bool bPort= false;
 	bool bMPort= false;
 	unsigned short nPortThreads= 0;
+	unsigned short nOWReader;
 
-	//*		for all one wire server an answer client and question client in ppi-internet-server
-	//                 and also an question client in the polling folder list from ppi-starter
+	//* count in nOWReader how much one wire reader (OWServer) should running
 	property= "maximinit";
-	nDbConnectors=  static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
+	nOWReader=  static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
 	property= "Vk8055";
-	nDbConnectors+= static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
-	nDbConnectors*= 3; //question clients
+	nOWReader+= static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
 	for(vector<pair<string, PortTypes> >::iterator it= ports.begin(); it != ports.end(); ++it)
 	{
 		if(	!bPort && it->second == PORT	)
 		{
-			nDbConnectors+= 3;
+			++nOWReader;
 			bPort= true;
 
-		}else if(	!bMPort && it->second == MPORT	)
+		}else if(	!bMPort && it->second == MPORT && it->first != "freeze"	)
 		{
-			nDbConnectors+= 3;
+			++nOWReader;
 			bPort= true;
 
 		}else if(it->second == RWPORT)
-			nDbConnectors+= 3;
+			++nOWReader;
 	}
-	//*		for all process one log client
-	//			ppi-server, ppi-log-client, ppi-db-server, ppi-internet-server
-	nDbConnectors+= 4;
-	//*		for all process without db server an db client
-	//			ppi-server, ppi-log-client, ppi-internet-server
-	nDbConnectors+= 3;
+
+	//*	for all processes without db-server and internet-server to give answers
+	//		ppi-server(ProcessChecker), ppi-log-client, ppi-owreader
+	nDbConnectors= 2 + nOWReader;
+
+	//*		for all process an log client
+	//			ppi-server, ppi-db-server, ppi-internet-server, ppi-owreader
+	nDbConnectors+= 3 + nOWReader;
+
+	//*		for all process other then logger an db client but the internet-server needs an second for callback routines (second connection by client)
+	//			ppi-server, ppi-internet-server, ppi-owreader
+	nDbConnectors+= 3 + nOWReader;
+
+	//*		for all one wire server (ppi-owreader) are needs the polling action list in ppi-server an OWInterface
+	nDbConnectors+= nOWReader;
+
 #ifdef ALLOCATEONMETHODSERVER
 	short spaces= 14;
 	ostringstream conns;
@@ -302,7 +311,7 @@ bool Starter::execute(vector<string> options)
 	// start database server
 
 	cout << "### start ppi db server" << endl;
-	process= new ProcessStarter(	"ppi-db-server",
+	process= new ProcessStarter(	"ppi-starter", "ppi-db-server",
 									new SocketClientConnection(	SOCK_STREAM,
 																commhost,
 																commport,
@@ -347,7 +356,7 @@ bool Starter::execute(vector<string> options)
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start database interface and check whether database is loaded
 
-	DbInterface::initial(	"ppi-db-server",
+	DbInterface::initial(	"ppi-server",
 							new SocketClientConnection(	SOCK_STREAM,
 														commhost,
 														commport,
@@ -373,76 +382,121 @@ bool Starter::execute(vector<string> options)
 	 *
 	 */
 	int nServerID= 1;
-	OWServer* owserver;
-
-#ifdef _EXTERNVENDORLIBRARYS
-	string maximinit("");
-	vector<string>::size_type nVk8055Count= 0;
-#endif // _EXTERNVENDORLIBRARYS
+	string owreader("OwServerQuestion-");
 
 	if(ports.size() > 0)
 	{
-		vector<string> sPorts;
+		string sPorts;
 
 		// starting OWServer for write or read pins on any ports
 		for(vector<pair<string, PortTypes> >::iterator it= ports.begin(); it != ports.end(); ++it)
 		{
 			if(it->second == PORT)
-				sPorts.push_back(it->first);
+				sPorts+= it->first + " ";
 		}
-		if(sPorts.size() > 0)
+		if(sPorts != "")
 		{
-			cout << "### starting OWServer" << flush;
-			owserver= new OWServer(nServerID, new ExternPorts(sPorts, PORT));
-			cout << " with name '" << owserver->getServerName();
-			cout << "' and ID '" << dec << nServerID << "'" << endl;
-			cout << "    for all used external ports" << endl;
-			if(owserver->start(&m_oServerFileCasher) == 0)
+			ostringstream oServerID;
+
+			cout << "### starting OWServer " << endl;
+			oServerID << nServerID;
+			process= new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+											new SocketClientConnection(	SOCK_STREAM,
+																		commhost,
+																		commport,
+																		10			)	);
+
+			if(bPorts)
 			{
-				OWInterface::getServer(	"ppi-starter",
+				ostringstream oDbConnectors;
+
+				oDbConnectors << nDbConnectors;
+				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
+													"PORT", sPorts.c_str(), NULL);
+			}else
+				err= process->check();
+			if(err > 0)
+			{
+				string msg;
+
+				msg=  "### WARNING: cannot start one wire reader\n";
+				msg+= "             " + process->strerror(err) + "\n";
+				msg+= "             so ppi-server cannot read ore write on any extern COM/LPT port";
+				cerr << endl << msg << endl;
+				LOG(LOG_ALERT, msg);
+			}else
+			{// create reading interface to one wire reader
+				OWInterface::getServer(	"ppi-server",
 										new SocketClientConnection(	SOCK_STREAM,
 																	commhost,
 																	commport,
 																	5			),
 										nServerID									);
 				++nServerID;
-			}else
-				delete owserver;
-			sPorts.clear();
+			}
+			delete process;
 		}
 
 		// starting OWServer to measure on ports
+		sPorts= "";
 		for(vector<pair<string, PortTypes> >::iterator it= ports.begin(); it != ports.end(); ++it)
 		{
 			if(it->second == MPORT)
-			{
-				sPorts.push_back(it->first);
-				cout << "### starting OWServer" << flush;
-				owserver= new OWServer(nServerID, new ExternPorts(sPorts, MPORT));
-				cout << " with name '" << owserver->getServerName();
-				cout << "' and ID '" << dec << nServerID << "'" << endl;
-				cout << "    to measure time on port" << endl;
-				if(owserver->start(&m_oServerFileCasher) == 0)
-				{
-					OWInterface::getServer(	"ppi-starter",
+				sPorts+= it->first + "";
+		}
+		if(sPorts != "")
+		{
+			ostringstream oServerID;
+
+			cout << "### starting OWServer " << endl;
+			oServerID << nServerID;
+			process= new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
 											new SocketClientConnection(	SOCK_STREAM,
 																		commhost,
 																		commport,
-																		5			),
-											nServerID									);
-					++nServerID;
-				}else
-					delete owserver;
-				sPorts.clear();
+																		10			)	);
+
+			if(bPorts)
+			{
+				ostringstream oDbConnectors;
+
+				oDbConnectors << nDbConnectors;
+				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
+													"MPORT", sPorts.c_str(), NULL);
+			}else
+				err= process->check();
+			if(err > 0)
+			{
+				string msg;
+
+				msg=  "### WARNING: cannot start one wire reader\n";
+				msg+= "             " + process->strerror(err) + "\n";
+				msg+= "             so ppi-server cannot measure time on any extern COM/LPT port";
+				cerr << endl << msg << endl;
+				LOG(LOG_ALERT, msg);
+			}else
+			{// create reading interface to one wire reader
+				OWInterface::getServer(	"ppi-server",
+										new SocketClientConnection(	SOCK_STREAM,
+																	commhost,
+																	commport,
+																	5			),
+										nServerID									);
+				++nServerID;
 			}
+			delete process;
 		}
 
 	}
 
+#ifdef _EXTERNVENDORLIBRARYS
+	string maximinit("");
+	vector<string>::size_type nVk8055Count= 0;
+#endif // _EXTERNVENDORLIBRARYS
+
 #ifdef _K8055LIBRARY
 	bool bError;
 	int nVk8055Address;
-	string sVk8055Address;
 	vector<int> vVk8055;
 	vector<int>::iterator vit;
 
@@ -466,121 +520,115 @@ bool Starter::execute(vector<string> options)
 			vit= ::find(vVk8055.begin(), vVk8055.end(), nVk8055Address);
 			if(vit == vVk8055.end())
 			{
-				cout << "### starting OWServer" << flush;
+				ostringstream oServerID;
+				ostringstream oVK8055Address;
+
+				cout << "### starting OWServer" << endl;
 				vVk8055.push_back(nVk8055Address);
-				owserver= new OWServer(nServerID, new VellemannK8055(static_cast<long>(nVk8055Address)));
-				cout << " with name '" << owserver->getServerName();
-				cout << "' and ID '" << dec << nServerID << "'" << endl;
-				cout << "    k8055 USB port from Vellemann on itnerface " << dec << nVk8055Address << endl;
-				if(owserver->start(&m_oServerFileCasher) == 0)
+				oVK8055Address << nVk8055Address;
+				oServerID << nServerID;
+				process= new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+												new SocketClientConnection(	SOCK_STREAM,
+																			commhost,
+																			commport,
+																			10			)	);
+
+				if(bPorts)
 				{
-					OWInterface::getServer(	"ppi-starter",
+					ostringstream oDbConnectors;
+
+					oDbConnectors << nDbConnectors;
+					err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
+														"vellemann", "k8055", oVK8055Address.str().c_str(), NULL);
+				}else
+					err= process->check();
+				if(err > 0)
+				{
+					string msg;
+
+					msg=  "### WARNING: cannot start one wire reader\n";
+					msg+= "             " + process->strerror(err) + "\n";
+					msg+= "             so ppi-server cannot read or write on Vellemann k8055 board";
+					cerr << endl << msg << endl;
+					LOG(LOG_ALERT, msg);
+				}else
+				{// create reading interface to one wire reader
+					OWInterface::getServer(	"ppi-server",
 											new SocketClientConnection(	SOCK_STREAM,
 																		commhost,
 																		commport,
 																		5			),
 											nServerID									);
 					++nServerID;
-				}else
-					delete owserver;
-			}else
-				bError= true;
+				}
+				delete process;
+			}
 		}
 		if(bError)
 		{
+			string sVk8055Address;
+			ostringstream msg;
+
 			sVk8055Address= m_oServerFileCasher.getValue("Vk8055", n, false);
-			cerr << "    ERROR by define " << (n+1) << ". port with address " << sVk8055Address << endl;
+			msg << "    ERROR by define " << (n+1) << ". port with address " << sVk8055Address << endl;
+			msg << "          so ppi-server cannot read or write on Vellemann k8055 board";
+			cerr << msg.str() << endl;
+			LOG(LOG_ALERT, msg.str());
 		}
 	}
 #endif //_K8055LIBRARY
 
 #ifdef _OWFSLIBRARY
+	vector<string>::size_type nMaximCount;
+
 	// start maxim ports with owfs driver
-	maximinit= m_oServerFileCasher.getValue("maximinit", /*warning*/false);
-	if(maximinit != "")
+	nMaximCount= m_oServerFileCasher.getPropertyCount("maximinit");
+	for(vector<string>::size_type n= 0; n < nMaximCount; ++n)
 	{
-		cout << "### starting OWServer" << flush;
-		owserver= new OWServer(nServerID, new MaximChipAccess());
-		cout << " with name '" << owserver->getServerName();
-		cout << "' and ID '" << dec << nServerID << "'" << endl;
-		cout << "    OWFS device - initial with '" << maximinit << "'" << endl;
-		if(owserver->start(&m_oServerFileCasher) == 0)
+		ostringstream oServerID;
+
+		maximinit= m_oServerFileCasher.getValue("maximinit", n, /*warning*/false);
+		cout << "### starting OWServer" << endl;
+		oServerID << nServerID;
+		process= new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+										new SocketClientConnection(	SOCK_STREAM,
+																	commhost,
+																	commport,
+																	10			)	);
+
+		if(bPorts)
 		{
-			OWInterface::getServer(	"ppi-starter",
+			ostringstream oDbConnectors;
+
+			oDbConnectors << nDbConnectors;
+			err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
+												"maxim", maximinit.c_str(), NULL);
+		}else
+			err= process->check();
+		if(err > 0)
+		{
+			string msg;
+
+			msg=  "### WARNING: cannot start one wire reader\n";
+			msg+= "             " + process->strerror(err) + "\n";
+			msg+= "             so ppi-server cannot read or write on Maxim/Dallas semiconductors";
+			cerr << endl << msg << endl;
+			LOG(LOG_ALERT, msg);
+		}else
+		{// create reading interface to one wire reader
+			OWInterface::getServer(	"ppi-server",
 									new SocketClientConnection(	SOCK_STREAM,
 																commhost,
 																commport,
 																5			),
 									nServerID									);
 			++nServerID;
-		}else
-			delete owserver;
-		//owserver= new OWServer(new MaximChipAccess());
-		//if(owserver->start(&m_oServerFileCasher))
-		//	OWServer::delServers(owserver);
-
-/*		vector<string> inits;
-		vector<string>::iterator c;
-
-		inits= ConfigPropertyCasher::split(maximinit, " ");
-		c= inits.begin();
-		while(c != inits.end())
-		{
-			if(	*c == "-all"
-				||
-				*c == "--usb=all"	)
-			{
-				int usb= 1;
-				string init;
-				//MaximChipAccess* maxPort;
-				OWServer* owserver;
-				vector<string> allIds, ids;
-				vector<string>::size_type idCount;
-
-
-				owserver= new OWServer(new MaximChipAccess("-u"));
-				owserver->start(&m_oServerFileCasher);
-				allIds= owserver->getChipIDs();
-				if(!allIds.size())
-				{
-					string msg("### WARNING: does not found any chip on device");
-
-					msg+= "for initialisation";
-					msg+= *c;
-					cerr << msg << endl;
-					LOG(LOG_WARNING, msg);
-				}else
-				{
-					do{
-						char buf[20];
-
-						++usb;
-						snprintf(buf, 20, "-u%d", usb);
-						init= buf;
-						owserver= new OWServer(new MaximChipAccess(init, &allIds));
-						owserver->start(&m_oServerFileCasher);
-						//bres= (bool) *res;
-						ids= owserver->getChipIDs();
-						allIds.insert(allIds.end(), ids.begin(), ids.end());
-						idCount= ids.size();
-						if(idCount == 0)
-							OWServer::delServers(owserver);
-
-					}while(idCount);
-				}
-			}else
-			{
-				OWServer* owserver;
-
-				owserver= new OWServer(new MaximChipAccess(maximinit));
-				if(owserver->start(&m_oServerFileCasher))
-					OWServer::delServers();
-			}
-			++c;
-		}*/
+		}
+		delete process;
 	}
 #endif //_OWFSLIBRARY
 
+	--nServerID;
 	createPortObjects();
 
 #ifdef _EXTERNVENDORLIBRARYS
@@ -590,14 +638,14 @@ bool Starter::execute(vector<string> options)
 		||
 		ports.size() > 0	)
 	{
-		OWServer::checkUnused();
-		OWServer::endOfInitialisation();
+		OWInterface::checkUnused(nServerID);
+		OWInterface::endOfInitialisation(nServerID);
 	}
 #else // _EXTERNVENDORLIBRARYS
 	if(	ports.size() > 0	)
 	{
-		OWServer::checkUnused();
-		OWServer::endOfInitialisation();
+		OWInterface::checkUnused(nServerID);
+		OWInterface::endOfInitialisation(nServerID);
 	}
 #endif // _EXTERNVENDORLIBRARYS
 
@@ -679,7 +727,7 @@ bool Starter::execute(vector<string> options)
 	// start internet server
 
 	cout << "### start ppi internet server" << endl;
-	process= new ProcessStarter(	"ppi-internet-server",
+	process= new ProcessStarter(	"ppi-starter", "ppi-internet-server",
 									new SocketClientConnection(	SOCK_STREAM,
 																host,
 																port,
@@ -718,7 +766,7 @@ bool Starter::execute(vector<string> options)
 														commhost,
 														commport,
 														5				),
-							--nServerID										);
+							nServerID										);
 	checker.start(pFirstMeasureThreads, true);
 
 
