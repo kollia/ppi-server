@@ -16,9 +16,6 @@ set(PPIDB_LIB_SOVERSION "1")
 set(PPIPORTS_LIB_VERSION "1.0")
 set(PPIPORTS_LIB_SOVERSION "1")
 
-set(PPIPORTSERVER_LIB_VERSION "1.0")
-set(PPIPORTSERVER_LIB_SOVERSION "1")
-
 set(PPISERVERCLIENT_LIB_VERSION "1.0")
 set(PPISERVERCLIENT_LIB_SOVERSION "1")
 
@@ -128,7 +125,6 @@ endif(USE_K8055)
 
 add_subdirectory( src/util )
 add_subdirectory( src/ports )
-add_subdirectory( src/portserver )
 add_subdirectory( src/portserver/lib )
 add_subdirectory( src/logger/lib )
 add_subdirectory( src/database/lib )
@@ -140,5 +136,6 @@ add_subdirectory( src/server )
 
 add_subdirectory( src/logger )
 add_subdirectory( src/database )
+add_subdirectory( src/portserver )
 add_subdirectory( src )
 
