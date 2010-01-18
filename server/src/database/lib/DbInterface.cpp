@@ -724,6 +724,7 @@ namespace ppi_database
 		}
 		IParameterStringStream oRv(sRv);
 
+		tRv.exists= true;
 		oRv >> tRv.server;
 		oRv >> tRv.family;
 		oRv >> tRv.type;
