@@ -159,12 +159,19 @@ int ProcessChecker::execute()
 		}
 	}else
 	{
+		int err;
 		string msg("### ERROR: undefined command '");
 
 		msg+= question + "' was send to ProcessChecker";
+		err= error(question);
+		if(err)
+		{
+			msg+= "\n           ";
+			msg+= strerror(err, false);
+		}else
+			m_sAnswer= "ERROR 001";
 		cerr << msg << endl;
 		LOG(LOG_ERROR, msg);
-		m_sAnswer= "ERROR 001";
 	}
 	return nRv;
 }
