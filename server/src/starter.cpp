@@ -93,6 +93,12 @@ bool Starter::execute(vector<string> options)
 	string prop;
 	ProcessStarter *process, *logprocess;
 
+	// starting time
+	struct tm ttime;
+	timeval startingtime, acttime;
+	ostringstream timemsg;
+
+	gettimeofday(&startingtime, NULL);
 	Starter::isNoPathDefinedStop();
 	if(signal(SIGINT, signalconverting) == SIG_ERR)
 		printSigError("SIGINT");
@@ -660,7 +666,7 @@ bool Starter::execute(vector<string> options)
 	LOG(LOG_INFO, "Read layout content for clients from " + meash_t::clientPath);
 	measurefolder_t *aktFolder= m_tFolderStart;
 	args.ports= ports;
-	cout << "### start measure thread(s)" << endl;
+	cout << "### start folder thread(s) from measure.conf" << endl;
 	while(aktFolder != NULL)
 	{
 		if(!aktFolder->bCorrect)
@@ -767,6 +773,30 @@ bool Starter::execute(vector<string> options)
 														commport,
 														5				),
 							nServerID										);
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// calculate starting time
+	timemsg << "    server was starting in ";
+	gettimeofday(&acttime, NULL);
+	acttime.tv_sec-= startingtime.tv_sec;
+	if(acttime.tv_usec < startingtime.tv_usec)
+	{
+		acttime.tv_sec-= 1;
+		acttime.tv_usec+= 1000000;
+	}
+	ttime= *localtime(&acttime.tv_sec);
+	acttime.tv_usec-= startingtime.tv_usec;
+	if(ttime.tm_min)
+	{
+		timemsg << ttime.tm_min << " minute";
+		if(ttime.tm_min > 1)
+			timemsg << "s";
+		timemsg << " and ";
+	}
+	timemsg << ttime.tm_sec << "." << acttime.tv_usec << " seconds";
+	cout << timemsg.str() << " ..." << endl;
+	LOG(LOG_INFO, timemsg.str());
+	// ------------------------------------------------------------------------------------------------------------
 	checker.start(pFirstMeasureThreads, true);
 
 
