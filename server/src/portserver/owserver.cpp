@@ -46,8 +46,6 @@ using namespace ppi_database;
 
 namespace server
 {
-	map<unsigned short, OWServer*> OWServer::m_mOwServers;
-
 	OWServer::OWServer(const unsigned short ID, IChipAccessPattern* accessPattern)
 	:	Thread("OwfsServer", /*defaultSleep*/0),
 		m_nServerID(ID)
@@ -63,20 +61,7 @@ namespace server
 		m_CACHEWRITEENTRYS= getMutex("CACHEWRITEENTRYS");
 		m_DEBUGINFO= getMutex("DEBUGINFO");
 		m_poChipAccess= accessPattern;
-		m_mOwServers[ID]= this;
 	}
-
-	/*OWServer* OWServer::getServer(const string type, const string chipID)
-	{
-		if(chipID == "")
-			return NULL;
-		for(map<unsigned short, OWServer*>::iterator c= m_mOwServers.begin(); c != m_mOwServers.end(); ++c)
-		{
-			if(c->second->isServer(type, chipID))
-				return c->second;
-		}
-		return NULL;
-	}*/
 
 	bool OWServer::readFirstChipState()
 	{
@@ -116,38 +101,8 @@ namespace server
 
 	void OWServer::endOfInitialisation()
 	{
-		cout << endl;
-		for(map<unsigned short, OWServer*>::iterator c= m_mOwServers.begin(); c != m_mOwServers.end(); ++c)
-		{
-			if(c->second->readFirstChipState())
-				c->second->m_bAllInitial= true;
-		}
-		cout << endl;
+		m_bAllInitial= true;
 	}
-
-/*	void OWServer::delServers(OWServer* server*= NULL*)
-	{
-		map<unsigned short, OWServer*>::iterator o;
-
-		if(server)
-		{
-			OWServer *oServer;
-
-			oServer= getServer(server->m_nServerID);
-			oServer->stop(true);
-			delete oServer;
-			m_mOwServers.erase(o);
-			return;
-		}
-		o= m_mOwServers.begin();
-		while(o != m_mOwServers.end())
-		{
-			o->second->stop(true);
-			delete o->second;
-			m_mOwServers.erase(o);
-			o= m_mOwServers.begin();
-		}
-	}*/
 
 	bool OWServer::isServer(const string& type, const string& chipID)
 	{
@@ -346,21 +301,19 @@ namespace server
 
 	void OWServer::checkUnused()
 	{
-		bool bunused= false;
+		vector<string> unused;
 
-		for(map<unsigned short, OWServer*>::iterator o= m_mOwServers.begin(); o != m_mOwServers.end(); ++o)
-		{
-			if(o->second->hasUnusedIDs())
-			{
-				bunused= true;
-				break;
-			}
-		}
-		if(bunused)
+		unused= m_poChipAccess->getUnusedIDs();
+		if(!unused.empty())
 		{
 			cout << "    unused id's of chips:" << endl;
-			for(map<unsigned short, OWServer*>::iterator o= m_mOwServers.begin(); o != m_mOwServers.end(); ++o)
-				o->second->printUnusedIDs();
+			for(vector<string>::iterator i= unused.begin(); i != unused.end(); ++i)
+			{
+				string msg("          ");
+				cout << "          ";
+				cout << (*i) << "  type:";
+				cout << m_poChipAccess->getChipType(*i) << endl;
+			}
 		}
 	}
 
@@ -374,35 +327,9 @@ namespace server
 		return false;
 	}
 
-	void OWServer::printUnusedIDs()
-	{
-		vector<string> unused;
-
-		unused= m_poChipAccess->getUnusedIDs();
-		for(vector<string>::iterator i= unused.begin(); i != unused.end(); ++i)
-		{
-				string msg("          ");
-				cout << "          ";
-				cout << (*i) << "  type:";
-				cout << m_poChipAccess->getChipType(*i) << endl;
-		}
-	}
-
 	string OWServer::getChipType(const string &ID)
 	{
 		return m_poChipAccess->getChipType(ID);
-	}
-
-	void OWServer::setDebug(const unsigned short ID)
-	{
-		for(map<unsigned short, OWServer*>::iterator c= m_mOwServers.begin(); c != m_mOwServers.end(); ++c)
-			c->second->setDebug(false);
-		if(ID)
-		{
-			map<unsigned short, OWServer*>::const_iterator it= m_mOwServers.find(ID);
-
-			it->second->setDebug(true);
-		}
 	}
 
 	void OWServer::setDebug(const bool debug)
@@ -822,6 +749,7 @@ namespace server
 			dev1String << o->priority << " ";
 			dev1String << o->device;
 			vRv.push_back(dev1String.str());
+			cout << dev1String.str() << endl;
 		}
 		return vRv;
 	}
@@ -958,6 +886,7 @@ namespace server
 		LOCK(m_READCACHE);
 		*value= chipIt->second->value;
 		bCorrect= chipIt->second->device;
+		//cout << "get for " << id << " " << boolalpha << bCorrect << " value " << *value << endl;
 		if(	min == 0
 			&&
 			max == 1
@@ -973,6 +902,7 @@ namespace server
 			//cout << endl;
 		}
 		UNLOCK(m_READCACHE);
+		//cout << "    with range min:" << min << ", max:" << max << " and floating is " << boolalpha << bfloat << " value is " << *value << endl;
 		return bCorrect;
 	}
 	/*

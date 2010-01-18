@@ -155,7 +155,7 @@ namespace server
 		 * all initialication of subroutines
 		 * are done
 		 */
-		static void endOfInitialisation();
+		void endOfInitialisation();
 		/**
 		 * whether server has type and chipID
 		 *
@@ -195,15 +195,6 @@ namespace server
 		 * @param debug whether debug messages should showen
 		 */
 		void setDebug(bool debug);
-		/**
-		 * given server shows debug info
-		 * on which cache be writing or reading.<br />
-		 * When server id is 0 all server be set to debug false.
-		 * Every time only one server be set to debug true.
-		 *
-		 * @param ID id of server
-		 */
-		static void setDebug(const unsigned short ID);
 		/**
 		 * get debug info to show
 		 * on which cache be writing or reading
@@ -270,17 +261,14 @@ namespace server
 		 */
 		short useChip(IActionPropertyMsgPattern* properties, string& unique, const string& folder, const string& subroutine);
 		/**
-		 * check whether all exist id's are used
+		 * check whether all exist id's are used,
+		 * otherwise print unused on command-line
 		 */
-		static void checkUnused();
+		void checkUnused();
 		/**
 		 * return true when an chip in measure.conf is not defined
 		 */
 		bool hasUnusedIDs();
-		/**
-		 * print id's on screen if it is unused
-		 */
-		void printUnusedIDs();
 		/**
 		 * whether all reachable chips are defined for this interface,
 		 * or one before. No more server with this interface must be start.
@@ -502,11 +490,6 @@ namespace server
 		 * whether all initialication of subroutines are done
 		 */
 		bool m_bAllInitial;
-		/**
-		 * all server instances as value
-		 * and the ID as key
-		 */
-		static map<unsigned short, OWServer*> m_mOwServers;
 		/**
 		 * chace writing every time if chip-type-id in this vector
 		 */
