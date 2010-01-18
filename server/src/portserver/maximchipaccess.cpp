@@ -1042,6 +1042,7 @@ namespace ports
 			path= id;
 
 		res= OW_get(path.c_str(), &buf, &size);
+		//cout << "maxim " << path << " have value " << buf << endl;
 		if(	res > -1
 			&&
 			buf != NULL	)
@@ -1191,15 +1192,16 @@ namespace ports
 			bfloat= chip.bFloat;
 		}else
 		{
-			string msg("undefined Maxim chip ");
+			string msg("### DEV INFO: undefined Maxim chip ");
 
 			msg+= pin;
-			msg+= "\nby define range in MaximChipAccess class";
-			TIMELOG(LOG_ERROR, "maximrangedef" + pin, msg);
-			cerr << "### ERROR: " << msg << endl;
-			min= 0;
-			max= 1;
-			bfloat= false;
+			msg+= "\n              by define range in MaximChipAccess class";
+			msg+= "\n              so allow hole range for chip";
+			TIMELOG(LOG_INFO, "maximrangedef" + pin, msg);
+			cerr << msg << endl;
+			min= 1;
+			max= 0;
+			bfloat= true;
 		}
 	}
 
