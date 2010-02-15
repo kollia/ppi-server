@@ -46,7 +46,8 @@ namespace server
 		public:
 			/**
 			 * initialization of class ServerThread.<br />
-			 * Object delete by ending instance of ServerCommunciationStarter
+			 * By cancel this ServerProcess object, second and third parameter objects will be also delete
+			 * and third object in parent class.
 			 *
 			 * @param processName new name of process
 			 * @param starter object of IServerCommunicationStarterPattern to starter communication threads

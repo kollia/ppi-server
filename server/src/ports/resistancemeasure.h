@@ -51,7 +51,7 @@ namespace ports
 			 * @param properties property casher for this subroutine with type RESISTANCE
 			 * @param pStartFolder first pointer to all defined folders
 			 */
-			bool init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder);
+			bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 			/**
 			 *
 			 */
@@ -84,7 +84,7 @@ namespace ports
 			/**
 			 * first pointer to all defined folders
 			 */
-			measurefolder_t *m_pStartFolder;
+			SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
 
 	};
 }

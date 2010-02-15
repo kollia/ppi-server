@@ -17,82 +17,49 @@
 #include <string.h>
 #include "exception.h"
 
-BaseException::BaseException(char* heading, char* error)
+BaseException::BaseException(string heading, string error)
 {
-	size_t nHeadLen= strlen(heading);
-	m_sErrorHead= new char[nHeadLen+1];
-	strcpy(m_sErrorHead, heading);
-	size_t nTextLen= strlen(error);
-	m_sErrorText= new char[nTextLen+1];
-	strcpy(m_sErrorText, error);
+	m_sErrorHead= heading;
+	m_sErrorText= error;
 }
 
 BaseException::~BaseException()
 {
-	delete m_sErrorHead;
-	delete m_sErrorText;
 }
 
-const char* BaseException::getHeading()
+const string BaseException::getHeading()
 {
-	size_t nLen= 9;
-	char *sErrorString;
+	string sErrorString;
 
-	nLen+= strlen(m_sErrorHead);
-	sErrorString= new char[nLen];
-	strcpy(sErrorString, "ERROR: ");
-	strcat(sErrorString, m_sErrorHead);
+	sErrorString= "ERROR: ";
+	sErrorString+= m_sErrorHead;
 	return sErrorString;
 }
 
-const char* BaseException::getErrorText()
+const string BaseException::getErrorText()
 {
-	int nLen= 30;
-	char *sErrorString;
+	return m_sErrorText;
+}
 
-	nLen+= strlen(m_sErrorText);
-	sErrorString= new char[nLen];
-	strcpy(sErrorString, m_sErrorText);
+const string BaseException::getMessage()
+{
+	string sErrorString;
+
+	sErrorString= getHeading() + "\n" + m_sErrorText;
 	return sErrorString;
 }
 
-const char* BaseException::getMessage()
+const string PortException::getMessage()
 {
 	int nLen= 30;
-	char *sErrorString;
-	const char *sHeading= getHeading();
-	const char *sError= getErrorText();
+	string sErrorString(getHeading());
 
-	nLen+= strlen(sHeading);
-	nLen+= strlen(sError);
-	sErrorString= new char[nLen];
-	strcpy(sErrorString, sHeading);
-	strcat(sErrorString, "\n");
-	strcat(sErrorString, sError);
-	//delete sHeading;
-	//delete sError;
-	return sErrorString;
-}
-
-const char* PortException::getMessage()
-{
-	int nLen= 30;
-	char *sErrorString;
-	const char *sHeading= getHeading();
-	const char *sError= getErrorText();
-
-	nLen+= strlen(sHeading);
-	nLen+= strlen(sError);
-	sErrorString= new char[nLen];
-	strcpy(sErrorString, sHeading);
-	strcat(sErrorString, " by status of ");
+	sErrorString+= " by status of ";
 	if(m_status==DEKLARATION)
-		strcat(sErrorString, "DEKLARATION");
+		sErrorString+= "DEKLARATION";
 	else if(m_status==UNKNOWN)
-		strcat(sErrorString, "UNKNOWN");
-	strcat(sErrorString, "\n");
-	strcat(sErrorString, sError);
-	delete sHeading;
-	delete sError;
+		sErrorString+= "UNKNOWN";
+	sErrorString+= "\n";
+	sErrorString+= getErrorText();
 	return sErrorString;
 }

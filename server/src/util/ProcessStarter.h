@@ -239,8 +239,8 @@ namespace util
 	{
 		public:
 			/**
-			 * creating instance to start external process<br />
-			 * object delete client connection by ending
+			 * creating instance to start external process.<br />
+			 * By cancel this ProcessStarter object, third parameter object will be also delete in parent class Process.
 			 *
 			 * @param ownProcess Name of process to identify in by server
 			 * qparam toClient Name of Client to which connect

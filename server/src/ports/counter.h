@@ -68,7 +68,7 @@ namespace ports
 		 * @param properties the properties in file measure.conf
 		 * @param pStartFolder pointer to first folder of all subroutines
 		 */
-		bool init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder);
+		bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * adding one to value by measure
 		 * or set value to 0 if parameter setnull is true
@@ -94,7 +94,7 @@ namespace ports
 		/**
 		 * pointer to first folder of all subroutines
 		 */
-		measurefolder_t *m_pStartFolder;
+		SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
 		/**
 		 * propertie value for setnull
 		 */

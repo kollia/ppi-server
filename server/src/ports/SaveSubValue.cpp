@@ -26,7 +26,7 @@ using namespace ppi_database;
 namespace ports
 {
 
-	bool SaveSubValue::init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder)
+	bool SaveSubValue::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		string when;
 		vector<string>::size_type count;

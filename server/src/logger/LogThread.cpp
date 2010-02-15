@@ -193,10 +193,10 @@ inline void LogThread::log(const log_t& messageStruct)
 		execute();
 }
 
-vector<log_t> *LogThread::getLogVector()
+auto_ptr<vector<log_t> > LogThread::getLogVector()
 {
 	int conderror= 0;
-	vector<struct log_t> *vtRv= NULL;
+	auto_ptr<vector<struct log_t> > vtRv;
 
 	do{
 		sleepDefaultTime();
@@ -204,7 +204,7 @@ vector<log_t> *LogThread::getLogVector()
 		if(m_pvtLogs->size() != 0)
 		{
 			vtRv= m_pvtLogs;
-			m_pvtLogs= new vector<struct log_t>;
+			m_pvtLogs= auto_ptr<vector<struct log_t> >(new vector<struct log_t>);
 		}else
 		{
 			if(!stopping())
@@ -213,7 +213,7 @@ vector<log_t> *LogThread::getLogVector()
 		UNLOCK(m_READLOGMESSAGES);
 		if(conderror)
 			usleep(500000);
-	}while(	vtRv == NULL
+	}while(	vtRv.get() == NULL
 			&&
 			!stopping()	);
 	return vtRv;
@@ -221,14 +221,15 @@ vector<log_t> *LogThread::getLogVector()
 
 int LogThread::execute()
 {
-	vector<struct log_t> *pvLogVector= getLogVector();
+	auto_ptr<vector<struct log_t> > pvLogVector;
 
+	pvLogVector= getLogVector();
 	ofstream logfile;
 	string sThreadName;
 	unsigned int nSize;
 	time_t tmnow;
 
-	if(pvLogVector != NULL)
+	if(pvLogVector.get() != NULL)
 	{
 		time(&tmnow);
 		if(	m_sCurrentLogFile == ""
@@ -251,7 +252,6 @@ int LogThread::execute()
 			cerr << "### ERROR: cannot open file '" << m_sCurrentLogFile << "'" << endl;
 			cerr << "           so cannot write any log file" << endl;
 			cerr << "    ERRNO: " << strerror(errno) << endl;
-			delete pvLogVector;
 			return 1;
 		}
 		nSize= pvLogVector->size();
@@ -353,7 +353,6 @@ int LogThread::execute()
 			}
 		}
 		logfile.close();
-		delete pvLogVector;
 	}
 	time(&tmnow);
 	if(	m_nDeleteDays > 0
@@ -414,5 +413,4 @@ int LogThread::execute()
 void LogThread::ending()
 {
 	execute();
-	delete m_pvtLogs;
 }

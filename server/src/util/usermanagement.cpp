@@ -47,8 +47,16 @@ namespace user
 			_instance= new UserManagement();
 			if(_instance->init(accessfile, measurefile))
 				return true;
+			delete _instance;
+			_instance= NULL;
 		}
 		return false;
+	}
+
+	void UserManagement::deleteObj()
+	{
+		delete _instance;
+		_instance= NULL;
 	}
 
 	bool UserManagement::init(const string& accessfile, const string& measurefile)

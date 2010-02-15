@@ -43,7 +43,6 @@ namespace server
 		m_bShowENum= false;
 		m_vOptions= options;
 		m_sCommand= command;
-		m_o2Client= NULL;
 		m_bHearing= false;
 		m_bOwDebug= false;
 	}
@@ -273,8 +272,8 @@ namespace server
 		}
 		if(bSecConn)
 		{
-			m_o2Client= new HearingThread(descriptor.getHostAddressName(), descriptor.getPort(),
-											sCommID, user, pwd, m_bOwDebug);
+			m_o2Client= auto_ptr<HearingThread>(new HearingThread(descriptor.getHostAddressName(), descriptor.getPort(),
+																							sCommID, user, pwd, m_bOwDebug));
 			m_o2Client->start();
 		}
 
@@ -290,7 +289,7 @@ namespace server
 		char buf[10];
 		string logMsg, result, sDo;
 		string sSendbuf, last;
-		XMLStartEndTagReader* xmlReader= NULL;
+		auto_ptr<XMLStartEndTagReader> xmlReader;
 		OWServer::device_debug_t tdebug;
 
 		if(m_bHearing)
@@ -447,7 +446,7 @@ namespace server
 			{
 				bWaitEnd= true;
 			}else if(m_sCommand.substr(0, 7) == "CONTENT")
-				xmlReader= new XMLStartEndTagReader();
+				xmlReader= auto_ptr<XMLStartEndTagReader>(new XMLStartEndTagReader());
 
 #ifdef SERVERDEBUG
 			cout << "send: '" << m_sCommand << "'" << endl;
@@ -497,7 +496,7 @@ namespace server
 					bWaitEnd= false;
 				}else
 				{
-					if(xmlReader)
+					if(xmlReader.get())
 					{
 						result= xmlReader->readLine(result);
 						if(xmlReader->end())
@@ -507,8 +506,7 @@ namespace server
 							error= xmlReader->error();
 							if(error != "")
 								printError(error);
-							delete xmlReader;
-							xmlReader= NULL;
+							xmlReader= auto_ptr<XMLStartEndTagReader>();
 							break;
 						}
 					}else if(m_sCommand == "GETMINMAXERRORNUMS")
@@ -528,7 +526,7 @@ namespace server
 				}
 			}while(	bWaitEnd
 					||
-					xmlReader	);
+					xmlReader.get()	);
 
 		}while(m_bWait);
 
@@ -660,10 +658,9 @@ namespace server
 
 	ClientTransaction::~ClientTransaction()
 	{
-		if(m_o2Client)
+		if(m_o2Client.get())
 		{
 			m_o2Client->stop();
-			delete m_o2Client;
 		}
 	}
 

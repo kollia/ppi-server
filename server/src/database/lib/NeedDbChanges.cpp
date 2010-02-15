@@ -43,6 +43,15 @@ bool NeedDbChanges::initial(const string& process, IClientConnectArtPattern* con
 	return true;
 }
 
+void NeedDbChanges::deleteObj()
+{
+	if(_instance != NULL)
+	{
+		delete _instance;
+		_instance= NULL;
+	}
+}
+
 int NeedDbChanges::init(void* args)
 {
 	short n;

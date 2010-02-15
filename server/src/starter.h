@@ -25,6 +25,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
+#include "util/smart_ptr.h"
 #include "util/structures.h"
 #include "util/configpropertycasher.h"
 
@@ -55,7 +56,7 @@ class Starter
 		unsigned short m_nMeasurednessCount;
 		unsigned short m_nMicrosecCount;
 		unsigned short m_nMeasureTimes;
-		struct measurefolder_t *m_tFolderStart;
+		SHAREDPTR::shared_ptr<measurefolder_t> m_tFolderStart;
 		vector<ohm> m_vOhm;
 		vector<correction_t> m_vCorrection;
 		/**
@@ -116,7 +117,7 @@ class Starter
 		Starter(string workdir) :
 			m_sWorkdir(workdir),
 			m_oServerFileCasher()
-			{ m_tFolderStart= NULL; };
+			{ };
 		bool execute(vector<string> options);
 		bool stop(vector<string> options);
 		bool command(vector<string> options, string command);

@@ -81,7 +81,7 @@ namespace design_pattern_world
 		 *
 		 * @return array of sections in this object
 		 */
-		virtual vector<IInterlacedPropertyPattern*> getSections() const= 0;
+		virtual const vector<IInterlacedPropertyPattern*> getSections() const= 0;
 		/**
 		 * return name of current section
 		 *

@@ -40,7 +40,7 @@ public:
 		 * @param subroutine name of the routine
 		 */
 		switchClass(string type, string folderName, string subroutineName);
-		virtual bool init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder);
+		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		virtual bool measure();
 		virtual void setValue(const double value);
 		virtual ~switchClass();
@@ -52,26 +52,28 @@ public:
 		 * or an comparison of two values, subroutines or numbers.<br />
 		 * This string can be also splited with '|' or '&'
 		 *
-		 * @param str string of comparison
+		 * @param from string of comparison
 		 * @param pStratFolder address of the first folder
 		 * @param sFolder name of folder in which the subroutine running
 		 * @param debug whether the debug mode outgoing from server is set
-		 * @return whether the comparison is true
+		 * @param result whether the comparison was true
+		 * @return whether the comparison string was correct
 		 */
-		static bool getResult(char* str, measurefolder_t* pStartFolder, string sFolder, bool debug);
+		static bool getResult(const string &from, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& sFolder, const bool debug, bool& result);
 		/**
 		 * calculate whether the given string is an true value.<br />
 		 * string can be set as 'true' or 'false',<br />
 		 * or an subroutine where in this case it calculate null or not,<br />
 		 * or an comparison of two values, subroutines or numbers
 		 *
-		 * @param str string of comparison
+		 * @param from string of comparison
 		 * @param pStratFolder address of the first folder
 		 * @param sFolder name of folder in which the subroutine running
 		 * @param debug whether the debug mode outgoing from server is set
-		 * @return whether the comparison is true
+		 * @param result whether the comparison was true
+		 * @return whether the comparison string was correct
 		 */
-		static bool getSubResult(char* str, measurefolder_t* pStartFolder, string sFolder, bool debug);
+		static bool getSubResult(const string &from, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& sFolder, const bool debug, bool& result);
 		/**
 		 * returns the address of the given foldername
 		 *
@@ -79,36 +81,36 @@ public:
 		 * @param pStratFolder address of the first folder
 		 * @return address of the folder in given parameter name
 		 */
-		static measurefolder_t* getFolder(string name, measurefolder_t* pStartFolder);
+		static const SHAREDPTR::shared_ptr<measurefolder_t>  getFolder(const string &name, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * write the value from the given folder:subroutine or comparison as string
 		 * into the parameter dResult
 		 *
 		 * @param pStartFolder first pointer to all defined folders
-		 * @param pcCurrent string of subroutine or folder:subroutine
+		 * @param cCurrent string of subroutine or folder:subroutine
 		 * @param dResult outcomming double result of the subroutine
 		 * @return whether the subroutines in the character string all found
 		 */
-		static bool calculateResult(measurefolder_t *const pStartFolder, string actFolder, const char* pcCurrent, double &dResult);
+		static bool calculateResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &cCurrent, double &dResult);
 		/**
 		 * write the current value from the given folder:subroutine
 		 * into the parameter dResult
 		 *
 		 * @param pStartFolder first pointer to all defined folders
-		 * @param pcCurrent string of subroutine or folder:subroutine
+		 * @param cCurrent string of subroutine or folder:subroutine
 		 * @param dResult outcomming double result of the subroutine
 		 * @return whether the subroutines in the character string was found
 		 */
-		static bool searchResult(measurefolder_t *const pStartFolder, string actFolder, const char* pcCurrent, double &dResult);
-		static bool subroutineResult(const measurefolder_t* pfolder, const char* pcCurrent, double &dResult);
+		static bool searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &pcCurrent, double &dResult);
+		static bool subroutineResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pfolder, const string &cCurrent, double &dResult);
 
 	protected:
 		bool m_bLastValue;
-		measurefolder_t *m_pStartFolder;
-		measurefolder_t *m_pOwnFolder;
-		char *m_pOn;
-		char *m_pWhile;
-		char *m_pOff;
+		SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
+		SHAREDPTR::shared_ptr<measurefolder_t> m_pOwnFolder;
+		string m_sOn;
+		string m_sWhile;
+		string m_sOff;
 
 		/**
 		 * calculate whether the given string is an true value.<br />
@@ -117,19 +119,20 @@ public:
 		 * or an comparison of two values, subroutines or numbers
 		 * This string can be also splited with '|' or '&'
 		 *
-		 * @param str string of comparison
-		 * @return whether the comparison is true
+		 * @param from string of comparison
+		 * @param result whether the comparison was true
+		 * @return whether the comparison string was correct
 		 */
-		bool getResult(char* str);
+		bool getResult(const string &from, bool& result);
 		/**
 		 * write the value from the given folder:subroutine or comparison as string
 		 * into the parameter dResult
 		 *
-		 * @param pcCurrent string of subroutine or folder:subroutine
+		 * @param cCurrent string of subroutine or folder:subroutine
 		 * @param dResult outcomming double result of the subroutine
 		 * @return whether the subroutines in the character string all found
 		 */
-		bool calculateResult(const char* pcCurrent, double &dResult);
+		bool calculateResult(const string &cCurrent, double &dResult);
 		/**
 		 * set min and max parameter to the range which can be set for this subroutine.<br />
 		 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.

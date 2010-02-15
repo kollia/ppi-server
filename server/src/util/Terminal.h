@@ -40,6 +40,10 @@ public:
 	 */
 	static Terminal* instnace();
 	/**
+	 * delete single object of Terminal
+	 */
+	static void deleteObj();
+	/**
 	 * input operator
 	 *
 	 * @param str value to display on screen

@@ -29,7 +29,7 @@
 
 using namespace std;
 
-meash_t* meash_t::firstInstance= NULL;
+SHAREDPTR::shared_ptr<meash_t> meash_t::firstInstance= SHAREDPTR::shared_ptr<meash_t>();
 string meash_t::clientPath= "";
 
 MeasureThread::MeasureThread(string threadname) :
@@ -84,7 +84,7 @@ unsigned short MeasureThread::getSleepTime()
 int MeasureThread::init(void *arg)
 {
 	int nMuch;
-	portBase* port;
+	SHAREDPTR::shared_ptr<portBase> port;
 	MeasureArgArray tArg= *((MeasureArgArray*)arg);
 
 	/*if(ioperm(COM1, 8, 1))
@@ -240,9 +240,9 @@ bool MeasureThread::measure()
 	return bSleeped;
 }
 
-portBase* MeasureThread::getPortClass(const string name, bool &bCorrect) const
+SHAREDPTR::shared_ptr<portBase> MeasureThread::getPortClass(const string name, bool &bCorrect) const
 {
-	portBase* pRv= NULL;
+	SHAREDPTR::shared_ptr<portBase> pRv;
 
 	bCorrect= false;
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)

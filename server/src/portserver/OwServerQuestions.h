@@ -32,7 +32,9 @@ using namespace design_pattern_world::server_pattern;
 class OwServerQuestions :	public Process {
 public:
 	/**
-	 * constructor to create question port for owserver
+	 * constructor to create question port for owserver.<br/>
+	 * By cancel this OwServerQuestions object, third parameter object will be also delete in parent class,
+	 * but by the fourth object to be in charge the calling routine.
 	 *
 	 * @param process in which process the question-server is running
 	 * @param client name of client to identify by server

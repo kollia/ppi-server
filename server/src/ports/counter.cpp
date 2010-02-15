@@ -22,7 +22,7 @@
 namespace ports
 {
 
-	bool Counter::init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder)
+	bool Counter::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		string prop("start");
 

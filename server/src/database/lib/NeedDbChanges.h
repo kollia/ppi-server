@@ -35,13 +35,18 @@ public:
 	/**
 	 * initial single pattern instance of object to know
 	 * which time any changes of values in database exist
-	 * to refresh client
+	 * to refresh client.<br/>
+	 * By cancel this LogInterface object, second parameter object will be also delete in parent class.
 	 *
 	 * @param process name of process in which created
 	 * @param connection to which server the database interface should connect to send question for changing
 	 * @param bWait if flag is true (default), starting thread waiting until this thread initial with method init()
 	 */
 	static bool initial(const string& process, IClientConnectArtPattern* connection, const bool bWait= true);
+	/**
+	 * delete instance of object
+	 */
+	static void deleteObj();
 	/**
 	 * returning single instance of object
 	 *
@@ -59,13 +64,15 @@ public:
 	/**
 	 * virtual destructor of object
 	 */
-	virtual ~NeedDbChanges() { };
+	virtual ~NeedDbChanges()
+	{ delete m_oConnection; };
 
 protected:
 	/**
 	 * Constructor to create instance of object to know
 	 * which time any changes of values in database exist
-	 * to refresh client
+	 * to refresh client.<br/>
+	 * By cancel this LogInterface object, second parameter object will be also delete in parent class.
 	 *
 	 * @param process name of process in which created
 	 * @param connection to which server the database interface should connect to send question for changing

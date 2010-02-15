@@ -79,7 +79,7 @@ namespace ports
 		string adapter, msg;
 		vector<string> ids;
 		vector<string>::size_type nAdb= 0;
-		map<string, chip_type_t*>::iterator condIt;
+		map<string, SHAREDPTR::shared_ptr<chip_type_t> >::iterator condIt;
 
 		if(!isConnected())
 		{
@@ -122,15 +122,15 @@ namespace ports
 	bool MaximChipAccess::fillChip(const string chipID)
 	{
 		vector<string> path;
-		chip_type_t* chip;
-		chip_pin_t* pin;
-		map<string, chip_type_t*>::iterator condIt;
+		SHAREDPTR::shared_ptr<chip_type_t> chip;
+		SHAREDPTR::shared_ptr<chip_pin_t> pin;
+		map<string, SHAREDPTR::shared_ptr<chip_type_t> >::iterator condIt;
 
 		condIt= m_mConductors.find(chipID);
 		if(condIt !=m_mConductors.end())
 			return false;// id exist
 
-		chip= new chip_type_t;
+		chip= SHAREDPTR::shared_ptr<chip_type_t>(new chip_type_t);
 		chip->folder= -1;
 		chip->type= getChipType(chipID);
 		chip->family= getChipFamily(chipID);
@@ -158,13 +158,12 @@ namespace ports
 			}
 			for(short nPin= 0; nPin < 8; ++nPin)
 			{
-				char cPin[10];
-				string sPin;
+				ostringstream cPin;
+				ostringstream pioPin;
 
 				// create 8 pins for reading
-				snprintf(cPin, 3, "%d", nPin);
-				sPin= cPin;
-				pin= new chip_pin_t;
+				cPin << nPin;
+				pin= SHAREDPTR::shared_ptr<chip_pin_t>(new chip_pin_t);
 				pin->id= "";
 				pin->chipid= chipID;
 				pin->pin= -1; // number only be set if pin should reading or writing in an cache
@@ -173,12 +172,11 @@ namespace ports
 				pin->used= false;
 				//pin->chip= &chip;
 				pin->cache= false;
-				chip->pins[sPin]= pin;
+				chip->pins[cPin.str()]= pin;
 
 				// create 8 pins for writing
-				snprintf(cPin, 9, "PIO.%d", nPin);
-				sPin= cPin;
-				pin= new chip_pin_t;
+				pioPin << "PIO." << nPin;
+				pin= SHAREDPTR::shared_ptr<chip_pin_t>(new chip_pin_t);
 				pin->id= "";
 				pin->chipid= chipID;
 				pin->pin= -1; // number only be set if pin should reading or writing in an cache
@@ -187,7 +185,7 @@ namespace ports
 				pin->used= false;
 				//pin->chip= chip;
 				pin->cache= false;
-				chip->pins[sPin]= pin;
+				chip->pins[pioPin.str()]= pin;
 			}
 		}
 		m_mConductors[chipID]= chip;
@@ -215,11 +213,11 @@ namespace ports
 
 		DbInterface::chips_t defaultChip;
 		DbInterface *defaultChipReader= DbInterface::instance();
-		chip_type_t* ptchip;
-		chip_pin_t* ptpin;
+		SHAREDPTR::shared_ptr<chip_type_t> ptchip;
+		SHAREDPTR::shared_ptr<chip_pin_t> ptpin;
 		vector<string> vPSplit;
-		map<string, chip_type_t*>::iterator chipIt;
-		map<string, chip_pin_t*>::iterator pinIt;
+		map<string, SHAREDPTR::shared_ptr<chip_type_t> >::iterator chipIt;
+		map<string, SHAREDPTR::shared_ptr<chip_pin_t> >::iterator pinIt;
 
 		folder= prop->needValue("_folderID");
 		ID= prop->needValue("ID");
@@ -418,7 +416,7 @@ namespace ports
 		if(pinIt == chipIt->second->pins.end())
 		{
 			bnew= true;
-			ptpin= new chip_pin_t;
+			ptpin= SHAREDPTR::shared_ptr<chip_pin_t>(new chip_pin_t);
 		}else
 			ptpin= pinIt->second;
 		unique= URL::addPath(folder + "." + path, pin);
@@ -452,8 +450,8 @@ namespace ports
 
 	bool MaximChipAccess::existID(const string type, const string id) const
 	{
-		map<string, chip_type_t*>::const_iterator iter;
-		map<string, chip_pin_t*>::const_iterator used;
+		map<string, SHAREDPTR::shared_ptr<chip_type_t> >::const_iterator iter;
+		map<string, SHAREDPTR::shared_ptr<chip_pin_t> >::const_iterator used;
 
 		if(type != "OWFS")
 			return false;
@@ -500,7 +498,7 @@ namespace ports
 
 	vector<string> MaximChipAccess::getUnusedIDs() const
 	{
-		typedef map<string, chip_type_t*>::const_iterator iter;
+		typedef map<string, SHAREDPTR::shared_ptr<chip_type_t> >::const_iterator iter;
 
 		vector<string> unused;
 
@@ -580,8 +578,8 @@ namespace ports
 	{
 		vector<string> ids;
 		vector<string>::const_iterator idsIter;
-		map<string, chip_type_t*>::const_iterator iter;
-		map<string, chip_pin_t*>::const_iterator used;
+		map<string, SHAREDPTR::shared_ptr<chip_type_t> >::const_iterator iter;
+		map<string, SHAREDPTR::shared_ptr<chip_pin_t> >::const_iterator used;
 
 		iter= m_mConductors.find(ID);
 		if(iter != m_mConductors.end())
@@ -598,7 +596,7 @@ namespace ports
 
 	string MaximChipAccess::getChipTypeID(const string ID)
 	{
-		map<string, chip_pin_t*>::iterator pinIt;
+		map<string, SHAREDPTR::shared_ptr<chip_pin_t> >::iterator pinIt;
 
 		pinIt= m_mUsedChips.find(ID);
 		if(pinIt == m_mUsedChips.end())
@@ -791,10 +789,10 @@ namespace ports
 		ssize_t size;
 		string inval;
 		string path("/");
-		chip_type_t* chip= NULL;
-		chip_pin_t* pin= NULL;
-		map<string, chip_pin_t*>::iterator pinIt;
-		map<string, chip_type_t*>::iterator chipIt;
+		SHAREDPTR::shared_ptr<chip_type_t> chip;
+		SHAREDPTR::shared_ptr<chip_pin_t> pin;
+		map<string, SHAREDPTR::shared_ptr<chip_pin_t> >::iterator pinIt;
+		map<string, SHAREDPTR::shared_ptr<chip_type_t> >::iterator chipIt;
 
 		pinIt= m_mUsedChips.find(id);
 		if(pinIt != m_mUsedChips.end())
@@ -944,10 +942,10 @@ namespace ports
 		char* buf;
 		string path("/");
 		string sResult;
-		chip_type_t* chip= NULL;
-		chip_pin_t* pin= NULL;
-		map<string, chip_pin_t*>::iterator pinIt;
-		map<string, chip_type_t*>::iterator chipIt;
+		SHAREDPTR::shared_ptr<chip_type_t> chip;
+		SHAREDPTR::shared_ptr<chip_pin_t> pin;
+		map<string, SHAREDPTR::shared_ptr<chip_pin_t> >::iterator pinIt;
+		map<string, SHAREDPTR::shared_ptr<chip_type_t> >::iterator chipIt;
 
 		pinIt= m_mUsedChips.find(id);
 		if(pinIt != m_mUsedChips.end())
@@ -1110,7 +1108,7 @@ namespace ports
 				//string sResult;
 				string sbuf;
 				vector<string> splited;
-				chip_pin_t* chippin;
+				SHAREDPTR::shared_ptr<chip_pin_t> chippin;
 
 				//sResult= buf;
 				sResult= ConfigPropertyCasher::trim(sResult);
@@ -1207,17 +1205,19 @@ namespace ports
 
 	void MaximChipAccess::endOfCacheReading(const double cachetime)
 	{
-		map<double, vector<chip_pin_t*> >::iterator chit;
+		map<double, vector<SHAREDPTR::shared_ptr<chip_pin_t> > >::iterator chit;
 
 		chit= m_mvReadingCache.find(cachetime);
 		if(chit != m_mvReadingCache.end())
-			for(vector<chip_pin_t*>::iterator c= m_mvReadingCache[cachetime].begin(); c != m_mvReadingCache[cachetime].end(); ++c)
+		{
+			for(vector<SHAREDPTR::shared_ptr<chip_pin_t> >::iterator c= m_mvReadingCache[cachetime].begin(); c != m_mvReadingCache[cachetime].end(); ++c)
 			{
 				if((*c)->cache)
 					(*c)->steps= 3;
 				else
 					(*c)->steps= 1;
 			}
+		}
 	}
 
 	void MaximChipAccess::endOfLoop()

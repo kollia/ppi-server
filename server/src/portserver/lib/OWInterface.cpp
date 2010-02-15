@@ -25,18 +25,18 @@ namespace server {
 
 using namespace logger;
 
-map<unsigned short, OWInterface*> OWInterface::_instances;
+map<unsigned short, SHAREDPTR::shared_ptr<OWInterface> > OWInterface::_instances;
 
-inline OWInterface* OWInterface::getServer(const unsigned short serverID)
+inline SHAREDPTR::shared_ptr<OWInterface> OWInterface::getServer(const unsigned short serverID)
 {
 	return getServer("", NULL, serverID);
 }
 
-OWInterface* OWInterface::getServer(const string& process, IClientConnectArtPattern* connection, const unsigned short serverID)
+SHAREDPTR::shared_ptr<OWInterface> OWInterface::getServer(const string& process, IClientConnectArtPattern* connection, const unsigned short serverID)
 {
 	int err;
 	ostringstream sID;
-	map<unsigned short, OWInterface*>::iterator it;
+	map<unsigned short, SHAREDPTR::shared_ptr<OWInterface> >::iterator it;
 
 	it= _instances.find(serverID);
 	if(it != _instances.end())
@@ -54,9 +54,9 @@ OWInterface* OWInterface::getServer(const string& process, IClientConnectArtPatt
 		msg+= sID.str() + " exist! Create first with getServer(processName, connection, serverID).";
 		cerr << msg << endl;
 		LOG(LOG_ERROR, msg);
-		return NULL;
+		return SHAREDPTR::shared_ptr<OWInterface>();
 	}
-	_instances[serverID]= new OWInterface(process, sID.str(), connection);
+	_instances[serverID]= SHAREDPTR::shared_ptr<OWInterface>(new OWInterface(process, sID.str(), connection));
 	err= _instances[serverID]->openSendConnection();
 	if(err > 0)
 	{
@@ -65,21 +65,20 @@ OWInterface* OWInterface::getServer(const string& process, IClientConnectArtPatt
 		msg+= "           " + _instances[serverID]->strerror(err);
 		cerr << msg << endl;
 		LOG(LOG_ERROR, msg);
-		delete _instances[serverID];
 		_instances.erase(serverID);
-		return NULL;
+		return SHAREDPTR::shared_ptr<OWInterface>();
 	}
 	return _instances[serverID];
 }
 
-OWInterface* OWInterface::getServer(const string& type, const string& chipID)
+SHAREDPTR::shared_ptr<OWInterface> OWInterface::getServer(const string& type, const string& chipID)
 {
-	for(map<unsigned short, OWInterface*>::iterator it= _instances.begin(); it != _instances.end(); ++it)
+	for(map<unsigned short, SHAREDPTR::shared_ptr<OWInterface> >::iterator it= _instances.begin(); it != _instances.end(); ++it)
 	{
 		if(it->second->isServer(type, chipID))
 			return it->second;
 	}
-	return NULL;
+	return SHAREDPTR::shared_ptr<OWInterface>();
 }
 
 string OWInterface::getServerName()
@@ -93,7 +92,7 @@ string OWInterface::getServerName()
 
 void OWInterface::endOfInitialisation(const int maxServer)
 {
-	OWInterface *pFirst;
+	OWI pFirst;
 	OMethodStringStream method("endOfInitialisation");
 
 	method << maxServer;
@@ -249,7 +248,7 @@ void OWInterface::usePropActions(const IActionPropertyPattern* properties)
 
 void OWInterface::checkUnused(const int maxServer)
 {
-	OWInterface *pFirst;
+	OWI pFirst;
 	OMethodStringStream method("checkUnused");
 
 	method << maxServer;
@@ -270,11 +269,8 @@ bool OWInterface::reachAllChips()
 
 void OWInterface::deleteAll()
 {
-	for(map<unsigned short, OWInterface*>::iterator it= _instances.begin(); it != _instances.end(); ++it)
-	{
+	for(map<unsigned short, OWI>::iterator it= _instances.begin(); it != _instances.end(); ++it)
 		it->second->closeSendConnection();
-		delete it->second;
-		_instances.erase(it->first);
-	}
+	_instances.clear();
 }
 }

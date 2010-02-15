@@ -61,7 +61,7 @@ namespace util {
 	{
 		IInterlacedPropertyPattern *prop;
 
-		prop= new InterlacedProperties(modifier, value, level, m_bByCheck);
+		prop= new InterlacedProperties(modifier, value, level, m_bByCheck); // maintained outside of method
 		addModifier(prop);
 		return prop;
 	}

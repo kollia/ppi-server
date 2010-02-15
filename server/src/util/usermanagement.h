@@ -38,6 +38,10 @@ namespace user
 			 */
 			static bool initial(const string& access, const string& measure);
 			/**
+			 * delete single object of UserManagement
+			 */
+			static void deleteObj();
+			/**
 			 * static method to get instance of UserManagement
 			 *
 			 * @return object of UserManagement

@@ -29,6 +29,7 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include "util/debug.h"
+#include "util/smart_ptr.h"
 #include "util/URL.h"
 #include "util/configpropertycasher.h"
 #include "util/ProcessStarter.h"
@@ -91,7 +92,7 @@ bool Starter::execute(vector<string> options)
 	string logpath, sLogLevel, property;
 	DbInterface *db;
 	string prop;
-	ProcessStarter *process, *logprocess;
+	auto_ptr<ProcessStarter> process, logprocess;
 
 	// starting time
 	struct tm ttime;
@@ -231,12 +232,12 @@ bool Starter::execute(vector<string> options)
 	// start logging process
 
 	cout << "### start ppi log client" << endl;
-	logprocess= new ProcessStarter(	"ppi-starter", "LogServer",
-									new SocketClientConnection(	SOCK_STREAM,
-																commhost,
-																commport,
-																10			),
-									/* wait for initialisation*/false			);
+	logprocess= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", "LogServer",
+																new SocketClientConnection(	SOCK_STREAM,
+																							commhost,
+																							commport,
+																							10			),
+																/* wait for initialisation*/false			));
 
 	err= 0;
 	if(bLog)
@@ -317,11 +318,11 @@ bool Starter::execute(vector<string> options)
 	// start database server
 
 	cout << "### start ppi db server" << endl;
-	process= new ProcessStarter(	"ppi-starter", "ppi-db-server",
-									new SocketClientConnection(	SOCK_STREAM,
-																commhost,
-																commport,
-																10			)	);
+	process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", "ppi-db-server",
+															new SocketClientConnection(	SOCK_STREAM,
+																						commhost,
+																						commport,
+																						10			)	));
 
 	if(bDb)
 	{
@@ -341,7 +342,6 @@ bool Starter::execute(vector<string> options)
 		cerr << msg << endl;
 		exit(EXIT_FAILURE);
 	}
-	delete process;
 	// ------------------------------------------------------------------------------------------------------------
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -354,7 +354,6 @@ bool Starter::execute(vector<string> options)
 		cerr << "             so no log can be written into any files" << endl;
 		cerr << "             " << logprocess->strerror(err) << endl;
 	}
-	delete logprocess;
 
 	LogInterface::instance()->setThreadName("ppi-server");
 	LOG(LOG_DEBUG, "check logging of starter in ppi-server");
@@ -406,11 +405,11 @@ bool Starter::execute(vector<string> options)
 
 			cout << "### starting OWServer " << endl;
 			oServerID << nServerID;
-			process= new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
-											new SocketClientConnection(	SOCK_STREAM,
-																		commhost,
-																		commport,
-																		10			)	);
+			process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+																	new SocketClientConnection(	SOCK_STREAM,
+																								commhost,
+																								commport,
+																								10			)	));
 
 			if(bPorts)
 			{
@@ -440,7 +439,6 @@ bool Starter::execute(vector<string> options)
 										nServerID									);
 				++nServerID;
 			}
-			delete process;
 		}
 
 		// starting OWServer to measure on ports
@@ -456,11 +454,11 @@ bool Starter::execute(vector<string> options)
 
 			cout << "### starting OWServer " << endl;
 			oServerID << nServerID;
-			process= new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
-											new SocketClientConnection(	SOCK_STREAM,
-																		commhost,
-																		commport,
-																		10			)	);
+			process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+																	new SocketClientConnection(	SOCK_STREAM,
+																								commhost,
+																								commport,
+																								10			)	));
 
 			if(bPorts)
 			{
@@ -490,7 +488,6 @@ bool Starter::execute(vector<string> options)
 										nServerID									);
 				++nServerID;
 			}
-			delete process;
 		}
 
 	}
@@ -533,11 +530,11 @@ bool Starter::execute(vector<string> options)
 				vVk8055.push_back(nVk8055Address);
 				oVK8055Address << nVk8055Address;
 				oServerID << nServerID;
-				process= new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
-												new SocketClientConnection(	SOCK_STREAM,
-																			commhost,
-																			commport,
-																			10			)	);
+				process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+																		new SocketClientConnection(	SOCK_STREAM,
+																									commhost,
+																									commport,
+																									10			)	));
 
 				if(bPorts)
 				{
@@ -567,7 +564,6 @@ bool Starter::execute(vector<string> options)
 											nServerID									);
 					++nServerID;
 				}
-				delete process;
 			}
 		}
 		if(bError)
@@ -596,11 +592,11 @@ bool Starter::execute(vector<string> options)
 		maximinit= m_oServerFileCasher.getValue("maximinit", n, /*warning*/false);
 		cout << "### starting OWServer" << endl;
 		oServerID << nServerID;
-		process= new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
-										new SocketClientConnection(	SOCK_STREAM,
-																	commhost,
-																	commport,
-																	10			)	);
+		process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+																new SocketClientConnection(	SOCK_STREAM,
+																							commhost,
+																							commport,
+																							10			)	));
 
 		if(bPorts)
 		{
@@ -630,7 +626,6 @@ bool Starter::execute(vector<string> options)
 									nServerID									);
 			++nServerID;
 		}
-		delete process;
 	}
 #endif //_OWFSLIBRARY
 
@@ -659,12 +654,12 @@ bool Starter::execute(vector<string> options)
 
 	bool createThread= false;
 	MeasureArgArray args;
-	meash_t *pFirstMeasureThreads= NULL;
-	meash_t *pCurrentMeasure= NULL;
+	SHAREDPTR::shared_ptr<meash_t> pFirstMeasureThreads;
+	SHAREDPTR::shared_ptr<meash_t> pCurrentMeasure;
 
 	meash_t::clientPath= URL::addPath(m_sWorkdir, PPICLIENTPATH, /*always*/false);
 	LOG(LOG_INFO, "Read layout content for clients from " + meash_t::clientPath);
-	measurefolder_t *aktFolder= m_tFolderStart;
+	SHAREDPTR::shared_ptr<measurefolder_t> aktFolder= m_tFolderStart;
 	args.ports= ports;
 	cout << "### start folder thread(s) from measure.conf" << endl;
 	while(aktFolder != NULL)
@@ -686,16 +681,15 @@ bool Starter::execute(vector<string> options)
 			createThread= true;
 			if(pFirstMeasureThreads == NULL)
 			{
-				pFirstMeasureThreads= new meash_t;
+				pFirstMeasureThreads= SHAREDPTR::shared_ptr<meash_t>(new meash_t);
 				pCurrentMeasure= pFirstMeasureThreads;
 				meash_t::firstInstance= pCurrentMeasure;
 			}else
 			{
-				pCurrentMeasure->next= new meash_t;
+				pCurrentMeasure->next= SHAREDPTR::shared_ptr<meash_t>(new meash_t);
 				pCurrentMeasure= pCurrentMeasure->next;
 			}
-			pCurrentMeasure->next= NULL;
-			pCurrentMeasure->pMeasure = new MeasureThread(aktFolder->name);
+			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name));
 			args.subroutines= &aktFolder->subroutines;
 			args.tAfterContactPins= aktFolder->afterContactPins;
 			pCurrentMeasure->pMeasure->start(&args);
@@ -733,11 +727,11 @@ bool Starter::execute(vector<string> options)
 	// start internet server
 
 	cout << "### start ppi internet server" << endl;
-	process= new ProcessStarter(	"ppi-starter", "ppi-internet-server",
-									new SocketClientConnection(	SOCK_STREAM,
-																host,
-																port,
-																10			)	);
+	process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", "ppi-internet-server",
+															new SocketClientConnection(	SOCK_STREAM,
+																						host,
+																						port,
+																						10			)	));
 	process->openendSendConnection("GET wait", "ending");
 
 	if(bInternet)
@@ -754,7 +748,9 @@ bool Starter::execute(vector<string> options)
 		cerr << msg << endl;
 		LOG(LOG_ERROR, msg);
 	}
-	delete process;
+
+	logprocess= auto_ptr<ProcessStarter>();
+	process= auto_ptr<ProcessStarter>();
 	// ------------------------------------------------------------------------------------------------------------
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -797,11 +793,11 @@ bool Starter::execute(vector<string> options)
 	cout << timemsg.str() << " ..." << endl;
 	LOG(LOG_INFO, timemsg.str());
 	// ------------------------------------------------------------------------------------------------------------
-	checker.start(pFirstMeasureThreads, true);
+	checker.start(pFirstMeasureThreads.get(), true);
 
 
 	// ending process ppi-server
-	meash_t* delMeash;
+	SHAREDPTR::shared_ptr<meash_t> delMeash;
 	//system("ps -eLf | grep ppi-server");
 	pCurrentMeasure= pFirstMeasureThreads;
 	if(!pCurrentMeasure)
@@ -812,14 +808,11 @@ bool Starter::execute(vector<string> options)
 		pCurrentMeasure= pCurrentMeasure->next;
 		if(delMeash->pMeasure->running())
 			delMeash->pMeasure->stop(true);
-		if(delMeash->pMeasure)
-			delete delMeash->pMeasure;
-		delete delMeash;
 	}
 
 	//OWServer::delServers();
 	DbInterface::deleteAll();
-	delete LogInterface::instance();
+	LogInterface::deleteObj();
 	sleep(1);
 	return true;
 }
@@ -827,7 +820,7 @@ bool Starter::execute(vector<string> options)
 void Starter::createPortObjects()
 {
 	bool bNewMeasure= false;
-	measurefolder_t* aktualFolder= m_tFolderStart;
+	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
 	//DbInterface* db= DbInterface::instance();
 	string property("defaultSleep");
 	string sMeasureFile;
@@ -858,229 +851,150 @@ void Starter::createPortObjects()
 			//cout << "subroutine: " << aktualFolder->subroutines[n].type << endl;
 			if(aktualFolder->subroutines[n].type == "SWITCH")
 			{
-				switchClass *obj= new switchClass(	aktualFolder->name,
-													aktualFolder->subroutines[n].name	);
+				SHAREDPTR::shared_ptr<switchClass> obj;
 
+				obj= SHAREDPTR::shared_ptr<switchClass>(new switchClass(aktualFolder->name,
+																		aktualFolder->subroutines[n].name));
 				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
-				/*obj->init(	m_tFolderStart,
-							aktualFolder->subroutines[n].sBegin,
-							aktualFolder->subroutines[n].sWhile,
-							aktualFolder->subroutines[n].sEnd,
-							aktualFolder->subroutines[n].defaultValue	);
-				aktualFolder->subroutines[n].portClass= obj;
-				correctFolder= true;
-				correctSubroutine= true;*/
+				}
 			}else if(aktualFolder->subroutines[n].type == "TIMER")
 			{
-				timer *obj= new timer(	aktualFolder->name,
-										aktualFolder->subroutines[n].name	);
+				auto_ptr<timer> obj= auto_ptr<timer>(new timer(	aktualFolder->name,
+																aktualFolder->subroutines[n].name	));
 
 				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
-				/*obj->init(	m_tFolderStart,
-							aktualFolder->subroutines[n].sBegin,
-							aktualFolder->subroutines[n].sWhile,
-							aktualFolder->subroutines[n].tmlong	);
-				aktualFolder->subroutines[n].portClass= obj;
-				correctFolder= true;
-				correctSubroutine= true;*/
+				}
 			}else if(aktualFolder->subroutines[n].type == "SHELL")
 			{
-				Shell *obj= new Shell(	aktualFolder->name,
-										aktualFolder->subroutines[n].name	);
+				auto_ptr<Shell> obj= auto_ptr<Shell>(new Shell(	aktualFolder->name,
+																aktualFolder->subroutines[n].name	));
 
 				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
-				/*obj->init(	m_tFolderStart,
-							aktualFolder->subroutines[n].sWhile,
-							aktualFolder->subroutines[n].sBeginComm,
-							aktualFolder->subroutines[n].sWhileComm,
-							aktualFolder->subroutines[n].sEndComm	);
-				aktualFolder->subroutines[n].portClass= obj;
-				correctFolder= true;
-				correctSubroutine= true;*/
+				}
 			}else if(aktualFolder->subroutines[n].type == "SWITCHCONTACT")
 			{
-				switchContact *obj= new switchContact(	aktualFolder->name,
-														aktualFolder->subroutines[n].name	);
+				auto_ptr<switchContact> obj= auto_ptr<switchContact>(new switchContact(	aktualFolder->name,
+																						aktualFolder->subroutines[n].name	));
 
 				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
-				/*obj->init(	m_tFolderStart,
-							aktualFolder->subroutines[n].out,
-							aktualFolder->subroutines[n].sBegin,
-							aktualFolder->subroutines[n].sWhile,
-							aktualFolder->subroutines[n].sEnd	);
-				aktualFolder->subroutines[n].portClass= obj;
-				correctFolder= true;
-				correctSubroutine= true;*/
+				}
 			}else if(aktualFolder->subroutines[n].type == "GETCONTACT")
 			{
-				contactPin *obj= new contactPin(	aktualFolder->name,
-													aktualFolder->subroutines[n].name	);
+				auto_ptr<contactPin> obj= auto_ptr<contactPin>(new contactPin(	aktualFolder->name,
+																				aktualFolder->subroutines[n].name	));
 
 				if(obj->init(*aktualFolder->subroutines[n].property))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
-				/*obj->init(	aktualFolder->subroutines[n].in,
-							aktualFolder->subroutines[n].out	);
-				aktualFolder->subroutines[n].portClass= obj;
-				correctFolder= true;
-				correctSubroutine= true;*/
-
+				}
 			}else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
 			{
-				TimeMeasure *obj= new TimeMeasure(	aktualFolder->name,
-													aktualFolder->subroutines[n].name	);
+				auto_ptr<TimeMeasure> obj= auto_ptr<TimeMeasure>(new TimeMeasure(	aktualFolder->name,
+																					aktualFolder->subroutines[n].name	));
 
 				if(obj->init(*aktualFolder->subroutines[n].property))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
+				}
 			}else if(aktualFolder->subroutines[n].type == "RESISTANCE")
 			{
-				ResistanceMeasure *obj= new ResistanceMeasure(	aktualFolder->name,
-																aktualFolder->subroutines[n].name	);
+				auto_ptr<ResistanceMeasure> obj= auto_ptr<ResistanceMeasure>(new ResistanceMeasure(	aktualFolder->name,
+																									aktualFolder->subroutines[n].name	));
 
 				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
-
+				}
 			}else if(aktualFolder->subroutines[n].type == "TEMP")
 			{
-				TempMeasure *obj= new TempMeasure(	aktualFolder->name,
-													aktualFolder->subroutines[n].name	);
+				auto_ptr<TempMeasure> obj= auto_ptr<TempMeasure>(new TempMeasure(	aktualFolder->name,
+																					aktualFolder->subroutines[n].name	));
 
 				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
-				/*obj->init(	aktualFolder->subroutines[n].out,
-							aktualFolder->subroutines[n].in,
-							aktualFolder->subroutines[n].negative,
-							measuredness,
-							pvCorrection							);
-				correctFolder= true;
-				correctSubroutine= true;
-				aktualFolder->subroutines[n].portClass= obj;*/
-
+				}
 			}else if(aktualFolder->subroutines[n].type == "VALUE")
 			{
-				//double* pValue;
-				//double value;
-				ValueHolder *obj= new ValueHolder(	aktualFolder->name,
-													aktualFolder->subroutines[n].name	);
-
-				//pValue= db->getActEntry(	aktualFolder->name,
-				//							aktualFolder->subroutines[n].name,
-				//							"value"								);
+				auto_ptr<ValueHolder> obj= auto_ptr<ValueHolder>(new ValueHolder(	aktualFolder->name,
+																					aktualFolder->subroutines[n].name	));
 
 				if(obj->init(*aktualFolder->subroutines[n].property))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
-				/*if(pValue)
-				{
-					value= *pValue;
-					delete pValue;
-				}else
-					value= aktualFolder->subroutines[n].defaultValue;
-				obj->setValue(value);
-				aktualFolder->subroutines[n].portClass= obj;
-				correctFolder= true;
-				correctSubroutine= true;*/
-
+				}
 			}else if(aktualFolder->subroutines[n].type == "SAVE")
 			{
-				SaveSubValue* obj= new SaveSubValue(	aktualFolder->name,
-														aktualFolder->subroutines[n].name	);
+				auto_ptr<SaveSubValue> obj= auto_ptr<SaveSubValue>(new SaveSubValue(aktualFolder->name,
+																					aktualFolder->subroutines[n].name));
 
 				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
+				}
 			}else if(aktualFolder->subroutines[n].type == "COUNTER")
 			{
-				Counter* obj= new Counter(	aktualFolder->name,
-											aktualFolder->subroutines[n].name	);
+				auto_ptr<Counter> obj= auto_ptr<Counter>(new Counter(	aktualFolder->name,
+																		aktualFolder->subroutines[n].name	));
 
 				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
+				}
 			}else if(aktualFolder->subroutines[n].type == "MEASUREDNESS")
 			{
-				Measuredness* obj= new Measuredness(	aktualFolder->name,
-														aktualFolder->subroutines[n].name	);
+				auto_ptr<Measuredness> obj= auto_ptr<Measuredness>(new Measuredness(aktualFolder->name,
+																					aktualFolder->subroutines[n].name));
 
 				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-					delete obj;
+				}
 			}else if(::find(m_vOWServerTypes.begin(), m_vOWServerTypes.end(), aktualFolder->subroutines[n].type) != m_vOWServerTypes.end())
 			{// type is reached over an OWServer instance
-				OwfsPort* obj= NULL;
+				auto_ptr<OwfsPort> obj;
 
 				//cout << "subroutine " << aktualFolder->subroutines[n].name << " from type " << aktualFolder->subroutines[n].type << endl;
-				obj= new OwfsPort(	aktualFolder->subroutines[n].type,
-									aktualFolder->name,
-									aktualFolder->subroutines[n].name	);
+				obj= auto_ptr<OwfsPort>(new OwfsPort(	aktualFolder->subroutines[n].type,
+														aktualFolder->name,
+														aktualFolder->subroutines[n].name	));
 				if(obj->init(m_tFolderStart, *aktualFolder->subroutines[n].property))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
-				}else
-				{
-					aktualFolder->subroutines[n].portClass= NULL;
-					delete obj;
 				}
 			}
 
@@ -1090,20 +1004,20 @@ void Starter::createPortObjects()
 				aktualFolder->subroutines[n].bCorrect= false;
 			}else
 			{
-				if(dynamic_cast<TimeMeasure*> (aktualFolder->subroutines[n].portClass))
+				if(dynamic_cast<TimeMeasure*>(aktualFolder->subroutines[n].portClass.get()))
 				{
 					bool bFillMikro= false;
 					bool bFillCorr= false;
 					unsigned int nContent= aktualFolder->subroutines[n].resistor.size();
 					unsigned int nCorrection= aktualFolder->subroutines[n].correction.size();
 					unsigned long time;
+					TimeMeasure* port;
 
+					port= dynamic_cast<TimeMeasure*>(aktualFolder->subroutines[n].portClass.get());
 					if(aktualFolder->subroutines[n].measuredness == -1)
 					{
-						TimeMeasure *object= (TimeMeasure*)aktualFolder->subroutines[n].portClass;
-
 						bNewMeasure= true;
-						measuredness= object->setNewMeasuredness(m_nMeasurednessCount, nDefaultSleep);
+						measuredness= port->setNewMeasuredness(m_nMeasurednessCount, nDefaultSleep);
 						aktualFolder->subroutines[n].measuredness= measuredness;
 						//cout << "set measuredness to " << measuredness << endl;
 
@@ -1120,7 +1034,6 @@ void Starter::createPortObjects()
 					}
 					if(bFillCorr)
 					{
-						TimeMeasure *port= (TimeMeasure*)aktualFolder->subroutines[n].portClass;
 						correction_t correction= port->getNewCorrection(aktualFolder->subroutines[n].correction[nCorr],
 																		*pvOhm, nDefaultSleep);
 
@@ -1139,35 +1052,12 @@ void Starter::createPortObjects()
 					}
 					if(bFillMikro)
 					{
-						TimeMeasure *port= (TimeMeasure*)aktualFolder->subroutines[n].portClass;
-
 						bNewMeasure= true;
 						time= port->getNewMikroseconds(&aktualFolder->subroutines[n].resistor);
 						//readFile(sMeasureFile, aktualFolder->subroutines[n].name, "OHM", &time);
 						cout << endl;
 						cout << "### ending on write mikroseconds from resistance in server.conf" << endl << endl;
 					}
-					/*if(	aktualFolder->subroutines[n].ohmVector.size() != 2
-						&&
-						!bFillMikro											)
-					{
-						string logString("### ERROR: no vector be set in subroutine '");
-
-						logString+= aktualFolder->subroutines[n].name;
-						logString+= "' from folder '";
-						logString+= aktualFolder->name;
-						logString+= "'\n           or vector don't be set correctly";
-						LOG(LOG_ERROR, logString);
-	#ifndef DEBUG
-						cout << logString << endl;
-	#endif // DEBUG
-					}else
-					{
-						correctFolder= true;
-						correctSubroutine= true;
-					}*/
-					//if(aktualFolder->subroutines[n].property)
-					//	aktualFolder->subroutines[n].property->checkProperties();
 				}
 			}
 			sub* subroutine;
@@ -1183,31 +1073,7 @@ void Starter::createPortObjects()
 
 Starter::~Starter()
 {
-	int nMuch, n;
-	measurefolder_t *aktualFolder= m_tFolderStart;
-	measurefolder_t *deleteFolder;
-
-	while(aktualFolder != NULL)
-	{
-		deleteFolder= aktualFolder;
-		aktualFolder= aktualFolder->next;
-
-		nMuch= deleteFolder->subroutines.size();
-		for(n= 0; n<nMuch; n++)
-			delete deleteFolder->subroutines[n].portClass;
-		delete deleteFolder;
-	}
-	m_tFolderStart= NULL;
 }
-
-/*string Starter::createFullPath(const string relativePath, const string fileName, const string forFile)
-{
-	if(relativePath.substr(0, 1) == "/")
-		return relativePath;
-	if(m_sWorkdir == "")
-		cout << "WARNING: in file " << fileName << " workdir must be set before define " << forFile << endl;
-	return m_sWorkdir + relativePath;
-}*/
 
 void Starter::readPasswd()
 {
@@ -1282,8 +1148,8 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 	string line;
 	//string sAktSubName;
 	ifstream file(fileName.c_str());
-	measurefolder_t *aktualFolder= m_tFolderStart;
-	sub *subdir= NULL;
+	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
+	auto_ptr<sub> subdir;
 	//bool bWrite= true;
 	vector<string> lines;
 	vector<string> names;
@@ -1359,18 +1225,16 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				++nFolderID;
 				if(aktualFolder==NULL)
 				{
-					aktualFolder= new measurefolder_t;
-					aktualFolder->next= NULL;
+					aktualFolder= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
 					m_tFolderStart= aktualFolder;
 					aktualFolder->name= value;
 					aktualFolder->bCorrect= false;
 				}else
 				{
-					if(subdir!=NULL)
+					if(subdir.get() != NULL)
 					{
 						aktualFolder->subroutines.push_back(*subdir);
-						delete subdir;
-						subdir= NULL;
+						subdir= auto_ptr<sub>();
 					}
 					aktualFolder= m_tFolderStart;
 					while(aktualFolder->next != NULL)
@@ -1381,9 +1245,8 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 					}
 					if(aktualFolder->name != value)
 					{
-						aktualFolder->next= new measurefolder_t;
+						aktualFolder->next= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
 						aktualFolder= aktualFolder->next;
-						aktualFolder->next= NULL;
 						aktualFolder->name= value;
 						aktualFolder->bCorrect= false;
 					}
@@ -1401,13 +1264,26 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 						exit(0);
 					}
 				}
-				if(subdir!=NULL)
+				if(subdir.get() != NULL)
 				{
-					aktualFolder->subroutines.push_back(*subdir);
-					delete subdir;
-					subdir= NULL;
+					if(	subdir->sleep == 0
+						&&
+						subdir->usleep == 0	)
+					{
+						string prop("sleep");
+						double dSleep= subdir->property->getDouble(prop, /*warning*/false);
+
+						if(prop != "#ERROR")
+						{
+							subdir->sleep= (unsigned short)dSleep;
+							dSleep-= subdir->sleep;
+							dSleep*= 1000000;
+							subdir->usleep= (unsigned long)dSleep;
+						}
+					}
+					aktualFolder->subroutines.push_back(*subdir.get());
 				}
-				subdir= new sub;
+				subdir= auto_ptr<sub>(new sub);
 				subdir->name= value;
 				subdir->bCorrect= false;
 				subdir->type= "";
@@ -1424,12 +1300,20 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				subdir->tmlong= 0;
 				subdir->bAfterContact= false;
 				subdir->measuredness= 0;
-				subdir->property= NULL;
 				string result;
 				bRead= true;
 
+			}else if(subdir.get() && type == "sleep")
+			{
+				double dSleep= atof(value.c_str());
+
+				subdir->sleep= (unsigned short)dSleep;
+				dSleep-= subdir->sleep;
+				dSleep*= 1000000;
+				subdir->usleep= (unsigned long)dSleep;
+
 			}
-			if(	subdir
+			if(	subdir.get()
 				&&
 				subdir->type != ""	)
 			{
@@ -1443,7 +1327,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 					snprintf(cID, 20, "%d", nFolderID);
 					sFID+= cID;
-					subdir->property= new ConfigPropertyCasher();
+					subdir->property= SHAREDPTR::shared_ptr<ConfigPropertyCasher>(new ConfigPropertyCasher());
 					subdir->property->setDefault("folder", aktualFolder->name);
 					subdir->property->setDefault("name", subdir->name);
 					subdir->property->readLine(sFID);
@@ -1503,7 +1387,8 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 					if(bInsert)
 						vlRv.push_back(pair<string, PortTypes>(value, act));
 				}
-				subdir->property->readLine(line);
+				if(type != "sleep")
+					subdir->property->readLine(line);
 				if(!subdir->property->newSubroutine().correct)
 					continue;
 				if(	subdir->type == "MPORTS"
@@ -1568,7 +1453,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 			if(type=="measuredness")
 			{
-				if(subdir)
+				if(subdir.get())
 				{
 					if(value == "now")
 						subdir->measuredness= -1;
@@ -1628,7 +1513,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				}
 				//if(subName=="")
 				//{
-					if(subdir)
+					if(subdir.get())
 						subdir->correction.push_back(tCorr);
 					else
 						m_vCorrection.push_back(tCorr);
@@ -1664,7 +1549,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				}
 				//if(subName=="")
 				//{
-					if(subdir)
+					if(subdir.get())
 						subdir->resistor.push_back(resistor);
 					else
 						m_vOhm.push_back(resistor);
@@ -1817,15 +1702,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 				subdir->nMax= max;
 
-			}else if(type == "sleep")
-			{
-				double dSleep= atof(value.c_str());
-
-				subdir->sleep= (unsigned short)dSleep;
-				dSleep-= subdir->sleep;
-				dSleep*= 1000000;
-				subdir->usleep= (unsigned long)dSleep;
-
 			}else if(type == "after")
 			{
 				if(	value=="true"
@@ -1855,7 +1731,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 					msg+= aktualFolder->name;
 					msg+= " <<  ";
 				}
-				if(subdir != NULL)
+				if(subdir.get() != NULL)
 				{
 					msg+= "\n    with type-name '" + subdir->name + "'";
 				}
@@ -1864,7 +1740,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 			lines.push_back(line);
 		}// end of while(!file.eof())
-		if(	subdir != NULL
+		if(	subdir.get() != NULL
 			&&
 			subdir->sleep == 0
 			&&
@@ -1887,28 +1763,14 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 		exit(1);
 	}
 
-	if(subdir != NULL)
-	{
+	if(subdir.get() != NULL)
 		aktualFolder->subroutines.push_back(*subdir);
-		delete subdir;
-	}
-/*	if(subName != "")
-	{
-		ofstream ofile(getChars(fileName));
-		int nCount= lines.size();
-
-		for(int n= 0; n<nCount; n++)
-		{
-			ofile << lines[n] << endl;
-		}
-	}
-	return vlRv;*/
 }
 
 void Starter::checkAfterContact()
 {
 	unsigned int nSize;
-	measurefolder_t *aktfolder;
+	SHAREDPTR::shared_ptr<measurefolder_t> aktfolder;
 	set<portBase::Pins>::iterator res;
 	set<portBase::Pins> afterContactPins;
 
@@ -1932,7 +1794,7 @@ void Starter::checkAfterContact()
 		if(!afterContactPins.empty())
 		{
 			bool bCan= true;
-			measurefolder_t *search= m_tFolderStart;
+			SHAREDPTR::shared_ptr<measurefolder_t> search= m_tFolderStart;
 			portBase::portpin_address_t ePortPin1;
 			portBase::portpin_address_t ePortPin2;
 
@@ -2033,7 +1895,7 @@ bool Starter::command(vector<string> options, string command)
 	unsigned short nPort;
 	string fileName, prop;
 	string confpath, logpath, sLogLevel, property;
-	SocketClientConnection* clientCon;
+	auto_ptr<SocketClientConnection> clientCon;
 	vector<string>::iterator opIt;
 	istringstream icommand(command);
 
@@ -2109,8 +1971,8 @@ bool Starter::command(vector<string> options, string command)
 
 	bRv= true;
 	command= ConfigPropertyCasher::trim(command);
-	pClient= new ClientTransaction(options, command);
-	clientCon= new SocketClientConnection(SOCK_STREAM, "127.0.0.1", nPort, 10, pClient);
+	pClient= new ClientTransaction(options, command); // insert client into SocketClientConnection, need no auto_ptr
+	clientCon= auto_ptr<SocketClientConnection>(new SocketClientConnection(SOCK_STREAM, "127.0.0.1", nPort, 10, pClient));
 	err= clientCon->getMaxErrorNums(true);
 	warn= clientCon->getMaxErrorNums(false);
 	pClient->setErrors(warn, err);
@@ -2147,7 +2009,6 @@ bool Starter::command(vector<string> options, string command)
 				cout << output << endl;
 		}
 	}
-	delete clientCon;
 	return bRv;
 }
 

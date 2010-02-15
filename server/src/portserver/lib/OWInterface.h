@@ -22,6 +22,7 @@
 #include <string>
 
 #include "../../util/ProcessInterfaceTemplate.h"
+#include "../../util/smart_ptr.h"
 
 #include "../../pattern/server/IClientConnectArtPattern.h"
 #include "../../pattern/util/iactionpropertypattern.h"
@@ -41,16 +42,17 @@ public:
 	 * @param serverID id of OWSerever to want reach
 	 * @return correct and checkd instance
 	 */
-	static OWInterface* getServer(const unsigned short serverID);
+	static SHAREDPTR::shared_ptr<OWInterface> getServer(const unsigned short serverID);
 	/**
-	 * get instance of OWServer and create if not exist.
+	 * get instance of OWServer and create if not exist.<br/>
+	 * By cancel this OWInterface objects with deleteAll(), second parameter object will be also delete in parent class.
 	 *
 	 * @param process name of process in which the interface running
 	 * @param connection to which server this interface should connect to send messages
 	 * @param serverID id of OWSerever to want reach
 	 * @return correct and checkd instance
 	 */
-	static OWInterface* getServer(const string& process, IClientConnectArtPattern* connection, const unsigned short serverID);
+	static SHAREDPTR::shared_ptr<OWInterface> getServer(const string& process, IClientConnectArtPattern* connection, const unsigned short serverID);
 	/**
 	 * method returning the right server for an specific chip ID.<br />
 	 * All OWServer instaces be defined in an vector in the constructor
@@ -59,7 +61,7 @@ public:
 	 * @param chipID specific ID which the server should holded
 	 * @return the server instance
 	 */
-	static OWInterface* getServer(const string& type, const string& chipID);
+	static SHAREDPTR::shared_ptr<OWInterface> getServer(const string& type, const string& chipID);
 	/**
 	 * display identification name for OWServer
 	 *
@@ -197,7 +199,8 @@ public:
 
 protected:
 	/**
-	 * creating instance of OWInterface
+	 * creating instance of OWInterface.<br/>
+	 * By cancel this OWInterface object, second parameter object will be also delete in parent class.
 	 *
 	 * @param process name of process in which the interface running
 	 * @param serverID id of OWServer to want reach
@@ -212,12 +215,14 @@ private:
 	/**
 	 * all instances of OWInterface for created to OWServer with ID
 	 */
-	static map<unsigned short, OWInterface*> _instances;
+	static map<unsigned short, SHAREDPTR::shared_ptr<OWInterface> > _instances;
 	/**
 	 * name of server to which should send questions
 	 */
 	string m_stoClient;
 };
+
+typedef SHAREDPTR::shared_ptr<OWInterface> OWI;
 
 }
 

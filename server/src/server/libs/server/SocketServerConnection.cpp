@@ -108,6 +108,15 @@ namespace server
 		return 0;
 	}
 
+	IFileDescriptorPattern* SocketServerConnection::getDescriptor()
+	{
+		IFileDescriptorPattern* descriptor;
+
+		descriptor= m_pDescriptor;
+		m_pDescriptor= NULL; // remove pointer to object. This object will be delete now in object Communication
+		return descriptor;
+	}
+
 	string SocketServerConnection::getLastDescriptorAddress()
 	{
 		char ip_address[INET6_ADDRSTRLEN];

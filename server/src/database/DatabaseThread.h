@@ -28,6 +28,7 @@
 
 #include "../util/Thread.h"
 #include "../util/structures.h"
+#include "../util/smart_ptr.h"
 
 #include "../pattern/server/IServerCommunicationStarterPattern.h"
 
@@ -172,7 +173,7 @@ namespace ppi_database
 		 * @param number count of double value which is required
 		 * @return current value of given parameters
 		 */
-		double* getActEntry(const string& folder, const string& subroutine, const string& identif,
+		auto_ptr<double> getActEntry(const string& folder, const string& subroutine, const string& identif,
 								const vector<double>::size_type number= 0);
 		/**
 		 * returns two convert values which have between the given value
@@ -234,9 +235,9 @@ namespace ppi_database
 		 */
 		virtual int stop(const bool *bWait= NULL);
 		/**
-		 * destruct of Database
+		 * delete single instance of DatabaseThread object
 		 */
-		virtual ~DatabaseThread();
+		static void deleteObj();
 
 	protected:
 		/**
@@ -272,14 +273,14 @@ namespace ppi_database
 		 * 					do not ask on DefaultChipConfigReader whether should writing
 		 * 					and open no new handle
 		 */
-		void writeDb(db_t entry, ofstream* dbentrys= NULL);
+		void writeDb(db_t entry, ofstream* dbfile= NULL);
 		/**
 		 * write entry direct into database
 		 *
 		 * @param entry db_t structure of chip
 		 * @param dbfile file handle to write
 		 */
-		void writeEntry(const db_t& entry, ofstream *dbfile);
+		void writeEntry(const db_t& entry, ofstream &dbfile);
 
 		/**
 		 * write after MB an new database file
@@ -322,7 +323,7 @@ namespace ppi_database
 		/**
 		 * vector with all new entrys
 		 */
-		vector<db_t>* m_ptEntrys;
+		std::auto_ptr<vector<db_t> > m_sptEntrys;
 		/*
 		 * subroutines which should be written into database
 		 */
@@ -419,7 +420,7 @@ namespace ppi_database
 		 * @param bWait wait for condition DBENTRYITEMSCOND if nothing to write
 		 * @return vector of db_t entrys structures
 		 */
-		vector<db_t>* getDbEntryVector(bool bWait);
+		std::auto_ptr<vector<db_t> > getDbEntryVector(bool bWait);
 		/**
 		 * searching in given directory for the latest
 		 * file which beginning with filter, date
@@ -467,7 +468,7 @@ namespace ppi_database
 		 * @param fromtime the time from which should calculated
 		 * @param older pointer to older structure
 		 */
-		void calcNewThinTime(time_t fromtime, const DefaultChipConfigReader::otime_t* older);
+		void calcNewThinTime(time_t fromtime, const SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> &older);
 		/**
 		 * split an read line from database on harddisk into struct db_t
 		 *
@@ -475,6 +476,10 @@ namespace ppi_database
 		 * @return spliced values
 		 */
 		db_t splitDbLine(const string& line);
+		/**
+		 * destruct of Database
+		 */
+		virtual ~DatabaseThread();
 	};
 
 }

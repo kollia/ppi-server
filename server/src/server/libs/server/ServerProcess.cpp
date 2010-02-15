@@ -214,8 +214,10 @@ namespace server
 
 	ServerProcess::~ServerProcess()
 	{
-		delete m_pConnect;
-		delete m_pStarterPool;
+		if(m_pConnect)
+			delete m_pConnect;
+		if(m_pStarterPool)
+			delete m_pStarterPool;
 		DESTROYMUTEX(m_NEWCONNECTIONS);
 		DESTROYCOND(m_NOCONWAITCONDITION);
 	}

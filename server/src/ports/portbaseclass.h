@@ -120,7 +120,7 @@ namespace ports
 			 * wether access to device is correct.<br />
 			 * If pointer is <code>NULL</code> object do not know access from database
 			 */
-			bool *m_pbCorrectDevice;
+			auto_ptr<bool> m_pbCorrectDevice;
 			/**
 			 * min valuue which can be set.<br />
 			 * default min is 1 and max is 0 -> full range can be used
@@ -272,9 +272,9 @@ namespace ports
 			 */
 			static string getBinString(const long value, const size_t bits);
 			static void printBin(int* value, unsigned long nPort);
-			static char *getPinName(Pin ePin);
+			static string getPinName(Pin ePin);
 			static Pin getPinEnum(string sPinName);
-			static char *getPortName(unsigned long port);
+			static string getPortName(unsigned long port);
 			static unsigned long getPortAddress(string sPortName);
 			static Pin getPortType(unsigned long port);
 			static Pin getPortType(string sPinName);

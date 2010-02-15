@@ -48,17 +48,16 @@ namespace server
 	{
 		int code;
 		vector<string> options;
-		SocketClientConnection* clientCon;
+		auto_ptr<SocketClientConnection> clientCon;
 
 		options.push_back(m_sCommunicationID);
 		options.push_back(m_sUser);
 		options.push_back(m_sPwd);
 		if(m_bOwDebug)
 			options.push_back("-ow");
-		clientCon= new SocketClientConnection(SOCK_STREAM, m_shost, m_nPort, 5,
-											new ClientTransaction(options, ""));
+		clientCon= auto_ptr<SocketClientConnection>(new SocketClientConnection(SOCK_STREAM, m_shost, m_nPort, 5,
+																				new ClientTransaction(options, "")));
 		code= clientCon->init();
-		delete clientCon;
 		stop();
 		return code;
 	}

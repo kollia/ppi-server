@@ -104,8 +104,8 @@ int LogProcess::init(void* arg)
 
 	/***************************************************************************************/
 
-	m_pLogThread= new LogThread(/*check identif logs*/false);
-	if(!m_pLogThread)
+	m_pLogThread= auto_ptr<LogThread>(new LogThread(/*check identif logs*/false));
+	if(!m_pLogThread.get())
 		return 1;
 	m_pLogThread->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays, nDelete);
 	if(m_pLogThread->start() > 0)
@@ -208,5 +208,4 @@ int LogProcess::execute()
 void LogProcess::ending()
 {
 	m_pLogThread->stop(true);
-	delete m_pLogThread;
 }

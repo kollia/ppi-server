@@ -24,6 +24,7 @@
 #include <queue>
 #include <map>
 
+#include "../util/smart_ptr.h"
 #include "../util/Thread.h"
 #include "../util/configpropertycasher.h"
 
@@ -138,7 +139,8 @@ namespace server
 		};
 
 		/**
-		 * server constructor to generate instance
+		 * server constructor to generate instance.<br/>
+		 * By cancel this OWServer object, second parameter object will be also delete.
 		 *
 		 * @param ID id of server
 		 * @param accessPattern pattern to access on the device
@@ -357,7 +359,7 @@ namespace server
 			/**
 			 * next chip in sequence to read
 			 */
-			 chip_types_t* nextUnique;
+			 SHAREDPTR::shared_ptr<chip_types_t> nextUnique;
 		};
 		/**
 		 * id of server
@@ -422,7 +424,7 @@ namespace server
 		 * Otherwise if chip not be set in one of them, server reading or writing
 		 * only when nothing to do.
 		 */
-		map<string, chip_types_t*> m_mtConductors;
+		map<string, SHAREDPTR::shared_ptr<chip_types_t> > m_mtConductors;
 		/**
 		 * cache of chips which should not write directly
 		 */
@@ -430,11 +432,11 @@ namespace server
 		/**
 		 * cache of chips with priority to actualizise
 		 */
-		map<int, queue<chip_types_t*> > m_mvPriorityCache;
+		map<int, queue<SHAREDPTR::shared_ptr<chip_types_t> > > m_mvPriorityCache;
 		/**
 		 * cache with reading secuences
 		 */
-		map<double, vector<chip_types_t*> > m_mvReadingCache;
+		map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > > m_mvReadingCache;
 		/**
 		 * real timeval structure for every chace sequence
 		 * to start measureing in cache again
@@ -445,12 +447,6 @@ namespace server
 		 * to now whether to write on the chip
 		 */
 		map<string, map<string, string> > m_mmLastWriten;
-		/**
-		 * is one chip with priority 1 written
-		 * set this rwv_t to chip. No other chip with priority 1
-		 * can write until the first pin of chip is unwritten
-		 */
-		chip_types_t* m_ptPriority1Chip;
 
 		/**
 		 * define method to initial the interface to dallas semiconductor.<br />
@@ -506,7 +502,7 @@ namespace server
 		/**
 		 * access pattern interface to extern chip
 		 */
-		IChipAccessPattern* m_poChipAccess;
+		auto_ptr<IChipAccessPattern> m_poChipAccess;
 
 		/**
 		 * measure time difference by debugging for reading or wirting on device

@@ -160,7 +160,7 @@ namespace util
 	public:
 		/**
 		 * creating instance of one process<br />
-		 * object delete client connection by ending
+		 * By cancel this Process object, third and fourth parameter objects will be also delete in parent class.
 		 *
 		 * @param ownProcess Name of process to identify in by server
 		 * qparam toClient Name of Client to which connect

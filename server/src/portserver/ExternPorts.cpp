@@ -966,25 +966,21 @@ namespace ports
 
 	string ExternPorts::getBinString(const long value, const size_t bits) const
 	{
-		string sRv;
-		char* byte= new char[bits+1];
-		//long* pvalue= value;
+		ostringstream bRv;
 		long bit= 0x01;
 
-		memset(byte, '0', bits);
-		byte[bits]= '\0';
 		for(size_t n= bits-1; n>=0; n--)
 		{
 			//cout << "value:" << n << " bit:" << bit << endl;
 			if(value & bit)
-				byte[n]= '1';
+				bRv << "1";
+			else
+				bRv << "0";
 			if(n == 0)
 				break;
 			bit<<= 1;
 		}
-		sRv= byte;
-		delete [] byte;
-		return sRv;
+		return bRv.str();
 	}
 
 	void ExternPorts::printBin(const int* value, const unsigned long nPort) const

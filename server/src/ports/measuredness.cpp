@@ -26,7 +26,7 @@
 namespace ports
 {
 
-	bool Measuredness::init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder)
+	bool Measuredness::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		portBase::init(properties);
 		m_pStartFolder= pStartFolder;
@@ -49,8 +49,9 @@ namespace ports
 		double diff;
 		double value= getValue("i:" + getFolderName());
 		string sfolder= getFolderName();
+		bool result;
 
-		if(!switchClass::calculateResult(m_pStartFolder, sfolder, &m_sMeasuredValue[0], mvalue))
+		if(!switchClass::calculateResult(m_pStartFolder, sfolder, m_sMeasuredValue, mvalue))
 		{
 			string msg("### ERROR: does not found mvalue '");
 
@@ -58,33 +59,36 @@ namespace ports
 			msg+= sfolder + " with subroutine ";
 			msg+= getSubroutineName();
 			cout << msg << endl;
-			TIMELOG(LOG_ERROR, "mvalue", msg);
+			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"mvalue", msg);
 			mvalue= 0;
 		}
 
-		/*{
-			string msg("### ERROR: does not found begin '");
+		if(switchClass::getResult(m_sBegin, m_pStartFolder, sfolder, isDebug(), result))
+		{
+			if(result)
+			{
+				// calculate differenze
+				if(mvalue < origValue)
+					origValue= mvalue;
+				diff= mvalue - origValue;
+				if(value > diff)
+					diff= value;
+			}else
+			{
+				origValue= mvalue;
+				diff= 0;
+			}
+		}else
+		{
+			string msg("           could not resolve parameter 'begin= ");
 
 			msg+= m_sBegin + "'\n           in folder ";
 			msg+= sfolder + " with subroutine ";
 			msg+= getSubroutineName();
 			cout << msg << endl;
-			TIMELOG(LOG_ERROR, "begin", msg);
-			dBegin= 0;
-		}*/
-
-		if(!switchClass::getResult(&m_sBegin[0], m_pStartFolder, sfolder, isDebug()))
-		{
-			// calculate differenze
-			if(mvalue < origValue)
-				origValue= mvalue;
-			diff= mvalue - origValue;
-			if(value > diff)
-				diff= value;
-		}else
-		{
-			origValue= mvalue;
-			diff= 0;
+			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"begin", msg);
+			if(isDebug())
+				cerr << "### ERROR: " << msg.substr(11) << endl;
 		}
 
 		setValue(diff);

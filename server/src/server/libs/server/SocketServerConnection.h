@@ -533,7 +533,8 @@ namespace server
 	{
 		public:
 			/**
-			 * constructor to initial object
+			 * constructor to initial object.<br/>
+			 * By cancel this SocketServerConnection object, 5. parameter object will be also delete in parent class.
 			 *
 			 * @param type protocol type of connection
 			 * @param host string of host as ip4, ip6 or name
@@ -544,8 +545,7 @@ namespace server
 			SocketServerConnection(int type, const string host, const unsigned short port, const unsigned int timeout,
 					ITransferPattern* transfer)
 			:	SocketClientConnection(type, host, port, timeout, transfer),
-				m_pServer(NULL),
-				m_pDescriptor(NULL)
+				m_pServer(NULL)
 				{ };
 			/**
 			 * set an instnace of the called server
@@ -571,8 +571,7 @@ namespace server
 			 *
 			 * @return object of ITransferPattern for communicate with client
 			 */
-			virtual IFileDescriptorPattern* getDescriptor()
-			{ IFileDescriptorPattern* pRv= m_pDescriptor; m_pDescriptor= NULL; return pRv; };
+			virtual IFileDescriptorPattern* getDescriptor();
 			/**
 			 * return the address witch the comunication have reached after listen
 			 *
@@ -607,12 +606,6 @@ namespace server
 			 * calling server instance
 			 */
 			IServerPattern* m_pServer;
-
-		private:
-			/**
-			 * created descriptor from <code>accept()</code>
-			 */
-			IFileDescriptorPattern* m_pDescriptor;
 	};
 
 }

@@ -44,6 +44,12 @@ void Terminal::operator <<(const ostream& str)
 	cout << dec << pos << endl;
 }
 
+void Terminal::deleteObj()
+{
+	delete _instance;
+	_instance= NULL;
+}
+
 void Terminal::newline()
 {
 	pid_t tid= Thread::gettid();

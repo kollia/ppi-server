@@ -29,7 +29,7 @@ using namespace ppi_database;
 
 namespace ports
 {
-	bool ResistanceMeasure::init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder)
+	bool ResistanceMeasure::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		string warning, warning2;
 		string sOut, sIn, sNeg, sMeasuredness;

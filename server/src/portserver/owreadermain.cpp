@@ -65,12 +65,12 @@ int main(int argc, char* argv[])
 	vector<string> vDescript;
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
-	OWServer* owserver;
+	auto_ptr<OWServer> owserver;
 	vector<string> vParams;
 	Properties oServerProperties;
 	DbInterface *db;
 	IChipAccessPattern* accessPort;
-	OwServerQuestions *pQuestions;
+	auto_ptr<OwServerQuestions> pQuestions;
 
 	// create working directory
 	directorys= split(directorys, argv[0], is_any_of("/"));
@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
 				}
 				if(argc >= needArgc && sPorts.size() > 0)
 				{
-					accessPort= new ExternPorts(sPorts, type);
+					accessPort= new ExternPorts(sPorts, type); // object will be given as pointer into OWServer, need no auto_ptr
 					bConf= true;
 				}else
 				{
@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
 				{
 					first= adapters.begin();
 					adapters.erase(first);
-					accessPort= new MaximChipAccess(maximconf, &adapters);
+					accessPort= new MaximChipAccess(maximconf, &adapters); // object will be given as pointer into OWServer, need no auto_ptr
 					bConf= true;
 				}else
 				{
@@ -242,7 +242,7 @@ int main(int argc, char* argv[])
 					usestring << nJumper;
 					if(	nJumper >= 0 && nJumper <= 3)
 					{
-						accessPort= new VellemannK8055(nJumper);
+						accessPort= new VellemannK8055(nJumper); // object will be given as pointer into OWServer, need no auto_ptr
 						bConf= true;
 					}
 				}
@@ -279,24 +279,21 @@ int main(int argc, char* argv[])
 
 
 	cout << "    one wire reader" << flush;
-	owserver= new OWServer(nServerID, accessPort);
+	owserver= auto_ptr<OWServer>(new OWServer(nServerID, accessPort));
 	cout << " with name '" << owserver->getServerName();
 	cout << "' and ID '" << dec << nServerID << "'" << endl;
 	cout << "    " << usestring.str() << endl;
 
 	questionservername+= argv[1];
-	pQuestions= new OwServerQuestions(	"ppi-owreader", questionservername,
-										new SocketClientConnection(	SOCK_STREAM,
-																	commhost,
-																	commport,
-																	10			),
-										owserver										);
+	pQuestions= auto_ptr<OwServerQuestions>(new OwServerQuestions(	"ppi-owreader", questionservername,
+																	new SocketClientConnection(	SOCK_STREAM,
+																								commhost,
+																								commport,
+																								10			),
+																	owserver.get()								));
 
 	if(owserver->start(&oServerProperties) != 0)
-	{
-		delete owserver;
 		return EXIT_FAILURE;
-	}
 
 	err= pQuestions->run();
 	if(err > 0)
@@ -307,9 +304,10 @@ int main(int argc, char* argv[])
 		msg+= "           " + pQuestions->strerror(err);
 		cerr << msg << endl;
 		LOG(LOG_ERROR, msg);
-		delete owserver;
+		pQuestions= auto_ptr<OwServerQuestions>();// delete OwServerQuestions before OWServer
 		return EXIT_FAILURE;
 	}
 
+	pQuestions= auto_ptr<OwServerQuestions>();// delete OwServerQuestions before OWServer
 	return EXIT_SUCCESS;
 }

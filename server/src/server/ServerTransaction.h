@@ -285,7 +285,7 @@ namespace server
 			 * @param folder name of folder
 			 * @return measure port if exist, otherwise null
 			 */
-			meash_t* getMeasurePort(string folder);
+			const SHAREDPTR::shared_ptr<meash_t> getMeasurePort(string folder);
 			/**
 			 * send to client all changed messages from database
 			 * witch be requested

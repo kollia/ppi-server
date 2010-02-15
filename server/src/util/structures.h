@@ -23,6 +23,7 @@
 
 #include "../ports/portbaseclass.h"
 
+#include "../util/smart_ptr.h"
 #include "../util/configpropertycasher.h"
 
 using namespace std;
@@ -61,7 +62,7 @@ struct sub
 	string sWhileComm;
 	string sEndComm;
 	double defaultValue;
-	portBase *portClass;
+	SHAREDPTR::shared_ptr<portBase> portClass;
 	unsigned short sleep;
 	unsigned long usleep;
 	time_t tmlong;
@@ -72,7 +73,7 @@ struct sub
 	vector<unsigned short> ohmVector;
 	unsigned short producerBValue;
 	short measuredness;
-	ConfigPropertyCasher* property;
+	SHAREDPTR::shared_ptr<ConfigPropertyCasher> property;
 };
 
 struct measurefolder_t
@@ -82,7 +83,7 @@ struct measurefolder_t
 	set<portBase::Pins> afterContactPins;
 	set<portBase::Pins> needInPorts;
 	vector<sub> subroutines;
-	struct measurefolder_t *next;
+	SHAREDPTR::shared_ptr<measurefolder_t> next;
 };
 
 struct timemap_t

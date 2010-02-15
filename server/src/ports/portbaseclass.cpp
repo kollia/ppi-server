@@ -53,7 +53,7 @@ portBase::portBase(string type, string folderName, string subroutineName)
 	m_bWriteDb= false;
 	m_dValue= 0;
 	// do not know access from database
-	m_pbCorrectDevice= NULL;
+	m_pbCorrectDevice= auto_ptr<bool>();
 	m_VALUELOCK= Thread::getMutex("VALUELOCK");
 	m_DEBUG= Thread::getMutex("portBaseDEBUG");
 	m_CORRECTDEVICEACCESS= Thread::getMutex("CORRECTDEVICEACCESS");
@@ -149,7 +149,7 @@ void portBase::setDeviceAccess(bool access)
 	DbInterface* db;
 
 	LOCK(m_CORRECTDEVICEACCESS);
-	if(m_pbCorrectDevice)
+	if(m_pbCorrectDevice.get())
 	{
 		if(*m_pbCorrectDevice == access)
 			same= true;
@@ -160,7 +160,7 @@ void portBase::setDeviceAccess(bool access)
 	 // database not be running
 	 // so write access value only in database message loop
 	 // and define actualy Device access
-		m_pbCorrectDevice= new bool;
+		m_pbCorrectDevice= auto_ptr<bool>(new bool);
 		*m_pbCorrectDevice= access;
 	}
 	UNLOCK(m_CORRECTDEVICEACCESS);
@@ -175,8 +175,8 @@ bool portBase::hasDeviceAccess() const
 	bool bDevice;
 
 	LOCK(m_CORRECTDEVICEACCESS);
-	if(m_pbCorrectDevice)
-		bDevice= m_pbCorrectDevice;
+	if(m_pbCorrectDevice.get())
+		bDevice= *m_pbCorrectDevice;
 	else// if no CorrectDevice be defined
 		// the subroutine is an SWITCH, VALUE, COUNTER, TIMER or SHELL
 		// and this devices (ports) are always true
@@ -279,25 +279,21 @@ bool portBase::doForAfterContact()
 
 string portBase::getBinString(const long value, const size_t bits)
 {
-	string sRv;
-	char* byte= new char[bits+1];
-	//long* pvalue= value;
+	ostringstream bRv;
 	long bit= 0x01;
 
-	memset(byte, '0', bits);
-	byte[bits]= '\0';
 	for(size_t n= bits-1; n>=0; n--)
 	{
 		//cout << "value:" << n << " bit:" << bit << endl;
 		if(value & bit)
-			byte[n]= '1';
+			bRv << "1";
+		else
+			bRv << "0";
 		if(n == 0)
 			break;
 		bit<<= 1;
 	}
-	sRv= byte;
-	delete [] byte;
-	return sRv;
+	return bRv.str();
 }
 
 void portBase::printBin(int* value, unsigned long nPort)
@@ -310,28 +306,29 @@ void portBase::printBin(int* value, unsigned long nPort)
 	//cout << *value << endl;
 }
 
-char* portBase::getPinName(Pin ePin)
+string portBase::getPinName(Pin ePin)
 {
-	char *sPinName= new char[10];
+	ostringstream sPinName;
 
 	if(ePin==DTR)
-		strcpy(sPinName, "DTR");
+		sPinName << "DTR";
 	else if(ePin==RTS)
-		strcpy(sPinName, "RTS");
+		sPinName << "RTS";
 	else if(ePin==TXD)
-		strcpy(sPinName, "TXD");
+		sPinName << "TXD";
 	else if(ePin==CTS)
-		strcpy(sPinName, "CTS");
+		sPinName << "CTS";
 	else if(ePin==DSR)
-		strcpy(sPinName, "DSR");
+		sPinName << "DSR";
 	else if(ePin==RI)
-		strcpy(sPinName, "RI");
+		sPinName << "RI";
 	else if(ePin==DCD)
-		strcpy(sPinName, "DCD");
+		sPinName << "DCD";
 	else
-		strcpy(sPinName, "unknown");
-	return sPinName;
+		sPinName << "unknown";
+	return sPinName.str();
 }
+
 portBase::Pin portBase::getPinEnum(string sPinName)
 {
 	Pin eRv;
@@ -409,26 +406,26 @@ portBase::Pin portBase::getPortType(unsigned long port)
 	return eRv;
 }
 
-char* portBase::getPortName(unsigned long nPort)
+string portBase::getPortName(unsigned long nPort)
 {
-	char *sPortName= new char[10];
+	string sPortName;
 
 	if(nPort==COM1)
-		strcpy(sPortName, "COM1");
+		sPortName= "COM1";
 	else if(nPort==COM2)
-		strcpy(sPortName, "COM2");
+		sPortName= "COM2";
 	else if(nPort==COM3)
-		strcpy(sPortName, "COM3");
+		sPortName= "COM3";
 	else if(nPort==COM4)
-		strcpy(sPortName, "COM4");
+		sPortName= "COM4";
 	else if(nPort==LPT1)
-		strcpy(sPortName, "LPT1");
+		sPortName= "LPT1";
 	else if(nPort==LPT2)
-		strcpy(sPortName, "LPT2");
+		sPortName= "LPT2";
 	else if(nPort==LPT3)
-		strcpy(sPortName, "LPT3");
+		sPortName= "LPT3";
 	else
-		strcpy(sPortName, "unknown");
+		sPortName= "unknown";
 	return sPortName;
 }
 
@@ -775,8 +772,6 @@ bool portBase::measure()
 
 portBase::~portBase()
 {
-	if(m_pbCorrectDevice)
-		delete m_pbCorrectDevice;
 	DESTROYMUTEX(m_VALUELOCK);
 	DESTROYMUTEX(m_DEBUG);
 	DESTROYMUTEX(m_CORRECTDEVICEACCESS);

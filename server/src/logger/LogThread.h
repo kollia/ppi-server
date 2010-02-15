@@ -111,7 +111,7 @@ class LogThread : public Thread
 		/**
 		 * vector for all getting log messages
 		 */
-		vector<struct log_t> *m_pvtLogs;
+		auto_ptr<vector<struct log_t> > m_pvtLogs;
 
 		/**
 		 * this method will be called before running
@@ -183,7 +183,7 @@ class LogThread : public Thread
 		 */
 		vector<struct timelog_t> m_vtTimeLog;
 
-		vector<struct log_t> *getLogVector();
+		auto_ptr<vector<log_t> > getLogVector();
 };
 
 #endif /*LOGTHREAD_H_*/

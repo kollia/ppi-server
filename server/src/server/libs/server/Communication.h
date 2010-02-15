@@ -55,8 +55,8 @@ namespace server
 		 *
 		 * @return descriptor
 		 */
-		virtual IFileDescriptorPattern* getDescriptor() const
-		{ return m_hFileAccess; };
+		virtual const IFileDescriptorPattern* getDescriptor() const
+		{ return m_hFileAccess.get(); };
 		/**
 		 * set next communication object
 		 *
@@ -72,7 +72,8 @@ namespace server
 		virtual ICommunicationPattern* getNextComm() const
 		{ return m_pnext; };
 		/**
-		 * commit an connection to an client
+		 * commit an connection to an client.<br/>
+		 * By Cancel this Communication object or ending an connection, the parameter access will be also delete
 		 *
 		 * @param access file descriptor whitch get from  IServerConnectArtPattern by listen
 		 */
@@ -111,7 +112,7 @@ namespace server
 		 * @return name
 		 */
 		virtual string getTransactionName() const
-		{ return m_hFileAccess ? m_hFileAccess->getTransactionName() : ""; };
+		{ return m_hFileAccess.get() ? m_hFileAccess->getTransactionName() : ""; };
 		/**
 		 * whether an client is connected
 		 *
@@ -203,7 +204,7 @@ namespace server
 		/**
 		 * FILE handle to client
 		 */
-		IFileDescriptorPattern* m_hFileAccess;
+		auto_ptr<IFileDescriptorPattern> m_hFileAccess;
 		/**
 		 * whether client has an connection to server
 		 * and has get an connection ID

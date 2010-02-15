@@ -38,7 +38,8 @@ namespace logger
 	{
 		public:
 			/**
-			 * Instantiate class of log-server
+			 * Instantiate class of log-server.<br/>
+			 * By cancel this LogInterface object, second parameter object will be also delete in parent class.
 			 *
 			 * @param process name of process in which the log-interface running
 			 * @param connection to which server this interface should connect to send messages
@@ -47,6 +48,10 @@ namespace logger
 			 * @return whether connection to LogProccess was correct
 			 */
 			static bool initial(const string& process, IClientConnectArtPattern* connection, const int identifwait, const bool wait);
+			/**
+			 * delete object of LogInterface
+			 */
+			static void deleteObj();
 			/**
 			 * method to get single instance of interface
 			 */

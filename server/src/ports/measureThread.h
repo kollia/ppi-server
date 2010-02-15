@@ -20,6 +20,7 @@
 
 #include <set>
 
+#include "../util/smart_ptr.h"
 #include "../util/structures.h"
 #include "../util/Thread.h"
 
@@ -47,7 +48,7 @@ class MeasureThread : public Thread
 		 * @param subroutine name of the subroutine
 		 * @return class of subroutine
 		 */
-		portBase* getPortClass(const string subroutine, bool &bCorrect) const;
+		SHAREDPTR::shared_ptr<portBase> getPortClass(const string subroutine, bool &bCorrect) const;
 		//double getValue(string name, bool &bFound);
 		//bool setValue(string name, double value);
 		void setDebug(bool bDebug, unsigned short sleep);
@@ -104,12 +105,18 @@ class MeasureThread : public Thread
 class meash_t
 {
 	public:
-		MeasureThread *pMeasure;
-		meash_t *next;
 		/**
 		 * instance of first measure thread
 		 */
-		static meash_t* firstInstance;
+		static SHAREDPTR::shared_ptr<meash_t> firstInstance;
+		/**
+		 * next instnace of meash_t
+		 */
+		SHAREDPTR::shared_ptr<meash_t> next;
+		/**
+		 * measure object
+		 */
+		SHAREDPTR::shared_ptr<MeasureThread> pMeasure;
 		/**
 		 * path in whitch be the layout files
 		 * toDo: not the correct place

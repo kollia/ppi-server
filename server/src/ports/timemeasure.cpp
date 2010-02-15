@@ -489,10 +489,8 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 	unsigned short n;
 	string logString("### check for measuredness on port ");
 	string endlog;
-	char *portName= getPortName(m_tIn.nPort);
 
-	logString+= portName;
-	delete portName;
+	logString+= getPortName(m_tIn.nPort);
 #ifndef DEBUG
 	cout << logString << endl;
 #endif // DEBUUG

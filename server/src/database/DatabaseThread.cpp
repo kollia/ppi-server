@@ -78,7 +78,7 @@ DatabaseThread::DatabaseThread(string dbDir, string confDir, IPropertyPattern* p
 	if(m_nReadRows == 0)
 		m_nReadRows= 100;
 	m_bError= false;
-	m_ptEntrys= new vector<db_t>();
+	m_sptEntrys= auto_ptr<vector<db_t> >(new vector<db_t>());
 	m_DBENTRYITEMSCOND= getCondition("DBENTRYITEMSCOND");
 	m_DBENTRYITEMS= getMutex("DBENTRYITEMS");
 	m_DBCURRENTENTRY= getMutex("DBCURRENTENTRY");
@@ -102,6 +102,12 @@ void DatabaseThread::initial(string workDir, string confDir, IPropertyPattern* p
 		_instance= new DatabaseThread(workDir, confDir, properties, defaultSleep);
 		_instance->start(NULL, false);
 	}
+}
+
+void DatabaseThread::deleteObj()
+{
+	delete _instance;
+	_instance= NULL;
 }
 
 bool DatabaseThread::isDbLoaded() const
@@ -410,9 +416,9 @@ unsigned short DatabaseThread::existEntry(const string& folder, const string& su
 	return nRv;
 }
 
-double* DatabaseThread::getActEntry(const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number/*= 0*/)
+auto_ptr<double> DatabaseThread::getActEntry(const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number/*= 0*/)
 {
-	double* pnRv;
+	auto_ptr<double> spnRv;
 	db_t tvalue;
 	map<string, map<string, db_t> > fEntrys;
 	map<string, db_t> sEntrys;
@@ -422,16 +428,16 @@ double* DatabaseThread::getActEntry(const string& folder, const string& subrouti
 	UNLOCK(m_DBCURRENTENTRY);
 
 	if(fEntrys.size() == 0)
-		return NULL;
+		return spnRv;
 	sEntrys= fEntrys[subroutine];
 	if(sEntrys.size() == 0)
-		return NULL;
+		return spnRv;
 	tvalue= sEntrys[identif];
 	if(tvalue.folder == "")
-		return NULL;
+		return spnRv;
 
-	pnRv= new double(tvalue.values[number]);
-	return pnRv;
+	spnRv= auto_ptr<double>(new double(tvalue.values[number]));
+	return spnRv;
 }
 
 bool DatabaseThread::createNewDbFile(bool bCheck)
@@ -767,7 +773,7 @@ bool DatabaseThread::setActEntry(const db_t entry)
 	// check for folder exist
 	if(fEntrys.size() == 0)
 	{
-		std::map<string, db_t> isEntry;//= new std::map<string, db_t>();
+		std::map<string, db_t> isEntry;
 		map<string, map<string, db_t> > ifEntry;
 
 		isEntry[entry.identif]= entry;
@@ -882,9 +888,9 @@ int DatabaseThread::execute()
 {
 	bool bNewValue;
 	static bool bWait= false;
-	vector<db_t> *entrys= getDbEntryVector(bWait);
+	std::auto_ptr<vector<db_t> > entrys= getDbEntryVector(bWait);
 
-	if(entrys != NULL)
+	if(entrys->size() > 0)
 	{
 		typedef vector<db_t>::iterator iter;
 
@@ -915,7 +921,6 @@ int DatabaseThread::execute()
 					writeDb(*i);
 			}
 		}
-		delete entrys;
 		if(bWait)
 			bWait= !thinDatabase(/*ask*/true);
 	}else
@@ -939,8 +944,8 @@ vector<convert_t> DatabaseThread::getNearest(string subroutine, string definitio
 		defIter= subIter->second.find(definition);
 		if(defIter != subIter->second.end())
 		{
-			convert_t *beforeLast= NULL;
-			convert_t *lastValue= NULL; //= DOUBLE_MAX;
+			auto_ptr<convert_t> beforeLast;
+			auto_ptr<convert_t> lastValue; //= DOUBLE_MAX;
 
 			for(curveIter= defIter->second.begin(); curveIter != defIter->second.end(); ++curveIter)
 			{
@@ -950,13 +955,13 @@ vector<convert_t> DatabaseThread::getNearest(string subroutine, string definitio
 				{
 					convert_t val;
 
-					if(lastValue != NULL)
+					if(lastValue.get() != NULL)
 						result.push_back(*lastValue);
 					val.be= curveIter->second;
 					val.nMikrosec= (unsigned long)curveIter->first;
 					result.push_back(val);
 					++curveIter;
-					if(	lastValue == NULL
+					if(	lastValue.get() == NULL
 						&&
 						curveIter != defIter->second.end()	)
 					{
@@ -966,32 +971,30 @@ vector<convert_t> DatabaseThread::getNearest(string subroutine, string definitio
 					}
 					break;
 				}
-				if(	lastValue != NULL
+				if(	lastValue.get() != NULL
 					&&
-					beforeLast == NULL	)
+					beforeLast.get() == NULL	)
 				{
-					beforeLast= new convert_t;
+					beforeLast= auto_ptr<convert_t>(new convert_t);
 				}
-				if(beforeLast != NULL)
+				if(beforeLast.get() != NULL)
 				{
 					beforeLast->be= lastValue->be;
 					beforeLast->nMikrosec= lastValue->nMikrosec;
 				}
-				if(lastValue == NULL)
-					lastValue= new convert_t;
+				if(lastValue.get() == NULL)
+					lastValue= auto_ptr<convert_t>(new convert_t);
 				lastValue->be= curveIter->second;
 				lastValue->nMikrosec= (unsigned long)curveIter->first;
 			}
 			if(	result.size() == 0
 				&&
-				lastValue != NULL	)
+				lastValue.get() != NULL	)
 			{
-				if(beforeLast != NULL)
+				if(beforeLast.get() != NULL)
 					result.push_back(*beforeLast);
 				result.push_back(*lastValue);
 			}
-			if(lastValue != NULL)
-				delete lastValue;
 		}
 	}
 	UNLOCK(m_DBMEASURECURVES);
@@ -1004,12 +1007,11 @@ void DatabaseThread::ending()
 {
 	unsigned int lcount= 0;
 	db_t entry;
-	ofstream *writeHandler= NULL;
+	ofstream writeHandler(m_sDbFile.c_str(), ios::app);
 	DefaultChipConfigReader::write_t write;
 	DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
 
-	writeHandler= new ofstream(m_sDbFile.c_str(), ios::app);
-	if(writeHandler->is_open())
+	if(writeHandler.is_open())
 	{
 		entry.device= true;
 		entry.identif= "value";
@@ -1037,7 +1039,7 @@ void DatabaseThread::ending()
 			}
 			++lcount;
 		}while(write.action != "kill");
-		writeHandler->close();
+		writeHandler.close();
 	}else
 	{
 		string msg("### ERROR: cannot write into '");
@@ -1051,11 +1053,12 @@ void DatabaseThread::ending()
 
 }
 
-void DatabaseThread::writeDb(db_t entry, ofstream* dbfile/*= NULL*/)
+void DatabaseThread::writeDb(db_t entry, ofstream *dbfile/*= NULL*/)
 {
 	typedef vector<double>::iterator iter;
 
 	bool bNewFile= false;
+	ofstream oNewDbFile;
 	unsigned short writecount;
 	vector<DefaultChipConfigReader::write_t> vWrite;
 	DefaultChipConfigReader::write_t writeaccess;
@@ -1081,9 +1084,8 @@ void DatabaseThread::writeDb(db_t entry, ofstream* dbfile/*= NULL*/)
 	{
 
 		bNewFile= true;
-		dbfile= new ofstream;
-		dbfile->open(m_sDbFile.c_str(), ios::app);
-		if(dbfile->fail())
+		oNewDbFile.open(m_sDbFile.c_str(), ios::app);
+		if(oNewDbFile.fail())
 		{
 			string error("### ERROR: cannot open file '");
 
@@ -1094,9 +1096,9 @@ void DatabaseThread::writeDb(db_t entry, ofstream* dbfile/*= NULL*/)
 				cout << error << endl;
 			m_bError= true;
 			TIMELOG(LOG_ALERT, "opendatabase", error);
-			delete dbfile;
 			return;
 		}
+		dbfile= &oNewDbFile;
 	}
 
 	writecount= 0;
@@ -1119,34 +1121,31 @@ void DatabaseThread::writeDb(db_t entry, ofstream* dbfile/*= NULL*/)
 					entry.values.push_back(writeaccess.highest.lowest);
 			}
 		}
-		writeEntry(entry, dbfile);
+		writeEntry(entry, *dbfile);
 		if(writeaccess.action == "write")
 			break;
 	}while(writecount < 2);
 	if(bNewFile)
-	{
-		dbfile->close();
-		delete dbfile;
-	}
+		oNewDbFile.close();
 }
 
-void DatabaseThread::writeEntry(const db_t& entry, ofstream *dbfile)
+void DatabaseThread::writeEntry(const db_t& entry, ofstream &dbfile)
 {
 	char stime[18];
 
-	*dbfile << m_sMeasureName << "|";
+	dbfile << m_sMeasureName << "|";
 	strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&entry.tm));
-	*dbfile << stime << "|";
-	*dbfile << entry.folder << "|" << entry.subroutine << "|";
-	*dbfile << entry.identif;
-	*dbfile << "|";
+	dbfile << stime << "|";
+	dbfile << entry.folder << "|" << entry.subroutine << "|";
+	dbfile << entry.identif;
+	dbfile << "|";
 	if(entry.device)
 	{
 		for(vector<double>::const_iterator valIt= entry.values.begin(); valIt != entry.values.end(); ++valIt)
-			*dbfile << dec << *valIt << "|";
+			dbfile << dec << *valIt << "|";
 	}else
-		*dbfile << "NaN";
-	*dbfile << endl;
+		dbfile << "NaN";
+	dbfile << endl;
 }
 
 bool DatabaseThread::thinDatabase(const bool ask)
@@ -1155,7 +1154,7 @@ bool DatabaseThread::thinDatabase(const bool ask)
 	db_t entry;
 	time_t acttime;
 	map<string, string> files, thinfiles;
-	ofstream *writeHandler= NULL;
+	ofstream writeHandler;
 	DefaultChipConfigReader* reader;
 	map<string, time_t>::iterator fileparsed;
 
@@ -1230,7 +1229,7 @@ bool DatabaseThread::thinDatabase(const bool ask)
 	string doneName(URL::addPath(m_sWorkDir, m_sThinFile + ".done"));
 	ifstream file(readName.c_str());
 	DefaultChipConfigReader::write_t write;
-	const DefaultChipConfigReader::otime_t *older;
+	SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> older;
 
 	if(file.is_open())
 	{
@@ -1256,10 +1255,10 @@ bool DatabaseThread::thinDatabase(const bool ask)
 							{
 								db_t wolder;
 
-								if(!writeHandler)
+								if(!writeHandler.is_open())
 								{
-									writeHandler= new ofstream(writeName.c_str(), ios::app);
-									if(!writeHandler->is_open())
+									writeHandler.open(writeName.c_str(), ios::app);
+									if(writeHandler.fail())
 									{
 										string msg("### ERROR: cannot write new file '");
 
@@ -1300,10 +1299,10 @@ bool DatabaseThread::thinDatabase(const bool ask)
 					||
 					write.action == "fractions"	)
 				{
-					if(!writeHandler)
+					if(!writeHandler.is_open())
 					{
-						writeHandler= new ofstream(writeName.c_str(), ios::app);
-						if(!writeHandler->is_open())
+						writeHandler.open(writeName.c_str(), ios::app);
+						if(writeHandler.fail())
 						{
 							string msg("### ERROR: cannot write new file '");
 
@@ -1328,10 +1327,10 @@ bool DatabaseThread::thinDatabase(const bool ask)
 
 				}else if (write.action == "highest")
 				{
-					if(!writeHandler)
+					if(writeHandler.is_open())
 					{
-						writeHandler= new ofstream(writeName.c_str(), ios::app);
-						if(!writeHandler->is_open())
+						writeHandler.open(writeName.c_str(), ios::app);
+						if(writeHandler.fail())
 						{
 							string msg("### ERROR: cannot write new file '");
 
@@ -1366,8 +1365,8 @@ bool DatabaseThread::thinDatabase(const bool ask)
 				{
 					if(!writeHandler)
 					{
-						writeHandler= new ofstream(writeName.c_str(), ios::app);
-						if(!writeHandler->is_open())
+						writeHandler.open(writeName.c_str(), ios::app);
+						if(writeHandler.fail())
 						{
 							string msg("### ERROR: cannot write new file '");
 
@@ -1386,8 +1385,8 @@ bool DatabaseThread::thinDatabase(const bool ask)
 			if(nCountF == m_nReadRows)
 			{ // stop to thin after 50 rows to look for new db entrys
 				m_nReadPos= file.tellg();
-				if(writeHandler)
-					writeHandler->close();
+				if(writeHandler.is_open())
+					writeHandler.close();
 				file.close();
 				return true;
 			}
@@ -1405,8 +1404,8 @@ bool DatabaseThread::thinDatabase(const bool ask)
 			{
 				if(!writeHandler)
 				{
-					writeHandler= new ofstream(writeName.c_str(), ios::app);
-					if(!writeHandler->is_open())
+					writeHandler.open(writeName.c_str(), ios::app);
+					if(writeHandler.fail())
 					{
 						string msg("### ERROR: cannot write new file '");
 
@@ -1440,9 +1439,9 @@ bool DatabaseThread::thinDatabase(const bool ask)
 
 		newOrder= false;
 		file.close();
-		if(writeHandler)
+		if(writeHandler.is_open())
 		{
-			writeHandler->close();
+			writeHandler.close();
 			newOrder= true;
 		}else
 		{
@@ -1473,19 +1472,21 @@ bool DatabaseThread::thinDatabase(const bool ask)
 	return true;
 }
 
-void DatabaseThread::calcNewThinTime(time_t fromtime, const DefaultChipConfigReader::otime_t* older)
+void DatabaseThread::calcNewThinTime(time_t fromtime, const SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> &older)
 {
+	SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> act;
 	DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
 	time_t acttime, nextThin;
 
-	if(older)
+	act= older;
+	if(act.get())
 	{
-		if(older->older)
-			older= older->older;
+		if(act->older)
+			act= act->older;
 		time(&acttime);
-		nextThin= Calendar::calcDate(/*newer*/true, fromtime, older->more, older->unit);
+		nextThin= Calendar::calcDate(/*newer*/true, fromtime, act->more, act->unit);
 		if(nextThin <= acttime)
-			nextThin= Calendar::calcDate(/*newer*/true, fromtime, (older->more + 1), older->unit);
+			nextThin= Calendar::calcDate(/*newer*/true, fromtime, (act->more + 1), act->unit);
 		if(nextThin > acttime)
 		{
 			acttime= m_mOldest[m_sThinFile];
@@ -1535,16 +1536,16 @@ void DatabaseThread::fillValue(string folder, string subroutine, string identif,
 	}
 
 	LOCK(m_DBENTRYITEMS);
-	m_ptEntrys->push_back(newEntry);
+	m_sptEntrys->push_back(newEntry);
 	AROUSE(m_DBENTRYITEMSCOND);
 	UNLOCK(m_DBENTRYITEMS);
 }
 
-vector<db_t>* DatabaseThread::getDbEntryVector(bool bWait)
+std::auto_ptr<vector<db_t> > DatabaseThread::getDbEntryVector(bool bWait)
 {
 	struct timespec time;
 	int conderror= 0;
-	vector<db_t>* pRv= NULL;
+	std::auto_ptr<vector<db_t> > pRv(new vector<db_t>());
 
 	if(!bWait)
 	{
@@ -1554,10 +1555,10 @@ vector<db_t>* DatabaseThread::getDbEntryVector(bool bWait)
 	do{
 		sleepDefaultTime();
 		LOCK(m_DBENTRYITEMS);
-		if(m_ptEntrys->size() != 0)
+		if(m_sptEntrys->size() != 0)
 		{
-			pRv= m_ptEntrys;
-			m_ptEntrys= new vector<db_t>();
+			pRv= m_sptEntrys;
+			m_sptEntrys= std::auto_ptr<vector<db_t> >(new vector<db_t>());
 
 		}else if(bWait) {
 			conderror= CONDITION(m_DBENTRYITEMSCOND, m_DBENTRYITEMS);
@@ -1569,7 +1570,7 @@ vector<db_t>* DatabaseThread::getDbEntryVector(bool bWait)
 		if(conderror)
 			usleep(500000);
 
-	}while(	pRv == NULL
+	}while(	pRv->size() == 0
 			&&
 			!stopping()	);
 
@@ -1584,7 +1585,6 @@ DatabaseThread::~DatabaseThread()
 	DESTROYMUTEX(m_CHANGINGPOOL);
 	DESTROYCOND(m_DBENTRYITEMSCOND);
 	DESTROYCOND(m_CHANGINGPOOLCOND);
-	delete m_ptEntrys;
 }
 
 }

@@ -49,7 +49,7 @@ namespace ports
 		 * @param properties property casher for this subroutine with type SAVE
 		 * @param pStartFolder first pointer to all defined folders
 		 */
-		bool init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder);
+		bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * creating database from defined subroutine
 		 * if config parameter 'when' is an true value

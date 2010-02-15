@@ -167,11 +167,10 @@ namespace server
 			cout << msg << endl;
 #endif // DEBUG
 			LOCK(m_HAVECLIENT);
-			if(m_hFileAccess)
+			if(m_hFileAccess.get())
 			{
 				m_hFileAccess->closeConnection();
-				delete m_hFileAccess;
-				m_hFileAccess= NULL;
+				m_hFileAccess= auto_ptr<IFileDescriptorPattern>();
 			}
 			m_bHasClient= false;
 			UNLOCK(m_HAVECLIENT);
@@ -248,11 +247,10 @@ namespace server
 
 		LOCK(m_HAVECLIENT);
 		Rv= Thread::stop();// do not detach thread
-		if(*bWait && client && m_hFileAccess)
+		if(*bWait && client && m_hFileAccess.get())
 		{
 			m_hFileAccess->closeConnection();
-			delete m_hFileAccess;
-			m_hFileAccess= NULL;
+			m_hFileAccess= auto_ptr<IFileDescriptorPattern>();
 		}
 		AROUSE(m_CLIENTWAITCOND);
 		UNLOCK(m_HAVECLIENT);
@@ -275,10 +273,10 @@ namespace server
 	void Communication::connection(IFileDescriptorPattern* access)
 	{
 		LOCK(m_HAVECLIENT);
-		m_hFileAccess= access;
 		m_bHasClient= true;
 		m_bConnected= false;
-		access->setClientID(m_nDefaultID);
+		m_hFileAccess= auto_ptr<IFileDescriptorPattern>(access);
+		m_hFileAccess->setClientID(m_nDefaultID);
 		AROUSE(m_CLIENTWAITCOND);
 		UNLOCK(m_HAVECLIENT);
 	}
@@ -295,7 +293,7 @@ namespace server
 		bool bClient;
 
 		LOCK(m_HAVECLIENT);
-		if(m_hFileAccess == NULL)
+		if(m_hFileAccess.get() == NULL)
 			bClient= false;
 		else
 			bClient= m_bHasClient;

@@ -159,7 +159,7 @@ namespace util {
 			 *
 			 * @return array of sections in this object
 			 */
-			virtual vector<IInterlacedPropertyPattern*> getSections() const
+			virtual const vector<IInterlacedPropertyPattern*> getSections() const
 														{ return m_vSections; };
 			/**
 			 * return name of current section

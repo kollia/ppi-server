@@ -15,40 +15,20 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string>
 
-using namespace std;
+#ifndef SMART_PTR_H_
+#define SMART_PTR_H_
 
-enum PortExcept
-{
-	DEKLARATION= 0,
-	UNKNOWN
-};
+// include for std::auto_ptr
+#include <memory>
 
-class BaseException
-{
-	private:
-		string m_sErrorHead;
-		string m_sErrorText;
+#include <boost/shared_ptr.hpp>
+#define SHAREDPTR boost
 
-	public:
-		BaseException(string heading, string error);
-		~BaseException();
+#include <boost/scoped_array.hpp>
+#define SCOPEDARR boost
 
-		const string getHeading();
-		const string getErrorText();
-		const string getMessage();
-};
+#include <boost/shared_array.hpp>
+#define SHAREDARR boost
 
-class PortException : public BaseException
-{
-	private:
-		PortExcept m_status;
-
-	public:
-		PortException(string heading, PortExcept status, string error) :
-			BaseException(heading, error),
-			m_status(status) {};
-
-		const string getMessage();
-};
+#endif /* SMART_PTR_H_ */

@@ -1087,32 +1087,16 @@ namespace server
 		return sRv;
 	}
 
-	meash_t* ServerTransaction::getMeasurePort(string folder)
+	const SHAREDPTR::shared_ptr<meash_t> ServerTransaction::getMeasurePort(string folder)
 	{
-			meash_t* pCurMeas= meash_t::firstInstance;
+		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
 
-			while(pCurMeas)
-			{
-				if(pCurMeas->pMeasure->getThreadName() == folder)
-					break;
-				pCurMeas= pCurMeas->next;
-			}
-			/*if(!bFoundFolder)
-			{
-				pCurrentFolder= m_ptFolderStart;
-				while(pCurrentFolder != NULL)
-				{
-					if(pCurrentFolder->name == folder[0])
-					{
-						bFoundFolder= true;
-						break;
-					}
-					pCurrentFolder= pCurrentFolder->next;
-				}
-				if(pCurrentFolder == NULL)
-				}
-			}
-		}else*/
+		while(pCurMeas)
+		{
+			if(pCurMeas->pMeasure->getThreadName() == folder)
+				break;
+			pCurMeas= pCurMeas->next;
+		}
 
 		return pCurMeas;
 	}

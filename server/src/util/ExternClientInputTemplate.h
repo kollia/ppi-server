@@ -37,7 +37,8 @@ namespace util
 	{
 		public:
 			/**
-			 * constructor of ExternClientInputTemplate
+			 * constructor of ExternClientInputTemplate.
+			 * By cancel this ExternClientInputTemplate object, third and fourth parameter will be also delete.
 			 *
 			 * @param process name of process to identify by server
 			 * @param client name of client to identify by server

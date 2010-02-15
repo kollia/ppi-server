@@ -24,8 +24,7 @@
 
 using namespace util;
 
-//void timer::init(folder *pStartFolder, string sBegin, string sWhile, time_t secounds)
-bool timer::init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder)
+bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
 	long sec, min, hour;
 	string prop;
@@ -70,7 +69,7 @@ bool timer::measure()
 
 	if(	m_tmEnd == 0
 		||
-		m_pWhile	)
+		m_sWhile != ""	)
 	{
 		bool bSwitch= bSet;
 

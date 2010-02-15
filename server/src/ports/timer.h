@@ -29,7 +29,7 @@ class timer : public switchClass
 public:
 	timer(string folderName, string subroutineName)
 	: switchClass(folderName, subroutineName) { };
-	virtual bool init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder);
+	virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 	virtual bool measure();
 	virtual ~timer();
 

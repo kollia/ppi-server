@@ -28,6 +28,8 @@
 #include <string>
 #include <map>
 
+#include "../util/smart_ptr.h"
+
 #include "../util/interlacedactionproperties.h"
 
 using namespace std;
@@ -191,45 +193,15 @@ namespace ports
 			/**
 			 * pointer to fraction struct
 			 */
-			fraction_t* fraction;
+			auto_ptr<fraction_t> fraction;
 			/**
 			 * pointer to highest struct
 			 */
-			highest_t* highest;
+			auto_ptr<highest_t> highest;
 			/**
 			 * the next older structure should be after the current
 			 */
-			otime_t *older;
-
-			otime_t* operator = (otime_t *other) {
-				dbwrite= other->dbwrite;
-				more= other->more;
-				unit= other->unit;
-				highest= other->highest;
-				fraction= other->fraction;
-				highest= other->highest;
-	/*			if(other->fraction) {
-					fraction= new fraction_t;
-					fraction->bValue= other->fraction->bValue;
-					fraction->dbafter= other->fraction->dbafter;
-					fraction->dbinterval= other->fraction->dbinterval;
-					fraction->direction= other->fraction->direction;
-					fraction->value= other->fraction->value;
-				}else
-					fraction= NULL;
-				if(other->highest) {
-					highest= new highest_t;
-					highest->bValue= other->highest->bValue;
-					highest->between= other->highest->between;
-					highest->hightime= other->highest->hightime;
-					highest->highest= other->highest->highest;
-					highest->lowtime= other->highest->lowtime;
-					highest->lowest= other->highest->lowest;
-				}else
-					highest= NULL;*/
-				older= other->older;
-				return this;
-			}
+			SHAREDPTR::shared_ptr<otime_t> older;
 		};
 		/**
 		 * default values
@@ -239,7 +211,7 @@ namespace ports
 			double dmax;
 			bool bFloat;
 			double dcache;
-			otime_t* older;
+			SHAREDPTR::shared_ptr<otime_t> older;
 		};
 		/**
 		 * structure of chip id's
@@ -256,7 +228,7 @@ namespace ports
 			bool bFloat;
 			double dCache;
 			bool bWritable;
-			otime_t *older;
+			SHAREDPTR::shared_ptr<otime_t> older;
 		};
 
 		/**
@@ -372,7 +344,7 @@ namespace ports
 		 * @param nonactive whether older should be set to non active
 		 * @return last active older structure
 		 */
-		const otime_t* getLastActiveOlder(const string& folder, const string& subroutine, const bool nonactive);
+		const SHAREDPTR::shared_ptr<otime_t> getLastActiveOlder(const string& folder, const string& subroutine, const bool nonactive);
 		/**
 		 * read all values which be inside of chips for fractions or highest be saved
 		 *
@@ -405,6 +377,10 @@ namespace ports
 		 */
 		bool chipsAreDefined()
 		{ return m_bChipsDef; };
+		/**
+		 * delete object of DefaultChipConfigReader
+		 */
+		static void deleteObj();
 		/**
 		 * destructor of object
 		 */
@@ -487,14 +463,14 @@ namespace ports
 		 * 				because the first is for normally reading and all other to thin database
 		 * @return older part
 		 */
-		otime_t* readOlderSection(IInterlacedPropertyPattern* property, const bool first);
+		SHAREDPTR::shared_ptr<otime_t> readOlderSection(IInterlacedPropertyPattern* property, const bool first);
 		/**
 		 * copy the given older structure into an new one
 		 *
 		 * @param older structure which should copy
 		 * @return duplicated older structure
 		 */
-		otime_t* copyOlder(const otime_t* older);
+		SHAREDPTR::shared_ptr<otime_t> copyOlder(const SHAREDPTR::shared_ptr<otime_t> &older) const;
 		/**
 		 * search for folder and subroutine the default older values what to do
 		 * and return an dublicated older structure
@@ -506,7 +482,7 @@ namespace ports
 		 * @param bFloat whether value can be an floating value
 		 * @return new older structure
 		 */
-		otime_t* getNewDefaultChipOlder(const string& folder, const string& subroutine, const double min, const double max, const bool bFloat);
+		SHAREDPTR::shared_ptr<otime_t> getNewDefaultChipOlder(const string& folder, const string& subroutine, const double min, const double max, const bool bFloat) const;
 	};
 
 }

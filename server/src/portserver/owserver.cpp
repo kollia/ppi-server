@@ -48,10 +48,11 @@ namespace server
 {
 	OWServer::OWServer(const unsigned short ID, IChipAccessPattern* accessPattern)
 	:	Thread("OwfsServer", /*defaultSleep*/0),
-		m_nServerID(ID)
+		m_nServerID(ID),
+		m_bConnected(false),
+		m_bAllInitial(false),
+		m_poChipAccess(auto_ptr<IChipAccessPattern>(accessPattern))
 	{
-		m_bConnected= false;
-		m_bAllInitial= false;
 		m_WRITEONCHIP= getMutex("WRITEONCHIP");
 		m_WRITECACHE= getMutex("READCACHE");
 		m_PRIORITYCACHECOND= getCondition("PRIORITYCACHECOND");
@@ -59,8 +60,7 @@ namespace server
 		m_PRIORITYCACHE= getMutex("PRIORITYCACHE");
 		m_PRIORITY1CHIP= getMutex("PRIORITY1CHIP");
 		m_CACHEWRITEENTRYS= getMutex("CACHEWRITEENTRYS");
-		m_DEBUGINFO= getMutex("DEBUGINFO");
-		m_poChipAccess= accessPattern;
+		m_DEBUGINFO= getMutex("DEBUGINFO");;
 	}
 
 	bool OWServer::readFirstChipState()
@@ -73,10 +73,10 @@ namespace server
 		if(m_mvReadingCache.size() > 0)
 		{
 			cout << "read all defined input for first state from " << m_poChipAccess->getServerName() << " ..." << endl;
-			for(map<double, vector<chip_types_t*> >::iterator it= m_mvReadingCache.begin(); it != m_mvReadingCache.end(); ++it)
+			for(map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >::iterator it= m_mvReadingCache.begin(); it != m_mvReadingCache.end(); ++it)
 			{
 				cout << "   sequence for cache " << dec << it->first << " seconds" << endl;
-				for(vector<chip_types_t*>::iterator chip= it->second.begin(); chip != it->second.end(); ++chip)
+				for(vector<SHAREDPTR::shared_ptr<chip_types_t> >::iterator chip= it->second.begin(); chip != it->second.end(); ++chip)
 				{
 					cout << "      " << (*chip)->id << " has value " << flush;
 					value= 0;
@@ -147,7 +147,7 @@ namespace server
 		unsigned int priority;
 		double dCacheSeq;
 		string prop;
-		chip_types_t* pchip;
+		SHAREDPTR::shared_ptr<chip_types_t> pchip;
 		device_debug_t tdebug;
 		DbInterface *reader= NULL;
 
@@ -243,7 +243,7 @@ namespace server
 			write= false;
 		}
 
-		pchip= new chip_types_t;
+		pchip= SHAREDPTR::shared_ptr<chip_types_t>(new chip_types_t);
 		pchip->id= unique;
 		if(cacheWrite)
 			pchip->writecache= true;
@@ -346,7 +346,7 @@ namespace server
 	{
 		typedef map<string, map<string, string> >::iterator cachemmiter;
 		typedef map<string, string>::iterator cachemiter;
-		typedef map<string, chip_types_t*>::iterator mmtype;
+		typedef map<string, SHAREDPTR::shared_ptr<chip_types_t> >::iterator mmtype;
 
 		if(!m_bAllInitial)
 		{
@@ -364,7 +364,7 @@ namespace server
 				return 0;
 		}
 		short endWork;
-		map<int, queue<chip_types_t*> >::iterator priorityPos;
+		map<int, queue<SHAREDPTR::shared_ptr<chip_types_t> > >::iterator priorityPos;
 		bool bDebug= false;
 		bool bDo= false;
 		bool bHasStarterSeq;
@@ -385,7 +385,7 @@ namespace server
 			endWork= 3;// nothing to do
 			while(!priorityPos->second.empty())
 			{
-				chip_types_t* chip;
+				SHAREDPTR::shared_ptr<chip_types_t> chip;
 				vector<device_debug_t>::iterator devIt;
 
 				chip= priorityPos->second.front();
@@ -449,7 +449,7 @@ namespace server
 		if(!bDo)
 		{
 			//static bool bChipVectorSet= false;
-			vector<chip_types_t*>::iterator pActChip;
+			vector<SHAREDPTR::shared_ptr<chip_types_t> >::iterator pActChip;
 			map<double, seq_t>::iterator pActSeq= m_mStartSeq.begin();
 
 			timeval tv;
@@ -596,7 +596,10 @@ namespace server
 					if(endWork == 1)
 						break;
 					++pActChip;
-					pActSeq->second.nextUnique= *pActChip;
+					if(pActChip != m_mvReadingCache[pActSeq->first].end())
+						pActSeq->second.nextUnique= *pActChip;
+					else
+						pActSeq->second.nextUnique= SHAREDPTR::shared_ptr<chip_types_t>();
 				}
 				if(	pActSeq != m_mStartSeq.end()
 					&&
@@ -618,7 +621,7 @@ namespace server
 						}else
 						{
 							timeval tmRepeat;
-							chip_types_t* chip;
+							SHAREDPTR::shared_ptr<chip_types_t> chip;
 
 							//if(isDebug())
 							//{
@@ -786,9 +789,9 @@ namespace server
 	bool OWServer::write(const string& id, const double value)
 	{
 		bool write= false;
-		chip_types_t* chip;
+		SHAREDPTR::shared_ptr<chip_types_t> chip;
 		vector<string>::iterator inIt;
-		map<string, chip_types_t*>::iterator chipIt;
+		map<string, SHAREDPTR::shared_ptr<chip_types_t> >::iterator chipIt;
 
 		chipIt= m_mtConductors.find(id);
 		chip= chipIt->second;
@@ -879,7 +882,7 @@ namespace server
 	{
 		bool bfloat, bCorrect;
 		double min, max;
-		map<string, chip_types_t*>::iterator chipIt;
+		map<string, SHAREDPTR::shared_ptr<chip_types_t> >::iterator chipIt;
 
 		chipIt= m_mtConductors.find(id);
 		range(chipIt->second->id, min, max, bfloat);
@@ -1079,11 +1082,6 @@ namespace server
 
 	OWServer::~OWServer()
 	{
-		delete m_poChipAccess;
-		for(map<string, chip_types_t*>::iterator p= m_mtConductors.begin(); p != m_mtConductors.end(); ++p)
-		{
-			delete p->second;
-		}
 		DESTROYMUTEX(m_WRITEONCHIP);
 		DESTROYMUTEX(m_WRITECACHE);
 		DESTROYMUTEX(m_READCACHE);

@@ -45,6 +45,15 @@ namespace logger
 		return true;
 	}
 
+	void LogInterface::deleteObj()
+	{
+		if(_instance)
+		{
+			delete _instance;
+			_instance= NULL;
+		}
+	}
+
 	void LogInterface::writeVectors()
 	{
 		for(vector<threadNames>::iterator it= m_vtThreads.begin(); it != m_vtThreads.end(); ++it)

@@ -482,6 +482,10 @@ namespace util
 	{
 		closeSendConnection();
 		closeGetConnection();
+		if(m_oSendConnect)
+			delete m_oSendConnect;
+		if(m_oGetConnect)
+			delete m_oGetConnect;
 		DESTROYMUTEX(m_SENDMETHODLOCK);
 		DESTROYMUTEX(m_GETQUESTIONLOCK);
 	}

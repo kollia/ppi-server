@@ -63,7 +63,8 @@ namespace ppi_database
 		};
 
 		/**
-		 * Instantiate for DbProcess
+		 * Instantiate for DbProcess.<br/>
+		 * By cancel this DbInterface object, second parameter object will be also delete in parent class.
 		 *
 		 * @param process name of process in which the log-interface running
 		 * @param connection to which server this interface should connect to send messages
@@ -325,7 +326,8 @@ namespace ppi_database
 
 	protected:
 		/**
-		 * creating instance of DbInterface
+		 * creating instance of DbInterface.<br/>
+		 * By cancel this DbInterface object, second parameter object will be also delete in parent class.
 		 *
 		 * @param process name of process in which the log-interface running
 		 * @param connection to which server this interface should connect to send messages

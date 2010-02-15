@@ -30,7 +30,8 @@ class ProcessChecker : 	public Thread,
 						public ExternClientInputTemplate {
 public:
 	/**
-	 * constructor to create answer port in ppi-server
+	 * constructor to create answer port in ppi-server.<br/>
+	 * By cancel this ProcessChecker object, first and second parameter object will be also delete in parent class.
 	 *
 	 * @param getConnection on which connection from outside the server is reachable to get questions
 	 */

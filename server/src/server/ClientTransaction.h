@@ -126,7 +126,7 @@ namespace server
 			/**
 			 * object of an second client running inside and thread
 			 */
-			HearingThread* m_o2Client;
+			auto_ptr<HearingThread> m_o2Client;
 			/**
 			 * warning number which can occur outside of ClientTransaction as positive integer
 			 */

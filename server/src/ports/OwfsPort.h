@@ -56,7 +56,7 @@ namespace ports
 		 * @param properties the properties in file measure.conf
 		 * @return whether initialization was OK
 		 */
-		virtual bool init(measurefolder_t *pStartFolder, ConfigPropertyCasher &properties);
+		virtual bool init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, ConfigPropertyCasher &properties);
 		/**
 		 * reading all devices on the defined adapter
 		 */
@@ -141,7 +141,7 @@ namespace ports
 		/**
 		 * server which read an write on one wire device
 		 */
-		OWInterface* m_pOWServer;
+		OWI m_pOWServer;
 		/**
 		 * settings from measure config file for defined subroutine
 		 */

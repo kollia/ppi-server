@@ -32,7 +32,8 @@ namespace server
 	{
 		public:
 			/**
-			 * constructor to initial object
+			 * constructor to initial object.<br/>
+			 * By cancel this TcpServerConnection object, fourth parameter object will be also delete in parent class.
 			 *
 			 * @param host string of host as ip4, ip6 or name
 			 * @param port number of port

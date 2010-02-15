@@ -31,6 +31,7 @@
 //#include "util/Calendar.cpp"
 
 #include "starter.h"
+#include "util/smart_ptr.h"
 
 using namespace std;
 using namespace util;
@@ -45,7 +46,7 @@ int main(int argc, char* argv[])
 	bool bWait= false;
 	int nArcPos= 1;
 	string param;
-	Starter* server;
+	auto_ptr<Starter> server;
 	string workdir(argv[0]);
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
@@ -74,6 +75,34 @@ int main(int argc, char* argv[])
 	dirlen= directorys.size();
 	workdir= "";
 
+#if 0
+	// auto_ptr test
+	SHAREDPTR::shared_ptr<vector<string> > plv, plv2;
+	while(1)
+	{
+		plv2= std::auto_ptr<vector<string> >(new vector<string>());
+		plv= std::auto_ptr<vector<string> >(new vector<string>());
+		plv->push_back("0-string");
+		plv->push_back("1-string");
+		plv->push_back("2-string");
+		plv->push_back("3-string");
+		plv->push_back("4-string");
+		plv->push_back("5-string");
+		plv->push_back("6-string");
+		plv->push_back("7-string");
+		plv->push_back("8-string");
+		plv->push_back("9-string");
+		plv2= plv;
+		plv= SHAREDPTR::shared_ptr<vector<string> >();
+		if(!plv)
+			cout << "shared_ptr plv is NULL" << endl;
+		if(plv2)
+			cout << "shared_ptr plv2 is not NULL" << endl;
+		for(vector<string>::iterator vit= plv2->begin(); vit != plv2->end(); ++vit)
+			cout << *vit << endl;
+		cout << endl;
+	}
+#endif
 	for(vector<string>::size_type c= 0; c < dirlen; ++c)
 	{
 		if(c == dirlen-2)
@@ -134,7 +163,7 @@ int main(int argc, char* argv[])
 				return EXIT_FAILURE;
 			}
 		}
-		server= new Starter(workdir);
+		server= auto_ptr<Starter>(new Starter(workdir));
 		if(param == "start")
 		{
 			pthread_mutex_init(&g_READMUTEX, NULL);

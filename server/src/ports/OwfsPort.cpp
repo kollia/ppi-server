@@ -28,7 +28,7 @@ using namespace ppi_database;
 
 namespace ports
 {
-	bool OwfsPort::init(measurefolder_t *pStartFolder, ConfigPropertyCasher &properties)
+	bool OwfsPort::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, ConfigPropertyCasher &properties)
 	{
 		bool bRv= true;
 

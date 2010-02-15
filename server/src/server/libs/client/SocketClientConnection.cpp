@@ -38,8 +38,8 @@ namespace server
 		m_sHost(host),
 		m_nPort(port),
 		m_nTimeout(timeout),
-		m_nSocketType(type),
-		m_pDescriptor(NULL)
+		m_pDescriptor(NULL),
+		m_nSocketType(type)
 	{
 	}
 
@@ -60,7 +60,7 @@ namespace server
 		int nRv= 0;
 		int nRvw= 0;
 		int pf; // type of connection
-		char  *ip_address= new char[INET6_ADDRSTRLEN];
+		char ip_address[INET6_ADDRSTRLEN];
 		//string msg;
 		sockaddr_in	address;
 		sockaddr_in6 address6;
@@ -275,7 +275,9 @@ namespace server
 			return nRv;
 		}
 		fp= fdopen (m_kSocket.serverSocket, "w+");
-		m_pDescriptor= new FileDescriptor(NULL, m_pTransfer, fp, m_sHost, m_nPort, m_nTimeout);
+		if(m_pDescriptor)
+			delete m_pDescriptor;
+		m_pDescriptor= new FileDescriptor(NULL, m_pTransfer, fp, m_sHost, m_nPort, m_nTimeout);// this pointer will be delete outside from object (no auto_ptr)
 		if(!m_pDescriptor->init())
 			return 10;
 		if(m_pDescriptor->transfer())
@@ -287,10 +289,7 @@ namespace server
 	{
 		::close(m_kSocket.serverSocket);
 		if(m_pDescriptor)
-		{
 			delete m_pDescriptor;
-			m_pDescriptor= NULL;
-		}
 	}
 
 	string SocketClientConnection::strerror(int error) const

@@ -25,7 +25,7 @@
 #include "shell.h"
 
 //void Shell::init(folder *pStartFolder, string sWhile, string beginCommand, string whileCommand, string endCommand)
-bool Shell::init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder)
+bool Shell::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
 	properties.notAllowedParameter("begin");
 	properties.notAllowedParameter("end");

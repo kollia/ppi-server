@@ -26,8 +26,7 @@
 #include "switch.h"
 #include "switchcontact.h"
 
-//void switchContact::init(folder *pStartFolder, Pins tOut, string on, string sWhile, string off)
-bool switchContact::init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder)
+bool switchContact::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
 	string value;
 	vector<string> split;

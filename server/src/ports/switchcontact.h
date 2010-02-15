@@ -45,7 +45,7 @@ class switchContact : public switchClass
 	public:
 		switchContact(string folderName, string subroutineName)
 		: switchClass(folderName, subroutineName) { };
-		virtual bool init(ConfigPropertyCasher &properties, measurefolder_t *pStartFolder);
+		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		virtual bool measure();
 		virtual ~switchContact();
 };

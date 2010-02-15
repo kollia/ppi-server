@@ -20,12 +20,14 @@
 #include <sys/io.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <memory>
 
 #include "../../../pattern/server/IClientConnectArtPattern.h"
 #include "../../../pattern/server/IFileDescriptorPattern.h"
 #include "../../../pattern/server/ITransferPattern.h"
 #include "../../../pattern/server/IServerPattern.h"
 
+using namespace std;
 using namespace design_pattern_world::server_pattern;
 
 namespace server
@@ -391,7 +393,7 @@ namespace server
 		public:
 			/**
 			 * constructor to initial object.<br />
-			 * object delete by ending ITransferPattern
+			 * By cancel this object, fourth parameter object will be also delete.
 			 *
 			 * @param type protocol type of connection
 			 * @param host string of host as ip4, ip6 or name
@@ -491,16 +493,16 @@ namespace server
 			 * how ofthen the client should try to connect
 			 */
 			unsigned int m_nTimeout;
+			/**
+			 * descriptor for transaction
+			 */
+			IFileDescriptorPattern* m_pDescriptor;
 
 		private:
 			/**
 			 * protocl type of connection
 			 */
 			int m_nSocketType;
-			/**
-			 * descriptor for transaction
-			 */
-			IFileDescriptorPattern* m_pDescriptor;
 	};
 
 }

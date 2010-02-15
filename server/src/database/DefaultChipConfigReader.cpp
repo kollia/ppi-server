@@ -49,6 +49,15 @@ namespace ports
 			_instance= new DefaultChipConfigReader(path);
 	}
 
+	inline void DefaultChipConfigReader::deleteObj()
+	{
+		if(_instance)
+		{
+			delete _instance;
+			_instance= NULL;
+		}
+	}
+
 	void DefaultChipConfigReader::initialDefault()
 	{
 		typedef vector<IInterlacedPropertyPattern*>::iterator sit;
@@ -241,7 +250,6 @@ namespace ports
 		chip.bFloat= false;
 		chip.dCache= dCache;
 		chip.bWritable= false;
-		chip.older= NULL;
 
 		if(read)
 		{
@@ -354,25 +362,19 @@ namespace ports
 		{
 			if((*o)->getSectionModifier() == "dbolder") {
 				if(!chip.older) {
-					chip.older= new otime_t;
+					chip.older= SHAREDPTR::shared_ptr<otime_t>(new otime_t);
 					chip.older->active= false;			// the first older is only
 					chip.older->more= 0;				// for current reading
 					chip.older->unit= 'D';
-					chip.older->highest= 0;
 					chip.older->dbwrite= "all";
-					chip.older->fraction= NULL;
-					chip.older->highest= NULL;
-					chip.older->older= new otime_t;
+					chip.older->older= SHAREDPTR::shared_ptr<otime_t>(new otime_t);
 					chip.older->older->active= false;
 					chip.older->older->more= 0;			// the second and all other
 					chip.older->older->unit= 'D';		// to thin database
-					chip.older->older->highest= 0;
 					chip.older->older->dbwrite= "all";
-					chip.older->older->fraction= NULL;
-					chip.older->older->highest= NULL;
 					chip.older->older->older= readOlderSection(*o, /*first*/false);
 				}else {
-					otime_t* older;
+					SHAREDPTR::shared_ptr<otime_t> older;
 
 					older= chip.older;
 					while(older->older)
@@ -428,26 +430,26 @@ namespace ports
 		}
 	}
 
-	const DefaultChipConfigReader::otime_t* DefaultChipConfigReader::getLastActiveOlder(const string& folder, const string& subroutine, const bool nonactive)
+	const SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> DefaultChipConfigReader::getLastActiveOlder(const string& folder, const string& subroutine, const bool nonactive)
 	{
-		otime_t *older;
+		SHAREDPTR::shared_ptr<otime_t> older;
 		map<string, chips_t*>::const_iterator subIt;
 		map<string, map<string, chips_t*> >::const_iterator folderIt;
 
 		folderIt= m_mmAllChips.find(folder);
 		if(folderIt == m_mmAllChips.end())
-			return NULL;
+			return SHAREDPTR::shared_ptr<otime_t>();
 		subIt= folderIt->second.find(subroutine);
 		if(subIt == folderIt->second.end())
-			return NULL;
-		if(subIt->second->older == NULL)
-			return NULL;
+			return SHAREDPTR::shared_ptr<otime_t>();
+		if(subIt->second->older.get() == NULL)
+			return SHAREDPTR::shared_ptr<otime_t>();
 		older= subIt->second->older->older;
 		while(older)
 		{
 			if(	older->active == true
 				&&
-				(	older->older == NULL
+				(	older->older.get() == NULL
 					||
 					(	older->older
 						&&
@@ -465,7 +467,7 @@ namespace ports
 				older->active= false;
 			return older;
 		}
-		return NULL;
+		return SHAREDPTR::shared_ptr<otime_t>();
 	}
 
 	const DefaultChipConfigReader::chips_t* DefaultChipConfigReader::getRegisteredDefaultChip(const string& server, const string& chip) const
@@ -531,17 +533,14 @@ namespace ports
 		return NULL;
 	}
 
-	DefaultChipConfigReader::otime_t* DefaultChipConfigReader::readOlderSection(IInterlacedPropertyPattern* property, const bool first) {
+	SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> DefaultChipConfigReader::readOlderSection(IInterlacedPropertyPattern* property, const bool first) {
 
-		otime_t *older= new otime_t;
+		SHAREDPTR::shared_ptr<otime_t> older(new otime_t);
 		string dbolder, dbwrite, dbinterval, dbafter;
 
 		older->active= false;
 		older->more= 0;
 		older->unit= 'D';
-		older->highest= NULL;
-		older->fraction= NULL;
-		older->older= NULL;
 		dbolder= property->getValue("dbolder", /*warning*/false);
 		dbwrite= property->getValue("dbwrite", /*warning*/false);
 		dbinterval= property->getValue("dbinterval", /*warning*/false);
@@ -603,7 +602,7 @@ namespace ports
 					istringstream istr(dbwrite.substr(8));
 
 
-					older->highest= new highest_t;
+					older->highest= auto_ptr<highest_t>(new highest_t);
 					older->highest->between= 0;
 					istr >> older->highest->between;
 					istr >> d;
@@ -639,7 +638,7 @@ namespace ports
 					older->highest->lowtime= 0;
 
 				}else if(dbwrite == "fractions") {
-					older->fraction= new fraction_t;
+					older->fraction= auto_ptr<fraction_t>(new fraction_t);
 					older->fraction->bValue= false;
 					older->fraction->dbafter= 0;
 					older->fraction->dbinterval= 0;
@@ -701,19 +700,7 @@ namespace ports
 		if(first == true)
 		{ // if the older section is the first, the method duplicate the section,
 		  // because the first is for normally reading and all other to thin database
-			older->older= new otime_t;
-			*older->older= *older;
-			older->older->older= NULL;
-			if(older->fraction)
-			{
-				older->older->fraction= new fraction_t;
-				*older->older->fraction= *older->fraction;
-			}
-			if(older->highest)
-			{
-				older->older->highest= new highest_t;
-				*older->older->highest= *older->highest;
-			}
+			older->older= copyOlder(older);
 		}
 		return older;
 	}
@@ -843,28 +830,29 @@ namespace ports
 				entry.dCache= *pdCache;
 			else
 				entry.dCache= 0;
-			entry.older= NULL;
 			m_mmmmmChips[server][family][type][chip][pin]= entry;
 			m_mmUsedChips[server][chip]= entry; //&m_mmmmmChips[server][family][type][chip][pin];
 		}
 	}
 
-	DefaultChipConfigReader::otime_t* DefaultChipConfigReader::copyOlder(const otime_t* older)
+	SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> DefaultChipConfigReader::copyOlder(const SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> &older) const
 	{
-		otime_t* pRv;
+		SHAREDPTR::shared_ptr<otime_t>  pRv;
 
-		if(older == NULL)
-			return NULL;
-		pRv= new otime_t;
-		*pRv= *older;
-		if(older->fraction)
+		if(older.get() == NULL)
+			return pRv;
+		pRv= SHAREDPTR::shared_ptr<otime_t>(new otime_t);
+		pRv->active= older->active;
+		pRv->more= older->more;
+		pRv->unit= older->unit;
+		if(older->fraction.get())
 		{
-			pRv->fraction= new fraction_t;
-			*pRv->fraction= *older->fraction;
+			pRv->fraction= auto_ptr<fraction_t>(new fraction_t);
+			*(pRv->fraction)= *(older->fraction);
 		}
-		if(older->highest)
+		if(older->highest.get())
 		{
-			pRv->highest= new highest_t;
+			pRv->highest= auto_ptr<highest_t>(new highest_t);
 			*pRv->highest= *older->highest;
 		}
 		pRv->older= copyOlder(older->older);
@@ -924,7 +912,7 @@ namespace ports
 		map<double, map<bool, defValues_t> >::const_iterator highRange;
 		map<double, map<bool, defValues_t> >::const_iterator lowRange;
 		map<bool, defValues_t>::const_iterator floatIt;
-		defValues_t nullDef = { 0, 0, false, 0, NULL };
+		defValues_t nullDef = { 0, 0, false, 0, SHAREDPTR::shared_ptr<otime_t>() };
 
 		if(folder != "")
 			folderIt= m_mmmmDefaultValues.find(folder);
@@ -1006,13 +994,13 @@ namespace ports
 	}
 
 
-	DefaultChipConfigReader::otime_t* DefaultChipConfigReader::getNewDefaultChipOlder(const string& folder, const string& subroutine, const double min, const double max, const bool bFloat)
+	SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> DefaultChipConfigReader::getNewDefaultChipOlder(const string& folder, const string& subroutine, const double min, const double max, const bool bFloat) const
 	{
 		defValues_t def;
 
 		def= getDefaultValues(min, max, bFloat, folder, subroutine);
-		if(!def.older)
-			return NULL;
+		if(!def.older) // toDo: check whether can define instnace of shared_ptr as boolean for content
+			return SHAREDPTR::shared_ptr<otime_t>();
 		return copyOlder(def.older);
 	}
 
@@ -1021,8 +1009,8 @@ namespace ports
 	DefaultChipConfigReader::write_t DefaultChipConfigReader::allowDbWriting(const string& folder, const string& subroutine, const double value, const time_t acttime, bool* newOlder/*=NULL*/)
 	{
 		write_t tRv;
-		otime_t* parento;
-		otime_t* wr;
+		SHAREDPTR::shared_ptr<otime_t> parento;
+		SHAREDPTR::shared_ptr<otime_t> wr;
 		chips_t* chip;
 		time_t thistime;
 		map<string, chips_t*>::const_iterator subIt;
@@ -1061,7 +1049,7 @@ namespace ports
 			// to thin
 			wr= wr->older;
 			parento= wr;
-			while(wr->older != NULL)
+			while(wr->older.get() != NULL)
 			{
 				if(Calendar::calcDate(/*newer*/false, thistime, wr->more, wr->unit) < acttime)
 					break;
@@ -1212,7 +1200,7 @@ namespace ports
 	{
 		unsigned int current= 0;
 		write_t tRv;
-		otime_t *older;
+		SHAREDPTR::shared_ptr<otime_t> older;
 		map<string, chips_t*>::const_iterator subIt;
 		map<string, map<string, chips_t*> >::const_iterator folderIt;
 
@@ -1270,7 +1258,7 @@ namespace ports
 
 	DefaultChipConfigReader::~DefaultChipConfigReader()
 	{
-		typedef map<string, map<string, map<string, map<string, map<string, chips_t> > > > >::iterator servIt;
+	/*	typedef map<string, map<string, map<string, map<string, map<string, chips_t> > > > >::iterator servIt;
 		typedef map<string, map<string, map<string, map<string, chips_t> > > >::iterator famIt;
 		typedef map<string, map<string, map<string, chips_t> > >::iterator typIt;
 		typedef map<string, map<string, chips_t> >::iterator idIt;
@@ -1321,6 +1309,6 @@ namespace ports
 					del= next;
 				}
 			}
-		}
+		}*/
 	}
 }

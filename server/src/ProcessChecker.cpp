@@ -45,8 +45,8 @@ int ProcessChecker::execute()
 		bool bCorrect;
 		double value;
 		string folder, subroutine;
-		meash_t* pCurMeas= meash_t::firstInstance;
-		portBase* port= NULL;
+		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
+		SHAREDPTR::shared_ptr<portBase> port;
 
 		object >> folder;
 		object >> subroutine;
@@ -78,7 +78,7 @@ int ProcessChecker::execute()
 	{
 		bool bFound= false;
 		string folder;
-		meash_t* pCurMeas= meash_t::firstInstance;
+		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
 
 		object >> folder;
 		while(pCurMeas)
@@ -96,7 +96,7 @@ int ProcessChecker::execute()
 
 	}else if(method == "clearFolderDebug")
 	{
-		meash_t* pCurMeas= meash_t::firstInstance;
+		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
 
 		while(pCurMeas)
 		{
@@ -113,7 +113,7 @@ int ProcessChecker::execute()
 
 	}else if(method == "stop-all")
 	{
-		static meash_t* pCurrent;
+		static SHAREDPTR::shared_ptr<meash_t> pCurrent;
 
 		switch(m_nEndPos)
 		{

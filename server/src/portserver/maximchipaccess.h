@@ -23,6 +23,7 @@
 #include <string>
 
 #include "../util/Thread.h"
+#include "../util/smart_ptr.h"
 
 #include "../pattern/server/ichipaccesspattern.h"
 #include "../pattern/util/iactionpropertymsgpattern.h"
@@ -323,7 +324,7 @@ namespace ports
 			/**
 			 * map of actions for all pins in chip
 			 */
-			map<string, chip_pin_t*> pins;
+			map<string, SHAREDPTR::shared_ptr<chip_pin_t> > pins;
 			/**
 			 * whether chip is used
 			 */
@@ -360,12 +361,12 @@ namespace ports
 		 * map of all founded dallas conductor with chip ID as key
 		 * and pointer to an chip structure as value
 		 */
-		map<string, chip_type_t*> m_mConductors;
+		map<string, SHAREDPTR::shared_ptr<chip_type_t> > m_mConductors;
 		/**
 		 * map of used dallas conductors with unigue pin ID as key
 		 * and an pointer to the pin inside of m_mConductors as value
 		 */
-		map<string, chip_pin_t*> m_mUsedChips;
+		map<string, SHAREDPTR::shared_ptr<chip_pin_t> > m_mUsedChips;
 		/**
 		 * map of all family codes for ID's
 		 */
@@ -373,7 +374,7 @@ namespace ports
 		/**
 		 * cache with reading secuences
 		 */
-		map<double, vector<chip_pin_t*> > m_mvReadingCache;
+		map<double, vector<SHAREDPTR::shared_ptr<chip_pin_t> > > m_mvReadingCache;
 		/**
 		 * all ids which are founded in an maxim server before
 		 */

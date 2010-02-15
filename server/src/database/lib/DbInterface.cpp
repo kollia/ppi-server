@@ -78,6 +78,7 @@ namespace ppi_database
 	{
 		for(map<short, DbInterface*>::iterator it= _instance.begin(); it != _instance.end(); ++it)
 			delete it->second;
+		_instance.clear();
 	}
 
 	bool DbInterface::isDbLoaded()

@@ -33,7 +33,8 @@ namespace util
 			/**
 			 * class extend from ExternClientinputTemplate and provide
 			 * the <code>running()</code>, <code>stopping()</code> and <code>stop()</code> methods
-			 * for sending to the running process of second parameter toProcess
+			 * for sending to the running process of second parameter toProcess.<br/>
+			 * By cancel this ProcessInterfaceTemplate object, 4. and 5. parameter will be also delete in parent object.
 			 *
 			 * @param process name of process to identify by server
 			 * @param threadName name of thread in the process to identify by server

@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -37,7 +38,8 @@ class LogProcess : public Process
 {
 	public:
 		/**
-		 * creating instance of LogThread
+		 * creating instance of LogThread.<br/>
+		 * By cancel this LogProcess object, second and third parameter object will be also delete in parent class.
 		 *
 		 * @param uid under witch user the log process should running
 		 * @param getConnection on which connection from outside the server is reachable to get questions
@@ -89,7 +91,7 @@ class LogProcess : public Process
 		/**
 		 * working thread which writing into files
 		 */
-		LogThread* m_pLogThread;
+		auto_ptr<LogThread> m_pLogThread;
 };
 
 #endif /*LOGPROCESS_H_*/

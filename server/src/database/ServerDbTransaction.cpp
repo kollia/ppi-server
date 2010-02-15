@@ -146,7 +146,7 @@ namespace server
 		}else if(method == "getActEntry")
 		{
 			int number= 0;
-			double* pdRv;
+			auto_ptr<double> spdRv;
 			string folder, subroutine, identif;
 
 			object >> folder;
@@ -154,13 +154,12 @@ namespace server
 			object >> identif;
 			if(!object.empty())
 				object >> number;
-			pdRv= db->getActEntry(folder, subroutine, identif, number);
+			spdRv= db->getActEntry(folder, subroutine, identif, number);
 
-			if(pdRv != NULL)
+			if(spdRv.get() != NULL)
 			{
-				od << *pdRv;
+				od << *spdRv;
 				descriptor << od.str();
-				delete pdRv;
 			}else
 				descriptor << "NULL";
 
