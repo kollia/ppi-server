@@ -217,6 +217,7 @@ int main(int argc, char* argv[])
 				if(adapters.size() > 0)
 				{
 					first= adapters.begin();
+					maximconf= *first;
 					adapters.erase(first);
 					accessPort= new MaximChipAccess(maximconf, &adapters); // object will be given as pointer into OWServer, need no auto_ptr
 					bConf= true;
@@ -305,9 +306,13 @@ int main(int argc, char* argv[])
 		cerr << msg << endl;
 		LOG(LOG_ERROR, msg);
 		pQuestions= auto_ptr<OwServerQuestions>();// delete OwServerQuestions before OWServer
+		LogInterface::deleteObj();
+		DbInterface::deleteAll();
 		return EXIT_FAILURE;
 	}
 
 	pQuestions= auto_ptr<OwServerQuestions>();// delete OwServerQuestions before OWServer
+	LogInterface::deleteObj();
+	DbInterface::deleteAll();
 	return EXIT_SUCCESS;
 }

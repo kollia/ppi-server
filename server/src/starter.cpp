@@ -581,8 +581,18 @@ bool Starter::execute(vector<string> options)
 #endif //_K8055LIBRARY
 
 #ifdef _OWFSLIBRARY
+	vector<string> adapters;
+	vector<string> maximconf, conf;
+	vector<string>::iterator first;
 	vector<string>::size_type nMaximCount;
 
+	// read first all maxim adapters
+	nMaximCount= m_oServerFileCasher.getPropertyCount("maximadapter");
+	for(vector<string>::size_type n= 0; n < nMaximCount; ++n)
+	{
+		maximinit= m_oServerFileCasher.getValue("maximadapter", n, /*warning*/false);
+		adapters.push_back(maximinit);
+	}
 	// start maxim ports with owfs driver
 	nMaximCount= m_oServerFileCasher.getPropertyCount("maximinit");
 	for(vector<string>::size_type n= 0; n < nMaximCount; ++n)
@@ -590,6 +600,11 @@ bool Starter::execute(vector<string> options)
 		ostringstream oServerID;
 
 		maximinit= m_oServerFileCasher.getValue("maximinit", n, /*warning*/false);
+		for(vector<string>::iterator ad= adapters.begin(); ad != adapters.end(); ++ad)
+		{
+			maximinit+= ":";
+			maximinit+= *ad;
+		}
 		cout << "### starting OWServer" << endl;
 		oServerID << nServerID;
 		process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),

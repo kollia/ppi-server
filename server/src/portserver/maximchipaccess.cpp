@@ -68,6 +68,8 @@ namespace ports
 		prop->getValue("priority", /*warning*/false);
 		prop->getValue("cache", /*warning*/false);
 		prop->haveAction("read");
+		prop->haveAction("write");
+		prop->haveAction("writecache");
 		prop->haveAction("cache");
 		prop->haveAction("current");
 		prop->haveAction("db");
@@ -515,8 +517,7 @@ namespace ports
 		static bool failt= false;
 		ssize_t result;
 
-		//if(m_bConnected)
-		//	disconnect();
+		//cout << endl << "try to connect with string " << m_sInit << endl << endl;
 		result= OW_init(m_sInit.c_str());
 		if(result != 0)
 		{
