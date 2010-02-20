@@ -101,6 +101,7 @@ namespace server
 
 	void OWServer::endOfInitialisation()
 	{
+		readFirstChipState();
 		m_bAllInitial= true;
 	}
 
