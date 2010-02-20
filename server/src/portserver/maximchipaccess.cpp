@@ -1197,7 +1197,6 @@ namespace ports
 			msg+= "\n              by define range in MaximChipAccess class";
 			msg+= "\n              so allow hole range for chip";
 			TIMELOG(LOG_INFO, "maximrangedef" + pin, msg);
-			cerr << msg << endl;
 			min= 1;
 			max= 0;
 			bfloat= true;
