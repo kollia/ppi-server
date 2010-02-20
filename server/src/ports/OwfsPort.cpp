@@ -57,7 +57,6 @@ namespace ports
 
 	bool OwfsPort::allocateServer()
 	{
-		static bool first= true;
 		short chipAccess;
 
 		m_pOWServer= OWInterface::getServer(m_sServer, m_sChipID);
@@ -71,9 +70,9 @@ namespace ports
 			msg= m_pSettings->getMsgHead(/*error message*/false);
 			msg+= "cannot find OWServer for ID:" + m_sChipID;
 			msg+= "\n             try again later";
-			if(first)
+			if(!m_bDisplayNotFound)
 				cerr << msg << endl;
-			first= false;
+			m_bDisplayNotFound= true;
 			TIMELOG(LOG_WARNING, log, msg);
 			setDeviceAccess(false);
 			return true;// no error try again later

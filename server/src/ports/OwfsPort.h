@@ -48,7 +48,8 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		OwfsPort(string type, string folder, string subroutine)
-		: switchClass(type, folder, subroutine)
+		: 	switchClass(type, folder, subroutine),
+		m_bDisplayNotFound(false)
 		{ };
 		/**
 		 * initialing object of OwfsPort
@@ -76,6 +77,13 @@ namespace ports
 		 * @return current value
 		 */
 		virtual double getValue(const string who);
+		/**
+		 * check whether object found for chip in subroutine correct server
+		 *
+		 * @return whether server found
+		 */
+		bool haveServer()
+		{ return m_pOWServer != NULL ? true : false; };
 		/**
 		 * destructor of class OwfsPort.<br />
 		 * calls OW_finish() to reinitial the OWFS-server
@@ -109,6 +117,10 @@ namespace ports
 		 * type of server needed
 		 */
 		string m_sServer;
+		/**
+		 * whether have given display by not founding an server
+		 */
+		bool m_bDisplayNotFound;
 		/**
 		 * ID of dallas chip for this subroutine
 		 * without family code two digits
