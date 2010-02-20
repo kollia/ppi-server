@@ -779,11 +779,10 @@ namespace ports
 				if(pinIt == idIt->second.end()) {
 					string msg;
 
-					msg= "ERROR: found no correct pin '";
+					msg= "WARNING: found no correct pin '";
 					msg+= pin + "' for chip '";
 					msg+= chip + "'";
-					LOG(LOG_ERROR, msg);
-					cerr << msg << endl;
+					LOG(LOG_INFO, msg);
 					return;
 
 				}
