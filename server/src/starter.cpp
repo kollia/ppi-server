@@ -374,7 +374,7 @@ bool Starter::execute(vector<string> options)
 		sleep(1);
 		cout << "." << flush;
 	}
-	cout << " OK" << endl;
+	cout << " OK" << endl << endl;
 	// ------------------------------------------------------------------------------------------------------------
 
 
@@ -577,6 +577,7 @@ bool Starter::execute(vector<string> options)
 			cerr << msg.str() << endl;
 			LOG(LOG_ALERT, msg.str());
 		}
+		cout << endl;
 	}
 #endif //_K8055LIBRARY
 
@@ -641,6 +642,7 @@ bool Starter::execute(vector<string> options)
 									nServerID									);
 			++nServerID;
 		}
+		cout << endl;
 	}
 #endif //_OWFSLIBRARY
 
@@ -676,6 +678,7 @@ bool Starter::execute(vector<string> options)
 	LOG(LOG_INFO, "Read layout content for clients from " + meash_t::clientPath);
 	SHAREDPTR::shared_ptr<measurefolder_t> aktFolder= m_tFolderStart;
 	args.ports= ports;
+	cout << endl;
 	cout << "### start folder thread(s) from measure.conf" << endl;
 	while(aktFolder != NULL)
 	{
@@ -854,6 +857,7 @@ void Starter::createPortObjects()
 			vector<ohm> *pvOhm= &aktualFolder->subroutines[n].resistor;
 			vector<correction_t> *pvCorrection= &aktualFolder->subroutines[n].correction;
 			bool correctSubroutine= false;
+			bool bcheckProps= true;
 			short measuredness= aktualFolder->subroutines[n].measuredness;
 
 			if(measuredness == 0)
@@ -1009,6 +1013,7 @@ void Starter::createPortObjects()
 				{
 					correctFolder= true;
 					correctSubroutine= true;
+					bcheckProps= obj->haveServer();
 					aktualFolder->subroutines[n].portClass= obj;
 				}
 			}
@@ -1078,7 +1083,7 @@ void Starter::createPortObjects()
 			sub* subroutine;
 
 			subroutine= &aktualFolder->subroutines[n];
-			if(subroutine->property)
+			if(bcheckProps && subroutine->property)
 				subroutine->property->checkProperties();
 		}
 		aktualFolder->bCorrect= correctFolder;
