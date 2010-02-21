@@ -82,12 +82,12 @@ namespace ports
 		if(read)
 		{
 			properties->getValue("cache", /*warning*/false);
-			properties->haveAction("current", /*warning*/false);
+			properties->haveAction("current");
 
 		}else
 		{
 			properties->getValue("priority", /*warning*/false);
-			properties->haveAction("cache", /*warning*/false);
+			properties->haveAction("cache");
 		}
 
 		properties->haveAction("db");
