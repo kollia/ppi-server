@@ -47,9 +47,10 @@ namespace ports
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
 		 */
-		OwfsPort(string type, string folder, string subroutine)
-		: 	switchClass(type, folder, subroutine),
-		m_bDisplayNotFound(false)
+		OwfsPort(string type, string folder, string subroutine) :
+		switchClass(type, folder, subroutine),
+		m_bDisplayNotFound(false),
+		m_dLastWValue(0)
 		{ };
 		/**
 		 * initialing object of OwfsPort
@@ -121,6 +122,10 @@ namespace ports
 		 * whether have given display by not founding an server
 		 */
 		bool m_bDisplayNotFound;
+		/**
+		 * value by last pass of writing measure method
+		 */
+		double m_dLastWValue;
 		/**
 		 * ID of dallas chip for this subroutine
 		 * without family code two digits

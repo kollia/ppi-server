@@ -189,9 +189,6 @@ namespace ports
 			portBase::setValue(value);
 		}else
 		{
-			double oldvalue;
-
-			oldvalue= getValue("i:" + getFolderName());
 			if(isDebug())
 			{
 				cout << "write on chip " << m_sChipID << " with type " << m_sChipType << endl;
@@ -202,10 +199,11 @@ namespace ports
 					return false;
 			}
 			value= getValue("i:" + getFolderName());
-			if(oldvalue != value)
+			if(value != m_dLastWValue)
 			{
 				access= m_pOWServer->write(m_sChipID, value);
 				setDeviceAccess(access);
+				m_dLastWValue= value;
 			}
 			if(isDebug())
 			{
