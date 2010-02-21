@@ -283,7 +283,9 @@ int main(int argc, char* argv[])
 	owserver= auto_ptr<OWServer>(new OWServer(nServerID, accessPort));
 	cout << " with name '" << owserver->getServerName();
 	cout << "' and ID '" << dec << nServerID << "'" << endl;
-	cout << "    " << usestring.str() << endl;
+	cout << "    " << usestring.str();
+	if(strncmp(argv[2], "maxim", vLength[2]) != 0)
+		cout << endl;
 
 	questionservername+= argv[1];
 	pQuestions= auto_ptr<OwServerQuestions>(new OwServerQuestions(	"ppi-owreader", questionservername,
