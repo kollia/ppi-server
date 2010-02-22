@@ -1040,13 +1040,15 @@ namespace ports
 		}else
 			path= id;
 
+		buf= NULL;
+		sResult= "";
 		res= OW_get(path.c_str(), &buf, &size);
-		//cout << "maxim " << path << " have value " << buf << endl;
-		if(	res > -1
-			&&
-			buf != NULL	)
+		//cout << "maxim " << path << " have value " << buf << flush;
+		if(buf != NULL)
 		{
-			sResult= buf;
+			if(res > 1)
+				sResult= buf;
+			free(buf);
 		}
 		if(res < 1)
 		{
@@ -1071,8 +1073,6 @@ namespace ports
 				cerr << msg << endl;
 #endif //DEBUG
 			value= 0;
-			if(size > 0)
-				free(buf);
 			//cout << "end of reading with state -1" << endl;
 			return -1;
 		}
@@ -1080,7 +1080,7 @@ namespace ports
 		{
 			if(chip->family == "10")
 			{
-				value= atof(buf);
+				value= atof(sResult.c_str());
 				if(value > 85)
 				{// unknown ERROR
 				 // temperature is higher then 100 °C
@@ -1090,7 +1090,7 @@ namespace ports
 
 					msg= pin->errmsg;
 					msg+= "by converting ";
-					msg+= buf;
+					msg+= sResult;
 					msg+= " to ";
 					snprintf(buff, 50, "%lf", value);
 					msg+= buff;
@@ -1169,10 +1169,9 @@ namespace ports
 				}
 				value= pin->value;
 			}else
-				value= atof(buf);
+				value= atof(sResult.c_str());
 		}else
-			value= atof(buf);
-		free(buf);
+			value= atof(sResult.c_str());
 		//cout << "end of reading with state " << nRv << endl;
 		return nRv;
 	}
