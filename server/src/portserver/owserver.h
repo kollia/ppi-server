@@ -143,9 +143,10 @@ namespace server
 		 * By cancel this OWServer object, second parameter object will be also delete.
 		 *
 		 * @param ID id of server
+		 * @param type type of server
 		 * @param accessPattern pattern to access on the device
 		 */
-		OWServer(const unsigned short ID, IChipAccessPattern* accessPattern);
+		OWServer(const unsigned short ID, const string& type, IChipAccessPattern* accessPattern);
 		/**
 		 * display identification name for OWServer
 		 *
@@ -365,6 +366,10 @@ namespace server
 		 * id of server
 		 */
 		const unsigned short m_nServerID;
+		/**
+		 * type of server
+		 */
+		const string m_sServerType;
 		/**
 		 * mutex log to write or read on chips
 		 */

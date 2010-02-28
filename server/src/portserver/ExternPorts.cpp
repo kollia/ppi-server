@@ -753,10 +753,6 @@ namespace ports
 		foundPin= global_mOpenedPorts.find(ePin.nPort);
 		if(foundPin == global_mOpenedPorts.end())
 			return false;
-		/*if(!bSet)
-			foundPin->second&= tDo.nPin;
-		else
-			foundPin->second|= tDo.nPin;*/
 		actPin= inb(tDo.nPort + tDo.nAdd);
 		if(!bSet)
 			actPin&= tDo.nPin;

@@ -211,10 +211,9 @@ void portBase::setValue(double value)
 		if(!m_bSwitch)
 			dbvalue= value;
 	}
-	if(value != m_dOldValue)
+	if(value != m_dValue)
 	{
 		LOCK(m_VALUELOCK);
-		m_dOldValue= m_dValue;
 		m_dValue= value;
 		UNLOCK(m_VALUELOCK);
 

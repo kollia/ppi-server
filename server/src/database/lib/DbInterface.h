@@ -235,6 +235,24 @@ namespace ppi_database
 		void registerChip(const string& server, const string& chip, const string& pin, const string& type, const string& family,
 							const double* pdmin= NULL, const double* pdmax= NULL, const bool* pbFloat= NULL, const double* pdCache= NULL);
 		/**
+		 * define which chip OwPort will be use to inform when content change value
+		 *
+		 * @param folder name of folder in which use
+		 * @param subroutine name of subroutine in which use
+		 * @param onServer name of server from which is using chip
+		 * @param chip unique definition of chip
+		 */
+		void useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip);
+		/**
+		 * inform database for changed chip and database inform subroutine
+		 *
+		 * @param onServer on which server (owreader) the chip was changed
+		 * @param chip which unique chip was changed
+		 * @param value new value for chip
+		 * @param device whether chip can be reach correctly
+		 */
+		void changedChip(const string& onServer, const string& chip, const double value, const bool device);
+		/**
 		 * register chip-id with pin for folder and subroutine
 		 * in DefaultChipConfigReader
 		 *

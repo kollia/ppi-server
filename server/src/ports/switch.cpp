@@ -184,8 +184,9 @@ bool switchClass::measure()
 	{
 		// if nothing set for begin, while or end
 		// bResultTrue is always false
-		// so do not set m_bSwitched
-		// becaue it can be set from outside thrue the server
+		// so do not set bSwitched
+		// because it can be set from outside true the server
+		// see second if-sentense -> if(bSwitched && !m_bLastValue) <- inside this mehtod
 		bSwitched= bResultTrue;
 	}
 	portBase::setValue(bResultTrue);

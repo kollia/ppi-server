@@ -25,9 +25,12 @@
 
 #include "../logger/lib/LogInterface.h"
 
+#include "../ports/OwfsPort.h"
+
 #include "measureThread.h"
 
 using namespace std;
+using namespace ports;
 
 SHAREDPTR::shared_ptr<meash_t> meash_t::firstInstance= SHAREDPTR::shared_ptr<meash_t>();
 string meash_t::clientPath= "";
@@ -38,10 +41,10 @@ Thread(threadname, /*defaultSleep*/0)
 #ifdef DEBUG
 	cout << "constructor of measurethread for folder " << getThreadName() << endl;
 #endif // DEBUG
-	m_VALUE= Thread::getMutex("VALUE");
 	m_DEBUGLOCK= Thread::getMutex("DEBUGLOCK");
+	m_VALUE= Thread::getMutex("VALUE");
+	m_VALUECONDITION= Thread::getCondition("VALUECONDITION");
 	m_bDebug= false;
-	m_nDebugSleep= 3;
 }
 
 void MeasureThread::setDebug(bool bDebug, unsigned short sleep)
@@ -50,7 +53,7 @@ void MeasureThread::setDebug(bool bDebug, unsigned short sleep)
 
 	LOCK(m_DEBUGLOCK);
 	m_bDebug= bDebug;
-	m_nDebugSleep= sleep;
+	//m_nDebugSleep= sleep;
 	UNLOCK(m_DEBUGLOCK);
 
 	nMuch= m_pvtSubroutines->size();
@@ -69,29 +72,12 @@ bool MeasureThread::isDebug()
 	return debug;
 }
 
-unsigned short MeasureThread::getSleepTime()
-{
-	unsigned short nTime= 3;
-
-	LOCK(m_DEBUGLOCK);
-	if(m_bDebug)
-		nTime= m_nDebugSleep;
-	UNLOCK(m_DEBUGLOCK);
-
-	return nTime;
-}
-
 int MeasureThread::init(void *arg)
 {
 	int nMuch;
 	SHAREDPTR::shared_ptr<portBase> port;
 	MeasureArgArray tArg= *((MeasureArgArray*)arg);
 
-	/*if(ioperm(COM1, 8, 1))
-	{
-		LOG(LOG_ERROR, "cannot open port");
-		return false;
-	}*/
 	m_pvlPorts= tArg.ports;
 	m_pvtSubroutines= tArg.subroutines;
 	m_vAfterContactPins= tArg.tAfterContactPins;
@@ -117,11 +103,45 @@ int MeasureThread::init(void *arg)
 	return 0;
 }
 
+void MeasureThread::changedValue(const string& folder)
+{
+	LOCK(m_VALUE);
+	m_qFolder.push(folder);
+	AROUSE(m_VALUECONDITION);
+	UNLOCK(m_VALUE);
+}
+
+int MeasureThread::stop(const bool* bWait/*=NULL*/)
+{
+	int nRv;
+
+	nRv= Thread::stop(false);
+	LOCK(m_VALUE);
+	AROUSE(m_VALUECONDITION);
+	UNLOCK(m_VALUE);
+	if(	bWait
+		&&
+		*bWait	)
+	{
+		nRv= Thread::stop(bWait);
+	}
+	return nRv;
+}
+
 int MeasureThread::execute()
 {
 	bool bSleeped;
 
 	bSleeped= measure();
+
+	LOCK(m_VALUE);
+	if(m_qFolder.empty())
+		CONDITION(m_VALUECONDITION, m_VALUE);
+	if(stopping())
+		return 0;
+	while(!m_qFolder.empty())
+		m_qFolder.pop();
+	UNLOCK(m_VALUE);
 
 	if(isDebug())
 	{
@@ -130,19 +150,6 @@ int MeasureThread::execute()
 
 		msg+= thread + " is aktivated!";
 		TIMELOG(LOG_WARNING, thread, msg);
-	}
-	if(!bSleeped)
-	{
-		unsigned short time= getSleepTime();
-		//string msg("sleep ");
-		ostringstream msg;
-
-		msg << "sleep " << time << " seconds for folder ";
-		msg << getThreadName();
-		if(isDebug())
-			cout << msg << endl;
-		sleep(time);
-		TIMELOG(LOG_DEBUG, "sleep" + getgid(), msg.str());
 	}
 	return 0;
 }
@@ -157,81 +164,23 @@ bool MeasureThread::measure()
 	int nMuch;
 	sub subroutine;
 
-	// fill all ports with function inb() from kernel
-	// which are needed for after contact
-	/*for(map<unsigned long, unsigned>::iterator i= m_vAfterContactPorts.begin(); i!=m_vAfterContactPorts.end(); ++i)
-	{
-		m_vAfterContactPorts[i->first]= inb(i->first);
-	}*/
-	//LOCK(m_VALUE);
 	nMuch= m_pvtSubroutines->size();
 	for(int n= 0; n<nMuch; n++)
 	{
 		subroutine= (*m_pvtSubroutines)[n];
 		if(subroutine.bCorrect)
 		{
-			string msg;
+			//string msg;
 
 			if(isDebug())
 			{
 				cout << "execute subroutine '" << subroutine.name << "'" << endl;
 			}
 			subroutine.portClass->measure();
-			if(stopping())
-				break;
 
-			//UNLOCK(m_VALUE);
-			if(	subroutine.sleep
-				||
-				(	isDebug()
-					&&
-					subroutine.usleep	)	)
-			{
-				char time[10];
-				unsigned short sleeptime;
-
-				if(isDebug())
-					sleeptime= getSleepTime();
-				else
-					sleeptime= subroutine.sleep;
-				sprintf(time, "%d", sleeptime);
-				msg+= "sleep ";
-				msg+= time;
-				msg+= " seconds";
-				sleep(sleeptime);
-
-			}
-			if(	subroutine.usleep
-				&&
-				!isDebug()						)
-			{
-				char time[20];
-
-				sprintf(time, "%li", subroutine.usleep);
-				if(msg == "")
-					msg+= "sleep ";
-				else
-					msg+= " and ";
-				msg+= time;
-				msg+= " mikroseconds";
-				usleep(subroutine.usleep);
-			}
-			if(msg != "")
-			{
-				string thread(getThreadName());
-
-				msg+= " for folder ";
-				msg+= thread;
-				TIMELOG(LOG_DEBUG, thread, msg);
-				if(isDebug())
-					cout << msg << endl;
-				bSleeped= true;
-			}
 			if(isDebug())
 				cout << "----------------------------------" << endl;
-			//LOCK(m_VALUE);
 		}
-		//UNLOCK(m_VALUE);
 		if(stopping())
 			break;
 	}
@@ -257,53 +206,6 @@ SHAREDPTR::shared_ptr<portBase> MeasureThread::getPortClass(const string name, b
 	}
 	return pRv;
 }
-
-/*bool MeasureThread::setValue(string name, double value)
-{
-	bool bFound= false;
-	unsigned int nSize;
-
-	LOCK(m_VALUE);
-	nSize= m_pvtSubroutines->size();
-	for(unsigned int n= 0; n<nSize; ++n)
-	{
-		if((*m_pvtSubroutines)[n].name == name)
-		{
-			portBase *port= (*m_pvtSubroutines)[n].portClass;
-
-			port->setValue(value);
-			bFound= true;
-			break;
-		}
-	}
-	UNLOCK(m_VALUE);
-	return bFound;
-}
-
-double MeasureThread::getValue(string name, bool &bFound)
-{
-	double nRv= 0;
-	unsigned int nSize;
-
-	bFound= false;
-	LOCK(m_VALUE);
-	nSize= m_pvtSubroutines->size();
-	for(unsigned int n= 0; n<nSize; ++n)
-	{
-		if((*m_pvtSubroutines)[n].name == name)
-		{
-			portBase *port= (*m_pvtSubroutines)[n].portClass;
-
-			if(port == NULL)
-				break;
-			nRv= port->getValue();
-			bFound= true;
-			break;
-		}
-	}
-	UNLOCK(m_VALUE);
-	return nRv;
-}*/
 
 MeasureThread::~MeasureThread()
 {

@@ -241,6 +241,65 @@ namespace ppi_database
 		return false;
 	}
 
+	void DbInterface::useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip)
+	{
+		int err;
+		string sRv;
+		OMethodStringStream command("useChip");
+
+		command << folder;
+		command << subroutine;
+		command << onServer;
+		command << chip;
+		sRv= sendMethod("ppi-db-server", command, false);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}
+
+	}
+
+	void DbInterface::changedChip(const string& onServer, const string& chip, const double value, const bool device)
+	{
+		int err;
+		string sRv;
+		OMethodStringStream command("changedChip");
+
+		command << onServer;
+		command << chip;
+		command << value;
+		command << device;
+		sRv= sendMethod("ppi-db-server", command, false);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}
+	}
+
 	unsigned short DbInterface::existEntry(const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number)
 	{
 		int err;

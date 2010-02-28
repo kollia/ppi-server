@@ -154,6 +154,23 @@ namespace ppi_database
 		 */
 		void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= true);
 		/**
+		 * define which chip OwPort will be use to inform when content on server (owreader) change value
+		 *
+		 * @param folder name of folder in which use
+		 * @param subroutine name of subroutine in which use
+		 * @param onServer name of server from which is using chip
+		 * @param chip unique definition of chip
+		 */
+		void useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip);
+		/**
+		 * return all folder with subroutines which are use the defined chip
+		 *
+		 * @param onServer on which server the changed chip will be
+		 * @param chip the unique define chip
+		 * @return map of folder with subroutines
+		 */
+		map<string, vector<string> >* getSubroutines(const string& onServer, const string& chip);
+		/**
 		 * ask whether entry of folder:subroutine exist
 		 *
 		 * @param folder measure folder defined in measure.conf
@@ -399,6 +416,11 @@ namespace ppi_database
 		 * map of all filenames with the time to thin
 		 */
 		map<string, time_t> m_mOldest;
+		/**
+		 * all subroutines witch need new content of any chips.<br/>
+		 * saving in map<onServer, map<chip, map<folder, vector<subroutine> > > >
+		 */
+		map<string, map<string, map<string, vector<string> > > > m_mmmvServerContent;
 		/**
 		 * starter pool for communication with any client
 		 */

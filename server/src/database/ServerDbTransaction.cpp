@@ -472,6 +472,43 @@ namespace server
 			}
 			descriptor << "done";
 
+		}else if(method == "useChip")
+		{
+			string folder, subroutine, onServer, chip;
+
+			object >> folder;
+			object >> subroutine;
+			object >> onServer;
+			object >> chip;
+			db->useChip(folder, subroutine, onServer, chip);
+			descriptor << "done";
+
+		}else if(method == "changedChip")
+		{
+			bool device;
+			double value;
+			string onServer, chip;
+			map<string, vector<string> >* mvFSubs;
+			OMethodStringStream command("changedChip");
+
+			object >> onServer;
+			object >> chip;
+			object >> value;
+			object >> device;
+			mvFSubs= db->getSubroutines(onServer, chip);
+			for(map<string, vector<string> >::iterator fit= mvFSubs->begin(); fit != mvFSubs->end(); ++fit)
+			{
+				for(vector<string>::iterator sit= fit->second.begin(); sit != fit->second.end(); ++sit)
+				{
+					command << fit->first;
+					command << *sit;
+					command << value;
+					command << device;
+					descriptor.sendToOtherClient("ProcessChecker", command.str(), false);
+				}
+			}
+			descriptor << "done";
+
 		}else if(method == "checkUnused")
 		{
 			string res;

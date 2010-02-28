@@ -152,10 +152,6 @@ namespace ports
 			 */
 			double m_dValue;
 			/**
-			 * old value whitch meshured by the befor running
-			 */
-			double m_dOldValue;
-			/**
 			 * type of this measure object
 			 */
 			string m_sType;

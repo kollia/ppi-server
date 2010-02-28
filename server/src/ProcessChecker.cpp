@@ -40,9 +40,11 @@ int ProcessChecker::execute()
 	IMethodStringStream object(question);
 
 	method= object.getMethodName();
-	if(method == "setValue")
+	if(	method == "setValue"
+		||
+		method == "changedChip"	)
 	{
-		bool bCorrect;
+		bool bCorrect, device;
 		double value;
 		string folder, subroutine;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
@@ -51,6 +53,10 @@ int ProcessChecker::execute()
 		object >> folder;
 		object >> subroutine;
 		object >> value;
+		if(method == "changedChip")
+			object >> device;
+		else
+			device= true;
 		while(pCurMeas)
 		{
 			if(pCurMeas->pMeasure->getThreadName() == folder)
@@ -62,10 +68,25 @@ int ProcessChecker::execute()
 			port= pCurMeas->pMeasure->getPortClass(subroutine, bCorrect);
 			if(port)
 			{
-				if(bCorrect)
+				if(method == "changedChip")
 				{
 					port->setValue(value);
+					port->setDeviceAccess(device);
+					pCurMeas->pMeasure->changedValue(folder);
 					m_sAnswer= "done";
+
+				}else if(bCorrect)
+				{
+					double oldVal;
+
+					oldVal= port->getValue("i:"+folder);
+					if(value != oldVal)
+					{
+						port->setValue(value);
+						pCurMeas->pMeasure->changedValue(folder);
+					}
+					m_sAnswer= "done";
+
 				}else
 					m_sAnswer= "nochipaccess";
 			}else

@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 	int nLogAllSec, err;
 	uid_t defaultuserID;
 	ostringstream usestring;
-	string commhost, property, questionservername("OwServerQuestion-");
+	string commhost, property, servertype, questionservername("OwServerQuestion-");
 	string workdir, sConfPath, fileName, defaultuser;
 	vector<int> vLength;
 	//vector<string> vParams;
@@ -166,6 +166,7 @@ int main(int argc, char* argv[])
 				vector<string> sPorts, vSplit;
 				vector<string>::iterator found;
 
+				servertype= argv[2];
 				for(int c= 3; c < argc; ++c)
 				{
 					if(strncmp(argv[c], "freeze", strlen(argv[c])))
@@ -213,6 +214,7 @@ int main(int argc, char* argv[])
 				vector<string> adapters;
 				vector<string>::iterator first;
 
+				servertype= "OWFS";
 				split(adapters, argv[3], is_any_of(":"));
 				if(adapters.size() > 0)
 				{
@@ -237,6 +239,7 @@ int main(int argc, char* argv[])
 					long nJumper;
 					istringstream oJumper(argv[4]);
 
+					servertype= "Vk8055";
 					vParams.push_back("<jumper>");
 					vDescript.push_back("which jumper be set on board");
 					oJumper >> nJumper;
@@ -280,7 +283,7 @@ int main(int argc, char* argv[])
 
 
 	cout << "    one wire reader" << flush;
-	owserver= auto_ptr<OWServer>(new OWServer(nServerID, accessPort));
+	owserver= auto_ptr<OWServer>(new OWServer(nServerID, servertype, accessPort));
 	cout << " with name '" << owserver->getServerName();
 	cout << "' and ID '" << dec << nServerID << "'" << endl;
 	cout << "    " << usestring.str();

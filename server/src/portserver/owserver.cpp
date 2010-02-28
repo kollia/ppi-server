@@ -46,9 +46,10 @@ using namespace ppi_database;
 
 namespace server
 {
-	OWServer::OWServer(const unsigned short ID, IChipAccessPattern* accessPattern)
+	OWServer::OWServer(const unsigned short ID, const string& type, IChipAccessPattern* accessPattern)
 	:	Thread("OwfsServer", /*defaultSleep*/0),
 		m_nServerID(ID),
+		m_sServerType(type),
 		m_bConnected(false),
 		m_bAllInitial(false),
 		m_poChipAccess(auto_ptr<IChipAccessPattern>(accessPattern))
@@ -365,6 +366,7 @@ namespace server
 				return 0;
 		}
 		short endWork;
+		DbInterface* db;
 		map<int, queue<SHAREDPTR::shared_ptr<chip_types_t> > >::iterator priorityPos;
 		bool bDebug= false;
 		bool bDo= false;
@@ -429,7 +431,7 @@ namespace server
 				if(priorityPos->second.size() == 0)
 					m_mvPriorityCache.erase(priorityPos);
 				if(endWork == 0)
-				{// reading was correctly and the pin is finished (go to the next),
+				{// writing was correctly and the pin is finished (go to the next)
 					if(bDebug)
 						devIt->ok= true;
 					bDo= true;
@@ -503,6 +505,7 @@ namespace server
 								pActSeq->second.nextUnique);
 				while(pActChip != m_mvReadingCache[pActSeq->first].end())
 				{
+					bool device;
 					string ID;
 					double value;
 					vector<device_debug_t>::iterator devIt;
@@ -542,7 +545,7 @@ namespace server
 					{
 					case -1:
 						// an error occured
-						(*pActChip)->device= false;
+						device= false;
 						if(bDebug)
 						{
 							devIt->ok= false;
@@ -554,23 +557,18 @@ namespace server
 					case 0:
 						// reading was correctly and the pin is finished
 						//cout << "server write id " << (*pActChip)->id << " to value " << dec << value << endl;
-						(*pActChip)->device= true;
+						device= true;
 						if(bDebug)
 						{
 							devIt->value= value;
 							devIt->ok= true;
 							measureTimeDiff(&(*devIt));
 						}
-						if((*pActChip)->value != value)
-						{
-							(*pActChip)->value= value;
-							// toDo: fill database
-						}
 						bDo= true;
 						break;
 					case 1:
 						// reading was also correctly but the next time should make the same pin (value is not the last state),
-						(*pActChip)->device= true;
+						device= true;
 						if(bDebug)
 							devIt->ok= true;
 						bDo= true;
@@ -579,21 +577,29 @@ namespace server
 						// nothing was to do, value param set,
 						// was reading befor (chip wasn't read,
 						// value is correct) -> go to the next pin)
-						(*pActChip)->device= true;
+						device= true;
 						if(bDebug)
 						{
 							devIt->value= value;
 							devIt->ok= true;
 							measureTimeDiff(&(*devIt));
 						}
-						(*pActChip)->value= value;
 					default:
 						// unknown result
 						if(bDebug)
 							devIt->ok= false;
-						(*pActChip)->device= false;
+						device= false;
 						break;
 					}
+					if(	(*pActChip)->device != device
+						||
+						(*pActChip)->value != value		)
+					{
+						db= DbInterface::instance();
+						db->changedChip(m_sServerType, (*pActChip)->id, value, device);
+					}
+					(*pActChip)->device= device;
+					(*pActChip)->value= value;
 					if(endWork == 1)
 						break;
 					++pActChip;

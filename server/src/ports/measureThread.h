@@ -19,11 +19,15 @@
 
 
 #include <set>
+#include <queue>
+
+#include "../pattern/util/imeasurepattern.h"
 
 #include "../util/smart_ptr.h"
 #include "../util/structures.h"
 #include "../util/Thread.h"
 
+using namespace design_pattern_world::util_pattern;
 
 struct MeasureArgArray
 {
@@ -33,7 +37,8 @@ struct MeasureArgArray
 	set<portBase::Pins> tAfterContactPins;
 };
 
-class MeasureThread : public Thread
+class MeasureThread : 	public Thread,
+						virtual public IMeasurePattern
 {
 	public:
 		/**
@@ -57,10 +62,32 @@ class MeasureThread : public Thread
 		 */
 		bool isDebug();
 		/**
+		 *  external command to stop object of MeasureThread
+		 *
+		 * @param bWait calling rutine should wait until the thread is stopping
+		 */
+		virtual int stop(const bool bWait)
+		{ return stop(&bWait); };
+		/**
+		 *  external command to stop object of MeasureThread
+		 *
+		 * @param bWait calling rutine should wait until the thread is stopping
+		 */
+		virtual int stop(const bool *bWait= NULL);
+		/**
 		 * if any client set debug to true, method returning sleeptime
 		 * whitch has client set. Otherwise method returning default time from 3
 		 */
-		unsigned short getSleepTime();
+		//unsigned short getSleepTime();
+		/**
+		 * information by changed value in any subroutine
+		 *
+		 * @param folder name of folder
+		 */
+		virtual void changedValue(const string& folder);
+		/**
+		 * destructor of MeasureThread
+		 */
 		virtual ~MeasureThread();
 
 
@@ -96,9 +123,19 @@ class MeasureThread : public Thread
 		set<portBase::Pins> m_vAfterContactPins;
 		map<unsigned long, unsigned> m_vAfterContactPorts;
 		bool m_bDebug;
-		unsigned short m_nDebugSleep;
+		/**
+		 * all changed folder
+		 */
+		queue<string> m_qFolder;
+		/**
+		 * mutex by any changing of value
+		 */
 		pthread_mutex_t *m_VALUE;
 		pthread_mutex_t *m_DEBUGLOCK;
+		/**
+		 * condition for wait for new changing of any subroutine
+		 */
+		pthread_cond_t *m_VALUECONDITION;
 };
 
 

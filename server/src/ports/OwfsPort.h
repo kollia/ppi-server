@@ -19,12 +19,15 @@
 
 #include <map>
 
+#include "../pattern/util/imeasurepattern.h"
+
 #include "../portserver/lib/OWInterface.h"
 
 #include "../util/configpropertycasher.h"
 
 #include "switch.h"
 
+using namespace design_pattern_world::util_pattern;
 using namespace server;
 using namespace util;
 
@@ -63,13 +66,6 @@ namespace ports
 		 * reading all devices on the defined adapter
 		 */
 		virtual bool measure();
-		/**
-		 * overwrite switch class witch set only true or false (1/0)
-		 *
-		 * @param value value which should be set
-		 */
-		virtual void setValue(const double value)
-				{ portBase::setValue(value); };
 		/**
 		 * overwrite portBase class to define access from outside,
 		 * if value defined for switching between 0 and 1

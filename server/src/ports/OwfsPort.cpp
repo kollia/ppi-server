@@ -31,6 +31,7 @@ namespace ports
 	bool OwfsPort::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, ConfigPropertyCasher &properties)
 	{
 		bool bRv= true;
+		DbInterface *db;
 
 		m_pSettings= &properties;
 		m_bRead= false;
@@ -47,6 +48,9 @@ namespace ports
 		//cout << "init subroutine with pin " << m_sChipID << endl;
 		if(bRv && !switchClass::init(properties, pStartFolder))
 			bRv= false;
+
+		db= DbInterface::instance();
+		db->useChip(getFolderName(), getSubroutineName(), m_sServer, m_sChipID);
 
 		m_sErrorHead= properties.getMsgHead(/*error message*/true);
 		m_sWarningHead= properties.getMsgHead(/*error message*/false);
@@ -120,7 +124,7 @@ namespace ports
 
 	bool OwfsPort::measure()
 	{
-		bool access;
+		bool access, bsetNewValue= false;
 		int nvalue;
 		double value;
 
@@ -204,17 +208,23 @@ namespace ports
 				access= m_pOWServer->write(m_sChipID, value);
 				setDeviceAccess(access);
 				m_dLastWValue= value;
+				bsetNewValue= true;
 			}
 			if(isDebug())
 			{
+				if(!bsetNewValue)
+					access= hasDeviceAccess();
 				if(access)
 				{
 					cout << "on unique id '" << m_sChipID;
 
 					if(value)
-						cout << " for an output" << endl;
+						cout << " set to output" << value;
 					else
-						cout << " for no output" << endl;
+						cout << " set to output" << value;
+					if(bsetNewValue)
+						cout << " in passing before";
+					cout << endl;
 				}else
 					cout << "unique id '" << m_sChipID << "' do not reache correctly device for writing" << endl;
 			}
@@ -228,25 +238,18 @@ namespace ports
 		int nvalue;
 		double value;
 
-		//cout << who << " read pin " << flush;
 		if(!onlySwitch())
-		{
-			//cout << endl;
 			return portBase::getValue(who);
-		}
 		if(who.substr(0, 2) == "i:")
 		{
-			//cout << endl;
 			if(portBase::getValue(who))
 				return 1;
 			return 0;
 		}
 		value= (int)portBase::getValue(who);
-		//cout << "set from " << portBase::getBinString((long)value, 2);
 		nvalue= (int)value;
 		nvalue&= 0x01;
 		portBase::setValue((double)nvalue);
-		//cout << " to " << portBase::getBinString((long)nvalue, 2) << endl;
 		return value;
 	}
 

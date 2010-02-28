@@ -535,6 +535,16 @@ void DatabaseThread::isEntryChanged()
 	}
 }
 
+void DatabaseThread::useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip)
+{
+	m_mmmvServerContent[onServer][chip][folder].push_back(subroutine);
+}
+
+map<string, vector<string> >* DatabaseThread::getSubroutines(const string& onServer, const string& chip)
+{
+	return &m_mmmvServerContent[onServer][chip];
+}
+
 vector<string> DatabaseThread::getDebugInfo(const unsigned short server)
 {
 	int err;
