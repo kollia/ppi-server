@@ -25,7 +25,7 @@
 
 #include "../util/configpropertycasher.h"
 
-#include "switch.h"
+#include "valueholder.h"
 
 using namespace design_pattern_world::util_pattern;
 using namespace server;
@@ -39,7 +39,7 @@ namespace ports
 	 * @author Alexander Kolli
 	 * @version 1.0.0.
 	 */
-	class OwfsPort : public switchClass
+	class OwfsPort : public ValueHolder
 	{
 	public:
 		/**
@@ -51,7 +51,7 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		OwfsPort(string type, string folder, string subroutine) :
-		switchClass(type, folder, subroutine),
+		ValueHolder(type, folder, subroutine),
 		m_bDisplayNotFound(false),
 		m_dLastWValue(0)
 		{ };

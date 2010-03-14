@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "OwfsPort.h"
+#include "valueholder.h"
 
 #include "../database/lib/DbInterface.h"
 
@@ -32,6 +33,7 @@ namespace ports
 	{
 		bool bRv= true;
 		DbInterface *db;
+		string prop;
 
 		m_pSettings= &properties;
 		m_bRead= false;
@@ -45,8 +47,40 @@ namespace ports
 		if(!allocateServer())
 			bRv= false;
 
-		//cout << "init subroutine with pin " << m_sChipID << endl;
-		if(bRv && !switchClass::init(properties, pStartFolder))
+		if(m_bRead)
+		{ // if server cannot be allocated m_bRead should be set to false
+		  // and this block don't be reached
+			properties.notAllowedParameter("while");
+			properties.notAllowedParameter("value");
+		}
+		if(m_pOWServer)
+		{ // set min and max value and action float from range by ask server if not set
+			bool bfloat;
+			double min, max, val;
+			ostringstream sval;
+			string prop;
+
+			if(range(bfloat, &min, &max))
+			{
+				if(bfloat && !properties.haveAction("float"))
+					properties.readLine("action= float");
+				prop= "min";
+				val= properties.getDouble(prop, /*warning*/false);
+				if(prop == "#ERROR")
+				{
+					sval << min;
+					properties.readLine("min= "+sval.str());
+				}
+				prop= "max";
+				val= properties.getDouble(prop, /*warning*/false);
+				if(prop == "#ERROR")
+				{
+					sval << max;
+					properties.readLine("max= "+sval.str());
+				}
+			}
+		}
+		if(bRv && !ValueHolder::init(properties, pStartFolder))
 			bRv= false;
 
 		db= DbInterface::instance();
@@ -124,10 +158,11 @@ namespace ports
 
 	bool OwfsPort::measure()
 	{
-		bool access, bsetNewValue= false;
+		bool access, debug, bsetNewValue= false;
 		int nvalue;
 		double value;
 
+		debug= isDebug();
 		if(!m_pOWServer)
 		{
 			if(!allocateServer())
@@ -145,17 +180,13 @@ namespace ports
 		}
 		if(m_bRead)
 		{
-			if(isDebug())
+			// nothing to do!
+			// value before set from the owreader (OWServer)
+			if(debug)
 			{
+				value= getValue("i:" + getFolderName());
 				cout << "read from chip " << m_sChipID << " with type " << m_sChipType << endl;
-			}
-			//if(!value)
-			//	return true;
-			access= m_pOWServer->read(m_sChipID, &value);
-			setDeviceAccess(access);
-			if(isDebug())
-			{
-				if(access)
+				if(hasDeviceAccess())
 				{
 					if(m_sChipFamily == "10")
 					{
@@ -172,36 +203,13 @@ namespace ports
 				}else
 					cout << "unique id '" << m_sChipID << "' do not reache correctly device for reading" << endl;
 			}
-			if(onlySwitch())
-			{
-				//cout << "read on pin " << m_sChipID << " read "<< portBase::getBinString((long)value, 2) << " set pin from " << portBase::getBinString((long)value, 2) << flush;
-				if(	value < 0
-					||
-					value > 0	)//((int)value) & 0x01)
-				{
-					//cout << " to 11" << flush;
-					value= 3;
-				}else
-				{
-					nvalue= (int)portBase::getValue("i:"+getFolderName());
-					nvalue&= 0x02;
-					value= (double)nvalue;
-					//cout << " to " << portBase::getBinString((long)value, 2) << flush;
-				}
-				//cout << endl;
-			}
-			portBase::setValue(value);
 		}else
 		{
-			if(isDebug())
+			if(debug)
 			{
 				cout << "write on chip " << m_sChipID << " with type " << m_sChipType << endl;
 			}
-			if(onlySwitch())
-			{
-				if(!switchClass::measure())
-					return false;
-			}
+			ValueHolder::measure();
 			value= getValue("i:" + getFolderName());
 			if(value != m_dLastWValue)
 			{
@@ -210,7 +218,7 @@ namespace ports
 				m_dLastWValue= value;
 				bsetNewValue= true;
 			}
-			if(isDebug())
+			if(debug)
 			{
 				if(!bsetNewValue)
 					access= hasDeviceAccess();
