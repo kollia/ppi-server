@@ -18,7 +18,9 @@
 #include "VellemannK8055.h"
 #ifdef _K8055LIBRARY
 
+#include <limits.h>
 #include <errno.h>
+
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -50,6 +52,8 @@ namespace ports
 		m_nDigitalOutput= 0x00;
 		m_nAnalogInputC1= 0;
 		m_nAnalogInputC2= 0;
+		m_mnCount[1]= 0;
+		m_mnCount[2]= 0;
 	}
 
 	bool VellemannK8055::init(const IPropertyPattern* properties)
@@ -357,16 +361,21 @@ namespace ports
 
 		}else if(spin.substr(0, 1) == "I")
 		{
+			long count= 0;
+			long oldcount= 0;
 			int pin= atoi(&spin[1]);
 			int res= ReadDigitalChannel(pin);
-			int set= 1;
+			int set= 0x01;
 			int nvalue= (int)value;
 
-			//cout << " direkt pin " << id << flush;
+			if(	pin > 0 && pin <= 2)
+			{
+				count= ReadCounter(pin);
+				oldcount= m_mnCount[pin];
+				m_mnCount[pin]= count;
+			}
 			set<<= (pin-1);
-			if(	res
-				||
-				m_ndRead & set	)
+			if(	res || m_ndRead & set || count != oldcount)
 			{
 				nvalue= res ? 0x03 : 0x02;
 				set= ~set;
@@ -375,8 +384,8 @@ namespace ports
 				nvalue&= 0x02;
 			value= (double)nvalue;
 
-			//cout << " pin is " << portBase::getBinString((long)nvalue, 2) << flush;
-			//cout << endl;
+			//cout << " direkt pin " << id;
+			//cout << " is act " << res << " and set to " << dec << value << endl;
 		}else
 		{
 			long channel;
@@ -397,9 +406,12 @@ namespace ports
 		string pin(id.substr(2));
 
 		bfloat= false;
-		if(pin.substr(0, 7) == "counter")
-			return; // all values are allowed
 		min= 0;
+		if(pin.substr(0, 7) == "counter")
+		{
+			max= LONG_MAX;
+			return;
+		}
 		if(	pin.substr(0, 1) == "A"
 			||
 			pin.substr(0, 3) == "PWM"	)

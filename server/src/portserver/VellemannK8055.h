@@ -21,6 +21,7 @@
 #ifdef _K8055LIBRARY
 
 #include <string>
+#include <map>
 
 #include "../pattern/util/ipropertypattern.h"
 #include "../pattern/server/ichipaccesspattern.h"
@@ -288,6 +289,10 @@ namespace ports
 			 * analog input from chanel A2
 			 */
 			long m_nAnalogInputC2;
+			/**
+			 * map of counter for digital input
+			 */
+			map<int, long> m_mnCount;
 			/**
 			 * digital input pins which was called since the last request
 			 * displayed in an 5 bit value for 1 on and 0 off
