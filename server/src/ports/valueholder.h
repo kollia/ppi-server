@@ -21,6 +21,9 @@
 
 #include "portbaseclass.h"
 
+#include "../util/smart_ptr.h"
+#include "../util/structures.h"
+
 namespace ports
 {
 	class ValueHolder : public portBase
@@ -38,6 +41,23 @@ namespace ports
 		 * whether value can be an float
 		 */
 		bool m_bFloat;
+		/**
+		 * all values which can be set as content
+		 */
+		vector<string> m_vdValues;
+		/**
+		 * while expression to set values from m_vdValues
+		 */
+		string m_sWhile;
+		/**
+		 * default value for beginning and when calculated while expression
+		 * higher or lower then value count of m_vdValues
+		 */
+		double m_ddefaultValue;
+		/**
+		 * reference to all folder
+		 */
+		SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
 
 	public:
 		/**
@@ -64,15 +84,39 @@ namespace ports
 		 * initialing object of ValueHolder
 		 *
 		 * @param properties the properties in file measure.conf
+		 * @param pStartFolder reference to all folder
 		 * @return whether initalization was ok
 		 */
-		virtual bool init(ConfigPropertyCasher &properties);
+		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		/**
+		 * this method will be called from any measure thread to set as observer
+		 * for starting own folder to get value from foreign folder
+		 * if there the value was changing
+		 *
+		 * @param observer measure thread which containing the own folder
+		 */
+		virtual void setObserver(IMeasurePattern* observer);
 		/**
 		 * method measure do nothing
 		 *
 		 * @return always true;
 		 */
 		virtual bool measure();
+		/**
+		 * calculate while string and set to value result or content of parameter content if exist.<br/>
+		 * Method write error or warning string into log-file and on command line if debug flag be set
+		 *
+		 * @param pStartFolder reference of first Folder
+		 * @param folder name of actual folder
+		 * @param subroutine name of actual subroutine
+		 * @param whileStr defined while string in subroutine
+		 * @param content vector of defined-values to replace with number of while string
+		 * @param defaultVal default value when vector of content be set but number of calculated while string ist out of range
+		 * @param value result of method
+		 * @param debug whether should write debug messages on command line
+		 * @return true if value will be calculated
+		 */
+		static bool getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool debug);
 
 	protected:
 		/**
