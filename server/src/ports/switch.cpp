@@ -20,6 +20,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <iostream>
+#include <algorithm>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -86,6 +87,125 @@ bool switchClass::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared
 		value= defaultValue;
 	setValue(value);
 	return true;
+}
+
+void switchClass::setObserver(IMeasurePattern* observer)
+{
+	string folder(getFolderName());
+	string subroutine(getSubroutineName());
+
+	if(m_sOn != "")
+		activateObserver(m_pStartFolder, observer, folder, subroutine, m_sOn);
+	if(m_sWhile != "")
+		activateObserver(m_pStartFolder, observer, folder, subroutine, m_sWhile);
+	if(m_sOff != "")
+		activateObserver(m_pStartFolder, observer, folder, subroutine, m_sOff);
+}
+
+void switchClass::activateObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
+									const string& folder, const string& subroutine, const string& cCurrent)
+{
+	string::size_type nLen= cCurrent.length();
+	string word, full;
+	int nPos= 0;
+
+	full= cCurrent;
+	while(nPos < nLen)
+	{
+		if(	full[nPos] == '+'
+			||
+			full[nPos] == '-'
+			||
+			full[nPos] == '/'
+			||
+			full[nPos] == '*'
+			||
+			full[nPos] == '<'
+			||
+			full[nPos] == '>'
+			||
+			full[nPos] == '='
+			||
+			(	full[nPos] == '!'
+				&&
+				full[nPos+1] == '='	)	)
+		{
+			word= full.substr(0, nPos);
+			if(full[nPos] == '!')
+				++nPos;
+			full= full.substr(nPos + 1);
+			giveObserver(pStartFolder, observer, folder, subroutine, word);
+		}
+		++nPos;
+	}
+	giveObserver(pStartFolder, observer, folder, subroutine, full);
+}
+
+void switchClass::giveObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
+								const string& folder, const string& subroutine, const string& cCurrent)
+{
+	bool bfound= false;
+	string full, upper;
+	string sFolder;
+	string sSubroutine;
+	vector<string> spl;
+	SHAREDPTR::shared_ptr<measurefolder_t>  pfolder;
+
+	full= cCurrent;
+	trim(full);
+	upper= full;
+	transform(upper.begin(), upper.end(), upper.begin(), (int(*)(int)) toupper);
+	if(	isdigit(full.c_str()[0])
+		||
+		full.c_str()[0] == '.' // maybe a float beginning with no 0
+		||
+		upper == "TRUE"
+		||
+		upper == "FALSE"				)
+	{
+		// nothing to do
+		// string is only an number
+		// or boolean
+		return;
+	}
+
+	// search in all subroutines of folders
+	// where the name is equal to the current string
+	// and ask from the class of the subroutine the value
+	split(spl, full, is_any_of(":"));
+	if(spl.size() == 1 || spl[0] == folder)
+	{
+		// information is for own folder
+		// folder is activated and do not need again
+		return;
+	}else
+	{
+		sFolder= spl[0];
+		sSubroutine= spl[1];
+	}
+	pfolder= getFolder(sFolder, pStartFolder);
+	if(pfolder)
+	{
+		for(vector<sub>::iterator it= pfolder->subroutines.begin(); it != pfolder->subroutines.end(); ++it)
+		{
+			if(it->name == sSubroutine)
+			{
+				it->portClass->informObserver(observer, folder);
+				bfound= true;
+				break;
+			}
+		}
+	}
+	if(!bfound)
+	{
+		string msg("cannot found folder '");
+
+		msg+= sFolder + "' with subroutine '" + sSubroutine;
+		msg+= "' defined in folder " + folder + " and subroutine ";
+		msg+= subroutine;
+		LOG(LOG_ERROR, msg);
+		cerr << "###ERROR: " << msg << endl;
+	}
 }
 
 bool switchClass::measure()
@@ -519,7 +639,7 @@ bool switchClass::searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 	trim(full);
 	if(	isdigit(full.c_str()[0])
 		||
-		full.c_str()[0] == '.'	)
+		full.c_str()[0] == '.' /*maybe a float beginning with no 0*/	)
 	{
 		istringstream cNum(full);
 		ostringstream cBack;
@@ -530,19 +650,17 @@ bool switchClass::searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 			bFound= true;
 	}
 
-
 	if(!bFound)
 	{
-		if(	full == "true"
-			||
-			full == "TRUE"	)
+		string upper(full);
+
+		transform(upper.begin(), upper.end(), upper.begin(), (int(*)(int)) toupper);
+		if(upper == "TRUE")
 		{
 			bFound= true;
 			dResult= 1;
-		}
-		if(	full == "false"
-			||
-			full == "FALSE"	)
+
+		}else if(upper == "FALSE")
 		{
 			bFound= true;
 			dResult= 0;
@@ -576,14 +694,14 @@ bool switchClass::searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 	return bFound;
 }
 
-void switchClass::setValue(const double value)
+/*void switchClass::setValue(const double value)
 {
 	double bValue= 0;
 
 	if(value)
 		bValue= 1;
 	portBase::setValue(bValue);
-}
+}*/
 
 switchClass::~switchClass()
 {

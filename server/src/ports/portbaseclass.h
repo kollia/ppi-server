@@ -24,6 +24,8 @@
 #include "../util/debug.h"
 #include "../util/configpropertycasher.h"
 
+#include "../pattern/util/imeasurepattern.h"
+
 using namespace std;
 
 //* Variablenbelegung
@@ -42,6 +44,7 @@ using namespace std;
 
 using namespace std;
 using namespace util;
+using namespace design_pattern_world::util_pattern;
 
 namespace ports
 {
@@ -169,6 +172,10 @@ namespace ports
 			 */
 			string m_sPermission;
 			/**
+			 * all other folder threads which should be informed when value was changed
+			 */
+			map<IMeasurePattern*, vector<string> > m_mvObservers;
+			/**
 			 * can set this subroutine to get contact
 			 * also when the contact was given before
 			 * running the measure function
@@ -206,9 +213,24 @@ namespace ports
 			 */
 			virtual bool init(ConfigPropertyCasher &properties);
 			/**
-			 * set wether subroutine has correct access to device
+			 * this method will be called from any measure thread to set as observer
+			 * for starting own folder to get value from foreign folder
+			 * if there the value was changing
 			 *
-			 * @param access wetjer cprrect access
+			 * @param observer measure thread which containing the own folder
+			 */
+			virtual void setObserver(IMeasurePattern* observer);
+			/**
+			 * fill observer vector to inform other folder if value changed
+			 *
+			 * @param observer measure thread which containing the own folder
+			 * @param folder name of folder which should be informed
+			 */
+			virtual void informObserver(IMeasurePattern* observer, const string& folder);
+			/**
+			 * set whether subroutine has correct access to device
+			 *
+			 * @param access whether own object have correct access to device
 			 */
 			virtual void setDeviceAccess(const bool access);
 			/**

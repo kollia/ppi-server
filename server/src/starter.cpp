@@ -962,7 +962,7 @@ void Starter::createPortObjects()
 				auto_ptr<ValueHolder> obj= auto_ptr<ValueHolder>(new ValueHolder(	aktualFolder->name,
 																					aktualFolder->subroutines[n].name	));
 
-				if(obj->init(*aktualFolder->subroutines[n].property))
+				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;

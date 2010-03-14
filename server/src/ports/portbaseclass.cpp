@@ -170,6 +170,21 @@ void portBase::setDeviceAccess(bool access)
 	db->fillValue(m_sFolder, m_sSubroutine, "access", (double)access);
 }
 
+void portBase::setObserver(IMeasurePattern* observer)
+{
+	// nothing to do
+	//+++++++++++++++++++++++++++++++++++++++++
+	// method only for overload
+	// to start own folder thread
+	// to get next time by changing foreign value
+	// this value from the other folder
+}
+
+void portBase::informObserver(IMeasurePattern* observer, const string& folder)
+{
+	m_mvObservers[observer].push_back(folder);
+}
+
 bool portBase::hasDeviceAccess() const
 {
 	bool bDevice;
@@ -188,6 +203,7 @@ bool portBase::hasDeviceAccess() const
 void portBase::setValue(double value)
 {
 	double dbvalue= value;
+	double oldMember= m_dValue;
 	DbInterface* db;
 
 	if(!m_bDefined)// if device not found by starting in init method
@@ -198,7 +214,10 @@ void portBase::setValue(double value)
 		//cout << "min:" << dec << m_dMin << endl;
 		//cout << "max:" << dec << m_dMax << endl;
 		if(m_bSwitch)
+		{
 			dbvalue= ((int)value & 0x01) ? 1 : 0;
+			oldMember= ((int)m_dValue & 0x01) ? 1 : 0;
+		}
 		if(m_dMin < m_dMax)
 		{
 			if(value < m_dMin)
@@ -217,8 +236,20 @@ void portBase::setValue(double value)
 		m_dValue= value;
 		UNLOCK(m_VALUELOCK);
 
-		db= DbInterface::instance();
-		db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
+		for(map<IMeasurePattern*, vector<string> >::iterator it= m_mvObservers.begin(); it != m_mvObservers.end(); ++it)
+		{
+			for(vector<string>::iterator fit= it->second.begin(); fit != it->second.end(); ++fit)
+			{
+				it->first->changedValue(*fit);
+				// toDo: delete break when folder threads running in one thread
+				break;
+			}
+		}
+		if(dbvalue != oldMember)
+		{
+			db= DbInterface::instance();
+			db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
+		}
 	}
 }
 

@@ -41,8 +41,38 @@ public:
 		 */
 		switchClass(string type, string folderName, string subroutineName);
 		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		/**
+		 * this method will be called from any measure thread to set as observer
+		 * for starting own folder to get value from foreign folder
+		 * if there the value was changing
+		 *
+		 * @param observer measure thread which containing the own folder
+		 */
+		virtual void setObserver(IMeasurePattern* observer);
+		/**
+		 * activate observer inside new subroutine
+		 *
+		 * @param pStratFolder address of the first folder
+		 * @param observer measure thread which containing the own folder
+		 * @param folder name of current folder
+		 * @param subroutine name of current subroutine
+		 * @param cCurrent string of defined values to find other folder and subroutines
+		 */
+		static void activateObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
+														const string& folder, const string& subroutine, const string& cCurrent);
+		/**
+		 * fill observer into founded folder:subroutine from cCurrent string
+		 *
+		 * @param pStratFolder address of the first folder
+		 * @param observer measure thread which containing the own folder
+		 * @param folder name of current folder
+		 * @param subroutine name of current subroutine
+		 * @param cCurrent string of defined values to find other folder and subroutines
+		 */
+		static void giveObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
+														const string& folder, const string& subroutine, const string& cCurrent);
 		virtual bool measure();
-		virtual void setValue(const double value);
+		//virtual void setValue(const double value);
 		virtual ~switchClass();
 
 		/**

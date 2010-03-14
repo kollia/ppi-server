@@ -66,11 +66,11 @@ namespace server
 
 	bool OWServer::readFirstChipState()
 	{
+		bool bCon;
 		short res;
 		double value;
 
-		if(!m_poChipAccess->isConnected())
-			return false;
+		bCon= m_poChipAccess->isConnected();
 		if(m_mvReadingCache.size() > 0)
 		{
 			cout << "read all defined input for first state from " << m_poChipAccess->getServerName() << " ..." << endl;
@@ -79,24 +79,31 @@ namespace server
 				cout << "   sequence for cache " << dec << it->first << " seconds" << endl;
 				for(vector<SHAREDPTR::shared_ptr<chip_types_t> >::iterator chip= it->second.begin(); chip != it->second.end(); ++chip)
 				{
-					cout << "      " << (*chip)->id << " has value " << flush;
-					value= 0;
-					do{
-						res= m_poChipAccess->read((*chip)->id, value);
-					}while(res == 1);
-					if(res < 0)
+					cout << "      " << (*chip)->id;
+					if(bCon == true)
 					{
-						(*chip)->device= false;
-						cout << "(cannot read correctly)" << endl;
+						cout << " has value " << flush;
+						value= 0;
+						do{
+							res= m_poChipAccess->read((*chip)->id, value);
+						}while(res == 1);
+						if(res < 0)
+						{
+							(*chip)->device= false;
+							cout << "(cannot read correctly)" << endl;
+						}else
+						{
+							(*chip)->device= true;
+							(*chip)->value= value;
+							cout << dec << value << endl;
+						}
 					}else
-					{
-						(*chip)->device= true;
-						(*chip)->value= value;
-						cout << dec << value << endl;
-					}
+						cout << " (owreader has no connection to any chip)" << endl;
 				}
 			}
 		}
+		if(!bCon)
+			return false;
 		return true;
 	}
 
@@ -282,6 +289,15 @@ namespace server
 				m_mStartSeq[dCacheSeq]= t;
 			}
 		}
+		// if owreader not be connected to any board or chip
+		// set device access to false;
+		if(!m_bConnected)
+		{
+			reader= DbInterface::instance();
+			reader->changedChip(m_sServerType, unique, /*value*/0, /*access*/false);
+			pchip->device= false;
+		}
+
 		// define debug info to make benchmark
 		// for this OWServer with client
 		// > DEBUG -ow <Nr>
@@ -358,6 +374,8 @@ namespace server
 		if(!m_bConnected)
 		{
 			sleep(1);
+			if(stopping())
+				return 1;
 			if(m_poChipAccess->connect())
 			{
 				m_poChipAccess->init(m_oServerProperties);
@@ -498,9 +516,6 @@ namespace server
 			}
 			while(pActSeq != m_mStartSeq.end())
 			{
-				//if(pActSeq->first == 15)
-				//	cout << pActSeq->first << endl;
-				//chipTypeIt= m_mtConductors.find(pActSeq->second.nextUnique);
 				pActChip= find(m_mvReadingCache[pActSeq->first].begin(), m_mvReadingCache[pActSeq->first].end(),
 								pActSeq->second.nextUnique);
 				while(pActChip != m_mvReadingCache[pActSeq->first].end())
@@ -511,7 +526,6 @@ namespace server
 					vector<device_debug_t>::iterator devIt;
 
 					ID= (*pActChip)->id;
-					//cout << "read on ID:" << ID << endl;
 					if(bDebug)
 					{
 						device_debug_t debug;
@@ -535,11 +549,10 @@ namespace server
 							devIt->btime= true;
 						bDebug= true;
 					}
-					value= (*pActChip)->value;
+					value= 0;//(*pActChip)->value;
 					UNLOCK(m_READCACHE);
-					//cout << "read " << ID << endl;
 					endWork= m_poChipAccess->read(ID, value);
-					//cout << "server read id " << ID << " with value " << dec << value << endl;
+					//cout << "server read from id " << ID << " value " << dec << value << " where value before was " << (*pActChip)->value << endl;
 					LOCK(m_READCACHE);
 					switch (endWork)
 					{

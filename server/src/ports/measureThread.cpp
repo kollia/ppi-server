@@ -98,8 +98,10 @@ int MeasureThread::init(void *arg)
 			port= (*m_pvtSubroutines)[n].portClass;
 			port->setDebug(false);
 			port->setAfterContact(m_vAfterContactPorts, m_vAfterContactPins);
+			port->setObserver(this);
 		}
 	}
+
 	return 0;
 }
 

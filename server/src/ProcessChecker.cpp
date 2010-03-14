@@ -68,10 +68,19 @@ int ProcessChecker::execute()
 			port= pCurMeas->pMeasure->getPortClass(subroutine, bCorrect);
 			if(port)
 			{
+#if 0
+#define __DEBUGPROCESSGETCHANGES
+				ostringstream out;
+				out << "ProcessChecker reach " << method << " for " << folder << ":" << subroutine << " to set value " << value;
+#endif
 				if(method == "changedChip")
 				{
-					port->setValue(value);
+#ifdef __DEBUGPROCESSGETCHANGES
+					out << " with reachable device " << boolalpha << device << endl;
+					cout << out.str();
+#endif // __DEBUGPROCESSGETCHANGES
 					port->setDeviceAccess(device);
+					port->setValue(value);
 					pCurMeas->pMeasure->changedValue(folder);
 					m_sAnswer= "done";
 
@@ -79,6 +88,10 @@ int ProcessChecker::execute()
 				{
 					double oldVal;
 
+#ifdef __DEBUGPROCESSGETCHANGES
+					out << endl;
+					cout << out.str();
+#endif // __DEBUGPROCESSGETCHANGES
 					oldVal= port->getValue("i:"+folder);
 					if(value != oldVal)
 					{
@@ -88,7 +101,13 @@ int ProcessChecker::execute()
 					m_sAnswer= "done";
 
 				}else
+				{
+#ifdef __DEBUGPROCESSGETCHANGES
+					out << " but do not reach device" << endl;
+					cout << out.str();
+#endif // __DEBUGPROCESSGETCHANGES
 					m_sAnswer= "nochipaccess";
+				}
 			}else
 				m_sAnswer= "nosubroutine";
 
