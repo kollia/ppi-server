@@ -185,6 +185,19 @@ namespace ppi_database
 		command << bNew;
 		for(vector<double>::iterator o= values.begin(); o != values.end(); ++o)
 			command << *o;
+		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// output on command line to set new value
+#if 0
+		ostringstream out;
+
+		out << "DbInterface filling from " << getProcessName();
+		out << " new " << identif << " inside " << folder << ":" << subroutine;
+		out << " with content ";
+		for(vector<double>::iterator it= values.begin(); it != values.end(); ++it)
+			out << "[" << dec << *it << "] ";
+		out << endl;
+		cout << out.str();
+#endif
 		sRv= sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)

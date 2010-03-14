@@ -821,17 +821,31 @@ bool DatabaseThread::setActEntry(const db_t entry)
 				vector<double>::size_type tcount= tvalue.values.size();
 				vector<double>::size_type ecount= entry.values.size();
 
-				/*cout << "new " << entry.identif << " of " << entry.subroutine << " is ";
-				if(entry.device)
-					cout << "true" << endl;
-				else
-					cout << "false" << endl;
-				cout << "value of " << tvalue.subroutine << " is ";
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// output on command line to set new value as actual
+#if 0
+				ostringstream out;
+
+				out << "DB >> write new " << entry.identif << " in ";
+				out << entry.folder << ":" << entry.subroutine << endl;
+				out << "      old value was " << boolalpha << tvalue.device;
 				if(tvalue.device)
-					cout << "true" << endl;
-				else
-					cout << "false" << endl;
-				cout << endl;*/
+				{
+					out << " and had content ";
+					for(vector<double>::iterator it= tvalue.values.begin(); it != tvalue.values.end(); ++it)
+						out << "[" << dec << *it << "] ";
+				}
+				out << endl;
+				out << "      new value is " << boolalpha << entry.device;
+				if(entry.device)
+				{
+					out << " and has content ";
+					for(vector<double>::const_iterator it= entry.values.begin(); it != entry.values.end(); ++it)
+						out << "[" << dec << *it << "] ";
+				}
+				out << endl;
+				cout << out.str();
+#endif
 				if(entry.identif == "access")
 				{
 					if(tvalue.device != entry.device)
