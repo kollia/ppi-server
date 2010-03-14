@@ -63,8 +63,6 @@ struct sub
 	string sEndComm;
 	double defaultValue;
 	SHAREDPTR::shared_ptr<portBase> portClass;
-	unsigned short sleep;
-	unsigned long usleep;
 	time_t tmlong;
 	int nMax;
 	int nMin;

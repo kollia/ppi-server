@@ -1285,24 +1285,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 					}
 				}
 				if(subdir.get() != NULL)
-				{
-					if(	subdir->sleep == 0
-						&&
-						subdir->usleep == 0	)
-					{
-						string prop("sleep");
-						double dSleep= subdir->property->getDouble(prop, /*warning*/false);
-
-						if(prop != "#ERROR")
-						{
-							subdir->sleep= (unsigned short)dSleep;
-							dSleep-= subdir->sleep;
-							dSleep*= 1000000;
-							subdir->usleep= (unsigned long)dSleep;
-						}
-					}
 					aktualFolder->subroutines.push_back(*subdir.get());
-				}
 				subdir= auto_ptr<sub>(new sub);
 				subdir->name= value;
 				subdir->bCorrect= false;
@@ -1315,29 +1298,17 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				subdir->defaultValue= 0;
 				subdir->negative.nPort= 0x00;
 				subdir->negative.ePin= portBase::NONE;
-				subdir->sleep= 0;
-				subdir->usleep= 0;
 				subdir->tmlong= 0;
 				subdir->bAfterContact= false;
 				subdir->measuredness= 0;
 				string result;
 				bRead= true;
 
-			}else if(subdir.get() && type == "sleep")
-			{
-				double dSleep= atof(value.c_str());
-
-				subdir->sleep= (unsigned short)dSleep;
-				dSleep-= subdir->sleep;
-				dSleep*= 1000000;
-				subdir->usleep= (unsigned long)dSleep;
-
 			}
 			if(	subdir.get()
 				&&
 				subdir->type != ""	)
 			{
-				double dSleep;
 				string prop;
 
 				if(!subdir->property)
@@ -1407,8 +1378,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 					if(bInsert)
 						vlRv.push_back(pair<string, PortTypes>(value, act));
 				}
-				if(type != "sleep")
-					subdir->property->readLine(line);
+				subdir->property->readLine(line);
 				if(!subdir->property->newSubroutine().correct)
 					continue;
 				if(	subdir->type == "MPORTS"
@@ -1459,15 +1429,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 							}
 						}
 					}
-				}
-				prop= "sleep";
-				dSleep= subdir->property->getDouble(prop, /*wrning*/false);
-				if(prop != "#ERROR")
-				{
-					subdir->sleep= (unsigned short)dSleep;
-					dSleep-= subdir->sleep;
-					dSleep*= 1000000;
-					subdir->usleep= (unsigned long)dSleep;
 				}
 			}
 
@@ -1760,23 +1721,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 			lines.push_back(line);
 		}// end of while(!file.eof())
-		if(	subdir.get() != NULL
-			&&
-			subdir->sleep == 0
-			&&
-			subdir->usleep == 0	)
-		{
-			string prop("sleep");
-			double dSleep= subdir->property->getDouble(prop, /*wrning*/false);
-
-			if(prop != "#ERROR")
-			{
-				subdir->sleep= (unsigned short)dSleep;
-				dSleep-= subdir->sleep;
-				dSleep*= 1000000;
-				subdir->usleep= (unsigned long)dSleep;
-			}
-		}
 	}else
 	{
 		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
