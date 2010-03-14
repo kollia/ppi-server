@@ -70,6 +70,14 @@ namespace ports
 		 */
 		bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
+		 * this method will be called from any measure thread to set as observer
+		 * for starting own folder to get value from foreign folder
+		 * if there the value was changing
+		 *
+		 * @param observer measure thread which containing the own folder
+		 */
+		virtual void setObserver(IMeasurePattern* observer);
+		/**
 		 * adding one to value by measure
 		 * or set value to 0 if parameter setnull is true
 		 */

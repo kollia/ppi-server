@@ -34,6 +34,17 @@ namespace ports
 		return true;
 	}
 
+	void Counter::setObserver(IMeasurePattern* observer)
+	{
+		if(m_sSetNull != "")
+		{
+			string folder(getFolderName());
+			string subroutine(getSubroutineName());
+
+			switchClass::activateObserver(m_pStartFolder, observer, folder, subroutine, m_sSetNull);
+		}
+	}
+
 	bool Counter::measure()
 	{
 		double dSetNull= 0;
