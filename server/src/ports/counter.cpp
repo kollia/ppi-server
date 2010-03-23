@@ -47,17 +47,17 @@ namespace ports
 
 	bool Counter::measure()
 	{
-		double dSetNull= 0;
+		bool bSetNull;
 		double value= getValue("i:" + getFolderName());
 
 		if(m_sSetNull != "")
 		{
-			if(!switchClass::calculateResult(m_pStartFolder, getFolderName(), &m_sSetNull[0], dSetNull))
-				dSetNull= 0;
+			if(!switchClass::getResult(m_sSetNull, m_pStartFolder, getFolderName(), isDebug(), bSetNull))
+				bSetNull= false;
 		}
 		if(	value == DOUBLE_MAX
 			||
-			dSetNull				)
+			bSetNull				)
 		{
 			value= 0;
 
