@@ -772,7 +772,6 @@ namespace server
 			dev1String << o->priority << " ";
 			dev1String << o->device;
 			vRv.push_back(dev1String.str());
-			cout << dev1String.str() << endl;
 		}
 		return vRv;
 	}
