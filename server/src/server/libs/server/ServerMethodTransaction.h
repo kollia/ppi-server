@@ -201,6 +201,9 @@ namespace server
 	class ServerMethodTransaction : public ITransferPattern
 	{
 		public:
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			ServerMethodTransaction() : m_boutput(false) {};
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			/**
 			 * initial all values for transaction
 			 *
@@ -277,6 +280,11 @@ namespace server
 			 * @param client name of client witch allocate
 			 */
 			virtual void dissolveConnection(IFileDescriptorPattern& descriptor) {};
+
+		private:
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			bool m_boutput;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 	};
 

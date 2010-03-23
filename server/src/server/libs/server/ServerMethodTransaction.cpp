@@ -32,19 +32,11 @@
 #include "../../../pattern/server/IServerPattern.h"
 
 #include "../../../util/structures.h"
+#include "../../../util/debugtransaction.h"
 
 #include "../../../logger/lib/LogInterface.h"
 
-//#include "../../../ports/measureThread.h"
-
-//#include "../../../portserver/owserver.h"
-
-//#include "../../../util/XMLStartEndTagReader.h"
-//#include "../../../util/usermanagement.h"
-//#include "../../../util/configpropertycasher.h"
-
 #include "ServerMethodTransaction.h"
-
 #include "ServerThread.h"
 #include "communicationthreadstarter.h"
 
@@ -260,18 +252,44 @@ namespace server
 
 		}else if(!descriptor.getBoolean("asker"))
 		{
-			/*if(descriptor.getString("client") == "ProcessChecker")// || descriptor.getString("client") == "OwServerQuestion-1")
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(m_boutput)
 			{ // DEBUG display
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
 				cout << " give Answer '" << input << "'" << endl;
-			}*/
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			descriptor.sendAnswer(input);
 			input= descriptor.getOtherClientString(true);
-			/*if(descriptor.getString("client") == "ProcessChecker")// || descriptor.getString("client") == "OwServerQuestion-1")
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			m_boutput= true;
+#ifndef __FOLLOW_TOPROCESS
+#ifndef __FOLLOW_TOCLIENT
+#ifndef __FOLLOW_SENDMESSAGE
+			m_boutput= false;
+#endif // __FOLLOW_SENDMESSAGE
+#endif // __FOLLOW_TOCLIENT
+#endif // __FOLLOW_TOPROCESS
+#ifdef __FOLLOW_TOPROCESS
+			if(descriptor.getString("process") != __FOLLOW_TOPROCESS)
+				m_boutput= false;
+#endif // __FOLLOW_TOPROCESS
+#ifdef __FOLLOW_TOCLIENT
+			if(descriptor.getString("client") != __FOLLOW_TOCLIENT)
+				m_boutput= false;
+#endif // __FOLLOW_TOCLIENT
+#ifdef __FOLLOW_SENDMESSAGE
+			string sendmsg(__FOLLOW_SENDMESSAGE);
+
+			if(input.substr(0, sendmsg.length()) != sendmsg)
+				m_boutput= false;
+#endif // __FOLLOW_SENDMASSAGE
+			if(m_boutput)
 			{ // DEBUG display
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
 				cout << " get question '" << input << "'" << endl;
-			}*/
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			if(	input == ""
 				||
 				input.substr(input.size() -1) != "\n"	)
@@ -284,22 +302,81 @@ namespace server
 		{
 			IMethodStringStream method(input);
 
-			//cout << input << endl;
-			bRun= transfer(descriptor, method);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			bool boutput= true;
 
-		}else
-		{
-			/*if(client == "ProcessChecker")// || client == "OwServerQuestion-1")
+#ifndef __FOLLOW_FROMPROCESS
+#ifndef __FOLLOW_FROMCLIENT
+#ifndef __FOLLOW_SENDMESSAGE
+			boutput= false;
+#endif // __FOLLOW_SENDMESSAGE
+#endif // __FOLLOW_FROMCLIENT
+#endif // __FOLLOW_FROMPROCESS
+#ifdef __FOLLOW_FROMPROCESS
+			if(descriptor.getString("process") != __FOLLOW_FROMPROCESS)
+				boutput= false;
+#endif // __FOLLOW_FROMPROCESS
+#ifdef __FOLLOW_FROMCLIENT
+			if(descriptor.getString("client") != __FOLLOW_FROMCLIENT)
+				boutput= false;
+#endif // __FOLLOW_FROMCLIENT
+#ifdef __FOLLOW_SENDMESSAGE
+			string sendmsg(__FOLLOW_SENDMESSAGE);
+
+			if(input.substr(0, sendmsg.length()) != sendmsg)
+				boutput= false;
+#endif // __FOLLOW_SENDMESSAGE
+			if(boutput)
 			{ // DEBUG display
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
 				cout << " send question '" << input <<"' to " << client << endl;
-			}*/
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			bRun= transfer(descriptor, method);
+
+		}else
+		{ // else sentence sending first question from process
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			bool boutput= true;
+
+#ifndef __FOLLOW_FROMPROCESS
+#ifndef __FOLLOW_FROMCLIENT
+#ifndef __FOLLOW_SENDMESSAGE
+			boutput= false;
+#endif // __FOLLOW_SENDMESSAGE
+#endif // __FOLLOW_FROMCLIENT
+#endif // __FOLLOW_FROMPROCESS
+#ifdef __FOLLOW_FROMPROCESS
+			if(descriptor.getString("process") != __FOLLOW_FROMPROCESS)
+				boutput= false;
+#endif // __FOLLOW_FROMPROCESS
+#ifdef __FOLLOW_FROMCLIENT
+			if(descriptor.getString("client") != __FOLLOW_FROMCLIENT)
+				boutput= false;
+#endif // __FOLLOW_FROMCLIENT
+#ifdef __FOLLOW_SENDMESSAGE
+			string sendmsg(__FOLLOW_SENDMESSAGE);
+
+			if(input.substr(0, sendmsg.length()) != sendmsg)
+				boutput= false;
+#endif // __FOLLOW_SENDMESSAGE
+			if(boutput)
+			{ // DEBUG display
+				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
+				cout << " send question '" << input <<"' to " << client;
+				if(!bwait)
+					cout << " and need no answer";
+				cout << endl;
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			input= descriptor.sendToOtherClient(client, input, bwait);
-			/*if(client == "ProcessChecker")// || client == "OwServerQuestion-1")
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(boutput)
 			{ // DEBUG display
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
 				cout << " send answer '" << input << "' back to client" << endl;
-			}*/
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			if(	input == ""
 				||
 				input.substr(input.size() -1) != "\n"	)

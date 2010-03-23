@@ -387,6 +387,12 @@ namespace util
 			 * mutex for get questions from server
 			 */
 			pthread_mutex_t* m_GETQUESTIONLOCK;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			// this part of writing messages to output gives some ERROR
+			// Although the variable m_boutput in the constructor is set to false, it is true in the processing
+			// of changes in this variable some problems of connection are shown
+			bool m_boutput;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 			/**
 			 * close given sending or get connection to server

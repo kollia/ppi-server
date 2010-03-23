@@ -17,6 +17,7 @@
 
 #include <boost/algorithm/string/split.hpp>
 
+#include "debugtransaction.h"
 #include "ExternClientInputTemplate.h"
 #include "Thread.h"
 
@@ -33,6 +34,9 @@ namespace util
 		m_sEndingGetCommand("ending"),
 		m_pSendTransaction(NULL),
 		m_pGetTransaction(NULL)
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+		,m_boutput(false)
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 	{
 		m_SENDMETHODLOCK= Thread::getMutex("SENDMETHODLOCK");
 		m_GETQUESTIONLOCK= Thread::getMutex("GETQUESTIONLOCK");
@@ -114,6 +118,7 @@ namespace util
 		vector<string> result;
 		vector<string>::iterator it;
 
+
 		LOCK(m_SENDMETHODLOCK);
 		if(m_oSendConnect == NULL)
 		{
@@ -133,6 +138,36 @@ namespace util
 		else
 			command+= "false ";
 		command+= method.str();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			bool boutput= true;
+
+#ifndef __FOLLOW_FROMPROCESS
+#ifndef __FOLLOW_FROMCLIENT
+#ifndef __FOLLOW_SENDMESSAGE
+			boutput= false;
+#endif // __FOLLOW_SENDMESSAGE
+#endif // __FOLLOW_FROMCLIENT
+#endif // __FOLLOW_FROMPROCESS
+#ifdef __FOLLOW_FROMPROCESS
+			if(m_sProcess != __FOLLOW_FROMPROCESS)
+				boutput= false;
+#endif // __FOLLOW_FROMPROCESS
+#ifdef __FOLLOW_FROMCLIENT
+			if(m_sName != __FOLLOW_FROMCLIENT)
+				boutput= false;
+#endif // __FOLLOW_FROMCLIENT
+#ifdef __FOLLOW_SENDMESSAGE
+			string sendmsg(__FOLLOW_SENDMESSAGE);
+
+			if(method.str().substr(0, sendmsg.length()) != sendmsg)
+				boutput= false;
+#endif // __FOLLOW_SENDMESSAGE
+			if(boutput)
+			{ // DEBUG display
+				cout << "Interface " << m_sProcess << "::" << m_sName;
+				cout << " sending method '" << method.str() <<"'" << endl;
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 		m_pSendTransaction->setCommand(command, done);
 		ret= m_oSendConnect->init();
 		if(ret > 0)
@@ -146,8 +181,21 @@ namespace util
 		if(ret == -2)
 			closeSendConnection();
 		it= result.begin();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+		if(boutput)
+		{ // DEBUG display
+			cout << "Interface " << m_sProcess << "::" << m_sName;
+			cout << " get answer:" << endl;
+		}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 		while(it != result.end())
 		{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(boutput)
+			{ // DEBUG display
+				cout << "             '" << *it << "'" << endl;
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			ret= error(*it);
 			if(ret != 0)
 			{
@@ -254,8 +302,8 @@ namespace util
 				UNLOCK(m_GETQUESTIONLOCK);
 				return error(err);
 			}
-		}else
-			m_pGetTransaction->setCommand(lastAnswer);
+		}
+		m_pGetTransaction->setCommand(lastAnswer);
 		err= m_oGetConnect->init();
 		if(err != 0)
 		{
@@ -263,7 +311,51 @@ namespace util
 			err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
 			return error(err);
 		}
+
+	// this part of writing messages to output gives some ERROR
+	// Although the variable m_boutput in the constructor is set to false, it is true in the processing
+	// of changes in this variable some problems of connection are shown
+#if 0
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+		if(m_boutput)
+		{ // DEBUG display
+			cout << "Reached client " << m_sProcess << "::" << m_sName;
+			cout << " give Answer '" << lastAnswer << "'" << endl;
+		}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+#endif
 		answer= m_pGetTransaction->getReturnedString();
+#if 0
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+		m_boutput= true;
+#ifndef __FOLLOW_TOPROCESS
+#ifndef __FOLLOW_TOCLIENT
+#ifndef __FOLLOW_SENDMESSAGE
+		m_boutput= false;
+#endif // __FOLLOW_SENDMESSAGE
+#endif // __FOLLOW_TOCLIENT
+#endif // __FOLLOW_TOPROCESS
+#ifdef __FOLLOW_TOPROCESS
+		if(m_sProcess != __FOLLOW_TOPROCESS)
+			m_boutput= false;
+#endif // __FOLLOW_TOPROCESS
+#ifdef __FOLLOW_TOCLIENT
+		if(m_sName != __FOLLOW_TOCLIENT)
+			m_boutput= false;
+#endif // __FOLLOW_TOCLIENT
+#ifdef __FOLLOW_SENDMESSAGE
+		string sendmsg(__FOLLOW_SENDMESSAGE);
+
+		if(answer[0].substr(0, sendmsg.length()) != sendmsg)
+			m_boutput= false;
+#endif // __FOLLOW_SENDMASSAGE
+		if(m_boutput)
+		{ // DEBUG display
+			cout << "Reached client " << m_sProcess << "::" << m_sName;
+			cout << " get question '" << answer[0] << "'" << endl;
+		}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+#endif
 		UNLOCK(m_GETQUESTIONLOCK);
 		err= error(answer[0]);
 		if(err != 0)
