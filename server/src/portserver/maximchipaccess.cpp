@@ -98,7 +98,7 @@ namespace ports
 				if(m_sInit == "")
 					return false;
 			}
-			if(!connect())// when connection was failt
+			if(!connect())// when connection was fault
 				return true; // return true, because server should try again later
 		}
 		ids= getChipIDs();
@@ -752,26 +752,29 @@ namespace ports
 		msg+= dirStr;
 		msg+= "\nfound follow chips:\n";
 		dirs= ConfigPropertyCasher::split(dirStr, ",");
+		dirStr= "logdirectory:";
 		size= dirs.size();
 		for(vector<string>::size_type c= 0; c < size; ++c)
 		{
 			string dir(dirs[c]);
 			unsigned int len= dir.length();
 
-			if(	len > 3
-				&&
-				dir.substr(2, 1) == "."	)
+			if(len > 3)
 			{
-				string ID;
-
-				ID= dir.substr(0, dir.length()-1);
-				oldIt= find(m_vsBefore.begin(), m_vsBefore.end(), ID);
-				if(oldIt == m_vsBefore.end())
+				dirStr+= dir.substr(0, 1);
+				if(dir.substr(2, 1) == ".")
 				{
-					vsIds->push_back(ID);
-					msg+= "      ";
-					msg+= ID;
-					msg+= "\n";
+					string ID;
+
+					ID= dir.substr(0, dir.length()-1);
+					oldIt= find(m_vsBefore.begin(), m_vsBefore.end(), ID);
+					if(oldIt == m_vsBefore.end())
+					{
+						vsIds->push_back(ID);
+						msg+= "      ";
+						msg+= ID;
+						msg+= "\n";
+					}
 				}
 			}
 		}
