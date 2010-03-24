@@ -58,6 +58,10 @@ namespace ports
 		 * reference to all folder
 		 */
 		SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
+		/**
+		 * whether while parameter have operator or '|' or and '&' inside of string
+		 */
+		bool m_bBooleanWhile;
 
 	public:
 		/**
@@ -113,10 +117,11 @@ namespace ports
 		 * @param content vector of defined-values to replace with number of while string
 		 * @param defaultVal default value when vector of content be set but number of calculated while string ist out of range
 		 * @param value result of method
+		 * @param readBool whether whileStr have inside an operator of or '|' or and '&'
 		 * @param debug whether should write debug messages on command line
 		 * @return true if value will be calculated
 		 */
-		static bool getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool debug);
+		static bool getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool readBool, const bool debug);
 
 	protected:
 		/**

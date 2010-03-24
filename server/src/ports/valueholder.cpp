@@ -41,6 +41,7 @@ namespace ports
 		DbInterface* db= DbInterface::instance();
 		string sValue("default");
 		string sDefValues;
+		string::size_type nWhileLen;
 
 		m_pStartFolder= pStartFolder;
 		m_bFloat= properties.haveAction("float");
@@ -55,6 +56,25 @@ namespace ports
 			split(m_vdValues, sDefValues, is_any_of("|"));
 		}
 		m_sWhile= properties.getValue("while", bWarning);
+		m_bBooleanWhile= false;
+		nWhileLen= m_sWhile.size();
+		if(m_sWhile.find("|") >= nWhileLen)
+		{
+			if(m_sWhile.find("&") < nWhileLen)
+				m_bBooleanWhile= true;
+		}else
+			m_bBooleanWhile= true;
+		if(m_bBooleanWhile)
+		{
+			if(m_vdValues.size() > 2)
+			{
+				string msg(properties.getMsgHead(/*error*/false));
+
+				msg+= "while parameter can be only set for first or second value";
+				LOG(LOG_WARNING, msg);
+				cout << msg << endl;
+			}
+		}
 		m_ddefaultValue= properties.getDouble(sValue, /*warning*/false);
 
 		if(	sMin == "#ERROR"
@@ -75,7 +95,7 @@ namespace ports
 				else
 					msg+= " integer";
 				LOG(LOG_WARNING, msg);
-				cerr << msg << endl;
+				cout << msg << endl;
 			}
 		}
 		if(!portBase::init(properties))
@@ -153,8 +173,11 @@ namespace ports
 		{
 			double value;
 
-			if(getWhileStringResult(m_pStartFolder, getFolderName(), getSubroutineName(), m_sWhile, m_vdValues, m_ddefaultValue, value, isdebug))
+			if(getWhileStringResult(m_pStartFolder, getFolderName(), getSubroutineName(),
+									m_sWhile, m_vdValues, m_ddefaultValue, value, m_bBooleanWhile, isdebug))
+			{
 				setValue(value);
+			}
 
 		}else if(isdebug)
 		{
@@ -166,9 +189,22 @@ namespace ports
 		return true;
 	}
 
-	bool ValueHolder::getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool debug)
+	bool ValueHolder::getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool readBool, const bool debug)
 	{
-		if(switchClass::calculateResult(pStartFolder, folder, whileStr, value))
+		bool bOk;
+		bool bValue;
+
+		if(readBool)
+		{
+			bOk= switchClass::getResult(whileStr, pStartFolder, folder, debug, bValue);
+			if(bOk)
+				value= bValue ? 1 : 0;
+			else
+				value= 0;
+		}else
+			bOk= switchClass::calculateResult(pStartFolder, folder, whileStr, value);
+
+		if(bOk)
 		{
 			vector<double>::size_type s;
 
