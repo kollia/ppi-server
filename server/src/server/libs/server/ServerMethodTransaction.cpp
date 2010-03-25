@@ -76,8 +76,12 @@ namespace server
 			msg << "WARNING: conection " << descriptor.getClientID();
 			msg << " in " << descriptor.getServerObject()->getName();
 			msg << " from client " << descriptor.getString("client");
-			msg << " in process " << descriptor.getString("process") << " is broken" << endl;
-			msg << "         so close connection";
+			msg << " in process " << descriptor.getString("process") << " is broken by";
+			if(descriptor.error())
+				msg << " an undefined ERROR";
+			else
+				msg << " ending of stream";
+			msg << endl << "         so close connection";
 #ifdef ALLOCATEONMETHODSERVER
 			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
 				cerr << msg.str() << endl;

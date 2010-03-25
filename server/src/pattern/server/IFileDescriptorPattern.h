@@ -70,6 +70,10 @@ namespace design_pattern_world
 				 */
 				virtual bool eof()= 0;
 				/**
+				 * test file handle of error
+				 */
+				virtual bool error()= 0;
+				/**
 				 * get name of host address from connected part (client or server)
 				 *
 				 * @return name of host address

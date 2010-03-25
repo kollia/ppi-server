@@ -62,15 +62,19 @@ namespace server
 	{
 		char *res;
 		char buf[501];
+		int bufLen= (sizeof(buf)-2);
+		string sread;
 
-		if(!m_bFileAccess)
-		{
-			reader= "";
-			m_nEOF= EOF;
+		if(eof())
 			return;
-		}
+		reader= "";
 		UNLOCK(m_THREADSAVEMETHODS);
-		res= fgets(buf, sizeof(buf), m_pFile);
+		do{
+			res= fgets(buf, bufLen+1, m_pFile);
+			sread= (res != NULL) ? string(res) : string("");
+			reader+= sread;
+
+		}while(!eof() && sread.length() == bufLen && sread.substr(bufLen-1, 1) != "\n");
 		LOCK(m_THREADSAVEMETHODS);
 		if(res == NULL)
 		{
@@ -83,34 +87,41 @@ namespace server
 
 	void FileDescriptor::operator <<(string writer)
 	{
-		if(!m_bFileAccess)
+		if(eof())
 			return;
 		m_nEOF= fputs(writer.c_str(), m_pFile);
 	}
 
 	void FileDescriptor::endl()
 	{
-		if(!m_bFileAccess)
+		if(eof())
 			return;
 		m_nEOF= fputs("\n", m_pFile);
 	}
 
-	bool FileDescriptor::eof()
+	inline bool FileDescriptor::eof()
 	{
-		if(!m_bFileAccess || m_nEOF == EOF)
+		if(error())
 			return true;
 		if(feof(m_pFile) != 0)
 			return true;
 		return false;
 	}
 
-	void FileDescriptor::flush()
+	inline bool FileDescriptor::error()
 	{
-		if(!m_bFileAccess || ferror(m_pFile) != 0 || feof(m_pFile) != 0)
+		if(!m_bFileAccess || ferror(m_pFile) != 0)
 		{
 			m_nEOF= EOF;
-			return;
+			return true;
 		}
+		return false;
+	}
+
+	void FileDescriptor::flush()
+	{
+		if(error())
+			return;
 		try{
 			fflush(m_pFile);
 		}catch(...)

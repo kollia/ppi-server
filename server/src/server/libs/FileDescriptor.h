@@ -93,6 +93,10 @@ namespace server
 			 */
 			virtual bool eof();
 			/**
+			 * test file handle of error
+			 */
+			virtual bool error();
+			/**
 			 * get name of host address from client
 			 *
 			 * @return name of host address
