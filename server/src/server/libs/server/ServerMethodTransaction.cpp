@@ -309,13 +309,6 @@ namespace server
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			bool boutput= true;
 
-#ifndef __FOLLOW_FROMPROCESS
-#ifndef __FOLLOW_FROMCLIENT
-#ifndef __FOLLOW_SENDMESSAGE
-			boutput= false;
-#endif // __FOLLOW_SENDMESSAGE
-#endif // __FOLLOW_FROMCLIENT
-#endif // __FOLLOW_FROMPROCESS
 #ifdef __FOLLOW_FROMPROCESS
 			if(descriptor.getString("process") != __FOLLOW_FROMPROCESS)
 				boutput= false;
@@ -343,13 +336,6 @@ namespace server
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			bool boutput= true;
 
-#ifndef __FOLLOW_FROMPROCESS
-#ifndef __FOLLOW_FROMCLIENT
-#ifndef __FOLLOW_SENDMESSAGE
-			boutput= false;
-#endif // __FOLLOW_SENDMESSAGE
-#endif // __FOLLOW_FROMCLIENT
-#endif // __FOLLOW_FROMPROCESS
 #ifdef __FOLLOW_FROMPROCESS
 			if(descriptor.getString("process") != __FOLLOW_FROMPROCESS)
 				boutput= false;
@@ -375,6 +361,13 @@ namespace server
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 			input= descriptor.sendToOtherClient(client, input, bwait);
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
+#ifndef __FOLLOW_FROMPROCESS
+#ifndef __FOLLOW_FROMCLIENT
+#ifndef __FOLLOW_SENDMESSAGE
+			boutput= false;
+#endif // __FOLLOW_SENDMESSAGE
+#endif // __FOLLOW_FROMCLIENT
+#endif // __FOLLOW_FROMPROCESS
 			if(boutput)
 			{ // DEBUG display
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
