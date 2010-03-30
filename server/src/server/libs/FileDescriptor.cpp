@@ -82,7 +82,6 @@ namespace server
 			m_nEOF= EOF;
 			return;
 		}
-		reader= buf;
 	}
 
 	void FileDescriptor::operator <<(string writer)
