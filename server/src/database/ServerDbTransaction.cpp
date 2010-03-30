@@ -380,12 +380,8 @@ namespace server
 
 			object >> ow;
 			def << "OwServerQuestion-" << ow;
-			while((res= descriptor.sendToOtherClient(def.str(), command, true)) != "done")
-			{
-				descriptor << res;
-				descriptor.endl();
-			}
-			descriptor << "done";
+			res= descriptor.sendToOtherClient(def.str(), command, true);
+			descriptor << res;
 
 		}else if(method == "setOWDebug")
 		{
