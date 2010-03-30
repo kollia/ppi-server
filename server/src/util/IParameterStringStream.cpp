@@ -60,9 +60,33 @@ void IParameterStringStream::operator >> ( bool& value)
 			||
 			!op.eof()	)
 		{
-			m_bFail= true;
-			value= false;
-			m_sStream.seekg(pos, ios::beg);
+			bool bOk= true;
+			double dvalue;
+			istringstream op2(param);
+
+			// maybe parameter is no string of true or false but an number
+			op2 >> dvalue;
+			if( op2.fail()
+				||
+				!op2.eof()	)
+			{
+				bOk= false;
+			}
+			if( bOk
+				&&
+				dvalue < 0 && dvalue > 0
+				&&
+				dvalue < 1 && dvalue > 1		)
+			{
+				bOk= false;
+			}else
+				value= static_cast<bool>(dvalue);
+			if(!bOk)
+			{
+				m_bFail= true;
+				value= false;
+				m_sStream.seekg(pos, ios::beg);
+			}
 		}
 	}
 }
