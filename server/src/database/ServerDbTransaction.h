@@ -216,6 +216,12 @@ namespace server
 			 * @return whether need to hold the connection
 			 */
 			virtual bool transfer(IFileDescriptorPattern& descriptor, IMethodStringStream& method);
+			/*
+			 * this method will be called when any connection was broken.
+			 * By this method the database will be informe to arouse the CHANGINGPOOLCONDITION
+			 * to end also this connection.
+			 */
+			virtual void connectionEnding();
 			/**
 			 * return string describing error number
 			 *

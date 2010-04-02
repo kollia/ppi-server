@@ -82,16 +82,20 @@ namespace server
 			else
 				msg << " ending of stream";
 			msg << endl << "         so close connection";
-#ifdef ALLOCATEONMETHODSERVER
-			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
-				cerr << msg.str() << endl;
-#endif // ALLOCATEONMETHODSERVER
 			input= msg.str();
 			boost::algorithm::replace_all(input, "\n", "\\n");
 			input= "LogServer false log 'SereverMethodTransaction.cpp' 95 5 \"" + input +"\"";
+			descriptor.sendToOtherClient("LogServer", input, false);
+#ifdef ALLOCATEONMETHODSERVER
+			msg << endl;
+			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
+				cerr << msg.str();
+#endif // ALLOCATEONMETHODSERVER
 			descriptor.setBoolean("access", false);
+			input=descriptor.sendToOtherClient(descriptor.getString("client"), "init", true);
+			connectionEnding();
 			dissolveConnection(descriptor);
-			bRun= false;
+			return false;
 		}
 		wasinput= input;
 		//trim(input, is_any_of(" \t\r\n"));

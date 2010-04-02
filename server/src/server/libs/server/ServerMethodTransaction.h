@@ -228,6 +228,11 @@ namespace server
 			 * @return whether need to hold the connection
 			 */
 			virtual bool transfer(IFileDescriptorPattern& descriptor, IMethodStringStream& parameter);
+			/*
+			 * this method will be called when any connection was broken
+			 * and the child class should respond with some actions.
+			 */
+			virtual void connectionEnding()= 0;
 			/**
 			 * method to get name of transaction
 			 *

@@ -643,6 +643,14 @@ namespace server
 		return true;
 	}
 
+	void ServerDbTransaction::connectionEnding()
+	{
+		DatabaseThread* db;
+
+		db= DatabaseThread::instance();
+		db->arouseChangingPoolCondition();
+	}
+
 	string ServerDbTransaction::strerror(int error) const
 	{
 		string str;
