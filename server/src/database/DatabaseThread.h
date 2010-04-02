@@ -217,6 +217,12 @@ namespace ppi_database
 		 */
 		void isEntryChanged();
 		/**
+		 * arouse all condition whitch wait of any changes in database.<br />
+		 * This method will be called when any connection from internet proccess will be break,
+		 * to ending also this asking connection.
+		 */
+		void arouseChangingPoolCondition();
+		/**
 		 * database service for all changes in subroutines.<br />
 		 * this method returning all changes which are defined with <code>needSubroutines()</code>
 		 *

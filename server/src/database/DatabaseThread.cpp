@@ -535,6 +535,11 @@ void DatabaseThread::isEntryChanged()
 	}
 }
 
+void DatabaseThread::arouseChangingPoolCondition()
+{
+	AROUSEALL(m_CHANGINGPOOLCOND);
+}
+
 void DatabaseThread::useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip)
 {
 	m_mmmvServerContent[onServer][chip][folder].push_back(subroutine);
