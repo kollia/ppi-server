@@ -71,12 +71,17 @@ namespace server
 		descriptor >> input;
 		if(descriptor.eof())
 		{
+			unsigned int ID;
+			string process, client;
 			ostringstream msg;
 
-			msg << "WARNING: conection " << descriptor.getClientID();
+			ID= descriptor.getClientID();
+			process= descriptor.getString("process");
+			client= descriptor.getString("client");
+			msg << "WARNING: conection " << ID;
 			msg << " in " << descriptor.getServerObject()->getName();
-			msg << " from client " << descriptor.getString("client");
-			msg << " in process " << descriptor.getString("process") << " is broken by";
+			msg << " from client " << client;
+			msg << " in process " << process << " is broken by";
 			if(descriptor.error())
 				msg << " an undefined ERROR";
 			else
@@ -84,7 +89,7 @@ namespace server
 			msg << endl << "         so close connection";
 			input= msg.str();
 			boost::algorithm::replace_all(input, "\n", "\\n");
-			input= "LogServer false log 'SereverMethodTransaction.cpp' 95 5 \"" + input +"\"";
+			input= "log \"SereverMethodTransaction.cpp\" 95 4 \"" + input +"\"";
 			descriptor.sendToOtherClient("LogServer", input, false);
 #ifdef ALLOCATEONMETHODSERVER
 			msg << endl;
@@ -92,8 +97,8 @@ namespace server
 				cerr << msg.str();
 #endif // ALLOCATEONMETHODSERVER
 			descriptor.setBoolean("access", false);
-			input=descriptor.sendToOtherClient(descriptor.getString("client"), "init", true);
-			connectionEnding();
+			input=descriptor.sendToOtherClient(client, "init", true);
+			connectionEnding(ID, process, client);
 			dissolveConnection(descriptor);
 			return false;
 		}

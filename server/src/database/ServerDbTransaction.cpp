@@ -643,12 +643,15 @@ namespace server
 		return true;
 	}
 
-	void ServerDbTransaction::connectionEnding()
+	void ServerDbTransaction::connectionEnding(const unsigned int ID, const string& process, const string& client)
 	{
 		DatabaseThread* db;
 
-		db= DatabaseThread::instance();
-		db->arouseChangingPoolCondition();
+		if(process == "ppi-internet-server")
+		{
+			db= DatabaseThread::instance();
+			db->arouseChangingPoolCondition();
+		}
 	}
 
 	string ServerDbTransaction::strerror(int error) const

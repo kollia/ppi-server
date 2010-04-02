@@ -220,8 +220,12 @@ namespace server
 			 * this method will be called when any connection was broken.
 			 * By this method the database will be informe to arouse the CHANGINGPOOLCONDITION
 			 * to end also this connection.
+			 *
+			 * @param ID unique connection ID
+			 * @param process name of process from witch be connected
+			 * @param client name of client to witch connected
 			 */
-			virtual void connectionEnding();
+			virtual void connectionEnding(const unsigned int ID, const string& process, const string& client);
 			/**
 			 * return string describing error number
 			 *

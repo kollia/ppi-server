@@ -231,8 +231,12 @@ namespace server
 			/*
 			 * this method will be called when any connection was broken
 			 * and the child class should respond with some actions.
+			 *
+			 * @param ID unique connection ID
+			 * @param process name of process from witch be connected
+			 * @param client name of client to witch connected
 			 */
-			virtual void connectionEnding()= 0;
+			virtual void connectionEnding(const unsigned int ID, const string& process, const string& client)= 0;
 			/**
 			 * method to get name of transaction
 			 *
