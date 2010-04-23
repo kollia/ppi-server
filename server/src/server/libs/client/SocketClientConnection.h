@@ -27,6 +27,8 @@
 #include "../../../pattern/server/ITransferPattern.h"
 #include "../../../pattern/server/IServerPattern.h"
 
+#include "../../../util/smart_ptr.h"
+
 using namespace std;
 using namespace design_pattern_world::server_pattern;
 
@@ -496,7 +498,7 @@ namespace server
 			/**
 			 * descriptor for transaction
 			 */
-			IFileDescriptorPattern* m_pDescriptor;
+			SHAREDPTR::shared_ptr<IFileDescriptorPattern> m_pDescriptor;
 
 		private:
 			/**

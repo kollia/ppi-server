@@ -104,7 +104,7 @@ namespace server
 		 *
 		 * @param descriptor new client connection FileDescriptor
 		 */
-		virtual void setNewClient(IFileDescriptorPattern* descriptor);
+		virtual void setNewClient(SHAREDPTR::shared_ptr<IFileDescriptorPattern>& descriptor);
 		/**
 		 * arouse condition NEXTCOMMUNICATIONCOND
 		 * to search again for needed new communication threads
@@ -255,7 +255,7 @@ namespace server
 		 * new FileDescriptor pool filled from ServerThread
 		 * if no NextFree communication-thread be set
 		 */
-		queue<IFileDescriptorPattern*> m_qpNewClients;
+		queue<SHAREDPTR::shared_ptr<IFileDescriptorPattern> > m_qpNewClients;
 
 	};
 

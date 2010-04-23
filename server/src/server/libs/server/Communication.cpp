@@ -22,6 +22,7 @@
 
 #include "../../../logger/lib/LogInterface.h"
 
+#include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/Thread.h"
 #include "../../../util/XMLStartEndTagReader.h"
 #include "../../../util/configpropertycasher.h"
@@ -148,9 +149,10 @@ namespace server
 			while(bHave)
 			{
 				bHave= m_hFileAccess->transfer();
-				if(!m_hFileAccess->eof())
+				if(bHave && !m_hFileAccess->eof())
 					m_hFileAccess->flush();
 			}
+			glob::threadStopMessage("Communication::execute(): one communication thread was ending");
 #ifndef DEBUG
 #ifdef SERVERDEBUG
 			string msg;
@@ -174,10 +176,12 @@ namespace server
 			}
 			m_bHasClient= false;
 			UNLOCK(m_HAVECLIENT);
+			glob::threadStopMessage("Communication::execute(): arouse CommunicationThreadStarter to order all communication threads");
 			m_poStarter->arouseStarterThread();
 
 		}else if(conderror)
 			usleep(500000);
+		glob::threadStopMessage("Communication::execute(): ending CommunicationThread");
 		return 0;
 	}
 
@@ -243,15 +247,10 @@ namespace server
 	int Communication::stop(const bool *bWait)
 	{
 		int Rv= 0;
-		bool client= hasClient();
+		//bool client= hasClient();
 
 		LOCK(m_HAVECLIENT);
 		Rv= Thread::stop();// do not detach thread
-		if(*bWait && client && m_hFileAccess.get())
-		{
-			m_hFileAccess->closeConnection();
-			m_hFileAccess= auto_ptr<IFileDescriptorPattern>();
-		}
 		AROUSE(m_CLIENTWAITCOND);
 		UNLOCK(m_HAVECLIENT);
 		if(	Rv == 0
@@ -260,6 +259,11 @@ namespace server
 			&&
 			*bWait	)
 		{
+			/*if(*bWait && client && m_hFileAccess.get())
+			{
+				m_hFileAccess->closeConnection();
+				m_hFileAccess= auto_ptr<IFileDescriptorPattern>();
+			}*/
 			Rv= Thread::stop(bWait);
 		}
 		return Rv;
@@ -267,15 +271,19 @@ namespace server
 
 	void Communication::ending()
 	{
-
+		if(m_hFileAccess.get())
+		{
+			m_hFileAccess->closeConnection();
+			m_hFileAccess= auto_ptr<IFileDescriptorPattern>();
+		}
 	}
 
-	void Communication::connection(IFileDescriptorPattern* access)
+	void Communication::connection(SHAREDPTR::shared_ptr<IFileDescriptorPattern>& access)
 	{
 		LOCK(m_HAVECLIENT);
 		m_bHasClient= true;
 		m_bConnected= false;
-		m_hFileAccess= auto_ptr<IFileDescriptorPattern>(access);
+		m_hFileAccess= access;
 		m_hFileAccess->setClientID(m_nDefaultID);
 		AROUSE(m_CLIENTWAITCOND);
 		UNLOCK(m_HAVECLIENT);

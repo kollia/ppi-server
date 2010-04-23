@@ -19,7 +19,10 @@
 
 #include "IClientHolderPattern.h"
 #include "IFileDescriptorPattern.h"
+
 #include "../util/ithreadpattern.h"
+
+#include "../../util/smart_ptr.h"
 
 namespace design_pattern_world
 {
@@ -46,7 +49,7 @@ namespace design_pattern_world
 			 *
 			 * @param descriptor new client connection FileDescriptor
 			 */
-			virtual void setNewClient(IFileDescriptorPattern* descriptor)= 0;
+			virtual void setNewClient(SHAREDPTR::shared_ptr<IFileDescriptorPattern>& descriptor)= 0;
 			/**
 			 * search client with given defined name
 			 * and return this client

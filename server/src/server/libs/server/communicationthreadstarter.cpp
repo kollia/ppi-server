@@ -90,7 +90,7 @@ namespace server
 		pCurrentCom= m_poFirstCommunication;
 		while(pCurrentCom)
 		{
-			if(	own != pCurrentCom->getDescriptor()
+			if(	own != pCurrentCom->getDescriptor().get()
 				&&
 				pCurrentCom->hasClient()
 				&&
@@ -337,7 +337,7 @@ namespace server
 		UNLOCK(m_NEXTCOMMUNICATION);
 	}
 
-	void CommunicationThreadStarter::setNewClient(IFileDescriptorPattern* descriptor)
+	void CommunicationThreadStarter::setNewClient(SHAREDPTR::shared_ptr<IFileDescriptorPattern>& descriptor)
 	{
 		LOCK(m_NEXTCOMMUNICATION);
 		if(m_poNextFree)
@@ -548,6 +548,7 @@ namespace server
 
 			}else
 			{
+				pCurrentCom->stop(false);
 				LOCK(m_NEXTCOMMUNICATION);
 				if(m_poFirstCommunication != pCurrentCom)
 				{
@@ -563,7 +564,10 @@ namespace server
 			if(pDel != NULL)
 				delete pDel;
 		}
-		if(!bWait || m_poFirstCommunication->getNextComm() == NULL)
+		// if method be set to no waiting return true,
+		// or all communication threads be stopped,
+		// or also if connection ID be set and only the owen does exist return true
+		if(!bWait || !m_poFirstCommunication || connectionID && m_poFirstCommunication->getNextComm() == NULL)
 			return true;
 		return false;
 	}

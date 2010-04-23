@@ -55,8 +55,8 @@ namespace server
 		 *
 		 * @return descriptor
 		 */
-		virtual const IFileDescriptorPattern* getDescriptor() const
-		{ return m_hFileAccess.get(); };
+		virtual const SHAREDPTR::shared_ptr<IFileDescriptorPattern> getDescriptor() const
+		{ return m_hFileAccess; };
 		/**
 		 * set next communication object
 		 *
@@ -77,7 +77,7 @@ namespace server
 		 *
 		 * @param access file descriptor whitch get from  IServerConnectArtPattern by listen
 		 */
-		virtual void connection(IFileDescriptorPattern* access);
+		virtual void connection(SHAREDPTR::shared_ptr<IFileDescriptorPattern>& access);
 		/**
 		 *  external command to stop thread
 		 *
@@ -204,7 +204,7 @@ namespace server
 		/**
 		 * FILE handle to client
 		 */
-		auto_ptr<IFileDescriptorPattern> m_hFileAccess;
+		SHAREDPTR::shared_ptr<IFileDescriptorPattern> m_hFileAccess;
 		/**
 		 * whether client has an connection to server
 		 * and has get an connection ID

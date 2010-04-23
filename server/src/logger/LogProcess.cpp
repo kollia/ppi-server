@@ -117,13 +117,49 @@ int LogProcess::init(void* arg)
 	return 0;
 }
 
+string LogProcess::getStatusInfo(string params, pos_t& pos, time_t elapsed, string lasttime)
+{
+	ostringstream id;
+	string param, sRv;
+
+	if(params != "")
+	{
+		ostringstream oRv;
+
+		oRv << "[";
+		oRv.width(6);
+		oRv << dec << pos.tid << "] ";
+		oRv << pos.threadname << " ";
+
+		if(pos.identif == "#log#wait-question")
+		{
+			oRv << "wait for any question since " << lasttime;
+			sRv= oRv.str();
+
+		}else if(pos.identif == "#log#answer-question")
+		{
+			oRv << "logging process should answer '" << pos.info2 << "' since " << lasttime;
+			sRv= oRv.str();
+
+		}else
+			sRv= StatusLogRoutine::getStatusInfo(params, pos, elapsed, lasttime);
+	}
+	return sRv;
+}
+
 int LogProcess::execute()
 {
 	int err;
 	string question, command;
-	string::size_type pos;
+	string::size_type pos, length;
 
+	POS("#log#wait-question");
 	question= getQuestion(m_sAnswer);
+	length= question.size();
+	if(length > 10)
+		POSS("#log#answer-question", question.substr(0, 10) + " ...");
+	else
+		POSS("#log#answer-question", question);
 	err= error(question);
 	if(err != 0)
 	{

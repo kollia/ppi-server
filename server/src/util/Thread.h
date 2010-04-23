@@ -119,7 +119,7 @@ class Thread :	public virtual IThreadPattern,
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
 		virtual int stop(const bool bWait)
-		{ return stop(&bWait); };
+		{ return Thread::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
@@ -255,6 +255,14 @@ class Thread :	public virtual IThreadPattern,
    		 */
    		static string getConditionName(pthread_cond_t *cond);
    		/**
+   		 * set the running application flag to false.
+		 * This flag is set for destroyMutex or destroyCondition
+		 * because by destroying and the end of the app is reached
+		 * the global variable g_mCondition will be destroy before
+		 * the last destroy is done. So it gives an "Segmentation fault"
+   		 */
+   		static void applicationStops();
+   		/**
    		 * method returning name of thread
    		 *
    		 * @return name of thread
@@ -380,6 +388,14 @@ class Thread :	public virtual IThreadPattern,
 		 * condition for start or stop thread
 		 */
 		pthread_cond_t* m_STARTSTOPTHREADCOND;
+		/**
+		 * whether application is running.
+		 * This flag is set for destroyMutex or destroyCondition
+		 * because by destroying and the end of the app is reached
+		 * the global variable g_mCondition will be destroy before
+		 * the last destroy is done. So it gives an "Segmentation fault"
+		 */
+		static bool m_bAppRun;
 
 		void run();
 		static void * EntryPoint(void*);

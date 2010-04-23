@@ -157,7 +157,7 @@ namespace server
 
 	int ServerThread::execute()
 	{
-		IFileDescriptorPattern* fp;
+		SHAREDPTR::shared_ptr<IFileDescriptorPattern> fp;
 
 		if(m_pConnect->accept() <= 0)
 		{

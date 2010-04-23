@@ -37,6 +37,7 @@
 //#include "../portserver/owserver.h"
 #include "../portserver/lib/OWInterface.h"
 
+#include "../util/GlobalStaticMethods.h"
 #include "../util/XMLStartEndTagReader.h"
 #include "../util/usermanagement.h"
 #include "../util/configpropertycasher.h"
@@ -464,7 +465,9 @@ namespace server
 			}
 		}else
 		{
-			if(input == "stop-server")
+			if(	input == "stop-server"
+				||
+				input == "restart-server"	)
 			{
 				string action;
 				DbInterface* db= DbInterface::instance();
@@ -474,6 +477,7 @@ namespace server
 				IServerPattern* server= descriptor.getServerObject();
 				IClientHolderPattern* starter= server->getCommunicationFactory();
 
+				glob::stopMessage("get stop or restart command from outside");
 				if(!user->isRoot(descriptor.getString("username")))
 				{
 					string msg;
@@ -482,6 +486,7 @@ namespace server
 					msg+= descriptor.getString("username") + "'\n";
 					msg+= "permisson denied, send ERROR 013";
 					LOG(LOG_ERROR, msg);
+					glob::stopMessage(msg);
 					sendmsg= "ERROR 013\n";
 					descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -490,19 +495,20 @@ namespace server
 					return descriptor.getBoolean("wait");
 				}
 				LOG(LOG_INFO, "user stop server with foreign application");
-				cout << endl;
+				glob::stopMessage("do not allow new connections");
 				server->allowNewConnections(false);
+				glob::stopMessage("ending all Debug message output from owreader to any client");
 				db->clearOWDebug(0);
+				glob::stopMessage("do not start again any new hearingPort transactions");
 				LOCK(m_SERVERISSTOPPINGMUTEX);
 				m_bStopServer= true;
 				UNLOCK(m_SERVERISSTOPPINGMUTEX);
+				glob::stopMessage("send stop command to CLASS NeedDbChanges");
 				dbchanges->stop(false);
 				db->needSubroutines(0, "serverisstopping");
-				descriptor << "send stop command to clients";
-				descriptor.endl();
-				descriptor.flush();
-				sleep(1);
-				logger->closeSendConnection();
+				glob::stopMessage("send first stopping message to all existing clients of server");
+				starter->stopCommunicationThreads(descriptor.getClientID(), /*wait*/false);
+				glob::stopMessage("send stop command to process ppi-db-server");
 				do{
 					//cout << "send stop-all to database" << endl;
 					action= db->stopall();
@@ -513,22 +519,18 @@ namespace server
 						descriptor.flush();
 					}
 				}while(action != "done");
-				cout << "### stopping database server is performed" << endl;
-				//db->closeSendConnection();
-				//delete logger;
-				//DbInterface::deleteAll();
-				descriptor << "stop internet clients";
-				descriptor.endl();
-				descriptor.flush();
-				while(!starter->stopCommunicationThreads(descriptor.getClientID(), /*wait*/true))
-				{
-					descriptor << "stop internet clients";
+				glob::stopMessage("stopping of ppi-db-server process and all other member processes should be done");
+				do{
+					glob::stopMessage("send stopping message to existing internet clients");
+					descriptor << "stop Internet clients";
 					descriptor.endl();
 					descriptor.flush();
-				}
-				descriptor << "stop internet clients";
+				}while(!starter->stopCommunicationThreads(descriptor.getClientID(), /*wait*/true));
+				descriptor << "### stoping internet clients are performed";
 				descriptor.endl();
 				descriptor.flush();
+				glob::stopMessage("ending connection to LogInterface");
+				logger->closeSendConnection();
 				sendmsg= "OK";
 				descriptor << sendmsg;
 				descriptor.endl();
@@ -537,9 +539,10 @@ namespace server
 					cout << "send: OK" << endl;
 					cout << "MeasureThreads are be stopping" << endl;
 		#endif
+				glob::stopMessage("send stop message to own ppi-internet-server thread");
 				server->stop(false);
-				// toDo: server do not stop always correctly
-				exit(EXIT_SUCCESS);
+				glob::stopMessage("stopping was performed, ending with no new transaction");
+				return false;
 
 			}else if(	length > 10
 						&&

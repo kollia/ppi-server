@@ -19,6 +19,8 @@
 
 #include <string>
 
+#include "../../util/smart_ptr.h"
+
 #include "IClientConnectArtPattern.h"
 #include "IFileDescriptorPattern.h"
 
@@ -52,11 +54,17 @@ namespace design_pattern_world
 			 */
 			virtual int accept()= 0;
 			/**
+			 * ask whether socket wait to accept new transactions
+			 *
+			 * @return whether socket wait
+			 */
+			virtual bool socketWait()= 0;
+			/**
 			 * returning descriptor created with <code>accept()</code>
 			 *
 			 * @return object of ITransferPattern for communicate with client
 			 */
-			virtual IFileDescriptorPattern* getDescriptor()=0;
+			virtual SHAREDPTR::shared_ptr<IFileDescriptorPattern> getDescriptor()=0;
 			/**
 			 * destructor for pattern
 			 */

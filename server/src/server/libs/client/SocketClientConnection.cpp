@@ -38,7 +38,6 @@ namespace server
 		m_sHost(host),
 		m_nPort(port),
 		m_nTimeout(timeout),
-		m_pDescriptor(NULL),
 		m_nSocketType(type)
 	{
 	}
@@ -275,9 +274,12 @@ namespace server
 			return nRv;
 		}
 		fp= fdopen (m_kSocket.serverSocket, "w+");
-		if(m_pDescriptor)
-			delete m_pDescriptor;
-		m_pDescriptor= new FileDescriptor(NULL, m_pTransfer, fp, m_sHost, m_nPort, m_nTimeout);// this pointer will be delete outside from object (no auto_ptr)
+		m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>(new FileDescriptor(	NULL,
+																							m_pTransfer,
+																							fp,
+																							m_sHost,
+																							m_nPort,
+																							m_nTimeout	));
 		if(!m_pDescriptor->init())
 			return 10;
 		if(m_pDescriptor->transfer())
@@ -288,8 +290,6 @@ namespace server
 	void SocketClientConnection::close()
 	{
 		::close(m_kSocket.serverSocket);
-		if(m_pDescriptor)
-			delete m_pDescriptor;
 	}
 
 	string SocketClientConnection::strerror(int error) const

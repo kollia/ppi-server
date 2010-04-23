@@ -27,6 +27,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
+#include "../util/GlobalStaticMethods.h"
 #include "../util/properties.h"
 #include "../util/URL.h"
 
@@ -63,6 +64,8 @@ int main(int argc, char* argv[])
 	DatabaseThread* db;
 	CommunicationThreadStarter* starter;
 
+	glob::processName("ppi-db-server");
+	glob::setSignals("ppi-db-server");
 	if(argc >= 2)
 	{ // read how much clients db-server for communication thre
 		istringstream oConnT(argv[1]);

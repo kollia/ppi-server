@@ -20,6 +20,7 @@
 
 #ifndef __FOLLOWSERVERCLIENTTRANSACTION
 //#define __FOLLOWSERVERCLIENTTRANSACTION
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
 /********************************************+
  * allowed process: ppi-server
  * 					ppi-starter
@@ -28,19 +29,19 @@
  * 					ppi-internet-server
  * 					LogServer
  * allowed clients:	LogInterface
- * 					LogServer
  * 					DbInterface
  *					OwServerQuestion-[N] N =  1 - running owreader
  *					OwInterface
  *					ProcessChecker
  */
-//#define __FOLLOW_FROMPROCESS "ppi-internet-server"
-//#define __FOLLOW_FROMCLIENT "LogInterface"
-//#define __FOLLOW_TOPROCESS "LogServer"
+//#define __FOLLOW_FROMPROCESS "LogServer"
+//#define __FOLLOW_FROMCLIENT "LogServer"
+//#define __FOLLOW_TOPROCESS "ppi-internet-server"
 //#define __FOLLOW_TOCLIENT "ppi-internet-server"
 // sending message -> need only the beginning string
-#define __FOLLOW_SENDMESSAGE "isEntryChanged"
+//#define __FOLLOW_SENDMESSAGE "setOWDebug"
 // ---------------------------------------------------------------------------------------------------
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 #endif /*DEBUGTRANSCATION_H_*/

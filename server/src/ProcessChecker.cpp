@@ -21,6 +21,7 @@
 
 #include "logger/lib/LogInterface.h"
 
+#include "util/GlobalStaticMethods.h"
 #include "util/IMethodStringStream.h"
 
 using namespace util;
@@ -162,6 +163,7 @@ int ProcessChecker::execute()
 			cout << "stopping:" << endl;
 			cout << "measureThreads " << flush;
 			pCurrent= meash_t::firstInstance;
+			glob::stopMessage("ProcessChecker::execute(): sending stop to all measure threads");
 			while(pCurrent)
 			{ // stopping all measure threads
 				pCurrent->pMeasure->stop(/*wait*/false);
@@ -176,8 +178,12 @@ int ProcessChecker::execute()
 			if(pCurrent)
 			{
 				cout << "." << flush;
+				glob::stopMessage("ProcessChecker::execute(): stop measure thread " + pCurrent->pMeasure->getThreadName());
 				if(pCurrent->pMeasure->running())
 				{
+					glob::stopMessage("ProcessChecker::execute(): thread was running, stopping again");
+					pCurrent->pMeasure->stop(/*wait*/false);
+					glob::stopMessage("ProcessChecker::execute(): thread was stopped again");
 					usleep(1000000);
 				}else
 				{
@@ -193,6 +199,7 @@ int ProcessChecker::execute()
 			break;
 
 		case 2:
+			glob::stopMessage("ProcessChecker::execute(): stop own process");
 			stop(/*wait*/false);
 			getQuestion("done");
 			break;

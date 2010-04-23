@@ -118,9 +118,9 @@ int MeasureThread::stop(const bool* bWait/*=NULL*/)
 	int nRv;
 
 	nRv= Thread::stop(false);
-	LOCK(m_VALUE);
+	//LOCK(m_VALUE);
 	AROUSE(m_VALUECONDITION);
-	UNLOCK(m_VALUE);
+	//UNLOCK(m_VALUE);
 	if(	bWait
 		&&
 		*bWait	)

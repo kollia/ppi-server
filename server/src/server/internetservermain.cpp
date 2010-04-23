@@ -28,6 +28,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
+#include "../util/GlobalStaticMethods.h"
 #include "../util/properties.h"
 #include "../util/URL.h"
 #include "../util/usermanagement.h"
@@ -68,6 +69,8 @@ int main(int argc, char* argv[])
 	vector<string>::size_type dirlen;
 	Properties oServerProperties;
 
+	glob::processName("ppi-internet-server");
+	glob::setSignals("ppi-internet-server");
 	// create working directory
 	directorys= split(directorys, argv[0], is_any_of("/"));
 	dirlen= directorys.size();
@@ -179,7 +182,7 @@ int main(int argc, char* argv[])
 																5			),
 									/*open connection with*/"GET"									);
 
-	err= internetserver.run(); //&oServerProperties);
+	err= internetserver.run();
 	if(err != 0)
 	{
 		if(err > 0)
@@ -190,6 +193,6 @@ int main(int argc, char* argv[])
 		cerr << "             " << internetserver.strerror(err) << endl;
 		return err;
 	}
-
+	cout << "### process of ppi-internet-server was ending correctly" << endl;
 	return 0;
 }

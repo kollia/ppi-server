@@ -25,6 +25,7 @@
 
 #include "../pattern/server/IServerPattern.h"
 
+#include "../util/GlobalStaticMethods.h"
 #include "../util/OParameterStringStream.h"
 #include "../util/OMethodStringStream.h"
 
@@ -550,6 +551,7 @@ namespace server
 
 			if(stopdb == 0)
 			{
+				glob::stopMessage("ServerDbTransaction::transfer(): stop database thread");
 				db->stop(false);
 				++stopdb;
 			}
@@ -573,6 +575,7 @@ namespace server
 					oldclient= client;
 					owclient << "OwServerQuestion-";
 					owclient << client;
+					glob::stopMessage("ServerDbTransaction::transfer(): send stop message to owreader process " + owclient.str());
 					descriptor.sendToOtherClient(owclient.str(), "stop-owclient", false);
 					usleep(500000);
 					client= getOwClientCount();
@@ -585,6 +588,9 @@ namespace server
 				break;
 
 			case 2:
+				glob::stopMessage("ServerDbTransaction::transfer(): send stop message to main process ProcessChecker");
+				++stopdb;
+			case 3:
 				sRv= descriptor.sendToOtherClient("ProcessChecker", "stop-all", true);
 				if(sRv == "done")
 				{
@@ -594,15 +600,18 @@ namespace server
 				}
 				break;
 
-			case 3:
+			case 4:
+				glob::stopMessage("ServerDbTransaction::transfer(): wait for ending of database thread");
 				sRv= "stop database";
+				db->stop(false);
 				if(!db->running())
 					++stopdb;
 				else
 					usleep(500000);
 				break;
 
-			case 4:
+			case 5:
+				glob::stopMessage("ServerDbTransaction::transfer(): send stop message to logging server");
 				sRv= descriptor.sendToOtherClient("LogServer", "stop", true);
 				if(sRv == "done")
 				{
@@ -615,18 +624,27 @@ namespace server
 				}
 				break;
 
-			case 5:
+			case 6:
+				glob::stopMessage("ServerDbTransaction::transfer(): all stopping be done, send finished to client");
 				descriptor << "done";
 				descriptor.endl();
 				descriptor.flush();
-				usleep(500000);// waiting for ending connections from internet server
+				//usleep(500000);// waiting for ending connections from internet server
 				server= descriptor.getServerObject();
 				holder= server->getCommunicationFactory();
-				holder->stopCommunicationThreads(descriptor.getClientID(), /*wait*/false);
+				++stopdb;
+
+			case 7:
+				descriptor.unlock();
+				glob::stopMessage("ServerDbTransaction::transfer(): send stop message to exiting database communiction clients");
+				while(!holder->stopCommunicationThreads(descriptor.getClientID(), /*wait*/true))
+						glob::stopMessage("ServerDbTransaction::transfer(): send stop message to exiting database communiction clients");
 				//LogInterface::instance()->closeSendConnection();
+				glob::stopMessage("ServerDbTransaction::transfer(): send stop message to own ppi-db-server thread");
 				server->stop(false);
 				// toDo: server do not stop always correctly
-				exit(EXIT_SUCCESS);
+#				//exit(EXIT_SUCCESS);
+				glob::stopMessage("ServerDbTransaction::transfer(): stopping was performed, ending with no new transaction");
 				return false;
 				break;
 			}

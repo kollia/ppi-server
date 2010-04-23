@@ -24,6 +24,7 @@
 
 #include "../pattern/server/ichipaccesspattern.h"
 
+#include "../util/GlobalStaticMethods.h"
 #include "../util/URL.h"
 #include "../util/properties.h"
 
@@ -72,6 +73,8 @@ int main(int argc, char* argv[])
 	IChipAccessPattern* accessPort;
 	auto_ptr<OwServerQuestions> pQuestions;
 
+	glob::processName("ppi-owreader");
+	glob::setSignals("ppi-owreader");
 	// create working directory
 	directorys= split(directorys, argv[0], is_any_of("/"));
 	dirlen= directorys.size();

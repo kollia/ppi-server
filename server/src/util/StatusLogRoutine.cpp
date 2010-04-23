@@ -26,6 +26,7 @@
 #include <map>
 #include <iostream>
 
+#include "GlobalStaticMethods.h"
 #include "Thread.h"
 #include "StatusLogRoutine.h"
 #include "../logger/lib/LogInterface.h"
@@ -206,13 +207,35 @@ string StatusLogRoutine::getStatus(string params, pos_t& pos, time_t elapsed, st
 		else
 			oRv << " get now answer since";
 		oRv << " aroused condition " << pos.info2 << " " << lasttime;
+	}else if(pos.identif == "###mutex_wait")
+	{
+		oRv << " wait for mutex " << pos.info2 << " since " << lasttime;
+	}else if(pos.identif == "###mutex_wait_error")
+	{
+		oRv << " had error by log mutex " << pos.info2 << " at time " << lasttime;
+	}else if(pos.identif == "###mutex_have")
+	{
+		oRv << " have mutex " << pos.info2 << " since " << lasttime;
+	}else if(pos.identif == "###mutex_free")
+	{
+		oRv << " give mutex " << pos.info2 << " free at time " << lasttime;
+	}else if(pos.identif == "###mutex_free_error")
+	{
+		oRv << " had error by give mutex " << pos.info2 << " free at time " << lasttime;
+	}else if(pos.identif == "###mutex_trylock")
+	{
+		oRv << " check whether an other thread have access to mutex " << pos.info2 << " at time " << lasttime;
 	}else if(pos.identif == "###Thread_join")
 	{
 		oRv << " wait for ending thread " << pos.info2 << " since " << lasttime;
+	}else if(pos.identif == "###PROCESS_execute_stop")
+	{
+		oRv << " process is stopped, running as zombie";
 	}else if(pos.identif == "###THREAD_execute_stop")
 	{
 		oRv << " thread is stopped, running as zombie";
-	}else
+
+	}else if(pos.identif != "###Thread-removed######")
 	{
 		if(elapsed < 10)
 			oRv << " is running (" << lasttime << ")";

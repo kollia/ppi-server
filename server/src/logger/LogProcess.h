@@ -78,6 +78,16 @@ class LogProcess : public Process
 		 * @return error code for not right initialization
 		 */
 		virtual void ending();
+		/**
+		 * protected initialization for given info points
+		 * to write into the status information
+		 *
+		 * @param params parameter set by call getStatusInfo from main method
+		 * @param pos position struct see pos_t
+		 * @param elapsed seconds be elapsed since last position time pos_t.time
+		 * @param time from last position pos_t.time converted in an string
+		 */
+		virtual string getStatusInfo(string params, pos_t& pos, time_t elapsed, string lasttime);
 
 	private:
 		/**

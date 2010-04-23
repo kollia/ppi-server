@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/XMLStartEndTagReader.h"
 #include "../../../util/ExternClientInputTemplate.h"
 
@@ -147,7 +148,7 @@ namespace server
 	{
 		bool allowed= true;
 		int ret= 0;
-		IFileDescriptorPattern* fp;
+		SHAREDPTR::shared_ptr<IFileDescriptorPattern> fp;
 
 		if(!connectionsAllowed())
 		{
@@ -196,20 +197,39 @@ namespace server
 		int nRv;
 
 		allowNewConnections(false);
+		m_pStarterPool->stop(false);
 		nRv= Process::stop(false);
 		close();
 		AROUSE(m_NOCONWAITCONDITION);
+		if(m_pConnect && m_pConnect->socketWait())
+		{
+			// send also stop message to server,
+			//in the event of close do not ending accept on socket
+			OMethodStringStream stopmsg("stop");
+			openSendConnection();
+			sendMethod("server", stopmsg, false);
+			closeSendConnection();
+		}
 		if(bWait)
+		{
+			m_pStarterPool->stop(true);
 			nRv= Process::stop(true);
+		}
 		return nRv;
 	}
 
 	void ServerProcess::ending()
 	{
+		glob::threadStopMessage("ServerProcess::ending(): close connection");
 		close();
+		glob::threadStopMessage("ServerProcess::ending(): stop communication treads");
 		while(!m_pStarterPool->stopCommunicationThreads(0, /*wait*/true))
-		{};
+		{
+			glob::threadStopMessage("ServerProcess::ending(): stop all communication treads");
+		}
+		glob::threadStopMessage("ServerProcess::ending(): stop CommunicationThreadStarter");
 		m_pStarterPool->stop(/*wait*/true);
+		glob::threadStopMessage("ServerProcess::ending(): all communication threads and also starter pool be stopped");
 	}
 
 	ServerProcess::~ServerProcess()
@@ -220,5 +240,6 @@ namespace server
 			delete m_pStarterPool;
 		DESTROYMUTEX(m_NEWCONNECTIONS);
 		DESTROYCOND(m_NOCONWAITCONDITION);
+		glob::threadStopMessage("ServerProcess::~ServerProcess(): object of ServerProcess was destroyed");
 	}
 }

@@ -256,6 +256,13 @@ namespace ppi_database
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
+		virtual int stop(const bool bWait)
+		{ return DatabaseThread::stop(&bWait); };
+		/**
+		 *  external command to stop thread
+		 *
+		 * @param bWait calling rutine should wait until the thread is stopping
+		 */
 		virtual int stop(const bool *bWait= NULL);
 		/**
 		 * delete single instance of DatabaseThread object

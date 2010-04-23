@@ -124,12 +124,6 @@ class Starter
 		//vector<unsigned long> readFile(string fileName, string subName= "", string type= "", void *changeValue= NULL);
 		//whitch ports as string are needet. Second pair object bool is whether the port is defined for pin reading with ioperm()
 		void readFile(vector<pair<string, PortTypes> > &vlRv, string fileName);
-		/**
-		 * signal converting for all threads
-		 *
-		 * @param nSignal signal getting from system
-		 */
-		static void signalconverting(int nSignal);
 		~Starter();
 };
 

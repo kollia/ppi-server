@@ -22,6 +22,7 @@
 
 #include "../../../logger/lib/LogInterface.h"
 
+#include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/StatusLogRoutine.h"
 
 #include "SocketServerConnection.h"
@@ -30,6 +31,15 @@
 
 namespace server
 {
+	bool SocketServerConnection::socketWait()
+	{
+		bool bRv;
+
+		LOCK(m_WAITACCEPT);
+		bRv= m_bWaitAccept;
+		UNLOCK(m_WAITACCEPT);
+		return bRv;
+	}
 
 	int SocketServerConnection::accept()
 	{
@@ -37,10 +47,16 @@ namespace server
 		char ip_address[INET6_ADDRSTRLEN];
 		string msg;
 		FILE* fp;
-		IFileDescriptorPattern* descriptor;
+		SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
 
+		LOCK(m_WAITACCEPT);
+		m_bWaitAccept= true;
 		POS("#server#wait-client");
+		UNLOCK(m_WAITACCEPT);
 		m_kSocket.bindSocket = ::accept(m_kSocket.serverSocket, (struct sockaddr *) &m_kSocket.rec_addres, &m_kSocket.adrlaenge);
+		LOCK(m_WAITACCEPT);
+		m_bWaitAccept= false;
+		UNLOCK(m_WAITACCEPT);
 		if (m_kSocket.bindSocket < 0)
 		{
 			switch(errno)
@@ -51,6 +67,7 @@ namespace server
 				break;
 			case EBADF:
 				nRv= 122;
+				glob::stopMessage("SocketServerConneciton::accept(): The socket argument is not a valid file descriptor, maybe server will be ending");
 				break;
 			case ECONNABORTED:
 				nRv= 123;
@@ -96,24 +113,27 @@ namespace server
 		msg+= ip_address;
 		cout << msg << endl;
 	#endif // SERVERDEBUG
-		descriptor= new FileDescriptor(m_pServer, m_pTransfer, fp, ip_address, m_nPort, m_nTimeout);
+		descriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>(new FileDescriptor(	m_pServer,
+																						m_pTransfer,
+																						fp,
+																						ip_address,
+																						m_nPort,
+																						m_nTimeout	));
 		if(!descriptor->init())
 		{
-			delete descriptor;
+			descriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>();
 			return 141;
 		}
-		if(m_pDescriptor)
-			delete m_pDescriptor;
 		m_pDescriptor= descriptor;
 		return 0;
 	}
 
-	IFileDescriptorPattern* SocketServerConnection::getDescriptor()
+	SHAREDPTR::shared_ptr<IFileDescriptorPattern> SocketServerConnection::getDescriptor()
 	{
-		IFileDescriptorPattern* descriptor;
+		SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
 
 		descriptor= m_pDescriptor;
-		m_pDescriptor= NULL; // remove pointer to object. This object will be delete now in object Communication
+		m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>();
 		return descriptor;
 	}
 

@@ -162,15 +162,18 @@ namespace util
 
 		m_bRun= true;
 		m_nProcessID= getpid();
+		initstatus(getProcessName(), this);
 		ret= init(args);
 		while(	ret <= 0
 				&&
 				!stopping()	)
 		{
+			POS("###THREAD_execute_start");
 			ret= execute();
 		}
 		AROUSEALL(m_PROCESSSTOPCOND);
 		ending();
+		removestatus(m_nProcessID);
 		return ret;
 	}
 

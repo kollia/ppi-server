@@ -26,13 +26,13 @@ namespace design_pattern_world {
 			 *
 			 * @param access file descriptor whitch get from  IServerConnectArtPattern by listen
 			 */
-			virtual void connection(IFileDescriptorPattern* access)= 0;
+			virtual void connection(SHAREDPTR::shared_ptr<IFileDescriptorPattern>& access)= 0;
 			/**
 			 * return actual file descriptor
 			 *
 			 * @return descriptor
 			 */
-			virtual const IFileDescriptorPattern* getDescriptor() const= 0;
+			virtual const SHAREDPTR::shared_ptr<IFileDescriptorPattern> getDescriptor() const= 0;
 			/**
 			 * returning the default communication ID
 			 * wich needet by starting an new connection.

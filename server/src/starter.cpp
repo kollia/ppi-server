@@ -29,6 +29,7 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include "util/debug.h"
+#include "util/GlobalStaticMethods.h"
 #include "util/smart_ptr.h"
 #include "util/URL.h"
 #include "util/configpropertycasher.h"
@@ -101,12 +102,8 @@ bool Starter::execute(vector<string> options)
 
 	gettimeofday(&startingtime, NULL);
 	Starter::isNoPathDefinedStop();
-	if(signal(SIGINT, signalconverting) == SIG_ERR)
-		printSigError("SIGINT");
-	if(signal(SIGHUP, signalconverting) == SIG_ERR)
-		printSigError("SIGHUP");
-	if(signal(SIGSEGV, signalconverting) == SIG_ERR)
-		printSigError("SIGSEGV");
+	glob::processName("ppi-server");
+	glob::setSignals("ppi-server");
 
 	bool bOp= true;
 	for(unsigned int o= 0; o<nOptions; ++o)
@@ -813,7 +810,7 @@ bool Starter::execute(vector<string> options)
 	// ------------------------------------------------------------------------------------------------------------
 	checker.start(pFirstMeasureThreads.get(), true);
 
-
+	Thread::applicationStops();
 	// ending process ppi-server
 	SHAREDPTR::shared_ptr<meash_t> delMeash;
 	//system("ps -eLf | grep ppi-server");
@@ -826,12 +823,12 @@ bool Starter::execute(vector<string> options)
 		pCurrentMeasure= pCurrentMeasure->next;
 		if(delMeash->pMeasure->running())
 			delMeash->pMeasure->stop(true);
-	}
 
-	//OWServer::delServers();
+	}
+	pFirstMeasureThreads= SHAREDPTR::shared_ptr<meash_t>();
+	checker.stop(true);
 	DbInterface::deleteAll();
 	LogInterface::deleteObj();
-	sleep(1);
 	return true;
 }
 
@@ -2147,62 +2144,6 @@ bool Starter::stop(vector<string> options)
 	close(clientsocket);
 	cout << endl;
 	return true;
-}
-
-void Starter::signalconverting(int nSignal)
-{
-	string msg;
-	LogInterface *log= LogInterface::instance();
-
-	if(	log
-		&&
-		!log->running()	)
-	{
-		log= NULL;
-	}
-	switch(nSignal)
-	{
-		case SIGINT:
-			cout << Thread::getStatusInfo("clients") << endl << endl;
-			if(log)
-			{
-				cout << "server terminated by user" << endl;
-				LOG(LOG_SERVER, "server terminated by user");
-			}else
-				printf("\nserver terminated by user\n\n");
-			exit(0);
-			break;
-
-		case SIGHUP:
-			msg= Thread::getStatusInfo("clients");
-			if(log)
-				LOG(LOG_INFO, msg);
-			cout << endl << msg << endl;
-			break;
-
-		case SIGSEGV:
-			cout << Thread::getStatusInfo("clients") << endl << endl;
-			if(log)
-			{
-				cout << "application close from system" << endl;
-				LOG(LOG_SERVER, "application close from system");
-				cout << "logged" << endl;
-			}else
-				printf("\napplication close from system - no logging\n\n");
-			exit(0);
-			break;
-	}
-}
-
-void Starter::printSigError(const string cpSigValue)
-{
-	string msg;
-
-	msg= "cannot initial signal \"";
-	msg+= cpSigValue;
-	msg+= "\"\nSystem-ERROR: ";
-	msg+= strerror(errno);
-	LOG(LOG_ERROR, msg);
 }
 
 bool Starter::checkServer()

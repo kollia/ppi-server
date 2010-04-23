@@ -27,15 +27,17 @@
 #include <iostream>
 
 #include "Thread.h"
-#include "../logger/lib/LogInterface.h"
+#include "GlobalStaticMethods.h"
+#include "configpropertycasher.h"
 
-#include "../util/configpropertycasher.h"
+#include "../logger/lib/LogInterface.h"
 
 using namespace std;
 using namespace util;
 using namespace logger;
 
 
+bool Thread::m_bAppRun= true;
 pthread_mutex_t g_READMUTEX;
 map<pthread_mutex_t*, mutexnames_t> g_mMutex;
 map<pthread_cond_t*, string> g_mCondition;
@@ -202,26 +204,8 @@ void Thread::run()
 	}
 	ending();
 
-#ifndef SINGLETHREADING
-
-	string msg("thread ");
-
-	msg+= getThreadName() + " do stopping";
-	if(LogInterface::instance() && !LogInterface::instance()->stopping())
-		LOG(LOG_DEBUG, msg);
-#ifdef DEBUG
-	cout << msg << endl;
-#endif
-	//}
-#endif // SINGLETHREADING
-
-	LOCK(m_RUNTHREAD);
-	m_bRun= false;
-	UNLOCK(m_RUNTHREAD);
-	POS("###THREAD_execute_stop");
-	LOCK(m_STARTSTOPTHREAD);
-	AROUSE(m_STARTSTOPTHREADCOND);
-	UNLOCK(m_STARTSTOPTHREAD);
+	glob::threadStopMessage("Thread::run(): running thread of '" + getThreadName() + "' was reaching end and will be destroy");
+	removestatus(m_nThreadId);
 }
 
 /*static */
@@ -229,6 +213,13 @@ void *Thread::EntryPoint(void *pthis)
 {
 	Thread *pt = (Thread*)pthis;
 	pt->run();
+	LOCK(pt->m_RUNTHREAD);
+	pt->m_bRun= false;
+	UNLOCK(pt->m_RUNTHREAD);
+	//POS("###THREAD_execute_stop");
+	LOCK(pt->m_STARTSTOPTHREAD);
+	AROUSE(pt->m_STARTSTOPTHREADCOND);
+	UNLOCK(pt->m_STARTSTOPTHREAD);
 	return NULL;
 }
 
@@ -362,8 +353,13 @@ string Thread::getMutexName(pthread_mutex_t* mutex)
 	}
 	i= g_mMutex.find(mutex);
 	if(i != g_mMutex.end())
-		name= i->second.name;
-	else
+	{
+		mutexnames_t mutexnames;
+
+		mutexnames= i->second;
+		name= mutexnames.name;
+		//name= i->second.name;
+	}else
 		name= "ERROR: undefined mutex";
 	/*for(iter i= g_mMutex.begin(); i!=g_mMutex.end(); ++i)
 	{
@@ -454,6 +450,8 @@ int Thread::mutex_lock(string file, int line, pthread_mutex_t *mutex)
 		before << "want to lock mutex " << mutexname << " on file:" << file << " line:" << line << endl;
 		cout << before.str();
 	}
+	if(mutexname != "POSITIONSTATUS")
+		POSS("###mutex_wait", mutexname);
 #endif
 
 	error= pthread_mutex_lock(mutex);
@@ -464,12 +462,23 @@ int Thread::mutex_lock(string file, int line, pthread_mutex_t *mutex)
 		msg+= getMutexName(mutex);
 		LOG(LOG_ERROR, msg);
 #ifdef MUTEXLOCKDEBUG
-		cerr << msg << endl;
+		ostringstream thid;
+
+		thid << "[";
+		thid.fill(' ');
+		thid.width(5);
+		thid << dec << gettid() << "] ";
+		thid << msg << endl;
+		cerr << thid.str();
+		if(mutexname != "POSITIONSTATUS")
+			POSS("###mutex_wait_error", mutexname);
 #endif // MUTEXLOCKDEBUG
 	}
 #ifdef MUTEXLOCKDEBUG
 	if(error == 0)
 	{
+		if(mutexname != "POSITIONSTATUS")
+			POSS("###mutex_have", mutexname);
 		pthread_mutex_lock(&g_READMUTEX);
 		i= g_mMutex.find(mutex);
 		if(i != g_mMutex.end())
@@ -534,9 +543,11 @@ int Thread::mutex_trylock(string file, int line, pthread_mutex_t *mutex)
 		before << "try to lock mutex " << mutexname << " on file:" << file << " line:" << line << endl;
 		cout << before.str();
 	}
+	if(mutexname != "POSITIONSTATUS")
+		POSS("###mutex_trylock", mutexname);
 #endif
 
-	error= pthread_mutex_lock(mutex);
+	error= pthread_mutex_trylock(mutex);
 	if(	error != 0
 		&&
 		error != EBUSY	)
@@ -629,8 +640,28 @@ int Thread::mutex_unlock(string file, int line, pthread_mutex_t *mutex)
 	error= pthread_mutex_unlock(mutex);
 	if(error != 0)
 	{
-		LOG(LOG_ERROR, "error by mutex unlock " + getMutexName(mutex));
+		string msg("error by unlock mutex ");
+
+		msg+= getMutexName(mutex);
+		LOG(LOG_ERROR, msg);
+#ifdef MUTEXLOCKDEBUG
+		ostringstream thid;
+
+		thid << "[";
+		thid.fill(' ');
+		thid.width(5);
+		thid << dec << gettid() << "] ";
+		thid << msg << endl;
+		cerr << thid.str();
+		if(mutexname != "POSITIONSTATUS")
+			POSS("###mutex_free_error", mutexname);
+#endif // MUTEXLOCKDEBUG
 	}
+#ifdef MUTEXLOCKDEBUG
+	else
+		if(mutexname != "POSITIONSTATUS")
+			POSS("###mutex_free", mutexname);
+#endif // MUTEXLOCKDEBUG
 	return error;
 }
 
@@ -678,15 +709,25 @@ void Thread::destroyMutex(string file, int line, pthread_mutex_t* mutex)
 		LOG(LOG_ERROR, "error by mutex lock READMUTEX by destroy");
 		return;
 	}
-	i= g_mMutex.find(mutex);
-	if(i != g_mMutex.end()) // erase mutex from map
-		g_mMutex.erase(i);
+	if(m_bAppRun)
+	{
+		i= g_mMutex.find(mutex);
+		if(i != g_mMutex.end()) // erase mutex from map
+			g_mMutex.erase(i);
+	}
 	error= pthread_mutex_unlock(&g_READMUTEX);
 	if(error != 0)
 	{
 		LOG(LOG_ERROR, "error by mutex unlock READMUTEX by destroy");
 	}
 	pthread_mutex_destroy(mutex);
+}
+
+void Thread::applicationStops()
+{
+	pthread_mutex_lock(&g_READMUTEX);
+	m_bAppRun= false;
+	pthread_mutex_unlock(&g_READMUTEX);
 }
 
 void Thread::destroyAllMutex()
@@ -749,9 +790,12 @@ void Thread::destroyCondition(string file, int line, pthread_cond_t *cond)
 		LOG(LOG_ERROR, "error by mutex lock READMUTEX by destroy condition");
 		return;
 	}
-	i= g_mCondition.find(cond);
-	if(i != g_mCondition.end()) // erase mutex from map
-		g_mCondition.erase(i);
+	if(m_bAppRun)
+	{
+		i= g_mCondition.find(cond);
+		if(i != g_mCondition.end()) // erase mutex from map
+			g_mCondition.erase(i);
+	}
 	//conderror= pthread_cond_in
 	error= pthread_mutex_unlock(&g_READMUTEX);
 	if(error != 0)
@@ -1151,8 +1195,6 @@ int Thread::running()
 
 Thread::~Thread()
 {
-	if(m_nThreadId != 0)
-		removestatus(m_nThreadId);
 	DESTROYMUTEX(m_RUNTHREAD);
 	DESTROYMUTEX(m_THREADNAME);
 	DESTROYMUTEX(m_STOPTHREAD);

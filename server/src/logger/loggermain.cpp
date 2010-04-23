@@ -28,6 +28,7 @@
 
 #include "LogProcess.h"
 
+#include "../util/GlobalStaticMethods.h"
 #include "../util/properties.h"
 #include "../util/URL.h"
 
@@ -51,6 +52,8 @@ int main(int argc, char* argv[])
 	vector<string>::size_type dirlen;
 	Properties oServerProperties;
 
+	glob::processName("ppi-log-client");
+	glob::setSignals("ppi-log-client");
 	// create working directory
 	directorys= split(directorys, argv[0], is_any_of("/"));
 	dirlen= directorys.size();
