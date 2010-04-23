@@ -1,5 +1,6 @@
 
-set(utilSrcs	actionproperties.cpp
+set(utilSrcs	GlobalStaticMethods.cpp
+                actionproperties.cpp
 		        CalculatorContainer.cpp
 		        Calendar.cpp
         		configpropertycasher.cpp
