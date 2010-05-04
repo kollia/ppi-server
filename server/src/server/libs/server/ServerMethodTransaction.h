@@ -236,7 +236,7 @@ namespace server
 			 * @param process name of process from witch be connected
 			 * @param client name of client to witch connected
 			 */
-			virtual void connectionEnding(const unsigned int ID, const string& process, const string& client)= 0;
+			virtual void connectionEnding(const unsigned int ID, const string& process, const string& client) {};
 			/**
 			 * method to get name of transaction
 			 *
