@@ -62,7 +62,8 @@ void GlobalStaticMethods::setSignals(const string& process)
 		printSigError("SIGHUP", process);
 	if(signal(SIGSEGV, signalconverting) == SIG_ERR)
 		printSigError("SIGSEGV", process);
-
+	if(signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+		printSigError("SIGPIPE", process);
 }
 
 void GlobalStaticMethods::printSigError(const string& cpSigValue, const string& process)
