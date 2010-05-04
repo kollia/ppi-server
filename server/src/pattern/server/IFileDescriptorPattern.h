@@ -73,7 +73,7 @@ namespace design_pattern_world
 				 * get error number if any occured,
 				 * elsewhere 0
 				 */
-				virtual bool error() const= 0;
+				virtual int error() const= 0;
 				/**
 				 * get name of host address from connected part (client or server)
 				 *

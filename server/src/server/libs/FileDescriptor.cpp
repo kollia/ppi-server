@@ -40,7 +40,7 @@ namespace server
 		m_sAddress= address;
 		m_nPort= port;
 		m_pFile= file;
-		m_nEOF= 0;
+		m_bEOF= false;
 		m_CONNECTIONIDACCESS= Thread::getMutex("CONNECTIONIDACCESS");
 		m_SENDSTRING= Thread::getMutex("SENDSTRING");
 		m_THREADSAVEMETHODS= Thread::getMutex("THREADSAVEMETHODS");
@@ -80,7 +80,7 @@ namespace server
 		if(res == NULL)
 		{
 			reader= "";
-			m_nEOF= EOF;
+			m_bEOF= true;
 			return;
 		}
 	}
@@ -89,50 +89,47 @@ namespace server
 	{
 		if(eof())
 			return;
-		m_nEOF= fputs(writer.c_str(), m_pFile);
+		if(fputs(writer.c_str(), m_pFile) < 0)
+		{
+			error();
+			m_bEOF= true;
+		}
 	}
 
-	void FileDescriptor::endl()
+	inline void FileDescriptor::endl()
 	{
-		if(eof())
-			return;
-		m_nEOF= fputs("\n", m_pFile);
+		(*this) << "\n";
 	}
 
 	inline bool FileDescriptor::eof() const
 	{
-		if(error())
+		if(m_bEOF)
 			return true;
 		if(feof(m_pFile) != 0)
 		{
-			m_nEOF= EOF;
+			m_bEOF= true;
 			return true;
 		}
 		return false;
 	}
 
-	inline bool FileDescriptor::error() const
+	inline int FileDescriptor::error() const
 	{
-		if(!m_bFileAccess || ferror(m_pFile) != 0)
+		if(m_bEOF)
 		{
-			m_nEOF= EOF;
-			return true;
+			if(m_nErr == 0)
+				m_nErr= EOF;
+			return m_nErr;
 		}
-		return false;
+		m_nErr= ferror(m_pFile);
+		if(m_nErr != 0)
+			m_bEOF= true;
+		return m_nErr;
 	}
-
-	/*inline int FileDescriptor::error() const
-	{
-		int nRv= ferror(m_pFile);
-
-		if(nRv != 0)
-			m_nEOF= EOF;
-		return nRv;
-	}*/
 
 	void FileDescriptor::flush()
 	{
-		if(error())
+		if(m_bEOF)
 			return;
 		try{
 			fflush(m_pFile);
@@ -140,7 +137,7 @@ namespace server
 		{
 			// undefined error on stream
 			// maybe connection to client was broken
-			m_nEOF= EOF;
+			error();
 		}
 	}
 

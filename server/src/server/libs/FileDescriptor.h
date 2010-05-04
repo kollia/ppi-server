@@ -96,7 +96,7 @@ namespace server
 			/**
 			 * test file handle of error
 			 */
-			virtual bool error() const;
+			virtual int error() const;
 			/**
 			 * get name of host address from client
 			 *
@@ -385,7 +385,7 @@ namespace server
 			/**
 			 * signal end of file.
 			 */
-			mutable int m_nEOF;
+			mutable bool m_bEOF;
 			/**
 			 * holds error number
 			 */
