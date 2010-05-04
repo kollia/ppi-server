@@ -128,15 +128,6 @@ namespace server
 		return 0;
 	}
 
-	SHAREDPTR::shared_ptr<IFileDescriptorPattern> SocketServerConnection::getDescriptor()
-	{
-		SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
-
-		descriptor= m_pDescriptor;
-		m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>();
-		return descriptor;
-	}
-
 	string SocketServerConnection::getLastDescriptorAddress()
 	{
 		char ip_address[INET6_ADDRSTRLEN];

@@ -58,15 +58,13 @@ namespace server
 	{
 		int nRv= 0;
 		int nRvw= 0;
-		int pf; // type of connection
+		//int pf; // type of connection
 		char ip_address[INET6_ADDRSTRLEN];
 		//string msg;
 		sockaddr_in	address;
 		sockaddr_in6 address6;
 		sockaddr* reference;
 
-		if(!m_pTransfer)
-			return 9;
 		if(m_pDescriptor)
 		{
 			if(m_pDescriptor->transfer())
@@ -116,11 +114,12 @@ namespace server
 		}
 
 		m_sHost= ip_address;
-		if(m_kSocket.ss_family == AF_INET)
+		/*if(m_kSocket.ss_family == AF_INET)
 			pf= PF_INET;
 		else
 			pf= PF_INET6;
-		m_kSocket.serverSocket = socket(pf, m_nSocketType, 0);
+		m_kSocket.serverSocket = socket(pf, m_nSocketType, 0);*/
+		m_kSocket.serverSocket = socket(m_kSocket.ss_family, m_nSocketType, 0);
 		if (m_kSocket.serverSocket < 0)
 		{
 			switch(errno)
@@ -282,9 +281,21 @@ namespace server
 																							m_nTimeout	));
 		if(!m_pDescriptor->init())
 			return 10;
-		if(m_pDescriptor->transfer())
-			return 0;
-		return -2;
+		if(m_pTransfer)
+		{
+			if(!m_pDescriptor->transfer())
+				return -2;
+		}
+		return 0;
+	}
+
+	SHAREDPTR::shared_ptr<IFileDescriptorPattern> SocketClientConnection::getDescriptor()
+	{
+		SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
+
+		descriptor= m_pDescriptor;
+		m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>();
+		return descriptor;
 	}
 
 	void SocketClientConnection::close()

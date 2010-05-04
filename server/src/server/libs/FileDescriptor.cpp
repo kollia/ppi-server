@@ -50,10 +50,11 @@ namespace server
 
 	bool FileDescriptor::init()
 	{
-		bool bRv;
+		bool bRv= true;
 
 		LOCK(m_THREADSAVEMETHODS);
-		bRv= m_pTransfer->init(*this);
+		if(m_pTransfer)
+			bRv= m_pTransfer->init(*this);
 		UNLOCK(m_THREADSAVEMETHODS);
 		return bRv;
 	}
@@ -84,7 +85,7 @@ namespace server
 		}
 	}
 
-	void FileDescriptor::operator <<(string writer)
+	void FileDescriptor::operator << (const string& writer)
 	{
 		if(eof())
 			return;
@@ -98,16 +99,19 @@ namespace server
 		m_nEOF= fputs("\n", m_pFile);
 	}
 
-	inline bool FileDescriptor::eof()
+	inline bool FileDescriptor::eof() const
 	{
 		if(error())
 			return true;
 		if(feof(m_pFile) != 0)
+		{
+			m_nEOF= EOF;
 			return true;
+		}
 		return false;
 	}
 
-	inline bool FileDescriptor::error()
+	inline bool FileDescriptor::error() const
 	{
 		if(!m_bFileAccess || ferror(m_pFile) != 0)
 		{
@@ -116,6 +120,15 @@ namespace server
 		}
 		return false;
 	}
+
+	/*inline int FileDescriptor::error() const
+	{
+		int nRv= ferror(m_pFile);
+
+		if(nRv != 0)
+			m_nEOF= EOF;
+		return nRv;
+	}*/
 
 	void FileDescriptor::flush()
 	{

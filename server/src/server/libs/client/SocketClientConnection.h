@@ -438,6 +438,12 @@ namespace server
 			virtual const unsigned short getPortAddress() const
 			{ return m_nPort; };
 			/**
+			 * returning descriptor created with <code>accept()</code>
+			 *
+			 * @return object of ITransferPattern for communicate with client
+			 */
+			virtual SHAREDPTR::shared_ptr<IFileDescriptorPattern> getDescriptor();
+			/**
 			 * return timeout by finding no connection
 			 *
 			 * @return timeout in seconds

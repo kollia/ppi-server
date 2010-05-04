@@ -22,6 +22,8 @@
 #include "ITransferPattern.h"
 #include "IServerPattern.h"
 
+#include "../../util/smart_ptr.h"
+
 using namespace std;
 
 namespace design_pattern_world
@@ -62,6 +64,12 @@ namespace design_pattern_world
 			 * @return port address
 			 */
 			virtual const unsigned short getPortAddress() const= 0;
+			/**
+			 * returning descriptor created with <code>accept()</code>
+			 *
+			 * @return object of ITransferPattern for communicate with client
+			 */
+			virtual SHAREDPTR::shared_ptr<IFileDescriptorPattern> getDescriptor()=0;
 			/**
 			 * return timeout by finding no connection
 			 *

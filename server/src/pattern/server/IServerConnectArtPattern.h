@@ -60,12 +60,6 @@ namespace design_pattern_world
 			 */
 			virtual bool socketWait()= 0;
 			/**
-			 * returning descriptor created with <code>accept()</code>
-			 *
-			 * @return object of ITransferPattern for communicate with client
-			 */
-			virtual SHAREDPTR::shared_ptr<IFileDescriptorPattern> getDescriptor()=0;
-			/**
 			 * destructor for pattern
 			 */
 			virtual ~IServerConnectArtPattern() {};

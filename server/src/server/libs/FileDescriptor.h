@@ -73,11 +73,12 @@ namespace server
 			 */
 			virtual void operator >> (string &reader);
 			/**
-			 * operator value over the transaction
+			 * operator value write string into transaction
+			 * when line be ending (with carriage return) or by flush command.
 			 *
 			 * @param writer write value to transaction file
 			 */
-			virtual void operator << (const string writer);
+			virtual void operator << (const string& writer);
 			/**
 			 * creating an carriage return with flush
 			 */
@@ -91,11 +92,11 @@ namespace server
 			 *
 			 * @return end of file reached
 			 */
-			virtual bool eof();
+			virtual bool eof() const;
 			/**
 			 * test file handle of error
 			 */
-			virtual bool error();
+			virtual bool error() const;
 			/**
 			 * get name of host address from client
 			 *
@@ -382,10 +383,13 @@ namespace server
 			 */
 			FILE* m_pFile;
 			/**
-			 * signal end of file.<br />
-			 * Value is an non-negative number, otherwise EOF
+			 * signal end of file.
 			 */
-			int m_nEOF;
+			mutable int m_nEOF;
+			/**
+			 * holds error number
+			 */
+			mutable int m_nErr;
 			/**
 			 * boolean values set from ITransferPattern object
 			 */

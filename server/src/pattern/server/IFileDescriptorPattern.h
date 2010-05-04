@@ -54,7 +54,7 @@ namespace design_pattern_world
 				 *
 				 * @param writer write value to transaction file
 				 */
-				virtual void operator << (const string writer)= 0;
+				virtual void operator << (const string& writer)= 0;
 				/**
 				 * creating an carrage return with flush
 				 */
@@ -68,11 +68,12 @@ namespace design_pattern_world
 				 *
 				 * @return end of file reached
 				 */
-				virtual bool eof()= 0;
+				virtual bool eof() const= 0;
 				/**
-				 * test file handle of error
+				 * get error number if any occured,
+				 * elsewhere 0
 				 */
-				virtual bool error()= 0;
+				virtual bool error() const= 0;
 				/**
 				 * get name of host address from connected part (client or server)
 				 *

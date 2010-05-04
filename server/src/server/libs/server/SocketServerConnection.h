@@ -19,6 +19,8 @@
 
 #include "../client/SocketClientConnection.h"
 
+#include "../../../util/Thread.h"
+
 #include "../../../pattern/server/IServerConnectArtPattern.h"
 
 using namespace design_pattern_world::server_pattern;
@@ -574,12 +576,6 @@ namespace server
 			 * @return whether socket wait
 			 */
 			virtual bool socketWait();
-			/**
-			 * returning descriptor created with <code>accept()</code>
-			 *
-			 * @return object of ITransferPattern for communicate with client
-			 */
-			virtual SHAREDPTR::shared_ptr<IFileDescriptorPattern> getDescriptor();
 			/**
 			 * return the address witch the comunication have reached after listen
 			 *
