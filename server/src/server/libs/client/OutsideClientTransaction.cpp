@@ -63,6 +63,11 @@ namespace server
 					return false;
 				}
 				descriptor >> answer;
+				if(descriptor.eof())
+				{
+					m_vAnswer.push_back("ERROR 001");
+					return false;
+				}
 				answer= ConfigPropertyCasher::trim(answer, " \t\r\n");
 				err= ExternClientInputTemplate::error(answer);
 				if(err != 0)

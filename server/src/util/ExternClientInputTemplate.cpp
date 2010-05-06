@@ -113,7 +113,8 @@ namespace util
 	vector<string> ExternClientInputTemplate::sendMethod(const string& toProcess, const OMethodStringStream& method,
 															const string& done, const bool answer/*= true*/)
 	{
-		int ret;
+		bool bsend;
+		int ret, tryrecon= 0;
 		string command;
 		vector<string> result;
 		vector<string>::iterator it;
@@ -168,18 +169,35 @@ namespace util
 				cout << " sending method '" << method.str() <<"'" << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-		m_pSendTransaction->setCommand(command, done);
-		ret= m_oSendConnect->init();
-		if(ret > 0)
-		{
+		do{
+			m_pSendTransaction->setCommand(command, done);
+			ret= m_oSendConnect->init();
+			bsend= true;
+			if(ret > 0)
+			{
+				UNLOCK(m_SENDMETHODLOCK);
+				result.push_back(error(ret + getMaxErrorNums(true)));
+				return result;
+			}
+			result= m_pSendTransaction->getReturnedString();
 			UNLOCK(m_SENDMETHODLOCK);
-			result.push_back(error(ret + getMaxErrorNums(true)));
-			return result;
-		}
-		result= m_pSendTransaction->getReturnedString();
-		UNLOCK(m_SENDMETHODLOCK);
-		if(ret == -2)
-			closeSendConnection();
+			if(ret == -2)
+			{
+				closeSendConnection();
+				if(tryrecon <= 5)
+				{
+					for(vector<string>::iterator er= result.begin(); er != result.end(); ++er)
+					{
+						if(*er == "ERROR 001")
+						{ // try to reconnect
+							openSendConnection();
+							bsend= false;
+							++tryrecon;
+						}
+					}
+				}
+			}
+		}while(bsend == false);
 		it= result.begin();
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 		if(boutput)

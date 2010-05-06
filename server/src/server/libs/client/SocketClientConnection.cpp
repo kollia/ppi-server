@@ -301,6 +301,7 @@ namespace server
 	void SocketClientConnection::close()
 	{
 		::close(m_kSocket.serverSocket);
+		m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>();
 	}
 
 	string SocketClientConnection::strerror(int error) const
