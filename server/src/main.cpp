@@ -28,20 +28,85 @@
 
 #include "portserver/LircClient.h"
 
-//#include "util/Calendar.cpp"
+// only for simple server client communication
+#if 1
+#include "server/libs/client/SocketClientConnection.h"
+#include "server/libs/server/TcpServerConnection.h"
+#include "util/smart_ptr.h"
+#endif
 
 #include "starter.h"
-#include "util/smart_ptr.h"
 
 using namespace std;
 using namespace util;
 using namespace ports;
 
-void usage(void);
-void help(char* cpSelf);
+void usage(char* cpSelf);
 
 int main(int argc, char* argv[])
 {
+// simple server client communication
+#if 0
+	string command;
+	string value;
+    SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
+
+    if (argc == 2)
+    {
+    	command= argv[1];
+    	if(command == "client")
+    	{
+    		server::SocketClientConnection client(	SOCK_STREAM,
+													"127.0.0.1",
+													20000,
+													10			);
+
+    		//connection.newTranfer(new ClientTransaction());
+    		if(!client.init())
+    		{
+    			descriptor= client.getDescriptor();
+    			cout << "client send: \"Hallo Du!\"" << endl;
+    			(*descriptor) << "Hallo Du!\nWie geht es Dir\nden";
+    			(*descriptor) << " heute?";
+    			descriptor->endl();
+    			descriptor->flush();
+    			(*descriptor) >> value;
+    			cout << value << endl;
+    			return EXIT_SUCCESS;
+    		}
+    		return EXIT_FAILURE;
+
+    	}else if(command == "server")
+    	{
+    		server::TcpServerConnection connection(	"127.0.0.1",
+													20000,
+													10,
+													NULL	);
+
+    		if(!connection.init())
+    		{
+    			if(!connection.accept())
+    			{
+    				descriptor= connection.getDescriptor();
+    				while(!descriptor->eof())
+    				{
+    					(*descriptor) >> value;
+    					cout << "Server get message " << value << endl;
+    				}
+    				(*descriptor) << "Server got message";
+    				descriptor->endl();
+    				descriptor->unlock();
+    				descriptor->closeConnection();
+    				return EXIT_SUCCESS;
+    			}
+    		}
+    		return EXIT_FAILURE;
+    	}
+    }
+
+    fprintf(stderr,"usage %s [server|client]\n", argv[0]);
+    return EXIT_FAILURE;
+#endif
 	bool result;
 	bool bWait= false;
 	int nArcPos= 1;
@@ -113,61 +178,26 @@ int main(int argc, char* argv[])
 		}
 		workdir+= directorys[c] + "/";
 	}
-	if(argc<2)
+	if(argc != 2)
 	{
-		usage();
-		return 1;
+		usage(argv[0]);
+		return EXIT_FAILURE;
 	}else
 		param= argv[1];
 
 	try
 	{
-		vector<string> vOptions;
-
-		if(param.substr(0, 1) == "-")
+		if(getuid() != 0)
 		{
-			do{
-				if(	param == "-w"
-					||
-					param == "-d"	)
-				{
-					bWait= true;
-				}
-				if(	param == "-f"
-					||
-					param == "-u"	)
-				{
-					param+= " ";
-					++nArcPos;
-					param+= argv[nArcPos];
-				}
-				vOptions.push_back(param);
-				++nArcPos;
-				if(nArcPos >= argc)
-					break;
-				param= argv[nArcPos];
-			}while(	nArcPos < argc
-					&&
-					param.substr(0, 1) == "-"	);
+			cerr << "process has to start as root" << endl;
+			return EXIT_FAILURE;
 		}
 
-		if(	param == "start"
-			||
-			param == "restart"
-			||
-			param == "stop"		)
-		{
-			if(getuid() != 0)
-			{
-				cerr << "process has to start as root" << endl;
-				return EXIT_FAILURE;
-			}
-		}
 		server= auto_ptr<Starter>(new Starter(workdir));
 		if(param == "start")
 		{
 			pthread_mutex_init(&g_READMUTEX, NULL);
-			result= server->execute(vOptions);
+			result= server->execute();
 			cout << "### ppi-server starter process was stopped ";
 			if(!result)
 			{
@@ -179,72 +209,16 @@ int main(int argc, char* argv[])
 
 		}else if(param == "stop")
 		{
-			result= server->stop(vOptions);
+			result= server->stop();
 		}else if(param == "restart")
 		{
-			server->stop(vOptions);
+			server->stop();
 			cout << "### restart ppi-server" << endl;
-			result= server->execute(vOptions);
-		}else if(param == "-?")
-		{
-			help(argv[0]);
-			return 0;
+			result= server->execute();
 		}else
 		{
-			string command("");
-
-			if(nArcPos < argc)
-				param= argv[nArcPos];
-			else
-				param= "";
-			if(	param == "SET"
-				||
-				param == "GET"
-				||
-				param == "PROP"
-				||
-				param == "DEBUG"
-				||
-				param == "DIR"
-				||
-				param == "CONTENT"
-				||
-				param == "status"
-				||
-				param == "init"
-				||
-				param == "GETMINMAXERRORNUMS"
-				||
-				param == "GETERRORSTRING"
-				||
-				(	bWait
-					&&
-					param == ""	)	)
-			{
-				while(nArcPos < argc)
-				{
-					param= argv[nArcPos];
-					command+= param + " ";
-					++nArcPos;
-				}
-
-				if(	bWait
-					||
-					command != ""	)
-				{
-					bool bRes;
-
-					//cout << "command: " << command << endl;
-					bRes= server->command(vOptions, command);
-					if(bRes)
-						return EXIT_SUCCESS;
-					return EXIT_FAILURE;
-				}
-			}
-
-			usage();
-			//log->stop();
-			return 1;
+			usage(argv[0]);
+			return EXIT_FAILURE;
 		}
 		//delete server;
 	}catch(...)
@@ -277,75 +251,15 @@ int main(int argc, char* argv[])
 	return EXIT_FAILURE;
 }
 
-void usage()
+void usage(char* cpSelf)
 {
 	printf("no correct command be set\n");
-	printf("type -? for help\n");
-}
-
-void help(char* cpSelf)
-{
-	printf("\n");
-	printf("syntax:  %s [options] [command]\n", cpSelf);
-	printf("\n");
-	printf("       options:\n");
-	printf("            -?    - show this help\n");
-	printf("            -u    - set user for client,\n");
-	printf("                    if no user be set, client ask for user when command isn't start/stop/restart\n");
-	printf("                    password will be always asked and cannot insert in command\n");
-	printf("            -e    - show only errornumbers\n");
-	printf("            -w    - hold transaction to server\n");
-	printf("                    after them user only must type commands\n");
-	printf("                    ending with 'quit' or 'exit'\n");
-	printf("            -d    - same as befor (-w) but also client starts\n");
-	printf("                    an second connection to server,\n");
-	printf("                    where the client get changes which are set\n");
-	printf("                    with the command 'HEAR'\n");
-	printf("            -t    - showes by status info all threads with running information,\n");
-	printf("                    otherwise the command status tell only how much threads are running\n");
-	printf("            -c    - like -t but also showes all communication-threads with wich client-ID they are connected,\n");
-	printf("                    or they hanging on no client\n");
+	printf("syntax:  %s <command>\n", cpSelf);
 	printf("\n");
 	printf("       command:\n");
 	printf("                start    -     starting server\n");
 	printf("                stop     -     stopping server\n");
 	printf("                restart  -     restarting the hole server\n");
-	printf("                init     -     whether the Internet server is running. Answer with 'done' when server running,\n");
-	printf("                               or in most case 'ERROR: The target address was not listening for connections or refused the connection request.'\n");
-	printf("                               when the option -e not be set, elswhere 'ERROR 025'\n");
-	printf("                status   -     show how much threads for process are running.\n");
-	printf("                               see also for options -t or -c\n");
-	printf("                CHANGE <username>:<password>\n");
-	printf("                         -     changing user, username and password is seperated with an colon\n");
-	printf("                PERMISSION <groupnames>\n");
-	printf("                         -     ask permission for group.\n");
-	printf("                               also more than one groups can be ask, seperated with an colon\n");
-	printf("                GET <folder>:<subroutine>\n");
-	printf("                         -     get the current value from the subroutines in the folder\n");
-	printf("                               folder and subroutine are seperated with an colon\n");
-	printf("                SET <folder>:<subroutine> <value>\n");
-	printf("                         -     set the given value from given subroutine in given folder\n");
-	printf("                HEAR <folder>:<subroutine>\n");
-	printf("                         -     if the client has set an second connection with -d,\n");
-	printf("                               client can order with this command to hear on the given folder:subroutine's\n");
-	printf("                               for changes\n");
-	printf("                NEWENTRYS\n");
-	printf("                         -     clearing all entrys which are set with the command HEAR\n");
-	printf("                DIR <filter>\n");
-	printf("                         -     shows all files in directory ${workdir}/client which are suitable to given filter\n");
-	printf("                CONTENT <filename>\n");
-	printf("                         -     send the file content of the given filename under ${workdir}/client\n");
-	printf("                DEBUG <folder> <sleeptime>\n");
-	printf("                         -     show by running server debugging messages for given folder\n");
-	printf("                               on end of loop measurethread sleeping sleeptime\n");
-	printf("                               if folder is -ow client get DEBUG info for bechmark OWServer\n");
-	printf("                               and sleeptime should be number of OWServer.\n");
-	printf("                               if folder set as string 'null' debugging is ending\n");
-	printf("                GETMINMAXERRORNUMS\n");
-	printf("                         -     return two integer for maximal warning- and error-number.\n");
-	printf("                               The first number is the higest negative warning number (from number to -1) or 0,\n");
-	printf("                               the second the highest positive error number (from 1 to number) or 0\n");
-	printf("                GETERRORSTRING <errornumber>\n");
-	printf("                         -     return for positive errornuber or negative warning number as an string definition\n");
+	printf("                status   -     get feedback whether server is running\n");
 	printf("\n");
 }

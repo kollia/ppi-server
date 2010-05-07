@@ -28,6 +28,8 @@
 
 #include "portbaseclass.h"
 
+#include "../util/Thread.h"
+
 #include "../logger/lib/LogInterface.h"
 
 #include "../database/lib/DbInterface.h"

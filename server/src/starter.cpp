@@ -67,7 +67,7 @@
 //#include "server/libs/server/ServerMethodTransaction.h"
 
 #include "server/ServerTransaction.h"
-#include "server/ClientTransaction.h"
+//#include "server/ClientTransaction.h"
 
 #include "starter.h"
 #include "ProcessChecker.h"
@@ -82,12 +82,11 @@ using namespace std;
 using namespace logger;
 
 
-bool Starter::execute(vector<string> options)
+bool Starter::execute()
 {
 	bool bLog, bDb, bPorts, bInternet;
 	int err;
 	unsigned short nDbConnectors;
-	unsigned int nOptions= options.size();
 	vector<pair<string, PortTypes> > ports; // whitch ports as string are needet. Second pair object bool is whether the port is defined for pin reading with ioperm()
 	string fileName;
 	string logpath, sLogLevel, property;
@@ -105,16 +104,6 @@ bool Starter::execute(vector<string> options)
 	glob::processName("ppi-server");
 	glob::setSignals("ppi-server");
 
-	bool bOp= true;
-	for(unsigned int o= 0; o<nOptions; ++o)
-	{
-		bOp= false;
-	}
-	if(!bOp)
-	{
-		cerr << "### WARNING: not all options are for all commands," << endl;
-		cerr << "             see -? for help" << endl;
-	}
 
 	m_vOWServerTypes.push_back("PORT");
 	m_vOWServerTypes.push_back("MPORT");
@@ -245,7 +234,6 @@ bool Starter::execute(vector<string> options)
 		cerr << "             so no log can be written into any files" << endl;
 		cerr << "             " << process->strerror(err) << endl;
 	}
-
 	// ------------------------------------------------------------------------------------------------------------
 
 	//*********************************************************************************
@@ -1849,131 +1837,7 @@ void Starter::checkAfterContact()
 	}
 }
 
-bool Starter::command(vector<string> options, string command)
-{
-	bool bRv;
-	int clres;
-	unsigned short nPort;
-	string fileName, prop;
-	string confpath, logpath, sLogLevel, property;
-	auto_ptr<SocketClientConnection> clientCon;
-	vector<string>::iterator opIt;
-	istringstream icommand(command);
-
-	Starter::isNoPathDefinedStop();
-	opIt= ::find(options.begin(), options.end(), "-f");
-	if(opIt != options.end())
-	{
-		fileName= opIt->substr(3);
-		options.erase(opIt);
-	}
-	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
-	fileName= URL::addPath(confpath, "server.conf");
-	if(!m_oServerFileCasher.readFile(fileName))
-	{
-		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
-		exit(1);
-	}
-
-#if 0
-	logpath= URL::addPath(m_sWorkdir, PPILOGPATH, /*always*/false);
-	logpath= URL::addPath(logpath, "ppi-server_");
-	log= LogThread::instance(true);
-	log->setThreadName("client-log");
-	property= "log";
-	sLogLevel= m_oServerFileCasher.getValue(property);
-	if(sLogLevel == "DEBUG")
-		nLogLevel= LOG_DEBUG;
-	else if(sLogLevel == "INFO")
-		nLogLevel= LOG_INFO;
-	else if(sLogLevel == "SERVER")
-		nLogLevel= LOG_SERVER;
-	else if(sLogLevel == "WARNING")
-		nLogLevel= LOG_WARNING;
-	else if(sLogLevel == "ERROR")
-		nLogLevel= LOG_ERROR;
-	else if(sLogLevel == "ALERT")
-		nLogLevel= LOG_ALERT;
-	else
-	{
-		cerr << "### WARNING: undefined log-level in config file server.conf" << endl;
-		cerr << "             set log-level to DEBUG" << endl;
-		nLogLevel= LOG_DEBUG;
-	}
-	property= "timelogSec";
-	nLogAllSec= m_oServerFileCasher.getInt(property);
-	if(	nLogAllSec == 0
-		&&
-		property == "#ERROR"	)
-	{
-		nLogAllSec= 1800;
-	}
-	property= "newfileAfterDays";
-	nLogDays= m_oServerFileCasher.getInt(property);
-	if(	nLogAllSec == 0
-		&&
-		property == "#ERROR"	)
-	{
-		nLogDays= 30;
-	}
-	log->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays);
-	log->start();
-#endif
-
-	property= "port";
-	nPort= m_oServerFileCasher.needUShort(property);
-	if(property == "#ERROR")
-		return false;
-
-	bool askServer= true;
-	unsigned int err, warn, ask;
-	ClientTransaction* pClient;
-	string co;
-
-	bRv= true;
-	command= ConfigPropertyCasher::trim(command);
-	pClient= new ClientTransaction(options, command); // insert client into SocketClientConnection, need no auto_ptr
-	clientCon= auto_ptr<SocketClientConnection>(new SocketClientConnection(SOCK_STREAM, "127.0.0.1", nPort, 10, pClient));
-	err= clientCon->getMaxErrorNums(true);
-	warn= clientCon->getMaxErrorNums(false);
-	pClient->setErrors(warn, err);
-	icommand >> co;
-	if(co == "GETERRORSTRING")
-	{
-		icommand >> ask;
-		if(	ask >= (warn*-1)
-			&&
-			ask <= err		)
-		{
-			cout << clientCon->strerror(ask) << endl;
-			askServer= false;
-		}
-	}
-	if(askServer)
-	{
-		clres= clientCon->init();
-		if(clres != 0)
-		{
-			string output;
-
-			opIt= ::find(options.begin(), options.end(), "-e");
-			if(opIt != options.end())
-				output= ExternClientInputTemplate::error(clres);
-			else
-				output= clientCon->strerror(clres);
-
-			if(clres > 0)
-			{
-				cerr << output << endl;
-				bRv= false;
-			}else
-				cout << output << endl;
-		}
-	}
-	return bRv;
-}
-
-bool Starter::stop(vector<string> options)
+bool Starter::stop()
 {
 	char	buf[64];
 	string  sendbuf("GET\n");
@@ -1981,7 +1845,6 @@ bool Starter::stop(vector<string> options)
 	char	stopServer[]= "stop-server\n";
 	FILE 	*fp;
 	int clientsocket;
-	unsigned int nOptions= options.size();
 	unsigned short nPort;
 	string result;
 	string fileName;
@@ -1989,20 +1852,6 @@ bool Starter::stop(vector<string> options)
 	UserManagement* user= UserManagement::instance();
 
 
-	bool bOp= true;
-	Starter::isNoPathDefinedStop();
-	for(unsigned int o= 0; o<nOptions; ++o)
-	{
-		if(options[o].substr(0, 2) == "-f")
-			fileName= options[o].substr(3);
-		else
-			bOp= false;
-	}
-	if(!bOp)
-	{
-		cerr << "### WARNING: not all options are for all commands," << endl;
-		cerr << "             see -? for help" << endl;
-	}
 	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
 	fileName= URL::addPath(confpath, "server.conf");
 	if(!m_oServerFileCasher.readFile(fileName))
@@ -2011,49 +1860,6 @@ bool Starter::stop(vector<string> options)
 		exit(1);
 	}
 
-#if 0
-	logpath= URL::addPath(m_sWorkdir, PPILOGPATH, /*always*/false);
-	logpath= URL::addPath(logpath, "ppi-server_");
-	log= LogThread::instance();
-	log->setThreadName("main--stop-server");
-	property= "log";
-	sLogLevel= m_oServerFileCasher.getValue(property);
-	if(sLogLevel == "DEBUG")
-		nLogLevel= LOG_DEBUG;
-	else if(sLogLevel == "INFO")
-		nLogLevel= LOG_INFO;
-	else if(sLogLevel == "SERVER")
-		nLogLevel= LOG_SERVER;
-	else if(sLogLevel == "WARNING")
-		nLogLevel= LOG_WARNING;
-	else if(sLogLevel == "ERROR")
-		nLogLevel= LOG_ERROR;
-	else if(sLogLevel == "ALERT")
-		nLogLevel= LOG_ALERT;
-	else
-	{
-		cerr << "### WARNING: undefined log-level in config file server.conf" << endl;
-		cerr << "             set log-level to DEBUG" << endl;
-		nLogLevel= LOG_DEBUG;
-	}
-	property= "timelogSec";
-	nLogAllSec= m_oServerFileCasher.getInt(property);
-	if(	nLogAllSec == 0
-		&&
-		property == "#ERROR"	)
-	{
-		nLogAllSec= 1800;
-	}
-	property= "newfileAfterDays";
-	nLogDays= m_oServerFileCasher.getInt(property);
-	if(	nLogAllSec == 0
-		&&
-		property == "#ERROR"	)
-	{
-		nLogDays= 30;
-	}
-	log->setProperties(logpath, nLogLevel, nLogAllSec, nLogDays);
-#endif
 	if(user == NULL)
 	{
 		if(!UserManagement::initial(URL::addPath(confpath, "access.conf", /*always*/true),

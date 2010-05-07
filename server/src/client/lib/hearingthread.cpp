@@ -16,10 +16,13 @@
  */
 #include <stdio.h>
 
+#include "../../server/libs/server/ServerThread.h"
+#include "../../server/libs/client/SocketClientConnection.h"
+
 #include "hearingthread.h"
-#include "libs/server/ServerThread.h"
-#include "libs/client/SocketClientConnection.h"
 #include "ClientTransaction.h"
+
+using namespace std;
 
 namespace server
 {

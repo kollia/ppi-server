@@ -17,16 +17,19 @@
 #ifndef CLIENTTRANSACTION_H_
 #define CLIENTTRANSACTION_H_
 
+#include <string.h>
+
 #include <string>
 #include <vector>
 #include <deque>
 
 #include "hearingthread.h"
 
-#include "../portserver/owserver.h"
+#include "../../pattern/server/NoCommunicateTransactionAdapter.h"
 
-#include "../pattern/server/NoCommunicateTransactionAdapter.h"
+#include "../../portserver/owserver.h"
 
+using namespace std;
 using namespace design_pattern_world::server_pattern;
 
 namespace server

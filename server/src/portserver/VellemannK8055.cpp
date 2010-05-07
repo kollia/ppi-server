@@ -33,6 +33,8 @@ extern "C" {
 
 #include "../ports/portbaseclass.h"
 
+#include "../util/Thread.h"
+
 
 using namespace std;
 

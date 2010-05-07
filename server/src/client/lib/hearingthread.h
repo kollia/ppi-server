@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include "../util/Thread.h"
+#include "../../util/Thread.h"
 
 namespace server
 {

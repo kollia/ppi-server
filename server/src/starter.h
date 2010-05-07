@@ -118,11 +118,9 @@ class Starter
 			m_sWorkdir(workdir),
 			m_oServerFileCasher()
 			{ };
-		bool execute(vector<string> options);
-		bool stop(vector<string> options);
-		bool command(vector<string> options, string command);
-		//vector<unsigned long> readFile(string fileName, string subName= "", string type= "", void *changeValue= NULL);
-		//whitch ports as string are needet. Second pair object bool is whether the port is defined for pin reading with ioperm()
+		bool execute();
+		bool stop();
+		//which ports as string are needeD. Second pair object bool is whether the port is defined for pin reading with ioperm()
 		void readFile(vector<pair<string, PortTypes> > &vlRv, string fileName);
 		~Starter();
 };

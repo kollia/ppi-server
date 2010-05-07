@@ -24,6 +24,8 @@
 #include "../../pattern/server/IFileDescriptorPattern.h"
 #include "../../pattern/server/IClientConnectArtPattern.h"
 
+#include "../../util/Thread.h"
+
 using namespace std;
 using namespace design_pattern_world::server_pattern;
 

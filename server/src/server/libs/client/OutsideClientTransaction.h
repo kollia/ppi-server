@@ -21,7 +21,7 @@
 #include <vector>
 #include <deque>
 
-#include "../../hearingthread.h"
+//#include "../../hearingthread.h"
 
 //#include "../../../portserver/owserver.h"
 

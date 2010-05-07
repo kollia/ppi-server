@@ -24,10 +24,8 @@
 #include <iostream>
 #include <sstream>
 
-#include "../logger/lib/LogInterface.h"
-
-#include "../util/XMLStartEndTagReader.h"
-#include "../util/configpropertycasher.h"
+#include "../../util/configpropertycasher.h"
+#include "../../util/XMLStartEndTagReader.h"
 
 #include "ClientTransaction.h"
 
@@ -184,7 +182,6 @@ namespace server
 			msg+= "       getting '";
 			msg+= result + "'";
 			cerr << msg << endl;
-			LOG(LOG_ALERT, msg);
 			return false;
 		}
 

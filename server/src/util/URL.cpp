@@ -29,6 +29,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+#include <errno.h>
 #include <sys/types.h>
 #include <dirent.h>
 
