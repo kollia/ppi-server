@@ -465,6 +465,8 @@ namespace server
 
 					server << "OwServerQuestion-" << it->first;
 					descriptor.sendToOtherClient(server.str(), "setDebug false", false);
+					if(connectionID > 0)
+						break;
 				}
 			}
 			descriptor << "done";
