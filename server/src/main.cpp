@@ -187,10 +187,15 @@ int main(int argc, char* argv[])
 
 	try
 	{
-		if(getuid() != 0)
+		if(	param == "start" ||
+			param == "stop" ||
+			param == "restart"	)
 		{
-			cerr << "process has to start as root" << endl;
-			return EXIT_FAILURE;
+			if(getuid() != 0)
+			{
+				cerr << "process has to start as root" << endl;
+				return EXIT_FAILURE;
+			}
 		}
 
 		server= auto_ptr<Starter>(new Starter(workdir));

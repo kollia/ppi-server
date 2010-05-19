@@ -12,7 +12,8 @@ endif(FULL_CLIENT_PATH)
 
 add_executable(ppi-server ${mainSrcs} ${INSTALL_SCRIPT})
 
-target_link_libraries(ppi-server ppiutil ppilogger ppiports ppidb ppiow ppiserverlib ppiserverlibclient ppiserverlibserver ${RT_LIBRARIES})
+target_link_libraries(ppi-server ppiutil ppilogger ppiports ppidb ppiow ppiserverlib ppiserverlibclient 
+                                                ppiserverlibserver lirc_client ${RT_LIBRARIES})
 
 install(TARGETS ppi-server DESTINATION bin)
 
