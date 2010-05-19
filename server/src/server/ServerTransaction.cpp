@@ -199,6 +199,7 @@ namespace server
 		{
 			DbInterface* db= DbInterface::instance();
 
+			db->clearOWDebug(descriptor.getClientID());
 			db->needSubroutines(descriptor.getClientID(), "stopclient");
 			msg= "connection to client:";
 			msg+=  descriptor.getHostAddressName();
@@ -248,6 +249,7 @@ namespace server
 		{
 			DbInterface* db= DbInterface::instance();
 
+			db->clearOWDebug(descriptor.getClientID());
 			db->needSubroutines(descriptor.getClientID(), "stopclient");
 #ifdef SERVERDEBUG
 			cout << "client stop connection" << endl;
