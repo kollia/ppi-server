@@ -93,13 +93,7 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 	switch(nSignal)
 	{
 		case SIGINT:
-			cout << StatusLogRoutine::getStatusInfo("clients") << endl << endl;
-			if(log)
-			{
-				cout << "server terminated by user" << endl;
-				LOG(LOG_SERVER, "server terminated by user");
-			}else
-				printf("\nserver terminated by user\n\n");
+			cout << "SIGINT: \"" << m_sProcessName << "\"" << " terminated by user" << endl;
 			exit(0);
 			break;
 
@@ -111,14 +105,7 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 			break;
 
 		case SIGSEGV:
-			cout << StatusLogRoutine::getStatusInfo("clients") << endl << endl;
-			if(log)
-			{
-				cout << "application close from system" << endl;
-				LOG(LOG_SERVER, "application close from system");
-				cout << "logged" << endl;
-			}else
-				printf("\napplication close from system - no logging\n\n");
+			cout << "SIGSEGV: \"" << m_sProcessName << "\" close from system" << endl;
 			exit(0);
 			break;
 	}
