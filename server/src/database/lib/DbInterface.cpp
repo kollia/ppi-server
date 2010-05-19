@@ -926,7 +926,7 @@ namespace ppi_database
 	{
 		int err;
 		string res;
-		OMethodStringStream command("setOWDebug");
+		OMethodStringStream command("clearOWDebug");
 
 		command << connectionID;
 		res= sendMethod("ppi-db-server", command, false);
