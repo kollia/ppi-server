@@ -231,13 +231,36 @@ namespace server
 		// first all server transaction which do not need an loggin
 		if(input.substr(0, 6) == "status")
 		{
+			DbInterface* db= DbInterface::instance();
+			vector<string> status;
 			string param;
 
 			if(input.length() > 6)
 				param= ConfigPropertyCasher::trim(input.substr(6));
+			if(param == "")
+				param= "text";
 			sendmsg= Thread::getStatusInfo(param);
+			status= db->getStatusInfo(param);
+			for(vector<string>::iterator it= status.begin(); it != status.end(); ++it)
+			{
+				if(*it != "done")
+				{
 #ifdef SERVERDEBUG
-			cout << "send: " << sendmsg << endl;
+					cout << "send: " << *it;
+#endif
+
+					if(it->substr(0, 11) == "with client")
+						descriptor << "         ";
+					descriptor << *it;
+					if(	*it == "" ||
+						it->substr(it->length()-1, 1) != "\n"	)
+					{
+						descriptor.endl();
+					}
+				}
+			}
+#ifdef SERVERDEBUG
+			cout << "send: " << sendmsg;
 #endif
 			descriptor << sendmsg;
 #ifdef SERVERDEBUG

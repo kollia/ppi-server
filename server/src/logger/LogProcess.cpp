@@ -22,6 +22,8 @@
 #include <string.h>
 
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
 
 #include "LogProcess.h"
 #include "lib/LogInterface.h"
@@ -30,6 +32,8 @@
 #include "../util/IMethodStringStream.h"
 
 #include "../pattern/util/ipropertypattern.h"
+
+using namespace boost;
 
 LogProcess::LogProcess(const uid_t uid, IClientConnectArtPattern* getConnection, IClientConnectArtPattern* sendConnection/*= NULL*/, const bool wait/*= true*/)
 :	Process("LogServer", "LogServer", sendConnection, getConnection, wait)
@@ -207,6 +211,46 @@ int LogProcess::execute()
 		stream >> tMessage.identif;
 		m_pLogThread->log(tMessage);
 		m_sAnswer= "";
+	}else if(command == "getStatusInfo")
+	{
+		static unsigned short step= 0;
+		static vector<string> status;
+		vector<string>::iterator pos;
+		string param, msg;
+
+		stream >> param;
+		switch(step)
+		{
+		case 0:
+			msg= Thread::getStatusInfo(param);
+			split(status, msg, is_any_of("\n"));
+			pos= status.begin();
+			m_sAnswer= *pos;
+			//cout << "Log send: " << *pos << endl;
+			status.erase(pos);
+			++step;
+			break;
+		case 1:
+			if(status.size() > 0)
+			{
+				do{
+					pos= status.begin();
+					msg= *pos;
+					m_sAnswer= *pos;
+					//cout << "Log send: " << *pos << endl;
+					status.erase(pos);
+
+				}while(	msg == "" &&
+						!status.empty()	);
+				if(msg != "")
+					break;
+			}
+			//cout << "Log all be done" << endl;
+			m_sAnswer= "done\n";
+			step= 0;
+			break;
+		}
+
 	}else if(command == "stop")
 	{
 		m_pLogThread->stop(false);

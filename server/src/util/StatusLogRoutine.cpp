@@ -113,13 +113,26 @@ string StatusLogRoutine::getStatusInfo(string params)
 	istringstream iparams(params);
 	map<pid_t, pos_t>::iterator it;
 
-	if(params == "")
+	if(	params == "" ||
+		params == "text"	)
 	{
 		ostringstream output;
 
+		if(params == "text")
+			output << "on " << GlobalStaticMethods::getProcessName() << " running ";
 		LOCK(m_POSITIONSTATUS);
-		output << dec << m_mStatus.size() << endl;
+		output << dec << m_mStatus.size();
 		UNLOCK(m_POSITIONSTATUS);
+		if(params == "text")
+			output << " threads";
+		output << endl;
+		return output.str();
+
+	}else if(params == "pid")
+	{
+		ostringstream output;
+
+		output << getpid() << endl;
 		return output.str();
 	}
 	time(&act);

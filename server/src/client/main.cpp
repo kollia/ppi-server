@@ -74,9 +74,25 @@ int main(int argc, char* argv[])
 		if(param.substr(0, 1) == "-")
 		{
 			do{
+				if(param == "--help")
+					param= "-?";
+				else if(param == "--user")
+					param= "-u";
+				else if(param == "--errornums")
+					param= "-e";
+				else if(param == "--wait")
+					param= "-w";
+				else if(param == "--hear")
+					param= "-h";
+				else if(param == "--thread")
+					param= "-t";
+				else if(param == "--client")
+					param= "-c";
+				else if(param == "--pid")
+					param= "-p";
 				if(	param == "-w"
 					||
-					param == "-d"	)
+					param == "-h"	)
 				{
 					bWait= true;
 				}
@@ -180,35 +196,37 @@ void help(char* cpSelf)
 	printf("syntax:  %s [options] [command]\n", cpSelf);
 	printf("\n");
 	printf("       options:\n");
-	printf("            -?    - show this help\n");
-	printf("            -u    - set user for client,\n");
-	printf("                    if no user be set, client ask for user when command isn't start/stop/restart\n");
-	printf("                    password will be always asked and cannot insert in command\n");
-	printf("            -e    - show only errornumbers\n");
-	printf("            -w    - hold transaction to server\n");
-	printf("                    after them user only must type commands\n");
-	printf("                    ending with 'quit' or 'exit'\n");
-	printf("            -d    - same as befor (-w) but also client starts\n");
-	printf("                    an second connection to server,\n");
-	printf("                    where the client get changes which are set\n");
-	printf("                    with the command 'HEAR'\n");
-	printf("            -t    - showes by status info all threads with running information,\n");
-	printf("                    otherwise the command status tell only how much threads are running\n");
-	printf("            -c    - like -t but also showes all communication-threads with wich client-ID they are connected,\n");
-	printf("                    or they hanging on no client\n");
+	printf("            -?  --help         - show this help.\n");
+	printf("            -u  --user         - set user for client,\n");
+	printf("                                 if no user be set, client ask for user when command isn't start/stop/restart\n");
+	printf("                                 password will be always asked and cannot insert in command\n");
+	printf("            -e  --errornums    - show only error numbers by get an error or warning from server,\n");
+	printf("                                 otherwise the client display an error or warning description\n");
+	printf("            -w  --wait         - hold transaction to server, where the user can write more than one command like an command line\n");
+	printf("                                 after them user only must type commands\n");
+	printf("                                 ending with 'quit' or 'exit'\n");
+	printf("            -h  --hear         - same as before (--wait) but also client starts\n");
+	printf("                                 an second connection to server,\n");
+	printf("                                 where the client get changes which are set before\n");
+	printf("                                 with the command 'HEAR'\n");
+	printf("            -t  --thread       - display by status info all threads with running information,\n");
+	printf("                                 otherwise the command status tell only how much threads on an process running\n");
+	printf("            -c  --client       - like --thread but also display all communication-threads with which client-ID they are connected,\n");
+	printf("                                 or it displays for no client\n");
+	printf("            -p  --pid          - display by status info all process id's separated in own rows\n");
 	printf("\n");
 	printf("       command:\n");
 	printf("                STOP     -     stopping server\n");
 	printf("                STATUS   -     show how much threads for process are running.\n");
 	printf("                               see also for options -t or -c\n");
 	printf("                CHANGE <username>:<password>\n");
-	printf("                         -     changing user, username and password is seperated with an colon\n");
+	printf("                         -     changing user, user name and password is separated with an colon\n");
 	printf("                PERMISSION <groupnames>\n");
 	printf("                         -     ask permission for group.\n");
-	printf("                               also more than one groups can be ask, seperated with an colon\n");
+	printf("                               also more than one groups can be ask, separated with an colon\n");
 	printf("                GET <folder>:<subroutine>\n");
 	printf("                         -     get the current value from the subroutines in the folder\n");
-	printf("                               folder and subroutine are seperated with an colon\n");
+	printf("                               folder and subroutine are separated with an colon\n");
 	printf("                SET <folder>:<subroutine> <value>\n");
 	printf("                         -     set the given value from given subroutine in given folder\n");
 	printf("                HEAR <folder>:<subroutine>\n");
@@ -216,7 +234,7 @@ void help(char* cpSelf)
 	printf("                               client can order with this command to hear on the given folder:subroutine's\n");
 	printf("                               for changes\n");
 	printf("                NEWENTRYS\n");
-	printf("                         -     clearing all entrys which are set with the command HEAR\n");
+	printf("                         -     clearing all entry's which are set with the command HEAR\n");
 	printf("                DIR <filter>\n");
 	printf("                         -     shows all files in directory ${workdir}/client which are suitable to given filter\n");
 	printf("                CONTENT <filename>\n");

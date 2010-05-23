@@ -72,6 +72,8 @@ namespace server
 					m_sCommand+= " threads";
 				else if(m_vOptions[o] == "-c")
 					m_sCommand+= " clients";
+				else if(m_vOptions[o] == "-p")
+					m_sCommand+= " pid";
 				else
 					bOp= false;
 
@@ -79,7 +81,7 @@ namespace server
 			{
 				if(m_vOptions[o] == "-w")
 					m_bWait= true;
-				else if(m_vOptions[o] == "-d")
+				else if(m_vOptions[o] == "-h")
 				{
 					m_bWait= true;
 					bSecConn= true;

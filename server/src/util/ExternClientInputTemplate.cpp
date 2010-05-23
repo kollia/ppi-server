@@ -116,7 +116,7 @@ namespace util
 		bool bsend;
 		int ret, tryrecon= 0;
 		string command;
-		vector<string> result;
+		vector<string> result, fresult;
 		vector<string>::iterator it;
 
 
@@ -186,18 +186,37 @@ namespace util
 				closeSendConnection();
 				if(tryrecon <= 5)
 				{
+					bool bdone= false;
+
 					for(vector<string>::iterator er= result.begin(); er != result.end(); ++er)
 					{
+						if(	done == "" ||
+							*er == done		)
+						{ // after bdone just asked if one result was returned
+							bdone= true;
+
+						}
 						if(*er == "ERROR 001")
 						{ // try to reconnect
 							openSendConnection();
 							bsend= false;
+							if(result.size() > 1)
+							{
+								result.erase(er);
+								fresult.insert(fresult.end(), result.begin(), result.end());
+								if(bdone)
+									bsend= true;
+								break;
+							}
 							++tryrecon;
+							break;
 						}
 					}
 				}
 			}
 		}while(bsend == false);
+		if(!fresult.empty())
+			result.insert(result.begin(), fresult.begin(), fresult.end());
 		it= result.begin();
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 		if(boutput)

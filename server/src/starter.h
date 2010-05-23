@@ -118,7 +118,24 @@ class Starter
 			m_sWorkdir(workdir),
 			m_oServerFileCasher()
 			{ };
+		/**
+		 * start server
+		 *
+		 * @return whether server running correctly
+		 */
 		bool execute();
+		/**
+		 * ask server for running status
+		 *
+		 * @param res if pointer to vector of strings be set, vector will be filled with result. Otherwise display result on command line
+		 * @return whether can be connect to server correctly
+		 */
+		bool status(vector<string>* res= NULL);
+		/**
+		 * stop server
+		 *
+		 * @return whether server can be sopped correctly
+		 */
 		bool stop();
 		//which ports as string are needeD. Second pair object bool is whether the port is defined for pin reading with ioperm()
 		void readFile(vector<pair<string, PortTypes> > &vlRv, string fileName);

@@ -23,6 +23,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <boost/algorithm/string/split.hpp>
+
 #include "../pattern/server/IServerPattern.h"
 
 #include "../util/GlobalStaticMethods.h"
@@ -40,6 +42,7 @@ using namespace util;
 using namespace logger;
 using namespace ppi_database;
 using namespace design_pattern_world::server_pattern;
+using namespace boost;
 
 namespace server
 {
@@ -372,6 +375,121 @@ namespace server
 			else
 				descriptor << "false";
 
+		}else if(method == "getStatusInfo")
+		{
+			static bool error= false;
+			static unsigned short nOWReader= 1;
+			static unsigned short nMaxOWReader;
+			static unsigned short step= 0;
+			static vector<string> status;
+			bool bsend;
+			vector<string>::iterator pos;
+			auto_ptr<ostringstream> send;
+			auto_ptr<ostringstream> poOWReader;
+			istringstream *piOWReader;
+			string param, msg;
+
+			object >> param;
+			switch(step)
+			{
+			case 0: // get status info from main process ppi-server
+				send= auto_ptr<ostringstream>(new ostringstream);
+				(*send) << "getStatusInfo";
+				if(param != "")
+					(*send) << " \"" << param << "\"";
+				msg= descriptor.sendToOtherClient("ProcessChecker", send->str(), true);
+				if(msg != "done")
+				{
+					cout << "send: " << msg << endl;
+					descriptor << msg;
+					descriptor.endl();
+					break;
+				}
+				++step;
+			case 1: // get status info from process ppi-log-client
+				send= auto_ptr<ostringstream>(new ostringstream);
+				(*send) << "getStatusInfo";
+				if(param != "")
+					(*send) << " \"" << param << "\"";
+				msg= descriptor.sendToOtherClient("LogServer", send->str(), true);
+				if(msg != "done")
+				{
+					cout << "send: " << msg << endl;
+					descriptor << msg;
+					descriptor.endl();
+					break;
+				}
+				++step;
+			case 2: // read status info from own process ppi-db-server
+				msg= Thread::getStatusInfo(param);
+				split(status, msg, is_any_of("\n"));
+				++step;
+			case 3: // send status info lines from own process ppi-db-server
+				bsend= false;
+				while(status.size() > 0)
+				{
+					pos= status.begin();
+					if(*pos != "")
+					{
+						bsend= true;
+						descriptor << *pos;
+						descriptor.endl();
+						cout << "send: " << *pos << endl;
+						status.erase(pos);
+						break;
+					}else
+						status.erase(pos);
+				}
+				if(bsend)
+					break;
+				++step;
+			case 4: // check how much one wire reader does exist
+				msg= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true);
+				piOWReader= new istringstream(msg);
+				*piOWReader >> nMaxOWReader;
+				delete piOWReader;
+				++step;
+				error= false;
+			case 5:// get status info from all one wire reader
+				while(nOWReader <= nMaxOWReader)
+				{
+					if(error)
+					{
+						++nOWReader;
+						error= false;
+						if(nOWReader > nMaxOWReader)
+							break;
+					}
+					send= auto_ptr<ostringstream>(new ostringstream);
+					(*send) << "getStatusInfo";
+					if(param != "")
+						(*send) << " \"" << param << "\"";
+					poOWReader= auto_ptr<ostringstream>(new ostringstream);
+					(*poOWReader) << "OwServerQuestion-" << nOWReader;
+					msg= descriptor.sendToOtherClient(poOWReader->str(), send->str(), true);
+					if(msg != "done")
+					{
+						if(ExternClientInputTemplate::error(msg))
+						{
+							msg= "[      ] get no status info from " + poOWReader->str();
+							error= true;
+						}
+						cout << "send: " << msg << endl;
+						descriptor << msg;
+						descriptor.endl();
+						break;
+					}
+					++nOWReader;
+				}
+				if(nOWReader <= nMaxOWReader)
+					break;
+				cout << "all be done" << endl;
+				descriptor << "done";
+				descriptor.endl();
+				nOWReader= 1;
+				step= 0;
+				break;
+			}
 		}else if(method == "getOWDebugInfo")
 		{
 			unsigned short ow;

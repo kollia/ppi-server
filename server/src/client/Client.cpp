@@ -36,6 +36,7 @@
 #include "../util/ExternClientInputTemplate.h"
 
 #include "../server/libs/client/SocketClientConnection.h"
+#include "../server/libs/server/ServerThread.h"
 
 #include "lib/ClientTransaction.h"
 
@@ -110,23 +111,43 @@ bool Client::execute(const string& workdir, vector<string> options, string comma
 	}
 	if(askServer)
 	{
+		if(co == "status")
+		{
+			int s;
+
+			s= ServerThread::connectAsClient("127.0.0.1", nPort, false);
+			if(s == 0)
+			{
+				cerr << "ppi-server does not running" << endl;
+				return false;
+			}
+			close(s);
+		}
 		clres= clientCon->init();
 		if(clres != 0)
 		{
 			string output;
 
-			opIt= ::find(options.begin(), options.end(), "-e");
-			if(opIt != options.end())
-				output= ExternClientInputTemplate::error(clres);
-			else
-				output= clientCon->strerror(clres);
-
-			if(clres > 0)
+			if(	clres == 25 &&
+				co == "status"	)
 			{
-				cerr << output << endl;
+				cerr << "ppi-server does not running" << endl;
 				bRv= false;
 			}else
-				cout << output << endl;
+			{
+				opIt= ::find(options.begin(), options.end(), "-e");
+				if(opIt != options.end())
+					output= ExternClientInputTemplate::error(clres);
+				else
+					output= clientCon->strerror(clres);
+
+				if(clres > 0)
+				{
+					cerr << output << endl;
+					bRv= false;
+				}else
+					cout << output << endl;
+			}
 		}
 	}
 	return bRv;

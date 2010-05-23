@@ -15,6 +15,9 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+
 #include "ProcessChecker.h"
 
 #include "ports/measureThread.h"
@@ -25,6 +28,7 @@
 #include "util/IMethodStringStream.h"
 
 using namespace util;
+using namespace boost;
 
 inline int ProcessChecker::init(void *args)
 {
@@ -204,6 +208,46 @@ int ProcessChecker::execute()
 			getQuestion("done");
 			break;
 		}
+	}else if(method == "getStatusInfo")
+	{
+		static unsigned short step= 0;
+		static vector<string> status;
+		vector<string>::iterator pos;
+		string param, msg;
+
+		object >> param;
+		switch(step)
+		{
+		case 0:
+			msg= Thread::getStatusInfo(param);
+			split(status, msg, is_any_of("\n"));
+			pos= status.begin();
+			m_sAnswer= *pos;
+			//cout << "Log send: " << *pos << endl;
+			status.erase(pos);
+			++step;
+			break;
+		case 1:
+			if(status.size() > 0)
+			{
+				do{
+					pos= status.begin();
+					msg= *pos;
+					m_sAnswer= *pos;
+					//cout << "Log send: " << *pos << endl;
+					status.erase(pos);
+
+				}while(	msg == "" &&
+						!status.empty()	);
+				if(msg != "")
+					break;
+			}
+			//cout << "Log all be done" << endl;
+			m_sAnswer= "done\n";
+			step= 0;
+			break;
+		}
+
 	}else
 	{
 		int err;

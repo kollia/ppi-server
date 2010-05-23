@@ -864,6 +864,15 @@ namespace ppi_database
 		return false;
 	}
 
+	vector<string> DbInterface::getStatusInfo(const string& param)
+	{
+		vector<string> vStatus;
+		OMethodStringStream command("getStatusInfo");
+
+		command << param;
+		return sendMethod("ppi-db-server", command, "done", true);
+	}
+
 	vector<string> DbInterface::getOWDebugInfo(const unsigned short ID)
 	{
 		int err;

@@ -305,6 +305,13 @@ namespace ppi_database
 		 */
 		const double getDefaultCache(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "");
 		/**
+		 * return status message from all running processes without internet-server
+		 *
+		 * @param param parameter for which message
+		 * @return status message
+		 */
+		vector<string> getStatusInfo(const string& param);
+		/**
 		 * check whether one wire server does exist
 		 *
 		 * @param sID ID of one wire server

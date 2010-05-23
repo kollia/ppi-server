@@ -17,11 +17,13 @@
 #include <stdlib.h>
 #include <sys/io.h>
 #include <string.h>
-#include <algorithm>
 #include <sys/types.h>
 #include <signal.h>
 #include <netdb.h>
 #include <errno.h>
+#include <lirc/lirc_client.h>
+
+#include <algorithm>
 #include <list>
 
 #include <boost/algorithm/string/trim.hpp>
@@ -233,6 +235,24 @@ bool Starter::execute()
 		cerr << "### WARNING: cannot start log-server" << endl;
 		cerr << "             so no log can be written into any files" << endl;
 		cerr << "             " << process->strerror(err) << endl;
+	}
+	// ------------------------------------------------------------------------------------------------------------
+
+	bool blirc= false;
+	char type[8];
+	//*********************************************************************************
+	//* check whether any lirc is configured
+	strncpy(type, "irexec", 6);
+	if(lirc_init(type, 1) != -1)
+	{
+		struct lirc_config *ptLircConfig;
+
+		if(lirc_readconfig(NULL, &ptLircConfig, NULL) == 0)
+		{
+			blirc= true;
+			lirc_freeconfig(ptLircConfig);
+		}
+		lirc_deinit();
 	}
 	// ------------------------------------------------------------------------------------------------------------
 
@@ -1837,6 +1857,104 @@ void Starter::checkAfterContact()
 	}
 }
 
+bool Starter::status(vector<string>* res/*= NULL*/)
+{
+	bool bOK;
+	char	buf[165];
+	FILE 	*fp;
+	int clientsocket, err;
+	unsigned short nPort;
+	string result;
+	string property;
+	string confpath, fileName;
+
+
+	if(m_oServerFileCasher.isEmpty())
+	{
+		confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
+		fileName= URL::addPath(confpath, "server.conf");
+		if(!m_oServerFileCasher.readFile(fileName))
+		{
+			cout << "### ERROR: cannot read '" << fileName << "'" << endl;
+			return false;
+		}
+	}
+	property= "port";
+	nPort= m_oServerFileCasher.needUShort(property);
+	if(property == "#ERROR")
+		exit(EXIT_FAILURE);
+	clientsocket= ServerThread::connectAsClient("127.0.0.1", nPort, false);
+	if(clientsocket==0)
+	{
+		if(res == NULL)
+			printf("no server is running\n");
+		return false;
+	}
+	fp = fdopen (clientsocket, "w+");
+
+	fputs ("GET\n", fp);
+	buf[0]= '\0';
+	fgets(buf, sizeof(buf), fp);
+	result= buf;
+
+	if(	result.size() <= 12
+		||
+		result.substr(0, 12) != "port-server:")
+	{
+		if(res == NULL)
+			cout << "ERROR: undefined server running on port" << endl;
+		return false;
+	}
+
+	if(res)
+		fputs("status pid\n", fp);
+	else
+		fputs("status text\n", fp);
+	bOK= true;
+	do{
+		buf[0]= '\0';
+		fgets(buf, sizeof(buf), fp);
+		result= buf;
+		err= ExternClientInputTemplate::error(result);
+		if(err)
+		{
+			if(ExternClientInputTemplate::error(result) > 0)
+			{
+				ostringstream send;
+
+				send << "GETERRORSTRING " << err;
+				fputs(send.str().c_str(), fp);
+				fgets(buf, sizeof(buf), fp);
+				if(res == NULL)
+					cerr << buf;
+				else
+					res->push_back(result);
+				bOK= false;
+				break;
+			}else
+			{
+				if(res)
+					res->push_back(result);
+				else
+					cout << result;
+			}
+		}
+		if(result != "done\n")
+		{
+			if(res)
+				res->push_back(result);
+			else
+				cout << result;
+		}
+
+	}while(result != "done\n");
+
+	fclose(fp);
+	close(clientsocket);
+	cout << endl;
+	return true;
+}
+
 bool Starter::stop()
 {
 	char	buf[64];
@@ -1875,10 +1993,7 @@ bool Starter::stop()
 	clientsocket= ServerThread::connectAsClient("127.0.0.1", nPort);
 	if(clientsocket==0)
 	{
-		LOG(LOG_INFO, "no server is running");
-#ifndef DEBUG
 		printf("no server is running\n");
-#endif // DEBUG
 		return false;
 	}
 	fp = fdopen (clientsocket, "w+");

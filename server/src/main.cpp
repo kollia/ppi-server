@@ -212,9 +212,14 @@ int main(int argc, char* argv[])
 			cout << "successfully" << endl;
 			return EXIT_SUCCESS;
 
+		}else if(param == "status")
+		{
+			result= server->status();
+
 		}else if(param == "stop")
 		{
 			result= server->stop();
+
 		}else if(param == "restart")
 		{
 			server->stop();
@@ -237,8 +242,12 @@ int main(int argc, char* argv[])
 		cout << "LogServer" << endl;
 	if(param == "stop")
 	{
-		cout << endl << "server was stopped" << endl;
-		return EXIT_SUCCESS;
+		if(result)
+		{
+			cout << "server was stopped" << endl;
+			return EXIT_SUCCESS;
+		}
+		return EXIT_FAILURE;
 
 	}else if(param == "start")
 	{

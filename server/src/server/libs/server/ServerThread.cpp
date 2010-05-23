@@ -136,8 +136,13 @@ namespace server
 		{
 			logger::LogInterface *log= logger::LogInterface::instance();
 
-			LOG(LOG_ALERT, "ERROR: server as client cannot connect to socket!");
-			log->stop();
+			msg= "ERROR: app cannot connect to socket!";
+			if(LogInterface::instance())
+			{
+				LOG(LOG_ALERT, msg);
+				log->stop();
+			}
+			cerr << msg << endl;
 			exit(1);
 		}
 

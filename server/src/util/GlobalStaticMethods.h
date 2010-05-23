@@ -26,6 +26,13 @@ using namespace std;
 class GlobalStaticMethods {
 public:
 	/**
+	 * return defined process name
+	 *
+	 * @return name of process
+	 */
+	static string getProcessName()
+	{ return m_sProcessName; };
+	/**
 	 * signal procedure for set signal
 	 *
 	 * @param nSignal signal getting from system
