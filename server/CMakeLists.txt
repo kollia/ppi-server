@@ -34,6 +34,9 @@ set(PPILOGGER_LIB_SOVERSION "1")
 set(PPIUTIL_LIB_VERSION "1.0")
 set(PPIUTIL_LIB_SOVERSION "1")
 
+set(PPICPPCLIENT_LIB_VERSION "1.0")
+set(PPICPPCLIENT_LIB_SOVERSION "1")
+
 
 
 
@@ -131,11 +134,13 @@ add_subdirectory( src/database/lib )
 add_subdirectory( src/server/libs )
 add_subdirectory( src/server/libs/client )
 add_subdirectory( src/server/libs/server )
+add_subdirectory( src/client/lib )
 
 add_subdirectory( src/server )
 
 add_subdirectory( src/logger )
 add_subdirectory( src/database )
 add_subdirectory( src/portserver )
+add_subdirectory( src/client )
 add_subdirectory( src )
 
