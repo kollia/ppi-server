@@ -127,10 +127,9 @@ class Starter
 		/**
 		 * ask server for running status
 		 *
-		 * @param res if pointer to vector of strings be set, vector will be filled with result. Otherwise display result on command line
 		 * @return whether can be connect to server correctly
 		 */
-		bool status(vector<string>* res= NULL);
+		bool status();
 		/**
 		 * stop server
 		 *

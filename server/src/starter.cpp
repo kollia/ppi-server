@@ -1857,7 +1857,7 @@ void Starter::checkAfterContact()
 	}
 }
 
-bool Starter::status(vector<string>* res/*= NULL*/)
+bool Starter::status()
 {
 	bool bOK;
 	char	buf[165];
@@ -1886,8 +1886,7 @@ bool Starter::status(vector<string>* res/*= NULL*/)
 	clientsocket= ServerThread::connectAsClient("127.0.0.1", nPort, false);
 	if(clientsocket==0)
 	{
-		if(res == NULL)
-			printf("no server is running\n");
+		printf("no server is running\n");
 		return false;
 	}
 	fp = fdopen (clientsocket, "w+");
@@ -1901,15 +1900,11 @@ bool Starter::status(vector<string>* res/*= NULL*/)
 		||
 		result.substr(0, 12) != "port-server:")
 	{
-		if(res == NULL)
-			cout << "ERROR: undefined server running on port" << endl;
+		cout << "ERROR: undefined server running on port" << endl;
 		return false;
 	}
 
-	if(res)
-		fputs("status pid\n", fp);
-	else
-		fputs("status text\n", fp);
+	fputs("status text\n", fp);
 	bOK= true;
 	do{
 		buf[0]= '\0';
@@ -1925,33 +1920,21 @@ bool Starter::status(vector<string>* res/*= NULL*/)
 				send << "GETERRORSTRING " << err;
 				fputs(send.str().c_str(), fp);
 				fgets(buf, sizeof(buf), fp);
-				if(res == NULL)
-					cerr << buf;
-				else
-					res->push_back(result);
+				cerr << buf;
 				bOK= false;
 				break;
 			}else
-			{
-				if(res)
-					res->push_back(result);
-				else
-					cout << result;
-			}
+				cout << result;
 		}
 		if(result != "done\n")
 		{
-			if(res)
-				res->push_back(result);
-			else
-				cout << result;
+			cout << result;
 		}
 
 	}while(result != "done\n");
 
 	fclose(fp);
 	close(clientsocket);
-	cout << endl;
 	return true;
 }
 

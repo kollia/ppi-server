@@ -400,7 +400,12 @@ namespace server
 				msg= descriptor.sendToOtherClient("ProcessChecker", send->str(), true);
 				if(msg != "done")
 				{
-					cout << "send: " << msg << endl;
+					if(ExternClientInputTemplate::error(msg))
+					{
+						msg= "no communication to ppi-server " + msg;
+						++step;
+					}
+					//cout << "send: " << msg << endl;
 					descriptor << msg;
 					descriptor.endl();
 					break;
@@ -414,7 +419,12 @@ namespace server
 				msg= descriptor.sendToOtherClient("LogServer", send->str(), true);
 				if(msg != "done")
 				{
-					cout << "send: " << msg << endl;
+					if(ExternClientInputTemplate::error(msg))
+					{
+						msg= "no communication to ppi-log-client " + msg;
+						++step;
+					}
+					//cout << "send: " << msg << endl;
 					descriptor << msg;
 					descriptor.endl();
 					break;
@@ -434,7 +444,7 @@ namespace server
 						bsend= true;
 						descriptor << *pos;
 						descriptor.endl();
-						cout << "send: " << *pos << endl;
+						//cout << "send: " << *pos << endl;
 						status.erase(pos);
 						break;
 					}else
@@ -453,13 +463,6 @@ namespace server
 			case 5:// get status info from all one wire reader
 				while(nOWReader <= nMaxOWReader)
 				{
-					if(error)
-					{
-						++nOWReader;
-						error= false;
-						if(nOWReader > nMaxOWReader)
-							break;
-					}
 					send= auto_ptr<ostringstream>(new ostringstream);
 					(*send) << "getStatusInfo";
 					if(param != "")
@@ -467,14 +470,16 @@ namespace server
 					poOWReader= auto_ptr<ostringstream>(new ostringstream);
 					(*poOWReader) << "OwServerQuestion-" << nOWReader;
 					msg= descriptor.sendToOtherClient(poOWReader->str(), send->str(), true);
+					if(ExternClientInputTemplate::error(msg))
+						msg= "no communication to  " + poOWReader->str() + " " + msg;
 					if(msg != "done")
 					{
 						if(ExternClientInputTemplate::error(msg))
 						{
-							msg= "[      ] get no status info from " + poOWReader->str();
-							error= true;
+							msg= "no communication to ppi-log-client " + msg;
+							++nOWReader;
 						}
-						cout << "send: " << msg << endl;
+						//cout << "send: " << msg << endl;
 						descriptor << msg;
 						descriptor.endl();
 						break;
@@ -483,7 +488,7 @@ namespace server
 				}
 				if(nOWReader <= nMaxOWReader)
 					break;
-				cout << "all be done" << endl;
+				//cout << "all be done" << endl;
 				descriptor << "done";
 				descriptor.endl();
 				nOWReader= 1;
