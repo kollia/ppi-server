@@ -26,6 +26,7 @@
 
 #include "../../util/configpropertycasher.h"
 #include "../../util/XMLStartEndTagReader.h"
+#include "../../util/structures.h"
 
 #include "ClientTransaction.h"
 
@@ -35,7 +36,7 @@ using namespace util;
 namespace server
 {
 	ClientTransaction::ClientTransaction(vector<string> options, string command)
-	: m_mOwDevices(), m_mOwMaxTime(), m_mOwMaxCount()
+	: /*m_mOwDevices(),*/ m_mOwMaxTime(), m_mOwMaxCount()
 	{
 		m_bWait= false;
 		m_bShowENum= false;
@@ -289,7 +290,7 @@ namespace server
 		string logMsg, result, sDo;
 		string sSendbuf, last;
 		auto_ptr<XMLStartEndTagReader> xmlReader;
-		OWServer::device_debug_t tdebug;
+		device_debug_t tdebug;
 
 		if(m_bHearing)
 		{

@@ -27,7 +27,7 @@
 
 #include "../../pattern/server/NoCommunicateTransactionAdapter.h"
 
-#include "../../portserver/owserver.h"
+//#include "../../portserver/owserver.h"
 
 using namespace std;
 using namespace design_pattern_world::server_pattern;
@@ -114,10 +114,6 @@ namespace server
 			 * whether the session is set for debug an OWServer
 			 */
 			bool m_bOwDebug;
-			/**
-			 * map of all devices -> id as key and device_debug_t as value
-			 */
-			map<unsigned short, OWServer::device_debug_t> m_mOwDevices;
 			/**
 			 * max micro time for all ids
 			 */
