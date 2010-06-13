@@ -240,6 +240,14 @@ namespace util
 		public:
 			/**
 			 * creating instance to start external process.<br />
+			 * This starts only an application with the command <code>start()</code>
+			 * and gives no message back whether the running application have some problems.
+			 */
+			ProcessStarter()
+			: Process("nocommunicate", "nocommunicate", NULL, NULL, false)
+			{};
+			/**
+			 * creating instance to start external process.<br />
 			 * By cancel this ProcessStarter object, third parameter object will be also delete in parent class Process.
 			 *
 			 * @param ownProcess Name of process to identify in by server
