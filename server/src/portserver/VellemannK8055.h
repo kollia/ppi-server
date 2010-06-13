@@ -92,9 +92,10 @@ namespace ports
 			 *
 			 * @param prop properties from current subroutine
 			 * @param id this param get unique id of pin to identify reading or writing
+			 * @param kernelmode give back whether owreader should read values over an kernel module (always 0)
 			 * @return 0 if the pin is not correct, 1 if the pin is for reading, 2 for writing or 3 for unknown (reading/writing)
 			 */
-			virtual short useChip(const IActionPropertyMsgPattern* prop, string& id);
+			virtual short useChip(const IActionPropertyMsgPattern* prop, string& id, unsigned short& kernelmode);
 			/**
 			 * returning the ID which define the chip
 			 *
@@ -183,6 +184,12 @@ namespace ports
 			 * 			 3 if nothing to do, value param set, was reading befor (chip wasn't read, value is correct) -> go to the next pin)
 			 */
 			virtual short read(const string id, double &value);
+			/**
+			 * this method is an dummy, because no kernelmode in <code>useChip()</code> be set.
+			 *
+			 * @return only an null string ("")
+			 */
+			virtual string kernelmodule() { return ""; };
 			/**
 			 * set min and max parameter to the range which can be set for the pin.<br />
 			 * If the pin is set from 0 to 1 for writing, in the config file can be set begin while and end.

@@ -25,10 +25,13 @@
 #include <map>
 
 #include "../util/smart_ptr.h"
+#include "../util/structures.h"
 #include "../util/Thread.h"
 #include "../util/configpropertycasher.h"
 
 #include "../pattern/server/ichipaccesspattern.h"
+
+#include "KernelModule.h"
 
 using namespace util;
 
@@ -61,81 +64,6 @@ namespace server
 			 * whether the chip can hold floating values
 			 */
 			bool bfloat;
-		};
-		/**
-		 * struct to writing debug information for time reading
-		 * and writing.
-		 */
-		struct device_debug_t
-		{
-			/**
-			 * count id of debug struct
-			 */
-			unsigned short id;
-			/**
-			 * whether actual time can reading gettimeofday
-			 */
-			bool btime;
-			/**
-			 * actual time of reading or writing
-			 */
-			timeval act_tm;
-			/**
-			 * how often device was read or write in the actual session
-			 */
-			unsigned short count;
-			/**
-			 * whether the device is for reading (true)
-			 * or writing (false)
-			 */
-			bool read;
-			/**
-			 * whether device was reachable
-			 */
-			bool ok;
-			/**
-			 * needed time in micro seconds of reading or writing
-			 */
-			long utime;
-			/**
-			 * measured or written value
-			 */
-			double value;
-			/**
-			 * cache time for reading
-			 */
-			double cache;
-			/**
-			 * priority state for writing
-			 */
-			unsigned int priority;
-			/**
-			 * id of device
-			 */
-			string device;
-			/**
-			 * sort operator to comparing actual time whether own is greater
-			 */
-			bool operator > (const device_debug_t* other) const
-			{
-				if(act_tm.tv_sec > other->act_tm.tv_sec)
-					return true;
-				return act_tm.tv_usec > other->act_tm.tv_usec ? true : false;
-			}
-			/**
-			 * find operator to comparing actual time wheteher both are the same
-			 */
-			int operator == (const device_debug_t* other)
-			{
-				return (device == other->device);
-				/*if(	act_tm.tv_sec == other->act_tm.tv_sec
-					&&
-					act_tm.tv_usec == other->act_tm.tv_usec	)
-				{
-					return true;
-				}
-				return false;*/
-			}
 		};
 
 		/**
@@ -289,64 +217,6 @@ namespace server
 		 * vector for debug which containes sorted device_debug_t structs
 		 */
 		vector<device_debug_t> m_debugInfo;
-		/**
-		 * struct of chip defined types,
-		 * with an map for actions for all pins
-		 */
-		struct chip_types_t
-		{
-			/**
-			 * unique ID of pin
-			 */
-			string id;
-			/**
-			 * unique ID for pins in an cache writing
-			 */
-			string wcacheID;
-			/**
-			 * whether value should read or write
-			 */
-			bool read;
-			/**
-			 * whether writing will be make in an cache
-			 */
-			bool writecache;
-			/**
-			 * value of pin from chip
-			 * if it is an cached reading
-			 */
-			double value;
-			/**
-			 * priority of pin if it is for writing
-			 */
-			unsigned int priority;
-			/**
-			 * seconds for reading again as cache
-			 */
-			unsigned long sec;
-			/**
-			 * sequence of time to reading in an cache
-			 */
-			struct timeval timeSeq;
-			/**
-			 * whether reading or write on device was correct
-			 */
-			bool device;
-			/**
-			 * inline greater operator
-			 */
-			bool operator > (const chip_types_t* other)
-			{
-				return id > other->id ? true : false;
-			}
-			/**
-			 * inline similar operator
-			 */
-			bool operator == (const chip_types_t* other)
-			{
-				return id == other->id ? true : false;
-			}
-		};
 
 		/**
 		 * sequence struct
@@ -508,6 +378,19 @@ namespace server
 		 * access pattern interface to extern chip
 		 */
 		auto_ptr<IChipAccessPattern> m_poChipAccess;
+		/**
+		 * whether owreader should read any chip from m_vkernelR;
+		 */
+		bool m_bKernel;
+		/**
+		 * whether need only to ask for reading the kernelmodul
+		 * and have not start and second thread
+		 */
+		bool m_bKernelOnly;
+		/**
+		 * KernelModule class reading the kernelmodule from <code>IChipAccessPattern</code>
+		 */
+		auto_ptr<KernelModule> m_pKernelModule;
 
 		/**
 		 * measure time difference by debugging for reading or wirting on device

@@ -38,6 +38,7 @@
 #include "owserver.h"
 #include "OwServerQuestions.h"
 #include "ExternPorts.h"
+#include "LircClient.h"
 #include "maximchipaccess.h"
 #include "VellemannK8055.h"
 
@@ -210,6 +211,12 @@ int main(int argc, char* argv[])
 					vParams.push_back("<port> ...");
 					vDescript.push_back("all external ports for measuring");
 				}
+
+			}else if(strncmp(argv[2], "LIRC", vLength[2]) == 0)
+			{
+				servertype= "LIRC";
+				accessPort= new LircClient();
+				bConf= true;
 
 			}else if(strncmp(argv[2], "maxim", vLength[2]) == 0)
 			{

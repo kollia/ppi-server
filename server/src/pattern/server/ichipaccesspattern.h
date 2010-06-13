@@ -83,20 +83,40 @@ namespace design_pattern_world
 		 */
 		virtual void disconnect()=0;
 		/**
-		 * define that dallas semicoductor is used
+		 * define which chip is used, defined in measure.conf.<br />
+		 * If the third parameter kernelmode will be set in method to one or two,
+		 * owreader starts an second thread to read values from an kernelmodule.
+		 * By one, after reading over method <code>kernelmodule</code> the reading with method
+		 * <code>read()</code> will be done only in this thread.
+		 * By two the reading will be done in other thread by polling.<br />
+		 * Read also description for <code>kernelmodule()</code>.
 		 *
 		 * @param prop properties from current subroutine in measure.conf
 		 * @param id this param get unique id of pin to identify reading or writing
+		 * @param kernelmode whether owreader should read values over an kernel module by one or two -&gt; read method description
 		 * @return 0 if the pin is not correct, 1 if the pin is for reading, 2 for writing or 3 for unknown (reading/writing)
 		 */
-		virtual short useChip(const IActionPropertyMsgPattern* prop, string& id)=0;
+		virtual short useChip(const IActionPropertyMsgPattern* prop, string& id, unsigned short& kernelmode)=0;
 		/**
-		 * returning the ID which define the chip
+		 * read values over an kernel module.<br />
+		 * If some chips defined in method <code>useChip()</code> with kernelmode,
+		 * owreader starts an second thread to call this method.
+		 * This method should be thread save with variables which read also in method <code>read()</code>
+		 * from an other thread by set kernelmode to two in method <code>useChip</code>.
+		 * if some reading codes defined with kernelmode null ('0') or two ('2'),
+		 * because the method <vode>read()</code> will be called
+		 * in two different threads.
+		 * When the returned id is undefined (not null "") all id's will be asked with <code>read()</code>.
+		 * If the returned id is null ("") owreader do nothing and start this method again.
+		 * The developer shuld return also null ("") when he/she set the chip to read by polling
+		 * (kernelmode to two ('2') in <code>useChip()</code>), because otherwise the reading will be done
+		 * in two threads and the value can be inconsistent.<br />
+		 * Please do not create an no ending loop in this method, because if owreader will stopping
+		 * the module of kernel settings this method should be stopped also by <code>disconnect()</code>.
 		 *
-		 * @param ID defined ID in subroutine of measure.conf
-		 * @return chip id
+		 * @return changed id defined in <code>useChip()</code>
 		 */
-		//virtual string getChipID(const string ID)=0;
+		virtual string kernelmodule()= 0;
 		/**
 		 * function reading from chip
 		 * and returning the type
@@ -166,7 +186,9 @@ namespace design_pattern_world
 		 */
 		virtual short write(const string id, const double value)=0;
 		/**
-		 * read from chip or board
+		 * read from chip or board.<br />
+		 * If some of the reading id's defined in method <code>useChip()</code> are defined with the flag kernelmode
+		 * but not all, the variables set in method <code>kernelmodule()</code> and will be read her should be thread save.
 		 *
 		 * @param id unique pin-id geted from useChip
 		 * @param value Result of reading

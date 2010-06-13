@@ -100,7 +100,7 @@ namespace ports
 		properties->haveAction("perm");
 	}
 
-	short VellemannK8055::useChip(const IActionPropertyMsgPattern* prop, string& id)
+	short VellemannK8055::useChip(const IActionPropertyMsgPattern* prop, string& id, unsigned short& kernelmode)
 	{
 		short nRv= 0;
 		long def;
@@ -109,6 +109,7 @@ namespace ports
 		string property;
 		string::size_type len;
 
+		kernelmode= 0;
 		property= "ID";
 		def= (long)prop->getInt(property);
 		if(property == "#ERROR")

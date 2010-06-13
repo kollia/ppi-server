@@ -446,16 +446,16 @@ namespace ports
 		}
 	}
 
-	short ExternPorts::useChip(const IActionPropertyMsgPattern* prop, string& id)
+	short ExternPorts::useChip(const IActionPropertyMsgPattern* prop, string& id, unsigned short& kernelmode)
 	{
 		bool bCurrent;
 		bool bCacheWriting;
 		string msg, pin;
 		portpin_address_t portpin;
 		map<string, portpin_address_t>::iterator it;
-
 		Pins pins;
 
+		kernelmode= 0;
 		if(	m_eType == MPORT
 			&&
 			m_bSet			)

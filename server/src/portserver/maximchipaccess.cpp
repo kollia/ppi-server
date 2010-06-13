@@ -199,8 +199,7 @@ namespace ports
 		return true;
 	}
 
-	//useChip(short folderID, string id, string pin, bool read, unsigned int priority, bool uncached, bool cache, double readCache)
-	short MaximChipAccess::useChip(const IActionPropertyMsgPattern* prop, string& unique)
+	short MaximChipAccess::useChip(const IActionPropertyMsgPattern* prop, string& unique, unsigned short& kernelmode)
 	{
 		bool read, write, cache= false;
 		bool currentRead= false;
@@ -213,6 +212,7 @@ namespace ports
 		string folder, chipID, ID, path, pin;
 		string sprop;
 
+		kernelmode= 0;
 		DbInterface::chips_t defaultChip;
 		DbInterface *defaultChipReader= DbInterface::instance();
 		SHAREDPTR::shared_ptr<chip_type_t> ptchip;

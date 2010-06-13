@@ -52,7 +52,9 @@ namespace server
 		m_sServerType(type),
 		m_bConnected(false),
 		m_bAllInitial(false),
-		m_poChipAccess(auto_ptr<IChipAccessPattern>(accessPattern))
+		m_poChipAccess(auto_ptr<IChipAccessPattern>(accessPattern)),
+		m_bKernel(false),
+		m_bKernelOnly(true)
 	{
 		m_WRITEONCHIP= getMutex("WRITEONCHIP");
 		m_WRITECACHE= getMutex("READCACHE");
@@ -61,7 +63,8 @@ namespace server
 		m_PRIORITYCACHE= getMutex("PRIORITYCACHE");
 		m_PRIORITY1CHIP= getMutex("PRIORITY1CHIP");
 		m_CACHEWRITEENTRYS= getMutex("CACHEWRITEENTRYS");
-		m_DEBUGINFO= getMutex("DEBUGINFO");;
+		m_DEBUGINFO= getMutex("DEBUGINFO");
+		m_pKernelModule= auto_ptr<KernelModule>(new KernelModule(type, accessPattern, m_READCACHE));
 	}
 
 	bool OWServer::readFirstChipState()
@@ -110,6 +113,12 @@ namespace server
 	void OWServer::endOfInitialisation()
 	{
 		readFirstChipState();
+		if(m_bKernel == true)
+		{
+			if(m_bKernelOnly == false)
+				m_pKernelModule->start();
+		}else
+			m_bKernelOnly= false;
 		m_bAllInitial= true;
 	}
 
@@ -153,6 +162,7 @@ namespace server
 		bool cacheWrite;
 		bool writecacheWrite;
 		short res;
+		unsigned short kernelmode= 0;
 		unsigned int priority;
 		double dCacheSeq;
 		string prop;
@@ -189,7 +199,7 @@ namespace server
 			dCacheSeq= 0;
 		}
 
-		res= m_poChipAccess->useChip(properties, unique);
+		res= m_poChipAccess->useChip(properties, unique, kernelmode);
 		if(m_poChipAccess->getDefaultFileName() == "")
 		{// chip isn't registered,
 		 // do it now
@@ -210,7 +220,7 @@ namespace server
 		if(res == 0)
 			return 0;
 		else if(res == 1)
-		{
+		{// chip is for reading
 			read= true;
 			write= false;
 			//*pCache= currentReading;
@@ -252,6 +262,7 @@ namespace server
 			write= false;
 		}
 
+
 		pchip= SHAREDPTR::shared_ptr<chip_types_t>(new chip_types_t);
 		pchip->id= unique;
 		if(cacheWrite)
@@ -267,11 +278,31 @@ namespace server
 		pchip->timeSeq.tv_usec= 0;
 		pchip->device= true;
 		m_mtConductors[unique]= pchip;
-		if(dCacheSeq)
+		if(kernelmode)
+		{ // chip is for reading over kernel module
+			vector<string>::iterator found;
+
+			if(!read)
+			{
+				string msg(properties->getMsgHead(true));
+
+				msg+= "application can only read from kernelmodule. Don't set an writing chip with kernelmode";
+				cout << msg << endl;
+				LOG(LOG_ERROR, msg);
+				return 0;
+			}
+			m_pKernelModule->fillChipType(pchip.get());
+			m_bKernel= true;
+			if(kernelmode == 2)
+				m_bKernelOnly= false;
+		}
+		if(	dCacheSeq &&
+			kernelmode != 1	)
 		{
 			long tm;
 			map<double, seq_t>::iterator found;
 
+			m_bKernelOnly= false;
 			tm= (long)dCacheSeq;
 			pchip->timeSeq.tv_sec= (time_t)tm;
 			tm= (long)((dCacheSeq - tm) * 1000000);
@@ -288,6 +319,8 @@ namespace server
 				t.nextUnique= pchip;
 				m_mStartSeq[dCacheSeq]= t;
 			}
+			m_bKernelOnly= false;
+
 		}
 		// if owreader not be connected to any board or chip
 		// set device access to false;
@@ -383,6 +416,9 @@ namespace server
 			}else
 				return 0;
 		}
+		if(m_bKernelOnly)
+			return m_pKernelModule->execute();
+
 		short endWork;
 		DbInterface* db;
 		map<int, queue<SHAREDPTR::shared_ptr<chip_types_t> > >::iterator priorityPos;
@@ -927,176 +963,15 @@ namespace server
 		//cout << "    with range min:" << min << ", max:" << max << " and floating is " << boolalpha << bfloat << " value is " << *value << endl;
 		return bCorrect;
 	}
-	/*
-		typedef vector<rwv_t>::iterator vecIter;
-		typedef map<string, map<string, string> >::iterator cachemmiter;
-		typedef map<string, string>::iterator cachemiter;
-
-		cachemiter mi;
-		cachemmiter mmi;
-
-		if(m_mtConductors[id].actions[pin].uncached)
-		{
-			rwv_t chip;
-			unsigned int priority;
-
-			chip.read= true;
-			chip.id= id;
-			chip.pin= pin;
-			chip.value= "";
-			chip.steps= 1;
-			if(	m_mtConductors[id].actions[pin].cache
-				&&
-				*(m_mtConductors[id].actions[pin].cache)	)
-			{
-				chip.steps= 4;
-			}
-
-			priority= m_mtConductors[id].actions[pin].priority;
-#ifdef DALLASTIMELOG
-			string msg("write to chip ");
-
-			msg+= id + " ";
-			msg+= pin + " ";
-			msg+= " value:" + value;
-			LOG(LOG_DEBUG, msg);
-#endif //DALLASTIMELOG
-			LOCK(m_PRIORITYCACHE);
-			m_mvPriorityCache[priority].push_back(chip);
-			UNLOCK(m_PRIORITYCACHE);
-			value= "";
-			while(value == "")
-			{
-				LOCK(m_PRIORITYCACHE);
-				for(vecIter c= m_mvPriorityCache[priority].begin(); c != m_mvPriorityCache[priority].end(); ++c)
-				{
-					if(	c->read
-						&&
-						c->id == id
-						&&
-						c->pin == pin
-						&&
-						c->steps == 0	)
-					{
-						value= c->value;
-						m_mvPriorityCache[priority].erase(c);
-						break;
-					}
-				}
-				UNLOCK(m_PRIORITYCACHE);
-				if(value == "")
-					usleep(1000);
-			}
-			return true;
-		}
-
-		LOCK(m_READCACHE);
-		value= m_mtConductors[id].actions[pin].value;
-		//if(m_mtConductors[id].actions[pin].steps == 3)
-		//	m_mtConductors[id].actions[pin].steps= 2;
-		UNLOCK(m_READCACHE);
-		return true;
-		mmi= m_mtConductors.find(id);
-		mmi= m_mmReadCache.find(id);
-		if(mmi != m_mmReadCache.end())
-		{
-			mi= m_mmReadCache[id].find(pin);
-			if(mi != m_mmReadCache[id].end())
-				value= mi->second;
-			else
-				value= "0";
-		}else
-			value= "0";
-		UNLOCK(m_READCACHE);*/
-	//	return true;
-	//}
-
-	/*bool OwfsServer::readA(, string &value, bool readEvery)
-	{
-		typedef map<string, map<string, string> >::iterator cachemmiter;
-		typedef map<string, string>::iterator cachemiter;
-
-		cachemiter mi;
-		cachemmiter mmi;
-
-		if(	m_mtConductors[id].actions[pin].uncached
-			||
-			readEvery									)
-		{
-			bool ok;
-			string sPin(pin);
-			string path("/");
-
-			if(	m_mtConductors[id].actions[pin].after
-				&&
-				isdigit(pin[0])							)
-			{
-				sPin= "sensed." + pin;
-			}
-			path+= id;
-			path= Starter::addPath(path, sPin);
-			//if(m_mtConductors[id].actions[pin].uncached)
-			//	path= Starter::addPath("/uncached", path);
-			ok= readFrom(path, value);
-			if(	ok
-				&&
-				m_mtConductors[id].actions[pin].after
-				&&
-				*(m_mtConductors[id].actions[pin].after)	)
-			{
-				double d= atof(&value[0]);
-
-				if(d == 0)
-				{
-					path= "/uncached/" + id + "/latch." + pin;
-					return readFrom(path, value);
-				}
-				return true;
-			}
-			return ok;
-		}
-	}
-
-	bool OWServer::readFrom(string id, string pin, string &value)
-	{
-		bool bRv;
-
-#ifdef DALLASTIMELOG
-		unsigned long nTime;
-		string msg;
-		char buf[60];
-
-		msg= "read ";
-		msg+= value + " from chip " + id;
-		msg+= pin;
-		LOG(LOG_DEBUG, msg);
-		TimeMeasure::setMikrotime();
-#endif //DALLASTIMELOG
-
-		LOCK(m_WRITEONCHIP);
-		bRv= m_poChipAccess->read(id, value);
-
-#ifdef DALLASTIMELOG
-		nTime= TimeMeasure::getMikrotime();
-#endif //DALLASTIMELOG
-
-		UNLOCK(m_WRITEONCHIP);
-
-#ifdef DALLASTIMELOG
-		sprintf(buf, "%lu", nTime);
-		msg= "by reading from chip ";
-		msg+= path;
-		msg+= " need ";
-		msg+= buf;
-		msg+= " microseconds";
-		LOG(LOG_DEBUG, msg);
-#endif //DALLASTIMELOG
-
-		return bRv;
-	}*/
 
 	void OWServer::ending()
 	{
+		m_poChipAccess->disconnect();
+		if(	m_bKernel == true &&
+			m_bKernelOnly == false	)
+		{
+			m_pKernelModule->stop(true);
+		}
 	}
 
 	OWServer::~OWServer()
