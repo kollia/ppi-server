@@ -86,6 +86,14 @@ class MeasureThread : 	public Thread,
 		 */
 		virtual void changedValue(const string& folder);
 		/**
+		 * on which time the measure routine should start without any actions on extern ports
+		 *
+		 * @param folder name of folder
+		 * @param time next beginning run time
+		 */
+		void nextActivateTime(const string& folder, const timeval& time)
+		{ m_vtmNextTime.push_back(time); };
+		/**
 		 * destructor of MeasureThread
 		 */
 		virtual ~MeasureThread();
@@ -127,6 +135,10 @@ class MeasureThread : 	public Thread,
 		 * all changed folder
 		 */
 		queue<string> m_qFolder;
+		/**
+		 * next time to activate measure routine without action from extern
+		 */
+		vector<timeval> m_vtmNextTime;
 		/**
 		 * mutex by any changing of value
 		 */

@@ -113,7 +113,7 @@ namespace ports
 		return true;
 	}
 
-	bool contactPin::measure()
+	double contactPin::measure()
 	{
 		m_bContact= getPin(m_tIn);
 		if(isDebug())
@@ -123,7 +123,9 @@ namespace ports
 				cout << "no ";
 			cout << "contact" << endl;
 		}
-		return true;
+		if(m_bContact)
+			return 1;
+		return 0;
 	}
 
 	bool contactPin::range(bool& bfloat, double* min, double* max)

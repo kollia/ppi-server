@@ -28,9 +28,12 @@ namespace ports
 
 	bool SaveSubValue::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
+		bool switchDefault= false;
 		string when;
 		vector<string>::size_type count;
 
+		properties.notAllowedParameter("default");
+		properties.notAllowedAction("db");
 		m_sIdentif= properties.needValue("identif");
 		if(m_sIdentif == "")
 			return false;
@@ -53,21 +56,19 @@ namespace ports
 		}
 		properties.notAllowedParameter("while");
 		properties.readLine("end= true");
-		if(!switchClass::init(properties, pStartFolder))
+		if(!switchClass::init(properties, pStartFolder, &switchDefault))
 			return false;
 		return true;
 	}
 
-	bool SaveSubValue::measure()
+	double SaveSubValue::measure()
 	{
 		bool bFound= true;
 		double value= 0;
 		vector<double> vValues;
 		DbInterface* db= DbInterface::instance();
 
-		//value= getResult(&);
-		switchClass::measure();
-		if(getValue("i:" + getFolderName()))
+		if(switchClass::measure())
 		{
 			string folder(getFolderName());
 			string subroutine(getSubroutineName());
@@ -87,8 +88,9 @@ namespace ports
 			{
 				db->fillValue(folder, subroutine, m_sIdentif, vValues, /*only new values*/false);
 			}
+			return 1;
 		}
-		return true;
+		return 0;
 	}
 
 	bool SaveSubValue::range(bool& bfloat, double* min, double* max)

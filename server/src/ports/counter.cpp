@@ -45,7 +45,7 @@ namespace ports
 		}
 	}
 
-	bool Counter::measure()
+	double Counter::measure()
 	{
 		bool bSetNull;
 		double value= getValue("i:" + getFolderName());
@@ -63,8 +63,7 @@ namespace ports
 
 		}else
 			++value;
-		setValue(value);
-		return true;
+		return value;
 	}
 
 	bool Counter::range(bool& bfloat, double* min, double* max)

@@ -1,7 +1,6 @@
 
 
-set(portsSrcs 	contactpin.cpp
-        		counter.cpp
+set(portsSrcs 	counter.cpp
         		measuredness.cpp
         		measureThread.cpp
         		OwfsPort.cpp
@@ -9,7 +8,8 @@ set(portsSrcs 	contactpin.cpp
         		resistancemeasure.cpp
         		SaveSubValue.cpp
         		shell.cpp
-        		switchcontact.cpp
+        		#contactpin.cpp
+        		#switchcontact.cpp
         		switch.cpp
         		tempmeasure.cpp
         		timemeasure.cpp

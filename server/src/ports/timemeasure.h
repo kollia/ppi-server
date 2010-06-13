@@ -140,7 +140,12 @@ class TimeMeasure : public portBase
 		correction_t getNewCorrection(correction_t tCorrection, vector<ohm> vOhm, unsigned short nSleep);
 		short setNewMeasuredness(unsigned short measureCount, unsigned short sleeptime);
 		void setGradients(vector<correction_t> correction);
-		virtual bool measure();
+		/**
+		 * measure new value for subroutine
+		 *
+		 * @return return measured value
+		 */
+		virtual double measure();
 		virtual ~TimeMeasure();
 };
 

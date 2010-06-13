@@ -76,10 +76,10 @@ bool portBase::init(ConfigPropertyCasher &properties)
 
 	ddv= db->getActEntry(exist, m_sFolder, m_sSubroutine, "value");
 	if(!exist)
-	{// write alway the first value into db
+	{// write always the first value into db
 	 // if it was not in database
 	 // because the user which hearing for this subroutine
-	 // gets elsewise an error
+	 // gets otherwise an error
 		if(prop != "#ERROR")
 			m_dValue= dDef;
 		db->fillValue(m_sFolder, m_sSubroutine, "value", m_dValue);
@@ -795,11 +795,6 @@ void portBase::lockApplication(bool bSet)
 bool portBase::onlySwitch()
 {
 	return m_bSwitch;
-}
-
-bool portBase::measure()
-{
-	return false;
 }
 
 portBase::~portBase()

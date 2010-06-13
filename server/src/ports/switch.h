@@ -38,9 +38,10 @@ public:
 		 * @param type type of object from extendet class
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param defaultValue only for derived classes which are no SWITCH type the first value, otherwise it will taken from database or default 0
 		 */
 		switchClass(string type, string folderName, string subroutineName);
-		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const bool* const defaultValue= NULL);
 		/**
 		 * this method will be called from any measure thread to set as observer
 		 * for starting own folder to get value from foreign folder
@@ -71,8 +72,15 @@ public:
 		 */
 		static void giveObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
 														const string& folder, const string& subroutine, const string& cCurrent);
-		virtual bool measure();
-		//virtual void setValue(const double value);
+		/**
+		 * measure new value for subroutine
+		 *
+		 * @return return measured value
+		 */
+		virtual double measure();
+		/**
+		 * destructor
+		 */
 		virtual ~switchClass();
 
 		/**
@@ -82,14 +90,14 @@ public:
 		 * or an comparison of two values, subroutines or numbers.<br />
 		 * This string can be also splited with '|' or '&'
 		 *
-		 * @param from string of comparison
+		 * @param str string of comparison
 		 * @param pStratFolder address of the first folder
 		 * @param sFolder name of folder in which the subroutine running
 		 * @param debug whether the debug mode outgoing from server is set
 		 * @param result whether the comparison was true
 		 * @return whether the comparison string was correct
 		 */
-		static bool getResult(const string &from, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& sFolder, const bool debug, bool& result);
+		static bool getResult(string& str, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& sFolder, const bool debug, bool& result);
 		/**
 		 * calculate whether the given string is an true value.<br />
 		 * string can be set as 'true' or 'false',<br />
@@ -135,6 +143,20 @@ public:
 		static bool subroutineResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pfolder, const string &cCurrent, double &dResult);
 
 	protected:
+		/**
+		 * whether 0 and 1 is holding inside of object (by true)
+		 * and the object is from an derived class.
+		 * Otherwise the routine is only for switching between 0 and 1 (false)
+		 * and the value is holding in original parent class <code>portBase</code>
+		 */
+		bool m_bUseInner;
+		/**
+		 * inner value if object isn't only for switching
+		 */
+		bool m_bInner;
+		/**
+		 * value from last pass
+		 */
 		bool m_bLastValue;
 		SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
 		SHAREDPTR::shared_ptr<measurefolder_t> m_pOwnFolder;

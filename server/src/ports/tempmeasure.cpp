@@ -20,13 +20,13 @@
 
 #include "tempmeasure.h"
 
-bool TempMeasure::measure()
+double TempMeasure::measure()
 {
 	float nTemperature= getTemperature();
-	ResistanceMeasure::setValue((double)nTemperature);
+
 	if(isDebug())
 		cout << "Temperature:" << m_nTemperature << endl;
-	return true;
+	return (double)nTemperature;
 }
 
 float TempMeasure::getTemperature()

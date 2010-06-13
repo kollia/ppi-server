@@ -133,13 +133,12 @@ TimeMeasure::~TimeMeasure()
 	setPin(m_tOut, false);
 }
 
-bool TimeMeasure::measure()
+double TimeMeasure::measure()
 {
 	char buf[150];
 	string msg;
 	unsigned long nLightValue= getMeasuredTime();
 
-	portBase::setValue((double)nLightValue);
 	if(isDebug())
 	{
 		sprintf(buf, "%lu", nLightValue);
@@ -149,7 +148,7 @@ bool TimeMeasure::measure()
 		TIMELOG(LOG_INFO, getFolderName(), msg);
 		cout << msg << endl;
 	}
-	return true;
+	return (double)nLightValue;
 }
 
 unsigned long TimeMeasure::getMeasuredTime()

@@ -29,7 +29,8 @@ bool Shell::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 {
 	properties.notAllowedParameter("begin");
 	properties.notAllowedParameter("end");
-	if(!switchClass::init(properties, pStartFolder))
+	properties.notAllowedParameter("default");
+	if(!switchClass::init(properties, pStartFolder, /*taken from db*/NULL))
 		return false;
 	m_sBeginCom= properties.getValue("begincommands", /*warning*/false);
 	m_sWhileCom= properties.getValue("whilecommand", /*warning*/false);
@@ -51,17 +52,14 @@ bool Shell::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	return true;
 }
 
-bool Shell::measure()
+double Shell::measure()
 {
 	string who("i:" + getFolderName());
 	bool bSwitched= switchClass::getValue(who);
-	bool bResultTrue;
 	string msg("make command '");
+	double dRv= 0;
 
-	switchClass::measure();
-	bResultTrue= switchClass::getValue(who);
-
-	if(bResultTrue)
+	if(switchClass::measure())
 	{
 		bool bMaked= false;
 
@@ -75,6 +73,7 @@ bool Shell::measure()
 				if(isDebug())
 					cout << msg << endl;
 				system(m_sBeginCom.c_str());
+				dRv= 1;
 				bMaked= true;
 			}
 		}
@@ -88,6 +87,7 @@ bool Shell::measure()
 				if(isDebug())
 					cout << msg << endl;
 				system(m_sWhileCom.c_str());
+				dRv= 2;
 			}
 		}
 	}else
@@ -102,10 +102,11 @@ bool Shell::measure()
 				if(isDebug())
 					cout << msg << endl;
 				system(m_sEndCom.c_str());
+				dRv= 3;
 			}
 		}
 	}
-	return true;
+	return dRv;
 }
 
 bool Shell::range(bool& bfloat, double* min, double* max)

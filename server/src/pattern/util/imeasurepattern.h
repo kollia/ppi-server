@@ -18,6 +18,7 @@
 #define IMEASUREPATTERN_H_
 
 //#include <unistd.h>
+#include <sys/time.h>
 
 #include <string>
 
@@ -43,6 +44,13 @@ namespace design_pattern_world
 				 * @param folder name of folder
 				 */
 				virtual void changedValue(const string& folder)= 0;
+				/**
+				 * on which time the measure routine should start without any actions on extern ports
+				 *
+				 * @param folder name of folder
+				 * @param time next beginning run time
+				 */
+				virtual void nextActivateTime(const string& folder, const timeval& time)= 0;
 				/**
 				 * dummy destructor for pattern
 				 */

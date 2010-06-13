@@ -30,7 +30,13 @@ public:
 	Shell(string folderName, string subroutineName)
 	: switchClass(folderName, subroutineName) { };
 	virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
-	virtual bool measure();
+	/**
+	 * measure new value for subroutine
+	 * and trigger shell command
+	 *
+	 * @return return 0 for nothing done, 1 by made beginning command, 2 by while command and 3 by ending command
+	 */
+	virtual double measure();
 	virtual ~Shell();
 
 protected:

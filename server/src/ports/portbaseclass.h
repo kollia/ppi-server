@@ -305,7 +305,7 @@ namespace ports
 			 */
 			static Pins getPinsStruct(string sPin);
 			static portpin_address_t getPortPinAddress(Pins tAdr, bool bSetAfter);
-			virtual bool measure()=0;
+			virtual double measure()=0;
 			/**
 			 * set value in subroutine
 			 *
@@ -315,7 +315,20 @@ namespace ports
 			 */
 			virtual double getValue(const string who);
 			virtual void setValue(const double value);
-
+			/**
+			 * set measure thread which run this object with method <code>measure()</code>
+			 *
+			 * @param thread measure thread
+			 */
+			void setRunningThread(IMeasurePattern* thread)
+			{ m_poMeasurePattern= thread; };
+			/**
+			 * return measure thread which run this object with method <code>measure()</code>
+			 *
+			 * @return measure thread
+			 */
+			IMeasurePattern* getRunningThread()
+			{ return m_poMeasurePattern; };
 			static void setDTR(unsigned long port, bool set);
 			static void setRTS(unsigned long port, bool set);
 			static void setTXD(unsigned long port, bool set);
@@ -347,6 +360,9 @@ namespace ports
 			 * for writing into and to thin database
 			 */
 			virtual void registerSubroutine();
+
+		private:
+			IMeasurePattern* m_poMeasurePattern;
 	};
 }
 

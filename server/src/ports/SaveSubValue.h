@@ -53,8 +53,10 @@ namespace ports
 		/**
 		 * creating database from defined subroutine
 		 * if config parameter 'when' is an true value
+		 *
+		 * @return return 1 by saving in database the new value, otherwise 0
 		 */
-		virtual bool measure();
+		virtual double measure();
 
 	protected:
 		/**

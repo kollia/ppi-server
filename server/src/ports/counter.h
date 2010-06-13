@@ -80,8 +80,10 @@ namespace ports
 		/**
 		 * adding one to value by measure
 		 * or set value to 0 if parameter setnull is true
+		 *
+		 * @return new value
 		 */
-		virtual bool measure();
+		virtual double measure();
 
 	protected:
 		/**

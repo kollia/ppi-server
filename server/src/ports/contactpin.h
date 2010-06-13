@@ -66,7 +66,12 @@ namespace ports
 			contactPin(string type, string folderName, string subroutineName)
 			: portBase(type, folderName, subroutineName) { };
 			virtual bool init(ConfigPropertyCasher &properties);
-			virtual bool measure();
+			/**
+			 * measure new value for subroutine
+			 *
+			 * @return return measured value
+			 */
+			virtual double measure();
 			virtual void setValue(const double value);
 			virtual double getValue();
 			virtual ~contactPin();

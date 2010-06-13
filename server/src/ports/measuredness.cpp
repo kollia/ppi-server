@@ -41,7 +41,7 @@ namespace ports
 		return true;
 	}
 
-	bool Measuredness::measure()
+	double Measuredness::measure()
 	{
 		static double origValue= 0;
 		//double dBegin;
@@ -61,6 +61,7 @@ namespace ports
 			cout << msg << endl;
 			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"mvalue", msg);
 			mvalue= 0;
+			return 0;
 		}
 
 		if(switchClass::getResult(m_sBegin, m_pStartFolder, sfolder, isDebug(), result))
@@ -89,10 +90,9 @@ namespace ports
 			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"begin", msg);
 			if(isDebug())
 				cerr << "### ERROR: " << msg.substr(11) << endl;
+			value= 0;
 		}
-
-		setValue(diff);
-		return true;
+		return diff;
 	}
 
 	bool Measuredness::range(bool& bfloat, double* min, double* max)

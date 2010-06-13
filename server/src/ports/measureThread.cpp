@@ -14,10 +14,12 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <sys/io.h>
+#include <sys/time.h>
+#include <unistd.h>
+
 #include <iostream>
 #include <vector>
-#include <sys/io.h>
-#include <unistd.h>
 #include <sstream>
 
 #include "../util/debug.h"
@@ -56,9 +58,11 @@ void MeasureThread::setDebug(bool bDebug, unsigned short sleep)
 	//m_nDebugSleep= sleep;
 	UNLOCK(m_DEBUGLOCK);
 
-	nMuch= m_pvtSubroutines->size();
-	for(int n= 0; n<nMuch; n++)
-		(*m_pvtSubroutines)[n].portClass->setDebug(bDebug);
+	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
+	{
+		if(it->bCorrect)
+			it->portClass->setDebug(bDebug);
+	}
 }
 
 bool MeasureThread::isDebug()
@@ -95,10 +99,12 @@ int MeasureThread::init(void *arg)
 	{
 		if((*m_pvtSubroutines)[n].bCorrect)
 		{
+			//cout << "define subroutine " << (*m_pvtSubroutines)[n].name << endl;
 			port= (*m_pvtSubroutines)[n].portClass;
 			port->setDebug(false);
 			port->setAfterContact(m_vAfterContactPorts, m_vAfterContactPins);
 			port->setObserver(this);
+			port->setRunningThread(this);
 		}
 	}
 
@@ -129,16 +135,49 @@ int MeasureThread::stop(const bool* bWait/*=NULL*/)
 	}
 	return nRv;
 }
+struct time_sort : public binary_function<timeval, timeval, bool>
+{
+	bool operator()(timeval x, timeval y)
+	{
+		if(x.tv_sec < y.tv_sec) return true;
+		return x.tv_usec < y.tv_usec;
+	}
+};
 
 int MeasureThread::execute()
 {
-	bool bSleeped;
+	//timeval tv;
+	timespec waittm;
+	vector<timeval>::iterator akttime;
 
-	bSleeped= measure();
-
+	measure();
 	LOCK(m_VALUE);
 	if(m_qFolder.empty())
-		CONDITION(m_VALUECONDITION, m_VALUE);
+	{
+		if(!m_vtmNextTime.empty())
+		{
+			sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
+			/*if(gettimeofday(&tv, NULL))
+			{
+				string msg("ERROR: cannot get time of day,\n");
+
+				msg+= "       so cannot measure time for TIMER function in folder ";
+				msg+= getThreadName() + ".";
+				TIMELOG(LOG_WARNING, "gettimeofday", msg);
+				if(isDebug())
+					cerr << msg << endl;
+				CONDITION(m_VALUECONDITION, m_VALUE);
+			}else*/
+			{
+				akttime= m_vtmNextTime.begin();
+				waittm.tv_sec= akttime->tv_sec;
+				waittm.tv_nsec= akttime->tv_usec * 1000;
+				if(TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm) == ETIMEDOUT)
+					m_vtmNextTime.erase(akttime);
+			}
+		}else
+			CONDITION(m_VALUECONDITION, m_VALUE);
+	}
 	if(stopping())
 		return 0;
 	while(!m_qFolder.empty())
@@ -162,33 +201,28 @@ void MeasureThread::ending()
 
 bool MeasureThread::measure()
 {
-	bool bSleeped= false;
-	int nMuch;
-	sub subroutine;
-
-	nMuch= m_pvtSubroutines->size();
-	for(int n= 0; n<nMuch; n++)
+	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
-		subroutine= (*m_pvtSubroutines)[n];
-		if(subroutine.bCorrect)
+		if(it->bCorrect)
 		{
-			//string msg;
+			double result;
 
 			if(isDebug())
-			{
-				cout << "execute subroutine '" << subroutine.name << "'" << endl;
-			}
-			subroutine.portClass->measure();
+				cout << "execute subroutine '" << it->name << "'" << endl;
+			result= it->portClass->measure();
+			it->portClass->setValue(result);
 
-			if(isDebug())
-				cout << "----------------------------------" << endl;
-		}
+
+		}else if(isDebug())
+			cout << "Subroutine " << it->name << " is not correct initialized" << endl;
+		if(isDebug())
+			cout << "----------------------------------" << endl;
 		if(stopping())
 			break;
 	}
 	if(isDebug())
 		cout << endl << endl;
-	return bSleeped;
+	return true;
 }
 
 SHAREDPTR::shared_ptr<portBase> MeasureThread::getPortClass(const string name, bool &bCorrect) const

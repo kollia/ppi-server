@@ -91,7 +91,7 @@ bool switchContact::range(bool& bfloat, double* min, double* max)
 	return true;
 }
 
-bool switchContact::measure()
+double switchContact::measure()
 {
 	bool bSwitched= false;
 	bool bResultTrue= false;
@@ -100,8 +100,7 @@ bool switchContact::measure()
 
 	if(getValue(who))
 		bSwitched= true;
-	switchClass::measure();
-	if(getValue(who))
+	if(switchClass::measure())
 	{
 		bResultTrue= true;
 		setPin(m_tOut, true);
@@ -135,7 +134,9 @@ bool switchContact::measure()
 				cout << msg << endl;
 		}
 	}
-	return true;
+	if(bResultTrue)
+		return 1;
+	return 0;
 }
 
 switchContact::~switchContact()

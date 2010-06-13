@@ -28,14 +28,54 @@ class timer : public switchClass
 {
 public:
 	timer(string folderName, string subroutineName)
-	: switchClass(folderName, subroutineName) { };
+	: switchClass(folderName, subroutineName),
+	  m_bTime(false),
+	  m_bMeasure(false),
+	  m_bSeconds(true),
+	  m_tmSec(0),
+	  m_tmMicroseconds(0)
+	  { };
 	virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
-	virtual bool measure();
+	/**
+	 * measure new value for subroutine
+	 *
+	 * @return return measured value
+	 */
+	virtual double measure();
 	virtual ~timer();
 
 protected:
-	time_t m_tmEnd;
+	/**
+	 * whether subroutine measure time (true)
+	 * or makes an count down (false)
+	 */
+	bool m_bTime;
+	/**
+	 * whether measure actually the time
+	 */
+	bool m_bMeasure;
+	/**
+	 * whether measuring time from seconds to years (true)
+	 * or from microseconds to minutes (false)
+	 */
+	bool m_bSeconds;
+	/**
+	 * defined-value where get the time for count down
+	 */
+	string m_smtime;
+	/**
+	 * seconds to refresh when m_smtime not be set
+	 */
 	time_t m_tmSec;
+	/**
+	 * microseconds to refresh when m_smtime not be set
+	 */
+	suseconds_t m_tmMicroseconds;
+	/**
+	 * start on this time the measuring when m_bTime set to measure,
+	 * otherwise start the hole folder again on this time
+	 */
+	timeval m_tmStart;
 
 	/**
 	 * set min and max parameter to the range which can be set for this subroutine.<br />
@@ -50,6 +90,14 @@ protected:
 	 * @return whether the range is defined or can set all
 	 */
 	virtual bool range(bool& bfloat, double* min, double* max);
+	/**
+	 * calculate double result whether should measure in second range
+	 * or microsecond range
+	 *
+	 * @param tv current time
+	 * @return result of subroutine
+	 */
+	double calcResult(timeval tv);
 };
 
 #endif /*TIMER_H_*/

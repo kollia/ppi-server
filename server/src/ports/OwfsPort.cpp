@@ -156,7 +156,7 @@ namespace ports
 		return true;
 	}
 
-	bool OwfsPort::measure()
+	double OwfsPort::measure()
 	{
 		bool access, debug, bsetNewValue= false;
 		int nvalue;
@@ -182,10 +182,13 @@ namespace ports
 		{
 			// nothing to do!
 			// value before set from the owreader (OWServer)
+			value= getValue("i:" + getFolderName());
 			if(debug)
 			{
-				value= getValue("i:" + getFolderName());
-				cout << "read from chip " << m_sChipID << " with type " << m_sChipType << endl;
+				cout << "read from chip " << m_sChipID;
+				if(m_sChipType != "")
+					cout << " with type " << m_sChipType;
+				cout << endl;
 				if(hasDeviceAccess())
 				{
 					if(m_sChipFamily == "10")
@@ -207,10 +210,12 @@ namespace ports
 		{
 			if(debug)
 			{
-				cout << "write on chip " << m_sChipID << " with type " << m_sChipType << endl;
+				cout << "write on chip " << m_sChipID;
+				if(m_sChipType != "")
+					cout << " with type " << m_sChipType;
+				cout << endl;
 			}
-			ValueHolder::measure();
-			value= getValue("i:" + getFolderName());
+			value= ValueHolder::measure();
 			if(value != m_dLastWValue)
 			{
 				access= m_pOWServer->write(m_sChipID, value);
@@ -227,9 +232,9 @@ namespace ports
 					cout << "on unique id '" << m_sChipID;
 
 					if(value)
-						cout << " set to output" << value;
+						cout << " set to output " << value;
 					else
-						cout << " set to output" << value;
+						cout << " set to output " << value;
 					if(bsetNewValue)
 						cout << " in passing before";
 					cout << endl;
@@ -238,7 +243,7 @@ namespace ports
 			}
 		}
 
-		return true;
+		return value;
 	}
 
 	double OwfsPort::getValue(const string who)

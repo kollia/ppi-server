@@ -37,7 +37,12 @@ class TempMeasure : public ResistanceMeasure
 		/*TempMeasure(Pins tOut, Pins tIn, Pins tNegative, unsigned short measuredness, vector<ohm> *elkoCorrection, vector<unsigned short> ohmVector) :
 			ResistanceMeasure(tOut, tIn, tNegative, measuredness, elkoCorrection, ohmVector)
 			{ };*/
-		virtual bool measure();
+		/**
+		 * measure new value for subroutine
+		 *
+		 * @return return measured value
+		 */
+		virtual double measure();
 
 	protected:
 		float getTemperature();

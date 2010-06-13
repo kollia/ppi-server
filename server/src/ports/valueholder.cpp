@@ -165,10 +165,12 @@ namespace ports
 		return true;
 	}
 
-	bool ValueHolder::measure()
+	double ValueHolder::measure()
 	{
 		bool isdebug= isDebug();
+		double aktValue;
 
+		aktValue= getValue("i:"+getFolderName());
 		if(m_sWhile != "")
 		{
 			double value;
@@ -176,17 +178,12 @@ namespace ports
 			if(getWhileStringResult(m_pStartFolder, getFolderName(), getSubroutineName(),
 									m_sWhile, m_vdValues, m_ddefaultValue, value, m_bBooleanWhile, isdebug))
 			{
-				setValue(value);
+				aktValue= value;
 			}
 
 		}else if(isdebug)
-		{
-			double value;
-
-			value= getValue("i:"+getFolderName());
-			cout << "value be set from outside with " << dec << value;
-		}
-		return true;
+			cout << "VALUE be set from outside with " << dec << aktValue << endl;
+		return aktValue;
 	}
 
 	bool ValueHolder::getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool readBool, const bool debug)
@@ -196,7 +193,13 @@ namespace ports
 
 		if(readBool)
 		{
-			bOk= switchClass::getResult(whileStr, pStartFolder, folder, debug, bValue);
+			string from(whileStr);
+
+			if(debug)
+				cout << "make from result: " << from << endl << "read ";
+			bOk= switchClass::getResult(from, pStartFolder, folder, debug, bValue);
+			if(debug)
+				cout << endl;
 			if(bOk)
 				value= bValue ? 1 : 0;
 			else

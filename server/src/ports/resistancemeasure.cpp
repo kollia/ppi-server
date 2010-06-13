@@ -125,13 +125,12 @@ namespace ports
 		return true;
 	}
 
-	bool ResistanceMeasure::measure()
+	double ResistanceMeasure::measure()
 	{
 		char buf[150];
 		string msg;
 		double dResistance= getResistance();
 
-		TimeMeasure::setValue(dResistance);
 		sprintf(buf, "%.2lf", dResistance);
 		msg= "measured resistance:";
 		msg+= buf;
@@ -139,7 +138,7 @@ namespace ports
 		TIMELOG(LOG_INFO, getFolderName(), msg);
 		if(isDebug())
 			cout << msg << endl;
-		return true;
+		return dResistance;
 	}
 
 	double ResistanceMeasure::getResistance()

@@ -101,11 +101,11 @@ namespace ports
 		 */
 		virtual void setObserver(IMeasurePattern* observer);
 		/**
-		 * method measure do nothing
+		 * measure new value
 		 *
-		 * @return always true;
+		 * @return return measured value
 		 */
-		virtual bool measure();
+		virtual double measure();
 		/**
 		 * calculate while string and set to value result or content of parameter content if exist.<br/>
 		 * Method write error or warning string into log-file and on command line if debug flag be set

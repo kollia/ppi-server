@@ -60,8 +60,10 @@ namespace ports
 			 * measuring time if pins set in config file,
 			 * or take time from subroutine set in parameter 'mvalue'<br />
 			 * and calculate time to ohm
+			 *
+			 * @return return measured resistance
 			 */
-			virtual bool measure();
+			virtual double measure();
 
 		protected:
 			unsigned long getCapacitance();
