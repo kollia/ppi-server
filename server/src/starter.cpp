@@ -29,6 +29,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 #include "util/debug.h"
 #include "util/GlobalStaticMethods.h"
@@ -111,6 +112,7 @@ bool Starter::execute()
 	m_vOWServerTypes.push_back("MPORT");
 	m_vOWServerTypes.push_back("OWFS");
 	m_vOWServerTypes.push_back("Vk8055");
+	m_vOWServerTypes.push_back("LIRC");
 
 	m_sConfPath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
 
@@ -245,13 +247,14 @@ bool Starter::execute()
 	strncpy(type, "irexec", 6);
 	if(lirc_init(type, 1) != -1)
 	{
-		struct lirc_config *ptLircConfig;
+		//struct lirc_config *ptLircConfig;
 
-		if(lirc_readconfig(NULL, &ptLircConfig, NULL) == 0)
+		blirc= true;
+		/*if(lirc_readconfig(NULL, &ptLircConfig, NULL) == 0)
 		{
 			blirc= true;
 			lirc_freeconfig(ptLircConfig);
-		}
+		}*/
 		lirc_deinit();
 	}
 	// ------------------------------------------------------------------------------------------------------------
@@ -268,6 +271,8 @@ bool Starter::execute()
 	nOWReader=  static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
 	property= "Vk8055";
 	nOWReader+= static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
+	if(blirc)
+		++nOWReader;
 	for(vector<pair<string, PortTypes> >::iterator it= ports.begin(); it != ports.end(); ++it)
 	{
 		if(	!bPort && it->second == PORT	)
@@ -495,6 +500,48 @@ bool Starter::execute()
 			}
 		}
 
+	}
+
+	if(blirc)
+	{
+		ostringstream oServerID;
+
+		cout << "### starting OWServer " << endl;
+		oServerID << nServerID;
+		process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+																new SocketClientConnection(	SOCK_STREAM,
+																							commhost,
+																							commport,
+																							10			)	));
+
+		if(bPorts)
+		{
+			ostringstream oDbConnectors;
+
+			oDbConnectors << nDbConnectors;
+			err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
+												"LIRC", NULL);
+		}else
+			err= process->check();
+		if(err > 0)
+		{
+			string msg;
+
+			msg=  "### WARNING: cannot start one wire reader\n";
+			msg+= "             " + process->strerror(err) + "\n";
+			msg+= "             so ppi-server cannot read or write on LIRC";
+			cerr << endl << msg << endl;
+			LOG(LOG_ALERT, msg);
+		}else
+		{// create reading interface to one wire reader
+			OWInterface::getServer(	"ppi-server",
+									new SocketClientConnection(	SOCK_STREAM,
+																commhost,
+																commport,
+																5			),
+									nServerID									);
+			++nServerID;
+		}
 	}
 
 #ifdef _EXTERNVENDORLIBRARYS
@@ -907,7 +954,7 @@ void Starter::createPortObjects()
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
 				}
-			}else if(aktualFolder->subroutines[n].type == "SWITCHCONTACT")
+			}/*else if(aktualFolder->subroutines[n].type == "SWITCHCONTACT")
 			{
 				auto_ptr<switchContact> obj= auto_ptr<switchContact>(new switchContact(	aktualFolder->name,
 																						aktualFolder->subroutines[n].name	));
@@ -929,7 +976,7 @@ void Starter::createPortObjects()
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
 				}
-			}else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
+			}*/else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
 			{
 				auto_ptr<TimeMeasure> obj= auto_ptr<TimeMeasure>(new TimeMeasure(	aktualFolder->name,
 																					aktualFolder->subroutines[n].name	));
@@ -1248,6 +1295,8 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 			}else if(type=="folder")
 			{
 				++nFolderID;
+
+				replaceName(value, "folder name");
 				if(aktualFolder==NULL)
 				{
 					aktualFolder= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
@@ -1280,6 +1329,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 			}else if(type == "name")
 			{
+				replaceName(value, "folder '" + aktualFolder->name + "' for subroutine name");
 				for(unsigned int n= 0; n<names.size(); n++)
 				{
 					if(names[n] == value)
@@ -1734,6 +1784,77 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 	if(subdir.get() != NULL)
 		aktualFolder->subroutines.push_back(*subdir);
+}
+
+void Starter::replaceName(string& name, const string& type)
+{
+	bool fault= false;
+	string::size_type p;
+	string::size_type len= name.length();
+
+	p= name.find("+");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("-");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("/");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("*");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("<") ;
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find(">");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("=");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("(");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find(")");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("!");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find(":");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("&");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("|");
+	if(p >= 0 && p < len)
+		fault= true;
+	if(fault)
+	{
+		if(type != "")
+			cout << "### WARNGING: in " << type << " '" << name << "' do not use + - / * < > = ( ) ! : & |" << endl;
+		replace_all(name, "+", "_PLUS_");
+		replace_all(name, "-", "_MINUS_");
+		replace_all(name, "/", "_THRU_");
+		replace_all(name, "*", "_MULTI_");
+		replace_all(name, "<", "_LT_");
+		replace_all(name, ">", "_GT_");
+		replace_all(name, "=", "_IS_");
+		replace_all(name, "(", "_BREAKON_");
+		replace_all(name, ")", "_BREAKOFF_");
+		replace_all(name, "!", "_EXMARK_");
+		replace_all(name, ":", "_COLON_");
+		replace_all(name, "&", "_AND_");
+		replace_all(name, "|", "_OR_");
+		if(type != "")
+		{
+			cout << "              actual " << type << " is now '" << name << "'" << endl;
+			cout << "              the problem is when you refer in an begin, while, or end property with the wrong name, it find no result." << endl;
+		}
+
+	}
 }
 
 void Starter::checkAfterContact()
