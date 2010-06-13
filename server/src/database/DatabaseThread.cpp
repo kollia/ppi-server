@@ -234,10 +234,10 @@ int DatabaseThread::init(void *args)
 		while(!file.eof())
 		{
 			getline(file, line);
-			//cout << line << endl;
 			entry= splitDbLine(line);
 #if 0
-			if(entry.subroutine == "holder")
+			cout << line << endl;
+			if(entry.folder == "TRANSMIT_SONY")
 			{
 				cout << "device  " << entry.folder << ":" << entry.subroutine << endl;
 				cout << " access " << boolalpha << entry.device << endl;
@@ -420,19 +420,57 @@ auto_ptr<double> DatabaseThread::getActEntry(const string& folder, const string&
 {
 	auto_ptr<double> spnRv;
 	db_t tvalue;
-	map<string, map<string, db_t> > fEntrys;
-	map<string, db_t> sEntrys;
+	map<string, map<string, db_t> >* pfEntrys;
+	map<string, db_t>* psEntrys;
 
 	LOCK(m_DBCURRENTENTRY);
-	fEntrys= m_mCurrent[folder];
-	UNLOCK(m_DBCURRENTENTRY);
+	// debug display for all saved values from database or filled from measure routines
+#if 0
+	static bool first= true;
 
-	if(fEntrys.size() == 0)
+	if(first)
+	{
+		for(map<string, map<string, map<string, db_t> > >::iterator itF= m_mCurrent.begin(); itF != m_mCurrent.end(); ++itF)
+		{
+			cout << "found folder " << itF->first << endl;
+			for(map<string, map<string, db_t> >::iterator itS= itF->second.begin(); itS != itF->second.end(); ++itS)
+			{
+				cout << "  found subroutine " << itS->first << endl;
+				for(map<string, db_t>::iterator itI= itS->second.begin(); itI != itS->second.end(); ++itI)
+				{
+					bool found= true;
+
+					cout << "    found identifier '" << itI->first << "' with ";
+					if(itI->second.values.size() < (number+1))
+					{
+						cout << "no ";
+						found= false;
+					}
+					cout << dec << (number+1) << ". value ";
+					if(found)
+						cout << dec << itI->second.values[number];
+					cout << endl;
+				}
+			}
+		}
+		first= false;
+	}
+	cout << "-- search for " << (number+1) << ". value in " << folder << ":" << subroutine << " with identifier " << identif << endl;
+#endif
+	pfEntrys= &m_mCurrent[folder];
+	if(pfEntrys->size() == 0)
+	{
+		UNLOCK(m_DBCURRENTENTRY);
 		return spnRv;
-	sEntrys= fEntrys[subroutine];
-	if(sEntrys.size() == 0)
+	}
+	psEntrys= &(*pfEntrys)[subroutine];
+	if(psEntrys->size() == 0)
+	{
+		UNLOCK(m_DBCURRENTENTRY);
 		return spnRv;
-	tvalue= sEntrys[identif];
+	}
+	tvalue= (*psEntrys)[identif];
+	UNLOCK(m_DBCURRENTENTRY);
 	if(tvalue.folder == "")
 		return spnRv;
 
@@ -883,6 +921,13 @@ bool DatabaseThread::setActEntry(const db_t entry)
 				if(changed)
 				{
 					m_mCurrent[tvalue.folder][tvalue.subroutine][tvalue.identif].values= entry.values;
+#if 0
+					cout << "--  insert " << tvalue.folder << ":" << tvalue.subroutine << " with identifier '" << tvalue.identif << "'";
+					cout << " with values ";
+					for(vector<double>::const_iterator it= entry.values.begin(); it != entry.values.end(); ++it)
+						cout << dec << *it << "  ";
+					cout << endl;
+#endif
 					UNLOCK(m_DBCURRENTENTRY);
 					return true;
 				}
@@ -1084,6 +1129,10 @@ void DatabaseThread::ending()
 
 void DatabaseThread::writeDb(db_t entry, ofstream *dbfile/*= NULL*/)
 {
+	typedef map<string, map<string, map<string, vector<string> > > >::iterator itServer;
+	typedef map<string, map<string, vector<string> > >::iterator itChip;
+	typedef map<string, vector<string> >::iterator itFolder;
+	typedef vector<string>::iterator itSubroutine;
 	typedef vector<double>::iterator iter;
 
 	bool bNewFile= false;
@@ -1092,11 +1141,87 @@ void DatabaseThread::writeDb(db_t entry, ofstream *dbfile/*= NULL*/)
 	vector<DefaultChipConfigReader::write_t> vWrite;
 	DefaultChipConfigReader::write_t writeaccess;
 	DefaultChipConfigReader* configReader= DefaultChipConfigReader::instance();
-	//char sValue[100];
+	map<string, vector<string> >::iterator foundFolder;
+	itSubroutine foundSubroutine;
+	static map<string, vector<string> > mNeedCheck;
+	static map<string, vector<string> > mNoCheck;
 
 	if(entry.identif == "value")
 	{
+#if 0
+		// check all subroutines whether to write into database
 		writeaccess= configReader->allowDbWriting(entry.folder, entry.subroutine, entry.values[0], entry.tm);
+		cout << "write access in database for subroutine " << entry.folder << ":" << entry.subroutine << " is '" << writeaccess.action << "'" << endl;
+#else
+		bool bNeedCheck;
+
+		writeaccess.action= "write";
+		// check subroutine whether should write entry into database
+		// but only if the folder:subroutine is an defined chip from an owreader process
+		// than the check over DefaultChipConfigReader will be used
+		bNeedCheck= true;
+		// search first in passing before whther map of folder and subroutines
+		// for no checking be defined
+		foundFolder= mNoCheck.find(entry.folder);
+		if(foundFolder != mNoCheck.end())
+		{
+			foundSubroutine= find(foundFolder->second.begin(), foundFolder->second.end(), entry.subroutine);
+			if(foundSubroutine != foundFolder->second.end())
+				bNeedCheck= false;
+		}
+		if(bNeedCheck)
+		{
+			// search as second whether map of folder and subroutines
+			// for needing check, in passing this routine before, be defined
+			foundFolder= mNeedCheck.find(entry.folder);
+			if(foundFolder != mNeedCheck.end())
+			{
+				foundSubroutine= find(foundFolder->second.begin(), foundFolder->second.end(), entry.subroutine);
+				if(foundSubroutine != foundFolder->second.end())
+					writeaccess= configReader->allowDbWriting(entry.folder, entry.subroutine, entry.values[0], entry.tm);
+			}else
+			{ // if not found in both container, search in container m_mmmvServerContent
+			  // whether the folder:subroutine is an defined chip from owreader
+			  // this search will fill the containers mNoCheck and mNeedCheck for faster next search
+				//cout << "search for " << m_mmmvServerContent.size() << " server" << endl;
+				bNeedCheck= false;
+				for(itServer itS= m_mmmvServerContent.begin(); itS != m_mmmvServerContent.end(); ++itS)
+				{
+					//cout << "search for " << itS->second.size() << " chips in server " << itS->first << endl;
+					for(itChip itC= itS->second.begin(); itC != itS->second.end(); ++itC)
+					{
+						//cout << "search for " << itC->second.size() << " folder in chip " << itC->first << endl;
+						for(itFolder itF= itC->second.begin(); itF != itC->second.end(); ++itF)
+						{
+							if(entry.folder == itF->first)
+							{
+								//cout << "search for " << itF->second.size() << " subroutines in folder " << itF->first << endl;
+								for(itSubroutine itSub= itF->second.begin(); itSub != itF->second.end(); ++itSub)
+								{
+									if(entry.subroutine == *itSub)
+									{
+										writeaccess= configReader->allowDbWriting(entry.folder, entry.subroutine, entry.values[0], entry.tm);
+										mNeedCheck[entry.folder].push_back(entry.subroutine);
+										bNeedCheck= true;
+										break;
+									}
+								}
+								if(bNeedCheck)
+									break;
+							}
+						}
+						if(bNeedCheck)
+							break;
+					}
+					if(bNeedCheck)
+						break;
+				}
+				if(!bNeedCheck)
+					mNoCheck[entry.folder].push_back(entry.subroutine);
+			}
+		}
+#endif
+
 		if(writeaccess.action == "no")
 			return;
 		if(writeaccess.action == "fractions")
@@ -1110,8 +1235,8 @@ void DatabaseThread::writeDb(db_t entry, ofstream *dbfile/*= NULL*/)
 		writeaccess.action= "write";
 
 	if(dbfile == NULL)
-	{
-
+	{ // if no dbfile commes in
+	  // open it
 		bNewFile= true;
 		oNewDbFile.open(m_sDbFile.c_str(), ios::app);
 		if(oNewDbFile.fail())
