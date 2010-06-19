@@ -14,15 +14,18 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/io.h>
 #include <string.h>
-#include <algorithm>
 #include <sys/types.h>
 #include <signal.h>
 #include <netdb.h>
 #include <errno.h>
+
 #include <list>
+#include <algorithm>
 
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/classification.hpp>

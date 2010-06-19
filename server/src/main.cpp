@@ -14,7 +14,9 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <iostream>

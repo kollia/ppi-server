@@ -15,8 +15,7 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ExternPorts.h"
-
+#include <stdio.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <iostream>
@@ -31,6 +30,8 @@
 #include "../ports/portbaseclass.h"
 
 #include "../util/Thread.h"
+
+#include "ExternPorts.h"
 
 
 using namespace std;
