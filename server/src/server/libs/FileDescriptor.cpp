@@ -15,6 +15,8 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
+
 #include <iostream>
 
 #include "../../util/Thread.h"
