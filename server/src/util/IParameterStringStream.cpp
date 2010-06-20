@@ -38,55 +38,63 @@ void IParameterStringStream::operator >> ( bool& value)
 	string param;
 	streampos pos= m_sStream.tellg();
 
-	m_bNull= false;
 	m_bFail= false;
-	if(m_sStream.eof())
+	if(	m_bNull ||
+		m_sStream.eof() )
 	{
+		m_bNull= true;
 		value= 0;
 		return;
 	}
 	m_sStream >> param;
-	if(param == "NULL")
+	if(param == "")
 	{
 		value= false;
 		m_bNull= true;
 	}else
 	{
+		bool bFail;
+		string end;
 		istringstream op(param);
 
 		op.setf(ios_base::boolalpha);
 		op >> value;
-		if( op.fail()
-			||
-			!op.eof()	)
+		bFail= op.fail();
+		op >> end;
+		if(	bFail &&
+			end == ""	)
 		{
-			bool bOk= true;
 			double dvalue;
 			istringstream op2(param);
 
 			// maybe parameter is no string of true or false but an number
 			op2 >> dvalue;
-			if( op2.fail()
-				||
-				!op2.eof()	)
+			bFail= op2.fail();
+			end= ""; // reading end can be not defined by EOF
+			op2 >> end;
+			if( bFail ||
+				end != ""	)
 			{
-				bOk= false;
-			}
-			if( bOk
-				&&
-				dvalue < 0 && dvalue > 0
-				&&
-				dvalue < 1 && dvalue > 1		)
+				bFail= true;
+
+			}else if(	(	dvalue < 0 ||
+							dvalue > 0 		) &&
+						(	dvalue < 1 ||
+							dvalue > 1		)	)
 			{
-				bOk= false;
+				bFail= true;
+
 			}else
 				value= static_cast<bool>(dvalue);
-			if(!bOk)
-			{
-				m_bFail= true;
-				value= false;
-				m_sStream.seekg(pos, ios::beg);
-			}
+
+		}if(end != "")
+			bFail= true;
+		if(bFail)
+		{
+			m_bFail= true;
+			value= false;
+			m_sStream.seekg(pos, ios::beg);
+			m_sStream.clear();
 		}
 	}
 }
@@ -96,30 +104,35 @@ void IParameterStringStream::operator >> ( short& value)
 	string param;
 	streampos pos= m_sStream.tellg();
 
-	m_bNull= false;
 	m_bFail= false;
-	if(m_sStream.eof())
+	if(	m_bNull ||
+		m_sStream.eof()	)
 	{
+		m_bNull= true;
 		value= 0;
 		return;
 	}
 	m_sStream >> param;
-	if(param == "NULL")
+	if(param == "")
 	{
 		value= 0;
 		m_bNull= true;
 	}else
 	{
+		bool bFail;
 		istringstream op(param);
 
 		op >> value;
-		if( op.fail()
-			||
-			!op.eof()	)
+		bFail= op.fail();
+		param= ""; // reading param can be not defined by EOF
+		op >> param;
+		if( bFail ||
+			param != ""	)
 		{
-			m_bFail= true;
 			value= 0;
+			m_bFail= true;
 			m_sStream.seekg(pos, ios::beg);
+			m_sStream.clear();
 		}
 	}
 }
@@ -129,30 +142,35 @@ void IParameterStringStream::operator >> ( unsigned short& value)
 	string param;
 	streampos pos= m_sStream.tellg();
 
-	m_bNull= false;
 	m_bFail= false;
-	if(m_sStream.eof())
+	if(	m_bNull ||
+		m_sStream.eof() )
 	{
 		value= 0;
 		return;
 	}
 	m_sStream >> param;
-	if(param == "NULL")
+	if(param == "")
 	{
 		value= 0;
 		m_bNull= true;
 	}else
 	{
+		bool bFail;
 		istringstream op(param);
 
 		op >> value;
-		if( op.fail()
+		bFail= op.fail();
+		param= ""; // reading param can be not defined by EOF
+		op >> param;
+		if( bFail
 			||
-			!op.eof()	)
+			param != ""	)
 		{
-			m_bFail= true;
 			value= 0;
+			m_bFail= true;
 			m_sStream.seekg(pos, ios::beg);
+			m_sStream.clear();
 		}
 	}
 }
@@ -162,30 +180,36 @@ void IParameterStringStream::operator >> ( int& value)
 	string param;
 	streampos pos= m_sStream.tellg();
 
-	m_bNull= false;
 	m_bFail= false;
-	if(m_sStream.eof())
+	if(	m_bNull ||
+		m_sStream.eof() )
 	{
+		m_bNull= false;
 		value= 0;
 		return;
 	}
 	m_sStream >> param;
-	if(param == "NULL")
+	if(param == "")
 	{
 		value= 0;
 		m_bNull= true;
 	}else
 	{
+		bool bFail;
 		istringstream op(param);
 
 		op >> value;
-		if( op.fail()
+		bFail= op.fail();
+		param= ""; // reading param can be not defined by EOF
+		op >> param;
+		if( bFail
 			||
-			!op.eof()	)
+			param != ""	)
 		{
-			m_bFail= true;
 			value= 0;
+			m_bFail= true;
 			m_sStream.seekg(pos, ios::beg);
+			m_sStream.clear();
 		}
 	}
 }
@@ -195,30 +219,35 @@ void IParameterStringStream::operator >> ( unsigned int& value)
 	string param;
 	streampos pos= m_sStream.tellg();
 
-	m_bNull= false;
 	m_bFail= false;
-	if(m_sStream.eof())
+	if(	m_bNull ||
+		m_sStream.eof() )
 	{
+		m_bNull= false;
 		value= 0;
 		return;
 	}
 	m_sStream >> param;
-	if(param == "NULL")
+	if(param == "")
 	{
 		value= 0;
 		m_bNull= true;
 	}else
 	{
+		bool bFail;
 		istringstream op(param);
 
 		op >> value;
-		if( op.fail()
-			||
-			!op.eof()	)
+		bFail= op.fail();
+		param= ""; // reading param can be not defined by EOF
+		op >> param;
+		if( bFail ||
+			param != ""	)
 		{
-			m_bFail= true;
 			value= 0;
+			m_bFail= true;
 			m_sStream.seekg(pos, ios::beg);
+			m_sStream.clear();
 		}
 	}
 }
@@ -228,30 +257,35 @@ void IParameterStringStream::operator >> ( long& value)
 	string param;
 	streampos pos= m_sStream.tellg();
 
-	m_bNull= false;
 	m_bFail= false;
-	if(m_sStream.eof())
+	if(	m_bNull ||
+		m_sStream.eof() )
 	{
+		m_bNull= false;
 		value= 0;
 		return;
 	}
 	m_sStream >> param;
-	if(param == "NULL")
+	if(param == "")
 	{
 		value= 0;
 		m_bNull= true;
 	}else
 	{
+		bool bFail;
 		istringstream op(param);
 
 		op >> value;
-		if( op.fail()
-			||
-			!op.eof()	)
+		bFail= op.fail();
+		param= ""; // reading param can be not defined by EOF
+		op >> param;
+		if( bFail ||
+			param != ""	)
 		{
-			m_bFail= true;
 			value= 0;
+			m_bFail= true;
 			m_sStream.seekg(pos, ios::beg);
+			m_sStream.clear();
 		}
 	}
 }
@@ -261,30 +295,35 @@ void IParameterStringStream::operator >> ( unsigned long& value)
 	string param;
 	streampos pos= m_sStream.tellg();
 
-	m_bNull= false;
 	m_bFail= false;
-	if(m_sStream.eof())
+	if(	m_bNull ||
+		m_sStream.eof() )
 	{
+		m_bNull= false;
 		value= 0;
 		return;
 	}
 	m_sStream >> param;
-	if(param == "NULL")
+	if(param == "")
 	{
 		value= 0;
 		m_bNull= true;
 	}else
 	{
+		bool bFail;
 		istringstream op(param);
 
 		op >> value;
-		if( op.fail()
-			||
-			!op.eof()	)
+		bFail= op.fail();
+		param= ""; // reading param can be not defined by EOF
+		op >> param;
+		if( bFail ||
+			param != ""	)
 		{
-			m_bFail= true;
 			value= 0;
+			m_bFail= true;
 			m_sStream.seekg(pos, ios::beg);
+			m_sStream.clear();
 		}
 	}
 }
@@ -294,30 +333,35 @@ void IParameterStringStream::operator >> ( float& value)
 	string param;
 	streampos pos= m_sStream.tellg();
 
-	m_bNull= false;
 	m_bFail= false;
-	if(m_sStream.eof())
+	if(	m_bNull ||
+		m_sStream.eof() )
 	{
+		m_bNull= false;
 		value= 0;
 		return;
 	}
 	m_sStream >> param;
-	if(param == "NULL")
+	if(param == "")
 	{
 		value= 0;
 		m_bNull= true;
 	}else
 	{
+		bool bFail;
 		istringstream op(param);
 
 		op >> value;
-		if( op.fail()
-			||
-			!op.eof()	)
+		bFail= op.fail();
+		param= ""; // reading param can be not defined by EOF
+		op >> param;
+		if( bFail ||
+			param != ""	)
 		{
-			m_bFail= true;
 			value= 0;
+			m_bFail= true;
 			m_sStream.seekg(pos, ios::beg);
+			m_sStream.clear();
 		}
 	}
 }
@@ -327,30 +371,35 @@ void IParameterStringStream::operator >> ( double& value)
 	string param;
 	streampos pos= m_sStream.tellg();
 
-	m_bNull= false;
 	m_bFail= false;
-	if(m_sStream.eof())
+	if(	m_bNull ||
+		m_sStream.eof() )
 	{
+		m_bNull= false;
 		value= 0;
 		return;
 	}
 	m_sStream >> param;
-	if(param == "NULL")
+	if(param == "")
 	{
 		value= 0;
 		m_bNull= true;
 	}else
 	{
+		bool bFail;
 		istringstream op(param);
 
 		op >> value;
-		if( op.fail()
-			||
-			!op.eof()	)
+		bFail= op.fail();
+		param= ""; // reading param can be not defined by EOF
+		op >> param;
+		if( bFail ||
+			param != ""	)
 		{
-			m_bFail= true;
 			value= 0;
+			m_bFail= true;
 			m_sStream.seekg(pos, ios::beg);
+			m_sStream.clear();
 		}
 	}
 }
@@ -366,15 +415,16 @@ void IParameterStringStream::getString(string& value)
 	string::size_type nVLen;
 	streampos pos= m_sStream.tellg();
 
-	m_bNull= false;
 	m_bFail= false;
-	if(m_sStream.eof())
+	if(	m_bNull ||
+		m_sStream.eof() )
 	{
+		m_bNull= false;
 		value= "";
 		return;
 	}
 	m_sStream >> sBuf;
-	if(sBuf == "NULL")
+	if(sBuf == "")
 	{
 		value= "";
 		m_bNull= true;
@@ -384,6 +434,7 @@ void IParameterStringStream::getString(string& value)
 		m_bFail= true;
 		value= "";
 		m_sStream.seekg(pos, ios::beg);
+		m_sStream.clear();
 		return;
 	}
 	value= sBuf;
@@ -406,4 +457,26 @@ void IParameterStringStream::getString(string& value)
 	value= value.substr(0, value.size() - 1);
 }
 
+bool IParameterStringStream::empty()
+{
+	bool bRv;
+	streampos pos= m_sStream.tellg();
+	string param;
+
+	if(m_bNull)
+		return true;
+	bRv= m_sStream.eof();
+	if(!bRv)
+	{
+		m_sStream >> param;
+		if(param != "")
+		{
+			m_sStream.seekg(pos, ios::beg);
+			m_sStream.clear();
+			m_bNull= false;
+		}else
+			bRv= true;
+	}
+	return bRv;
+};
 }// namespace util

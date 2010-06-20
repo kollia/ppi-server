@@ -113,11 +113,11 @@ public:
 	 *
 	 * @return true if the stream is empty
 	 */
-	bool empty()
-	{ return m_sStream.eof(); };
+	bool empty();
 	/**
 	 * whether the pulling variable was from the wrong type.<br />
-	 * The seek position was set back, so try the right one
+	 * The seek position was set back, so try the right one.
+	 * This method return also true if the object was empty.
 	 *
 	 * @return true if the call was wrong
 	 */

@@ -30,11 +30,13 @@
 
 #include "portserver/LircClient.h"
 
+#if 0
 // only for simple server client communication
-#if 1
 #include "server/libs/client/SocketClientConnection.h"
 #include "server/libs/server/TcpServerConnection.h"
 #include "util/smart_ptr.h"
+// for testing on streams
+#include "util/IParameterStringStream.h"
 #endif
 
 #include "starter.h"
@@ -109,19 +111,17 @@ int main(int argc, char* argv[])
     fprintf(stderr,"usage %s [server|client]\n", argv[0]);
     return EXIT_FAILURE;
 #endif
-	bool result;
-	bool bWait= false;
-	int nArcPos= 1;
-	string param;
-	auto_ptr<Starter> server;
-	string workdir(argv[0]);
-	vector<string> directorys;
-	vector<string>::size_type dirlen;
-	// access to Lirc device
-	//LircClient lirc("lirc", "run");
-	//lirc.measure();
-	//exit(0);
+#if 0
+	IParameterStringStream reader("truego");
+	bool val;
 
+	reader >> val;
+	cout << "value is " << val << endl;
+	if(reader.fail())
+		cout << "an error is occured" << endl;
+	if(reader.empty())
+		cout << "reading of string is finished" << endl;
+#endif
 #if 0
 	bool newer= false;
 	time_t t;
@@ -137,6 +137,19 @@ int main(int argc, char* argv[])
 	Calendar::calcDate(newer, t, 1, 'Y');
 	Calendar::calcDate(newer, t, 2, 'Y');
 #endif
+
+	bool result;
+	bool bWait= false;
+	int nArcPos= 1;
+	string param;
+	auto_ptr<Starter> server;
+	string workdir(argv[0]);
+	vector<string> directorys;
+	vector<string>::size_type dirlen;
+	// access to Lirc device
+	//LircClient lirc("lirc", "run");
+	//lirc.measure();
+	//exit(0);
 
 	directorys= ConfigPropertyCasher::split(workdir, "/");
 	dirlen= directorys.size();
