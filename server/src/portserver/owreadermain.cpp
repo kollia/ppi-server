@@ -218,7 +218,9 @@ int main(int argc, char* argv[])
 				accessPort= new LircClient();
 				bConf= true;
 
-			}else if(strncmp(argv[2], "maxim", vLength[2]) == 0)
+			}
+#ifdef _OWFSLIBRARY
+			else if(strncmp(argv[2], "maxim", vLength[2]) == 0)
 			{
 				string maximconf;
 				vector<string> adapters;
@@ -239,7 +241,10 @@ int main(int argc, char* argv[])
 					vDescript.push_back("configuration string with maybe some adapters delimited with an colon");
 				}
 
-			}else if(strncmp(argv[2], "vellemann", vLength[2]) == 0)
+			}
+#endif //_OWFSLIBRARY
+#ifdef _K8055LIBRARY
+			else if(strncmp(argv[2], "vellemann", vLength[2]) == 0)
 			{
 				vParams.push_back("<board>");
 				vDescript.push_back("which board from Vellemann be used");
@@ -261,6 +266,7 @@ int main(int argc, char* argv[])
 					}
 				}
 			}
+#endif // _K8055LIBRARY
 		}
 	}
 	if(!bConf)
