@@ -381,7 +381,7 @@ namespace util {
 			nLen= parameter.find("=");
 			if(nLen < parameter.length())
 			{
-				value= parameter.substr(nLen + 2, parameter.length() - 1);
+				value= parameter.substr(nLen + 2, parameter.length() - (nLen + 2) - 1);
 				parameter= parameter.substr(0, nLen);
 
 				IParameterStringStream oIdx(value);
@@ -389,6 +389,10 @@ namespace util {
 				{
 					oIdx >> index;
 					m_oPulled[parameter].push_back(index);
+					if(oIdx.fail())
+						break;	// an error is occured
+								// take only this one fault value (=0)
+								// maybe the value was no number for double (perhaps string or boolean)
 				}
 			}
 		}
