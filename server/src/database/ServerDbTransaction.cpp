@@ -87,19 +87,19 @@ namespace server
 			double value;
 			vector<double> values;
 			string folder, subroutine, identif;
-			OMethodStringStream command("fillValue");
 
 			object >> folder;
-			command << folder;
 			object >> subroutine;
-			command << subroutine;
 			object >> identif;
 			object >> bNew;
 			while(!object.empty())
 			{
 				object >> value;
 				values.push_back(value);
-				command << value;
+				if(object.fail())
+					break;	// an error is occured
+							// take only this one fault value (=0)
+							// maybe the value was no number for double (perhaps string or boolean)
 			}
 			db->fillValue(folder, subroutine, identif, values, bNew);
 
