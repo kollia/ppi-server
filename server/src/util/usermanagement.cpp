@@ -75,7 +75,7 @@ namespace user
 		mproperties.setMsgParameter("folder");
 		mproperties.modifier("name");
 		mproperties.setMsgParameter("name", "subroutine");
-		//mproperties.allowLaterModifier(true);
+		mproperties.allowLaterModifier(true);
 		if(!mproperties.readFile(measurefile))
 		{
 			string msg("### fatal ERROR: cannot read correctly measure file '");
@@ -151,6 +151,7 @@ namespace user
 			{
 				m_mUser[split[0]]= split[1];
 				++ecount;
+				//cout << "read user '" << split[0] << "' with password '" << split[1] << "'" << endl;
 			}
 		}
 		if(ecount == 0)
@@ -175,7 +176,10 @@ namespace user
 				msg+= "             an group must be defined with <groupname>:<permission> seperatly with an double point ':'\n";
 				msg+= "             this user will be ignored";
 			}else
+			{
 				m_mGroup[split[0]]= split[1];
+				//cout << "read group '" << split[0] << "' with permission '" << split[1] << "'" << endl;
+			}
 		}
 		// read all allocation with user to group into m_msAllocation
 		// or goup to group into msGroupGroup for read allocation in referedGroups
@@ -193,11 +197,15 @@ namespace user
 					fGroups.clear();
 					referedGroups(split[2], &fGroups, msGroupGroup);
 					for(set<string>::iterator f= fGroups.begin(); f != fGroups.end(); ++f)
+					{
 						m_msAllocation[split[1]].insert(*f);
+						//cout << "make allocation between user '" << split[1] << "' and group '" << *f << "'" << endl;
+					}
 					ok= true;
 				}else if(split[0] == "g")
 				{
 					msGroupGroup[split[1]].insert(split[2]);
+					//cout << "make allocation between groups '" << split[1] << "' and '" << split[2] << "'" << endl;
 					ok= true;
 				}
 			}
@@ -208,6 +216,8 @@ namespace user
 				msg+= param + "'\n";
 				msg+= "             an allocation must be defined with tree strings <u|g>:<user:group>:<group> seperatly with an double point ':'\n";
 				msg+= "             this user will be ignored";
+				cerr << msg << endl;
+				LOG(LOG_ERROR, msg);
 			}
 		}
 
@@ -227,6 +237,7 @@ namespace user
 				subroutine= (*vsit)->getSectionValue();
 				groups= (*vsit)->getValue("perm", /*warning*/false);
 				m_mmGroups[folder][subroutine]= groups;
+				//cout << "allow group '" << groups << "' for subroutine " << folder << ":" << subroutine << endl;
 			}
 		}
 		return true;
