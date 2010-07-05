@@ -95,9 +95,12 @@ void OWInterface::endOfInitialisation(const int maxServer)
 	OWI pFirst;
 	OMethodStringStream method("endOfInitialisation");
 
-	method << maxServer;
-	pFirst= _instances.begin()->second;
-	pFirst->sendMethod("ppi-db-server", method, false);
+	if(_instances.size())
+	{
+		method << maxServer;
+		pFirst= _instances.begin()->second;
+		pFirst->sendMethod("ppi-db-server", method, false);
+	}
 }
 
 bool OWInterface::isServer(const string& type, const string& chipID)
@@ -251,9 +254,12 @@ void OWInterface::checkUnused(const int maxServer)
 	OWI pFirst;
 	OMethodStringStream method("checkUnused");
 
-	method << maxServer;
-	pFirst= _instances.begin()->second;
-	pFirst->sendMethod("ppi-db-server", method, true);// wait for ending
+	if(_instances.size())
+	{
+		method << maxServer;
+		pFirst= _instances.begin()->second;
+		pFirst->sendMethod("ppi-db-server", method, true);// wait for ending
+	}
 }
 
 bool OWInterface::reachAllChips()
