@@ -241,12 +241,12 @@ void help(char* cpSelf)
 	printf("                         -     shows all files in directory ${workdir}/client which are suitable to given filter\n");
 	printf("                CONTENT <filename>\n");
 	printf("                         -     send the file content of the given filename under ${workdir}/client\n");
-	printf("                DEBUG <folder> <sleeptime>\n");
+	printf("                DEBUG [-ow] <folder/owreaderID>\n");
 	printf("                         -     show by running server debugging messages for given folder\n");
-	printf("                               on end of loop measurethread sleeping sleeptime\n");
-	printf("                               if folder is -ow client get DEBUG info for bechmark OWServer\n");
-	printf("                               and sleeptime should be number of OWServer.\n");
-	printf("                               if folder set as string 'null' debugging is ending\n");
+	printf("                               if option -ow be set client get DEBUG info for bechmark owreader\n");
+	printf("                               and folder have to be the OWServer ID (owreaderID).\n");
+	printf("                               (the OWServer ID you can see by starting ppi-server on command line after '### starting OWServer)\n");
+	printf("                               If folder set as string 'null' both debugging will be ending\n");
 	printf("                GETMINMAXERRORNUMS\n");
 	printf("                         -     return two integer for maximal warning- and error-number.\n");
 	printf("                               The first number is the higest negative warning number (from number to -1) or 0,\n");
