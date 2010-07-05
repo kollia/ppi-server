@@ -70,12 +70,15 @@ namespace util {
 	{
 		string value;
 
-		for(map<string, pos_t>::const_iterator o= m_mModifier.begin(); o != m_mModifier.end(); ++o)
+		for(map<string, vector<pos_t> >::const_iterator o= m_mvModifier.begin(); o != m_mvModifier.end(); ++o)
 		{
-			if(o->first == m_sModifier)
-				obj->modifier(m_sModifier, m_sValue, o->second.pos);
-			else
-				obj->modifier(o->first, o->second.currentval, o->second.pos);
+			for(vector<pos_t>::const_iterator it= o->second.begin(); it != o->second.end(); ++it)
+			{
+				/*if(o->first == m_sModifier)
+					obj->modifier(m_sModifier, m_sValue, o->second.pos);
+				else*/
+					obj->modifier(o->first, it->currentval, it->pos);
+			}
 		}
 		for(map<string, string>::const_iterator o= m_mErrorParams.begin(); o != m_mErrorParams.end(); ++o)
 		{
@@ -87,31 +90,42 @@ namespace util {
 		obj->allowLaterModifier(!m_bRegOrder);
 	}
 
-	bool InterlacedProperties::readLine(const Properties::param_t& prop) throw(runtime_error)
+	bool InterlacedProperties::readLine(const Properties::param_t& prop)// throw(runtime_error)
 	{
-		vector<string>::iterator it;
-		map<string, pos_t>::iterator mit;
+		vector<pos_t>::iterator it;
+		map<string, vector<pos_t> >::iterator mit;
 
 		if(!m_vSections.empty())
 		{
 			if((*(m_vSections.end()-1))->readLine(prop))
 				return true;
 		}
-		mit= m_mModifier.find(prop.parameter);
-		if(mit == m_mModifier.end())
+		mit= m_mvModifier.find(prop.parameter);
+		if(mit == m_mvModifier.end())
 		{
 			saveLine(prop);
 			return true;
 		}
-		if(m_nLevel < mit->second.pos)
+		it= find(mit->second.begin(), mit->second.end(), prop.value);
+		if(it == mit->second.end())
+		{
+			it= find(mit->second.begin(), mit->second.end(), "");
+			if(it == mit->second.end())
+			{
+				saveLine(prop);
+				return true;
+			}
+		}
+		if(m_nLevel < it->pos)
 		{
 			if(	m_bRegOrder
 				&&
-				mit->second.pos > (m_nLevel+1)	)
+				it->pos > (m_nLevel+1)	)
 			{
 				throw runtime_error("wrong order of modifier");
 			}
-			m_vSections.push_back(newObject(prop.parameter, prop.value, mit->second.pos));
+			//cout << "create new modifier '" << prop.parameter << "' with value '" << prop.value << "' on position " << it->pos << endl;
+			m_vSections.push_back(newObject(prop.parameter, prop.value, it->pos));
 			return true;
 
 		}
@@ -123,14 +137,21 @@ namespace util {
 		if(property == m_sModifier)
 		{
 			return m_sValue;
-		}else
+		}/*else
 		{
 			map<string, pos_t>::const_iterator mit;
 
-			mit= m_mModifier.find(property);
-			if(mit != m_mModifier.end())
+			mit= m_mvModifier.find(property);
+			if(mit != m_mvModifier.end())
+			{
+				cout << __FILE__ << " line:" << __LINE__ << endl;
+				cout << "getValue('" << property << "', " << index << ", " << boolalpha << warning << ")" << endl;
+				cout << "           where object modifier is '" << m_sModifier << "'" << endl;
+				cout << "            give back '" << mit->second.currentval << "'" << endl;
+				cout << "            property of object '" << Properties::getValue(property, index, warning) << "'" << endl << endl;
 				return mit->second.currentval;
-		}
+			}
+		}*/
 		return Properties::getValue(property, index, warning);
 	}
 
@@ -139,34 +160,38 @@ namespace util {
 		pos_t val;
 
 		if(pos == 0)
-			val.pos= m_mModifier.size() + 1;
-		else
+		{
+			val.pos= 0;
+			for(map<string, vector<pos_t> >::iterator it= m_mvModifier.begin(); it != m_mvModifier.end(); ++it)
+				val.pos+= it->second.size();
+			++val.pos;
+		}else
 			val.pos= pos;
 		val.currentval= value;
-		m_mModifier[spez]= val;
+		m_mvModifier[spez].push_back(val);
 	}
 
 	bool InterlacedProperties::isModifier(const string& parameter) const
 	{
-		map<string, pos_t>::const_iterator mit;
+		map<string, vector<pos_t> >::const_iterator mit;
 
-		mit= m_mModifier.find(parameter);
-		if(mit != m_mModifier.end())
+		mit= m_mvModifier.find(parameter);
+		if(mit != m_mvModifier.end())
 			return true;
 		return false;
 	}
 
 	bool InterlacedProperties::foundModifier(const string& spez) const
 	{
-		map<string, pos_t>::const_iterator last;
+		map<string, vector<pos_t> >::const_iterator last;
 
-		if(m_mModifier.empty())
+		if(m_mvModifier.empty())
 		{
 			if(m_sModifier != spez)
 				return false;
 			return true;
 		}
-		last= m_mModifier.end();
+		last= m_mvModifier.end();
 		--last;
 		return(spez != "" && spez == last->first ? true : false);
 	}

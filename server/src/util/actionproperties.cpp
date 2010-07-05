@@ -41,11 +41,7 @@ namespace util {
 
 	bool ActionProperties::readLine(const string& line)
 	{
-		string type;
-		string::size_type pos;
-		string::size_type len;
 		Properties::param_t param;
-		map<string, vector<string> >::iterator mit;
 
 		param= read(line);
 		if(	!param.correct
@@ -54,6 +50,17 @@ namespace util {
 		{
 			return false;
 		}
+		return readLine(param);
+	}
+
+	bool ActionProperties::readLine(const Properties::param_t& parameter)
+	{
+		string type;
+		string::size_type pos;
+		string::size_type len;
+		Properties::param_t param(parameter);
+		map<string, vector<string> >::iterator mit;
+
 		mit= m_mvActions.find(param.parameter);
 		if(mit != m_mvActions.end())
 		{

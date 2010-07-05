@@ -69,6 +69,47 @@ namespace util {
 			 */
 			Properties(const bool byCheck= false);
 			/**
+			 * set delimiter between properties and value.<br />
+			 * The delimiter can be more than one char and delimits by one of them.
+			 * If the delimiter string have an space, the delimiter can also be one or more spaces
+			 * or an tabulator (\t). Default, when method not called is an equals sign ('=')
+			 *
+			 * @param delimiter set delimiter
+			 */
+			virtual void setDelimiter(const string& delimiter);
+			/**
+			 * set documentation string for hole lines.<br />
+			 * default character is an hash ('#') if the method not called.
+			 * When you need also an second character or string call this mehtod with an hash ('#')
+			 * and in second time with the other wanted character or string
+			 *
+			 * @param doc documentation char
+			 */
+			virtual void setComment(const string& doc);
+			/**
+			 * set documentation for an range.<br />
+			 * No default be set
+			 *
+			 * @param begin the begin of range
+			 * @param end the end of range
+			 */
+			virtual void setComment(const string& begin, const string& end);
+			/**
+			 * neutralize an documented string or character.<br />
+			 * As example when the documentation is an hash ('#') you can neutralize with this
+			 * method the documentation when you set an hash and an exclamation mark ('#!')
+			 *
+			 * @param undoc neutralized string
+			 */
+			virtual void setUncomment(const string& undoc);
+			/**
+			 * return the uncommented string if the property is inside an comment
+			 * otherwise returning an NULL string ('')
+			 *
+			 * @return uncommented string
+			 */
+			virtual string wasCommented(const string& property);
+			/**
 			 * read file from hard disk
 			 *
 			 * @param filename name of file
@@ -81,7 +122,7 @@ namespace util {
 			 * @param character line
 			 * @return whether line was an correct parameter with value
 			 */
-			bool readLine(const string& line);
+			virtual bool readLine(const string& line);
 			/**
 			 * read only line and split integer structure param_t
 			 *
@@ -108,6 +149,18 @@ namespace util {
 			 * @param overwrite whether an set parameter can overwrite the default inside the next interlaced quantifier (default=true)
 			 */
 			virtual void setDefault(const string& key, const string& value, const bool overwrite= true);
+			/**
+			 * return the next property from <code>Properties</code> object from begin to end
+			 *
+			 * @return property name
+			 */
+			virtual string nextProp();
+			/**
+			 * reset the iterator from <code>Properties</code> object to 0
+			 * to get by next call from method <code>nextProp()</code> again the first property
+			 */
+			virtual void resetProp()
+			{ m_nPropCount= 0; };
 			/**
 			 * pull property from this class and write an error if not exist
 			 *
@@ -335,6 +388,13 @@ namespace util {
 			 */
 			map<string, string> m_mErrorParams;
 			/**
+			 * read line and save into variables
+			 *
+			 * @param parameter parameter with value which should saved in object
+			 * @return whether line was an correct parameter with value
+			 */
+			virtual bool readLine(const param_t& parameter);
+			/**
 			 * save param_t integer member variables
 			 *
 			 * @param parameter parameter with value which should saved in object
@@ -344,9 +404,17 @@ namespace util {
 
 		private:
 			/**
+			 * counter for property iterator
+			 */
+			unsigned int m_nPropCount;
+			/**
 			 * hole propertys for an subroutine
 			 */
 			map<string, vector<string> > m_mvPropertyMap;
+			/**
+			 * hole properties in order for method <code>nextProp()</code>
+			 */
+			vector<string> m_vPropOrder;
 			/**
 			 * inherits not allowed parameter.<br />
 			 * if later in any base class the parameter will be fetched
@@ -366,6 +434,31 @@ namespace util {
 			 * and whether write an error (true) or warning (false) as value
 			 */
 			mutable map<string, bool> m_mFetchErrors;
+			/**
+			 * one or more character for delimiter
+			 */
+			string m_sDelimiter;
+			/**
+			 * all documentation strings for lines
+			 */
+			vector<string> m_vsComms;
+			/**
+			 * all neutralize documentation strings for lines
+			 */
+			vector<string> m_vsUnComms;
+			/**
+			 * all uncommented properties
+			 */
+			map<string, vector<string> > m_mvUncomProp;
+			/**
+			 * all documentation strings for range with end of documentation
+			 */
+			map<string, vector<string> > m_mssDocs;
+			/**
+			 * when be found any begin of documentation range,
+			 * there is saved the iterator for defined begin and end of range
+			 */
+			mutable map<string, vector<string> >::const_iterator m_itmvActRangeDoc;
 	};
 
 }

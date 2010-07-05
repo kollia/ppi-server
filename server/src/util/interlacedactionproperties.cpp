@@ -29,21 +29,25 @@ namespace util {
 	bool InterlacedActionProperties::readLine(const string& line)
 	{
 		Properties::param_t param;
-		vector<string>::iterator it;
-		map<string, pos_t>::iterator mit;
-		InterlacedActionProperties *obj;
 
 		param= read(line);
 		if(!param.correct)
 			return false;
+		return readLine(param);
+	}
+
+	bool InterlacedActionProperties::readLine(const Properties::param_t& param)
+	{
+		InterlacedActionProperties *obj;
+
 		if(!m_vSections.empty())
 		{
 			obj= dynamic_cast<InterlacedActionProperties*>(*(m_vSections.end()-1));
-			if(obj->readLine(line))
+			if(obj->readLine(param))
 				return true;
 		}
 		if(isAction(param.parameter))
-			return ActionProperties::readLine(line);
+			return ActionProperties::readLine(param);
 		return InterlacedProperties::readLine(param);
 	}
 

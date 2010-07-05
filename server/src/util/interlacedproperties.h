@@ -58,6 +58,24 @@ namespace util {
 				 * current value of modifier
 				 */
 				string currentval;
+				/**
+				 * operator to compare in an find function
+				 */
+				int operator==(const string value) const
+				{// sort only time
+					if(this->currentval != value)
+						return 0;
+					return 1;
+				};
+				/**
+				 * operator to know whether value is lower than the other
+				 */
+				int operator<(const pos_t &other) const
+				{// sort only time
+					if(this->currentval < other.currentval)
+						return 1;
+					return 0;
+				};
 			};
 			/**
 			 * constructor to initial member variables
@@ -127,10 +145,18 @@ namespace util {
 			 * to alter quantifier for interlace properties
 			 *
 			 * @param spez name of quantifier
-			 * @param value current value of modifier (default ="" not set)
 			 * @param pos position of modifier (default is 0 -> create position as access of method)
 			 */
-			virtual void modifier(const string& spez, const string& value= "", const unsigned short pos= 0);
+			virtual void modifier(const string& spez, const unsigned short pos= 0)
+			{ modifier(spez, "", pos); };
+			/**
+			 * to alter quantifier for interlace properties
+			 *
+			 * @param spez name of quantifier
+			 * @param value if modifier should have an specific value to be a modifier
+			 * @param pos position of modifier (default is 0 -> create position as access of method)
+			 */
+			virtual void modifier(const string& spez, const string& value, const unsigned short pos= 0);
 			/**
 			 * whether given modifier is defined with method modifier()
 			 *
@@ -214,7 +240,7 @@ namespace util {
 			 * @param param structure of parameter with value
 			 * @return whether the parameter is an modifier
 			 */
-			virtual bool readLine(const param_t& param) throw(runtime_error);
+			virtual bool readLine(const param_t& param); // throw(runtime_error);
 			/**
 			 * create new object of interlaced properties
 			 *
@@ -271,7 +297,7 @@ namespace util {
 			/**
 			 * map of all modifier with actual values and positions
 			 */
-			map<string, pos_t> m_mModifier;
+			map<string, vector<pos_t> > m_mvModifier;
 
 			/**
 			 * initial member variables

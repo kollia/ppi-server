@@ -51,10 +51,17 @@ namespace design_pattern_world
 		 * to alter quantifier for interlace properties
 		 *
 		 * @param spez name of quantifier
-		 * @param value current value of modifier
-			 * @param pos position of modifier (default is 0 -> create position as access of method)
+		 * @param pos position of modifier (default is 0 -> create position as access of method)
 		 */
-		virtual void modifier(const string& spez, const string& value= "", const unsigned short pos= 0)= 0;
+		virtual void modifier(const string& spez, const unsigned short pos= 0)= 0;
+		/**
+		 * to alter quantifier for interlace properties
+		 *
+		 * @param spez name of quantifier
+		 * @param value if modifier should have an specific value to be a modifier
+		 * @param pos position of modifier (default is 0 -> create position as access of method)
+		 */
+		virtual void modifier(const string& spez, const string& value, const unsigned short pos= 0)= 0;
 		/**
 		 * if method set to true, class allow also no regular order of modifier.<br />
 		 * When method not be used, default usable is regular (like same as set method to <code>false</code>).

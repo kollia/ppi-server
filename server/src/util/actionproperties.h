@@ -59,7 +59,7 @@ namespace util {
 			 * @param character line
 			 * @return whether line was an correct parameter with value
 			 */
-			bool readLine(const string& line);
+			virtual bool readLine(const string& line);
 			/**
 			 * define actions
 			 *
@@ -165,6 +165,14 @@ namespace util {
 			 * holder of all not allowed actions
 			 */
 			map<string, map<string, bool> > m_mmNotAllowed;
+
+			/**
+			 * read line and save into variables
+			 *
+			 * @param parameter parameter with value which should saved in object
+			 * @return whether line was an correct parameter with value
+			 */
+			virtual bool readLine(const param_t& parameter);
 	};
 
 }

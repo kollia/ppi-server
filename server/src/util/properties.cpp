@@ -42,8 +42,49 @@ using namespace boost::algorithm;
 namespace util {
 
 	Properties::Properties(const bool byCheck/*= false*/)
-	:	m_bByCheck(byCheck)
+	:	m_bByCheck(byCheck),
+	 	m_nPropCount(0),
+		m_sDelimiter("=")
 	{
+		m_itmvActRangeDoc= m_mssDocs.end();
+	}
+
+	void Properties::setDelimiter(const string& delimiter)
+	{
+		m_sDelimiter= delimiter;
+	}
+
+	void Properties::setComment(const string& doc)
+	{
+		m_vsComms.push_back(doc);
+	}
+
+	void Properties::setUncomment(const string& undoc)
+	{
+		m_vsUnComms.push_back(undoc);
+	}
+
+	void Properties::setComment(const string& begin, const string& end)
+	{
+		m_mssDocs[begin].push_back(end);
+		m_itmvActRangeDoc= m_mssDocs.end();
+	}
+
+	string Properties::wasCommented(const string& property)
+	{
+		string sRv;
+		vector<string>::iterator found;
+
+		for(map<string, vector<string> >::iterator it= m_mvUncomProp.begin(); it != m_mvUncomProp.end(); ++it)
+		{
+			found= find(it->second.begin(), it->second.end(), property);
+			if(found != it->second.end())
+			{
+				sRv= it->first;
+				break;
+			}
+		}
+		return sRv;
 	}
 
 	bool Properties::readFile(const string& filename)
@@ -77,10 +118,11 @@ namespace util {
 								msg+= "             in configuration file ";
 								msg+= filename;
 								cerr << msg << endl;
-								LOG(LOG_WARNING, msg);
+								if(logger::LogInterface::instance())
+									LOG(LOG_WARNING, msg);
 							}
 						}else
-							readLine(line);
+							readLine(param);
 					}
 				}else
 				{
@@ -89,7 +131,8 @@ namespace util {
 					msg+= line + "'\n             in configuration file ";
 					msg+= filename;
 					cerr << msg << endl;
-					LOG(LOG_WARNING, msg);
+					if(logger::LogInterface::instance())
+						LOG(LOG_WARNING, msg);
 				}
 			}
 		}else
@@ -106,6 +149,11 @@ namespace util {
 		return saveLine(value);
 	}
 
+	bool Properties::readLine(const Properties::param_t& parameter)
+	{
+		return saveLine(parameter);
+	}
+
 	bool Properties::saveLine(const Properties::param_t& parameter)
 	{
 		map<string, vector<string> >::iterator mContent;
@@ -116,7 +164,10 @@ namespace util {
 		{
 			return false;
 		}
+		m_vPropOrder.push_back(parameter.parameter);
 		m_mvPropertyMap[parameter.parameter].push_back(parameter.value);
+		if(parameter.uncommented != "")
+			m_mvUncomProp[parameter.uncommented].push_back(parameter.parameter);
 		return true;
 		/*mContent= m_mvPropertyMap.find(type);
 		if(mContent == m_mvPropertyMap.end())
@@ -134,29 +185,130 @@ namespace util {
 	{
 		param_t tRv;
 		string::size_type len= line.length();
-		string read(line);
-		string::size_type pos;
+		string read(line), docline, comment;
+		string::size_type bpos, epos, elen;
 
+		//cout << read << endl;
+		bpos= len + 1;
+		epos= len + 1;
 		tRv.correct= false;
 		tRv.read= false;
-		pos= read.find("#");
-		if(pos < len)
-			read= read.substr(0, pos);
+		if(m_itmvActRangeDoc == m_mssDocs.end())
+		{
+			// check whether line has begin of documented range
+			for(map<string, vector<string> >::const_iterator o= m_mssDocs.begin(); o != m_mssDocs.end(); ++o)
+			{
+				bpos= read.find(o->first);
+				if(bpos < len)
+				{
+					m_itmvActRangeDoc= o;
+					break;
+				}
+			}
+		}
+		if(m_itmvActRangeDoc != m_mssDocs.end())
+		{
+			// check whether line has end of documented range
+			for(vector<string>::const_iterator it= m_itmvActRangeDoc->second.begin(); it != m_itmvActRangeDoc->second.end(); ++it)
+			{
+				epos= read.find(*it);
+				if(epos < len)
+				{
+					elen= it->length();
+					break;
+				}
+			}
+		}
+		if(epos < len)
+		{
+			if(bpos < len)
+			{
+				read= read.substr(0, bpos) + read.substr(epos + elen);
+			}else
+				read= read.substr(epos + elen);
+			m_itmvActRangeDoc= m_mssDocs.end();
+
+		}else if(bpos < len)
+			read= read.substr(0, bpos);
+		if(	bpos > len &&
+			m_itmvActRangeDoc != m_mssDocs.end() &&
+			epos > len							)
+		{
+			tRv.correct= true;
+			return tRv;
+		}
+		if(m_vsComms.size())
+		{
+			// check whether line has an documentation
+			for(vector<string>::const_iterator it= m_vsComms.begin(); it != m_vsComms.end(); ++it)
+			{
+				bpos= read.find(*it);
+				if(bpos < len)
+					break;
+			}
+		}else
+		{
+			// check whether line has an documentation string with default character '#'
+			bpos= read.find("#");
+		}
+		if(	bpos < len &&
+			m_vsUnComms.size())
+		{
+			// check whether commented line should be uncommented
+			for(vector<string>::const_iterator it= m_vsUnComms.begin(); it != m_vsUnComms.end(); ++it)
+			{
+				if(read.find(*it) == bpos)
+				{// found uncommented string
+					read= read.substr(bpos + it->length());
+					bpos= len+1;
+					comment= *it; // now comment is the uncommented string
+					break;
+				}
+			}
+		}
+		if(bpos < len)
+			read= read.substr(0, bpos);
 		boost::trim(read);
 		if(read == "")
 		{
 			tRv.correct= true;
 			return tRv;
 		}
-		pos= read.find("=");
-		if(pos > len)
+		// check for delimiter between property and value
+		for(string::const_iterator it= m_sDelimiter.begin(); it != m_sDelimiter.end(); ++it)
+		{
+			bpos= read.find(*it);
+			if(bpos < len)
+				break;
+			if(*it == ' ')
+			{
+				bpos= read.find("\t");
+				if(bpos < len)
+					break;
+
+			}else if(*it == '\t')
+			{
+				bpos= read.find(" ");
+				if(bpos < len)
+					break;
+			}
+		}
+		if(bpos > len)
 			return tRv;
 		tRv.correct= true;
 		tRv.read= true;
-		tRv.parameter= read.substr(0, pos);
+		tRv.parameter= read.substr(0, bpos);
 		boost::trim(tRv.parameter);
-		tRv.value= read.substr(pos+1);
+		tRv.value= read.substr(bpos+1);
 		boost::trim(tRv.value);
+		if(comment != "")
+		{
+			tRv.uncommented= comment;
+			//m_mvUncomProp[comment].push_back(tRv.parameter);
+			//cout << "insert parameter " << tRv.parameter << " with uncommented " << comment << " into uncommented map. Size now " << dec << m_mvUncomProp.size() << endl;
+		}
+		//cout << "property '" << tRv.parameter << "'" << endl;
+		//cout << "value    '" << tRv.value << "'" << endl;
 		return tRv;
 	}
 
@@ -168,6 +320,29 @@ namespace util {
 		param.parameter= key;
 		param.value= value;
 		m_mDefault[key]= param;
+	}
+
+	string Properties::nextProp()
+	{
+		unsigned int count= 0;
+		string sRv;
+		map<string, vector<string> >::size_type size;
+
+		size= m_vPropOrder.size();
+		if(size < m_nPropCount+1)
+		{
+			m_nPropCount= 0;
+			return "";
+		}
+		++m_nPropCount;
+		for(vector<string>::iterator it= m_vPropOrder.begin(); it != m_vPropOrder.end(); ++it)
+		{
+			++count;
+			sRv= *it;
+			if(m_nPropCount == count)
+				break;
+		}
+		return sRv;
 	}
 
 	string Properties::needValue(const string property, vector<string>::size_type index/*= 0*/) const
@@ -192,7 +367,8 @@ namespace util {
 				m_mFetchErrors[property]= true;
 			else
 				cerr << msg << endl;
-			LOG(LOG_ALERT, msg);
+			if(logger::LogInterface::instance())
+				LOG(LOG_ALERT, msg);
 		}
 		mPContent= m_oPulled.find(property);
 		if(mPContent == m_oPulled.end())
@@ -264,7 +440,8 @@ namespace util {
 					m_mFetchErrors[property]= false; // because maybe the error was written with true
 			}else
 				cerr << msg << endl;
-			LOG(LOG_WARNING, msg);
+			if(logger::LogInterface::instance())
+				LOG(LOG_WARNING, msg);
 		}
 
 		mPContent= m_oPulled.find(property);
@@ -588,7 +765,8 @@ namespace util {
 				*output= msg;
 			else
 				cout << msg << endl;
-			LOG(LOG_WARNING, msg);
+			if(logger::LogInterface::instance())
+				LOG(LOG_WARNING, msg);
 		}
 	}
 

@@ -132,6 +132,13 @@ namespace util {
 			 * @return new object
 			 */
 			virtual IInterlacedPropertyPattern* newObject(const string modifier, const string value, const unsigned short level);
+			/**
+			 * read line and save into variables
+			 *
+			 * @param param parameter with value which should saved in object
+			 * @return whether line was an correct parameter with value
+			 */
+			virtual bool readLine(const param_t& param);
 	};
 
 }

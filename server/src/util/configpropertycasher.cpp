@@ -54,7 +54,7 @@ namespace util
 		if(param.correct)
 		{
 			m_sCurrent= param.parameter;
-			return ActionProperties::readLine(line);
+			return ActionProperties::readLine(param);
 		}
 		return false;
 	}

@@ -55,7 +55,52 @@ namespace design_pattern_world
 			 * value corresponding to parameter
 			 */
 			string value;
+			/**
+			 * whether the property was read inside of an comment
+			 */
+			string uncommented;
 		};
+		/**
+		 * set delimiter between properties and value.<br />
+		 * The delimiter can be more than one char and delimits by one of them.
+		 * If the delimiter string have an space, the delimiter can also be one or more spaces
+		 * or an tabulator (\t). Default, when method not called is an equals sign ('=')
+		 *
+		 * @param delimiter set delimiter
+		 */
+		virtual void setDelimiter(const string& delimiter)= 0;
+		/**
+		 * set documentation string for hole lines.<br />
+		 * default character is an hash ('#') if the method not called.
+		 * When you need also an second character or string call this mehtod with an hash ('#')
+		 * and in second time with the other wanted character or string
+		 *
+		 * @param doc documentation char
+		 */
+		virtual void setComment(const string& doc)= 0;
+		/**
+		 * neutralize an documented string or character.<br />
+		 * As example when the documentation is an hash ('#') you can neutralize with this
+		 * method the documentation when you set an hash and an exclamation mark ('#!')
+		 *
+		 * @param undoc neutralized string
+		 */
+		virtual void setUncomment(const string& undoc)= 0;
+		/**
+		 * return the uncommented string if the property is inside an comment
+		 * otherwise returning an NULL string ('')
+		 *
+		 * @return uncommented string
+		 */
+		virtual string wasCommented(const string& property)= 0;
+		/**
+		 * set documentation for an range.<br />
+		 * No default be set
+		 *
+		 * @param begin the begin of range
+		 * @param end the end of range
+		 */
+		virtual void setComment(const string& begin, const string& end)= 0;
 		/**
 		 * read file from harddisk
 		 *
@@ -78,6 +123,17 @@ namespace design_pattern_world
 		 * @param overwrite whether an set parameter can overwrite the default inside the next interlaced quantifier (default=true)
 		 */
 		virtual void setDefault(const string& key, const string& value, const bool overwrite= true)= 0;
+		/**
+		 * return the next property from <code>IPropertyPattern</code> object from begin to end
+		 *
+		 * @return property name
+		 */
+		virtual string nextProp()= 0;
+		/**
+		 * reset the iterator from <code>IPropertyPattern</code> object to 0
+		 * to get by next call from method <code>nextProp()</code> again the first property
+		 */
+		virtual void resetProp()= 0;
 		/**
 		 * pull property from this class and write an error if not exist
 		 *
