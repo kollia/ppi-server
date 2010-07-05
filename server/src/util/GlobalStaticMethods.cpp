@@ -24,6 +24,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <boost/algorithm/string/replace.hpp>
+
 #include "GlobalStaticMethods.h"
 #include "Thread.h"
 
@@ -33,6 +35,7 @@
 string GlobalStaticMethods::m_sProcessName("unknown process");
 
 using namespace logger;
+using namespace boost;
 
 void GlobalStaticMethods::stopMessage(const string& message)
 {
@@ -111,4 +114,77 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 	}
 }
 
+bool GlobalStaticMethods::replaceName(string& name, const string& type)
+{
+	bool fault= false;
+	string::size_type p;
+	string::size_type len= name.length();
+
+	p= name.find("+");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("-");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("/");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("*");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("<") ;
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find(">");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("=");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("(");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find(")");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("!");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find(":");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("&");
+	if(p >= 0 && p < len)
+		fault= true;
+	p= name.find("|");
+	if(p >= 0 && p < len)
+		fault= true;
+	if(isdigit(name[0]))
+		name= "_" + name;
+	if(fault)
+	{
+		if(type != "")
+			cout << "### WARNGING: in " << type << " '" << name << "' do not use + - / * < > = ( ) ! : & |" << endl;
+		replace_all(name, "+", "_PLUS_");
+		replace_all(name, "-", "_MINUS_");
+		replace_all(name, "/", "_THRU_");
+		replace_all(name, "*", "_MULTI_");
+		replace_all(name, "<", "_LT_");
+		replace_all(name, ">", "_GT_");
+		replace_all(name, "=", "_IS_");
+		replace_all(name, "(", "_BREAKON_");
+		replace_all(name, ")", "_BREAKOFF_");
+		replace_all(name, "!", "_EXMARK_");
+		replace_all(name, ":", "_COLON_");
+		replace_all(name, "&", "_AND_");
+		replace_all(name, "|", "_OR_");
+		if(type != "")
+		{
+			cout << "              actual " << type << " is now '" << name << "'" << endl;
+			cout << "              the problem is when you refer in an begin, while, or end property with the wrong name, it find no result." << endl;
+		}
+
+	}
+	return fault;
+}
 

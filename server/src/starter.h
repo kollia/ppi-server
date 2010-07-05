@@ -131,13 +131,6 @@ class Starter
 		 */
 		bool status();
 		/**
-		 * replace + - / * < > = ( ) ! in the given name when exist
-		 *
-		 * @param name string to replace
-		 * @param type how the string name calles for write out on command line.<br/>if no type given, method do not display anything
-		 */
-		void replaceName(string& name, const string& type= "");
-		/**
 		 * stop server
 		 *
 		 * @return whether server can be sopped correctly

@@ -1296,7 +1296,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 			{
 				++nFolderID;
 
-				replaceName(value, "folder name");
+				glob::replaceName(value, "folder name");
 				if(aktualFolder==NULL)
 				{
 					aktualFolder= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
@@ -1329,7 +1329,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 			}else if(type == "name")
 			{
-				replaceName(value, "folder '" + aktualFolder->name + "' for subroutine name");
+				glob::replaceName(value, "folder '" + aktualFolder->name + "' for subroutine name");
 				for(unsigned int n= 0; n<names.size(); n++)
 				{
 					if(names[n] == value)
@@ -1784,77 +1784,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 	if(subdir.get() != NULL)
 		aktualFolder->subroutines.push_back(*subdir);
-}
-
-void Starter::replaceName(string& name, const string& type)
-{
-	bool fault= false;
-	string::size_type p;
-	string::size_type len= name.length();
-
-	p= name.find("+");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find("-");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find("/");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find("*");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find("<") ;
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find(">");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find("=");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find("(");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find(")");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find("!");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find(":");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find("&");
-	if(p >= 0 && p < len)
-		fault= true;
-	p= name.find("|");
-	if(p >= 0 && p < len)
-		fault= true;
-	if(fault)
-	{
-		if(type != "")
-			cout << "### WARNGING: in " << type << " '" << name << "' do not use + - / * < > = ( ) ! : & |" << endl;
-		replace_all(name, "+", "_PLUS_");
-		replace_all(name, "-", "_MINUS_");
-		replace_all(name, "/", "_THRU_");
-		replace_all(name, "*", "_MULTI_");
-		replace_all(name, "<", "_LT_");
-		replace_all(name, ">", "_GT_");
-		replace_all(name, "=", "_IS_");
-		replace_all(name, "(", "_BREAKON_");
-		replace_all(name, ")", "_BREAKOFF_");
-		replace_all(name, "!", "_EXMARK_");
-		replace_all(name, ":", "_COLON_");
-		replace_all(name, "&", "_AND_");
-		replace_all(name, "|", "_OR_");
-		if(type != "")
-		{
-			cout << "              actual " << type << " is now '" << name << "'" << endl;
-			cout << "              the problem is when you refer in an begin, while, or end property with the wrong name, it find no result." << endl;
-		}
-
-	}
 }
 
 void Starter::checkAfterContact()

@@ -73,6 +73,15 @@ public:
 	 * @param message content of string message
 	 */
 	static void threadStopMessage(const string& message);
+	/**
+	 * replace + - / * < > = ( ) ! in the given name when exist
+	 * and make also an underline before if the name beginns with an number
+	 *
+	 * @param name string to replace
+	 * @param type how the string name calls for write out on command line.<br/>if no type given, method do not display anything
+	 * @return whether the name was changed
+	 */
+	static bool replaceName(string& name, const string& type= "");
 
 private:
 	/**
