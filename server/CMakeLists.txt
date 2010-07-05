@@ -126,6 +126,7 @@ if(USE_K8055)
   add_definitions(-D_K8055LIBRARY)
 endif(USE_K8055)
 
+# librarys
 add_subdirectory( src/util )
 add_subdirectory( src/ports )
 add_subdirectory( src/portserver/lib )
@@ -136,8 +137,9 @@ add_subdirectory( src/server/libs/client )
 add_subdirectory( src/server/libs/server )
 add_subdirectory( src/client/lib )
 
+# binarys
+add_subdirectory( src/config )
 add_subdirectory( src/server )
-
 add_subdirectory( src/logger )
 add_subdirectory( src/database )
 add_subdirectory( src/portserver )
