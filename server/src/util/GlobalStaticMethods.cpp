@@ -37,12 +37,13 @@ string GlobalStaticMethods::m_sProcessName("unknown process");
 using namespace logger;
 using namespace boost;
 
-void GlobalStaticMethods::stopMessage(const string& message)
+void GlobalStaticMethods::stopMessage(const string& message, bool all/*= false*/)
 {
 #ifdef _APPLICATIONSTOPMESSAGES
 	ostringstream msg;
 
-	if(	_APPLICATIONSTOPMESSAGES == m_sProcessName ||
+	if(	all ||
+		_APPLICATIONSTOPMESSAGES == m_sProcessName ||
 		_APPLICATIONSTOPMESSAGES == ""					)
 	{
 		msg << "[" << m_sProcessName << "(" << Thread::gettid() << ")] " << message << endl;

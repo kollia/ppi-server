@@ -63,8 +63,9 @@ public:
 	 * and definition of _APPLICATIONSTOPMESSAGE be set
 	 *
 	 * @param message content of string message
+	 * @param all display stop message by all predefined process names
 	 */
-	static void stopMessage(const string& message);
+	static void stopMessage(const string& message, bool all= false);
 	/**
 	 * message output on command line by get stop command
 	 * for threads and processes
