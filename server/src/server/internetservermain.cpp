@@ -185,14 +185,15 @@ int main(int argc, char* argv[])
 	err= internetserver.run();
 	if(err != 0)
 	{
+
 		if(err > 0)
-			cerr << "### ERROR: for ";
+			cerr << "### ERROR " << err << ": for ";
 		else
-			cerr << "### WARNING: by ";
+			cerr << "### WARNING " << err << ": by ";
 		cerr << "initial process internet server" << endl;
 		cerr << "             " << internetserver.strerror(err) << endl;
 		return err;
 	}
-	cout << "### process of ppi-internet-server was ending correctly" << endl;
+	glob::stopMessage("### process of ppi-internet-server was ending correctly");
 	return 0;
 }
