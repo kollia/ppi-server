@@ -114,7 +114,6 @@ int main(int argc, char* argv[])
 		cerr << "             " << logger.strerror(err) << endl;
 		return err;
 	}
-	cout << "### ending logging process with all threads" << endl;
-
+	glob::stopMessage("### ending correctly logging process with all threads", /*all process names*/true);
 	return err;
 }

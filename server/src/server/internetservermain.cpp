@@ -194,6 +194,6 @@ int main(int argc, char* argv[])
 		cerr << "             " << internetserver.strerror(err) << endl;
 		return err;
 	}
-	glob::stopMessage("### process of ppi-internet-server was ending correctly");
+	glob::stopMessage("### process of ppi-internet-server was ending correctly", /*all process names*/true);
 	return 0;
 }

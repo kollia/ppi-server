@@ -335,5 +335,6 @@ int main(int argc, char* argv[])
 	pQuestions= auto_ptr<OwServerQuestions>();// delete OwServerQuestions before OWServer
 	LogInterface::deleteObj();
 	DbInterface::deleteAll();
+	glob::stopMessage("### ending correctly ppi-owreader process for library '" + servertype + "'", /*all process names*/true);
 	return EXIT_SUCCESS;
 }

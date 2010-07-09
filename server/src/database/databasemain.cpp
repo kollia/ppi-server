@@ -163,6 +163,6 @@ int main(int argc, char* argv[])
 		cerr << "             " << database.strerror(err) << endl;
 		return err;
 	}
-	glob::stopMessage("### ending database process with all threads");
+	glob::stopMessage("### ending database process with all threads", /*all process names*/true);
 	return EXIT_SUCCESS;
 }

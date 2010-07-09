@@ -51,7 +51,14 @@
 #endif // SERVERDEBUG
 
 #ifndef _APPLICATIONSTOPMESSAGES
-//#define _APPLICATIONSTOPMESSAGES "ppi-internet-server"
+// string for definition of _APPLICATIONSTOPMESSAGES can be
+//   ""   nothing for all processes by stopping the server
+//   "ppi-server"
+//   "ppi-owreader"
+//   "ppi-internet-server"
+//   "ppi-db-server"  or
+//   "ppi-log-client"
+//#define _APPLICATIONSTOPMESSAGES "ppi-inter"
 //#define _APPLICATIONTREADSTOPMESSAGES
 #endif //_APPLICATIONSTOPMESSAGES
 
