@@ -166,6 +166,11 @@ namespace server
 		{
 			fp= m_pConnect->getDescriptor();
 			m_pStarterPool->setNewClient(fp);
+
+		}else if(	ret &&
+					stopping()	)
+		{
+			ret= 0;
 		}
 		return ret;
 	}
@@ -201,13 +206,12 @@ namespace server
 		nRv= Process::stop(false);
 		close();
 		AROUSE(m_NOCONWAITCONDITION);
-		if(m_pConnect && m_pConnect->socketWait())
+		if(	running() &&
+			m_pConnect && m_pConnect->socketWait())
 		{
 			// send also stop message to server,
-			//in the event of close do not ending accept on socket
-			OMethodStringStream stopmsg("stop");
+			// by only open an connection to socket
 			openSendConnection();
-			sendMethod("server", stopmsg, false);
 			closeSendConnection();
 		}
 		if(bWait)
