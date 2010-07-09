@@ -42,8 +42,12 @@ void GlobalStaticMethods::stopMessage(const string& message)
 #ifdef _APPLICATIONSTOPMESSAGES
 	ostringstream msg;
 
-	msg << "[" << m_sProcessName << "(" << Thread::gettid() << ")] " << message << endl;
-	cout << msg.str();
+	if(	_APPLICATIONSTOPMESSAGES == m_sProcessName ||
+		_APPLICATIONSTOPMESSAGES == ""					)
+	{
+		msg << "[" << m_sProcessName << "(" << Thread::gettid() << ")] " << message << endl;
+		cout << msg.str();
+	}
 #endif //_APPLICATIONSTOPMESSAGES
 }
 
@@ -52,8 +56,12 @@ void GlobalStaticMethods::threadStopMessage(const string& message)
 #ifdef _APPLICATIONTHREADSTOPMESSAGES
 	ostringstream msg;
 
-	msg << "[" << m_sProcessName << "(" << Thread::gettid() << ")] " << message << endl;
-	cout << msg.str();
+	if(	_APPLICATIONSTOPMESSAGES == m_sProcessName ||
+		_APPLICATIONSTOPMESSAGES == ""					)
+	{
+		msg << "[" << m_sProcessName << "(" << Thread::gettid() << ")] " << message << endl;
+		cout << msg.str();
+	}
 #endif //_APPLICATIONTHREADSTOPMESSAGES
 }
 
