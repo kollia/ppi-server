@@ -18,7 +18,7 @@ package at.kolli.automation.client;
 
 import java.util.LinkedList;
 
-import com.sun.org.apache.regexp.internal.RE;
+import org.apache.regexp.RE;
 
 import at.kolli.layout.INodeCollection;
 

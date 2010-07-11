@@ -39,7 +39,8 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
-import com.sun.org.apache.regexp.internal.RE;
+import org.apache.regexp.RE;
+//import com.sun.org.apache.regexp.internal.RE;
 
 import at.kolli.dialogs.DialogThread;
 import at.kolli.layout.HtmTags;

@@ -40,7 +40,7 @@ import org.eclipse.swt.widgets.Slider;
 import org.eclipse.swt.widgets.Spinner;
 import org.eclipse.swt.widgets.Text;
 
-import com.sun.org.apache.regexp.internal.RE;
+import org.apache.regexp.RE;
 
 import at.kolli.automation.client.NoStopClientConnector;
 import at.kolli.automation.client.NodeContainer;

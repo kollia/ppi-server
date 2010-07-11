@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
-import com.sun.org.apache.regexp.internal.RE;
+import org.apache.regexp.RE;
 
 import at.kolli.dialogs.DialogThread;
 import at.kolli.layout.permission;

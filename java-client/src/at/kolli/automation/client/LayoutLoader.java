@@ -57,7 +57,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 
-import com.sun.org.apache.regexp.internal.RE;
+import org.apache.regexp.RE;
 
 import at.kolli.dialogs.DialogThread;
 import at.kolli.dialogs.DisplayAdapter;

@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
-import com.sun.org.apache.regexp.internal.RE;
+import org.apache.regexp.RE;
 
 
 /**

@@ -29,7 +29,7 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import at.kolli.automation.client.NoStopClientConnector;
 
-import com.sun.org.apache.regexp.internal.RE;
+import org.apache.regexp.RE;
 
 /**
  * XML parser class

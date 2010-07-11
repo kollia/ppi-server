@@ -33,7 +33,7 @@ import java.util.HashMap;
 
 import at.kolli.layout.permission;
 
-import com.sun.org.apache.regexp.internal.RE;
+import org.apache.regexp.RE;
 
 /**
  * connection interface to the ppi-server
