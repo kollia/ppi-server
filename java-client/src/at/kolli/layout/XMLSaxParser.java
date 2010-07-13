@@ -280,7 +280,7 @@ public class XMLSaxParser extends DefaultHandler
 		    	td= new ContentFields();
 		    	m_oAktTag.insert(td);
 		    	
-		    }else if(eName.equals("component"))
+		    }else if(eName.equals("input"))
 		    {
 		    	Component component= new Component();
 		    	
@@ -289,7 +289,18 @@ public class XMLSaxParser extends DefaultHandler
 		    	m_oAktTag.insert(tag);
 		    	m_oAktTag= tag;
 		    	
-		    }else if(eName.equals("option"))
+		    }else if(eName.equals("select"))
+		    {
+		    	Component component= new Component();
+		    	
+		    	component.type= "combo";
+		    	tag= component;
+		    	m_aoComponents.add(component);
+		    	m_oAktTag.insert(tag);
+		    	m_oAktTag= tag;
+		    	
+		    }else if(	m_oAktTag instanceof Component &&
+		    			eName.equals("option")				)
 		    {
 		    	tag= new Option();
 		    	m_oAktTag.insert(tag);
@@ -567,13 +578,17 @@ public class XMLSaxParser extends DefaultHandler
     		||
     		eName.equals("table")
     		||
-    		eName.equals("component")
+    		eName.equals("input")
+    		||
+    		eName.equals("select")
     		||
     		eName.equals("option")
     		||
     		eName.equals("br")			)
-	    {
-	    	if(!m_oAktTag.tagName.equals(eName))
+	    {    		
+	    	if(	!m_oAktTag.tagName.equals(eName) &&
+	    		(	eName.equals("select") &&
+	    			!m_oAktTag.tagName.equals("input")	)	)
 	    	{
 	    		if(HtmTags.debug)
 	    			System.out.println();
@@ -589,7 +604,8 @@ public class XMLSaxParser extends DefaultHandler
 	    		m_bFinishedLayout= true;
 	    	else if(m_bBody
 	    			&&
-	    			eName.equals("component")	)
+	    			(	eName.equals("input") ||
+	    				eName.equals("select")	)	)
 	    	{
 	    		((Component)m_oAktTag).setPermission();
 	    	}

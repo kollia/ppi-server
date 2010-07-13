@@ -112,9 +112,9 @@ public class Component extends HtmTags
 	public layout actLayout= layout.normal;
 	/**
 	 * type attribute of component<br />
-	 * CHECK, RADIO, PUSH, TOGGLE, INPUT, SPINNER, SLIDER, SCALE or COMBO
+	 * button, togglebutton, checkbox, radio, text, spinner, slider, scale or combo
 	 */
-	public String type= "";
+	public String type= "text";
 	/**
 	 * name attribute of component.<br />
 	 * only for type radio, describe the group in which the radio button is
@@ -122,9 +122,9 @@ public class Component extends HtmTags
 	public String name= "";
 	/**
 	 * value attribute of component.<br />
-	 * for type radio or check it describe the value which should be set
-	 * type push or toggle the name inside the button
-	 * type input the suffix behind the number
+	 * for type radio or checkbox it describe the value which should be set
+	 * type button or togglebutton the name inside the button
+	 * type text the suffix behind the number
 	 */
 	public String value;
 	/**
@@ -227,11 +227,11 @@ public class Component extends HtmTags
 	 */
 	private boolean haveListener= false;
 	/**
-	 * Listener {@link SWT}.MouseDown for component push button
+	 * Listener {@link SWT}.MouseDown for component button
 	 */
 	private Listener m_eListener1;
 	/**
-	 * Listener {@link SWT}.MouseUp for component PUSH button
+	 * Listener {@link SWT}.MouseUp for component button
 	 */
 	private Listener m_eListener2;
 	/**
@@ -239,7 +239,7 @@ public class Component extends HtmTags
 	 */
 	private SelectionListener m_eSelectionListener= null;
 	/**
-	 * VerifyListener for component INPUT
+	 * VerifyListener for component text
 	 */
 	private VerifyListener m_eVerifyListener;
 	
@@ -252,7 +252,7 @@ public class Component extends HtmTags
 	 */
 	public Component()
 	{
-		super("component");
+		super("input");
 	}
 	
 	/**
@@ -299,9 +299,9 @@ public class Component extends HtmTags
 			||
 			this.type.equals("radio")
 			||
-			this.type.equals("push")
+			this.type.equals("button")
 			||
-			this.type.equals("toggle")
+			this.type.equals("togglebutton")
 			||
 			this.type.equals("upbutton")
 			||
@@ -343,10 +343,10 @@ public class Component extends HtmTags
 			}else if(this.type.equals("radio"))
 			{
 				type= SWT.RADIO;
-			}else if(this.type.equals("push"))
+			}else if(this.type.equals("button"))
 			{
 				type= SWT.PUSH;
-			}else if(this.type.equals("toggle"))
+			}else if(this.type.equals("togglebutton"))
 			{
 				type= SWT.TOGGLE;
 			}else if(this.type.equals("upbutton"))
@@ -399,7 +399,7 @@ public class Component extends HtmTags
 				button.setSelection(true);
 			}
 			
-		}else if(this.type.equals("input"))
+		}else if(this.type.equals("text"))
 		{
 			int style= readonly ? SWT.SINGLE | SWT.READ_ONLY : SWT.SINGLE;
 			Text text= new Text(composite, style);
@@ -445,7 +445,7 @@ public class Component extends HtmTags
 					
 					if(!this.result.equals(""))
 						message= "cannot reach subroutine '" + this.result + "' from ";
-					message+= "component input";
+					message+= "component input text";
 					if(!this.name.equals(""))
 						message+= " with name " + this.name + " ";
 					if(this.result.equals(""))
@@ -702,7 +702,8 @@ public class Component extends HtmTags
 				data= new GridData();
 				data.widthHint= width;
 			}
-			data.heightHint= list.getItemHeight() * this.size;
+			data.heightHint= list.getItemHeight()  * this.size;
+			//data.heightHint= (list.computeSize(SWT.DEFAULT, SWT.DEFAULT, true).x/4) * this.size;
 			if(data != null)
 				list.setLayoutData(data);
 			list.setEnabled(!disabled);
@@ -805,7 +806,7 @@ public class Component extends HtmTags
 				public void run() 
 				{
 					m_oComponent.setEnabled(enable);
-					if(	type.equals("input")
+					if(	type.equals("text")
 						&&
 						!enable						)
 					{
@@ -899,7 +900,7 @@ public class Component extends HtmTags
 			||
 			this.type.equals("radio")
 			||
-			this.type.equals("toggle")	)
+			this.type.equals("togglebutton")	)
 		{
 			String sValue= "0";
 			if(this.type.equals("radio"))
@@ -930,7 +931,7 @@ public class Component extends HtmTags
 				}
 			});
 			
-		}else if(	this.type.equals("push")
+		}else if(	this.type.equals("button")
 					||
 					this.type.equals("upbutton")
 					||
@@ -959,7 +960,7 @@ public class Component extends HtmTags
 			    }
 			}); 
 			
-		}else if(this.type.equals("input"))
+		}else if(this.type.equals("text"))
 		{
 			RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+\\.([0-9])+([ +-/]|\\*|\\(|\\)|$)");
 			String patternString= "^[ ]*[0-9]+";
@@ -1121,7 +1122,7 @@ public class Component extends HtmTags
 	}
 	
 	/**
-	 * calculate the string value for an component with type INPUT
+	 * calculate the string value for an component with type text
 	 * 
 	 * @param value the value from server which should displayed
 	 * @return value as string with observance the format attribute and add the suffix (attribute value)
@@ -1195,12 +1196,12 @@ public class Component extends HtmTags
 			||
 			this.type.equals("button")
 			||
-			this.type.equals("toggle")	)
+			this.type.equals("togglebutton")	)
 		{
 			((Button)m_oComponent).removeSelectionListener(m_eSelectionListener);
 			m_eSelectionListener= null;
 			
-		}else if(	this.type.equals("push")
+		}else if(	this.type.equals("button")
 					||
 					this.type.equals("upbutton")
 					||
@@ -1215,7 +1216,7 @@ public class Component extends HtmTags
 			m_eListener1= null;
 			m_eListener2= null;
 			
-		}else if(this.type.equals("input"))
+		}else if(this.type.equals("text"))
 		{
 			((Text)m_oComponent).removeSelectionListener(m_eSelectionListener);
 			((Text)m_oComponent).removeVerifyListener(m_eVerifyListener);
@@ -1363,7 +1364,7 @@ public class Component extends HtmTags
 		
 		if(	this.type.equals("checkbox")
 			||
-			this.type.equals("toggle")	)
+			this.type.equals("togglebutton")	)
 		{
 			DisplayAdapter.syncExec(new Runnable()
 			{				
