@@ -230,21 +230,27 @@ public class PortServerClient
 		String os;
 		String homeEnv;
 		String allUser;
-		RE linux= new RE("Linux");
+		//RE linux= new RE("Linux");
+		RE windows= new RE("Windows");
 		File allUserPath, homePath;
 		boolean bMsg= HtmTags.debug;
 		boolean bError= false;
 		
 		os= System.getProperty("os.name");
-		if(linux.match(os))
+		if(!windows.match(os))
 		{
 			homeEnv= System.getenv("HOME");
+			if(homeEnv == null)
+				homeEnv= "";
 			allUser= homeEnv;
 		}else // maybe it is Windows
 		{
 			homeEnv= System.getenv("HOMEDRIVE");
-			homeEnv+= System.getenv("HOMEPATH");
-			allUser= System.getenv("ALLUSERSPROFILE");
+			if(homeEnv != null)
+				homeEnv+= System.getenv("HOMEPATH");
+			else
+				homeEnv= "";
+			allUser= homeEnv; //System.getenv("ALLUSERSPROFILE");
 		}
 		allUserPath= new File(allUser + File.separator + ".ppi-client" + File.separator + "layout");
 		homePath= new File(homeEnv + File.separator + ".ppi-client");
