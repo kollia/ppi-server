@@ -35,6 +35,7 @@ import org.eclipse.jface.dialogs.DialogSettings;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseMoveListener;
@@ -136,6 +137,9 @@ public class LayoutLoader extends Thread
 	 * composite for all sides witch should switches
 	 */
 	private static Composite m_oMainComposite;
+	/**
+	 * sash form where split tree and viewer
+	 */
 	public SashForm m_shellForm= null;
 	/**
 	 * array of all root nodes
@@ -529,7 +533,7 @@ public class LayoutLoader extends Thread
 
 		IDialogSettings login;
 		//final Composite mainComposite;
-		final Group treeComposite;				
+		final Group treeComposite;
 		int sashWeight[]= { 200, 800 };
 		Rectangle monitor;
 		int xLocation;
@@ -634,7 +638,7 @@ public class LayoutLoader extends Thread
 			RowLayout popupLayout= new RowLayout();
 			
 			m_oPopupComposite= new Composite(mainComposite, SWT.NONE);
-			m_oMainComposite= new Composite(mainComposite, SWT.NONE);
+			m_oMainComposite= new Composite(mainComposite, SWT.H_SCROLL);
 			treeComposite= null;
 			m_shellForm= null;
 			m_oTree= null;
@@ -651,6 +655,7 @@ public class LayoutLoader extends Thread
 			mainLayout.marginHeight= 10;
 			mainLayout.marginWidth= 10;
 			mainComposite.setLayout(mainLayout);
+			
 
 			check= login.get("sashwidth");
 			if(check != null)

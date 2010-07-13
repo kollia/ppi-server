@@ -34,6 +34,7 @@ import javax.xml.parsers.SAXParserFactory;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
@@ -112,7 +113,11 @@ public class TreeNodes
 	 */
 	private Shell m_popupShell;
 	/**
-	 * first composite set in composite with StackLayout
+	 * main Composite for every node with StackLayout for scrolling
+	 */
+	private ScrolledComposite m_oScrolledComposite= null;
+	/**
+	 * first composite in scollable main composite
 	 */
 	private Composite m_oComposite= null;
 	/**
@@ -393,7 +398,7 @@ public class TreeNodes
 		String name;
 		StringTokenizer token= new StringTokenizer(folder, ":");
 		TreeNodes oRv= null;
-		
+
 		if(!token.hasMoreElements())
 			return null;
 		name= token.nextToken();
@@ -407,13 +412,13 @@ public class TreeNodes
 		}
 		if(!token.hasMoreElements())
 		{
-			layout.topControl= m_oComposite;
+			layout.topControl= m_oScrolledComposite;
 			DisplayAdapter.syncExec(new Runnable() {
 			
 				public void run() {
 
 					m_oSubComposite.layout();
-					m_oComposite.setFocus();
+					m_oScrolledComposite.setFocus();
 				}
 			
 			});
@@ -469,7 +474,7 @@ public class TreeNodes
 		
 			public void run() {
 
-				m_oComposite.dispose();
+				m_oScrolledComposite.dispose();
 			}
 		
 		});
@@ -523,7 +528,11 @@ public class TreeNodes
 				
 					public void run() {
 						
-						m_oComposite= new Composite(subComposite, SWT.SHADOW_NONE);
+						m_oScrolledComposite= new ScrolledComposite(subComposite, SWT.H_SCROLL | SWT.V_SCROLL);
+						m_oComposite= new Composite(m_oScrolledComposite, SWT.SHADOW_NONE);
+						m_oScrolledComposite.setContent(m_oComposite);
+						m_oScrolledComposite.setExpandHorizontal(true);
+						m_oScrolledComposite.setExpandVertical(true);
 					}
 				
 				});
@@ -651,6 +660,18 @@ public class TreeNodes
 			}
 			if(access)
 				m_aSubnodes.add(node);
+		}
+		if(m_oScrolledComposite != null)
+		{
+			DisplayAdapter.syncExec(new Runnable() {
+				
+				@Override
+				public void run() {
+					// define minimal shoen size
+					m_oScrolledComposite.setMinSize(m_oComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT, true));
+					//System.out.println(m_sName + ": " + m_oComposite.getSize());
+				}
+			});
 		}
 	}
 	
