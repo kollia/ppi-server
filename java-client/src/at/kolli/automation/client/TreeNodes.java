@@ -53,6 +53,7 @@ import org.eclipse.swt.widgets.TreeItem;
 import at.kolli.dialogs.DialogThread;
 import at.kolli.dialogs.DisplayAdapter;
 import at.kolli.layout.Body;
+import at.kolli.layout.Break;
 import at.kolli.layout.Component;
 import at.kolli.layout.Head;
 import at.kolli.layout.HtmTags;
@@ -143,7 +144,7 @@ public class TreeNodes
 	/**
 	 * comprised all meta data witch are defined in the header of the side
 	 */
-	private HashMap<String, String> m_mMetaBlock;
+	private HashMap<String, String> m_mMetaBlock= null;
 	/**
 	 * boolean whether can save layout files localy
 	 */
@@ -684,8 +685,8 @@ public class TreeNodes
 	private boolean createPage()
 	{
 		String permGroup;
-		Layout layout;
-		Head head;
+		Layout layout= null;
+		Head head= null;
 		Title title;
 		String fileName= m_sParentFolder+"/"+m_sName;
 		String osFileName;
@@ -693,7 +694,7 @@ public class TreeNodes
 		XMLSaxParser handler= null;
 		final GridLayout grid= new GridLayout();
 		NoStopClientConnector client= NoStopClientConnector.instance();
-		ArrayList<Body> bodyList;
+		ArrayList<Body> bodyList= null;
 		
 		if(fileName.startsWith("/"))
 			fileName= fileName.substring(1);
@@ -786,6 +787,47 @@ public class TreeNodes
 	        m_aoButtons= handler.getComponents();
 		    layout= (Layout)handler.getMainTag();
 		    head= layout.getHead();
+		    bodyList= layout.getBody();
+	      } catch( Throwable t ) 
+	      {
+	    	  t.printStackTrace();
+	        if(m_mMetaBlock == null)
+	        	m_mMetaBlock= new HashMap<String, String>();
+	        if(layout == null)
+	        {
+	        	Body body;
+	        	at.kolli.layout.Label label;
+	        	
+	        	layout= (Layout)handler.getMainTag();
+	        	if(layout != null)
+	        	{
+	    		    head= layout.getHead();
+	    		    bodyList= layout.getBody();
+	    		    if(	bodyList != null
+	    		    	&&
+	    		    	bodyList.size() > 0	)
+	    		    {
+	    		    	body= bodyList.get(0);
+	    		    }else
+	    		    {
+	    		    	bodyList= new ArrayList<Body>();
+	    		    	body= new Body();
+	    		    	bodyList.add(body);
+	    		    }
+	        	}else
+	        	{
+	        		layout= new Layout();
+	        			body= new Body();
+	        			layout.insert(body);
+	        		bodyList.add(body);
+	        	}
+	        	body.insert(new Break());
+	        	body.insert(new Break());
+	        	label= new at.kolli.layout.Label();	        	
+	        	label.setText("### layout ERROR: " + t.getMessage());
+	        	body.insert(label);
+	        }
+	      }
 		    if(head != null)
 		    {
 		    	title= head.getTitle();
@@ -797,7 +839,6 @@ public class TreeNodes
 		    		}
 		    	}
 		    }
-		    bodyList= layout.getBody();
 		    if(	bodyList != null
 		    	&&
 		    	bodyList.size() > 0	)
@@ -817,10 +858,6 @@ public class TreeNodes
 			    	
 			    }
 		    }
-	      } catch( Throwable t ) 
-	      {
-	        t.printStackTrace();
-	      }
 	      permGroup= m_mMetaBlock.get("permission");
 	      if(permGroup != null)
 	      {
