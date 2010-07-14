@@ -849,9 +849,26 @@ public class LayoutLoader extends Thread
 	private void updateMainWidget(HashMap<String, Date> folderMap)
 	{
 		Set<String> folderSet= folderMap.keySet();
-		ArrayList<TreeNodes> nodes= creatingWidgets(m_oTree, m_oMainComposite, folderSet);	
+		ArrayList<TreeNodes> nodes;	
 		DialogThread dialog= DialogThread.instance(m_oTopLevelShell);
 
+		if(m_aoComponents == null)
+			m_aoComponents= m_oAktTreeNode.getComponents();
+		if(m_aoComponents != null)
+		{
+			DisplayAdapter.syncExec(new Runnable() {
+				
+				public void run() {
+					
+					for(final Component component : m_aoComponents)
+					{
+						component.removeListeners();
+					}
+				}
+				
+			});
+		}
+		nodes= creatingWidgets(m_oTree, m_oMainComposite, folderSet);
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 		{
 			for (TreeNodes node : nodes) {
@@ -860,17 +877,6 @@ public class LayoutLoader extends Thread
 			}
 			return;
 		}
-		DisplayAdapter.syncExec(new Runnable() {
-			
-			public void run() {
-				
-				for(final Component component : m_aoComponents)
-				{
-					component.removeListeners();
-				}
-			}
-			
-		});	
 		for (TreeNodes node : m_aTreeNodes) {
 			
 			node.dispose();
