@@ -1194,8 +1194,6 @@ public class Component extends HtmTags
 			||
 			this.type.equals("radio")
 			||
-			this.type.equals("button")
-			||
 			this.type.equals("togglebutton")	)
 		{
 			((Button)m_oComponent).removeSelectionListener(m_eSelectionListener);
