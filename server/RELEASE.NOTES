@@ -10,21 +10,31 @@ VERSION 0.2.00
 			- ppi-db-server
 			- ppi-log-client
 			- ppi-owreader
-		receive and transmit signals over lirc project
+		lirc support to receive and transmit signals over IR
 		
 	ppi-java-client
 		create scroll bars for main display field
+		layout structure better aligned with HTML
+		insert regexp library org.apache.regexp version 1.5
+		update follow eclipse libraries to new version
+			- org.eclipse.core.commands 	to version 3.6.0.I20100512-1500
+			- org.eclipse.core.runtime 	to version 3.6.0.v20100505
+			- org.eclipse.equinox.common 	to version 3.6.0.v20100503
+			- org.eclipse.jface 		to version 3.6.0.I20100601-0800
+			- org.eclipse.swt 		to version 3.6.0.v3650b
+			- org.eclipse.swt.native	to version 3.5.2.v3557
 
 VERSION 0.1.00
 ~~~~~~~~~~~~~~~~
 	ppi-server
 		first insert into SVN Repository
 		with follow features:
-			- process ppi-server to measure	on RS232 interface 
-											maxim/dallas semiconductors
-											vellemann K8055 board
+			- measure on 	RS232 interface 
+					maxim/dallas semiconductors
+					vellemann K8055 board
 			- database to store long-term variables
 			- logging object to locate problems occurring
+			- usermanagement to check wheter client has permission
 			
 	ppi-java-client
 		first insert into SVN Repository
