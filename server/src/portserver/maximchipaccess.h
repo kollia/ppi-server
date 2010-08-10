@@ -22,7 +22,7 @@
 
 #include <string>
 
-#include "../util/Thread.h"
+#include "../util/thread/Thread.h"
 #include "../util/smart_ptr.h"
 
 #include "../pattern/server/ichipaccesspattern.h"

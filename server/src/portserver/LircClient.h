@@ -24,7 +24,7 @@
 #include "../pattern/util/ipropertypattern.h"
 #include "../pattern/server/ichipaccesspattern.h"
 
-#include "../util/Thread.h"
+#include "../util/thread/Thread.h"
 
 namespace ports
 {

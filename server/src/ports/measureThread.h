@@ -25,7 +25,7 @@
 
 #include "../util/smart_ptr.h"
 #include "../util/structures.h"
-#include "../util/Thread.h"
+#include "../util/thread/Thread.h"
 
 using namespace design_pattern_world::util_pattern;
 

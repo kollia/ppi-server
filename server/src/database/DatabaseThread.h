@@ -26,7 +26,7 @@
 
 #include "DefaultChipConfigReader.h"
 
-#include "../util/Thread.h"
+#include "../util/thread/Thread.h"
 #include "../util/structures.h"
 #include "../util/smart_ptr.h"
 

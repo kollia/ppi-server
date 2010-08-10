@@ -25,7 +25,7 @@
 
 using namespace std;
 
-#include "../../../util/process.h"
+#include "../../../util/thread/process.h"
 
 #include "../../../ports/measureThread.h"
 

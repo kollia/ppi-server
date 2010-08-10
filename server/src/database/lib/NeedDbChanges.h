@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include "../../util/Thread.h"
+#include "../../util/thread/Thread.h"
 
 #include "../../pattern/server/IClientConnectArtPattern.h"
 

@@ -26,8 +26,8 @@
 
 #include "../util/smart_ptr.h"
 #include "../util/structures.h"
-#include "../util/Thread.h"
 #include "../util/configpropertycasher.h"
+#include "../util/thread/Thread.h"
 
 #include "../pattern/server/ichipaccesspattern.h"
 

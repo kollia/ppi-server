@@ -27,10 +27,11 @@
 #include <iostream>
 
 #include "Thread.h"
-#include "GlobalStaticMethods.h"
-#include "configpropertycasher.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../GlobalStaticMethods.h"
+#include "../configpropertycasher.h"
+
+#include "../../logger/lib/LogInterface.h"
 
 using namespace std;
 using namespace util;

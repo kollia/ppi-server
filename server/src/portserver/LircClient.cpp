@@ -29,7 +29,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
-#include "../util/ProcessStarter.h"
+//#include "../util/ProcessStarter.h"
 
 #include "LircClient.h"
 

@@ -26,12 +26,14 @@
 #include <map>
 #include <iostream>
 
-#include "GlobalStaticMethods.h"
+#include "../../logger/lib/LogInterface.h"
+
+#include "../GlobalStaticMethods.h"
+#include "../configpropertycasher.h"
+
 #include "Thread.h"
 #include "StatusLogRoutine.h"
-#include "../logger/lib/LogInterface.h"
 
-#include "../util/configpropertycasher.h"
 
 using namespace std;
 using namespace util;

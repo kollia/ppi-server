@@ -28,7 +28,7 @@
 
 #include "portbaseclass.h"
 
-#include "../util/Thread.h"
+#include "../util/thread/Thread.h"
 
 #include "../logger/lib/LogInterface.h"
 

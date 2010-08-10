@@ -20,7 +20,7 @@
 #include <queue>
 
 #include "../../../util/structures.h"
-#include "../../../util/Thread.h"
+#include "../../../util/thread/Thread.h"
 
 #include "../../../ports/measureThread.h"
 

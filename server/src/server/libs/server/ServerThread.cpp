@@ -30,7 +30,6 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "../../../util/Thread.h"
 #include "../../../util/XMLStartEndTagReader.h"
 
 #include "../../../ports/measureThread.h"

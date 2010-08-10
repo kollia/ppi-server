@@ -19,7 +19,7 @@
 
 #include "debugtransaction.h"
 #include "ExternClientInputTemplate.h"
-#include "Thread.h"
+#include "thread/Thread.h"
 
 namespace util
 {

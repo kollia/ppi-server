@@ -20,7 +20,7 @@
 #include <sys/socket.h>
 
 #include "../../../util/structures.h"
-#include "../../../util/Thread.h"
+#include "../../../util/thread/Thread.h"
 
 #include "../../../ports/portbaseclass.h"
 #include "../../../ports/measureThread.h"

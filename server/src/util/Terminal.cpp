@@ -18,7 +18,7 @@
 
 #include "Terminal.h"
 
-#include "Thread.h"
+#include "thread/Thread.h"
 
 Terminal* Terminal::_instance= NULL;
 

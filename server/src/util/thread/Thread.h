@@ -25,10 +25,11 @@
 #include <vector>
 #include <map>
 
-#include "debug.h"
 #include "StatusLogRoutine.h"
 
-#include "../pattern/util/ithreadpattern.h"
+#include "../debug.h"
+
+#include "../../pattern/util/ithreadpattern.h"
 
 // reading in c't extra programmieren
 // article: Tauziehen (Programmieren mit POSIX-Threads) under side 62

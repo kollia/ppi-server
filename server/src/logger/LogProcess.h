@@ -29,7 +29,7 @@
 #include "lib/logstructures.h"
 #include "LogThread.h"
 
-#include "../util/process.h"
+#include "../util/thread/process.h"
 
 using namespace std;
 using namespace util;

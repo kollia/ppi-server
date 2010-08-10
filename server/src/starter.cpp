@@ -36,8 +36,8 @@
 #include "util/smart_ptr.h"
 #include "util/URL.h"
 #include "util/configpropertycasher.h"
-#include "util/ProcessStarter.h"
 #include "util/usermanagement.h"
+#include "util/thread/ProcessStarter.h"
 
 #include "logger/lib/LogInterface.h"
 

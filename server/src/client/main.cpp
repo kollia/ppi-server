@@ -26,7 +26,7 @@
 #include "../util/termmacro.h"
 #include "../util/debug.h"
 #include "../util/configpropertycasher.h"
-#include "../util/Thread.h"
+//#include "../util/Thread.h"
 
 #include "Client.h"
 

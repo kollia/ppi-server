@@ -25,7 +25,7 @@
 
 using namespace std;
 
-#include "../../../util/Thread.h"
+#include "../../../util/thread/Thread.h"
 
 #include "../../../pattern/server/IServerPattern.h"
 #include "../../../pattern/server/IServerConnectArtPattern.h"

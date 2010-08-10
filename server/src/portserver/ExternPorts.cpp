@@ -29,7 +29,7 @@
 
 #include "../ports/portbaseclass.h"
 
-#include "../util/Thread.h"
+#include "../util/thread/Thread.h"
 
 #include "ExternPorts.h"
 

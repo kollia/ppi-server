@@ -12,17 +12,19 @@ set(utilSrcs	GlobalStaticMethods.cpp
         		IParameterStringStream.cpp
         		OMethodStringStream.cpp
         		OParameterStringStream.cpp
-        		process.cpp
-        		ProcessStarter.cpp
         		ProcessInterfaceTemplate.cpp
         		properties.cpp
-        		StatusLogRoutine.cpp
         		Terminal.cpp
-        		Thread.cpp
         		URL.cpp
         		usermanagement.cpp
-        		XMLStartEndTagReader.cpp		)
+        		XMLStartEndTagReader.cpp
+        		thread/Thread.cpp
+        		thread/process.cpp
+        		thread/ProcessStarter.cpp
+        		thread/StatusLogRoutine.cpp		)
 
 add_library(ppiutil SHARED ${utilSrcs})
+#add_library(ppiutil STATIC ${utilSrcs})
+#target_link_libraries(ppiutil ${RT_LIBRARIES} ppiserverlibclient ppilogger)
 set_target_properties(ppiutil PROPERTIES VERSION ${PPIUTIL_LIB_VERSION} SOVERSION ${PPIUTIL_LIB_SOVERSION})
 install(TARGETS ppiutil DESTINATION lib)

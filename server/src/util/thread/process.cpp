@@ -22,9 +22,10 @@
 
 #include "Thread.h"
 #include "process.h"
-#include "OMethodStringStream.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../OMethodStringStream.h"
+
+#include "../../logger/lib/LogInterface.h"
 
 namespace util
 {

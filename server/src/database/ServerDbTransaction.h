@@ -21,7 +21,7 @@
 
 #include "../server/libs/server/ServerMethodTransaction.h"
 
-#include "../util/Thread.h"
+#include "../util/thread/Thread.h"
 
 namespace server
 {

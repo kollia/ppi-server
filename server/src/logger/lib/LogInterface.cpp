@@ -19,7 +19,7 @@
 
 #include "LogInterface.h"
 
-#include "../../util/Thread.h"
+#include "../../util/thread/Thread.h"
 #include "../../util/OMethodStringStream.h"
 
 using namespace util;

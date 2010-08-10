@@ -19,7 +19,7 @@
 
 #include "../client/SocketClientConnection.h"
 
-#include "../../../util/Thread.h"
+#include "../../../util/thread/Thread.h"
 
 #include "../../../pattern/server/IServerConnectArtPattern.h"
 

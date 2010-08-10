@@ -19,7 +19,7 @@
 #define KERNELMODULE_H_
 
 #include "../util/structures.h"
-#include "../util/Thread.h"
+#include "../util/thread/Thread.h"
 
 #include "../pattern/server/ichipaccesspattern.h"
 

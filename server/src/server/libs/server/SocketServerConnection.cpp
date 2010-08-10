@@ -24,7 +24,7 @@
 #include "../../../logger/lib/LogInterface.h"
 
 #include "../../../util/GlobalStaticMethods.h"
-#include "../../../util/StatusLogRoutine.h"
+//#include "../../../util/StatusLogRoutine.h"
 
 #include "SocketServerConnection.h"
 

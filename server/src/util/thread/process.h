@@ -24,9 +24,10 @@
 #include "StatusLogRoutine.h"
 #include "Thread.h"
 
-#include "../util/ExternClientInputTemplate.h"
+#include "../ExternClientInputTemplate.h"
 
-#include "../pattern/util/ithreadpattern.h"
+#include "../../pattern/util/ithreadpattern.h"
+
 namespace util
 {
 	using namespace std;

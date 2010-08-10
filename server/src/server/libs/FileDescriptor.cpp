@@ -19,8 +19,6 @@
 
 #include <iostream>
 
-#include "../../util/Thread.h"
-
 #include "../../pattern/server/ITransferPattern.h"
 #include "../../pattern/server/IClientHolderPattern.h"
 #include "../../pattern/server/IServerCommunicationStarterPattern.h"

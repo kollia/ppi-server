@@ -27,7 +27,8 @@
 #include <boost/algorithm/string/replace.hpp>
 
 #include "GlobalStaticMethods.h"
-#include "Thread.h"
+#include "StatusLogRoutine.h"
+//#include "thread/Thread.h"
 
 #include "../logger/lib/LogInterface.h"
 

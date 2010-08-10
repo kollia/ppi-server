@@ -23,7 +23,6 @@
 #include "../../../logger/lib/LogInterface.h"
 
 #include "../../../util/GlobalStaticMethods.h"
-#include "../../../util/Thread.h"
 #include "../../../util/XMLStartEndTagReader.h"
 #include "../../../util/configpropertycasher.h"
 #include "../../../util/usermanagement.h"

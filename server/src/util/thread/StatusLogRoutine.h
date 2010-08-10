@@ -25,10 +25,10 @@
 #include <vector>
 #include <map>
 
-#include "debug.h"
+#include "../debug.h"
 
-#include "../pattern/util/ithreadpattern.h"
-#include "../pattern/util/IStatusLogPattern.h"
+#include "../../pattern/util/ithreadpattern.h"
+#include "../../pattern/util/IStatusLogPattern.h"
 
 using namespace design_pattern_world;
 using namespace design_pattern_world::util_pattern;

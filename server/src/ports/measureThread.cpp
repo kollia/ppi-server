@@ -23,7 +23,6 @@
 #include <sstream>
 
 #include "../util/debug.h"
-#include "../util/Thread.h"
 
 #include "../logger/lib/LogInterface.h"
 
