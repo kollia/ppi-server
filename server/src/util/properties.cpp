@@ -701,13 +701,14 @@ namespace util {
 			vector<string>::size_type count= 0;
 			vector<string>::size_type max= c->second.size();
 			vector<vector<string>::size_type> vPContent;
-			vector<string>::size_type PSize= vPContent.size();
+			vector<string>::size_type PSize;
 			mpiter pulledIter=  m_oPulled.find(c->first);
 
 			//cout << "for property " << c->first << endl;
 			if(pulledIter != m_oPulled.end())
 			{
 				vPContent= m_oPulled.find(c->first)->second;
+				PSize= vPContent.size();
 				while(count < max)
 				{
 					vector<string>::size_type vc= vPContent[count];
