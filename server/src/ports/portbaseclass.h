@@ -189,11 +189,11 @@ namespace ports
 			 * mutex for variable m_bDeviceAccess
 			 */
 			pthread_mutex_t *m_CORRECTDEVICEACCESS;
-
 			/**
-			 * define range of value. see also public range method for better description
+			 * mutex to set or remove observers
 			 */
-			void defineRange();
+			pthread_mutex_t *m_OBSERVERLOCK;
+
 
 		public:
 			/**
@@ -227,6 +227,13 @@ namespace ports
 			 * @param folder name of folder which should be informed
 			 */
 			virtual void informObserver(IMeasurePattern* observer, const string& folder);
+			/**
+			 * remove from observer from information when value changed
+			 *
+			 * @param observer measure thread which containing the own folder
+			 * @param folder name of folder which should be informed
+			 */
+			virtual void removeObserver(IMeasurePattern* observer, const string& folder);
 			/**
 			 * set whether subroutine has correct access to device
 			 *
@@ -307,13 +314,18 @@ namespace ports
 			static portpin_address_t getPortPinAddress(Pins tAdr, bool bSetAfter);
 			virtual double measure()=0;
 			/**
-			 * set value in subroutine
+			 * get value from subroutine
 			 *
 			 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
 			 * 				This time only defined for external reading over OwPort's.
 			 * @return current value
 			 */
-			virtual double getValue(const string who);
+			virtual double getValue(const string& who);
+			/**
+			 * set value in subroutine
+			 *
+			 * @param value value which should be set
+			 */
 			virtual void setValue(const double value);
 			/**
 			 * set measure thread which run this object with method <code>measure()</code>
@@ -329,18 +341,6 @@ namespace ports
 			 */
 			IMeasurePattern* getRunningThread()
 			{ return m_poMeasurePattern; };
-			static void setDTR(unsigned long port, bool set);
-			static void setRTS(unsigned long port, bool set);
-			static void setTXD(unsigned long port, bool set);
-			static void setPin(Pins ePin, bool bSet);
-			bool getCTS(unsigned long port);
-			bool getDSR(unsigned long port);
-			bool getRI(unsigned long port);
-			bool getDCD(unsigned long port);
-			bool getPin(Pins ePin);
-
-		protected:
-			static void lockApplication(bool bSet);
 			/**
 			 * set min and max parameter to the range which can be set for this subroutine.<br />
 			 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.
@@ -354,12 +354,28 @@ namespace ports
 			 * @return whether the range is defined or can set all
 			 */
 			virtual bool range(bool& bfloat, double* min, double* max)= 0;
+			static void setDTR(unsigned long port, bool set);
+			static void setRTS(unsigned long port, bool set);
+			static void setTXD(unsigned long port, bool set);
+			static void setPin(Pins ePin, bool bSet);
+			bool getCTS(unsigned long port);
+			bool getDSR(unsigned long port);
+			bool getRI(unsigned long port);
+			bool getDCD(unsigned long port);
+			bool getPin(Pins ePin);
+
+		protected:
+			static void lockApplication(bool bSet);
 			/**
 			 * registration of folder and subroutine
 			 * with server 'measureRoutine', chip '###DefChip <folder> <subroutine>', pin '0', and family code 'measure'
 			 * for writing into and to thin database
 			 */
 			virtual void registerSubroutine();
+			/**
+			 * define range of value. see also public range method for better description
+			 */
+			void defineRange();
 
 		private:
 			IMeasurePattern* m_poMeasurePattern;

@@ -59,6 +59,7 @@ portBase::portBase(string type, string folderName, string subroutineName)
 	m_VALUELOCK= Thread::getMutex("VALUELOCK");
 	m_DEBUG= Thread::getMutex("portBaseDEBUG");
 	m_CORRECTDEVICEACCESS= Thread::getMutex("CORRECTDEVICEACCESS");
+	m_OBSERVERLOCK= Thread::getMutex("OBSERVERLOCK");
 }
 
 bool portBase::init(ConfigPropertyCasher &properties)
@@ -184,7 +185,34 @@ void portBase::setObserver(IMeasurePattern* observer)
 
 void portBase::informObserver(IMeasurePattern* observer, const string& folder)
 {
-	m_mvObservers[observer].push_back(folder);
+	vector<string> vec;
+	vector<string>::iterator found;
+
+	if(folder == getFolderName())
+		return;
+	// parameter folder is only for the feature
+	// if one thread, has the same observer, can have more folders
+	// this time has one thread one folder
+	LOCK(m_OBSERVERLOCK);
+	vec= m_mvObservers[observer];
+	found= find(vec.begin(), vec.end(), folder);
+	if(found == vec.end())
+		m_mvObservers[observer].push_back(folder);
+	UNLOCK(m_OBSERVERLOCK);
+}
+
+void portBase::removeObserver(IMeasurePattern* observer, const string& folder)
+{
+	map<IMeasurePattern*, vector<string> >::iterator found;
+
+	// parameter folder is only for the feature
+	// if one thread, has the same observer, can have more folders
+	// this time has one thread one folder
+	LOCK(m_OBSERVERLOCK);
+	found= m_mvObservers.find(observer);
+	if(found != m_mvObservers.end())
+		m_mvObservers.erase(found);
+	UNLOCK(m_OBSERVERLOCK);
 }
 
 bool portBase::hasDeviceAccess() const
@@ -238,15 +266,17 @@ void portBase::setValue(double value)
 		m_dValue= value;
 		UNLOCK(m_VALUELOCK);
 
+		LOCK(m_OBSERVERLOCK);
 		for(map<IMeasurePattern*, vector<string> >::iterator it= m_mvObservers.begin(); it != m_mvObservers.end(); ++it)
 		{
 			for(vector<string>::iterator fit= it->second.begin(); fit != it->second.end(); ++fit)
 			{
 				it->first->changedValue(*fit);
-				// toDo: delete break when folder threads running in one thread
+				// toDo: delete break when more folder threads running in one thread
 				break;
 			}
 		}
+		UNLOCK(m_OBSERVERLOCK);
 		if(dbvalue != oldMember)
 		{
 			db= DbInterface::instance();
@@ -255,7 +285,7 @@ void portBase::setValue(double value)
 	}
 }
 
-double portBase::getValue(const string who)
+double portBase::getValue(const string& who)
 {
 	double dValue;
 
