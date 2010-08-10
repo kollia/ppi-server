@@ -20,6 +20,7 @@
 
 #include "valueholder.h"
 #include "switch.h"
+#include "measureThread.h"
 
 #include "../logger/lib/LogInterface.h"
 
@@ -35,35 +36,49 @@ namespace ports
 	{
 		bool exist, bWarning= false;
 		double value, firstValueParam;
-		unsigned int nValue;
+		vector<string>::size_type nValue;
 		string sMin("min"), sMax("max");
-		vector<string> vsValues;
 		DbInterface* db= DbInterface::instance();
-		string sValue("default");
-		string sDefValues;
+		string sValue;
 		string::size_type nWhileLen;
 
 		m_pStartFolder= pStartFolder;
 		m_bFloat= properties.haveAction("float");
 		m_nMin= properties.getDouble(sMin, /*warning*/false);
 		m_nMax= properties.getDouble(sMax, /*warning*/false);
-		sDefValues= properties.getValue("value", /*warning*/false);
-		if(sDefValues != "")
+		nValue= properties.getPropertyCount("value");
+		if(nValue > 0)
 		{
-			vector<string> vvalues;
-
-			bWarning= true;
-			split(m_vdValues, sDefValues, is_any_of("|"));
+			for(vector<string>::size_type i= 0; i<nValue; ++i)
+			{
+				sValue= properties.getValue("value", i, /*warning*/true);
+				m_vdValues.push_back(sValue);
+			}
+			if(nValue > 1)
+				bWarning= true;
 		}
 		m_sWhile= properties.getValue("while", bWarning);
 		m_bBooleanWhile= false;
 		nWhileLen= m_sWhile.size();
-		if(m_sWhile.find("|") >= nWhileLen)
+		if(nValue <= 1)
 		{
-			if(m_sWhile.find("&") < nWhileLen)
+			if(m_sWhile.find("|") >= nWhileLen)
+			{
+				if(m_sWhile.find("&") < nWhileLen)
+					m_bBooleanWhile= true;
+			}else
 				m_bBooleanWhile= true;
-		}else
-			m_bBooleanWhile= true;
+		}
+		nValue= properties.getPropertyCount("link");
+		for(vector<string>::size_type i= 0; i<nValue; ++i)
+		{
+			sValue= properties.getValue("link", i);
+			m_vsLinks.push_back(sValue);
+		}
+		bWarning= false;
+		if(nValue > 1)
+			bWarning= true;
+		m_sLinkWhile= properties.getValue("lwhile", bWarning);
 		if(m_bBooleanWhile)
 		{
 			if(m_vdValues.size() > 2)
@@ -75,58 +90,34 @@ namespace ports
 				cout << msg << endl;
 			}
 		}
+		sValue= "default";
 		m_ddefaultValue= properties.getDouble(sValue, /*warning*/false);
 
-		if(	sMin == "#ERROR"
-			||
-			sMax == "#ERROR"	)
-		{// value can have hole range
+		if(sMin == "#ERROR")
 			m_nMin= 0;
-			m_nMax= -1;
-			if(	sMin == "#ERROR"
-				||
-				sMax == "#ERROR"	)
-			{
-				string msg(properties.getMsgHead(/*error*/false));
+		if(sMax == "#ERROR")
+		{// value can have hole range
+			m_nMax= m_nMin - 1;
+		}
+		if(	(	sMin == "#ERROR" &&
+				sMax == "max"		)
+			||
+			(	sMin == "min" &&
+				sMax == "#ERROR"	)	)
+		{
+			string msg(properties.getMsgHead(/*error*/false));
 
-				msg+= "min and max must be set both! so value can have hole range of";
-				if(m_bFloat)
-					msg+= " double";
-				else
-					msg+= " integer";
-				LOG(LOG_WARNING, msg);
-				cout << msg << endl;
-			}
+			msg+= "min and max must be set both! so value can have hole range of";
+			if(m_bFloat)
+				msg+= " double";
+			else
+				msg+= " integer";
+			LOG(LOG_WARNING, msg);
+			cout << msg << endl;
 		}
 		if(!portBase::init(properties))
 			return false;
 
-		// check whether all value parameter are correct
-		nValue= 1;
-		for(vector<string>::iterator it= m_vdValues.begin(); it != m_vdValues.end(); ++it)
-		{
-			if(!switchClass::calculateResult(pStartFolder, getFolderName(), *it, value))
-			{
-				ostringstream msg, sdefault;
-
-				msg << "### ERROR: In folder " + getFolderName() + " and subroutine " + getSubroutineName() << "." << endl;
-				msg << "           Calculation of " << nValue << ". value parameter '" << *it << "' ";
-				msg << "cannot be done correctly, so set this " << nValue << ". value to ";
-				// if defaultValue not be set,
-				// the variable should be also 0
-				value= m_ddefaultValue;
-				sdefault << m_ddefaultValue;
-				*it= sdefault.str();
-				if(sValue != "#ERROR")
-					msg << "defined default ";
-				msg << m_ddefaultValue;
-				cerr << msg.str() << endl;
-				LOG(LOG_ERROR, msg.str());
-			}
-			if(nValue == 0)
-				firstValueParam= value;
-			++nValue;
-		}
 		value= db->getActEntry(exist, getFolderName(), getSubroutineName(), "value");
 		if(!exist)
 		{
@@ -143,22 +134,31 @@ namespace ports
 
 	void ValueHolder::setObserver(IMeasurePattern* observer)
 	{
-		if(m_sWhile != "")
-		{
-			string folder(getFolderName());
-			string subroutine(getSubroutineName());
+		string folder(getFolderName());
+		string subroutine(getSubroutineName());
 
-			switchClass::activateObserver(m_pStartFolder, observer, folder, subroutine, m_sWhile);
-			if(!m_vdValues.empty())
-			{
-				for(vector<string>::iterator it= m_vdValues.begin(); it != m_vdValues.end(); ++it)
-					switchClass::activateObserver(m_pStartFolder, observer, folder, subroutine, *it);
-			}
-		}
+		m_poObserver= observer;
+		if(m_sWhile != "")
+			switchClass::activateObserver(m_pStartFolder, observer, folder, subroutine, m_sWhile, " for parameter while");
+		if(m_sLinkWhile != "")
+			switchClass::activateObserver(m_pStartFolder, observer, folder, subroutine, m_sLinkWhile, " for parameter lwhile");
 	}
 
 	bool ValueHolder::range(bool& bfloat, double* min, double* max)
 	{
+		if(m_bSetLinkObserver)
+		{
+			portBase* port;
+			string folder(getFolderName()), subroutine(getSubroutineName());
+
+			port= switchClass::getPort(m_pStartFolder, folder, subroutine, m_vsLinks[m_nLinkObserver], "by search range");
+			if(	port &&
+				(	port->getFolderName() != folder ||
+					port->getSubroutineName() != subroutine	)	)
+			{
+				return port->range(bfloat, min, max);
+			}
+		}
 		bfloat= m_bFloat;
 		*min= m_nMin;
 		*max= m_nMax;
@@ -168,44 +168,265 @@ namespace ports
 	double ValueHolder::measure()
 	{
 		bool isdebug= isDebug();
+		bool bChanged= false;
 		double aktValue;
+		double value, lvalue;
+		string linkfolder;
+		vector<string>::size_type links= m_vsLinks.size();
+		SHAREDPTR::shared_ptr<portBase> port;
+		SHAREDPTR::shared_ptr<meash_t> pCurMeas;
 
+		if(getFolderName() == "TRANSMIT_SONY2"
+			&& getSubroutineName() == "actual_step")
+			cout << "TRANSMIT_SONY2:actual_step" << endl;
 		aktValue= getValue("i:"+getFolderName());
-		if(m_sWhile != "")
+		value= aktValue;
+		if(links > 0)
 		{
-			double value;
+			bool bOk;
+			vector<string>::size_type pos;
+			string link;
+			string subroutine(getSubroutineName());
+			string folder(getFolderName());
+			string foldersub(folder + ":" + subroutine);
 
+			if(m_sLinkWhile != "")
+			{
+				bOk= switchClass::calculateResult(m_pStartFolder, folder, m_sLinkWhile, isdebug, lvalue);
+				if(bOk)
+				{
+					if(lvalue < 0)
+						pos= 0;
+					else if(lvalue > links-1)
+						pos= links - 1;
+					else
+						pos= static_cast<vector<string>::size_type >(lvalue);
+					link= m_vsLinks[pos];
+				}else
+				{
+					string msg("cannot create calculation from lwhile parameter '");
+
+					msg+= m_sLinkWhile;
+					msg+= "' in folder " + folder + " and subroutine " + subroutine;
+					TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg);
+					if(isdebug)
+						cout << "### ERROR: " << msg << endl;
+					value= m_ddefaultValue;
+					return false;
+				}
+				if(	link != subroutine &&
+					link != foldersub		)
+				{
+					bOk= switchClass::searchResult(m_pStartFolder, folder, link, value, &port);
+					if(bOk)
+					{
+						// this time if an link be set the own value have the same value then the link
+						// maybe it's better if only the linked value be changed
+						// now it's impossible because when any layout file from any client show to this subroutine
+						// this subroutine do not actualizes if the linked value will be changed
+						// if you want changing to this state
+						// you have to enable the source from setValue() and getValue in this class
+						// and also in this function after method getResult() remove setValue
+						// and by the end return variable aktValue
+						// then compile and try to found more bugs
+						setValue(value);
+
+						if(isdebug)
+						{
+							cout << "take value from ";
+							if(	m_dLastValue != value ||
+								m_dLastValue == aktValue	)
+							{
+								cout << "other subroutine " << link;
+								cout << " where actual value is " << value << endl;
+							}else
+								cout << "own subroutine where actual value is " << aktValue << endl;
+						}
+						// define which value will be use
+						// the linked value or own
+						if(m_dLastValue != value)
+						{ // value be changed in linked subroutine
+							bChanged= true;
+
+						}else if(m_dLastValue != aktValue)
+						{ // value changed from outside of server or with subroutine SET
+							vector<string> spl;
+
+							value= aktValue;
+							bChanged= true;
+							split(spl, link, is_any_of(":"));
+							linkfolder= spl[0];
+							// set pCurMeas to inform other folder routine
+							pCurMeas= meash_t::firstInstance;
+							while(pCurMeas)
+							{
+								if(pCurMeas->pMeasure->getThreadName() == linkfolder)
+									break;
+								pCurMeas= pCurMeas->next;
+							}
+						}
+						if(	!m_bSetLinkObserver ||
+							m_nLinkObserver != pos	)
+						{// set observer to linked subroutine if not set before
+							ostringstream errorinfo;
+
+							if(m_bSetLinkObserver)
+							{
+								ostringstream einfo;
+
+								if(	m_nLinkObserver >= 0 ||
+									m_nLinkObserver < links	)
+								{
+									einfo << " for " << dec << m_nLinkObserver+1 << ". link parameter";
+									switchClass::removeObserver(m_pStartFolder, m_poObserver, folder, subroutine, m_vsLinks[m_nLinkObserver], einfo.str());
+								}else
+								{
+									cout << "### ERROR: in " << folder << ":" << subroutine << " nLinkObserver was set to " << dec << m_nLinkObserver << endl;
+								}
+							}
+							errorinfo << " for " << dec << pos+1 << ". link parameter";
+							switchClass::activateObserver(m_pStartFolder, m_poObserver, folder, subroutine, link, errorinfo.str());
+							m_bSetLinkObserver= true;
+							m_nLinkObserver= pos;
+							defineRange();
+						}
+					}else
+					{
+						ostringstream msg;
+
+						msg << "cannot find subroutine '";
+						msg << link << "' from " << dec << (pos+1) << ". link parameter";
+						msg << " in folder " << folder << " and subroutine " << subroutine;
+						TIMELOG(LOG_ERROR, "searchresult"+folder+":"+subroutine, msg.str());
+						if(isdebug)
+							cout << "### ERROR: " << msg << endl;
+						value= m_ddefaultValue;
+						return false;
+					}
+				}else
+				{
+					if(m_bSetLinkObserver)
+					{
+						ostringstream einfo;
+
+						if(	m_nLinkObserver >= 0 ||
+							m_nLinkObserver < links	)
+						{
+							einfo << " for " << dec << m_nLinkObserver+1 << ". link parameter";
+							switchClass::removeObserver(m_pStartFolder, m_poObserver, folder, subroutine, m_vsLinks[m_nLinkObserver], einfo.str());
+							m_nLinkObserver= 0;
+							m_bSetLinkObserver= false;
+							defineRange();
+						}else
+						{
+							cout << "### ERROR: in " << folder << ":" << subroutine << " nLinkObserver was set to " << dec << m_nLinkObserver << endl;
+						}
+					}
+				}
+			}else
+				link= m_vsLinks[0];
+		}
+
+		if( !bChanged &&
+			m_sWhile != "")
+		{
 			if(getWhileStringResult(m_pStartFolder, getFolderName(), getSubroutineName(),
 									m_sWhile, m_vdValues, m_ddefaultValue, value, m_bBooleanWhile, isdebug))
 			{
-				aktValue= value;
+				//if(port == NULL)
+					aktValue= value;
 			}
 
-		}else if(isdebug)
-			cout << "VALUE be set from outside with " << dec << aktValue << endl;
-		return aktValue;
+		}else
+		{
+			if(isdebug)
+				cout << "VALUE be set from outside with " << dec << aktValue << endl;
+		}
+		// this time if an link be set the own value have the same value then the link
+		// maybe it's better if only the linked value be changed
+		// now it's impossible because when any layout file from any client show to this subroutine
+		// this subroutine do not actualizes if the linked value will be changed
+		// if you want changing to this state
+		// you have to enable the source from setValue() and getValue in this class
+		// and also in this function after method getResult() remove setValue
+		// and by the end return variable aktValue
+		// then compile and try to found more bugs
+		if(port != NULL)
+		{
+			port->setValue(value);
+			if(pCurMeas)
+				pCurMeas->pMeasure->changedValue(linkfolder);
+		}
+		m_dLastValue= value;
+		return value;
+	}
+
+	double ValueHolder::getValue(const string& who)
+	{
+		// this time if an link be set the own value have the same value then the link
+		// maybe it's better if only the linked value be changed
+		// now it's impossible because when any layout file from any client show to this subroutine
+		// this subroutine do not actualizes if the linked value will be changed
+		// if you want changing to this state
+		// you have to enable the source from setValue() and getValue in this class
+		// and also in this function after method getResult() remove setValue
+		// and by the end return variable aktValue
+		// then compile and try to found more bugs
+		/*if(m_bSetLinkObserver)
+		{
+			double dRv;
+
+			if(switchClass::calculateResult(m_pStartFolder, getFolderName(), m_vsLinks[m_nLinkObserver], false, dRv))
+				return dRv;
+		}*/
+		return portBase::getValue(who);
+
+	}
+
+	void ValueHolder::setValue(const double value)
+	{
+		// this time if an link be set the own value have the same value then the link
+		// maybe it's better if only the linked value be changed
+		// now it's impossible because when any layout file from any client show to this subroutine
+		// this subroutine do not actualizes if the linked value will be changed
+		// if you want changing to this state
+		// you have to enable the source from setValue() and getValue in this class
+		// and also in this function after method getResult() remove setValue
+		// and by the end return variable aktValue
+		// then compile and try to found more bugs
+		/*if(m_bSetLinkObserver)
+		{
+			portBase* port;
+
+			port= switchClass::getPort(m_pStartFolder, getFolderName(), getSubroutineName(), m_vsLinks[m_nLinkObserver], "");
+			if(port != NULL)
+			{
+				port->setValue(value);
+				return;
+			}
+		}*/
+		portBase::setValue(value);
 	}
 
 	bool ValueHolder::getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool readBool, const bool debug)
 	{
 		bool bOk;
-		bool bValue;
 
-		if(readBool)
+		/*if(readBool)
 		{
 			string from(whileStr);
 
 			if(debug)
 				cout << "make from result: " << from << endl << "read ";
-			bOk= switchClass::getResult(from, pStartFolder, folder, debug, bValue);
+			bOk= switchClass::calculateResult(pStartFolder, folder, from, debug, dValue);
 			if(debug)
 				cout << endl;
 			if(bOk)
-				value= bValue ? 1 : 0;
+				value= dValue ? 1 : 0;
 			else
 				value= 0;
-		}else
-			bOk= switchClass::calculateResult(pStartFolder, folder, whileStr, value);
+		}else*/
+			bOk= switchClass::calculateResult(pStartFolder, folder, whileStr, debug, value);
 
 		if(bOk)
 		{
@@ -216,31 +437,36 @@ namespace ports
 			s= content.size();
 			if(s != 0)
 			{
-				int count;
+				vector<string>::size_type count;
+				ostringstream errorinfo;
 
-				count= static_cast<int>(value);
-				if(value < 0 && value >= s)
+				if(value < 0)
+					value= 0;
+				else if(value > s-1)
+					value= s - 1;
+				count= static_cast<vector<string>::size_type >(value);
+				if(m_bSetValueObserver)
 				{
-					string to;
-					string msg("calculated value from '");
+					ostringstream einfo;
 
-					if(value < 0)
-					{
-						value= 0;
-						to= "first position ('0')";
-					}else
-					{
-						value= s;
-						to= "last position";
-					}
-					msg+= whileStr +"' is outside of range from defined value parameter";
-					msg+= " so set to " + to + " of value parameter";
-					msg+= " in folder " + folder + " and subroutine " + subroutine;
-					TIMELOG(LOG_WARNING, "ValueHolderRange"+folder+":"+subroutine, msg);
-					if(debug)
-						cout << "### WARNING: " << msg << endl;
+					einfo << " for " << dec << m_nValueObserver+1 << ". value parameter";
+					switchClass::removeObserver(m_pStartFolder, m_poObserver, folder, subroutine, content[m_nValueObserver], einfo.str());
 				}
-				if(!switchClass::calculateResult(pStartFolder, folder, content[count], value))
+				if(	!m_bSetValueObserver ||
+					count != m_nValueObserver	)
+				{
+					errorinfo << " for " << dec << count+1 << ". value parameter";
+					switchClass::activateObserver(m_pStartFolder, m_poObserver, folder, subroutine, content[count], errorinfo.str());
+					m_bSetValueObserver= true;
+					m_nValueObserver= count;
+				}
+				if(debug)
+				{
+					cout << "select " << dec << count+1 << ". string from value parameters" << endl;
+					for(vector<string>::const_iterator it= content.begin(); it != content.end(); ++it)
+						cout << "               " << *it << endl;
+				}
+				if(!switchClass::calculateResult(pStartFolder, folder, content[count], debug, value))
 				{
 					ostringstream msg;
 					ostringstream def;

@@ -30,7 +30,11 @@ namespace ports
 	{
 	private:
 		/**
-		 * @param min minimal value of holdet value
+		 * value from last pass
+		 */
+		double m_dLastValue;
+		/**
+		 * min minimal value of holdet value
 		 */
 		double m_nMin;
 		/**
@@ -42,13 +46,41 @@ namespace ports
 		 */
 		bool m_bFloat;
 		/**
+		 * whether an observer for any link be set
+		 */
+		bool m_bSetLinkObserver;
+		/**
+		 * whether an observer for any value string be set
+		 */
+		bool m_bSetValueObserver;
+		/**
+		 * which link for observer be set
+		 */
+		vector<string>::size_type m_nLinkObserver;
+		/**
+		 * which value string for observer be set
+		 */
+		vector<string>::size_type m_nValueObserver;
+		/**
+		 * observer handle
+		 */
+		IMeasurePattern* m_poObserver;
+		/**
 		 * all values which can be set as content
 		 */
 		vector<string> m_vdValues;
 		/**
+		 * all links tho share with other subroutines
+		 */
+		vector<string> m_vsLinks;
+		/**
 		 * while expression to set values from m_vdValues
 		 */
 		string m_sWhile;
+		/**
+		 * while expession to set link from m_vsLinks
+		 */
+		string m_sLinkWhile;
 		/**
 		 * default value for beginning and when calculated while expression
 		 * higher or lower then value count of m_vdValues
@@ -71,7 +103,10 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		ValueHolder(string folderName, string subroutineName)
-		: portBase("VALUE", folderName, subroutineName)
+		: portBase("VALUE", folderName, subroutineName),
+		  m_dLastValue(0),
+		  m_bSetLinkObserver(false),
+		  m_bSetValueObserver(false)
 		{ };
 		/**
 		 * create object of class ValueHolder.<br />
@@ -82,7 +117,10 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		ValueHolder(string type, string folderName, string subroutineName)
-		: portBase(type, folderName, subroutineName)
+		: portBase(type, folderName, subroutineName),
+		  m_dLastValue(0),
+		  m_bSetLinkObserver(false),
+		  m_bSetValueObserver(false)
 		{ };
 		/**
 		 * initialing object of ValueHolder
@@ -107,6 +145,20 @@ namespace ports
 		 */
 		virtual double measure();
 		/**
+		 * get value from subroutine
+		 *
+		 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
+		 * 				This time only defined for external reading over OwPort's.
+		 * @return current value
+		 */
+		virtual double getValue(const string& who);
+		/**
+		 * set value in subroutine
+		 *
+		 * @param value value which should be set
+		 */
+		virtual void setValue(const double value);
+		/**
 		 * calculate while string and set to value result or content of parameter content if exist.<br/>
 		 * Method write error or warning string into log-file and on command line if debug flag be set
 		 *
@@ -121,7 +173,7 @@ namespace ports
 		 * @param debug whether should write debug messages on command line
 		 * @return true if value will be calculated
 		 */
-		static bool getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool readBool, const bool debug);
+		bool getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool readBool, const bool debug);
 
 	protected:
 		/**
