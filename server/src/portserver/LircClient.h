@@ -226,7 +226,7 @@ namespace ports
 
 	private:
 		/**
-		 * whether should showen debug info
+		 * whether should shown debug info
 		 * for which cache be reading
 		 */
 		bool m_bDebug;
@@ -235,13 +235,17 @@ namespace ports
 		 */
 		bool m_bConnected;
 		/**
-		 * structure of main lirc configureation
+		 * structure of main lirc configuration
 		 */
 		struct lirc_config *m_ptLircConfig;
 		/**
 		 * all defined codes in measure.conf
 		 */
 		map<string, vector<string> > m_mvCodes;
+		/**
+		 * map for id's whether server send actually an SEND command
+		 */
+		map<string, bool> m_mSend;
 		/**
 		 * all reading codes whether get from device
 		 */

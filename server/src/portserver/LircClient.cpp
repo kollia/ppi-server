@@ -118,6 +118,8 @@ namespace ports
 		{
 			id= "write_" + id;
 			nRv= 2;
+			if(bW1)
+				m_mSend[id]= false;
 		}
 		m_mvCodes[code].push_back(id);
 		return nRv;
@@ -217,9 +219,19 @@ namespace ports
 		if(directive == "SEND")
 		{
 			if(value)
+			{
+				if(m_mSend[id] == true)
+					return 0; // do not send START command when START running
 				directive+= "_START";
-			else
+				m_mSend[id]= true;
+
+			}else
+			{
 				directive+= "_STOP";
+				if(m_mSend[id] == false)
+					return 0; // do not send STOP command when no START running
+				m_mSend[id]= false;
+			}
 		}
 		//cout << "send to lirc '" << "irsend " << directive << " " << remote << " " << code << "'" << endl;
 		irsend(directive.c_str(), remote.c_str(), code.c_str());
