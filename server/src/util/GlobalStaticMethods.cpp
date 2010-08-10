@@ -168,12 +168,15 @@ bool GlobalStaticMethods::replaceName(string& name, const string& type)
 	p= name.find("|");
 	if(p >= 0 && p < len)
 		fault= true;
+	p= name.find("?");
+	if(p >= 0 && p < len)
+		fault= true;
 	if(isdigit(name[0]))
 		name= "_" + name;
 	if(fault)
 	{
 		if(type != "")
-			cout << "### WARNGING: in " << type << " '" << name << "' do not use + - / * < > = ( ) ! : & |" << endl;
+			cout << "### WARNGING: in " << type << " '" << name << "' do not use + - / * < > = ( ) ! : & | ?" << endl;
 		replace_all(name, "+", "_PLUS_");
 		replace_all(name, "-", "_MINUS_");
 		replace_all(name, "/", "_THRU_");
@@ -187,6 +190,7 @@ bool GlobalStaticMethods::replaceName(string& name, const string& type)
 		replace_all(name, ":", "_COLON_");
 		replace_all(name, "&", "_AND_");
 		replace_all(name, "|", "_OR_");
+		replace_all(name, "?", "_QMARK_");
 		if(type != "")
 		{
 			cout << "              actual " << type << " is now '" << name << "'" << endl;
