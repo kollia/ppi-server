@@ -49,9 +49,10 @@ namespace ports
 		double diff;
 		double value= getValue("i:" + getFolderName());
 		string sfolder= getFolderName();
-		bool result;
+		double result;
+		bool debug= isDebug();
 
-		if(!switchClass::calculateResult(m_pStartFolder, sfolder, m_sMeasuredValue, mvalue))
+		if(!switchClass::calculateResult(m_pStartFolder, sfolder, m_sMeasuredValue, debug, mvalue))
 		{
 			string msg("### ERROR: does not found mvalue '");
 
@@ -64,9 +65,9 @@ namespace ports
 			return 0;
 		}
 
-		if(switchClass::getResult(m_sBegin, m_pStartFolder, sfolder, isDebug(), result))
+		if(switchClass::calculateResult(m_pStartFolder, sfolder, m_sBegin, debug, result))
 		{
-			if(result)
+			if(result < 0 || result > 0)
 			{
 				// calculate differenze
 				if(mvalue < origValue)
@@ -88,7 +89,7 @@ namespace ports
 			msg+= getSubroutineName();
 			cout << msg << endl;
 			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"begin", msg);
-			if(isDebug())
+			if(debug)
 				cerr << "### ERROR: " << msg.substr(11) << endl;
 			value= 0;
 		}
