@@ -48,11 +48,18 @@ namespace ports
 	double Counter::measure()
 	{
 		bool bSetNull;
+		double dResult;
 		double value= getValue("i:" + getFolderName());
 
 		if(m_sSetNull != "")
 		{
-			if(!switchClass::getResult(m_sSetNull, m_pStartFolder, getFolderName(), isDebug(), bSetNull))
+			if(switchClass::calculateResult(m_pStartFolder, getFolderName(), m_sSetNull, isDebug(), dResult))
+			{
+				if(dResult < 0 || dResult > 0)
+					bSetNull= true;
+				else
+					bSetNull= false;
+			}else
 				bSetNull= false;
 		}
 		if(	value == DOUBLE_MAX

@@ -152,7 +152,7 @@ namespace ports
 			time= (double)getMeasuredTime();
 		else
 		{
-			if(!switchClass::calculateResult(m_pStartFolder, getFolderName(), &m_sMeasuredSubroutine[0], time))
+			if(!switchClass::calculateResult(m_pStartFolder, getFolderName(), &m_sMeasuredSubroutine[0], isDebug(), time))
 				return 0;
 		}
 

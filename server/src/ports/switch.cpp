@@ -106,62 +106,174 @@ void switchClass::setObserver(IMeasurePattern* observer)
 		activateObserver(m_pStartFolder, observer, folder, subroutine, m_sOff);
 }
 
-void switchClass::activateObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
-									const string& folder, const string& subroutine, const string& cCurrent)
+void switchClass::removeObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
+									const string& folder, const string& subroutine, const string& cCurrent, const string& addinfo)
 {
-	string::size_type nLen= cCurrent.length();
-	string word, full;
-	int nPos= 0;
+	string full(cCurrent);
+	portBase* found;
 
-	full= cCurrent;
-	//cout << "read string '" << full << "'" << endl;
+	while(full != "")
+	{
+		found= filterSubroutines(pStartFolder, folder, subroutine, full, addinfo);
+		if(found != NULL)
+		{
+			//cout << "remove from " << found->getFolderName() << ":" << found->getSubroutineName();
+			//cout << " to inform folder " << folder << endl;
+			found->removeObserver(observer, folder);
+		}
+	}
+}
+
+void switchClass::activateObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
+									const string& folder, const string& subroutine, const string& cCurrent, const string& addinfo)
+{
+	string full(cCurrent);
+	portBase* found;
+
+	while(full != "")
+	{
+		found= filterSubroutines(pStartFolder, folder, subroutine, full, addinfo);
+		if(found != NULL)
+		{
+			//cout << "inform folder " << folder << " when value of " << found->getFolderName() << ":" << found->getSubroutineName();
+			//cout << " be changed" << endl;
+			found->informObserver(observer, folder);
+		}
+	}
+}
+
+portBase* switchClass::filterSubroutines(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder,
+											const string& folder, const string& subroutine, string& folders, const string& addinfo)
+{
+	string found;
+	string::size_type nPos= 0;
+	string::size_type breaks= 0;
+	string::size_type breakon= 0;
+	string::size_type nLen= folders.length();
+	portBase* pRv;
+
+	// search first whether the folders string has an if sentence
 	while(nPos < nLen)
 	{
-		//cout << "position: '" << full[nPos] << "'" << endl;
-		if(	full[nPos] == '+' ||
-			full[nPos] == '-' ||
-			full[nPos] == '/' ||
-			full[nPos] == '*' ||
-			full[nPos] == '<' ||
-			full[nPos] == '>' ||
-			full[nPos] == '=' ||
-			full[nPos] == ')' ||
-			full[nPos] == '(' ||
-			full[nPos] == '&' ||
-			full[nPos] == '|' ||
-			(	full[nPos] == '!' &&
-				full[nPos+1] == '='		)	)
+		if(folders[nPos] == '(')
+			++breaks;
+		else if(folders[nPos] == ')')
+			--breaks;
+		else if(	folders[nPos] == '?' &&
+					breaks == 0				)
 		{
-			word= full.substr(0, nPos);
-			if(full[nPos] == '!')
+			if(nPos == 0)
+			{// all subroutines before question mark (the if sentence) be searched
 				++nPos;
-			full= full.substr(nPos + 1);
-			giveObserver(pStartFolder, observer, folder, subroutine, word);
-			nLen-= (nPos + 1);
-			nPos= -1;
+				while(nPos < nLen)
+				{
+					if(folders[nPos] == '(')
+						++breaks;
+					else if(folders[nPos] == ')')
+						--breaks;
+					else if(	folders[nPos] == ':' &&
+								breaks == 0				)
+					{
+						if(nPos == 1)
+						{// all subroutines for true value (between question mark and colon) be searched
+							folders= folders.substr(2);
+							return filterSubroutines(pStartFolder, folder, subroutine, folders, addinfo);
+						}
+						found= folders.substr(1, nPos-1);
+						pRv= filterSubroutines(pStartFolder, folder, subroutine, found, addinfo);
+						folders= "?" + found + folders.substr(nPos);
+						return pRv;
+					}
+					++nPos;
+				}
+
+			}
+			found= folders.substr(0, nPos);
+			pRv= filterSubroutines(pStartFolder, folder, subroutine, found, addinfo);
+			folders= found + folders.substr(nPos);
+			return pRv;
 		}
 		++nPos;
 	}
-	giveObserver(pStartFolder, observer, folder, subroutine, full);
+	nPos= 0;
+	breaks= 0;
+	while(nPos < nLen)
+	{
+		if(folders[nPos] == '(')
+		{
+			breakon= nPos;
+			++breaks;
+			++nPos;
+			while(nPos < nLen)
+			{
+				if(folders[nPos] == '(')
+					++breaks;
+				else if(folders[nPos] == ')')
+				{
+					--breaks;
+					if(breaks == 0)
+					{
+						found= folders.substr(breakon+1, nPos-breakon-1);
+						pRv= filterSubroutines(pStartFolder, folder, subroutine, found, addinfo);
+						trim(found);
+						if(found != "")
+							found= "(" + found + ")";
+						folders= folders.substr(0, breakon) + found + folders.substr(nPos + 1);
+						trim(folders);
+						return pRv;
+					}
+				}
+				++nPos;
+			}
+			nPos= breakon;
+		}
+		//cout << "position: '" << full[nPos] << "'" << endl;
+		if(	folders[nPos] == '+' ||
+			folders[nPos] == '-' ||
+			folders[nPos] == '/' ||
+			folders[nPos] == '*' ||
+			folders[nPos] == '<' ||
+			folders[nPos] == '>' ||
+			folders[nPos] == '=' ||
+			folders[nPos] == '&' ||
+			folders[nPos] == '|' ||
+			folders[nPos] == '(' ||
+			folders[nPos] == ')' ||
+			folders[nPos] == '?' ||
+			folders[nPos] == '!'	)
+		{
+			found= folders.substr(0, nPos);
+			if(folders[nPos+1] == '=')
+				++nPos;
+			folders= folders.substr(nPos + 1);
+			return getPort(pStartFolder, folder, subroutine, found, addinfo);
+		}
+		++nPos;
+	}
+	found= folders;
+	trim(found);
+	folders= "";
+	if(found == "")
+		return NULL;
+	return getPort(pStartFolder, folder, subroutine, found, addinfo);
 }
 
-void switchClass::giveObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
-								const string& folder, const string& subroutine, const string& cCurrent)
+portBase* switchClass::getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder,
+								const string& folder, const string& subroutine, const string& cCurrent, const string& addinfo)
 {
-	bool bfound= false;
-	string full, upper;
+	string found, upper, msg;
 	string sFolder;
 	string sSubroutine;
 	vector<string> spl;
 	SHAREDPTR::shared_ptr<measurefolder_t>  pfolder;
 
-	full= cCurrent;
-	trim(full);
-	upper= full;
+	found= cCurrent;
+	trim(found);
+	upper= found;
 	transform(upper.begin(), upper.end(), upper.begin(), (int(*)(int)) toupper);
-	if(	isdigit(full.c_str()[0])
+	if(	isdigit(found.c_str()[0])
 		||
-		full.c_str()[0] == '.' // maybe a float beginning with no 0
+		found.c_str()[0] == '.' // maybe a float beginning with no 0
 		||
 		upper == "TRUE"
 		||
@@ -170,46 +282,50 @@ void switchClass::giveObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 		// nothing to do
 		// string is only an number
 		// or boolean
-		return;
+		return NULL;
 	}
 
 	// search in all subroutines of folders
 	// where the name is equal to the current string
 	// and ask from the class of the subroutine the value
-	split(spl, full, is_any_of(":"));
+	split(spl, found, is_any_of(":"));
 	if(spl.size() != 2 || spl[0] == folder)
 	{
 		// information is for own folder
 		// folder is activated and do not need again
-		return;
+		return NULL;
 	}else
 	{
 		sFolder= spl[0];
 		sSubroutine= spl[1];
 	}
+	trim(sFolder);
+	trim(sSubroutine);
 	pfolder= getFolder(sFolder, pStartFolder);
 	if(pfolder)
 	{
 		for(vector<sub>::iterator it= pfolder->subroutines.begin(); it != pfolder->subroutines.end(); ++it)
 		{
-			if(it->name == sSubroutine)
+			if(	it->bCorrect &&
+				it->name == sSubroutine	)
 			{
-				it->portClass->informObserver(observer, folder);
-				bfound= true;
-				break;
+				return it->portClass.get();
 			}
 		}
 	}
-	if(!bfound)
+	msg= "cannot found folder '";
+	msg+= sFolder + "' with subroutine '" + sSubroutine;
+	msg+= "' defined in folder " + folder + " and subroutine ";
+	msg+= subroutine;
+	if(addinfo != "")
 	{
-		string msg("cannot found folder '");
-
-		msg+= sFolder + "' with subroutine '" + sSubroutine;
-		msg+= "' defined in folder " + folder + " and subroutine ";
-		msg+= subroutine;
-		LOG(LOG_ERROR, msg);
-		cerr << "###ERROR: " << msg << endl;
+		if(addinfo[0] != ' ')
+			msg+= " ";
+		msg+= addinfo;
 	}
+	LOG(LOG_ERROR, msg);
+	cerr << "###ERROR: " << msg << endl;
+	return NULL;
 }
 
 double switchClass::measure()
@@ -218,7 +334,11 @@ double switchClass::measure()
 	bool bResultTrue= false;
 	bool bSwitched= false;
 	bool bRemote= false;
+	double dResult;
 
+	/*if(getFolderName() == "TRANSMIT_SONY"
+		&& getSubroutineName() == "wait_after_measure")
+				cout << "do " << flush;*/
 	if(	(	m_bUseInner &&
 			m_bInner		) ||
 		(	!m_bUseInner &&
@@ -235,6 +355,20 @@ double switchClass::measure()
 	 // the variable be set over the server from outside
 		bRemote= true;
 		bDoOnOff= true;
+		if(isDebug())
+			cout << "SWITCH value was enabled from remote access" << endl;
+
+	}else if(	isDebug() &&
+				!m_bUseInner &&
+				!bSwitched &&
+				m_bLastValue	)
+	{// if m_bSwitched is false
+	 // but on the last session it was true
+	 // the variable be set over the server from outside
+			//bRemote= true;
+			//bDoOnOff= true;
+			//if(isDebug())
+				cout << "SWITCH value was disabled from remote access" << endl;
 	}
 
 	if(	!bSwitched
@@ -243,7 +377,7 @@ double switchClass::measure()
 	{// if m_bSwitched is false
 	 // and an begin result is set
 	 // look for beginning
-		if(!getResult(m_sOn, bResultTrue))
+		if(!calculateResult(m_sOn, dResult))
 		{
 			string msg("           could not resolve parameter 'begin= ");
 
@@ -254,11 +388,11 @@ double switchClass::measure()
 			if(isDebug())
 				cerr << endl << "### ERROR: " << msg.substr(11) << endl;
 			bResultTrue= false;
-		}/*else
-		{
-			if(isDebug())
-				cout << endl;
-		}*/
+		}
+		if(dResult)
+			bResultTrue= true;
+		else
+			bResultTrue= false;
 		bDoOnOff= true;
 	}else if(	bSwitched
 				&&
@@ -270,7 +404,7 @@ double switchClass::measure()
 	 // look for ending
 	 // only in the session when m_bSwitched
 	 // not set from outside
-		if(!getResult(m_sOff, bResultTrue))
+		if(!calculateResult(m_sOff, dResult))
 		{
 			string msg("           could not resolve parameter 'end= ");
 
@@ -281,12 +415,12 @@ double switchClass::measure()
 			if(isDebug())
 				cerr << endl << "### ERROR: " << msg.substr(11) << endl;
 			bResultTrue= false;
-		}/*else
-		{
-			if(isDebug())
-				cout << endl;
-		}*/
-		bResultTrue= !bResultTrue;
+		}
+
+		if(dResult)
+			bResultTrue= false;
+		else
+			bResultTrue= true;
 		if(!bResultTrue)
 			bDoOnOff= true;
 	}
@@ -298,7 +432,7 @@ double switchClass::measure()
 		&&
 		!bDoOnOff			)
 	{
-		if(!getResult(m_sWhile, bResultTrue))
+		if(!calculateResult(m_sWhile, dResult))
 		{
 			string msg("           could not resolve parameter 'while= ");
 
@@ -309,11 +443,11 @@ double switchClass::measure()
 			if(isDebug())
 				cerr << endl << "### ERROR: " << msg.substr(11) << endl;
 			bResultTrue= false;
-		}/*else
-		{
-			if(isDebug())
-				cout << endl;
-		}*/
+		}
+		if(dResult)
+			bResultTrue= true;
+		else
+			bResultTrue= false;
 	}
 	if(	m_sOn != ""
 		||
@@ -325,7 +459,7 @@ double switchClass::measure()
 		// bResultTrue is always false
 		// so do not set bSwitched
 		// because it can be set from outside true the server
-		// see second if-sentense -> if(bSwitched && !m_bLastValue) <- inside this mehtod
+		// see second if-sentence -> if(bSwitched && !m_bLastValue) <- inside this method
 		bSwitched= bResultTrue;
 	}
 	m_bLastValue= bSwitched;
@@ -368,15 +502,7 @@ bool switchClass::getResult(string &str, const SHAREDPTR::shared_ptr<measurefold
 	string::size_type pos= 0;
 	string::size_type end;
 
-	//trim(str, is_any_of(" \t\n"));
 	end= str.length();
-	/*if(str[pos] == '(')
-	{
-		str= str.substr(1);
-		paranthies= true;
-		if(debug)
-			cout << "(" << flush;
-	}*/
 	do{
 		while(	pos != end &&
 				str[pos] != '|' &&
@@ -502,7 +628,7 @@ bool switchClass::getSubResult(const string &from, const SHAREDPTR::shared_ptr<m
 				cOperator[2]= '\0';
 			}else
 				cOperator[1]= '\0';
-			if(!calculateResult(pStartFolder, sFolder, word, value1))
+			if(!calculateResult(pStartFolder, sFolder, word, debug, value1))
 			{
 				bCheck= false;
 				if(debug)
@@ -512,8 +638,7 @@ bool switchClass::getSubResult(const string &from, const SHAREDPTR::shared_ptr<m
 			if(debug)
 			{
 				trim(word);
-				if(!isdigit(word.c_str()[0]))
-					cout << word << "=" << dec << value1 << flush;
+				cout << "(" << word << ")"<< "= " << dec << *pValue << flush;
 			}
 			word= result.substr(pos+1);
 			pValue= &value2;
@@ -527,7 +652,7 @@ bool switchClass::getSubResult(const string &from, const SHAREDPTR::shared_ptr<m
 	{
 		word= result;
 	}
-	if(!calculateResult(pStartFolder, sFolder, word, *pValue))
+	if(!calculateResult(pStartFolder, sFolder, word, debug, *pValue))
 	{
 		bCheck= false;
 		if(debug)
@@ -537,8 +662,8 @@ bool switchClass::getSubResult(const string &from, const SHAREDPTR::shared_ptr<m
 	if(debug)
 	{
 		trim(word);
-		if(!isdigit(word.c_str()[0]))
-			cout << word << "=" << dec << value1 << flush;
+		cout << " " << cOperator << " ";
+		cout << "(" << word << ")"<< "= " << dec << *pValue << flush;
 	}
 	if(cOperator[0] == '\0')
 	{
@@ -598,7 +723,7 @@ bool switchClass::getSubResult(const string &from, const SHAREDPTR::shared_ptr<m
 	return true;
 }
 
-bool switchClass::subroutineResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pfolder, const string &cCurrent, double &dResult)
+bool switchClass::subroutineResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pfolder, const string &cCurrent, double &dResult, SHAREDPTR::shared_ptr<portBase>* port)
 {
 	string subroutine(cCurrent);
 	unsigned nCount= pfolder->subroutines.size();
@@ -609,8 +734,15 @@ bool switchClass::subroutineResult(const SHAREDPTR::shared_ptr<measurefolder_t>&
 		//cout << "if('" << pfolder->subroutines[c].name << "'=='" << pcCurrent << "'" << endl;
 		if(pfolder->subroutines[c].name == subroutine)
 		{
-			dResult= pfolder->subroutines[c].portClass->getValue("i:" + pfolder->name);
-			return true;
+			if(	pfolder->subroutines[c].bCorrect &&
+				pfolder->subroutines[c].portClass.get() != NULL	)
+			{
+				dResult= pfolder->subroutines[c].portClass->getValue("i:" + pfolder->name);
+				if(port != NULL)
+					*port= pfolder->subroutines[c].portClass;
+				return true;
+			}
+			return false;
 		}
 	}
 	return false;
@@ -627,7 +759,7 @@ const SHAREDPTR::shared_ptr<measurefolder_t>  switchClass::getFolder(const strin
 
 bool switchClass::calculateResult(const string &cCurrent, double &dResult)
 {
-	bool bFound= calculateResult(m_pStartFolder, getFolderName(), cCurrent, dResult);
+	bool bFound= calculateResult(m_pStartFolder, getFolderName(), cCurrent, isDebug(), dResult);
 
 	if(!bFound)
 	{
@@ -644,7 +776,7 @@ bool switchClass::calculateResult(const string &cCurrent, double &dResult)
 	return bFound;
 }
 
-bool switchClass::calculateResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &cCurrent, double &dResult)
+bool switchClass::calculateResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &cCurrent, const bool debug, double &dResult)
 {
 	CalculatorContainer calc;
 	string::size_type nLen= cCurrent.length();
@@ -653,21 +785,131 @@ bool switchClass::calculateResult(const SHAREDPTR::shared_ptr<measurefolder_t>& 
 	string word, full;
 	char cOp;
 	int nPos= 0;
+	int breaks= 0;
 
 	full= cCurrent;
+	// search first for if sentences
 	while(nPos < nLen)
 	{
-		if(	full[nPos] == '+'
-			||
-			full[nPos] == '-'
-			||
-			full[nPos] == '/'
-			||
-			full[nPos] == '*'	)
+		if(full[nPos] == '(')
+			++breaks;
+		else if(full[nPos] == ')')
+			--breaks;
+		else if(	full[nPos] == '?' &&
+					breaks == 0				)
+		{// calculate boolean for if sentence before question mark ('?')
+			bool bResult;
+			int x;
+			string decision(full.substr(0, nPos));
+
+			if(debug)
+				cout << "calculating if sentence ('" << decision << "')" << endl;
+			bCorrect= getResult(decision, pStartFolder, actFolder, debug, bResult);
+			if(debug)
+				cout << endl;
+			if(!bCorrect)
+				return false;
+			++nPos;
+			x= nPos;
+			bCorrect= false;
+			while(nPos < nLen)
+			{
+				if(full[nPos] == '(')
+					++breaks;
+				else if(full[nPos] == ')')
+					--breaks;
+				else if(	full[nPos] == ':' &&
+							breaks == 0				)
+				{ // calculate result for true value (before colon (':'), or for false value (after colon (':')
+					if(bResult)
+						full= full.substr(x, nPos - x);
+					else
+						full= full.substr(nPos + 1);
+					return calculateResult(pStartFolder, actFolder, full, debug, dResult);
+				}
+				++nPos;
+			}
+			if(debug)
+				cout << "fault results be set" << endl;
+			return false;
+		}
+		++nPos;
+	}
+
+	// look whether an operator for boolean calculation ('|', '&', '<', '>', '=" or '!') exists
+	// and ask than only for boolean result
+	nPos= 0;
+	while(nPos < nLen)
+	{
+		if(	full[nPos] == '|' ||
+			full[nPos] == '&' ||
+			full[nPos] == '>' ||
+			full[nPos] == '<' ||
+			full[nPos] == '=' ||
+			full[nPos] == '!'	)
+		{
+			bool bResult;
+			string decision(cCurrent);
+
+			if(!getResult(decision, pStartFolder, actFolder, debug, bResult))
+				return false;
+			if(bResult)
+				dResult= 1;
+			else
+				dResult= 0;
+			if(debug)
+				cout << endl;
+			return true;
+		}
+		++nPos;
+	}
+
+	// create result of string
+	bool bNoVal= true;
+
+	breaks= 0;
+	nPos= 0;
+	while(nPos < nLen)
+	{
+		if(full[nPos] == '(')
+		{
+			int nstart;
+
+			++nPos;
+			nstart= nPos;
+			++breaks;
+			while(nPos < nLen)
+			{
+				if(full[nPos] == '(')
+					++breaks;
+				else if(full[nPos] == ')')
+				{
+					--breaks;
+					if(breaks == 0)
+						break;
+				}
+				++nPos;
+			}
+			bCorrect= calculateResult(pStartFolder, actFolder, full.substr(nstart, nPos-2), debug, value);
+			if(!bCorrect)
+				return false;
+			calc.add(value);
+			if(nPos+1 >= nLen)
+			{
+				dResult= calc.getResult();
+				return true;
+			}
+			full= full.substr(nPos+1);
+			nLen= full.length();
+		}
+		if(	!bNoVal &&
+			(	full[nPos] == '+' ||
+				full[nPos] == '-' ||
+				full[nPos] == '/' ||
+				full[nPos] == '*'	)	)
 		{
 			cOp= full[nPos];
 			word= full.substr(0, nPos);
-			full= full.substr(nPos + 1);
 			bCorrect= searchResult(pStartFolder, actFolder, word.c_str(), value);
 			if(!bCorrect)
 				return false;
@@ -675,6 +917,18 @@ bool switchClass::calculateResult(const SHAREDPTR::shared_ptr<measurefolder_t>& 
 			bCorrect= calc.add(cOp);
 			if(!bCorrect)
 				return false;
+			full= full.substr(nPos + 1);
+			nPos= -1;
+			nLen= full.length();
+			bNoVal= true;
+
+		}else if(	bNoVal &&
+					full[nPos] != ' ' &&
+					full[nPos] != '+' &&
+					full[nPos] != '-'	)
+		{// for beginning if there an minus value
+		 // calc them to the value
+			bNoVal= false;
 		}
 		++nPos;
 	}
@@ -705,7 +959,7 @@ bool switchClass::searchResult(const char* pcCurrent, double &dResult)
 	return bFound;
 }
 
-bool switchClass::searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &cCurrent, double &dResult)
+bool switchClass::searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &cCurrent, double &dResult, SHAREDPTR::shared_ptr<portBase>* port/*=NULL*/)
 {
 	bool bFound= false;
 	string full;
@@ -713,9 +967,14 @@ bool switchClass::searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 
 	full= cCurrent;
 	trim(full);
-	if(	isdigit(full.c_str()[0])
+	if(	isdigit(full[0]) ||
+		full[0] == '.' /*maybe a float beginning with no 0*/
 		||
-		full.c_str()[0] == '.' /*maybe a float beginning with no 0*/	)
+		(	(	full[0] == '-' ||
+				full[0] == '+'		)
+			&&
+			(	isdigit(full[1]) ||
+			 	full[1] == '.'		 )	)					)
 	{
 		istringstream cNum(full);
 		ostringstream cBack;
@@ -764,7 +1023,7 @@ bool switchClass::searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 		}
 		folder= getFolder(sFolder, pStartFolder);
 		if(folder)
-			bFound= subroutineResult(folder, sSubroutine, dResult);
+			bFound= subroutineResult(folder, sSubroutine, dResult, port);
 	}
 
 	return bFound;

@@ -36,9 +36,8 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	suseconds_t micro= 0;
 	string prop;
 
-	//properties.notAllowedParameter("end");
-	//m_bTime= properties.haveAction("time");
 	m_bSeconds= true;
+	m_bPoll= false;
 	bsec= properties.haveAction("sec");
 	bmicro= properties.haveAction("micro");
 	if(bsec && bmicro)
@@ -53,6 +52,7 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	if(!bsec && !bmicro)
 	{ // make count down of time
 		m_bTime= false;
+		m_bPoll= properties.haveAction("poll");
 		m_smtime= properties.getValue("mtime", /*warning*/false);
 		if(m_smtime == "")
 		{
@@ -81,8 +81,11 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 			micro+= (static_cast<suseconds_t>(milli) * 1000);
 			m_tmMicroseconds= micro;
 		}
-	}else // measure time
+	}else
+	{ // measure time
 		m_bTime= true;
+		m_sSetNull= properties.getValue("setnull", /*warning*/false);
+	}
 	bSwitch= false;
 	if(!switchClass::init(properties, pStartFolder, &bSwitch))
 		return false;
@@ -118,6 +121,9 @@ double timer::measure()
 
 	oldValue= switchClass::getValue("i:" + getFolderName());
 
+	//if(getFolderName() == "TRANSMIT_SONY"
+	//	&& getSubroutineName() == "wait_after_measure2")
+	//			cout << "do " << flush;
 	bswitch= switchClass::measure();
 	if(	bswitch ||
 		m_bMeasure	)
@@ -140,17 +146,24 @@ double timer::measure()
 		}else
 		{
 			if(!m_bTime)
-			{ // measure countdown
+			{ // measure count down
 				if(m_bMeasure == false)
 				{ // start time measureelse
-					bool bneed= true;
+					bool bneed= false;
 
 					m_tmStart= tv;
 					if(m_smtime != "")
 					{
-						if(calculateResult(m_pStartFolder, getFolderName(), m_smtime, need))
+						if(calculateResult(m_pStartFolder, getFolderName(), m_smtime, debug, need))
 						{
-							bneed= true;
+							if(need < 0 || need > 0)
+								bneed= true;
+							if(!bneed)
+							{
+								if(debug)
+									cout << "no next measure time be set, make no count down" << endl;
+								return -1;
+							}
 							m_tmSec= static_cast<time_t>(need);
 							need-= static_cast<double>(m_tmSec);
 							need*= (1000 * 1000);
@@ -210,8 +223,14 @@ double timer::measure()
 						cout << "refresh time " << m_tmStart.tv_sec << "." << m_tmStart.tv_usec;
 						cout << " actual time " << tv.tv_sec << "." << tv.tv_usec << endl;
 					}
-					need= 0;
 					m_bMeasure= false;
+					if(m_bPoll)
+					{
+						if(debug)
+							cout << "refresh again for polling count down ----" << endl;
+						getRunningThread()->nextActivateTime(getFolderName(), tv);
+					}
+					need= 0;
 
 				}else
 				{
@@ -276,6 +295,17 @@ double timer::measure()
 		need= oldValue;
 		if(!m_bTime)
 			need= -1;
+	}
+	if(	m_bTime &&
+		m_sSetNull != ""	)
+	{
+		double res;
+
+		if(calculateResult(m_sSetNull, res))
+		{
+			if(res > 0 || res < 0)
+				need= 0;
+		}
 	}
 	if(debug)
 		cout << "result of time is " << dec << need << " seconds" << endl;

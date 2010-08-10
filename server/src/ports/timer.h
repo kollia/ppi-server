@@ -51,6 +51,11 @@ protected:
 	 */
 	bool m_bTime;
 	/**
+	 * whether subroutine should beginning again
+	 * by finished count down with 0
+	 */
+	bool m_bPoll;
+	/**
 	 * whether measure actually the time
 	 */
 	bool m_bMeasure;
@@ -76,6 +81,10 @@ protected:
 	 * otherwise start the hole folder again on this time
 	 */
 	timeval m_tmStart;
+	/**
+	 * string of options whether set value to 0
+	 */
+	string m_sSetNull;
 
 	/**
 	 * set min and max parameter to the range which can be set for this subroutine.<br />

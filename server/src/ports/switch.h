@@ -58,20 +58,46 @@ public:
 		 * @param folder name of current folder
 		 * @param subroutine name of current subroutine
 		 * @param cCurrent string of defined values to find other folder and subroutines
+		 * @param addinfo info string to add when any error occures
 		 */
 		static void activateObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
-														const string& folder, const string& subroutine, const string& cCurrent);
+										const string& folder, const string& subroutine, const string& cCurrent, const string& addinfo= "");
 		/**
-		 * fill observer into founded folder:subroutine from cCurrent string
+		 * remove observer inside subroutine
 		 *
 		 * @param pStratFolder address of the first folder
 		 * @param observer measure thread which containing the own folder
 		 * @param folder name of current folder
 		 * @param subroutine name of current subroutine
 		 * @param cCurrent string of defined values to find other folder and subroutines
+		 * @param addinfo info string to add when any error occures
 		 */
-		static void giveObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
-														const string& folder, const string& subroutine, const string& cCurrent);
+		static void removeObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
+										const string& folder, const string& subroutine, const string& cCurrent, const string& addinfo= "");
+		/**
+		 * filter out from and defined string first subroutine with folder
+		 *
+		 * @param pStratFolder address of the first folder
+		 * @param folder name of current folder
+		 * @param subroutine name of current subroutine
+		 * @param folders string of subroutines with folder
+		 * @param addinfo info string to add when any error occures
+		 * @return base object of ports
+		 */
+		static portBase* filterSubroutines(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& folder,
+										const string& subroutine, string& folders, const string& addinfo);
+		/**
+		 * find object of port which should be inform
+		 *
+		 * @param pStratFolder address of the first folder
+		 * @param folder name of current folder
+		 * @param subroutine name of current subroutine
+		 * @param cCurrent string of subroutines with folder
+		 * @param addinfo info string to add when any error occures
+		 * @return base object of ports
+		 */
+		static portBase* getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& folder,
+										const string& subroutine, const string& cCurrent, const string& addinfo);
 		/**
 		 * measure new value for subroutine
 		 *
@@ -82,7 +108,104 @@ public:
 		 * destructor
 		 */
 		virtual ~switchClass();
+		/**
+		 * returns the address of the given foldername
+		 *
+		 * @param name name of the folder
+		 * @param pStratFolder address of the first folder
+		 * @return address of the folder in given parameter name
+		 */
+		static const SHAREDPTR::shared_ptr<measurefolder_t>  getFolder(const string &name, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		/**
+		 * write the value from the given folder:subroutine or comparison as string
+		 * into the parameter dResult
+		 *
+		 * @param pStartFolder first pointer to all defined folders
+		 * @param cCurrent string of subroutine or folder:subroutine
+		 * @param debug whether the debug mode outgoing from server is set
+		 * @param dResult outcomming double result of the subroutine
+		 * @return whether the subroutines in the character string all found
+		 */
+		static bool calculateResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &cCurrent, const bool debug, double &dResult);
+		/**
+		 * write the current value from the given folder:subroutine
+		 * into the parameter dResult
+		 *
+		 * @param pStartFolder first pointer to all defined folders
+		 * @param cCurrent string of subroutine or folder:subroutine
+		 * @param dResult outcomming double result of the subroutine
+		 * @return whether the subroutines in the character string was found
+		 */
+		static bool searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &pcCurrent, double &dResult, SHAREDPTR::shared_ptr<portBase>* port= NULL);
+		/**
+		 * search subroutine value and pointer to port object if subroutine not null
+		 *
+		 * @param pStartFolder first pointer to all defined folders
+		 * @param cCurrent name of subroutine
+		 * @param dResult out coming double result of the subroutine
+		 * @param port out coming object from reading port if parameter not set as null
+		 * @return whether the subroutines in the character string was found
+		 */
+		static bool subroutineResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pfolder, const string &cCurrent, double &dResult, SHAREDPTR::shared_ptr<portBase>* port);
 
+	protected:
+		/**
+		 * whether 0 and 1 is holding inside of object (by true)
+		 * and the object is from an derived class.
+		 * Otherwise the routine is only for switching between 0 and 1 (false)
+		 * and the value is holding in original parent class <code>portBase</code>
+		 */
+		bool m_bUseInner;
+		/**
+		 * inner value if object isn't only for switching
+		 */
+		bool m_bInner;
+		/**
+		 * value from last pass
+		 */
+		bool m_bLastValue;
+		SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
+		SHAREDPTR::shared_ptr<measurefolder_t> m_pOwnFolder;
+		string m_sOn;
+		string m_sWhile;
+		string m_sOff;
+
+		/**
+		 * write the value from the given folder:subroutine or comparison as string
+		 * into the parameter dResult
+		 *
+		 * @param cCurrent string of subroutine or folder:subroutine
+		 * @param dResult outcomming double result of the subroutine
+		 * @return whether the subroutines in the character string all found
+		 */
+		bool calculateResult(const string &cCurrent, double &dResult);
+		/**
+		 * set min and max parameter to the range which can be set for this subroutine.<br />
+		 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.
+		 * Also if the values defined in an bit value 010 (dec:2) set 0 and for 011 (dec:3) set 1 in db.
+		 * Otherwise the range is only for calibrate the max and min value if set from client outher range.
+		 * If pointer of min and max parameter are NULL, the full range of the double value can be used
+		 *
+		 * @param bfloat whether the values can be float variables
+		 * @param min the minimal value
+		 * @param max the maximal value
+		 * @return whether the range is defined or can set all
+		 */
+		virtual bool range(bool& bfloat, double* min, double* max);
+
+	private:
+		/**
+		 * calculate whether the given string is an true value.<br />
+		 * string can be set as 'true' or 'false',<br />
+		 * or an subroutine where in this case it calculate null or not,<br />
+		 * or an comparison of two values, subroutines or numbers
+		 * This string can be also splited with '|' or '&'
+		 *
+		 * @param from string of comparison
+		 * @param result whether the comparison was true
+		 * @return whether the comparison string was correct
+		 */
+		bool getResult(const string &from, bool& result);
 		/**
 		 * calculate whether the given string is an true value.<br />
 		 * string can be set as 'true' or 'false',<br />
@@ -112,95 +235,6 @@ public:
 		 * @return whether the comparison string was correct
 		 */
 		static bool getSubResult(const string &from, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& sFolder, const bool debug, bool& result);
-		/**
-		 * returns the address of the given foldername
-		 *
-		 * @param name name of the folder
-		 * @param pStratFolder address of the first folder
-		 * @return address of the folder in given parameter name
-		 */
-		static const SHAREDPTR::shared_ptr<measurefolder_t>  getFolder(const string &name, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
-		/**
-		 * write the value from the given folder:subroutine or comparison as string
-		 * into the parameter dResult
-		 *
-		 * @param pStartFolder first pointer to all defined folders
-		 * @param cCurrent string of subroutine or folder:subroutine
-		 * @param dResult outcomming double result of the subroutine
-		 * @return whether the subroutines in the character string all found
-		 */
-		static bool calculateResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &cCurrent, double &dResult);
-		/**
-		 * write the current value from the given folder:subroutine
-		 * into the parameter dResult
-		 *
-		 * @param pStartFolder first pointer to all defined folders
-		 * @param cCurrent string of subroutine or folder:subroutine
-		 * @param dResult outcomming double result of the subroutine
-		 * @return whether the subroutines in the character string was found
-		 */
-		static bool searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &pcCurrent, double &dResult);
-		static bool subroutineResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pfolder, const string &cCurrent, double &dResult);
-
-	protected:
-		/**
-		 * whether 0 and 1 is holding inside of object (by true)
-		 * and the object is from an derived class.
-		 * Otherwise the routine is only for switching between 0 and 1 (false)
-		 * and the value is holding in original parent class <code>portBase</code>
-		 */
-		bool m_bUseInner;
-		/**
-		 * inner value if object isn't only for switching
-		 */
-		bool m_bInner;
-		/**
-		 * value from last pass
-		 */
-		bool m_bLastValue;
-		SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
-		SHAREDPTR::shared_ptr<measurefolder_t> m_pOwnFolder;
-		string m_sOn;
-		string m_sWhile;
-		string m_sOff;
-
-		/**
-		 * calculate whether the given string is an true value.<br />
-		 * string can be set as 'true' or 'false',<br />
-		 * or an subroutine where in this case it calculate null or not,<br />
-		 * or an comparison of two values, subroutines or numbers
-		 * This string can be also splited with '|' or '&'
-		 *
-		 * @param from string of comparison
-		 * @param result whether the comparison was true
-		 * @return whether the comparison string was correct
-		 */
-		bool getResult(const string &from, bool& result);
-		/**
-		 * write the value from the given folder:subroutine or comparison as string
-		 * into the parameter dResult
-		 *
-		 * @param cCurrent string of subroutine or folder:subroutine
-		 * @param dResult outcomming double result of the subroutine
-		 * @return whether the subroutines in the character string all found
-		 */
-		bool calculateResult(const string &cCurrent, double &dResult);
-		/**
-		 * set min and max parameter to the range which can be set for this subroutine.<br />
-		 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.
-		 * Also if the values defined in an bit value 010 (dec:2) set 0 and for 011 (dec:3) set 1 in db.
-		 * Otherwise the range is only for calibrate the max and min value if set from client outher range.
-		 * If pointer of min and max parameter are NULL, the full range of the double value can be used
-		 *
-		 * @param bfloat whether the values can be float variables
-		 * @param min the minimal value
-		 * @param max the maximal value
-		 * @return whether the range is defined or can set all
-		 */
-		virtual bool range(bool& bfloat, double* min, double* max);
-
-	private:
-		//bool getSubResult(char* str);
 		/**
 		 * write the current value from the given folder:subroutine
 		 * into the parameter dResult
