@@ -216,7 +216,13 @@ namespace ports
 				cout << endl;
 			}
 			value= ValueHolder::measure();
-			if(value != m_dLastWValue)
+
+			// 2010/08/03 ppi@magnificat.at
+			//				write always to server,
+			//				because maybe server do output when get value 1
+			//				and should only do output by next getting value 1 (like LIRC with send_once)
+			//				By behavior before server get only the first 1 and do ignore the second
+			//if(value != m_dLastWValue)
 			{
 				access= m_pOWServer->write(m_sChipID, value);
 				setDeviceAccess(access);
@@ -239,7 +245,7 @@ namespace ports
 						cout << " in passing before";
 					cout << endl;
 				}else
-					cout << "unique id '" << m_sChipID << "' do not reache correctly device for writing" << endl;
+					cout << "unique id '" << m_sChipID << "' do not reach correctly device for writing" << endl;
 			}
 		}
 
