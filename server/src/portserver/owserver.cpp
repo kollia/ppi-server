@@ -843,7 +843,7 @@ namespace server
 
 	bool OWServer::write(const string& id, const double value)
 	{
-		bool write= false;
+	//	bool write= false;
 		SHAREDPTR::shared_ptr<chip_types_t> chip;
 		vector<string>::iterator inIt;
 		map<string, SHAREDPTR::shared_ptr<chip_types_t> >::iterator chipIt;
@@ -852,7 +852,7 @@ namespace server
 		chip= chipIt->second;
 		if(!chip->device)
 			return false;
-		if(!chip->writecache)
+		/*if(!chip->writecache)
 		{// cache writing every time if chip-type-id in the vector of m_vChipTypeIDs
 			LOCK(m_CACHEWRITEENTRYS);
 			inIt= find(m_vChipTypeIDs.begin(), m_vChipTypeIDs.end(), chip->wcacheID);
@@ -862,10 +862,18 @@ namespace server
 				m_vChipTypeIDs.erase(inIt);
 			}
 			UNLOCK(m_CACHEWRITEENTRYS);
-		}
-		if(	chip->value != value
+		}*/
+
+		// 2010/08/03 ppi@magnificat.at
+		//				write always to server
+		//				because maybe only by writing one
+		//				server do output (like LIRC)
+		//				and if set subroutine the second time one
+		//				server should not ignore new output
+		//			same for comment's before, not important
+		/*if(	chip->value != value
 			||
-			write == true		)
+			write == true		)*/
 		{
 			if(chip->writecache)
 			{
