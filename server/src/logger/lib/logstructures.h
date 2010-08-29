@@ -22,12 +22,37 @@
 
 using namespace std;
 
-#define LOG_DEBUG 0
-#define LOG_INFO  1
-#define LOG_SERVER 2
-#define LOG_WARNING 3
-#define LOG_ERROR 4
-#define LOG_ALERT 5
+#ifndef LOG_DEBUG
+#define LOG_DEBUG 0x00000000
+#endif // LOG_DEBUG
+#ifndef LOG_INFO
+#define LOG_INFO 0x00000001
+#endif // LOG_INFO
+#ifndef LOG_WARNING
+#define LOG_WARNING 0x00000010
+#endif // LOG_WARNING
+#ifndef LOG_ERROR
+#define LOG_ERROR 0x00000011
+#endif // LOG_ERROR
+#ifndef LOG_ALERT
+#define LOG_ALERT 0x00000100
+#endif // LOG_ALERT
+
+#ifndef LOG_SERVERDEBUG
+#define LOG_SERVERDEBUG 0x00001000
+#endif // LOG_SERVERDEBUG
+#ifndef LOG_SERVERINFO
+#define LOG_SERVERINFO 0x00001001
+#endif // LOG_SERVERINFO
+#ifndef LOG_SERVERWARNING
+#define LOG_SERVERWARNING 0x00001010
+#endif // LOG_SERVERWARNING
+#ifndef LOG_SERVERERROR
+#define LOG_SERVERERROR 0x00001011
+#endif // LOG_SERVERERROR
+#ifndef LOG_SERVERALERT
+#define LOG_SERVERALERT 0x00001100
+#endif // LOG_SERVERALERT
 
 struct log_t
 {

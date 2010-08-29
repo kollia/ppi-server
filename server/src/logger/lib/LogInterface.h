@@ -26,15 +26,22 @@
 #include <vector>
 
 #include "logstructures.h"
+#include "LogConnectionChecker.h"
 
-#include "../../util/ProcessInterfaceTemplate.h"
+#include "../../server/libs/client/ProcessInterfaceTemplate.h"
+
+#include "../../pattern/util/ILogPattern.h"
+#include "../../pattern/util/ILogInterfacePattern.h"
 
 using namespace std;
 using namespace design_pattern_world::server_pattern;
+using namespace design_pattern_world::util_pattern;
 
 namespace logger
 {
-	class LogInterface : public util::ProcessInterfaceTemplate
+	class LogInterface :	public util::ProcessInterfaceTemplate,
+							public ILogPattern,
+							public ILogInterfacePattern
 	{
 		public:
 			/**
@@ -62,8 +69,20 @@ namespace logger
 			 *
 			 * @param name specified name
 			 */
-			void setThreadName(string threadName);
-			//string getThreadName(pthread_t threadID= 0);
+			virtual void setThreadName(string threadName);
+			/**
+			 * return name of thread from given thread-id.<br />
+			 * When no parameter of thread id is given, method take actual thread.
+			 *
+			 * @param threadID id of thread
+			 */
+			virtual string getThreadName(pthread_t threadID= 0);
+			/**
+			 * callback method to inform when logging object destroy or can be used
+			 *
+			 * @param usable function whether can use logging process
+			 */
+			virtual void callback(void *(*usable)(bool));
 			/**
 			 * to log an message
 			 *
@@ -73,7 +92,67 @@ namespace logger
 			 * @param message string witch should written into log-files
 			 * @param sTimeLogIdentif if this identifier be set, the message will be write only in an defined time
 			 */
-			void log(string file, int line, int type, string message, string sTimeLogIdentif= "");
+			virtual void log(string file, int line, int type, string message, string sTimeLogIdentif= "");
+			/**
+			 * write vector log and threadNames which was read
+			 * before get connection
+			 *
+			 * @return whether write any message over connection
+			 */
+			virtual bool writeVectors();
+			/**
+			 * this method will be called when ConnectionChecker ending
+			 */
+			virtual void connectionCheckerStops()
+			{ m_poChecker= NULL; };
+			/**
+			 * open the connection to server for sending questions
+			 * <b>errorcodes:</b>
+			 * <table>
+			 * 	<tr>
+			 * 		<td>
+			 * 			0
+			 * 		</td>
+			 * 		<td>
+			 * 			no error occurred
+			 * 		</td>
+			 * 	</tr>
+			 * 	<tr>
+			 * 		<td>
+			 * 			-1
+			 * 		</td>
+			 * 		<td>
+			 * 			WARNING: connection exist before
+			 * 		</td>
+			 * 	</tr>
+			 * 	<tr>
+			 * 		<td>
+			 * 			1
+			 * 		</td>
+			 * 		<td>
+			 * 			ERROR: no <code>IClientConnectArtPattern</code> be given for sending
+			 * 		</td>
+			 * 	</tr>
+			 * 	<tr>
+			 * 		<td>
+			 * 			2
+			 * 		</td>
+			 * 		<td>
+			 * 			cannot connect with server, or initialization was fail
+			 * 		</td>
+			 * 	</tr>
+			 * 	<tr>
+			 * 		<td colspan="2">
+			 * 			all other ERRORs or WARNINGs see in <code>IClientConnectArtPattern</code>
+			 * 			for beginning connection by sending
+			 * 		</td>
+			 * 	</tr>
+			 * </table>
+			 *
+			 * @param toopen string for open question, otherwise by null the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
+			 * @return error number
+			 */
+			virtual int openSendConnection(string toopen= "");
 			/**
 			 * destructor of log interface
 			 */
@@ -141,17 +220,24 @@ namespace logger
 			 * mutex lock to write log message or thread name into vector
 			 */
 			pthread_mutex_t* m_WRITELOOP;
-
 			/**
-			 * write vector log and threadNames which was read
-			 * befor get connection
+			 * function to inform whether own object is usable
 			 */
-			void writeVectors();
+			void *(*m_funcUsable)(bool);
+			/**
+			 * whether ConnectionChecker is running
+			 */
+			LogConnectionChecker* m_poChecker;
+
 
 	}; // class LogInterface
 } // namespace logger
 
+#ifndef LOG
 #define LOG(type, message) logger::LogInterface::instance()->log(__FILE__, __LINE__, type, message)
+#endif // LOG
+#ifndef TIMELOG
 #define TIMELOG(type, identif, message) logger::LogInterface::instance()->log(__FILE__, __LINE__, type, message, identif)
+#endif // TIMELOG
 
 #endif /*LOGINTERFACE_H_*/
