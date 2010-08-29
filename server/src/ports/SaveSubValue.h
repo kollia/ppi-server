@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include "../util/configpropertycasher.h"
+#include "../util/properties/configpropertycasher.h"
 
 #include "switch.h"
 

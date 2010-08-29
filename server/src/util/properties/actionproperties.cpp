@@ -30,9 +30,10 @@
 
 #include "actionproperties.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../../pattern/util/LogHolderPattern.h"
 
-#include "IParameterStringStream.h"
+#include "../stream/IParameterStringStream.h"
+#include "../stream/OParameterStringStream.h"
 
 using namespace boost;
 using namespace boost::algorithm;

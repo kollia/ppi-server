@@ -21,8 +21,10 @@
 #include <string>
 
 #include "util/thread/Thread.h"
-#include "util/ExternClientInputTemplate.h"
 
+#include "server/libs/client/ExternClientInputTemplate.h"
+
+using namespace std;
 using namespace util;
 using namespace design_pattern_world::server_pattern;
 

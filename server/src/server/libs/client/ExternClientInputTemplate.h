@@ -20,11 +20,12 @@
 
 #include <string>
 
-#include "../pattern/server/IClientConnectArtPattern.h"
+#include "../../../pattern/server/IClientConnectArtPattern.h"
 
-#include "../server/libs/client/OutsideClientTransaction.h"
+#include "../../../util/stream/OMethodStringStream.h"
 
-#include "OMethodStringStream.h"
+#include "OutsideClientTransaction.h"
+
 
 namespace util
 {

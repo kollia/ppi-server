@@ -19,7 +19,7 @@
 
 #include "switch.h"
 
-#include "../util/configpropertycasher.h"
+#include "../util/properties/configpropertycasher.h"
 
 using namespace util;
 

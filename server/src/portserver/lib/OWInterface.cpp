@@ -17,7 +17,7 @@
 
 #include "../../logger/lib/LogInterface.h"
 
-#include "../../util/IParameterStringStream.h"
+#include "../../util/stream/IParameterStringStream.h"
 
 #include "OWInterface.h"
 

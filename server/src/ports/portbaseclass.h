@@ -22,7 +22,8 @@
 #include <map>
 
 #include "../util/debug.h"
-#include "../util/configpropertycasher.h"
+
+#include "../util/properties/configpropertycasher.h"
 
 #include "../pattern/util/imeasurepattern.h"
 

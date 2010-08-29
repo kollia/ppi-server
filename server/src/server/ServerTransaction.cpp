@@ -34,14 +34,14 @@
 
 #include "../ports/measureThread.h"
 
-//#include "../portserver/owserver.h"
 #include "../portserver/lib/OWInterface.h"
 
 #include "../util/GlobalStaticMethods.h"
 #include "../util/XMLStartEndTagReader.h"
 #include "../util/usermanagement.h"
-#include "../util/configpropertycasher.h"
 #include "../util/URL.h"
+
+#include "../util/properties/configpropertycasher.h"
 
 #include "../database/lib/DbInterface.h"
 #include "../database/lib/NeedDbChanges.h"
@@ -204,7 +204,7 @@ namespace server
 			msg= "connection to client:";
 			msg+=  descriptor.getHostAddressName();
 			msg+= " is brocken";
-			LOG(LOG_SERVER, msg);
+			LOG(LOG_SERVERINFO, msg);
 
 #ifndef DEBUG
 #ifdef SERVERDEBUG
@@ -368,7 +368,7 @@ namespace server
 					{
 						string msg("ERROR: client givs no correct ID. Send ERROR code 010");
 
-						LOG(LOG_SERVER, msg);
+						LOG(LOG_SERVERERROR, msg);
 						sendmsg= "ERROR 010";
 					}
 				}
@@ -452,7 +452,7 @@ namespace server
 							if(!descriptor.getBoolean("access"))
 								msg+= ", so permission denied";
 						}
-						LOG(LOG_ERROR, msg);
+						LOG(LOG_SERVERERROR, msg);
 						sleep(2);
 	#ifdef SERVERDEBUG
 						cerr << "send: " << sendmsg << endl;
@@ -480,7 +480,7 @@ namespace server
 				msg+= input;
 				msg+= "'";
 				msg+= "\nsend ERROR 002";
-				LOG(LOG_ERROR, msg);
+				LOG(LOG_SERVERERROR, msg);
 				sendmsg= "ERROR 002\n";
 				descriptor << sendmsg;
 		#ifdef SERVERDEBUG
@@ -510,7 +510,7 @@ namespace server
 					msg+= "client want to stop server with no root user '";
 					msg+= descriptor.getString("username") + "'\n";
 					msg+= "permisson denied, send ERROR 013";
-					LOG(LOG_ERROR, msg);
+					LOG(LOG_SERVERERROR, msg);
 					glob::stopMessage(msg);
 					sendmsg= "ERROR 013\n";
 					descriptor << sendmsg;
@@ -519,7 +519,7 @@ namespace server
 	#endif
 					return descriptor.getBoolean("wait");
 				}
-				LOG(LOG_INFO, "user stop server with foreign application");
+				LOG(LOG_SERVERINFO, "user stop server with foreign application");
 				glob::stopMessage("do not allow new connections");
 				server->allowNewConnections(false);
 				glob::stopMessage("ending all Debug message output from owreader to any client");
@@ -627,7 +627,7 @@ namespace server
 							msg+= input + "'\ncannot found OWServer with ID ";
 							msg+= sID;
 							msg+= "\nsend ERROR 017";
-							LOG(LOG_ERROR, msg);
+							LOG(LOG_SERVERERROR, msg);
 							sendmsg= "ERROR 017\n";
 							descriptor << sendmsg;
 #ifdef SERVERDEBUG
@@ -677,7 +677,7 @@ namespace server
 						msg+= "client ask for '";
 						msg+= input + "'\ncannot found folder";
 						msg+= "\nsend ERROR 004";
-						LOG(LOG_ERROR, msg);
+						LOG(LOG_SERVERERROR, msg);
 						sendmsg= "ERROR 004\n";
 						descriptor << sendmsg;
 			#ifdef SERVERDEBUG
@@ -702,7 +702,7 @@ namespace server
 					msg+= "client ask for '";
 					msg+= input + "'\n";
 					msg+= "\nsend ERROR 007";
-					LOG(LOG_ERROR, msg);
+					LOG(LOG_SERVERERROR, msg);
 					sendmsg= "ERROR 007\n";
 					descriptor << sendmsg;
 				}else
@@ -743,7 +743,7 @@ namespace server
 						msg+= "client ask for '";
 						msg+= input + "'\n";
 						msg+= "\nsend ERROR 008";
-						LOG(LOG_ERROR, msg);
+						LOG(LOG_SERVERERROR, msg);
 						sendmsg= "ERROR 008\n";
 						descriptor << sendmsg;
 		#ifdef SERVERDEBUG
@@ -800,7 +800,7 @@ namespace server
 					msg+= "client ask for '";
 					msg+= input + "'\n";
 					msg+= "send ERROR 009";
-					LOG(LOG_ERROR, msg);
+					LOG(LOG_SERVERERROR, msg);
 					sendmsg= "<error number=\"009\" />\n";
 					descriptor << sendmsg;
 		#ifdef SERVERDEBUG
@@ -851,7 +851,7 @@ namespace server
 							msg+= buffer;
 							msg+= " is incorrect";
 							msg+= "\nsend ERROR 003 0";
-							LOG(LOG_ERROR, msg);
+							LOG(LOG_SERVERERROR, msg);
 							sendmsg= "ERROR 003 0\n";
 							descriptor << sendmsg;
 							bWait= false;
@@ -876,7 +876,7 @@ namespace server
 							msg+= buffer;
 							msg+= " is incorrect";
 							msg+= "\nsend ERROR 003 1";
-							LOG(LOG_ERROR, msg);
+							LOG(LOG_SERVERERROR, msg);
 							sendmsg= "ERROR 003 1\n";
 							descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -938,7 +938,7 @@ namespace server
 								msg+= "but user '";
 								msg+= descriptor.getString("username") + "' has no permisson to subroutine\n";
 								msg+= "so permisson denied, send ERROR 013";
-								LOG(LOG_ERROR, msg);
+								LOG(LOG_SERVERERROR, msg);
 								sendmsg= "ERROR 013\n";
 								descriptor << sendmsg;
 								bWait= false;
@@ -998,7 +998,7 @@ namespace server
 					msg+= entry;
 					msg+= " is incorrect";
 					msg+= "\nsend ERROR 003 1";
-					LOG(LOG_ERROR, msg);
+					LOG(LOG_SERVERERROR, msg);
 					sendmsg= "ERROR 003 1\n";
 					descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -1036,7 +1036,7 @@ namespace server
 							msg+= "user '";
 							msg+= descriptor.getString("username") + "' but has no permisson to subroutine\n";
 							msg+= "so permisson denied, send ERROR 013";
-							LOG(LOG_ERROR, msg);
+							LOG(LOG_SERVERERROR, msg);
 							sendmsg= "ERROR 013\n";
 							descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -1053,7 +1053,7 @@ namespace server
 				msg+= input;
 				msg+= "'";
 				msg+= "\nsend ERROR 002";
-				LOG(LOG_ERROR, msg);
+				LOG(LOG_SERVERERROR, msg);
 				sendmsg= "ERROR 002\n";
 				descriptor << sendmsg;
 		#ifdef SERVERDEBUG
@@ -1077,7 +1077,7 @@ namespace server
 			msg+= folder + ":" + subroutine + "'\n";
 			msg+= "but subroutine has no correct acces to device\n";
 			msg+= "send ERROR 016";
-			LOG(LOG_ERROR, msg);
+			LOG(LOG_SERVERERROR, msg);
 #ifdef SERVERDEBUG
 			cerr << msg << endl;
 #endif
@@ -1092,7 +1092,7 @@ namespace server
 			msg+= " in folder ";
 			msg+= folder;
 			msg+= "\nsend ERROR 005";
-			LOG(LOG_ERROR, msg);
+			LOG(LOG_SERVERERROR, msg);
 			sRv= "ERROR 005\n";
 #ifdef SERVERDEBUG
 			cerr << msg << endl;
@@ -1105,7 +1105,7 @@ namespace server
 			msg+= "cannot find folder ";
 			msg+= folder;
 			msg+= "\nsend ERROR 004";
-			LOG(LOG_ERROR, msg);
+			LOG(LOG_SERVERERROR, msg);
 	#ifdef SERVERDEBUG
 			cout << "send: ERROR 004" << endl;
 	#endif

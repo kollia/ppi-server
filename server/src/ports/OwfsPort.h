@@ -23,7 +23,7 @@
 
 #include "../portserver/lib/OWInterface.h"
 
-#include "../util/configpropertycasher.h"
+#include "../util/properties/configpropertycasher.h"
 
 #include "valueholder.h"
 

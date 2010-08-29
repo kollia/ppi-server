@@ -30,7 +30,7 @@
 
 #include "../util/smart_ptr.h"
 
-#include "../util/interlacedactionproperties.h"
+#include "../util/properties/interlacedactionproperties.h"
 
 using namespace std;
 using namespace util;

@@ -19,7 +19,7 @@
 
 #include "../../../pattern/server/ITransferPattern.h"
 
-#include "../../../util/IMethodStringStream.h"
+#include "../../../util/stream/IMethodStringStream.h"
 
 using namespace design_pattern_world::server_pattern;
 using namespace util;

@@ -23,7 +23,7 @@
 
 #include "interlacedactionproperties.h"
 
-#include "../pattern/util/iactionpropertymsgpattern.h"
+#include "../../pattern/util/iactionpropertymsgpattern.h"
 
 using namespace std;
 using namespace design_pattern_world;

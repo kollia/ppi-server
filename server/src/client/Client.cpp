@@ -35,10 +35,10 @@
 #include "../util/GlobalStaticMethods.h"
 #include "../util/smart_ptr.h"
 #include "../util/URL.h"
-#include "../util/configpropertycasher.h"
-#include "../util/ExternClientInputTemplate.h"
 
+#include "../server/libs/client/ExternClientInputTemplate.h"
 #include "../server/libs/client/SocketClientConnection.h"
+
 #include "../server/libs/server/ServerThread.h"
 
 #include "lib/ClientTransaction.h"

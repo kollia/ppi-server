@@ -21,7 +21,7 @@
 #include <vector>
 #include <string>
 
-#include "../../util/ProcessInterfaceTemplate.h"
+#include "../../server/libs/client/ProcessInterfaceTemplate.h"
 #include "../../util/smart_ptr.h"
 
 #include "../../pattern/server/IClientConnectArtPattern.h"

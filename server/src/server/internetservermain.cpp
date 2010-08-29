@@ -26,12 +26,16 @@
 
 #include <boost/algorithm/string/split.hpp>
 
+
+#include "../pattern/util/LogHolderPattern.h"
+
 #include "../logger/lib/LogInterface.h"
 
 #include "../util/GlobalStaticMethods.h"
-#include "../util/properties.h"
 #include "../util/URL.h"
 #include "../util/usermanagement.h"
+
+#include "../util/properties/properties.h"
 
 #include "../database/lib/NeedDbChanges.h"
 
@@ -132,6 +136,7 @@ int main(int argc, char* argv[])
 														0								),
 							/*identif log wait*/nLogAllSec,
 							/*wait*/true													);
+	LogHolderPattern::init(LogInterface::instance());
 
 
 	property= "minconnectionthreads";

@@ -20,12 +20,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "Thread.h"
+//#include "Thread.h"
 #include "process.h"
 
-#include "../OMethodStringStream.h"
+#include "../stream/OMethodStringStream.h"
 
-#include "../../logger/lib/LogInterface.h"
+#include "../../pattern/util/LogHolderPattern.h"
+//#include "../../logger/lib/LogInterface.h"
 
 namespace util
 {

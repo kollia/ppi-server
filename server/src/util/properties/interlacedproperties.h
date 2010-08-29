@@ -34,7 +34,7 @@
 
 #include "properties.h"
 
-#include "../pattern/util/iinterlacedpropertypattern.h"
+#include "../../pattern/util/iinterlacedpropertypattern.h"
 
 namespace util {
 

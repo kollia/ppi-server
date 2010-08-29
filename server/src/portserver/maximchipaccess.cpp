@@ -31,7 +31,8 @@
 
 
 #include "../util/URL.h"
-#include "../util/configpropertycasher.h"
+
+#include "../util/properties/configpropertycasher.h"
 
 #include "../database/lib/DbInterface.h"
 

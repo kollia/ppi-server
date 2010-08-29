@@ -27,7 +27,8 @@
 
 #include "../util/smart_ptr.h"
 #include "../util/structures.h"
-#include "../util/configpropertycasher.h"
+
+#include "../util/properties/configpropertycasher.h"
 
 using namespace std;
 using namespace util;

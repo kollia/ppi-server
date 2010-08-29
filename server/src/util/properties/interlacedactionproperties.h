@@ -32,7 +32,7 @@
 #include "interlacedproperties.h"
 #include "actionproperties.h"
 
-#include "../pattern/util/iinterlacedactionpropertypattern.h"
+#include "../../pattern/util/iinterlacedactionpropertypattern.h"
 
 namespace util {
 

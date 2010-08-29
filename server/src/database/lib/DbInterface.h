@@ -25,7 +25,8 @@
 #include <fstream>
 
 #include "../../util/structures.h"
-#include "../../util/ProcessInterfaceTemplate.h"
+
+#include "../../server/libs/client/ProcessInterfaceTemplate.h"
 
 using namespace std;
 using namespace util;

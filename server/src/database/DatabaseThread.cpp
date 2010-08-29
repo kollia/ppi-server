@@ -15,7 +15,6 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <limits.h>
-#include <iostream>
 #include <errno.h>
 #include <dirent.h>
 #include <sys/types.h>
@@ -26,6 +25,7 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include <iostream>
 #include <sstream>
 #include <algorithm>
 
@@ -36,8 +36,9 @@
 
 #include "../util/URL.h"
 #include "../util/Calendar.h"
-#include "../util/configpropertycasher.h"
-#include "../util/ExternClientInputTemplate.h"
+#include "../util/properties/configpropertycasher.h"
+
+#include "../server/libs/client/ExternClientInputTemplate.h"
 
 #include "../pattern/server/IClientPattern.h"
 

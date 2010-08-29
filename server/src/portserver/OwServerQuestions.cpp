@@ -22,8 +22,9 @@
 
 #include "../logger/lib/LogInterface.h"
 
-#include "../util/IMethodStringStream.h"
-#include "../util/configpropertycasher.h"
+#include "../util/stream/IMethodStringStream.h"
+
+#include "../util/properties/configpropertycasher.h"
 
 namespace server {
 

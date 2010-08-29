@@ -17,9 +17,10 @@
 
 #include <boost/algorithm/string/split.hpp>
 
-#include "debugtransaction.h"
+#include "../../../util/debugtransaction.h"
+#include "../../../util/thread/Thread.h"
+
 #include "ExternClientInputTemplate.h"
-#include "thread/Thread.h"
 
 namespace util
 {

@@ -27,15 +27,12 @@
 #include <boost/algorithm/string/replace.hpp>
 
 #include "GlobalStaticMethods.h"
-#include "thread/StatusLogRoutine.h"
-//#include "thread/Thread.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 
 string GlobalStaticMethods::m_sProcessName("unknown process");
 
-using namespace logger;
 using namespace boost;
 
 void GlobalStaticMethods::stopMessage(const string& message, bool all/*= false*/)
@@ -95,14 +92,14 @@ void GlobalStaticMethods::printSigError(const string& cpSigValue, const string& 
 void GlobalStaticMethods::signalconverting(int nSignal)
 {
 	string msg;
-	LogInterface *log= LogInterface::instance();
+	LogHolderPattern *log= LogHolderPattern::instance();
 
-	if(	log
+/*	if(	log
 		&&
 		!log->running()	)
 	{
 		log= NULL;
-	}
+	}*/
 	switch(nSignal)
 	{
 		case SIGINT:
@@ -110,12 +107,15 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 			exit(0);
 			break;
 
-		case SIGHUP:
+// 2010/08/18 ppi@magnificat.at:	remove getStatusInfo for signal SIGHUP
+//									because cycle dependency not allowed for shared library
+//									libppiutil.so <-> libppithreadutil.so
+/*		case SIGHUP:
 			msg= StatusLogRoutine::getStatusInfo("clients");
 			if(log)
 				LOG(LOG_INFO, msg);
 			cout << endl << msg << endl;
-			break;
+			break;*/
 
 		case SIGSEGV:
 			cout << "SIGSEGV: \"" << m_sProcessName << "\" close from system" << endl;

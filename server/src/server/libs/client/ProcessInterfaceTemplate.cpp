@@ -16,7 +16,7 @@
  */
 
 #include "ProcessInterfaceTemplate.h"
-#include "OMethodStringStream.h"
+#include "../../../util/stream/OMethodStringStream.h"
 
 namespace util
 {

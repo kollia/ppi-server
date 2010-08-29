@@ -32,9 +32,8 @@
 #include <vector>
 
 
-#include "../../util/structures.h"
-#include "../../util/OMethodStringStream.h"
-#include "../../util/IMethodStringStream.h"
+#include "../../util/stream/OMethodStringStream.h"
+#include "../../util/stream/IMethodStringStream.h"
 
 #include "../../logger/lib/logstructures.h"
 #include "../../logger/lib/LogInterface.h"

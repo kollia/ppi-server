@@ -33,7 +33,7 @@
 
 #include "properties.h"
 
-#include "../pattern/util/iactionpropertypattern.h"
+#include "../../pattern/util/iactionpropertypattern.h"
 
 namespace util {
 

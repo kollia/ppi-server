@@ -17,7 +17,6 @@
 #ifndef TEMPPORT_H_
 #define TEMPPORT_H_
 
-//#include <sys/io.h>
 #include "../util/structures.h"
 
 #include "resistancemeasure.h"

@@ -30,17 +30,17 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "../../../pattern/server/IFileDescriptorPattern.h"
+
 #include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/XMLStartEndTagReader.h"
-#include "../../../util/ExternClientInputTemplate.h"
 
 #include "../../../ports/measureThread.h"
 
 #include "../../../logger/lib/LogInterface.h"
 
 #include "../client/SocketClientConnection.h"
-
-#include "../../../pattern/server/IFileDescriptorPattern.h"
+#include "../client/ExternClientInputTemplate.h"
 
 #include "ServerProcess.h"
 

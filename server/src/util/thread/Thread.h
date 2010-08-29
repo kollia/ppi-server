@@ -30,6 +30,7 @@
 #include "../debug.h"
 
 #include "../../pattern/util/ithreadpattern.h"
+#include "../../pattern/util/ILogPattern.h"
 
 // reading in c't extra programmieren
 // article: Tauziehen (Programmieren mit POSIX-Threads) under side 62

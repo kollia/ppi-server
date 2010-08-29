@@ -20,15 +20,18 @@
 #include <iostream>
 #include <fstream>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+
 #include "usermanagement.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
-#include "../util/interlacedproperties.h"
-#include "../util/configpropertycasher.h"
+#include "properties/interlacedproperties.h"
 
 using namespace std;
 using namespace util;
+using namespace boost;
 
 namespace user
 {
@@ -66,7 +69,7 @@ namespace user
 		InterlacedProperties mproperties;
 		set<string> fGroups;
 		set<string>::iterator git;
-		vector<string> split;
+		vector<string> splitvec;
 		vector<string>::size_type count, ecount;
 		map<string, set<string> > msGroupGroup;
 		map<string, set<string> >::iterator ggit;
@@ -139,8 +142,8 @@ namespace user
 		for(vector<string>::size_type i= 0; i < count; ++i)
 		{
 			param= casher.getValue("user", i, false);
-			split= ConfigPropertyCasher::split(param, ":");
-			if(split.size() != 2)
+			split(splitvec, param, is_any_of(":"));
+			if(splitvec.size() != 2)
 			{
 				string msg("### WARNING: undefined user '");
 
@@ -149,7 +152,7 @@ namespace user
 				msg+= "             this user will be ignored";
 			}else
 			{
-				m_mUser[split[0]]= split[1];
+				m_mUser[splitvec[0]]= splitvec[1];
 				++ecount;
 				//cout << "read user '" << split[0] << "' with password '" << split[1] << "'" << endl;
 			}
@@ -167,8 +170,8 @@ namespace user
 		for(vector<string>::size_type i= 0; i < count; ++i)
 		{
 			param= casher.getValue("group", i, false);
-			split= ConfigPropertyCasher::split(param, ":");
-			if(split.size() != 2)
+			split(splitvec, param, is_any_of(":"));
+			if(splitvec.size() != 2)
 			{
 				string msg("### WARNING: undefined group '");
 
@@ -177,7 +180,7 @@ namespace user
 				msg+= "             this user will be ignored";
 			}else
 			{
-				m_mGroup[split[0]]= split[1];
+				m_mGroup[splitvec[0]]= splitvec[1];
 				//cout << "read group '" << split[0] << "' with permission '" << split[1] << "'" << endl;
 			}
 		}
@@ -189,22 +192,22 @@ namespace user
 			bool ok= false;
 
 			param= casher.getValue("alloc", i, false);
-			split= ConfigPropertyCasher::split(param, ":");
-			if(split.size() == 3)
+			split(splitvec, param, is_any_of(":"));
+			if(splitvec.size() == 3)
 			{
-				if(split[0] == "u")
+				if(splitvec[0] == "u")
 				{
 					fGroups.clear();
-					referedGroups(split[2], &fGroups, msGroupGroup);
+					referedGroups(splitvec[2], &fGroups, msGroupGroup);
 					for(set<string>::iterator f= fGroups.begin(); f != fGroups.end(); ++f)
 					{
-						m_msAllocation[split[1]].insert(*f);
+						m_msAllocation[splitvec[1]].insert(*f);
 						//cout << "make allocation between user '" << split[1] << "' and group '" << *f << "'" << endl;
 					}
 					ok= true;
-				}else if(split[0] == "g")
+				}else if(splitvec[0] == "g")
 				{
-					msGroupGroup[split[1]].insert(split[2]);
+					msGroupGroup[splitvec[1]].insert(splitvec[2]);
 					//cout << "make allocation between groups '" << split[1] << "' and '" << split[2] << "'" << endl;
 					ok= true;
 				}
@@ -341,15 +344,15 @@ namespace user
 		map<string, set<string> >::iterator fu;
 		map<string, string>::iterator fg;
 		set<string>::iterator fga;
-		vector<string> split;
+		vector<string> splitvec;
 
 		if(user == m_sroot)
 			return true;
 		fu= m_msAllocation.find(user);
 		if(fu == m_msAllocation.end())
 			return false;
-		split= ConfigPropertyCasher::split(groups, ":");
-		for(vector<string>::iterator i= split.begin(); i != split.end(); ++i)
+		split(splitvec, groups, is_any_of(":"));
+		for(vector<string>::iterator i= splitvec.begin(); i != splitvec.end(); ++i)
 		{
 			fga= fu->second.find(*i);
 			if(fga != fu->second.end())

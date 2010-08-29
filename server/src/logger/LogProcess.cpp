@@ -29,7 +29,8 @@
 #include "lib/LogInterface.h"
 
 #include "../util/URL.h"
-#include "../util/IMethodStringStream.h"
+
+#include "../util/stream/IMethodStringStream.h"
 
 #include "../pattern/util/ipropertypattern.h"
 
@@ -73,8 +74,6 @@ int LogProcess::init(void* arg)
 		nLogLevel= LOG_DEBUG;
 	else if(sLogLevel == "INFO")
 		nLogLevel= LOG_INFO;
-	else if(sLogLevel == "SERVER")
-		nLogLevel= LOG_SERVER;
 	else if(sLogLevel == "WARNING")
 		nLogLevel= LOG_WARNING;
 	else if(sLogLevel == "ERROR")

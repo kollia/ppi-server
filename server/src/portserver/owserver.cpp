@@ -33,8 +33,6 @@
 
 #include "../logger/lib/LogInterface.h"
 
-#include "../util/configpropertycasher.h"
-
 #include "../database/lib/DbInterface.h"
 
 #include "../server/libs/client/SocketClientConnection.h"

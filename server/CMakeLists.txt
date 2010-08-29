@@ -10,6 +10,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 
 
+set(PPIPATTERN_LIB_VERSION "1.0")
+set(PPIPATTERN_LIB_SOVERSION "1")
+
 set(PPIDB_LIB_VERSION "1.0")
 set(PPIDB_LIB_SOVERSION "1")
 
@@ -33,6 +36,14 @@ set(PPILOGGER_LIB_SOVERSION "1")
 
 set(PPIUTIL_LIB_VERSION "1.0")
 set(PPIUTIL_LIB_SOVERSION "1")
+set(PPISTREAMUTIL_LIB_VERSION "1.0")
+set(PPISTREAMUTIL_LIB_SOVERSION "1")
+set(PPIPROPERTYUTIL_LIB_VERSION "1.0")
+set(PPIPROPERTYUTIL_LIB_SOVERSION "1")
+set(PPITHREADUTIL_LIB_VERSION "1.0")
+set(PPITHREADUTIL_LIB_SOVERSION "1")
+set(PPIPROCESSUTIL_LIB_VERSION "1.0")
+set(PPIPROCESSUTIL_LIB_SOVERSION "1")
 
 set(PPICPPCLIENT_LIB_VERSION "1.0")
 set(PPICPPCLIENT_LIB_SOVERSION "1")
@@ -45,6 +56,7 @@ set(INSTALL_CONFIG_PATH /usr/local/etc CACHE PATH CONFIG_PATH)
 set(INSTALL_DATABASE_PATH /var/local CACHE PATH DATABASE_PATH)
 set(INSTALL_LOGGING_PATH /var/log CACHE PATH LOGGING_PATH)
 set(INSTALL_DEFAULTUSER nobody CACHE STRING DEFAULTUSER)
+
 
 if(INSTALL_CLIENT_PATH)
   string(REGEX MATCH "^." reg ${INSTALL_CLIENT_PATH})
@@ -126,18 +138,32 @@ if(USE_K8055)
   add_definitions(-D_K8055LIBRARY)
 endif(USE_K8055)
 
-# librarys
-add_subdirectory( src/util )
-add_subdirectory( src/ports )
-add_subdirectory( src/portserver/lib )
-add_subdirectory( src/logger/lib )
-add_subdirectory( src/database/lib )
-add_subdirectory( src/server/libs )
-add_subdirectory( src/server/libs/client )
-add_subdirectory( src/server/libs/server )
-add_subdirectory( src/client/lib )
+option(USE_SHAREDLIBS "use shared libraries for project" ON)
+if(USE_SHAREDLIBS)
+	set(libraries SHARED)
+else(USE_SHAREDLIBS)
+	set(libraries STATIC)
+endif(USE_SHAREDLIBS)
 
-# binarys
+# libraries
+add_subdirectory( src/pattern/util ) # ppipattern need: ---
+
+add_subdirectory( src/util/stream ) # ppistreamutil need: ---
+add_subdirectory( src/util/properties ) # ppipropertyutil need: ppistreamutil ppipattern
+add_subdirectory( src/util ) # ppiutil need: ppipropertyutil ppistreamutil ppipattern
+add_subdirectory( src/util/thread ) # ppithreadutil need: rt ppiutil ppipattern
+add_subdirectory( src/server/libs ) # ppiserverlib need: ppithreadutil
+add_subdirectory( src/server/libs/client ) # ppiserverlibclient need: ppiserverlib
+add_subdirectory( src/util/process ) # ppiprocessutil need: ppistreamutil ppithreadutil ppiserverlibclient
+add_subdirectory( src/logger/lib ) # ppilogger need: ppithreadutil ppistreamutil ppiserverlibclient
+add_subdirectory( src/server/libs/server ) # ppiserverlibserver need: ppiprocessutil ppiserverlib ppiserverlibclient ppilogger
+add_subdirectory( src/database/lib ) # ppidb need: ppithreadutil ppistreamutil ppiserverlibclient ppilogger
+add_subdirectory( src/portserver/lib ) # ppiow need: ppistreamutil ppiserverlibclient ppilogger
+add_subdirectory( src/ports ) # ppiports need: ppiutil ppithreadutil ppiserverlibclient ppidb ppiow ppilogger
+add_subdirectory( src/client/lib ) # ppicppclient need: ppiutil ppistreamutil ppithreadutil ppiserverlibclient
+
+
+# binaries
 add_subdirectory( src/config )
 add_subdirectory( src/server )
 add_subdirectory( src/logger )

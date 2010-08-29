@@ -24,8 +24,9 @@
 
 #include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/XMLStartEndTagReader.h"
-#include "../../../util/configpropertycasher.h"
 #include "../../../util/usermanagement.h"
+
+#include "../../../util/properties/configpropertycasher.h"
 
 #include "../../../pattern/server/IFileDescriptorPattern.h"
 

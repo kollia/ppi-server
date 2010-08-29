@@ -34,7 +34,8 @@
 
 #include "../util/URL.h"
 #include "../util/Calendar.h"
-#include "../util/configpropertycasher.h"
+
+#include "../util/properties/configpropertycasher.h"
 
 
 namespace ports

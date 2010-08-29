@@ -24,9 +24,10 @@
 #include <iostream>
 #include <sstream>
 
-#include "../../util/configpropertycasher.h"
 #include "../../util/XMLStartEndTagReader.h"
 #include "../../util/structures.h"
+
+#include "../../util/properties/configpropertycasher.h"
 
 #include "ClientTransaction.h"
 

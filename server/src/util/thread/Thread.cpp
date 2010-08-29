@@ -20,6 +20,13 @@
 #include <pthread.h>
 #include <string.h>
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif // _GNU_SOURCE
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -29,13 +36,13 @@
 #include "Thread.h"
 
 #include "../GlobalStaticMethods.h"
-#include "../configpropertycasher.h"
+#include "../properties/configpropertycasher.h"
 
-#include "../../logger/lib/LogInterface.h"
+#include "../../pattern/util/LogHolderPattern.h"
 
 using namespace std;
 using namespace util;
-using namespace logger;
+//using namespace logger;
 
 
 bool Thread::m_bAppRun= true;
@@ -140,8 +147,7 @@ void Thread::run()
 	m_nThreadId= gettid();
 	initstatus(getThreadName(), this);
 	startmsg+= thname + "'";
-	if(LogInterface::instance())
-		LOG(LOG_DEBUG, startmsg);
+	LOG(LOG_DEBUG, startmsg);
 #ifdef SERVERDEBUG
 	cout << startmsg << endl;
 #endif // SERVERDEBUG
@@ -167,8 +173,7 @@ void Thread::run()
 			error+= "### thread ";
 			error+= thname;
 			error+= " cannot inital correcty";
-			if(LogInterface::instance())
-				LOG(LOG_ERROR, error);
+			LOG(LOG_ERROR, error);
 			LOCK(m_STOPTHREAD);
 			m_bStop= true;
 			UNLOCK(m_STOPTHREAD);
@@ -190,8 +195,7 @@ void Thread::run()
 			{
 				error+= "execute thread ";
 				error+= thname;
-				if(LogInterface::instance())
-					LOG(LOG_ALERT, error);
+				LOG(LOG_ALERT, error);
 				cerr << error << endl;
 			}
 		}
@@ -199,8 +203,7 @@ void Thread::run()
 	{
 		error+= "initialisation on thread ";
 		error+= thname;
-		if(LogInterface::instance())
-			LOG(LOG_ALERT, error);
+		LOG(LOG_ALERT, error);
 		cerr << error << endl;
 	}
 	ending();
@@ -1114,8 +1117,7 @@ int Thread::detach()
 
 		msg+= getThreadName() + "\n           ";
 		msg+= strerror(nRv);
-		if(LogInterface::instance()->running())
-			LOG(LOG_ERROR, msg);
+		LOG(LOG_ERROR, msg);
 #ifdef DEBUG
 		cerr << msg << endl;
 #endif

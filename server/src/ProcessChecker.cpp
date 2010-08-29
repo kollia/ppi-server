@@ -25,7 +25,8 @@
 #include "logger/lib/LogInterface.h"
 
 #include "util/GlobalStaticMethods.h"
-#include "util/IMethodStringStream.h"
+
+#include "util/stream/IMethodStringStream.h"
 
 using namespace util;
 using namespace boost;

@@ -21,10 +21,10 @@
 #include <unistd.h>
 #include <string>
 
-#include "StatusLogRoutine.h"
-#include "Thread.h"
+#include "../thread/StatusLogRoutine.h"
+#include "../thread/Thread.h"
 
-#include "../ExternClientInputTemplate.h"
+#include "../../server/libs/client/ExternClientInputTemplate.h"
 
 #include "../../pattern/util/ithreadpattern.h"
 

@@ -30,10 +30,13 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include "properties.h"
-#include "URL.h"
-#include "IParameterStringStream.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../GlobalStaticMethods.h"
+
+#include "../stream/IParameterStringStream.h"
+#include "../stream/OParameterStringStream.h"
+
+#include "../../pattern/util/LogHolderPattern.h"
 
 
 using namespace boost;
@@ -106,9 +109,25 @@ namespace util {
 					{
 						if(param.parameter == "file")
 						{
+							bool fsep= false, ssep= false;
+
 							if(path == "")
-								path= URL::getPath(filename);
-							newfile= URL::addPath(path, param.value);
+							{
+								string::size_type  pos= filename.find_last_of("/");
+
+								if(pos != string::npos)
+									path= filename.substr(0, pos);
+								else
+									path= "./";
+							}
+							fsep= path.substr(path.length()-1, 1) == "/" ? true : false;
+							ssep= param.value.substr(0, 1) == "/" ? true : false;
+							newfile= path;
+							if(!fsep && !ssep)
+								newfile+= "/";
+							else if(fsep && ssep)
+								newfile= newfile.substr(0, newfile.length()-1);
+							newfile+= param.value;
 							if(!readFile(newfile))
 							{
 								string msg;
@@ -118,8 +137,7 @@ namespace util {
 								msg+= "             in configuration file ";
 								msg+= filename;
 								cerr << msg << endl;
-								if(logger::LogInterface::instance())
-									LOG(LOG_WARNING, msg);
+								LOG(LOG_ERROR, msg);
 							}
 						}else
 							readLine(param);
@@ -131,8 +149,7 @@ namespace util {
 					msg+= line + "'\n             in configuration file ";
 					msg+= filename;
 					cerr << msg << endl;
-					if(logger::LogInterface::instance())
-						LOG(LOG_WARNING, msg);
+					LOG(LOG_WARNING, msg);
 				}
 			}
 		}else
@@ -367,8 +384,7 @@ namespace util {
 				m_mFetchErrors[property]= true;
 			else
 				cerr << msg << endl;
-			if(logger::LogInterface::instance())
-				LOG(LOG_ALERT, msg);
+			LOG(LOG_ALERT, msg);
 		}
 		mPContent= m_oPulled.find(property);
 		if(mPContent == m_oPulled.end())
@@ -440,8 +456,7 @@ namespace util {
 					m_mFetchErrors[property]= false; // because maybe the error was written with true
 			}else
 				cerr << msg << endl;
-			if(logger::LogInterface::instance())
-				LOG(LOG_WARNING, msg);
+			LOG(LOG_WARNING, msg);
 		}
 
 		mPContent= m_oPulled.find(property);
@@ -766,8 +781,7 @@ namespace util {
 				*output= msg;
 			else
 				cout << msg << endl;
-			if(logger::LogInterface::instance())
-				LOG(LOG_WARNING, msg);
+			LOG(LOG_WARNING, msg);
 		}
 	}
 

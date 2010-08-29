@@ -20,7 +20,7 @@
 #include <string>
 
 #include "../util/structures.h"
-#include "../util/configpropertycasher.h"
+#include "../util/properties/configpropertycasher.h"
 
 #include "portbaseclass.h"
 

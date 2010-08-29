@@ -28,8 +28,9 @@
 #include "../pattern/server/IServerPattern.h"
 
 #include "../util/GlobalStaticMethods.h"
-#include "../util/OParameterStringStream.h"
-#include "../util/OMethodStringStream.h"
+
+#include "../util/stream/OParameterStringStream.h"
+#include "../util/stream/OMethodStringStream.h"
 
 #include "../logger/lib/LogInterface.h"
 

@@ -29,7 +29,7 @@
 #include <vector>
 #include <map>
 
-#include "../pattern/util/ipropertypattern.h"
+#include "../../pattern/util/ipropertypattern.h"
 
 	using namespace std;
 

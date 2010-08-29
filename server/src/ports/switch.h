@@ -19,6 +19,8 @@
 
 #include "../util/structures.h"
 
+#include "../util/properties/configpropertycasher.h"
+
 #include "portbaseclass.h"
 
 class switchClass : public portBase

@@ -31,13 +31,15 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
+
+#include "pattern/util/LogHolderPattern.h"
+
 #include "util/debug.h"
 #include "util/GlobalStaticMethods.h"
 #include "util/smart_ptr.h"
 #include "util/URL.h"
-#include "util/configpropertycasher.h"
 #include "util/usermanagement.h"
-#include "util/thread/ProcessStarter.h"
+#include "util/process/ProcessStarter.h"
 
 #include "logger/lib/LogInterface.h"
 
@@ -238,6 +240,7 @@ bool Starter::execute()
 		cerr << "             so no log can be written into any files" << endl;
 		cerr << "             " << process->strerror(err) << endl;
 	}
+	LogHolderPattern::init(LogInterface::instance());
 	// ------------------------------------------------------------------------------------------------------------
 
 	bool blirc= false;
@@ -2080,7 +2083,7 @@ bool Starter::stop()
 			printf("ERROR: lost connection to server\n");
 			printf("       maybe server always running\n");
 #endif // DEBUG
-			LOG(LOG_SERVER, "ERROR: lost connection to server\n       maybe server always running");
+			LOG(LOG_SERVERERROR, "ERROR: lost connection to server\n       maybe server always running");
 			break;
 		}
 		dostop= buf;

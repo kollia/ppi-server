@@ -24,7 +24,6 @@
 
 #include "../logger/lib/LogInterface.h"
 
-#include "../util/configpropertycasher.h"
 
 using namespace util;
 

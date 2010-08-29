@@ -6,6 +6,6 @@ set(loggerSrcs	LogThread.cpp
         		loggermain.cpp	)
 		
 add_executable(ppi-log-client ${loggerSrcs})
-target_link_libraries(ppi-log-client ppiutil ppilogger ppiserverlib ppiserverlibclient ${RT_LIBRARIES} )
+target_link_libraries(ppi-log-client ppiutil ppistreamutil ppipropertyutil ppithreadutil ppiprocessutil ppiserverlibclient ppilogger)
 install(TARGETS ppi-log-client DESTINATION bin)
 

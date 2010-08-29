@@ -20,7 +20,7 @@
 
 #include <vector>
 
-#include "../util/thread/process.h"
+#include "../util/process/process.h"
 
 #include "owserver.h"
 

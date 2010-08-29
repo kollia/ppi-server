@@ -24,10 +24,11 @@
 #include <iostream>
 #include <sstream>
 
-#include "OutsideClientTransaction.h"
+#include <boost/algorithm/string/trim.hpp>
 
-#include "../../../util/ExternClientInputTemplate.h"
-#include "../../../util/configpropertycasher.h"
+#include "OutsideClientTransaction.h"
+#include "ExternClientInputTemplate.h"
+
 
 using namespace std;
 using namespace util;
@@ -68,7 +69,7 @@ namespace server
 					m_vAnswer.push_back("ERROR 001");
 					return false;
 				}
-				answer= ConfigPropertyCasher::trim(answer, " \t\r\n");
+				boost::trim(answer);
 				err= ExternClientInputTemplate::error(answer);
 				if(err != 0)
 				{

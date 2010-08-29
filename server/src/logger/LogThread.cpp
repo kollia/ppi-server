@@ -258,7 +258,7 @@ int LogThread::execute()
 		for(unsigned int n= 0; n < nSize; n++)
 		{
 			struct log_t result= (*pvLogVector)[n];
-			if(m_nMinLogLevel <= (*pvLogVector)[n].type)
+			if(m_nMinLogLevel <= ((*pvLogVector)[n].type & 0x00000111))
 			{
 				bool bWrite= true;
 
@@ -325,14 +325,26 @@ int LogThread::execute()
 						case LOG_WARNING:
 							logfile << "WARNING";
 							break;
-						case LOG_SERVER:
-							logfile << "SERVER";
-							break;
 						case LOG_ERROR:
 							logfile << "ERROR";
 							break;
 						case LOG_ALERT:
 							logfile << "ALERT error";
+							break;
+						case LOG_SERVERDEBUG:
+							logfile << "SERVER-DEBUG info";
+							break;
+						case LOG_SERVERINFO:
+							logfile << "SERVER-INFO";
+							break;
+						case LOG_SERVERWARNING:
+							logfile << "SERVER-WARNING";
+							break;
+						case LOG_SERVERERROR:
+							logfile << "SERVER-ERROR";
+							break;
+						case LOG_SERVERALERT:
+							logfile << "SERVER-ALERT";
 							break;
 						default:
 							logfile << "UNKNOWN logmessage";

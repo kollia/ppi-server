@@ -15,18 +15,22 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+
 #include <iostream>
 #include <sstream>
-#include <string.h>
 #include <vector>
 
 #include <boost/algorithm/string/split.hpp>
 
+
+#include "../pattern/util/LogHolderPattern.h"
 #include "../pattern/server/ichipaccesspattern.h"
 
 #include "../util/GlobalStaticMethods.h"
 #include "../util/URL.h"
-#include "../util/properties.h"
+
+#include "../util/properties/properties.h"
 
 #include "../logger/lib/LogInterface.h"
 
@@ -132,6 +136,7 @@ int main(int argc, char* argv[])
 														0			),
 							/*identif log*/nLogAllSec,
 							/*wait*/true								);
+	LogHolderPattern::init(LogInterface::instance());
 
 	// ------------------------------------------------------------------------------------------------------------
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////

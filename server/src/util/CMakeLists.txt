@@ -1,30 +1,27 @@
 
 set(utilSrcs	GlobalStaticMethods.cpp
-                actionproperties.cpp
 		        CalculatorContainer.cpp
 		        Calendar.cpp
-        		configpropertycasher.cpp
         		exception.cpp
-        		ExternClientInputTemplate.cpp
-        		IMethodStringStream.cpp
-        		interlacedactionproperties.cpp
-        		interlacedproperties.cpp
-        		IParameterStringStream.cpp
-        		OMethodStringStream.cpp
-        		OParameterStringStream.cpp
-        		ProcessInterfaceTemplate.cpp
-        		properties.cpp
-        		Terminal.cpp
+#        		Terminal.cpp
         		URL.cpp
         		usermanagement.cpp
-        		XMLStartEndTagReader.cpp
-        		thread/Thread.cpp
-        		thread/process.cpp
-        		thread/ProcessStarter.cpp
-        		thread/StatusLogRoutine.cpp		)
+        		XMLStartEndTagReader.cpp	)
+#        		thread/StatusLogRoutine.cpp
+#        		thread/Thread.cpp
+#        		process/process.cpp
+#        		process/ProcessStarter.cpp
+#        		stream/IMethodStringStream.cpp
+#        		stream/IParameterStringStream.cpp
+#        		stream/OMethodStringStream.cpp
+#        		stream/OParameterStringStream.cpp
+#        		properties/properties.cpp
+#        		properties/interlacedproperties.cpp
+#               properties/actionproperties.cpp
+#        		properties/interlacedactionproperties.cpp
+#        		properties/configpropertycasher.cpp			)
 
-add_library(ppiutil SHARED ${utilSrcs})
-#add_library(ppiutil STATIC ${utilSrcs})
-#target_link_libraries(ppiutil ${RT_LIBRARIES} ppiserverlibclient ppilogger)
+add_library(ppiutil ${libraries} ${utilSrcs})
+target_link_libraries(ppiutil ppipropertyutil ppistreamutil ppipattern)
 set_target_properties(ppiutil PROPERTIES VERSION ${PPIUTIL_LIB_VERSION} SOVERSION ${PPIUTIL_LIB_SOVERSION})
 install(TARGETS ppiutil DESTINATION lib)

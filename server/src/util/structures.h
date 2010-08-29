@@ -24,7 +24,8 @@
 #include "../ports/portbaseclass.h"
 
 #include "../util/smart_ptr.h"
-#include "../util/configpropertycasher.h"
+
+#include "../util/properties/configpropertycasher.h"
 
 using namespace std;
 using namespace util;

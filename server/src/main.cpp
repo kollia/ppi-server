@@ -25,8 +25,6 @@
 
 #include "util/termmacro.h"
 #include "util/debug.h"
-#include "util/configpropertycasher.h"
-//#include "util/Thread.h"
 
 #include "portserver/LircClient.h"
 
@@ -218,7 +216,7 @@ int main(int argc, char* argv[])
 		{
 			pthread_mutex_init(&g_READMUTEX, NULL);
 			result= server->execute();
-			cout << "### ppi-server starter process was stopped ";
+			cout << "### ppi-server was stopped ";
 			if(!result)
 			{
 				cout << "with an ERROR" << endl;

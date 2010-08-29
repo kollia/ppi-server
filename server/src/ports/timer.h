@@ -22,6 +22,8 @@
 
 #include "../util/structures.h"
 
+#include "../util/properties/configpropertycasher.h"
+
 #include "switch.h"
 
 class timer : public switchClass

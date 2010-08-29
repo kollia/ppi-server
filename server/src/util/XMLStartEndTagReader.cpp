@@ -14,11 +14,12 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#include <boost/algorithm/string/trim.hpp>
+
 #include "XMLStartEndTagReader.h"
 
-#include "configpropertycasher.h"
-
-using namespace util;
+using namespace boost;
 
 XMLStartEndTagReader::XMLStartEndTagReader()
 {
@@ -54,7 +55,7 @@ string XMLStartEndTagReader::readLine(string line)
 				&&
 				line[i] == '>'	)
 			{
-				etag= ConfigPropertyCasher::trim(etag);
+				trim(etag);
 				if(m_sStartTag == etag)
 				{
 					epos= i;
@@ -105,7 +106,7 @@ string XMLStartEndTagReader::readLine(string line)
 			{
 				m_bEnd= true;
 				m_bRead= true;
-				m_sStartTag= ConfigPropertyCasher::trim(m_sStartTag);
+				trim(m_sStartTag);
 			}else
 			{
 				if(bFoundError)

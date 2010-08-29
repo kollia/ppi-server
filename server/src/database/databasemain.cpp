@@ -25,11 +25,14 @@
 
 #include <boost/algorithm/string/split.hpp>
 
+#include "../pattern/util/LogHolderPattern.h"
+
 #include "../logger/lib/LogInterface.h"
 
 #include "../util/GlobalStaticMethods.h"
-#include "../util/properties.h"
 #include "../util/URL.h"
+
+#include "../util/properties/properties.h"
 
 #include "../server/libs/client/SocketClientConnection.h"
 #include "../server/libs/server/TcpServerConnection.h"
@@ -133,8 +136,9 @@ int main(int argc, char* argv[])
 														0			),
 							/*identif log*/nLogAllSec,
 							/*wait*/true								);
+	LogHolderPattern::init(LogInterface::instance());
 
-
+	LOG(LOG_DEBUG, "starting database");
 
 	starter= new CommunicationThreadStarter(0, nDbConnectors);
 	// start initialitation from database

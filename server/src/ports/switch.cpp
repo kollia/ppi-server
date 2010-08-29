@@ -31,7 +31,6 @@
 #include "../logger/lib/LogInterface.h"
 
 #include "../util/CalculatorContainer.h"
-#include "../util/configpropertycasher.h"
 
 #include "../database/lib/DbInterface.h"
 

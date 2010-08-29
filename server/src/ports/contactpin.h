@@ -19,7 +19,7 @@
 
 #include "portbaseclass.h"
 
-#include "../util/configpropertycasher.h"
+#include "../util/properties/configpropertycasher.h"
 
 namespace ports
 {

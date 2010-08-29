@@ -26,10 +26,12 @@
 #include <map>
 #include <iostream>
 
-#include "../../logger/lib/LogInterface.h"
+#include "../../pattern/util/LogHolderPattern.h"
+//#include "../../logger/lib/LogInterface.h"
 
 #include "../GlobalStaticMethods.h"
-#include "../configpropertycasher.h"
+
+#include "../properties/configpropertycasher.h"
 
 #include "Thread.h"
 #include "StatusLogRoutine.h"
@@ -37,7 +39,7 @@
 
 using namespace std;
 using namespace util;
-using namespace logger;
+//using namespace logger;
 
 map<pid_t, pos_t> StatusLogRoutine::m_mStatus;
 pthread_mutex_t* StatusLogRoutine::m_POSITIONSTATUS= Thread::getMutex("POSITIONSTATUS");
@@ -292,7 +294,7 @@ void StatusLogRoutine::removestatus(pid_t threadid)
 
 void StatusLogRoutine::setThreadLogName(string threadName)
 {
-	LogInterface *log= LogInterface::instance();
+	LogHolderPattern *log= LogHolderPattern::instance();
 
 	if(log)
 		log->setThreadName(threadName);

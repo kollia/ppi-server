@@ -29,8 +29,9 @@
 #include "LogProcess.h"
 
 #include "../util/GlobalStaticMethods.h"
-#include "../util/properties.h"
 #include "../util/URL.h"
+
+#include "../util/properties/properties.h"
 
 #include "../server/libs/client/SocketClientConnection.h"
 
