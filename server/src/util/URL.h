@@ -50,7 +50,7 @@ namespace util
 			 * 				the first path is only add when the second do not beginning
 			 * 				with an slash
 			 */
-			static string addPath(string first, string second, bool always= true);
+			static string addPath(const string& first, string second, bool always= true);
 			/**
 			 * read directory in defined path with an filter for begin and end of the files
 			 *
