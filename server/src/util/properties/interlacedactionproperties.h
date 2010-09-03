@@ -123,6 +123,7 @@ namespace util {
 			virtual ~InterlacedActionProperties();
 
 		protected:
+			using InterlacedProperties::newObject;
 			/**
 			 * create new object of interlaced properties
 			 *

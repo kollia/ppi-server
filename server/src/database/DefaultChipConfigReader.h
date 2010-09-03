@@ -306,7 +306,7 @@ namespace ports
 		 * @param subroutine name of subroutine
 		 * @return default values with defined older_t structure
 		 */
-		const double getDefaultCache(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "") const;
+		double getDefaultCache(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "") const;
 		/**
 		 * return registered default chip of unique chip ID and server.
 		 *

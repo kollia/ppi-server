@@ -35,7 +35,7 @@ namespace ports
 	bool ValueHolder::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		bool exist, bWarning= false;
-		double value, firstValueParam;
+		double value;
 		vector<string>::size_type nValue;
 		string sMin("min"), sMax("max");
 		DbInterface* db= DbInterface::instance();
@@ -123,8 +123,6 @@ namespace ports
 		{
 			if(sValue != "#ERROR")
 				value= m_ddefaultValue;
-			else if(!m_vdValues.empty())
-				value= firstValueParam;
 			else
 				value= 0;
 		}
@@ -176,9 +174,6 @@ namespace ports
 		SHAREDPTR::shared_ptr<portBase> port;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas;
 
-		if(getFolderName() == "TRANSMIT_SONY2"
-			&& getSubroutineName() == "actual_step")
-			cout << "TRANSMIT_SONY2:actual_step" << endl;
 		aktValue= getValue("i:"+getFolderName());
 		value= aktValue;
 		if(links > 0)
@@ -274,8 +269,7 @@ namespace ports
 							{
 								ostringstream einfo;
 
-								if(	m_nLinkObserver >= 0 ||
-									m_nLinkObserver < links	)
+								if(	m_nLinkObserver < links	)
 								{
 									einfo << " for " << dec << m_nLinkObserver+1 << ". link parameter";
 									switchClass::removeObserver(m_pStartFolder, m_poObserver, folder, subroutine, m_vsLinks[m_nLinkObserver], einfo.str());
@@ -309,8 +303,7 @@ namespace ports
 					{
 						ostringstream einfo;
 
-						if(	m_nLinkObserver >= 0 ||
-							m_nLinkObserver < links	)
+						if(	m_nLinkObserver < links	)
 						{
 							einfo << " for " << dec << m_nLinkObserver+1 << ". link parameter";
 							switchClass::removeObserver(m_pStartFolder, m_poObserver, folder, subroutine, m_vsLinks[m_nLinkObserver], einfo.str());
@@ -330,6 +323,9 @@ namespace ports
 		if( !bChanged &&
 			m_sWhile != "")
 		{
+			if(getFolderName() == "TRANSMIT_SONY2"
+				&& getSubroutineName() == "actual_step")
+				cout << "TRANSMIT_SONY2:actual_step" << endl;
 			if(getWhileStringResult(m_pStartFolder, getFolderName(), getSubroutineName(),
 									m_sWhile, m_vdValues, m_ddefaultValue, value, m_bBooleanWhile, isdebug))
 			{

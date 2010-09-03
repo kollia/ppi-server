@@ -82,7 +82,7 @@ namespace logger
 			 *
 			 * @param usable function whether can use logging process
 			 */
-			virtual void callback(void *(*usable)(bool));
+			virtual void callback(void (*usable)(bool));
 			/**
 			 * to log an message
 			 *
@@ -223,7 +223,7 @@ namespace logger
 			/**
 			 * function to inform whether own object is usable
 			 */
-			void *(*m_funcUsable)(bool);
+			void (*m_funcUsable)(bool);
 			/**
 			 * whether ConnectionChecker is running
 			 */

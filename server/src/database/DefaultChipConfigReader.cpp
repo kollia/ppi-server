@@ -894,7 +894,7 @@ namespace ports
 		m_mmAllChips[folder][subroutine]= &usedIt->second;
 	}
 
-	const double DefaultChipConfigReader::getDefaultCache(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/) const
+	double DefaultChipConfigReader::getDefaultCache(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/) const
 	{
 		defValues_t defValues;
 

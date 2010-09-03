@@ -255,14 +255,14 @@ namespace util
 			 *
 			 * @return port address
 			 */
-			const unsigned short getSendPortAddress()
+			unsigned short getSendPortAddress() const
 			{ return m_oSendConnect->getPortAddress(); };
 			/**
 			 * return address of connecting port from witch should get questions
 			 *
 			 * @return port address
 			 */
-			const unsigned short getGetPortAddress()
+			unsigned short getGetPortAddress() const
 			{ return m_oGetConnect->getPortAddress(); };
 			/**
 			 * last answer from send question.<br />

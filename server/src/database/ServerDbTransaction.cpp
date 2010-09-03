@@ -303,7 +303,6 @@ namespace server
 		}else if(method.substr(0, 24) == "getRegisteredDefaultChip")
 		{
 			bool bAll= false;
-			double v;
 			const DefaultChipConfigReader::chips_t* chip;
 			vector<double> errorcodes;
 			string server, family, type, schip;
@@ -811,8 +810,11 @@ namespace server
 			str= "undefined command was send to database server";
 			break;
 		default:
-			if(error >= (ServerMethodTransaction::getMaxErrorNums(false) * -1) && error <= ServerMethodTransaction::getMaxErrorNums(true))
+			if(	error >= (static_cast<int>(ServerMethodTransaction::getMaxErrorNums(false)) * -1) &&
+				error <= static_cast<int>(ServerMethodTransaction::getMaxErrorNums(true))						)
+			{
 				str= ServerMethodTransaction::strerror(error);
+			}
 			if(error > 0)
 				str= "Undefined error for transaction";
 			else

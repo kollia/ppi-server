@@ -435,7 +435,7 @@ namespace server
 			 *
 			 * @return port address
 			 */
-			virtual const unsigned short getPortAddress() const
+			virtual unsigned short getPortAddress() const
 			{ return m_nPort; };
 			/**
 			 * returning descriptor created with <code>accept()</code>

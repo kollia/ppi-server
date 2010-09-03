@@ -101,13 +101,13 @@ namespace util
 
 	string ConfigPropertyCasher::trim(string str, string chars/*= ""*/)
 	{
-		unsigned int len= str.length();
+		int len= static_cast<int>(str.length());
 		unsigned int charslen= chars.length();
 		int pos= -1;
 
 		if(str == "")
 			return "";
-		for(unsigned int n= 0; n < len; ++n)
+		for(int n= 0; n < len; ++n)
 		{
 			bool bFound= false;
 
@@ -137,8 +137,8 @@ namespace util
 		if(pos == -1)
 			return "";
 		str= str.substr(pos);
-		len= str.length();
-		for(unsigned int n= len-1; n >= 0; --n)
+		len= static_cast<int>(str.length());
+		for(int n= len-1; n >= 0; --n)
 		{
 			bool bFound= false;
 

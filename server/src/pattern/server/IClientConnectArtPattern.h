@@ -63,7 +63,7 @@ namespace design_pattern_world
 			 *
 			 * @return port address
 			 */
-			virtual const unsigned short getPortAddress() const= 0;
+			virtual unsigned short getPortAddress() const= 0;
 			/**
 			 * returning descriptor created with <code>accept()</code>
 			 *

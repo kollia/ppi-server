@@ -95,6 +95,10 @@ namespace design_pattern_world
 			 * this method will be called when ConnectionChecker ending
 			 */
 			virtual void connectionCheckerStops()= 0;
+			/**
+			 * dummy destructor of design pattern
+			 */
+			virtual ~ILogInterfacePattern() {};
 		};
 	}
 }

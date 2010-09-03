@@ -55,7 +55,6 @@ DatabaseThread::DatabaseThread(string dbDir, string confDir, IPropertyPattern* p
 :	Thread("database", defaultSleep, false),
 	m_mCurrent()
 {
-	bool m_bDbLoaded;
 	float newdbafter;
 	char* pHostN= NULL;
 	char hostname[]= "HOSTNAME";
@@ -1630,7 +1629,6 @@ bool DatabaseThread::thinDatabase(const bool ask)
 void DatabaseThread::calcNewThinTime(time_t fromtime, const SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> &older)
 {
 	SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> act;
-	DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
 	time_t acttime, nextThin;
 
 	act= older;

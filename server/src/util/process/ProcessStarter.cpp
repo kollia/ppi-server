@@ -62,7 +62,6 @@ namespace util
 	int ProcessStarter::runprocess(void*, bool bHold)
 	{
 		int nRv;
-		char arg[]= { *m_sApp.c_str(), NULL };
 
 		nRv= execv(m_sApp.c_str(), m_ppEllipse);
 		if(nRv != 0)

@@ -219,7 +219,6 @@ namespace ppi_database
 	string DbInterface::isEntryChanged()
 	{
 		int err;
-		unsigned int nRv= 0;
 		string sRv;
 		OMethodStringStream command("isEntryChanged");
 
@@ -315,7 +314,6 @@ namespace ppi_database
 	unsigned short DbInterface::existEntry(const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number)
 	{
 		int err;
-		unsigned short Rv= 0;
 		string sRv;
 		OMethodStringStream command("existEntry");
 
@@ -697,7 +695,7 @@ namespace ppi_database
 		}
 	}
 
-	const double DbInterface::getRegisteredDefaultChipCache(const string& server, const string& chip, bool& exist)
+	double DbInterface::getRegisteredDefaultChipCache(const string& server, const string& chip, bool& exist)
 	{
 		int err;
 		double dRv;
@@ -815,7 +813,7 @@ namespace ppi_database
 		return tRv;
 	}
 
-	const double DbInterface::getDefaultCache(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/)
+	double DbInterface::getDefaultCache(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/)
 	{
 		int err;
 		double dRv;

@@ -344,7 +344,7 @@ string portBase::getBinString(const long value, const size_t bits)
 	ostringstream bRv;
 	long bit= 0x01;
 
-	for(size_t n= bits-1; n>=0; n--)
+	for(long n= bits-1; n>=0; n--)
 	{
 		//cout << "value:" << n << " bit:" << bit << endl;
 		if(value & bit)
@@ -794,10 +794,7 @@ void portBase::lockApplication(bool bSet)
 {
 	int res;
 	int police;
-	struct sched_param spSet=
-	{
-    	sched_priority: 0
-	};
+	sched_param spSet;
 
 	/*
 	 * toDo:	if getrlimit(RLIMIT_RTPRIO, struct rtlimit) have not privilegs
@@ -809,7 +806,10 @@ void portBase::lockApplication(bool bSet)
 		police= SCHED_FIFO;
 		spSet.sched_priority= 1;
 	}else
+	{
 		police= SCHED_OTHER;
+		spSet.sched_priority= 0;
+	}
 	res= sched_setscheduler(0, police, &spSet);
 	if(res != 0)
 	{

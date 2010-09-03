@@ -38,7 +38,6 @@ void help(char* cpSelf);
 
 int main(int argc, char* argv[])
 {
-	bool result;
 	bool bWait= false;
 	int nArcPos= 1;
 	string param;

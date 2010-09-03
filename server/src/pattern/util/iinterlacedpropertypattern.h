@@ -40,6 +40,7 @@ namespace design_pattern_world
 	class IInterlacedPropertyPattern : virtual public IPropertyPattern
 	{
 	public:
+		using IPropertyPattern::readLine;
 		/**
 		 * read one line from and save paramer if exists
 		 *

@@ -154,7 +154,7 @@ int LogProcess::execute()
 {
 	int err;
 	string question, command;
-	string::size_type pos, length;
+	string::size_type length;
 
 	POS("#log#wait-question");
 	question= getQuestion(m_sAnswer);

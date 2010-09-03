@@ -29,7 +29,7 @@ using namespace util;
 
 bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
-	bool bsec, bmicro, btime, bSwitch= false;
+	bool bsec, bmicro, bSwitch= false;
 	int milli= 0, min= 0, hour= 0, days= 0;
 	time_t sec= 0;
 	suseconds_t micro= 0;

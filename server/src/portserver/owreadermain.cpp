@@ -292,7 +292,7 @@ int main(int argc, char* argv[])
 		for(vector<string>::iterator it= vParams.begin(); it != vParams.end(); ++it)
 		{
 			error << "               " << *it;
-			for(int n= 0; n < (maxLen - it->length()); ++n)
+			for(string::size_type n= 0; n < (maxLen - it->length()); ++n)
 				error << " ";
 			error << " -  " << vDescript[pos] << endl;
 			++pos;

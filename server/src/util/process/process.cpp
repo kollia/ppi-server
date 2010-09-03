@@ -118,9 +118,9 @@ namespace util
 			OMethodStringStream waiting("waiting");
 
 			answer= sendMethod(m_sToClient, waiting, true);
+			err= error(answer);
 			if(err == 0)
 				err2= closeSendConnection();
-			err= error(answer);
 			if(err != 0)
 				return err;
 			if(err2 > 0)

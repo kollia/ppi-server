@@ -51,7 +51,6 @@ namespace server {
 				for(vector<chip_types_t*>::iterator it= m_vkernelR.begin(); it != m_vkernelR.end(); ++it)
 				{
 					do{
-						chip_types_t* chip= *it;
 						endWork= m_poChipAccess->read((*it)->id, value);
 						readChip(endWork, value, *it);
 

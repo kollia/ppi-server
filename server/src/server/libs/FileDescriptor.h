@@ -22,7 +22,7 @@
 #include <map>
 
 #include "../../pattern/server/IFileDescriptorPattern.h"
-#include "../../pattern/server/IClientConnectArtPattern.h"
+//#include "../../pattern/server/IClientConnectArtPattern.h"
 
 #include "../../util/thread/Thread.h"
 

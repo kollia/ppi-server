@@ -493,10 +493,7 @@ bool switchClass::getResult(const string &from, bool& result)
 
 bool switchClass::getResult(string &str, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& sFolder, const bool debug, bool& result)
 {
-	bool parenthies= false;
 	char op= '\0';
-	char cbreak= '\0';
-	bool iresult;
 	string word;
 	string::size_type pos= 0;
 	string::size_type end;
@@ -783,7 +780,7 @@ bool switchClass::calculateResult(const SHAREDPTR::shared_ptr<measurefolder_t>& 
 	double value;
 	string word, full;
 	char cOp;
-	int nPos= 0;
+	string::size_type nPos= 0;
 	int breaks= 0;
 
 	full= cCurrent;
@@ -962,7 +959,6 @@ bool switchClass::searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 {
 	bool bFound= false;
 	string full;
-	measurefolder_t *pfolder;
 
 	full= cCurrent;
 	trim(full);

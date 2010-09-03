@@ -266,7 +266,6 @@ bool Starter::execute()
 	//* calculate how much communication threads should be running
 	bool bPort= false;
 	bool bMPort= false;
-	unsigned short nPortThreads= 0;
 	unsigned short nOWReader;
 
 	//* count in nOWReader how much one wire reader (OWServer) should running
@@ -782,7 +781,6 @@ bool Starter::execute()
 
 	string host;
 	unsigned short port;
-	unsigned short minThreads, maxThreads;
 
 	host= m_oServerFileCasher.getValue("listen", /*warning*/false);
 	property= "port";

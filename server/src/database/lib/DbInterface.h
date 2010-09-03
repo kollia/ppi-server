@@ -271,7 +271,7 @@ namespace ppi_database
 		 * @param chip unique id of chip
 		 * @param whether default chip exists in DefaultChipConfigReader
 		 */
-		const double getRegisteredDefaultChipCache(const string& server, const string& chip, bool& exist);
+		double getRegisteredDefaultChipCache(const string& server, const string& chip, bool& exist);
 		/**
 		 * return structure from registered default chip in DefaultChipConfigReader of unique chip ID and server.
 		 *
@@ -304,7 +304,7 @@ namespace ppi_database
 		 * @param subroutine name of subroutine
 		 * @return default values with defined older_t structure
 		 */
-		const double getDefaultCache(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "");
+		double getDefaultCache(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "");
 		/**
 		 * return status message from all running processes without internet-server
 		 *

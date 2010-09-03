@@ -159,7 +159,6 @@ namespace ports
 	double OwfsPort::measure()
 	{
 		bool access, debug, bsetNewValue= false;
-		int nvalue;
 		double value;
 
 		debug= isDebug();

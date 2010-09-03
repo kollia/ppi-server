@@ -137,17 +137,11 @@ int main(int argc, char* argv[])
 #endif
 
 	bool result;
-	bool bWait= false;
-	int nArcPos= 1;
 	string param;
 	auto_ptr<Starter> server;
 	string workdir(argv[0]);
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
-	// access to Lirc device
-	//LircClient lirc("lirc", "run");
-	//lirc.measure();
-	//exit(0);
 
 	directorys= ConfigPropertyCasher::split(workdir, "/");
 	dirlen= directorys.size();
@@ -288,5 +282,4 @@ void usage(char* cpSelf)
 	printf("                stop     -     stopping server\n");
 	printf("                restart  -     restarting the hole server\n");
 	printf("                status   -     get feedback whether server is running\n");
-	printf("\n");
 }

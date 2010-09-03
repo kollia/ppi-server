@@ -112,8 +112,8 @@ int send_packet(int fd,const char *packet)
 	const char *string,*data;
 	char *endptr;
 	enum packet_state state;
-	int status,n;
-	unsigned long data_n=0;
+	int status;
+	unsigned long n, data_n=0;
 
 	todo=strlen(packet);
 	data=packet;
@@ -237,8 +237,9 @@ int irsend(const char* directive, const char* remote, const char* code) //, cons
 	int fd;
 	char buffer[PACKET_SIZE+1];
 	struct sigaction act;
+	char progname[11];
 
-	progname = "irsend";
+	strncpy(progname, "irsend", 10);
 
 #if 0
 	while(1)
@@ -329,7 +330,10 @@ int irsend(const char* directive, const char* remote, const char* code) //, cons
 
 	if(lircd==NULL)
 	{
-		lircd=LIRCD;
+		size_t nLen= strlen(LIRCD);
+
+		lircd= new char[nLen+2];
+		strncpy(lircd, LIRCD, nLen+1);
 	}else
 	{
         if(strlen(lircd)+1 > sizeof(addr_un.sun_path))
@@ -367,6 +371,8 @@ int irsend(const char* directive, const char* remote, const char* code) //, cons
 		addr_in.sin_port = htons(port);
 		fd=socket(AF_INET,SOCK_STREAM,0);
 	}
+	delete lircd;
+	lircd= NULL;
 
 	if(fd==-1)
 	{

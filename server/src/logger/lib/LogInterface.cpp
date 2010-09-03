@@ -175,7 +175,7 @@ namespace logger
 
 	}
 
-	void LogInterface::callback(void *(*usable)(bool))
+	void LogInterface::callback(void (*usable)(bool))
 	{
 		m_funcUsable= usable;
 	}

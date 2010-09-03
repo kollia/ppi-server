@@ -432,7 +432,7 @@ namespace util {
 				value= itDefault->second.value;
 		}else
 		{
-			if(index >= 0 && index < mContent->second.size())
+			if(index < mContent->second.size())
 				value= mContent->second[index];
 			else
 				value= "";

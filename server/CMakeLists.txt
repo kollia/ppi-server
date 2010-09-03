@@ -3,6 +3,36 @@
 cmake_minimum_required (VERSION 2.6)
 project (ppi-server-project)
 
+#SET(CMAKE_VERBOSE_MAKEFILE ON)
+
+if(	CMAKE_BUILD_TYPE STREQUAL "Debug"	OR
+	CMAKE_BUILD_TYPE STREQUAL "debug"	OR
+	CMAKE_ECLIPSE_EXECUTABLE				OR
+	CMAKE_KDEVELOP3_EXECUTABLE					)
+		
+	add_definitions("-Wall -Wclobbered -Wempty-body -Wignored-qualifiers -Wmissing-field-initializers -Wsign-compare -Wtype-limits -Winit-self -Wnon-virtual-dtor -Wsign-promo -Wno-long-long")
+	# for warning optins see http://gcc.gnu.org/onlinedocs/gcc-4.5.0/gcc/Warning-Options.html#Warning-Options
+	#add_definitions("-pedantic-errors -Wall -Wextra -ansi -Winit-self -Woverloaded-virtual -Wnon-virtual-dtor -Wsign-promo -Wno-long-long")
+	message(STATUS "set build type with all warnings")
+
+else(	CMAKE_BUILD_TYPE STREQUAL "Debug"	OR
+		CMAKE_BUILD_TYPE STREQUAL "debug"	OR
+		CMAKE_ECLIPSE_EXECUTABLE				OR
+		CMAKE_KDEVELOP3_EXECUTABLE					)
+		
+	message(STATUS "set build type with no warnings")
+		
+endif(	CMAKE_BUILD_TYPE STREQUAL "Debug"	OR
+		CMAKE_BUILD_TYPE STREQUAL "debug"	OR
+		CMAKE_ECLIPSE_EXECUTABLE				OR
+		CMAKE_KDEVELOP3_EXECUTABLE					)
+
+#if(	${CMAKE_BUILD_TYPE} STREQUAL "Debug"	OR
+#	${CMAKE_BUILD_TYPE} STREQUAL "debug"	OR
+#	CMAKE_ECLIPSE_EXECUTABLE				OR
+#	CMAKE_KDEVELOP3_EXECUTABLE					)
+	
+	
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
 

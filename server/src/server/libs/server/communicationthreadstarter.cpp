@@ -566,9 +566,14 @@ namespace server
 		}
 		// if method be set to no waiting return true,
 		// or all communication threads be stopped,
-		// or also if connection ID be set and only the owen does exist return true
-		if(!bWait || !m_poFirstCommunication || connectionID && m_poFirstCommunication->getNextComm() == NULL)
+		// or also if connection ID be set and only the own does exist return true
+		if(	!bWait ||
+			!m_poFirstCommunication ||
+			(	connectionID &&
+				m_poFirstCommunication->getNextComm() == NULL	)	)
+		{
 			return true;
+		}
 		return false;
 	}
 

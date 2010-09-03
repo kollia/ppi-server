@@ -58,7 +58,6 @@ namespace ports
 
 	bool ExternPorts::init(const IPropertyPattern* properties)
 	{
-		bool bOk= true;
 		string property, result;
 		unsigned long np;
 		vector<string>::size_type nCom;
@@ -746,7 +745,6 @@ namespace ports
 
 	bool ExternPorts::setPin(const portpin_address_t& tPin, const bool bSet)
 	{
-		bool ubSet= bSet;
 		int actPin;
 		map<unsigned long, int>::iterator foundPin;
 		Pins ePin= { tPin.nPort, tPin.ePin };
@@ -861,7 +859,6 @@ namespace ports
 		unsigned nGetPin;
 		unsigned long mikroSleepTime= 0;
 		struct itimerval time;
-		double correction;
 		vector<correction_t> vCorrection;
 
 		if(ptRead == NULL)
@@ -968,7 +965,7 @@ namespace ports
 		ostringstream bRv;
 		long bit= 0x01;
 
-		for(size_t n= bits-1; n>=0; n--)
+		for(short n= bits-1; n>=0; n--)
 		{
 			//cout << "value:" << n << " bit:" << bit << endl;
 			if(value & bit)
@@ -997,10 +994,7 @@ namespace ports
 		static bool blockf= false;
 		int res;
 		int police;
-		struct sched_param spSet=
-		{
-	    	sched_priority: 0
-		};
+		sched_param spSet;
 
 		/*
 		 * toDo:	if getrlimit(RLIMIT_RTPRIO, struct rtlimit) have not privilegs
@@ -1012,7 +1006,10 @@ namespace ports
 			police= SCHED_FIFO;
 			spSet.sched_priority= 1;
 		}else
+		{
 			police= SCHED_OTHER;
+			spSet.sched_priority= 1;
+		}
 		res= sched_setscheduler(0, police, &spSet);
 		if(res != 0)
 		{
@@ -1066,7 +1063,7 @@ namespace ports
 			lRv+= 1000000 * sec;
 		}
 		return lRv;
-	};
+	}
 
 	void ExternPorts::range(const string id, double& min, double& max, bool &bfloat)
 	{

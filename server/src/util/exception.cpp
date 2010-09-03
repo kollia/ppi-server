@@ -51,7 +51,6 @@ const string BaseException::getMessage()
 
 const string PortException::getMessage()
 {
-	int nLen= 30;
 	string sErrorString(getHeading());
 
 	sErrorString+= " by status of ";

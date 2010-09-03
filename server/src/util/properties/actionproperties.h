@@ -50,8 +50,8 @@ namespace util {
 			 * 					or elsewhere by invoke <code>checkProperties()</code> (true) (default= false).
 			 */
 			ActionProperties(const bool byCheck= false)
-			:	m_sDefault("action"),
-				Properties(byCheck)
+			:	Properties(byCheck),
+			 	m_sDefault("action")
 				{};
 			/**
 			 * read line and save into variables

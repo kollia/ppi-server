@@ -92,14 +92,8 @@ void GlobalStaticMethods::printSigError(const string& cpSigValue, const string& 
 void GlobalStaticMethods::signalconverting(int nSignal)
 {
 	string msg;
-	LogHolderPattern *log= LogHolderPattern::instance();
+	//LogHolderPattern *log= LogHolderPattern::instance();
 
-/*	if(	log
-		&&
-		!log->running()	)
-	{
-		log= NULL;
-	}*/
 	switch(nSignal)
 	{
 		case SIGINT:
@@ -112,8 +106,7 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 //									libppiutil.so <-> libppithreadutil.so
 /*		case SIGHUP:
 			msg= StatusLogRoutine::getStatusInfo("clients");
-			if(log)
-				LOG(LOG_INFO, msg);
+			LOG(LOG_INFO, msg);
 			cout << endl << msg << endl;
 			break;*/
 
@@ -128,49 +121,48 @@ bool GlobalStaticMethods::replaceName(string& name, const string& type)
 {
 	bool fault= false;
 	string::size_type p;
-	string::size_type len= name.length();
 
 	p= name.find("+");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find("-");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find("/");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find("*");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find("<") ;
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find(">");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find("=");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find("(");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find(")");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find("!");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find(":");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find("&");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find("|");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	p= name.find("?");
-	if(p >= 0 && p < len)
+	if(p != string::npos)
 		fault= true;
 	if(isdigit(name[0]))
 		name= "_" + name;

@@ -81,7 +81,11 @@ namespace design_pattern_world
 			 *
 			 * @param usable function whether can use logging process
 			 */
-			virtual void callback(void *(*usable)(bool))= 0;
+			virtual void callback(void (*usable)(bool))= 0;
+			/**
+			 * Dummy destructor for design pattern
+			 */
+			virtual ~ILogPattern() {};
 		};
 	}
 }

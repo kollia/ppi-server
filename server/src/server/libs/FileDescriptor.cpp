@@ -63,7 +63,7 @@ namespace server
 	{
 		char *res;
 		char buf[501];
-		int bufLen= (sizeof(buf)-2);
+		string::size_type bufLen= (sizeof(buf)-2);
 		string sread;
 
 		if(eof())

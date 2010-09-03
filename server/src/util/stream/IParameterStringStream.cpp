@@ -478,5 +478,5 @@ bool IParameterStringStream::empty()
 			bRv= true;
 	}
 	return bRv;
-};
+}
 }// namespace util

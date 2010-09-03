@@ -600,7 +600,6 @@ namespace server
 				string sCommand, sFolder, sSleep;
 				stringstream ss(input);
 				vector<string> values;
-				meash_t *pCurMeas= NULL;
 				DbInterface* db= DbInterface::instance();
 
 				ss >> sCommand;
@@ -823,7 +822,6 @@ namespace server
 				vector<string> values;
 				unsigned short nExist= 6;
 				meash_t *pCurMeas= NULL;
-				portBase* port= NULL;
 				DbInterface* db= DbInterface::instance();
 
 				while(ss >> buffer)
@@ -976,12 +974,9 @@ namespace server
 
 			}else if(input.substr(0, 5) == "HEAR ")
 			{
-				bool bCorrect;
 				string entry;
 				string groups;
 				vector<string> split;
-				meash_t* pCurMeas;
-				portBase* port;
 				UserManagement* user= UserManagement::instance();
 				DbInterface* db= DbInterface::instance();
 

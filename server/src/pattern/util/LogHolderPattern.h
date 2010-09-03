@@ -48,7 +48,7 @@ public:
 	/**
 	 * callback routine to get information when logging process destroy
 	 */
-	static void* usable(bool use)
+	static void usable(bool use)
 	{ _instance->m_bExists= use; };
 	/**
 	 * set for all process or thread an name to identify in log-messages

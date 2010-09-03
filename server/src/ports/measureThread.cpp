@@ -50,8 +50,6 @@ Thread(threadname, /*defaultSleep*/0)
 
 void MeasureThread::setDebug(bool bDebug, unsigned short sleep)
 {
-	int nMuch;
-
 	LOCK(m_DEBUGLOCK);
 	m_bDebug= bDebug;
 	//m_nDebugSleep= sleep;
