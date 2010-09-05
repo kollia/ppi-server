@@ -1,0 +1,4 @@
+[Project]
+Name=ppi-server
+Manager=KDevCMakeManager
+VersionControl=kdevsubversion
