@@ -658,8 +658,10 @@ bool switchClass::getSubResult(const string &from, const SHAREDPTR::shared_ptr<m
 	if(debug)
 	{
 		trim(word);
-		cout << " " << cOperator << " ";
-		cout << "(" << word << ")"<< "= " << dec << *pValue << flush;
+		cout << " " << cOperator;
+		if(!strcmp(cOperator, "="))
+			cout << "=";
+		cout << " (" << word << ")"<< "= " << dec << *pValue << flush;
 	}
 	if(cOperator[0] == '\0')
 	{
@@ -670,20 +672,38 @@ bool switchClass::getSubResult(const string &from, const SHAREDPTR::shared_ptr<m
 
 	if(!strcmp(cOperator, "="))
 	{
-		if(value1 == value2)
+		// do not compare double and double with is equal sign ('==')
+		if(value1 < value2 || value1 > value2)
+			bCheck= false;
+		else
 			bCheck= true;
+
 	}else if(!strcmp(cOperator, "!="))
 	{
-		if(value1 != value2)
+		// do not compare double and double with not equal sign ('!=')
+		if(value1 < value2 || value1 > value2)
 			bCheck= true;
+
 	}else if(!strcmp(cOperator, ">="))
 	{
-		if(value1 >= value2)
+		// do not compare double and double with is equal sign ('==')
+		if(value1 > value2)
 			bCheck= true;
+		else if(value1 < value2)
+			bCheck= false;
+		else
+			bCheck= true;
+
 	}else if(!strcmp(cOperator, "<="))
 	{
-		if(value1 <= value2)
+		// do not compare double and double with is equal sign ('==')
+		if(value1 < value2)
 			bCheck= true;
+		else if(value1 > value2)
+			bCheck= false;
+		else
+			bCheck= true;
+
 	}else if(!strcmp(cOperator, ">"))
 	{
 		if(value1 > value2)
