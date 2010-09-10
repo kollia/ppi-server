@@ -280,13 +280,6 @@ namespace server
 			pthread_mutex_t* m_SERVERISSTOPPINGMUTEX;
 
 			/**
-			 * search measure port for given folder
-			 *
-			 * @param folder name of folder
-			 * @return measure port if exist, otherwise null
-			 */
-			const SHAREDPTR::shared_ptr<meash_t> getMeasurePort(string folder);
-			/**
 			 * send to client all changed messages from database
 			 * witch be requested
 			 *

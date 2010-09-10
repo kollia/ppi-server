@@ -1110,20 +1110,6 @@ namespace server
 		return sRv;
 	}
 
-	const SHAREDPTR::shared_ptr<meash_t> ServerTransaction::getMeasurePort(string folder)
-	{
-		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
-
-		while(pCurMeas)
-		{
-			if(pCurMeas->pMeasure->getThreadName() == folder)
-				break;
-			pCurMeas= pCurMeas->next;
-		}
-
-		return pCurMeas;
-	}
-
 	string ServerTransaction::strerror(int error) const
 	{
 		string str;
