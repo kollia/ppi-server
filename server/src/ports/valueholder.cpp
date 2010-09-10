@@ -323,9 +323,6 @@ namespace ports
 		if( !bChanged &&
 			m_sWhile != "")
 		{
-			if(getFolderName() == "TRANSMIT_SONY2"
-				&& getSubroutineName() == "actual_step")
-				cout << "TRANSMIT_SONY2:actual_step" << endl;
 			if(getWhileStringResult(m_pStartFolder, getFolderName(), getSubroutineName(),
 									m_sWhile, m_vdValues, m_ddefaultValue, value, m_bBooleanWhile, isdebug))
 			{
@@ -408,21 +405,7 @@ namespace ports
 	{
 		bool bOk;
 
-		/*if(readBool)
-		{
-			string from(whileStr);
-
-			if(debug)
-				cout << "make from result: " << from << endl << "read ";
-			bOk= switchClass::calculateResult(pStartFolder, folder, from, debug, dValue);
-			if(debug)
-				cout << endl;
-			if(bOk)
-				value= dValue ? 1 : 0;
-			else
-				value= 0;
-		}else*/
-			bOk= switchClass::calculateResult(pStartFolder, folder, whileStr, debug, value);
+		bOk= switchClass::calculateResult(pStartFolder, folder, whileStr, debug, value);
 
 		if(bOk)
 		{
