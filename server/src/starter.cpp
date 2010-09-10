@@ -703,23 +703,8 @@ bool Starter::execute()
 	--nServerID;
 	createPortObjects();
 
-#ifdef _EXTERNVENDORLIBRARYS
-	if(	maximinit != ""
-		||
-		nVk8055Count > 0
-		||
-		ports.size() > 0	)
-	{
-		OWInterface::checkUnused(nServerID);
-		OWInterface::endOfInitialisation(nServerID);
-	}
-#else // _EXTERNVENDORLIBRARYS
-	if(	ports.size() > 0	)
-	{
-		OWInterface::checkUnused(nServerID);
-		OWInterface::endOfInitialisation(nServerID);
-	}
-#endif // _EXTERNVENDORLIBRARYS
+	OWInterface::checkUnused(nServerID);
+	OWInterface::endOfInitialisation(nServerID);
 
 	checkAfterContact();
 
