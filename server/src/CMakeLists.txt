@@ -1,7 +1,23 @@
 
 set(mainSrcs 	main.cpp
                 ProcessChecker.cpp 
-		        starter.cpp				)
+		        starter.cpp				
+		        
+		        ports/counter.cpp
+        		ports/measuredness.cpp
+        		ports/measureThread.cpp
+        		ports/OwfsPort.cpp
+        		ports/portbaseclass.cpp
+        		ports/resistancemeasure.cpp
+        		ports/SaveSubValue.cpp
+        		ports/shell.cpp
+        		#contactpin.cpp
+        		#switchcontact.cpp
+        		ports/switch.cpp
+        		ports/tempmeasure.cpp
+        		ports/timemeasure.cpp
+        		ports/timer.cpp
+        		ports/valueholder.cpp			)
 
 
 if(FULL_CLIENT_PATH)
@@ -13,7 +29,7 @@ endif(FULL_CLIENT_PATH)
 add_executable(ppi-server ${mainSrcs} ${INSTALL_SCRIPT})
 
 target_link_libraries(ppi-server	ppiutil ppistreamutil ppipropertyutil ppithreadutil ppiprocessutil
-									ppiserverlibclient ppiserverlibserver ppiports ppilogger ppiow
+									ppiserverlibclient ppiserverlibserver ppilogger ppiow ppidb
 									lirc_client															)
 
 install(TARGETS ppi-server DESTINATION bin)

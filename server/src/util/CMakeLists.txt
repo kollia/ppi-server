@@ -2,24 +2,24 @@
 set(utilSrcs	GlobalStaticMethods.cpp
 		        CalculatorContainer.cpp
 		        Calendar.cpp
-        		exception.cpp
+#        		exception.cpp
 #        		Terminal.cpp
         		URL.cpp
         		usermanagement.cpp
-        		XMLStartEndTagReader.cpp	)
+	       		XMLStartEndTagReader.cpp	)
 #        		thread/StatusLogRoutine.cpp
 #        		thread/Thread.cpp
-#        		process/process.cpp
-#        		process/ProcessStarter.cpp
 #        		stream/IMethodStringStream.cpp
 #        		stream/IParameterStringStream.cpp
 #        		stream/OMethodStringStream.cpp
 #        		stream/OParameterStringStream.cpp
 #        		properties/properties.cpp
 #        		properties/interlacedproperties.cpp
-#               properties/actionproperties.cpp
+#                properties/actionproperties.cpp
 #        		properties/interlacedactionproperties.cpp
 #        		properties/configpropertycasher.cpp			)
+#        		process/process.cpp
+#        		process/ProcessStarter.cpp					)
 
 add_library(ppiutil ${libraries} ${utilSrcs})
 target_link_libraries(ppiutil ppipropertyutil ppistreamutil ppipattern)

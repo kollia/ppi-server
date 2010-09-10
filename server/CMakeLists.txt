@@ -3,23 +3,35 @@
 cmake_minimum_required (VERSION 2.6)
 project (ppi-server-project)
 
+set(USE_SHAREDLIBS ON)
+if(USE_SHAREDLIBS)
+	set(libraries SHARED)
+else(USE_SHAREDLIBS)
+	set(libraries STATIC)
+endif(USE_SHAREDLIBS)
+
 #SET(CMAKE_VERBOSE_MAKEFILE ON)
+
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -mtune=native")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3") 
 
 if(	CMAKE_BUILD_TYPE STREQUAL "Debug"	OR
 	CMAKE_BUILD_TYPE STREQUAL "debug"	OR
-	CMAKE_ECLIPSE_EXECUTABLE				OR
-	CMAKE_KDEVELOP3_EXECUTABLE					)
+	CMAKE_ECLIPSE_EXECUTABLE			OR
+	CMAKE_KDEVELOP3_EXECUTABLE				)
 		
 	add_definitions("-Wall -Wclobbered -Wempty-body -Wignored-qualifiers -Wmissing-field-initializers -Wsign-compare -Wtype-limits -Winit-self -Wnon-virtual-dtor -Wsign-promo -Wno-long-long")
 	# for warning optins see http://gcc.gnu.org/onlinedocs/gcc-4.5.0/gcc/Warning-Options.html#Warning-Options
 	#add_definitions("-pedantic-errors -Wall -Wextra -ansi -Winit-self -Woverloaded-virtual -Wnon-virtual-dtor -Wsign-promo -Wno-long-long")
+	message(STATUS "DEBUG flags   '${CMAKE_CXX_FLAGS_DEBUG}'")
 	message(STATUS "set build type with all warnings")
 
 else(	CMAKE_BUILD_TYPE STREQUAL "Debug"	OR
 		CMAKE_BUILD_TYPE STREQUAL "debug"	OR
 		CMAKE_ECLIPSE_EXECUTABLE				OR
 		CMAKE_KDEVELOP3_EXECUTABLE					)
-		
+	
+	message(STATUS "RELEASE flags '${CMAKE_CXX_FLAGS_RELEASE}'")	
 	message(STATUS "set build type with no warnings")
 		
 endif(	CMAKE_BUILD_TYPE STREQUAL "Debug"	OR
@@ -168,13 +180,6 @@ if(USE_K8055)
   add_definitions(-D_K8055LIBRARY)
 endif(USE_K8055)
 
-option(USE_SHAREDLIBS "use shared libraries for project" ON)
-if(USE_SHAREDLIBS)
-	set(libraries SHARED)
-else(USE_SHAREDLIBS)
-	set(libraries STATIC)
-endif(USE_SHAREDLIBS)
-
 # libraries
 add_subdirectory( src/pattern/util ) # ppipattern need: ---
 
@@ -189,7 +194,7 @@ add_subdirectory( src/logger/lib ) # ppilogger need: ppithreadutil ppistreamutil
 add_subdirectory( src/server/libs/server ) # ppiserverlibserver need: ppiprocessutil ppiserverlib ppiserverlibclient ppilogger
 add_subdirectory( src/database/lib ) # ppidb need: ppithreadutil ppistreamutil ppiserverlibclient ppilogger
 add_subdirectory( src/portserver/lib ) # ppiow need: ppistreamutil ppiserverlibclient ppilogger
-add_subdirectory( src/ports ) # ppiports need: ppiutil ppithreadutil ppiserverlibclient ppidb ppiow ppilogger
+#add_subdirectory( src/ports ) # ppiports need: ppiutil ppithreadutil ppiserverlibclient ppidb ppiow ppilogger
 add_subdirectory( src/client/lib ) # ppicppclient need: ppiutil ppistreamutil ppithreadutil ppiserverlibclient
 
 
