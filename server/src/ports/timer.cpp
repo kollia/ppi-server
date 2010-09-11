@@ -37,6 +37,7 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 
 	m_bSeconds= true;
 	m_bPoll= false;
+	m_bTime= properties.haveAction("measure");
 	bsec= properties.haveAction("sec");
 	bmicro= properties.haveAction("micro");
 	if(bsec && bmicro)
@@ -48,7 +49,7 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 		return false;
 	}else if(bmicro)
 		m_bSeconds= false;
-	if(!bsec && !bmicro)
+	if(!m_bTime)
 	{ // make count down of time
 		m_bTime= false;
 		m_bPoll= properties.haveAction("poll");
@@ -120,9 +121,9 @@ double timer::measure()
 
 	oldValue= switchClass::getValue("i:" + getFolderName());
 
-	//if(getFolderName() == "TRANSMIT_SONY"
-	//	&& getSubroutineName() == "wait_after_measure2")
-	//			cout << "do " << flush;
+	/*if(getFolderName() == "TRANSMIT_SONY"
+		&& getSubroutineName() == "wait_after")
+				cout << "TRANSMIT_SONY:wait_after" << endl;*/
 	bswitch= switchClass::measure();
 	if(	bswitch ||
 		m_bMeasure	)
