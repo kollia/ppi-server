@@ -92,6 +92,19 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 		m_tmSec == 0 &&
 		m_tmMicroseconds == 0	)
 	{
+		prop= properties.getMsgHead(/*ERROR*/true);
+		prop+= "TIMER subroutine set for count down and ";
+		if(!m_bSeconds)
+			prop+= "micro";
+		prop+= "seconds, but no time (";
+		if(m_bSeconds)
+			prop+= "day/hour/";
+		prop+= "min/sec";
+		if(!m_bSeconds)
+			prop+= "/millisec/microsec";
+		prop+= " or mtime) be set";
+		LOG(LOG_ERROR, prop);
+		cerr << prop << endl;
 		return false;
 	}
 	return true;
