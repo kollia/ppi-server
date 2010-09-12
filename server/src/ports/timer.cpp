@@ -36,7 +36,6 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	string prop;
 
 	m_bSeconds= true;
-	m_bPoll= false;
 	m_bTime= properties.haveAction("measure");
 	bsec= properties.haveAction("sec");
 	bmicro= properties.haveAction("micro");
@@ -52,7 +51,6 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	if(!m_bTime)
 	{ // make count down of time
 		m_bTime= false;
-		m_bPoll= properties.haveAction("poll");
 		m_smtime= properties.getValue("mtime", /*warning*/false);
 		if(m_smtime == "")
 		{
@@ -148,12 +146,12 @@ double timer::measure()
 			if(!m_bTime)
 			{ // measure count down
 				if(m_bMeasure == false)
-				{ // start time measureelse
+				{ // starting first count down
 					bool bneed= false;
 
 					m_tmStart= tv;
 					if(m_smtime != "")
-					{
+					{ // calculate seconds (m_tmSec) and microseconds (m_tmMicroseconds) from other subroutine
 						if(calculateResult(m_pStartFolder, getFolderName(), m_smtime, debug, need))
 						{
 							if(need < 0 || need > 0)
@@ -210,7 +208,7 @@ double timer::measure()
 				}else if(	m_tmStart.tv_sec < tv.tv_sec ||
 							(	m_tmStart.tv_sec == tv.tv_sec &&
 								m_tmStart.tv_usec <= tv.tv_sec	)	)
-				{
+				{ // reaching end of count down
 					if(debug)
 					{
 						timeval was;
@@ -223,17 +221,27 @@ double timer::measure()
 						cout << "refresh time " << m_tmStart.tv_sec << "." << m_tmStart.tv_usec;
 						cout << " actual time " << tv.tv_sec << "." << tv.tv_usec << endl;
 					}
-					m_bMeasure= false;
-					if(m_bPoll)
-					{
+					if(bswitch)
+					{ // begin count down again when begin or while is true
+						m_tmStart.tv_sec+= m_tmSec;
+						m_tmStart.tv_usec+= m_tmMicroseconds;
+						if(m_tmStart.tv_usec > 999999)
+						{
+							suseconds_t microsec;
+
+							microsec= m_tmStart.tv_usec / (1000 * 1000);
+							m_tmStart.tv_usec-= (microsec * 1000 * 1000);
+							m_tmStart.tv_sec+= static_cast<time_t>(microsec);
+						}
 						if(debug)
 							cout << "refresh again for polling count down ----" << endl;
-						getRunningThread()->nextActivateTime(getFolderName(), tv);
-					}
+						getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
+					}else
+						m_bMeasure= false;
 					need= 0;
 
 				}else
-				{
+				{ // count down is running
 					timeval newtime;
 
 					newtime.tv_sec= m_tmStart.tv_sec - tv.tv_sec;

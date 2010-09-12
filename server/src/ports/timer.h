@@ -53,11 +53,6 @@ protected:
 	 */
 	bool m_bTime;
 	/**
-	 * whether subroutine should beginning again
-	 * by finished count down with 0
-	 */
-	bool m_bPoll;
-	/**
 	 * whether measure actually the time
 	 */
 	bool m_bMeasure;
