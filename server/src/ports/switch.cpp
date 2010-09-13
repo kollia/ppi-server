@@ -948,10 +948,14 @@ bool switchClass::calculateResult(const SHAREDPTR::shared_ptr<measurefolder_t>& 
 		}
 		++nPos;
 	}
-	bCorrect= searchResult(pStartFolder, actFolder, full.c_str(), value);
-	if(!bCorrect)
-		return false;
-	calc.add(value);
+	trim(full);
+	if(full != "")
+	{
+		bCorrect= searchResult(pStartFolder, actFolder, full.c_str(), value);
+		if(!bCorrect)
+			return false;
+		calc.add(value);
+	}
 	dResult= calc.getResult();
 	return true;
 }
