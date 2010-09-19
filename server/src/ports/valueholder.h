@@ -14,8 +14,8 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef OTHERFOLDER_H_
-#define OTHERFOLDER_H_
+#ifndef VALUEHOLDER_H_
+#define VALUEHOLDER_H_
 
 #include <iostream>
 
@@ -34,11 +34,11 @@ namespace ports
 		 */
 		double m_dLastValue;
 		/**
-		 * min minimal value of holdet value
+		 * minimal value of holdet value
 		 */
 		double m_nMin;
 		/**
-		 * @param max maximal value of holdet value
+		 * maximal value of holdet value
 		 */
 		double m_nMax;
 		/**
@@ -102,7 +102,7 @@ namespace ports
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
 		 */
-		ValueHolder(string folderName, string subroutineName)
+		ValueHolder(const string& folderName, const string& subroutineName)
 		: portBase("VALUE", folderName, subroutineName),
 		  m_dLastValue(0),
 		  m_bSetLinkObserver(false),
@@ -192,4 +192,4 @@ namespace ports
 	};
 }
 
-#endif /*OTHERFOLDER_H_*/
+#endif /*VALUEHOLDER_H_*/

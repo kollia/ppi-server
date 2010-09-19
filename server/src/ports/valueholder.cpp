@@ -149,7 +149,7 @@ namespace ports
 			portBase* port;
 			string folder(getFolderName()), subroutine(getSubroutineName());
 
-			port= switchClass::getPort(m_pStartFolder, folder, subroutine, m_vsLinks[m_nLinkObserver], "by search range");
+			port= switchClass::getPort(m_pStartFolder, folder, subroutine, m_vsLinks[m_nLinkObserver], /*need own folder*/true, "by search range");
 			if(	port &&
 				(	port->getFolderName() != folder ||
 					port->getSubroutineName() != subroutine	)	)
@@ -174,6 +174,12 @@ namespace ports
 		SHAREDPTR::shared_ptr<portBase> port;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas;
 
+		/*if(	getFolderName() == "TRANSMIT_SONY" &&
+			getSubroutineName() == "calculate"	)
+		{
+			cout << __FILE__ << __LINE__ << endl;
+			cout << "TRANSMIT_SONY:calculating" << endl;
+		}*/
 		aktValue= getValue("i:"+getFolderName());
 		value= aktValue;
 		if(links > 0)
