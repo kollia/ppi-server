@@ -51,17 +51,17 @@ namespace ports
 	{
 		bool bW1, bW2;
 
-		properties->getValue("ID");
-		properties->getValue("pin");
+		properties->needValue("ID");
+		properties->needValue("pin");
 		properties->haveAction("receive");
 		bW1= properties->haveAction("send");
 		bW2= properties->haveAction("send_once");
 		if(bW1 || bW2)
 		{
-			properties->getValue("priority");
-			properties->getValue("begin");
-			properties->getValue("while");
-			properties->getValue("end");
+			properties->getValue("priority", /*warning*/false);
+			properties->getValue("begin", /*warning*/false);
+			properties->getValue("while", /*warning*/false);
+			properties->getValue("end", /*warning*/false);
 		}
 		properties->haveAction("db");
 	}
