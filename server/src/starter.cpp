@@ -63,6 +63,7 @@
 #include "ports/timer.h"
 #include "ports/shell.h"
 #include "ports/valueholder.h"
+#include "ports/Set.h"
 #include "ports/SaveSubValue.h"
 #include "ports/OwfsPort.h"
 
@@ -999,6 +1000,17 @@ void Starter::createPortObjects()
 			{
 				auto_ptr<ValueHolder> obj= auto_ptr<ValueHolder>(new ValueHolder(	aktualFolder->name,
 																					aktualFolder->subroutines[n].name	));
+
+				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				{
+					correctFolder= true;
+					correctSubroutine= true;
+					aktualFolder->subroutines[n].portClass= obj;
+				}
+			}else if(aktualFolder->subroutines[n].type == "SET")
+			{
+				auto_ptr<Set> obj= auto_ptr<Set>(new Set(	aktualFolder->name,
+															aktualFolder->subroutines[n].name	));
 
 				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
 				{
