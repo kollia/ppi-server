@@ -245,7 +245,7 @@ portBase* switchClass::filterSubroutines(const SHAREDPTR::shared_ptr<measurefold
 			if(folders[nPos+1] == '=')
 				++nPos;
 			folders= folders.substr(nPos + 1);
-			return getPort(pStartFolder, folder, subroutine, found, addinfo);
+			return getPort(pStartFolder, folder, subroutine, found, /*need own folder*/false, addinfo);
 		}
 		++nPos;
 	}
@@ -254,11 +254,11 @@ portBase* switchClass::filterSubroutines(const SHAREDPTR::shared_ptr<measurefold
 	folders= "";
 	if(found == "")
 		return NULL;
-	return getPort(pStartFolder, folder, subroutine, found, addinfo);
+	return getPort(pStartFolder, folder, subroutine, found, /*need own folder*/false, addinfo);
 }
 
 portBase* switchClass::getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder,
-								const string& folder, const string& subroutine, const string& cCurrent, const string& addinfo)
+								const string& folder, const string& subroutine, const string& cCurrent, const bool own, const string& addinfo)
 {
 	string found, upper, msg;
 	string sFolder;
@@ -288,11 +288,17 @@ portBase* switchClass::getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 	// where the name is equal to the current string
 	// and ask from the class of the subroutine the value
 	split(spl, found, is_any_of(":"));
-	if(spl.size() != 2 || spl[0] == folder)
+	if(!own && (spl.size() != 2 || spl[0] == folder))
 	{
 		// information is for own folder
 		// folder is activated and do not need again
 		return NULL;
+
+	}else if(spl.size() < 2)
+	{
+		sFolder= folder;
+		sSubroutine= spl[0];
+
 	}else
 	{
 		sFolder= spl[0];

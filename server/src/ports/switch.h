@@ -43,6 +43,14 @@ public:
 		 * @param defaultValue only for derived classes which are no SWITCH type the first value, otherwise it will taken from database or default 0
 		 */
 		switchClass(string type, string folderName, string subroutineName);
+		/**
+		 * initialing object of switchClass
+		 *
+		 * @param properties the properties in file measure.conf
+		 * @param pStartFolder reference to all folder
+		 * qparam defaultValue default value for subroutine. If not given class pull default from properties
+		 * @return whether initalization was ok
+		 */
 		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const bool* const defaultValue= NULL);
 		/**
 		 * this method will be called from any measure thread to set as observer
@@ -95,11 +103,12 @@ public:
 		 * @param folder name of current folder
 		 * @param subroutine name of current subroutine
 		 * @param cCurrent string of subroutines with folder
-		 * @param addinfo info string to add when any error occures
+		 * @param own whether need own foldeer as result
+		 * @param addinfo info string to add when any error occurs
 		 * @return base object of ports
 		 */
 		static portBase* getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& folder,
-										const string& subroutine, const string& cCurrent, const string& addinfo);
+										const string& subroutine, const string& cCurrent, const bool own, const string& addinfo);
 		/**
 		 * measure new value for subroutine
 		 *
