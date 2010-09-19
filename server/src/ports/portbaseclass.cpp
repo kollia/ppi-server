@@ -37,7 +37,7 @@
 using namespace ports;
 using namespace ppi_database;
 
-portBase::portBase(string type, string folderName, string subroutineName)
+portBase::portBase(const string& type, const string& folderName, const string& subroutineName)
 {
 #ifdef DEBUG
 	m_count= 0;

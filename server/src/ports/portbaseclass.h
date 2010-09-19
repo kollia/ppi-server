@@ -204,7 +204,7 @@ namespace ports
 			 * @param folder name of the folder in which this soubroutine running
 			 * @param subroutine name from this subroutine
 			 */
-			portBase(string type, string folderName, string subroutineName);
+			portBase(const string& type, const string& folderName, const string& subroutineName);
 			/**
 			 * initial extended object to check whether write into database and define range of value.<br />
 			 * Before called this method all parameters for method range have be set.
