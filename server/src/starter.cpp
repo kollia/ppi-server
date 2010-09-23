@@ -54,8 +54,6 @@
 #include "ports/portbaseclass.h"
 #include "ports/timemeasure.h"
 #include "ports/switch.h"
-#include "ports/switchcontact.h"
-#include "ports/contactpin.h"
 #include "ports/resistancemeasure.h"
 #include "ports/tempmeasure.h"
 #include "ports/counter.h"
