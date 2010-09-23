@@ -52,14 +52,17 @@ bool Shell::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	return true;
 }
 
-double Shell::measure()
+double Shell::measure(const double actValue)
 {
-	string who("i:" + getFolderName());
-	bool bSwitched= switchClass::getValue(who);
+	bool bSwitched;
 	string msg("make command '");
 	double dRv= 0;
 
-	if(switchClass::measure())
+	if(actValue > 0 || actValue < 0)
+		bSwitched= true;
+	else
+		bSwitched= false;
+	if(switchClass::measure(actValue))
 	{
 		bool bMaked= false;
 

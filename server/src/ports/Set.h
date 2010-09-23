@@ -53,6 +53,11 @@ namespace ports
 		 * whether value can be an float
 		 */
 		bool m_bFloat;
+		/**
+		 * whether parameter begin/while/end for set new value will be done before<br />
+		 * 0 is false and 1 is true
+		 */
+		double m_dSwitch;
 	public:
 		/**
 		 * create object of class Set
@@ -61,7 +66,8 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		Set(const string& folderName, const string& subroutineName)
-		: switchClass("SET", folderName, subroutineName)
+		: switchClass("SET", folderName, subroutineName),
+		  m_dSwitch(0)
 		{ };
 		/**
 		 * create object of class ValueHolder.<br />
@@ -72,7 +78,8 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		Set(const string& type, const string& folderName, const string& subroutineName)
-		: switchClass(type, folderName, subroutineName)
+		: switchClass(type, folderName, subroutineName),
+		  m_dSwitch(0)
 		{ };
 		/**
 		 * initialing object of ValueHolder
@@ -83,11 +90,12 @@ namespace ports
 		 */
 		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
-		 * measure new value
+		 * measure new value for subroutine
 		 *
+		 * @param actValue current value
 		 * @return return measured value
 		 */
-		virtual double measure();
+		virtual double measure(const double actValue);
 
 	protected:
 		/**

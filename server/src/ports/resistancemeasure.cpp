@@ -125,7 +125,7 @@ namespace ports
 		return true;
 	}
 
-	double ResistanceMeasure::measure()
+	double ResistanceMeasure::measure(const double actValue)
 	{
 		char buf[150];
 		string msg;

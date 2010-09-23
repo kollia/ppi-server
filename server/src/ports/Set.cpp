@@ -67,14 +67,15 @@ namespace ports
 		return true;
 	}
 
-	double Set::measure()
+	double Set::measure(const double actValue)
 	{
 		bool bOk, isdebug= isDebug();
 		double value;
 		string folder(getFolderName());
 		string subroutine(getSubroutineName());
 
-		if(switchClass::measure())
+		m_dSwitch= switchClass::measure(m_dSwitch);
+		if(m_dSwitch > 0)
 		{
 			bOk= switchClass::calculateResult(m_pStartFolder, folder, m_sFrom, isdebug, value);
 			if(bOk)
@@ -101,11 +102,11 @@ namespace ports
 				TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg);
 				if(isdebug)
 					cout << "### ERROR: " << msg << endl;
-				return getValue("i:"+folder);
+				return actValue;
 			}
 
 		}else
-			value= getValue("i:"+folder);
+			value= actValue;
 		return value;
 	}
 

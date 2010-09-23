@@ -42,7 +42,9 @@ namespace ports
 		 * @param subroutineName name of subroutine inside the folder
 		 */
 		SaveSubValue(string folderName, string subroutineName)
-		: switchClass(folderName, subroutineName) { };
+		: switchClass(folderName, subroutineName),
+		  m_dSwitch(0)
+		{ };
 		/**
 		 * initial class of saving
 		 *
@@ -51,12 +53,12 @@ namespace ports
 		 */
 		bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
-		 * creating database from defined subroutine
-		 * if config parameter 'when' is an true value
+		 * measure new value for subroutine
 		 *
-		 * @return return 1 by saving in database the new value, otherwise 0
+		 * @param actValue current value
+		 * @return return measured value
 		 */
-		virtual double measure();
+		virtual double measure(const double actValue);
 
 	protected:
 		/**
@@ -82,6 +84,11 @@ namespace ports
 		 * subroutine which value should be saved
 		 */
 		vector<string> m_vSave;
+		/**
+		 * whether parameter begin/while/end for save sub value will be done before<br />
+		 * 0 is false and 1 is true
+		 */
+		double m_dSwitch;
 	};
 
 }

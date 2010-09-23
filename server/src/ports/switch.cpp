@@ -333,7 +333,7 @@ portBase* switchClass::getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 	return NULL;
 }
 
-double switchClass::measure()
+double switchClass::measure(const double actValue)
 {
 	bool bDoOnOff= false;
 	bool bResultTrue= false;
@@ -341,13 +341,17 @@ double switchClass::measure()
 	bool bRemote= false;
 	double dResult;
 
-	/*if(getFolderName() == "TRANSMIT_SONY"
-		&& getSubroutineName() == "wait_after_measure")
-				cout << "do " << flush;*/
+	/*string f("TRANSMIT_SONY2"), s("button");
+	if(getFolderName() == f
+		&& getSubroutineName() == s)
+	{
+		cout << __FILE__ << __LINE__ << endl;
+		cout << f << ":" << s << endl;
+	}*/
 	if(	(	m_bUseInner &&
 			m_bInner		) ||
 		(	!m_bUseInner &&
-			portBase::getValue("i:" + getFolderName())	)	)
+			(actValue < 0 || actValue > 0)	)	)
 	{
 		bResultTrue= true;
 		bSwitched= true;

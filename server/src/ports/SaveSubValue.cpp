@@ -61,14 +61,15 @@ namespace ports
 		return true;
 	}
 
-	double SaveSubValue::measure()
+	double SaveSubValue::measure(const double actValue)
 	{
 		bool bFound= true;
 		double value= 0;
 		vector<double> vValues;
 		DbInterface* db= DbInterface::instance();
 
-		if(switchClass::measure())
+		m_dSwitch= switchClass::measure(m_dSwitch);
+		if(m_dSwitch > 0)
 		{
 			string folder(getFolderName());
 			string subroutine(getSubroutineName());

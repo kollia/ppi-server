@@ -313,7 +313,13 @@ namespace ports
 			 */
 			static Pins getPinsStruct(string sPin);
 			static portpin_address_t getPortPinAddress(Pins tAdr, bool bSetAfter);
-			virtual double measure()=0;
+			/**
+			 * measure new value for subroutine
+			 *
+			 * @param actValue current value
+			 * @return return measured value
+			 */
+			virtual double measure(const double actValue)=0;
 			/**
 			 * get value from subroutine
 			 *

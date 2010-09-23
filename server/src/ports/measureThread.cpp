@@ -143,7 +143,6 @@ struct time_sort : public binary_function<timeval, timeval, bool>
 
 int MeasureThread::execute()
 {
-	//timeval tv;
 	timespec waittm;
 	vector<timeval>::iterator akttime;
 
@@ -154,24 +153,12 @@ int MeasureThread::execute()
 		if(!m_vtmNextTime.empty())
 		{
 			sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
-			/*if(gettimeofday(&tv, NULL))
-			{
-				string msg("ERROR: cannot get time of day,\n");
 
-				msg+= "       so cannot measure time for TIMER function in folder ";
-				msg+= getThreadName() + ".";
-				TIMELOG(LOG_WARNING, "gettimeofday", msg);
-				if(isDebug())
-					cerr << msg << endl;
-				CONDITION(m_VALUECONDITION, m_VALUE);
-			}else*/
-			{
-				akttime= m_vtmNextTime.begin();
-				waittm.tv_sec= akttime->tv_sec;
-				waittm.tv_nsec= akttime->tv_usec * 1000;
-				if(TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm) == ETIMEDOUT)
-					m_vtmNextTime.erase(akttime);
-			}
+			akttime= m_vtmNextTime.begin();
+			waittm.tv_sec= akttime->tv_sec;
+			waittm.tv_nsec= akttime->tv_usec * 1000;
+			if(TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm) == ETIMEDOUT)
+				m_vtmNextTime.erase(akttime);
 		}else
 			CONDITION(m_VALUECONDITION, m_VALUE);
 	}
@@ -198,27 +185,48 @@ void MeasureThread::ending()
 
 bool MeasureThread::measure()
 {
+	bool debug(isDebug());
+	string folder;
+	timeval tv;
+
+	if(m_pvtSubroutines->begin() != m_pvtSubroutines->end())
+		folder= m_pvtSubroutines->begin()->portClass->getFolderName();
+	if(debug)
+	{
+		cout << "----------------------------------" << endl;
+		if(gettimeofday(&tv, NULL))
+			cout << " ERROR: cannot calculate time of beginning" << endl;
+		else
+			cout << " folder '" << folder << "' START (" << tv.tv_sec << "." << tv.tv_usec << ")" << endl;
+		cout << "----------------------------------" << endl;
+	}
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
 		if(it->bCorrect)
 		{
 			double result;
 
-			if(isDebug())
+			if(debug)
 				cout << "execute subroutine '" << it->name << "'" << endl;
-			result= it->portClass->measure();
+			result= it->portClass->measure(it->portClass->getValue(folder));
 			it->portClass->setValue(result);
 
 
-		}else if(isDebug())
+		}else if(debug)
 			cout << "Subroutine " << it->name << " is not correct initialized" << endl;
-		if(isDebug())
+		if(debug)
 			cout << "----------------------------------" << endl;
 		if(stopping())
 			break;
 	}
-	if(isDebug())
-		cout << endl << endl;
+	if(debug)
+	{
+		if(gettimeofday(&tv, NULL))
+			cout << " ERROR: cannot calculate time of ending" << endl;
+		else
+			cout << " folder '" << folder << "' STOP (" << tv.tv_sec << "." << tv.tv_usec << ")" << endl;
+		cout << "----------------------------------" << endl << endl << endl;
+	}
 	return true;
 }
 

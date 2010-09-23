@@ -156,7 +156,7 @@ namespace ports
 		return true;
 	}
 
-	double OwfsPort::measure()
+	double OwfsPort::measure(const double actValue)
 	{
 		bool access, debug, bsetNewValue= false;
 		double value;
@@ -181,7 +181,7 @@ namespace ports
 		{
 			// nothing to do!
 			// value before set from the owreader (OWServer)
-			value= getValue("i:" + getFolderName());
+			value= actValue;
 			if(debug)
 			{
 				cout << "read from chip " << m_sChipID;
@@ -214,7 +214,7 @@ namespace ports
 					cout << " with type " << m_sChipType;
 				cout << endl;
 			}
-			value= ValueHolder::measure();
+			value= ValueHolder::measure(actValue);
 
 			// 2010/08/03 ppi@magnificat.at
 			//				write always to server,

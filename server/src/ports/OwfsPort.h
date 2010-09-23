@@ -63,11 +63,12 @@ namespace ports
 		 */
 		virtual bool init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, ConfigPropertyCasher &properties);
 		/**
-		 * measure new value for subroutine from all devices defined in module
+		 * measure new value for subroutine
 		 *
+		 * @param actValue current value
 		 * @return return measured value
 		 */
-		virtual double measure();
+		virtual double measure(const double actValue);
 		/**
 		 * overwrite portBase class to define access from outside,
 		 * if value defined for switching between 0 and 1

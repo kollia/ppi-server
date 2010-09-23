@@ -78,12 +78,12 @@ namespace ports
 		 */
 		virtual void setObserver(IMeasurePattern* observer);
 		/**
-		 * adding one to value by measure
-		 * or set value to 0 if parameter setnull is true
+		 * measure new value for subroutine
 		 *
-		 * @return new value
+		 * @param actValue current value
+		 * @return return measured value
 		 */
-		virtual double measure();
+		virtual double measure(const double actValue);
 
 	protected:
 		/**

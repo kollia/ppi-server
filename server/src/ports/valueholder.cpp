@@ -163,11 +163,10 @@ namespace ports
 		return true;
 	}
 
-	double ValueHolder::measure()
+	double ValueHolder::measure(const double actValue)
 	{
 		bool isdebug= isDebug();
 		bool bChanged= false;
-		double aktValue;
 		double value, lvalue;
 		string linkfolder;
 		vector<string>::size_type links= m_vsLinks.size();
@@ -180,8 +179,7 @@ namespace ports
 			cout << __FILE__ << __LINE__ << endl;
 			cout << "TRANSMIT_SONY:calculating" << endl;
 		}*/
-		aktValue= getValue("i:"+getFolderName());
-		value= aktValue;
+		value= actValue;
 		if(links > 0)
 		{
 			bool bOk;
@@ -228,7 +226,7 @@ namespace ports
 						// if you want changing to this state
 						// you have to enable the source from setValue() and getValue in this class
 						// and also in this function after method getResult() remove setValue
-						// and by the end return variable aktValue
+						// and by the end return variable actValue
 						// then compile and try to found more bugs
 						setValue(value);
 
@@ -236,12 +234,12 @@ namespace ports
 						{
 							cout << "take value from ";
 							if(	m_dLastValue != value ||
-								m_dLastValue == aktValue	)
+								m_dLastValue == actValue	)
 							{
 								cout << "other subroutine " << link;
 								cout << " where actual value is " << value << endl;
 							}else
-								cout << "own subroutine where actual value is " << aktValue << endl;
+								cout << "own subroutine where actual value is " << actValue << endl;
 						}
 						// define which value will be use
 						// the linked value or own
@@ -249,11 +247,11 @@ namespace ports
 						{ // value be changed in linked subroutine
 							bChanged= true;
 
-						}else if(m_dLastValue != aktValue)
+						}else if(m_dLastValue != actValue)
 						{ // value changed from outside of server or with subroutine SET
 							vector<string> spl;
 
-							value= aktValue;
+							value= actValue;
 							bChanged= true;
 							split(spl, link, is_any_of(":"));
 							linkfolder= spl[0];
@@ -333,13 +331,13 @@ namespace ports
 									m_sWhile, m_vdValues, m_ddefaultValue, value, m_bBooleanWhile, isdebug))
 			{
 				//if(port == NULL)
-					aktValue= value;
+				//	actValue= value;
 			}
 
 		}else
 		{
 			if(isdebug)
-				cout << "VALUE be set from outside with " << dec << aktValue << endl;
+				cout << "VALUE be set from outside with " << dec << actValue << endl;
 		}
 		// this time if an link be set the own value have the same value then the link
 		// maybe it's better if only the linked value be changed
@@ -348,7 +346,7 @@ namespace ports
 		// if you want changing to this state
 		// you have to enable the source from setValue() and getValue in this class
 		// and also in this function after method getResult() remove setValue
-		// and by the end return variable aktValue
+		// and by the end return variable actValue
 		// then compile and try to found more bugs
 		if(port != NULL)
 		{

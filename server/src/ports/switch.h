@@ -112,9 +112,10 @@ public:
 		/**
 		 * measure new value for subroutine
 		 *
+		 * @param actValue current value
 		 * @return return measured value
 		 */
-		virtual double measure();
+		virtual double measure(const double actValue);
 		/**
 		 * destructor
 		 */

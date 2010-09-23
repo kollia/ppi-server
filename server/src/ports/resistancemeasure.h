@@ -58,13 +58,12 @@ namespace ports
 			 */
 			double getResistance();
 			/**
-			 * measuring time if pins set in config file,
-			 * or take time from subroutine set in parameter 'mvalue'<br />
-			 * and calculate time to ohm
+			 * measure new value for subroutine
 			 *
-			 * @return return measured resistance
+			 * @param actValue current value
+			 * @return return measured value
 			 */
-			virtual double measure();
+			virtual double measure(const double actValue);
 
 		protected:
 			unsigned long getCapacitance();

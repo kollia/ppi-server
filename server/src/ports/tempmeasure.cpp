@@ -20,7 +20,7 @@
 
 #include "tempmeasure.h"
 
-double TempMeasure::measure()
+double TempMeasure::measure(const double actValue)
 {
 	float nTemperature= getTemperature();
 

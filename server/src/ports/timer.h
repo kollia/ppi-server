@@ -35,15 +35,17 @@ public:
 	  m_bMeasure(false),
 	  m_bSeconds(true),
 	  m_tmSec(0),
-	  m_tmMicroseconds(0)
+	  m_tmMicroseconds(0),
+	  m_dSwitch(0)
 	  { };
 	virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 	/**
 	 * measure new value for subroutine
 	 *
+	 * @param actValue current value
 	 * @return return measured value
 	 */
-	virtual double measure();
+	virtual double measure(const double actValue);
 	virtual ~timer();
 
 protected:
@@ -104,6 +106,13 @@ protected:
 	 * @return result of subroutine
 	 */
 	double calcResult(timeval tv);
+
+private:
+	/**
+	 * whether parameter begin/while/end for set new value will be done before<br />
+	 * 0 is false and 1 is true
+	 */
+	double m_dSwitch;
 };
 
 #endif /*TIMER_H_*/

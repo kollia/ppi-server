@@ -45,11 +45,11 @@ namespace ports
 		}
 	}
 
-	double Counter::measure()
+	double Counter::measure(const double actValue)
 	{
 		bool bSetNull;
 		double dResult;
-		double value= getValue("i:" + getFolderName());
+		double value= actValue;
 
 		if(m_sSetNull != "")
 		{

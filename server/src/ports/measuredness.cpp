@@ -41,13 +41,13 @@ namespace ports
 		return true;
 	}
 
-	double Measuredness::measure()
+	double Measuredness::measure(const double actValue)
 	{
 		static double origValue= 0;
 		//double dBegin;
 		double mvalue;
 		double diff;
-		double value= getValue("i:" + getFolderName());
+		double value= actValue;
 		string sfolder= getFolderName();
 		double result;
 		bool debug= isDebug();

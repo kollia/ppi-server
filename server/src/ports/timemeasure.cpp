@@ -133,7 +133,7 @@ TimeMeasure::~TimeMeasure()
 	setPin(m_tOut, false);
 }
 
-double TimeMeasure::measure()
+double TimeMeasure::measure(const double actValue)
 {
 	char buf[150];
 	string msg;

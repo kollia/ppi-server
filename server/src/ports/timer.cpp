@@ -124,18 +124,20 @@ bool timer::range(bool& bfloat, double* min, double* max)
 	return true;
 }
 
-double timer::measure()
+double timer::measure(const double actValue)
 {
 	bool bswitch;
 	bool debug= isDebug();
-	double need, oldValue;
-
-	oldValue= switchClass::getValue("i:" + getFolderName());
+	double need;
 
 	/*if(getFolderName() == "TRANSMIT_SONY"
 		&& getSubroutineName() == "wait_after")
 				cout << "TRANSMIT_SONY:wait_after" << endl;*/
-	bswitch= switchClass::measure();
+	m_dSwitch= switchClass::measure(m_dSwitch);
+	if(m_dSwitch > 0)
+		bswitch= true;
+	else
+		bswitch= false;
 	if(	bswitch ||
 		m_bMeasure	)
 	{
@@ -215,7 +217,8 @@ double timer::measure()
 						getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
 						m_bMeasure= true;
 						if(debug)
-							cout << "folder should start again in " << need << " seconds" << endl;
+							cout << "folder should start again in " << need << " seconds by ("
+										<< m_tmStart.tv_sec << "." << m_tmStart.tv_usec << ")" << endl;
 					}
 
 				}else if(	m_tmStart.tv_sec < tv.tv_sec ||
@@ -313,7 +316,7 @@ double timer::measure()
 		}
 	}else
 	{
-		need= oldValue;
+		need= actValue;
 		if(!m_bTime)
 			need= -1;
 	}
