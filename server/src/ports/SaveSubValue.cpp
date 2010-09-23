@@ -28,7 +28,6 @@ namespace ports
 
 	bool SaveSubValue::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
-		bool switchDefault= false;
 		string when;
 		vector<string>::size_type count;
 
@@ -56,7 +55,7 @@ namespace ports
 		}
 		properties.notAllowedParameter("while");
 		properties.readLine("end= true");
-		if(!switchClass::init(properties, pStartFolder, &switchDefault))
+		if(!switchClass::init(properties, pStartFolder))
 			return false;
 		return true;
 	}

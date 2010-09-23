@@ -48,10 +48,9 @@ public:
 		 *
 		 * @param properties the properties in file measure.conf
 		 * @param pStartFolder reference to all folder
-		 * qparam defaultValue default value for subroutine. If not given class pull default from properties
 		 * @return whether initalization was ok
 		 */
-		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const bool* const defaultValue= NULL);
+		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * this method will be called from any measure thread to set as observer
 		 * for starting own folder to get value from foreign folder
@@ -161,17 +160,6 @@ public:
 		static bool subroutineResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pfolder, const string &cCurrent, double &dResult, SHAREDPTR::shared_ptr<portBase>* port);
 
 	protected:
-		/**
-		 * whether 0 and 1 is holding inside of object (by true)
-		 * and the object is from an derived class.
-		 * Otherwise the routine is only for switching between 0 and 1 (false)
-		 * and the value is holding in original parent class <code>portBase</code>
-		 */
-		bool m_bUseInner;
-		/**
-		 * inner value if object isn't only for switching
-		 */
-		bool m_bInner;
 		/**
 		 * value from last pass
 		 */

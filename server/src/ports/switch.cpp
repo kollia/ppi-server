@@ -42,19 +42,15 @@ switchClass::switchClass(string folderName, string subroutineName)
 : portBase("SWITCH", folderName, subroutineName)
 {
 	m_bLastValue= false;
-	m_bUseInner= false;
-	m_bInner= false;
 }
 
 switchClass::switchClass(string type, string folderName, string subroutineName)
 : portBase(type, folderName, subroutineName)
 {
 	m_bLastValue= false;
-	m_bUseInner= false;
-	m_bInner= false;
 }
 
-bool switchClass::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const bool* const defaultValue)
+bool switchClass::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
 	SHAREDPTR::shared_ptr<measurefolder_t> pAct;
 	string on, sWhile, off, prop("default"), type;
@@ -67,11 +63,6 @@ bool switchClass::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared
 	m_sOff= properties.getValue("end", /*warning*/false);
 	//defaultValue= properties.getDouble(prop, /*warning*/false);
 	portBase::init(properties);
-	if(defaultValue != NULL)
-	{
-		m_bInner= *defaultValue;
-		m_bUseInner= true;
-	}
 
 	pAct= m_pStartFolder;
 	while(pAct != NULL)
@@ -335,6 +326,7 @@ portBase* switchClass::getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 
 double switchClass::measure(const double actValue)
 {
+	bool debug(isDebug());
 	bool bDoOnOff= false;
 	bool bResultTrue= false;
 	bool bSwitched= false;
@@ -348,10 +340,7 @@ double switchClass::measure(const double actValue)
 		cout << __FILE__ << __LINE__ << endl;
 		cout << f << ":" << s << endl;
 	}*/
-	if(	(	m_bUseInner &&
-			m_bInner		) ||
-		(	!m_bUseInner &&
-			(actValue < 0 || actValue > 0)	)	)
+	if(	(actValue < 0 || actValue > 0)	)
 	{
 		bResultTrue= true;
 		bSwitched= true;
@@ -364,20 +353,16 @@ double switchClass::measure(const double actValue)
 	 // the variable be set over the server from outside
 		bRemote= true;
 		bDoOnOff= true;
-		if(isDebug())
+		if(debug)
 			cout << "SWITCH value was enabled from remote access" << endl;
 
-	}else if(	isDebug() &&
-				!m_bUseInner &&
+	}else if(	debug &&
 				!bSwitched &&
 				m_bLastValue	)
 	{// if m_bSwitched is false
 	 // but on the last session it was true
 	 // the variable be set over the server from outside
-			//bRemote= true;
-			//bDoOnOff= true;
-			//if(isDebug())
-				cout << "SWITCH value was disabled from remote access" << endl;
+		cout << "SWITCH value was disabled from remote access" << endl;
 	}
 
 	if(	!bSwitched
@@ -394,7 +379,7 @@ double switchClass::measure(const double actValue)
 			msg+= getFolderName() + " with subroutine ";
 			msg+= getSubroutineName();
 			TIMELOG(LOG_ERROR, "switchresolve"+getFolderName()+getSubroutineName()+"begin", msg);
-			if(isDebug())
+			if(debug)
 				cerr << endl << "### ERROR: " << msg.substr(11) << endl;
 			bResultTrue= false;
 		}
@@ -421,7 +406,7 @@ double switchClass::measure(const double actValue)
 			msg+= getFolderName() + " with subroutine ";
 			msg+= getSubroutineName();
 			TIMELOG(LOG_ERROR, "switchresolve"+getFolderName()+getSubroutineName()+"end", msg);
-			if(isDebug())
+			if(debug)
 				cerr << endl << "### ERROR: " << msg.substr(11) << endl;
 			bResultTrue= false;
 		}
@@ -449,7 +434,7 @@ double switchClass::measure(const double actValue)
 			msg+= getFolderName() + " with subroutine ";
 			msg+= getSubroutineName();
 			TIMELOG(LOG_ERROR, "switchresolve"+getFolderName()+getSubroutineName()+"while", msg);
-			if(isDebug())
+			if(debug)
 				cerr << endl << "### ERROR: " << msg.substr(11) << endl;
 			bResultTrue= false;
 		}
@@ -473,7 +458,7 @@ double switchClass::measure(const double actValue)
 	}
 	m_bLastValue= bSwitched;
 
-	if(isDebug())
+	if(debug)
 		cout << "result for SWITCH is " << boolalpha << bResultTrue << endl;
 	if(bResultTrue)
 		return 1;

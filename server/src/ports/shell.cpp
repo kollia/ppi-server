@@ -30,7 +30,7 @@ bool Shell::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	properties.notAllowedParameter("begin");
 	properties.notAllowedParameter("end");
 	properties.notAllowedParameter("default");
-	if(!switchClass::init(properties, pStartFolder, /*taken from db*/NULL))
+	if(!switchClass::init(properties, pStartFolder))
 		return false;
 	m_sBeginCom= properties.getValue("begincommands", /*warning*/false);
 	m_sWhileCom= properties.getValue("whilecommand", /*warning*/false);

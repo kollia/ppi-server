@@ -29,7 +29,7 @@ using namespace util;
 
 bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
-	bool bsec, bmicro, bSwitch= false;
+	bool bsec, bmicro;
 	int milli= 0, min= 0, hour= 0, days= 0;
 	time_t sec= 0;
 	suseconds_t micro= 0;
@@ -84,8 +84,7 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 		m_bTime= true;
 		m_sSetNull= properties.getValue("setnull", /*warning*/false);
 	}
-	bSwitch= false;
-	if(!switchClass::init(properties, pStartFolder, &bSwitch))
+	if(!switchClass::init(properties, pStartFolder))
 		return false;
 	if(	!m_bTime &&
 		m_smtime == "" &&
