@@ -108,10 +108,10 @@ int MeasureThread::init(void *arg)
 	return 0;
 }
 
-void MeasureThread::changedValue(const string& folder)
+void MeasureThread::changedValue(const string& folder, const string& from)
 {
 	LOCK(m_VALUE);
-	m_qFolder.push(folder);
+	m_vFolder.push_back(from);
 	AROUSE(m_VALUECONDITION);
 	UNLOCK(m_VALUE);
 }
@@ -143,12 +143,34 @@ struct time_sort : public binary_function<timeval, timeval, bool>
 
 int MeasureThread::execute()
 {
+	bool debug(isDebug());
+	string folder;
+	timeval tv, cond;
 	timespec waittm;
 	vector<timeval>::iterator akttime;
 
 	measure();
+	if(debug) // || folder == "TRANSMIT_SONY")
+	{
+		folder= getThreadName();
+		if(gettimeofday(&tv, NULL))
+			cout << " ERROR: cannot calculate time of ending" << endl;
+		else
+		{
+			char stime[18];
+
+			strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
+			cout << " folder '" << folder << "' STOP (" << stime << " ";
+			cout.width(6);
+			cout.setf(ios_base::right);
+			cout << tv.tv_usec << ")" << endl;
+		}
+		cout << "----------------------------------" << endl << endl << endl;
+		timerclear(&cond);
+	}
 	LOCK(m_VALUE);
-	if(m_qFolder.empty())
+	m_vInformed.clear();
+	if(m_vFolder.empty())
 	{
 		if(!m_vtmNextTime.empty())
 		{
@@ -158,25 +180,73 @@ int MeasureThread::execute()
 			waittm.tv_sec= akttime->tv_sec;
 			waittm.tv_nsec= akttime->tv_usec * 1000;
 			if(TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm) == ETIMEDOUT)
+			{
+				if(debug)
+					cond= *akttime;
 				m_vtmNextTime.erase(akttime);
+			}
 		}else
 			CONDITION(m_VALUECONDITION, m_VALUE);
 	}
 	if(stopping())
 		return 0;
-	while(!m_qFolder.empty())
-		m_qFolder.pop();
-	UNLOCK(m_VALUE);
+	m_vInformed= m_vFolder;
+	m_vFolder.clear();
 
-	if(isDebug())
+	if(debug)
 	{
-		string thread(getThreadName());
 		string msg("### DEBUGGING for folder ");
 
-		msg+= thread + " is aktivated!";
-		TIMELOG(LOG_WARNING, thread, msg);
+		msg+= folder + " is aktivated!";
+		TIMELOG(LOG_INFO, folder, msg);
+
+		cout << "----------------------------------" << endl;
+		if(gettimeofday(&tv, NULL))
+			cout << " ERROR: cannot calculate time of beginning" << endl;
+		else
+		{
+			char stime[18];
+
+			strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
+			cout << " folder '" << folder << "' START (" << stime << " ";
+			cout.width(6);
+			cout.setf(ios_base::right);
+			cout << tv.tv_usec << ")" << endl;
+			if(timerisset(&cond))
+			{
+				strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&cond.tv_sec));
+				cout << "      awaked from setting time " << stime << " ";
+				cout.width(6);
+				cout.setf(ios_base::right);
+				cout << cond.tv_usec << " before" << endl;
+			}
+			for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
+			{
+				cout << "    informed ";
+				if(i->substr(0, 1) == "|")
+				{
+					if(i->substr(1, 1) == "|")
+						cout << "from ppi-reader '" << i->substr(2) << "'" << endl;
+					else
+						cout << "over Internet connection account '" << i->substr(1) << "'" << endl;
+				}else
+					cout << "from " << *i << " because value was changed" << endl;
+			}
+		}
+		cout << "----------------------------------" << endl;
 	}
+	UNLOCK(m_VALUE);
 	return 0;
+}
+
+vector<string> MeasureThread::wasInformed()
+{
+	vector<string> vRv;
+
+	LOCK(m_VALUE);
+	vRv= m_vInformed;
+	UNLOCK(m_VALUE);
+	return vRv;
 }
 
 void MeasureThread::ending()
@@ -186,20 +256,8 @@ void MeasureThread::ending()
 bool MeasureThread::measure()
 {
 	bool debug(isDebug());
-	string folder;
-	timeval tv;
+	string folder("i:"+getThreadName());
 
-	if(m_pvtSubroutines->begin() != m_pvtSubroutines->end())
-		folder= m_pvtSubroutines->begin()->portClass->getFolderName();
-	if(debug)
-	{
-		cout << "----------------------------------" << endl;
-		if(gettimeofday(&tv, NULL))
-			cout << " ERROR: cannot calculate time of beginning" << endl;
-		else
-			cout << " folder '" << folder << "' START (" << tv.tv_sec << "." << tv.tv_usec << ")" << endl;
-		cout << "----------------------------------" << endl;
-	}
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
 		if(it->bCorrect)
@@ -207,9 +265,9 @@ bool MeasureThread::measure()
 			double result;
 
 			if(debug)
-				cout << "execute subroutine '" << it->name << "'" << endl;
+				cout << "execute subroutine " << it->portClass->getType() << " '" << it->name << "'" << endl;
 			result= it->portClass->measure(it->portClass->getValue(folder));
-			it->portClass->setValue(result);
+			it->portClass->setValue(result, folder+":"+it->name);
 
 
 		}else if(debug)
@@ -218,14 +276,6 @@ bool MeasureThread::measure()
 			cout << "----------------------------------" << endl;
 		if(stopping())
 			break;
-	}
-	if(debug)
-	{
-		if(gettimeofday(&tv, NULL))
-			cout << " ERROR: cannot calculate time of ending" << endl;
-		else
-			cout << " folder '" << folder << "' STOP (" << tv.tv_sec << "." << tv.tv_usec << ")" << endl;
-		cout << "----------------------------------" << endl << endl << endl;
 	}
 	return true;
 }

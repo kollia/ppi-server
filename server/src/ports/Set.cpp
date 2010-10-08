@@ -55,7 +55,7 @@ namespace ports
 		{
 			return false;
 		}
-		setValue(dDefault);
+		setValue(dDefault, "i:"+getFolderName()+":"+getSubroutineName());
 		return true;
 	}
 
@@ -85,7 +85,7 @@ namespace ports
 				port= getPort(m_pStartFolder, folder, subroutine, m_sSet,
 								/*need own folder*/true, "cannot set value in given subroutine '"+m_sSet+"'");
 				if(port)
-					port->setValue(value);
+					port->setValue(value, "i:"+folder+":"+subroutine);
 				if(isdebug)
 				{
 					if(port)

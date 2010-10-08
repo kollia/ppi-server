@@ -82,9 +82,16 @@ class MeasureThread : 	public Thread,
 		/**
 		 * information by changed value in any subroutine
 		 *
-		 * @param folder name of folder
+		 * @param folder which folder should be informed
+		 * @param from from which folder comes information
 		 */
-		virtual void changedValue(const string& folder);
+		virtual void changedValue(const string& folder, const string& from);
+		/**
+		 * from witch folder:subroutine thread was informed for new value
+		 *
+		 * @return vector of folder:subroutine which informed
+		 */
+		virtual vector<string> wasInformed();
 		/**
 		 * on which time the measure routine should start without any actions on extern ports
 		 *
@@ -132,9 +139,13 @@ class MeasureThread : 	public Thread,
 		map<unsigned long, unsigned> m_vAfterContactPorts;
 		bool m_bDebug;
 		/**
+		 * from which folder:subroutine the thread was informed to change
+		 */
+		vector<string> m_vInformed;
+		/**
 		 * all changed folder
 		 */
-		queue<string> m_qFolder;
+		vector<string> m_vFolder;
 		/**
 		 * next time to activate measure routine without action from extern
 		 */

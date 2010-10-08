@@ -200,24 +200,22 @@ double timer::measure(const double actValue)
 					{
 						timeval next;
 
-						m_tmStart.tv_sec+= m_tmSec;
-						m_tmStart.tv_usec+= m_tmMicroseconds;
-						if(m_tmStart.tv_usec > 999999)
-						{
-							suseconds_t microsec;
-
-							microsec= m_tmStart.tv_usec / (1000 * 1000);
-							m_tmStart.tv_usec-= (microsec * 1000 * 1000);
-							m_tmStart.tv_sec+= static_cast<time_t>(microsec);
-						}
 						next.tv_sec= m_tmSec;
 						next.tv_usec= m_tmMicroseconds;
+						timeradd(&m_tmStart, &next, &m_tmStart);
 						need= calcResult(next);
 						getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
 						m_bMeasure= true;
 						if(debug)
-							cout << "folder should start again in " << need << " seconds by ("
-										<< m_tmStart.tv_sec << "." << m_tmStart.tv_usec << ")" << endl;
+						{
+							char stime[18];
+
+							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
+							cout << "folder should start again in " << need << " seconds by (" << stime << " ";
+							cout.width(6);
+							cout.setf(ios_base::right);
+							cout << m_tmStart.tv_usec << ")" << endl;
+						}
 					}
 
 				}else if(	m_tmStart.tv_sec < tv.tv_sec ||
@@ -226,6 +224,7 @@ double timer::measure(const double actValue)
 				{ // reaching end of count down
 					if(debug)
 					{
+						char stime[18];
 						timeval was;
 
 						was.tv_sec= m_tmSec;
@@ -233,23 +232,35 @@ double timer::measure(const double actValue)
 						need= calcResult(was);
 						cout << "folder was refreshed because time of " << need;
 						cout << " seconds was reached" << endl;
-						cout << "refresh time " << m_tmStart.tv_sec << "." << m_tmStart.tv_usec;
-						cout << " actual time " << tv.tv_sec << "." << tv.tv_usec << endl;
+						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
+						cout << "refresh time (" << stime << " ";
+						cout.width(6);
+						cout.setf(ios_base::right);
+						cout << m_tmStart.tv_usec << ")" << endl;
+						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
+						cout << " actual time (" << stime << " ";
+						cout.width(6);
+						cout.setf(ios_base::right);
+						cout << tv.tv_usec << ")" << endl;
 					}
 					if(bswitch)
 					{ // begin count down again when begin or while is true
-						m_tmStart.tv_sec+= m_tmSec;
-						m_tmStart.tv_usec+= m_tmMicroseconds;
-						if(m_tmStart.tv_usec > 999999)
-						{
-							suseconds_t microsec;
+						timeval next;
 
-							microsec= m_tmStart.tv_usec / (1000 * 1000);
-							m_tmStart.tv_usec-= (microsec * 1000 * 1000);
-							m_tmStart.tv_sec+= static_cast<time_t>(microsec);
-						}
+						next.tv_sec= m_tmSec;
+						next.tv_usec= m_tmMicroseconds;
+						timeradd(&m_tmStart, &next, &m_tmStart);
 						if(debug)
-							cout << "refresh again for polling count down ----" << endl;
+						{
+							char stime[18];
+
+							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
+							cout << "refresh again for polling count down in " << need;
+							cout << " seconds by (" << stime << " ";
+							cout.width(6);
+							cout.setf(ios_base::right);
+							cout << m_tmStart.tv_usec << ")" << endl;
+						}
 						getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
 					}else
 						m_bMeasure= false;
@@ -259,14 +270,39 @@ double timer::measure(const double actValue)
 				{ // count down is running
 					timeval newtime;
 
-					newtime.tv_sec= m_tmStart.tv_sec - tv.tv_sec;
-					newtime.tv_usec= m_tmStart.tv_usec - tv.tv_usec;
-					need= calcResult(newtime);
+					if(bswitch || debug)
+					{// by debug session need is set to 0 and m_bMeaure to false
+					 // inside next if(debug) sentence
+						timersub(&m_tmStart, &tv, &newtime);
+						need= calcResult(newtime);
+					}else
+					{
+						need= 0;
+						m_bMeasure= false;
+					}
 					if(debug)
 					{
-						cout << "folder should start again in " << need << " seconds" << endl;
-						cout << "refresh time " << m_tmStart.tv_sec << "." << m_tmStart.tv_usec;
-						cout << " actual time " << tv.tv_sec << "." << tv.tv_usec << endl;
+						char stime[18];
+
+						if(bswitch)
+						{
+							cout << "folder should start again in " << need << " seconds" << endl;
+							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
+							cout << "    by time (" << stime << " ";
+							cout.width(6);
+							cout.setf(ios_base::right);
+							cout << m_tmStart.tv_usec << ")" << endl;
+						}else
+						{
+							cout << "subroutine of timer stops " << need << " seconds before" << endl;
+							need= 0;
+							m_bMeasure= false;
+						}
+						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
+						cout << "actual time (" << stime << " ";
+						cout.width(6);
+						cout.setf(ios_base::right);
+						cout << tv.tv_usec << ")" << endl;
 					}
 				}
 			}else

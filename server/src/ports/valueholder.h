@@ -154,11 +154,15 @@ namespace ports
 		 */
 		virtual double getValue(const string& who);
 		/**
-		 * set value in subroutine
+		 * set value in subroutine.<br />
+		 * All strings from parameter 'from' beginning with an one character type,
+		 * followed from an colon 'r:' by ppi-reader, 'e:' by an account connected over Internet
+		 * or 'i:' by intern folder:subroutine.
 		 *
 		 * @param value value which should be set
+		 * @param who which folder:subroutine or account changing the value
 		 */
-		virtual void setValue(const double value);
+		virtual void setValue(const double value, const string& who);
 		/**
 		 * calculate while string and set to value result or content of parameter content if exist.<br/>
 		 * Method write error or warning string into log-file and on command line if debug flag be set

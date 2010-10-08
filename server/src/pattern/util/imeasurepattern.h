@@ -43,7 +43,13 @@ namespace design_pattern_world
 				 *
 				 * @param folder name of folder
 				 */
-				virtual void changedValue(const string& folder)= 0;
+				virtual void changedValue(const string& folder, const string& from)= 0;
+				/**
+				 * from witch folder:subroutine thread was informed for new value
+				 *
+				 * @return vector of folder:subroutine which informed
+				 */
+				virtual vector<string> wasInformed()= 0;
 				/**
 				 * on which time the measure routine should start without any actions on extern ports
 				 *

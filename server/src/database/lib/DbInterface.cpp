@@ -136,7 +136,7 @@ namespace ppi_database
 		}
 	}
 
-	void DbInterface::setValue(string folder, string subroutine, double value)
+	void DbInterface::setValue(string folder, string subroutine, double value, const string& account)
 	{
 		int err;
 		string sRv;
@@ -145,6 +145,7 @@ namespace ppi_database
 		command << folder;
 		command << subroutine;
 		command << value;
+		command << account;
 		sRv= sendMethod("ProcessChecker", command, true);
 		err= error(sRv);
 		if(err != 0)

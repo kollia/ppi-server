@@ -226,15 +226,17 @@ namespace ports
 			 *
 			 * @param observer measure thread which containing the own folder
 			 * @param folder name of folder which should be informed
+			 * @param subroutine name of subroutine which should be informed
 			 */
-			virtual void informObserver(IMeasurePattern* observer, const string& folder);
+			virtual void informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine);
 			/**
 			 * remove from observer from information when value changed
 			 *
 			 * @param observer measure thread which containing the own folder
-			 * @param folder name of folder which should be informed
+			 * @param folder name of folder which should be removed from information
+			 * @param subroutine name of subroutine which should be removed from information
 			 */
-			virtual void removeObserver(IMeasurePattern* observer, const string& folder);
+			virtual void removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine);
 			/**
 			 * set whether subroutine has correct access to device
 			 *
@@ -256,7 +258,17 @@ namespace ports
 			bool doForAfterContact();
 			void setAfterContact(const map<unsigned long, unsigned> &ports, const set<Pins> &pins);
 			void noAfterContactPublication();
-			void setDebug(bool bDebug);
+			/**
+			 * set subroutine for output doing actions
+			 *
+			 * @param whether should write output
+			 */
+			virtual void setDebug(bool bDebug);
+			/**
+			 * return whether is subroutine set for output doing actions
+			 *
+			 * @return whether subroutine do output
+			 */
 			bool isDebug();
 			/**
 			 * returning the type of the current object
@@ -329,11 +341,15 @@ namespace ports
 			 */
 			virtual double getValue(const string& who);
 			/**
-			 * set value in subroutine
+			 * set value in subroutine.<br />
+			 * All strings from parameter 'from' beginning with an one character type,
+			 * followed from an colon 'r:' by ppi-reader, 'e:' by an account connected over Internet
+			 * or 'i:' by intern folder:subroutine.
 			 *
 			 * @param value value which should be set
+			 * @param from which folder:subroutine or account changing the value
 			 */
-			virtual void setValue(const double value);
+			virtual void setValue(const double value, const string& from);
 			/**
 			 * set measure thread which run this object with method <code>measure()</code>
 			 *
@@ -348,6 +364,13 @@ namespace ports
 			 */
 			IMeasurePattern* getRunningThread()
 			{ return m_poMeasurePattern; };
+			/**
+			 * return type of subroutine
+			 *
+			 * @return type name
+			 */
+			string getType()
+			{ return m_sType; };
 			/**
 			 * set min and max parameter to the range which can be set for this subroutine.<br />
 			 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.

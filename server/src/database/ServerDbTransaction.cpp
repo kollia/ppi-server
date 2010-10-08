@@ -626,6 +626,7 @@ namespace server
 					command << *sit;
 					command << value;
 					command << device;
+					command << onServer+" "+chip;
 					descriptor.sendToOtherClient("ProcessChecker", command.str(), false);
 				}
 			}

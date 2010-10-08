@@ -126,7 +126,7 @@ namespace ports
 			else
 				value= 0;
 		}
-		setValue(value);
+		setValue(value, "i:"+getFolderName()+":"+getSubroutineName());
 		return true;
 	}
 
@@ -169,6 +169,9 @@ namespace ports
 		bool bChanged= false;
 		double value, lvalue;
 		string linkfolder;
+		string subroutine(getSubroutineName());
+		string folder(getFolderName());
+		string foldersub(folder + ":" + subroutine);
 		vector<string>::size_type links= m_vsLinks.size();
 		SHAREDPTR::shared_ptr<portBase> port;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas;
@@ -185,9 +188,6 @@ namespace ports
 			bool bOk;
 			vector<string>::size_type pos;
 			string link;
-			string subroutine(getSubroutineName());
-			string folder(getFolderName());
-			string foldersub(folder + ":" + subroutine);
 
 			if(m_sLinkWhile != "")
 			{
@@ -228,7 +228,7 @@ namespace ports
 						// and also in this function after method getResult() remove setValue
 						// and by the end return variable actValue
 						// then compile and try to found more bugs
-						setValue(value);
+						setValue(value, "i:"+foldersub);
 
 						if(isdebug)
 						{
@@ -327,7 +327,7 @@ namespace ports
 		if( !bChanged &&
 			m_sWhile != "")
 		{
-			if(getWhileStringResult(m_pStartFolder, getFolderName(), getSubroutineName(),
+			if(getWhileStringResult(m_pStartFolder, folder, subroutine,
 									m_sWhile, m_vdValues, m_ddefaultValue, value, m_bBooleanWhile, isdebug))
 			{
 				//if(port == NULL)
@@ -350,9 +350,9 @@ namespace ports
 		// then compile and try to found more bugs
 		if(port != NULL)
 		{
-			port->setValue(value);
+			port->setValue(value, "i:"+foldersub);
 			if(pCurMeas)
-				pCurMeas->pMeasure->changedValue(linkfolder);
+				pCurMeas->pMeasure->changedValue(linkfolder, folder);
 		}
 		m_dLastValue= value;
 		return value;
@@ -380,7 +380,7 @@ namespace ports
 
 	}
 
-	void ValueHolder::setValue(const double value)
+	void ValueHolder::setValue(const double value, const string& who)
 	{
 		// this time if an link be set the own value have the same value then the link
 		// maybe it's better if only the linked value be changed
@@ -398,11 +398,11 @@ namespace ports
 			port= switchClass::getPort(m_pStartFolder, getFolderName(), getSubroutineName(), m_vsLinks[m_nLinkObserver], "");
 			if(port != NULL)
 			{
-				port->setValue(value);
+				port->setValue(value, who);
 				return;
 			}
 		}*/
-		portBase::setValue(value);
+		portBase::setValue(value, who);
 	}
 
 	bool ValueHolder::getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool readBool, const bool debug)

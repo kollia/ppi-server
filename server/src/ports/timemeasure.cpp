@@ -78,7 +78,7 @@ void TimeMeasure::init(	Pins tOut, Pins tIn, Pins tNegative,
 	m_tOut= tOut;
 	m_tIn= tIn;
 	m_tNegative= tNegative;
-	portBase::setValue(0);
+	portBase::setValue(0, "i:"+getFolderName()+":"+getSubroutineName());
 	m_nMeasuredness= measuredness;
 	m_vCorrection= *elkoCorrection;
 	m_maxMeasuredTime= 1500000;

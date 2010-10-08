@@ -109,7 +109,7 @@ void switchClass::removeObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& p
 		{
 			//cout << "remove from " << found->getFolderName() << ":" << found->getSubroutineName();
 			//cout << " to inform folder " << folder << endl;
-			found->removeObserver(observer, folder);
+			found->removeObserver(observer, folder, subroutine);
 		}
 	}
 }
@@ -127,7 +127,7 @@ void switchClass::activateObserver(const SHAREDPTR::shared_ptr<measurefolder_t>&
 		{
 			//cout << "inform folder " << folder << " when value of " << found->getFolderName() << ":" << found->getSubroutineName();
 			//cout << " be changed" << endl;
-			found->informObserver(observer, folder);
+			found->informObserver(observer, folder, subroutine);
 		}
 	}
 }

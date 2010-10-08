@@ -183,8 +183,9 @@ void portBase::setObserver(IMeasurePattern* observer)
 	// this value from the other folder
 }
 
-void portBase::informObserver(IMeasurePattern* observer, const string& folder)
+void portBase::informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine)
 {
+	string informe(folder+":"+subroutine);
 	vector<string> vec;
 	vector<string>::iterator found;
 
@@ -195,23 +196,33 @@ void portBase::informObserver(IMeasurePattern* observer, const string& folder)
 	// this time has one thread one folder
 	LOCK(m_OBSERVERLOCK);
 	vec= m_mvObservers[observer];
-	found= find(vec.begin(), vec.end(), folder);
+	found= find(vec.begin(), vec.end(), informe);
 	if(found == vec.end())
-		m_mvObservers[observer].push_back(folder);
+		m_mvObservers[observer].push_back(informe);
 	UNLOCK(m_OBSERVERLOCK);
 }
 
-void portBase::removeObserver(IMeasurePattern* observer, const string& folder)
+void portBase::removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine)
 {
-	map<IMeasurePattern*, vector<string> >::iterator found;
+	string remove(folder+":"+subroutine);
+	map<IMeasurePattern*, vector<string> >::iterator foundT;
+	vector<string>::iterator foundS;
 
 	// parameter folder is only for the feature
 	// if one thread, has the same observer, can have more folders
 	// this time has one thread one folder
 	LOCK(m_OBSERVERLOCK);
-	found= m_mvObservers.find(observer);
-	if(found != m_mvObservers.end())
-		m_mvObservers.erase(found);
+	foundT= m_mvObservers.find(observer);
+	if(foundT != m_mvObservers.end())
+	{
+		foundS= find(foundT->second.begin(), foundT->second.end(), remove);
+		if(foundS != foundT->second.end())
+		{
+			foundT->second.erase(foundS);
+			if(foundT->second.size() == 0)
+				m_mvObservers.erase(foundT);
+		}
+	}
 	UNLOCK(m_OBSERVERLOCK);
 }
 
@@ -230,7 +241,7 @@ bool portBase::hasDeviceAccess() const
 	return bDevice;
 }
 
-void portBase::setValue(double value)
+void portBase::setValue(double value, const string& from)
 {
 	double dbvalue= value;
 	double oldMember= m_dValue;
@@ -262,19 +273,50 @@ void portBase::setValue(double value)
 	}
 	if(value != m_dValue)
 	{
+		bool debug(isDebug());
+		string sOwn(m_sFolder+":"+m_sSubroutine);
+		ostringstream output;
+
 		LOCK(m_VALUELOCK);
 		m_dValue= value;
 		UNLOCK(m_VALUELOCK);
 
 		LOCK(m_OBSERVERLOCK);
+		if(debug && m_mvObservers.size() > 0)
+		{
+			output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
+			output << "  " << sOwn << " was changed:" << endl;
+			if(	from.substr(0, 1) != "i" &&
+				from.substr(2) != sOwn		)
+			{
+				output << "  was informed from";
+				if(from.substr(0, 1) == "e")
+					output << " internet account ";
+				else
+					output << ": ";
+				output << from.substr(2) << endl;
+			}
+		}
 		for(map<IMeasurePattern*, vector<string> >::iterator it= m_mvObservers.begin(); it != m_mvObservers.end(); ++it)
 		{
 			for(vector<string>::iterator fit= it->second.begin(); fit != it->second.end(); ++fit)
 			{
-				it->first->changedValue(*fit);
-				// toDo: delete break when more folder threads running in one thread
+				if(	from.substr(0, 1) != "i" ||
+					from.substr(2) != *fit		)
+				{
+					it->first->changedValue(*fit, sOwn);
+					if(debug)
+						output << "    informe " << *fit << endl;
+
+				}else if(debug)
+					output << "    do not infomre " << *fit << " back" << endl;
 				break;
 			}
+		}
+		if(debug &&m_mvObservers.size() > 0)
+		{
+			output << "////////////////////////////////////////" << endl;
+			cout << output.str();
 		}
 		UNLOCK(m_OBSERVERLOCK);
 		if(dbvalue != oldMember)

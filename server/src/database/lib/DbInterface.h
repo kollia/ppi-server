@@ -101,17 +101,18 @@ namespace ppi_database
 		 * set double value into measure list
 		 *
 		 * @param folder folder name from the running thread
-		 * @param subroutine mame of the subroutine in the folder
-		 * @param value value whitch should write into database
+		 * @param subroutine name of the subroutine in the folder
+		 * @param value value which should write into database
+		 * @param account from which account over Internet the value will be set
 		 */
-		void setValue(string folder, string subroutine, double value);
+		void setValue(string folder, string subroutine, double value, const string& account);
 		/**
 		 * fill double value into database
 		 *
 		 * @param folder folder name from the running thread
-		 * @param subroutine mame of the subroutine in the folder
+		 * @param subroutine name of the subroutine in the folder
 		 * @param identif identification of which value be set
-		 * @param value value whitch should write into database
+		 * @param value value which should write into database
 		 * @param bNew whether database should write only new values default= true
 		 */
 		void fillValue(string folder, string subroutine, string identif, double value, bool bNew= true);
@@ -251,6 +252,7 @@ namespace ppi_database
 		 * @param chip which unique chip was changed
 		 * @param value new value for chip
 		 * @param device whether chip can be reach correctly
+		 * @param reader from which ppi-reader chip was changed
 		 */
 		void changedChip(const string& onServer, const string& chip, const double value, const bool device);
 		/**

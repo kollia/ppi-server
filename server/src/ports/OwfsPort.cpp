@@ -267,7 +267,7 @@ namespace ports
 		value= (int)portBase::getValue(who);
 		nvalue= (int)value;
 		nvalue&= 0x01;
-		portBase::setValue((double)nvalue);
+		portBase::setValue((double)nvalue, who);
 		return value;
 	}
 

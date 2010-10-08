@@ -889,13 +889,14 @@ namespace server
 							bool bCorrect;
 							double value;
 							string command;
+							string account(descriptor.getString("username"));
 							UserManagement* user= UserManagement::instance();
 
 							if(bGet)
 								command= "read";
 							else
 								command= "write";
-							if(user->hasPermission(descriptor.getString("username"), values[0], values[1], command))
+							if(user->hasPermission(account, values[0], values[1], command))
 							{
 								if(bGet)
 								{
@@ -917,7 +918,7 @@ namespace server
 									double value;
 
 									ss >> value;
-									db->setValue(values[0], values[1], value);
+									db->setValue(values[0], values[1], value, account);
 									sendmsg= "done";
 #ifdef SERVERDEBUG
 									cout << "send: " << sendmsg << endl;

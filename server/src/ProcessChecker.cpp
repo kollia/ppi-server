@@ -1,4 +1,4 @@
-	/**
+/**
  *   This file is part of ppi-server.
  *
  *   ppi-server is free software: you can redistribute it and/or modify
@@ -41,6 +41,7 @@ int ProcessChecker::execute()
 	int nRv= 0;
 	string method;
 	string question;
+	string from;
 
 	question= getQuestion(m_sAnswer);
 	IMethodStringStream object(question);
@@ -50,7 +51,7 @@ int ProcessChecker::execute()
 		||
 		method == "changedChip"	)
 	{
-		bool bCorrect, device;
+		bool bCorrect, device= true;
 		double value;
 		string folder, subroutine;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
@@ -61,8 +62,7 @@ int ProcessChecker::execute()
 		object >> value;
 		if(method == "changedChip")
 			object >> device;
-		else
-			device= true;
+		object >> from;
 		while(pCurMeas)
 		{
 			if(pCurMeas->pMeasure->getThreadName() == folder)
@@ -86,8 +86,8 @@ int ProcessChecker::execute()
 					cout << out.str();
 #endif // __DEBUGPROCESSGETCHANGES
 					port->setDeviceAccess(device);
-					port->setValue(value);
-					pCurMeas->pMeasure->changedValue(folder);
+					port->setValue(value, "r:"+from);
+					pCurMeas->pMeasure->changedValue(folder, "||"+from);
 					m_sAnswer= "done";
 
 				}else if(bCorrect)
@@ -101,8 +101,8 @@ int ProcessChecker::execute()
 					oldVal= port->getValue("i:"+folder);
 					if(value != oldVal)
 					{
-						port->setValue(value);
-						pCurMeas->pMeasure->changedValue(folder);
+						port->setValue(value, "e:"+from);
+						pCurMeas->pMeasure->changedValue(folder, "|"+from);
 					}
 					m_sAnswer= "done";
 
