@@ -1,6 +1,7 @@
 
 
-set(portsSrcs 	counter.cpp
+set(portsSrcs 	ListCalculator.cpp
+				counter.cpp
         		measuredness.cpp
         		measureThread.cpp
         		OwfsPort.cpp

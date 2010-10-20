@@ -3,6 +3,7 @@ set(mainSrcs 	main.cpp
                 ProcessChecker.cpp 
 		        starter.cpp				
 		        
+		        ports/ListCalculator.cpp
         		ports/measureThread.cpp
 		        ports/counter.cpp
         		ports/measuredness.cpp
