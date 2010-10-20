@@ -23,6 +23,7 @@
 
 #include "../util/properties/configpropertycasher.h"
 
+#include "ListCalculator.h"
 #include "timemeasure.h"
 
 namespace ports
@@ -45,7 +46,8 @@ namespace ports
 			 * @param subroutineName name of subroutine inside the folder
 			 */
 			ResistanceMeasure(string folderName, string subroutineName)
-			: TimeMeasure(folderName, subroutineName) { };
+			: TimeMeasure(folderName, subroutineName),
+			  m_oMeasuredSubroutine(folderName, subroutineName, "mvalue", false) { };
 			/**
 			 * initial class of saving
 			 *
@@ -64,6 +66,12 @@ namespace ports
 			 * @return return measured value
 			 */
 			virtual double measure(const double actValue);
+			/**
+			 * set subroutine for output doing actions
+			 *
+			 * @param whether should write output
+			 */
+			virtual void setDebug(bool bDebug);
 
 		protected:
 			unsigned long getCapacitance();
@@ -76,7 +84,7 @@ namespace ports
 			/**
 			 * subroutine from whitch get the measured time
 			 */
-			string m_sMeasuredSubroutine;
+			ListCalculator m_oMeasuredSubroutine;
 			/**
 			 * subroutine whitch hold the ohmvalue whitch should be
 			 * the curent measured time to write in database

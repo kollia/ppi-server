@@ -22,6 +22,7 @@
 #include "../util/structures.h"
 #include "../util/properties/configpropertycasher.h"
 
+#include "ListCalculator.h"
 #include "portbaseclass.h"
 
 #ifndef DOUBLE_MAX
@@ -49,7 +50,8 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		Counter(string folder, string subroutine)
-		: portBase("COUNTER", folder, subroutine)
+		: portBase("COUNTER", folder, subroutine),
+		  m_oSetNull(folder, subroutine, "setnull", true)
 		{ };
 		/**
 		 * create object of class Counter.<br />
@@ -60,7 +62,8 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		Counter(string type, string folder, string subroutine)
-		: portBase(type, folder, subroutine)
+		: portBase(type, folder, subroutine),
+		  m_oSetNull(folder, subroutine, "setnull", true)
 		{ };
 		/**
 		 * initialing object of counter
@@ -84,6 +87,12 @@ namespace ports
 		 * @return return measured value
 		 */
 		virtual double measure(const double actValue);
+		/**
+		 * set subroutine for output doing actions
+		 *
+		 * @param whether should write output
+		 */
+		virtual void setDebug(bool bDebug);
 
 	protected:
 		/**
@@ -108,7 +117,7 @@ namespace ports
 		/**
 		 * propertie value for setnull
 		 */
-		string m_sSetNull;
+		ListCalculator m_oSetNull;
 	};
 
 }

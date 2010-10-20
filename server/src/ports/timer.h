@@ -26,6 +26,7 @@
 
 #include "../util/properties/configpropertycasher.h"
 
+#include "ListCalculator.h"
 #include "switch.h"
 
 class timer : public switchClass
@@ -36,8 +37,10 @@ public:
 	  m_bTime(false),
 	  m_bMeasure(false),
 	  m_bSeconds(true),
+	  m_omtime(folderName, subroutineName, "mtime", false),
 	  m_tmSec(0),
 	  m_tmMicroseconds(0),
+	  m_oSetNull(folderName, subroutineName, "setnull", true),
 	  m_dSwitch(0)
 	  { };
 	virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
@@ -48,6 +51,15 @@ public:
 	 * @return return measured value
 	 */
 	virtual double measure(const double actValue);
+	/**
+	 * set subroutine for output doing actions
+	 *
+	 * @param whether should write output
+	 */
+	virtual void setDebug(bool bDebug);
+	/**
+	 * destructor
+	 */
 	virtual ~timer();
 
 protected:
@@ -68,7 +80,7 @@ protected:
 	/**
 	 * defined-value where get the time for count down
 	 */
-	string m_smtime;
+	ListCalculator m_omtime;
 	/**
 	 * seconds to refresh when m_smtime not be set
 	 */
@@ -85,7 +97,7 @@ protected:
 	/**
 	 * string of options whether set value to 0
 	 */
-	string m_sSetNull;
+	ListCalculator m_oSetNull;
 
 	/**
 	 * set min and max parameter to the range which can be set for this subroutine.<br />

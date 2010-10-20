@@ -45,7 +45,16 @@ namespace ports
 				return false;
 			}
 			for(vector<string>::size_type c= 0; c < count; ++c)
-				m_vSave.push_back(properties.getValue("sub", c));
+			{
+				ostringstream param;
+				ListCalculator* calc;
+
+				param << "sub[" << c << "]";
+				//m_vSave.push_back(properties.getValue("sub", c));
+				m_vpSave.push_back(new ListCalculator(getFolderName(), getSubroutineName(), param.str(), false));
+				calc= m_vpSave.back();
+				calc->init(pStartFolder, properties.getValue("sub", c));
+			}
 		}
 
 		when= properties.getValue("when", /*warning*/false);
@@ -62,7 +71,6 @@ namespace ports
 
 	double SaveSubValue::measure(const double actValue)
 	{
-		bool bFound= true;
 		double value= 0;
 		vector<double> vValues;
 		DbInterface* db= DbInterface::instance();
@@ -75,10 +83,9 @@ namespace ports
 
 			if(m_sIdentif.substr(0, 6) != "clear:")
 			{
-				for(vector<string>::iterator iter= m_vSave.begin(); iter != m_vSave.end(); ++iter)
+				for(vector<ListCalculator*>::iterator iter= m_vpSave.begin(); iter != m_vpSave.end(); ++iter)
 				{
-					bFound= calculateResult(&(*iter)[0], value);
-					if(bFound)
+					if((*iter)->calculate(value))
 						vValues.push_back(value);
 				}
 			}
@@ -99,6 +106,12 @@ namespace ports
 		*min= 0;
 		*max= (double)LONG_MAX;
 		return true;
+	}
+
+	SaveSubValue::~SaveSubValue()
+	{
+		for(vector<ListCalculator*>::iterator iter= m_vpSave.begin(); iter != m_vpSave.end(); ++iter)
+			delete *iter;
 	}
 
 }

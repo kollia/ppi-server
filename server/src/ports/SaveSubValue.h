@@ -21,6 +21,7 @@
 
 #include "../util/properties/configpropertycasher.h"
 
+#include "ListCalculator.h"
 #include "switch.h"
 
 namespace ports
@@ -59,6 +60,10 @@ namespace ports
 		 * @return return measured value
 		 */
 		virtual double measure(const double actValue);
+		/**
+		 * destructor to delete all ListContainer for saving
+		 */
+		virtual ~SaveSubValue();
 
 	protected:
 		/**
@@ -83,7 +88,7 @@ namespace ports
 		/**
 		 * subroutine which value should be saved
 		 */
-		vector<string> m_vSave;
+		vector<ListCalculator*> m_vpSave;
 		/**
 		 * whether parameter begin/while/end for save sub value will be done before<br />
 		 * 0 is false and 1 is true

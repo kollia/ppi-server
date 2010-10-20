@@ -32,12 +32,35 @@ namespace ports
 	bool Set::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		double dDefault;
-		string prop;
-		vector<string> vec;
+		string prop, sFrom;
+		vector<string> spl;
 
-		m_pStartFolder= pStartFolder;
-		m_sFrom= properties.needValue("from");
+		sFrom= properties.needValue("from");
+		m_oFrom.init(pStartFolder, sFrom);
 		m_sSet= properties.needValue("set");
+		trim(m_sSet);
+		if(m_sSet != "")
+		{
+			split(spl, m_sSet, is_any_of(":"));
+			if(spl.size() > 0)
+				trim(spl[0]);
+			if(spl.size() == 2)
+				trim(spl[1]);
+			if(	(	spl.size() == 1 &&
+					spl[0].find(" ") != string::npos	) ||
+				(	spl.size() == 2 &&
+					(	spl[0].find(" ") != string::npos ||
+						spl[1].find(" ") != string::npos	)	)	)
+			{
+				ostringstream msg;
+
+				msg << properties.getMsgHead(/*error*/true);
+				msg << " set parameter '"  << m_sSet << "' can only be an single [folder:]<sburoutine>";
+				LOG(LOG_ERROR, msg.str());
+				cout << msg << endl;
+				m_sSet= "";
+			}
+		}
 		prop= "min";
 		m_nMin= properties.getDouble(prop, /*warning*/false);
 		if(prop == "#ERROR")
@@ -50,7 +73,7 @@ namespace ports
 		prop= "default";
 		dDefault= properties.getDouble(prop, /*warning*/false);
 		if(	!switchClass::init(properties, pStartFolder) ||
-			m_sFrom == "" ||
+			sFrom == "" ||
 			m_sSet == ""										)
 		{
 			return false;
@@ -77,27 +100,35 @@ namespace ports
 		m_dSwitch= switchClass::measure(m_dSwitch);
 		if(m_dSwitch > 0)
 		{
-			bOk= switchClass::calculateResult(m_pStartFolder, folder, m_sFrom, isdebug, value);
+			bOk= m_oFrom.calculate(value);
 			if(bOk)
 			{
 				portBase* port;
 
-				port= getPort(m_pStartFolder, folder, subroutine, m_sSet,
-								/*need own folder*/true, "cannot set value in given subroutine '"+m_sSet+"'");
+				port= m_oFrom.getSubroutine(m_sSet, /*own folder*/true);
 				if(port)
-					port->setValue(value, "i:"+folder+":"+subroutine);
-				if(isdebug)
 				{
-					if(port)
-						cout << "set value " << value << "from '" << m_sFrom << " into subroutine " << m_sSet << endl;
-					else
-						cout << "cannot set value " << value << " into given subroutine '" << m_sSet << "'" << endl;
+					port->setValue(value, "i:"+folder+":"+subroutine);
+					if(isdebug)
+					{
+						cout << "set value " << value << "from '" << m_oFrom.getStatement();
+						cout << " into subroutine " << m_sSet << endl;
+					}
+				}else
+				{
+					ostringstream msg;
+
+					msg << "cannot set value " << value << " into given subroutine '" << m_sSet;
+					msg << "' from set parameter in folder " << folder << " and subroutine " << subroutine;
+					TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg.str());
+					if(isdebug)
+						cout << "### ERROR: " << msg.str() << endl;
 				}
 			}else
 			{
 				string msg("cannot create calculation from 'from' parameter '");
 
-				msg+= m_sFrom;
+				msg+= m_oFrom.getStatement();
 				msg+= "' in folder " + folder + " and subroutine " + subroutine;
 				TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg);
 				if(isdebug)

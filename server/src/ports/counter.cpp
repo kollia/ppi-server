@@ -24,25 +24,27 @@ namespace ports
 
 	bool Counter::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
+		string setnull;
 		string prop("start");
 
 		portBase::init(properties);
 		m_pStartFolder= pStartFolder;
 		// toDo: insert an starting point
 		//start= (double)properties.getInt(prop, /*warning*/false);
-		m_sSetNull= properties.getValue("setnull", /*warning*/false);
+		setnull= properties.getValue("setnull", /*warning*/false);
+		m_oSetNull.init(pStartFolder, setnull);
 		return true;
 	}
 
 	void Counter::setObserver(IMeasurePattern* observer)
 	{
-		if(m_sSetNull != "")
-		{
-			string folder(getFolderName());
-			string subroutine(getSubroutineName());
+		m_oSetNull.activateObserver(observer);
+	}
 
-			switchClass::activateObserver(m_pStartFolder, observer, folder, subroutine, m_sSetNull);
-		}
+	void Counter::setDebug(bool bDebug)
+	{
+		m_oSetNull.doOutput(bDebug);
+		portBase::setDebug(bDebug);
 	}
 
 	double Counter::measure(const double actValue)
@@ -51,9 +53,9 @@ namespace ports
 		double dResult;
 		double value= actValue;
 
-		if(m_sSetNull != "")
+		if(!m_oSetNull.isEmpty())
 		{
-			if(switchClass::calculateResult(m_pStartFolder, getFolderName(), m_sSetNull, isDebug(), dResult))
+			if(m_oSetNull.calculate(dResult))
 			{
 				if(dResult < 0 || dResult > 0)
 					bSetNull= true;

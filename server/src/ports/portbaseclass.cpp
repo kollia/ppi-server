@@ -183,34 +183,28 @@ void portBase::setObserver(IMeasurePattern* observer)
 	// this value from the other folder
 }
 
-void portBase::informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine)
+void portBase::informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
 {
-	string informe(folder+":"+subroutine);
+	string inform(folder+":"+subroutine+" "+parameter);
 	vector<string> vec;
 	vector<string>::iterator found;
 
 	if(folder == getFolderName())
 		return;
-	// parameter folder is only for the feature
-	// if one thread, has the same observer, can have more folders
-	// this time has one thread one folder
 	LOCK(m_OBSERVERLOCK);
 	vec= m_mvObservers[observer];
-	found= find(vec.begin(), vec.end(), informe);
+	found= find(vec.begin(), vec.end(), inform);
 	if(found == vec.end())
-		m_mvObservers[observer].push_back(informe);
+		m_mvObservers[observer].push_back(inform);
 	UNLOCK(m_OBSERVERLOCK);
 }
 
-void portBase::removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine)
+void portBase::removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
 {
-	string remove(folder+":"+subroutine);
+	string remove(folder+":"+subroutine+" "+parameter);
 	map<IMeasurePattern*, vector<string> >::iterator foundT;
 	vector<string>::iterator foundS;
 
-	// parameter folder is only for the feature
-	// if one thread, has the same observer, can have more folders
-	// this time has one thread one folder
 	LOCK(m_OBSERVERLOCK);
 	foundT= m_mvObservers.find(observer);
 	if(foundT != m_mvObservers.end())

@@ -39,47 +39,37 @@ using namespace util;
 using namespace boost;
 
 switchClass::switchClass(string folderName, string subroutineName)
-: portBase("SWITCH", folderName, subroutineName)
+: portBase("SWITCH", folderName, subroutineName),
+  m_bLastValue(false),
+  m_oBegin(folderName, subroutineName, "begin", true),
+  m_oWhile(folderName, subroutineName, "while", true),
+  m_oEnd(folderName, subroutineName, "end", true)
 {
-	m_bLastValue= false;
 }
 
 switchClass::switchClass(string type, string folderName, string subroutineName)
-: portBase(type, folderName, subroutineName)
+: portBase(type, folderName, subroutineName),
+  m_bLastValue(false),
+  m_oBegin(folderName, subroutineName, "begin", true),
+  m_oWhile(folderName, subroutineName, "while", true),
+  m_oEnd(folderName, subroutineName, "end", true)
 {
-	m_bLastValue= false;
 }
 
 bool switchClass::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
-	SHAREDPTR::shared_ptr<measurefolder_t> pAct;
 	string on, sWhile, off, prop("default"), type;
 	string sFolder= getFolderName();
-	//DbInterface *db= DbInterface::instance();
 
-	m_pStartFolder= pStartFolder;
-	m_sOn= properties.getValue("begin", /*warning*/false);
-	m_sWhile= properties.getValue("while", /*warning*/false);
-	m_sOff= properties.getValue("end", /*warning*/false);
-	//defaultValue= properties.getDouble(prop, /*warning*/false);
-	portBase::init(properties);
-
-	pAct= m_pStartFolder;
-	while(pAct != NULL)
-	{
-		if(pAct->name == sFolder)
-		{
-			m_pOwnFolder= pAct;
-			break;
-		}
-		pAct= pAct->next;
-	}
-
-	// set default value
-	/*value= db->getActEntry(exist, getFolderName(), getSubroutineName(), "value");
-	if(!exist)
-		value= defaultValue;
-	setValue(value);*/
+	//m_pStartFolder= pStartFolder;
+	on= properties.getValue("begin", /*warning*/false);
+	sWhile= properties.getValue("while", /*warning*/false);
+	off= properties.getValue("end", /*warning*/false);
+	m_oBegin.init(pStartFolder, on);
+	m_oWhile.init(pStartFolder, sWhile);
+	m_oEnd.init(pStartFolder, off);
+	if(!portBase::init(properties))
+		return false;
 	return true;
 }
 
@@ -88,14 +78,12 @@ void switchClass::setObserver(IMeasurePattern* observer)
 	string folder(getFolderName());
 	string subroutine(getSubroutineName());
 
-	if(m_sOn != "")
-		activateObserver(m_pStartFolder, observer, folder, subroutine, m_sOn);
-	if(m_sWhile != "")
-		activateObserver(m_pStartFolder, observer, folder, subroutine, m_sWhile);
-	if(m_sOff != "")
-		activateObserver(m_pStartFolder, observer, folder, subroutine, m_sOff);
+	m_oBegin.activateObserver(observer);
+	m_oWhile.activateObserver(observer);
+	m_oEnd.activateObserver(observer);
 }
 
+#if 0
 void switchClass::removeObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
 									const string& folder, const string& subroutine, const string& cCurrent, const string& addinfo)
 {
@@ -115,19 +103,23 @@ void switchClass::removeObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& p
 }
 
 void switchClass::activateObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
-									const string& folder, const string& subroutine, const string& cCurrent, const string& addinfo)
+									const string& folder, const string& subroutine, const vector<string>& inform, const string& addinfo)
 {
-	string full(cCurrent);
+	string subinf;
+	vector<string> vec;
 	portBase* found;
 
-	while(full != "")
+	for(vector<string>::const_iterator it= inform.begin(); it != inform.end(); ++it)
 	{
-		found= filterSubroutines(pStartFolder, folder, subroutine, full, addinfo);
-		if(found != NULL)
+		split(vec, *it, is_any_of(":"));
+		if(	vec.size() == 2 &&
+			vec[0] != folder	)
 		{
-			//cout << "inform folder " << folder << " when value of " << found->getFolderName() << ":" << found->getSubroutineName();
-			//cout << " be changed" << endl;
-			found->informObserver(observer, folder, subroutine);
+			trim(vec[0]);
+			trim(vec[1]);
+			found= getPort(pStartFolder, folder, subroutine, found, /*need own folder*/false, addinfo);
+			if(found)
+				found->informObserver(observer, folder, subroutine);
 		}
 	}
 }
@@ -247,6 +239,7 @@ portBase* switchClass::filterSubroutines(const SHAREDPTR::shared_ptr<measurefold
 		return NULL;
 	return getPort(pStartFolder, folder, subroutine, found, /*need own folder*/false, addinfo);
 }
+#endif
 
 portBase* switchClass::getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder,
 								const string& folder, const string& subroutine, const string& cCurrent, const bool own, const string& addinfo)
@@ -333,7 +326,7 @@ double switchClass::measure(const double actValue)
 	bool bRemote= false;
 	double dResult;
 
-	/*string f("TRANSMIT_SONY2"), s("button");
+	/*string f("TRANSMIT_SONY"), s("first_touch");
 	if(getFolderName() == f
 		&& getSubroutineName() == s)
 	{
@@ -365,17 +358,16 @@ double switchClass::measure(const double actValue)
 		cout << "SWITCH value was disabled from remote access" << endl;
 	}
 
-	if(	!bSwitched
-		&&
-		m_sOn != ""	)
+	if(	!bSwitched &&
+		!m_oBegin.isEmpty())
 	{// if m_bSwitched is false
 	 // and an begin result is set
 	 // look for beginning
-		if(!calculateResult(m_sOn, dResult))
+		if(!m_oBegin.calculate(dResult))
 		{
 			string msg("           could not resolve parameter 'begin= ");
 
-			msg+= m_sOn + "'\n           in folder ";
+			msg+= m_oBegin.getStatement() + "'\n           in folder ";
 			msg+= getFolderName() + " with subroutine ";
 			msg+= getSubroutineName();
 			TIMELOG(LOG_ERROR, "switchresolve"+getFolderName()+getSubroutineName()+"begin", msg);
@@ -388,21 +380,19 @@ double switchClass::measure(const double actValue)
 		else
 			bResultTrue= false;
 		bDoOnOff= true;
-	}else if(	bSwitched
-				&&
-				m_sOff != ""
-				&&
-				!bRemote		)
+	}else if(	bSwitched &&
+				!m_oEnd.isEmpty() &&
+				!bRemote			)
 	{// else if m_bSwitched is true
 	 // and an end result be set
 	 // look for ending
 	 // only in the session when m_bSwitched
 	 // not set from outside
-		if(!calculateResult(m_sOff, dResult))
+		if(!m_oEnd.calculate(dResult))
 		{
 			string msg("           could not resolve parameter 'end= ");
 
-			msg+= m_sOff + "'\n           in folder ";
+			msg+= m_oEnd.getStatement() + "'\n           in folder ";
 			msg+= getFolderName() + " with subroutine ";
 			msg+= getSubroutineName();
 			TIMELOG(LOG_ERROR, "switchresolve"+getFolderName()+getSubroutineName()+"end", msg);
@@ -418,19 +408,16 @@ double switchClass::measure(const double actValue)
 		if(!bResultTrue)
 			bDoOnOff= true;
 	}
-	if(	m_sWhile != ""
-		&&
-		(	bSwitched
-			||
-			m_sOn == ""	)
-		&&
-		!bDoOnOff			)
+	if(	!m_oWhile.isEmpty() &&
+		(	bSwitched ||
+			m_oBegin.isEmpty()	) &&
+		!bDoOnOff					)
 	{
-		if(!calculateResult(m_sWhile, dResult))
+		if(!m_oWhile.calculate(dResult))
 		{
 			string msg("           could not resolve parameter 'while= ");
 
-			msg+= m_sWhile + "'\n           in folder ";
+			msg+= m_oWhile.getStatement() + "'\n           in folder ";
 			msg+= getFolderName() + " with subroutine ";
 			msg+= getSubroutineName();
 			TIMELOG(LOG_ERROR, "switchresolve"+getFolderName()+getSubroutineName()+"while", msg);
@@ -443,11 +430,9 @@ double switchClass::measure(const double actValue)
 		else
 			bResultTrue= false;
 	}
-	if(	m_sOn != ""
-		||
-		m_sWhile != ""
-		||
-		m_sOff != ""	)
+	if(	!m_oBegin.isEmpty() ||
+		!m_oWhile.isEmpty() ||
+		!m_oEnd.isEmpty()		)
 	{
 		// if nothing set for begin, while or end
 		// bResultTrue is always false
@@ -465,6 +450,14 @@ double switchClass::measure(const double actValue)
 	return 0;
 }
 
+void switchClass::setDebug(bool bDebug)
+{
+	m_oBegin.doOutput(bDebug);
+	m_oWhile.doOutput(bDebug);
+	m_oEnd.doOutput(bDebug);
+	portBase::setDebug(bDebug);
+}
+
 bool switchClass::range(bool& bfloat, double* min, double* max)
 {
 	bfloat= false;
@@ -473,7 +466,7 @@ bool switchClass::range(bool& bfloat, double* min, double* max)
 	return true;
 }
 
-bool switchClass::getResult(const string &from, bool& result)
+/*bool switchClass::getResult(const string &from, bool& result)
 {
 	bool bRv, debug= isDebug();
 	string str(from);
@@ -757,7 +750,7 @@ bool switchClass::subroutineResult(const SHAREDPTR::shared_ptr<measurefolder_t>&
 		}
 	}
 	return false;
-}
+}*/
 
 const SHAREDPTR::shared_ptr<measurefolder_t>  switchClass::getFolder(const string &name, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
@@ -768,6 +761,7 @@ const SHAREDPTR::shared_ptr<measurefolder_t>  switchClass::getFolder(const strin
 	return current;
 }
 
+#if(0)
 bool switchClass::calculateResult(const string &cCurrent, double &dResult)
 {
 	bool bFound= calculateResult(m_pStartFolder, getFolderName(), cCurrent, isDebug(), dResult);
@@ -1042,6 +1036,7 @@ bool switchClass::searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pSt
 
 	return bFound;
 }
+#endif
 
 /*void switchClass::setValue(const double value)
 {

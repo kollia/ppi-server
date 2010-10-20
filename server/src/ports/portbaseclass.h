@@ -227,16 +227,20 @@ namespace ports
 			 * @param observer measure thread which containing the own folder
 			 * @param folder name of folder which should be informed
 			 * @param subroutine name of subroutine which should be informed
+			 * @param parameter name of parameter where the own subroutine is occured
 			 */
-			virtual void informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine);
+			virtual void informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter);
 			/**
-			 * remove from observer from information when value changed
+			 * remove from observer from information when value changed.<br />
+			 * This method remove the observer only when all 'folder:subroutine parameter' values
+			 * be removed.
 			 *
 			 * @param observer measure thread which containing the own folder
 			 * @param folder name of folder which should be removed from information
 			 * @param subroutine name of subroutine which should be removed from information
+			 * @param parameter name of parameter where the own subroutine is occured
 			 */
-			virtual void removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine);
+			virtual void removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter);
 			/**
 			 * set whether subroutine has correct access to device
 			 *

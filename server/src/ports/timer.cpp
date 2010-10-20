@@ -21,6 +21,7 @@
 #include <sys/time.h>
 
 #include "timer.h"
+#include "measureThread.h"
 
 #include "../logger/lib/LogInterface.h"
 
@@ -33,7 +34,7 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	int milli= 0, min= 0, hour= 0, days= 0;
 	time_t sec= 0;
 	suseconds_t micro= 0;
-	string prop;
+	string prop, smtime, sSetNull;
 
 	m_bSeconds= true;
 	m_bTime= properties.haveAction("measure");
@@ -51,8 +52,9 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	if(!m_bTime)
 	{ // make count down of time
 		m_bTime= false;
-		m_smtime= properties.getValue("mtime", /*warning*/false);
-		if(m_smtime == "")
+		smtime= properties.getValue("mtime", /*warning*/false);
+		m_omtime.init(pStartFolder, smtime);
+		if(smtime == "")
 		{
 			if(m_bSeconds)
 			{
@@ -82,12 +84,13 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	}else
 	{ // measure time
 		m_bTime= true;
-		m_sSetNull= properties.getValue("setnull", /*warning*/false);
+		sSetNull= properties.getValue("setnull", /*warning*/false);
+		m_oSetNull.init(pStartFolder, sSetNull);
 	}
 	if(!switchClass::init(properties, pStartFolder))
 		return false;
 	if(	!m_bTime &&
-		m_smtime == "" &&
+		m_omtime.isEmpty() &&
 		m_tmSec == 0 &&
 		m_tmMicroseconds == 0	)
 	{
@@ -164,9 +167,9 @@ double timer::measure(const double actValue)
 					bool bneed= false;
 
 					m_tmStart= tv;
-					if(m_smtime != "")
+					if(!m_omtime.isEmpty())
 					{ // calculate seconds (m_tmSec) and microseconds (m_tmMicroseconds) from other subroutine
-						if(calculateResult(m_pStartFolder, getFolderName(), m_smtime, debug, need))
+						if(m_omtime.calculate(need))
 						{
 							if(need < 0 || need > 0)
 								bneed= true;
@@ -186,7 +189,7 @@ double timer::measure(const double actValue)
 							string msg("cannot read time in subroutine ");
 
 							msg+= getFolderName() + ":" + getSubroutineName();
-							msg+= " from given mtime parameter " + m_smtime;
+							msg+= " from given mtime parameter " + m_omtime.getStatement();
 							TIMELOG(LOG_WARNING, "mtimemeasure", msg);
 							if(debug)
 								cerr << msg << endl;
@@ -212,9 +215,7 @@ double timer::measure(const double actValue)
 
 							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
 							cout << "folder should start again in " << need << " seconds by (" << stime << " ";
-							cout.width(6);
-							cout.setf(ios_base::right);
-							cout << m_tmStart.tv_usec << ")" << endl;
+							cout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
 						}
 					}
 
@@ -234,14 +235,10 @@ double timer::measure(const double actValue)
 						cout << " seconds was reached" << endl;
 						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
 						cout << "refresh time (" << stime << " ";
-						cout.width(6);
-						cout.setf(ios_base::right);
-						cout << m_tmStart.tv_usec << ")" << endl;
+						cout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
 						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
 						cout << " actual time (" << stime << " ";
-						cout.width(6);
-						cout.setf(ios_base::right);
-						cout << tv.tv_usec << ")" << endl;
+						cout << MeasureThread::getUsecString(tv.tv_usec) << ")" << endl;
 					}
 					if(bswitch)
 					{ // begin count down again when begin or while is true
@@ -257,9 +254,7 @@ double timer::measure(const double actValue)
 							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
 							cout << "refresh again for polling count down in " << need;
 							cout << " seconds by (" << stime << " ";
-							cout.width(6);
-							cout.setf(ios_base::right);
-							cout << m_tmStart.tv_usec << ")" << endl;
+							cout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
 						}
 						getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
 					}else
@@ -289,9 +284,7 @@ double timer::measure(const double actValue)
 							cout << "folder should start again in " << need << " seconds" << endl;
 							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
 							cout << "    by time (" << stime << " ";
-							cout.width(6);
-							cout.setf(ios_base::right);
-							cout << m_tmStart.tv_usec << ")" << endl;
+							cout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
 						}else
 						{
 							cout << "subroutine of timer stops " << need << " seconds before" << endl;
@@ -300,9 +293,7 @@ double timer::measure(const double actValue)
 						}
 						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
 						cout << "actual time (" << stime << " ";
-						cout.width(6);
-						cout.setf(ios_base::right);
-						cout << tv.tv_usec << ")" << endl;
+						cout << MeasureThread::getUsecString(tv.tv_usec) << ")" << endl;
 					}
 				}
 			}else
@@ -356,11 +347,11 @@ double timer::measure(const double actValue)
 			need= -1;
 	}
 	if(	m_bTime &&
-		m_sSetNull != ""	)
+		!m_oSetNull.isEmpty()	)
 	{
 		double res;
 
-		if(calculateResult(m_sSetNull, res))
+		if(m_oSetNull.calculate(res))
 		{
 			if(res > 0 || res < 0)
 				need= 0;
@@ -369,6 +360,13 @@ double timer::measure(const double actValue)
 	if(debug)
 		cout << "result of time is " << dec << need << " seconds" << endl;
 	return need;
+}
+
+void timer::setDebug(bool bDebug)
+{
+	m_omtime.doOutput(bDebug);
+	m_oSetNull.doOutput(bDebug);
+	switchClass::setDebug(bDebug);
 }
 
 double timer::calcResult(timeval tv)

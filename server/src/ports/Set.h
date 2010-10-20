@@ -32,11 +32,11 @@ namespace ports
 		/**
 		 * reference to all folder
 		 */
-		SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
+		//SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
 		/**
 		 * calculating string which value should be set
 		 */
-		string m_sFrom;
+		ListCalculator m_oFrom;
 		/**
 		 * folder:subroutine to be set with value
 		 */
@@ -67,6 +67,7 @@ namespace ports
 		 */
 		Set(const string& folderName, const string& subroutineName)
 		: switchClass("SET", folderName, subroutineName),
+		  m_oFrom(folderName, subroutineName, "from", false),
 		  m_dSwitch(0)
 		{ };
 		/**
@@ -79,6 +80,7 @@ namespace ports
 		 */
 		Set(const string& type, const string& folderName, const string& subroutineName)
 		: switchClass(type, folderName, subroutineName),
+		  m_oFrom(folderName, subroutineName, "from", false),
 		  m_dSwitch(0)
 		{ };
 		/**

@@ -132,6 +132,7 @@ int MeasureThread::stop(const bool* bWait/*=NULL*/)
 	}
 	return nRv;
 }
+
 struct time_sort : public binary_function<timeval, timeval, bool>
 {
 	bool operator()(timeval x, timeval y)
@@ -141,29 +142,53 @@ struct time_sort : public binary_function<timeval, timeval, bool>
 	}
 };
 
+string MeasureThread::getUsecString(const suseconds_t usec)
+{
+	string::size_type nLen;
+	string sRv;
+	ostringstream stream;
+
+	stream << usec;
+	nLen= stream.str().length();
+	for(string::size_type o= 6; o > nLen; --o)
+		sRv+= "0";
+	sRv+= stream.str();
+	return sRv;
+}
+
 int MeasureThread::execute()
 {
 	bool debug(isDebug());
-	string folder;
-	timeval tv, cond;
+	string folder(getThreadName());
+	static timeval start_tv;
+	timeval end_tv, cond;
 	timespec waittm;
 	vector<timeval>::iterator akttime;
 
+	/*string stopfolder("TRANSMIT_SONY_choice");
+	if(folder == stopfolder)
+	{
+		cout << __FILE__ << __LINE__ << endl;
+		cout << "by starting folder " << stopfolder << endl;
+		//setDebug(true, 0);
+	}*/
 	measure();
-	if(debug) // || folder == "TRANSMIT_SONY")
+	if(debug)
 	{
 		folder= getThreadName();
-		if(gettimeofday(&tv, NULL))
+		if(gettimeofday(&end_tv, NULL))
 			cout << " ERROR: cannot calculate time of ending" << endl;
 		else
 		{
 			char stime[18];
 
-			strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
+			strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&end_tv.tv_sec));
 			cout << " folder '" << folder << "' STOP (" << stime << " ";
-			cout.width(6);
-			cout.setf(ios_base::right);
-			cout << tv.tv_usec << ")" << endl;
+			cout << getUsecString(end_tv.tv_usec) << ")";
+
+			timersub(&end_tv, &start_tv, &end_tv);
+			cout << "  running time (" << end_tv.tv_sec << ".";
+			cout << getUsecString(end_tv.tv_usec) << ")" << endl;
 		}
 		cout << "----------------------------------" << endl << endl << endl;
 		timerclear(&cond);
@@ -181,7 +206,7 @@ int MeasureThread::execute()
 			waittm.tv_nsec= akttime->tv_usec * 1000;
 			if(TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm) == ETIMEDOUT)
 			{
-				if(debug)
+				if(debug || folder == "TRANSMIT_SONY")
 					cond= *akttime;
 				m_vtmNextTime.erase(akttime);
 			}
@@ -201,24 +226,20 @@ int MeasureThread::execute()
 		TIMELOG(LOG_INFO, folder, msg);
 
 		cout << "----------------------------------" << endl;
-		if(gettimeofday(&tv, NULL))
+		if(gettimeofday(&start_tv, NULL))
 			cout << " ERROR: cannot calculate time of beginning" << endl;
 		else
 		{
 			char stime[18];
 
-			strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
+			strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&start_tv.tv_sec));
 			cout << " folder '" << folder << "' START (" << stime << " ";
-			cout.width(6);
-			cout.setf(ios_base::right);
-			cout << tv.tv_usec << ")" << endl;
+			cout << getUsecString(start_tv.tv_usec) << ")" << endl;
 			if(timerisset(&cond))
 			{
 				strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&cond.tv_sec));
 				cout << "      awaked from setting time " << stime << " ";
-				cout.width(6);
-				cout.setf(ios_base::right);
-				cout << cond.tv_usec << " before" << endl;
+				cout << getUsecString(cond.tv_usec) << ")" << endl;
 			}
 			for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
 			{
@@ -255,17 +276,45 @@ void MeasureThread::ending()
 
 bool MeasureThread::measure()
 {
-	bool debug(isDebug());
+	bool debug(isDebug()), notime(false);
 	string folder("i:"+getThreadName());
+	timeval tv, tv_end;
 
+	if(debug)
+	{
+		if(gettimeofday(&tv, NULL))
+		{
+			cout << " ERROR: cannot calculate time of ending" << endl;
+			notime= true;
+		}
+	}
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
 		if(it->bCorrect)
 		{
 			double result;
 
+			/*string stopfolder("TRANSMIT_SONY");
+			string stopsub("correct_group");
+			if(	getThreadName() == stopfolder &&
+				( 	stopsub == "" ||
+					it->name == stopsub	)	)
+			{
+				cout << __FILE__ << __LINE__ << endl;
+				cout << stopfolder << ":" << it->name << endl;
+			}*/
 			if(debug)
-				cout << "execute subroutine " << it->portClass->getType() << " '" << it->name << "'" << endl;
+			{
+				cout << "execute subroutine " << it->portClass->getType() << " '" << it->name << "' ";
+				if(notime || gettimeofday(&tv_end, NULL))
+					cout << " (no length)" << endl;
+				else
+				{
+					timersub(&tv_end, &tv, &tv_end);
+					cout << " (" << tv_end.tv_sec << ".";
+					cout << getUsecString(tv_end.tv_usec) << ")" << endl;
+				}
+			}
 			result= it->portClass->measure(it->portClass->getValue(folder));
 			it->portClass->setValue(result, folder+":"+it->name);
 

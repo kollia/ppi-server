@@ -19,6 +19,7 @@
 
 #include <iostream>
 
+#include "ListCalculator.h"
 #include "portbaseclass.h"
 
 #include "../util/smart_ptr.h"
@@ -68,32 +69,24 @@ namespace ports
 		/**
 		 * all values which can be set as content
 		 */
-		vector<string> m_vdValues;
+		vector<ListCalculator*> m_vpoValues;
 		/**
-		 * all links tho share with other subroutines
+		 * all links to share with other subroutines
 		 */
-		vector<string> m_vsLinks;
+		vector<ListCalculator*> m_vpoLinks;
 		/**
 		 * while expression to set values from m_vdValues
 		 */
-		string m_sWhile;
+		ListCalculator m_oWhile;
 		/**
-		 * while expession to set link from m_vsLinks
+		 * while expression to set link from m_vsLinks
 		 */
-		string m_sLinkWhile;
+		ListCalculator m_oLinkWhile;
 		/**
 		 * default value for beginning and when calculated while expression
 		 * higher or lower then value count of m_vdValues
 		 */
 		double m_ddefaultValue;
-		/**
-		 * reference to all folder
-		 */
-		SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
-		/**
-		 * whether while parameter have operator or '|' or and '&' inside of string
-		 */
-		bool m_bBooleanWhile;
 
 	public:
 		/**
@@ -106,7 +99,9 @@ namespace ports
 		: portBase("VALUE", folderName, subroutineName),
 		  m_dLastValue(0),
 		  m_bSetLinkObserver(false),
-		  m_bSetValueObserver(false)
+		  m_bSetValueObserver(false),
+		  m_oWhile(folderName, subroutineName, "while", false),
+		  m_oLinkWhile(folderName, subroutineName, "lwhile", false)
 		{ };
 		/**
 		 * create object of class ValueHolder.<br />
@@ -120,7 +115,9 @@ namespace ports
 		: portBase(type, folderName, subroutineName),
 		  m_dLastValue(0),
 		  m_bSetLinkObserver(false),
-		  m_bSetValueObserver(false)
+		  m_bSetValueObserver(false),
+		  m_oWhile(folderName, subroutineName, "while", false),
+		  m_oLinkWhile(folderName, subroutineName, "lwhile", false)
 		{ };
 		/**
 		 * initialing object of ValueHolder
@@ -167,18 +164,28 @@ namespace ports
 		 * calculate while string and set to value result or content of parameter content if exist.<br/>
 		 * Method write error or warning string into log-file and on command line if debug flag be set
 		 *
-		 * @param pStartFolder reference of first Folder
 		 * @param folder name of actual folder
 		 * @param subroutine name of actual subroutine
-		 * @param whileStr defined while string in subroutine
+		 * @param oWhile defined while string in subroutine
 		 * @param content vector of defined-values to replace with number of while string
 		 * @param defaultVal default value when vector of content be set but number of calculated while string ist out of range
 		 * @param value result of method
-		 * @param readBool whether whileStr have inside an operator of or '|' or and '&'
 		 * @param debug whether should write debug messages on command line
 		 * @return true if value will be calculated
 		 */
-		bool getWhileStringResult(const SHAREDPTR::shared_ptr<measurefolder_t> pStartFolder, const string& folder, const string& subroutine, const string& whileStr, const vector<string>& content, const double defaultVal, double& value, const bool readBool, const bool debug);
+		bool getWhileStringResult(const string& folder, const string& subroutine,
+									ListCalculator& oWhile, vector<ListCalculator*>& content,
+									const double defaultVal, double& value, const bool debug);
+		/**
+		 * set subroutine for output doing actions
+		 *
+		 * @param whether should write output
+		 */
+		virtual void setDebug(bool bDebug);
+		/**
+		 * destruktor to delete objects of m_vpoValues and m_vpoLists
+		 */
+		virtual ~ValueHolder();
 
 	protected:
 		/**

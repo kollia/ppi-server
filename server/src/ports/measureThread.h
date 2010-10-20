@@ -101,6 +101,12 @@ class MeasureThread : 	public Thread,
 		void nextActivateTime(const string& folder, const timeval& time)
 		{ m_vtmNextTime.push_back(time); };
 		/**
+		 * get string with starting zeros from microseconds
+		 *
+		 * @param usec microseconds
+		 */
+		static string getUsecString(const suseconds_t usec);
+		/**
 		 * destructor of MeasureThread
 		 */
 		virtual ~MeasureThread();

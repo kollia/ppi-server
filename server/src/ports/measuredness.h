@@ -23,6 +23,7 @@
 #include "../util/properties/configpropertycasher.h"
 
 #include "portbaseclass.h"
+#include "ListCalculator.h"
 
 
 namespace ports
@@ -46,7 +47,9 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		Measuredness(string folder, string subroutine)
-		: portBase("MEASUREDNESS", folder, subroutine)
+		: portBase("MEASUREDNESS", folder, subroutine),
+		  m_oMeasuredValue(folder, subroutine, "mavalue", false),
+		  m_oBegin(folder, subroutine, "begin", true)
 		{ };
 		/**
 		 * create object of class Measuredness.<br />
@@ -57,7 +60,9 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		Measuredness(string type, string folder, string subroutine)
-		: portBase(type, folder, subroutine)
+		: portBase(type, folder, subroutine),
+		  m_oMeasuredValue(folder, subroutine, "mavalue", false),
+		  m_oBegin(folder, subroutine, "begin", true)
 		{ };
 		/**
 		 * initialing object of Measuredness
@@ -67,12 +72,19 @@ namespace ports
 		 */
 		bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
+		 * set subroutine for output doing actions
+		 *
+		 * @param whether should write output
+		 */
+		virtual void setDebug(bool bDebug);
+		/**
 		 * measure new value for subroutine
 		 *
 		 * @param actValue current value
 		 * @return return measured value
 		 */
 		virtual double measure(const double actValue);
+
 
 	protected:
 		/**
@@ -97,11 +109,11 @@ namespace ports
 		/**
 		 * subroutine where measure the time
 		 */
-		string m_sMeasuredValue;
+		ListCalculator m_oMeasuredValue;
 		/**
 		 * whether measure range should beginning
 		 */
-		string m_sBegin;
+		ListCalculator m_oBegin;
 	};
 
 }

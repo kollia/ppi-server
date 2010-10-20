@@ -120,7 +120,7 @@ namespace ports
 		if(sMValue == "")
 			return false;
 		m_bOwnMeasure= false;
-		m_sMeasuredSubroutine= sMValue;
+		m_oMeasuredSubroutine.init(pStartFolder, sMValue);
 		m_sOhmValue= sOValue;
 		return true;
 	}
@@ -141,6 +141,12 @@ namespace ports
 		return dResistance;
 	}
 
+	void ResistanceMeasure::setDebug(bool bDebug)
+	{
+		m_oMeasuredSubroutine.doOutput(bDebug);
+		portBase::setDebug(bDebug);
+	}
+
 	double ResistanceMeasure::getResistance()
 	{
 		double resistance;
@@ -152,7 +158,7 @@ namespace ports
 			time= (double)getMeasuredTime();
 		else
 		{
-			if(!switchClass::calculateResult(m_pStartFolder, getFolderName(), &m_sMeasuredSubroutine[0], isDebug(), time))
+			if(!m_oMeasuredSubroutine.calculate(time))
 				return 0;
 		}
 

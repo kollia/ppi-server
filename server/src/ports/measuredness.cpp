@@ -28,17 +28,29 @@ namespace ports
 
 	bool Measuredness::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
-		portBase::init(properties);
-		m_pStartFolder= pStartFolder;
-		m_sMeasuredValue= properties.needValue("mvalue");
-		m_sBegin= properties.needValue("begin");
-		if(	m_sBegin ==""
+		string mvalue, begin;
+
+		mvalue= properties.needValue("mvalue");
+		begin= properties.needValue("begin");
+		if(!portBase::init(properties))
+			return false;
+		if(	begin == ""
 			||
-			m_sMeasuredValue == ""	)
+			mvalue == ""	)
 		{
 			return false;
 		}
+		m_pStartFolder= pStartFolder;
+		m_oBegin.init(pStartFolder, begin);
+		m_oMeasuredValue.init(pStartFolder, mvalue);
 		return true;
+	}
+
+	void Measuredness::setDebug(bool bDebug)
+	{
+		m_oMeasuredValue.doOutput(bDebug);
+		m_oBegin.doOutput(bDebug);
+		portBase::setDebug(bDebug);
 	}
 
 	double Measuredness::measure(const double actValue)
@@ -50,22 +62,20 @@ namespace ports
 		double value= actValue;
 		string sfolder= getFolderName();
 		double result;
-		bool debug= isDebug();
 
-		if(!switchClass::calculateResult(m_pStartFolder, sfolder, m_sMeasuredValue, debug, mvalue))
+		if(!m_oMeasuredValue.calculate(mvalue))
 		{
 			string msg("### ERROR: does not found mvalue '");
 
-			msg+= m_sMeasuredValue + "'\n           in folder ";
+			msg+= m_oMeasuredValue.getStatement() + "'\n           in folder ";
 			msg+= sfolder + " with subroutine ";
 			msg+= getSubroutineName();
-			cout << msg << endl;
 			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"mvalue", msg);
 			mvalue= 0;
 			return 0;
 		}
 
-		if(switchClass::calculateResult(m_pStartFolder, sfolder, m_sBegin, debug, result))
+		if(m_oBegin.calculate(result))
 		{
 			if(result < 0 || result > 0)
 			{
@@ -84,13 +94,10 @@ namespace ports
 		{
 			string msg("           could not resolve parameter 'begin= ");
 
-			msg+= m_sBegin + "'\n           in folder ";
+			msg+= m_oBegin.getStatement() + "'\n           in folder ";
 			msg+= sfolder + " with subroutine ";
 			msg+= getSubroutineName();
-			cout << msg << endl;
 			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"begin", msg);
-			if(debug)
-				cerr << "### ERROR: " << msg.substr(11) << endl;
 			value= 0;
 		}
 		return diff;
