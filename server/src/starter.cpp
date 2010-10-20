@@ -939,29 +939,7 @@ void Starter::createPortObjects()
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
 				}
-			}/*else if(aktualFolder->subroutines[n].type == "SWITCHCONTACT")
-			{
-				auto_ptr<switchContact> obj= auto_ptr<switchContact>(new switchContact(	aktualFolder->name,
-																						aktualFolder->subroutines[n].name	));
-
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "GETCONTACT")
-			{
-				auto_ptr<contactPin> obj= auto_ptr<contactPin>(new contactPin(	aktualFolder->name,
-																				aktualFolder->subroutines[n].name	));
-
-				if(obj->init(*aktualFolder->subroutines[n].property))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}*/else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
+			}else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
 			{
 				auto_ptr<TimeMeasure> obj= auto_ptr<TimeMeasure>(new TimeMeasure(	aktualFolder->name,
 																					aktualFolder->subroutines[n].name	));
