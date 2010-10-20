@@ -17,10 +17,10 @@
 #ifndef IMEASUREPATTERN_H_
 #define IMEASUREPATTERN_H_
 
-//#include <unistd.h>
 #include <sys/time.h>
 
 #include <string>
+#include <vector>
 
 using namespace std;
 
