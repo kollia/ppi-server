@@ -165,6 +165,20 @@ class MeasureThread : 	public Thread,
 		 * condition for wait for new changing of any subroutine
 		 */
 		pthread_cond_t *m_VALUECONDITION;
+
+		/**
+		 * private copy constructor for no allowed copy
+		 *
+		 * @param x object for coppy
+		 */
+		MeasureThread(const MeasureThread& x);
+		/**
+		 * private assignment operator for not allowed allocation
+		 *
+		 * @param x opbject for assignment
+		 * @return own object
+		 */
+		MeasureThread& operator=(const MeasureThread&);
 };
 
 

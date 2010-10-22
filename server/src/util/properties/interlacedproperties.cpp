@@ -29,6 +29,24 @@
 
 namespace util {
 
+	InterlacedProperties& InterlacedProperties::operator=(const InterlacedProperties& x)
+	{
+		InterlacedProperties* newObj;
+
+		m_nLevel= x.m_nLevel;
+		m_bRegOrder= x.m_bRegOrder;
+		m_sModifier= x.m_sModifier;
+		m_sValue= x.m_sValue;
+		m_mvModifier= x.m_mvModifier;
+		for(vector<IInterlacedPropertyPattern*>::const_iterator it= x.m_vSections.begin(); it != x.m_vSections.end(); ++it)
+		{
+			newObj= dynamic_cast<InterlacedProperties*>(newObject("", "", 0));
+			*newObj= *dynamic_cast<InterlacedProperties*>(*it);
+			m_vSections.push_back(newObj);
+		}
+		return *this;
+	}
+
 	void InterlacedProperties::init(const string& modifier, const string& value, const unsigned short level)
 	{
 		m_bRegOrder= true;

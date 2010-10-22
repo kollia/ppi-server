@@ -399,6 +399,19 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		static bool m_bAppRun;
 
+		/**
+		 * private copy constructor for not allowed copy
+		 *
+		 * @param x object for coppy
+		 */
+		Thread(const Thread& x);
+		/**
+		 * private assignment operator for not allowed allocation
+		 *
+		 * @param x opbject for assignment
+		 * @return own object
+		 */
+		Thread& operator=(const Thread& x);
 		void run();
 		static void * EntryPoint(void*);
 

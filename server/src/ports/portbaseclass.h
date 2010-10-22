@@ -195,6 +195,20 @@ namespace ports
 			 */
 			pthread_mutex_t *m_OBSERVERLOCK;
 
+			/**
+			 * private copy constructor for no allowed copy
+			 *
+			 * @param x object for coppy
+			 */
+			portBase(const portBase& x);
+			/**
+			 * private assignment operator for not allowed allocation
+			 *
+			 * @param x opbject for assignment
+			 * @return own object
+			 */
+			portBase& operator=(const portBase& x);
+
 
 		public:
 			/**

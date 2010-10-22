@@ -128,6 +128,18 @@ namespace util {
 			:	Properties(byCheck)
 			{ init(modifier, value, level); };
 			/**
+			 * copy constructor for object
+			 *
+			 * @param x object to copy
+			 */
+			InterlacedProperties(const InterlacedProperties& x)
+			:	Properties(x)
+			{ *this = x; };
+			/**
+			 * assignment operator to copy
+			 */
+			InterlacedProperties& operator=(const InterlacedProperties& x);
+			/**
 			 * if method set to true, class allow also no regular order of modifier.<br />
 			 * When method not be used, default usable is regular (like same as set method to <code>false</code>).
 			 *
@@ -290,10 +302,6 @@ namespace util {
 			 * value from modifier of this object
 			 */
 			string m_sValue;
-			/**
-			 * vector of all defined modifier
-			 */
-			//vector<string> m_vModifier;
 			/**
 			 * map of all modifier with actual values and positions
 			 */
