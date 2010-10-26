@@ -43,14 +43,15 @@ namespace ports
 		string folder(getFolderName());
 		string subroutine(getSubroutineName());
 
-		/*string stopfolder("TRANSMIT_SONY");
+		//Debug info to stop by right subroutine
+		string stopfolder("TRANSMIT_SONY");
 		string stopsub("actual_step");
 		if(	getFolderName() == stopfolder &&
 			getSubroutineName() == stopsub	)
 		{
 			cout << __FILE__ << __LINE__ << endl;
 			cout << stopfolder << ":" << stopsub << endl;
-		}*/
+		}
 		m_bFloat= properties.haveAction("float");
 		m_nMin= properties.getDouble(sMin, /*warning*/false);
 		m_nMax= properties.getDouble(sMax, /*warning*/false);
@@ -207,6 +208,7 @@ namespace ports
 		portBase* port= NULL;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas;
 
+		//Debug info to stop by right subroutine
 		/*string stopfolder("TRANSMIT_SONY");
 		string stopsub("actual_step");
 		if(	getFolderName() == stopfolder &&
@@ -337,7 +339,7 @@ namespace ports
 				}else
 				{
 					if(isdebug)
-						cout << pos << ". link " << slink << " link to own folder" << endl;
+						cout << pos+1 << ". link value '" << slink << "' link to own folder" << endl;
 					if(m_bSetLinkObserver)
 					{
 						if(	m_nLinkObserver < links	)
