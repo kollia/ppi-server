@@ -108,21 +108,22 @@ namespace ports
 				port= m_oFrom.getSubroutine(m_sSet, /*own folder*/true);
 				if(port)
 				{
-					port->setValue(value, "i:"+folder+":"+subroutine);
 					if(isdebug)
 					{
-						cout << "set value " << value << "from '" << m_oFrom.getStatement();
-						cout << " into subroutine " << m_sSet << endl;
+						cout << "set value " << value;
+						cout << " into subroutine '" << m_sSet << "'" << endl;
 					}
+					port->setValue(value, "i:"+folder+":"+subroutine);
 				}else
 				{
 					ostringstream msg;
 
-					msg << "cannot set value " << value << " into given subroutine '" << m_sSet;
-					msg << "' from set parameter in folder " << folder << " and subroutine " << subroutine;
-					TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg.str());
+					msg << "cannot set value " << value << " into given subroutine '" << m_sSet << "'";
 					if(isdebug)
 						cout << "### ERROR: " << msg.str() << endl;
+					msg << endl << "do not found this subroutine from 'set' attribute" << endl;
+					msg << "from set parameter in folder " << folder << " and subroutine " << subroutine;
+					TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg.str());
 				}
 			}else
 			{
@@ -139,6 +140,12 @@ namespace ports
 		}else
 			value= actValue;
 		return value;
+	}
+
+	void Set::setDebug(bool bDebug)
+	{
+		m_oFrom.doOutput(bDebug);
+		switchClass::setDebug(bDebug);
 	}
 
 }
