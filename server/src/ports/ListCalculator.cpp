@@ -142,10 +142,26 @@ portBase* ListCalculator::getSubroutine(const string& var, bool own)
 bool ListCalculator::variable(const string& var, double& dResult)
 {
 	portBase* oSub;
+	string v;
+	vector<string> spl;
+	map<string, double>::iterator foundSub;
 	map<string, portBase*>::iterator found;
 
 	if(!isRendered())
 		return true;
+	if(m_msSubVars.size())
+	{
+		v= var;
+		split(spl, var, is_any_of(":"));
+		if(spl.size() == 1)
+			v= m_sFolder+":"+var;
+		foundSub= m_msSubVars.find(v);
+		if(foundSub != m_msSubVars.end())
+		{
+			dResult= foundSub->second;
+			return true;
+		}
+	}
 	found= m_msoVars.find(var);
 	if(found == m_msoVars.end())
 	{
@@ -178,6 +194,16 @@ void ListCalculator::activateObserver(IMeasurePattern* observer)
 		if(found)
 			found->informObserver(observer, m_sFolder, m_sSubroutine, m_sParameter);
 	}
+}
+
+void ListCalculator::setSubVar(string var, const double val)
+{
+	vector<string> spl;
+
+	split(spl, var, is_any_of(":"));
+	if(spl.size() == 1)
+		var= m_sFolder+":"+var;
+	m_msSubVars[var]= val;
 }
 
 void ListCalculator::removeObserver(IMeasurePattern* observer)

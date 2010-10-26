@@ -101,6 +101,18 @@ public:
 	 * @param observer measure thread which containing the own folder
 	 */
 	void removeObserver(IMeasurePattern* observer);
+	/**
+	 * set value for Variable which should not read from other list object
+	 *
+	 * @param var name of variable
+	 * @param val value of variable
+	 */
+	void setSubVar(string var, const double val);
+	/**
+	 * clear all setting variables which set with setSubVar()
+	 */
+	void clearSubVars()
+	{ m_msSubVars.clear(); };
 
 protected:
 	/**
@@ -123,6 +135,10 @@ protected:
 	 * variables witch are used in calculation
 	 */
 	map<string, portBase*> m_msoVars;
+	/**
+	 * variables which should not read from other list object
+	 */
+	map<string, double> m_msSubVars;
 
 	/**
 	 * creating of new objects of CalculatorContainer
