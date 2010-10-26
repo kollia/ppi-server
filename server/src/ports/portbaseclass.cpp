@@ -279,7 +279,7 @@ void portBase::setValue(double value, const string& from)
 		if(debug && m_mvObservers.size() > 0)
 		{
 			output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
-			output << "  " << sOwn << " was changed:" << endl;
+			output << "  " << sOwn << " was changed to " << m_dValue << endl;
 			if(	from.substr(0, 1) != "i" &&
 				from.substr(2) != sOwn		)
 			{
