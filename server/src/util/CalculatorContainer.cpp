@@ -48,11 +48,12 @@ bool CalculatorContainer::add(char cOperator)
 		}
 		return true;
 	}
-	if(	cOperator == '*'
-		||
+	if(	cOperator == '*' ||
 		cOperator == '/'	)
 	{
-		if(m_cOperatorBefore != '\0')
+		if(	m_cOperator == '*' ||
+			m_cOperator == '/' ||
+			m_cOperatorBefore != '\0'	)
 		{
 			m_dResultValue= calc(m_dResultValue, m_cOperator, m_dValue);
 			m_dValue= 0;
@@ -67,27 +68,6 @@ bool CalculatorContainer::add(char cOperator)
 		return true;
 	}
 	return false;
-}
-
-void CalculatorContainer::add(double value)
-{
-	m_dValue= value;
-	return;
-	if(m_cOperator == '\0')
-		m_dValue= value;
-	else if(	m_cOperator == '+'
-				||
-				m_cOperator == '-'	)
-	{
-		if(m_cOperatorBefore != '\0')
-			m_dValueHolder= calc(m_dValueHolder, m_cOperator, m_dValue);
-		else
-			m_dValueHolder= m_dValue;
-		m_dValue= value;
-	}else if(m_cOperator == '*')
-		m_dValue*= value;
-	else if(m_cOperator == '/')
-		m_dValue/= value;
 }
 
 double CalculatorContainer::getResult()
@@ -212,6 +192,7 @@ bool CalculatorContainer::render()
 							m_poElse= NULL;
 							return false;
 						}
+						findVariables();
 						m_bRendered= true;
 						return true;
 					}
@@ -663,7 +644,7 @@ bool CalculatorContainer::calculateI(double& dResult)
 			}
 			correct= (*itContainer)->calculateI(m_dValue);
 			if(m_bOutput)
-				outputF(false, __FILE__, __LINE__, ")");
+				outputF(false, __FILE__, __LINE__, ") ");
 			if(!correct)
 				m_dValue= 0;
 			++itContainer;
@@ -773,7 +754,7 @@ bool CalculatorContainer::calculateI(double& dResult)
 		{
 			ostringstream str;
 
-			str << "{result ";
+			str << " {result ";
 			if(m_bBool)
 			{
 				if(	dResult > 0 ||

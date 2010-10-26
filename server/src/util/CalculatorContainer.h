@@ -166,14 +166,15 @@ public:
 	 *
 	 * @param value double value
 	 */
-	void add(double value);
+	void add(double value)
+	{ m_dValue= value; };
 	/**
 	 * returning the calculated value
 	 * and clear the value which be inherit
 	 *
 	 * @return calculated value
 	 */
-	double getResult();
+	inline double getResult();
 	/**
 	 * refresh object for new rendering
 	 */
