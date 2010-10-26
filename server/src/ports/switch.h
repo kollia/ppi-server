@@ -28,6 +28,16 @@ class switchClass : public portBase
 {
 public:
 		/**
+		 * enum whether value be set
+		 */
+		enum setting
+		{
+			NONE= 0,
+			BEGIN,
+			WHILE,
+			END
+		};
+		/**
 		 * create object of class switchClass.
 		 *
 		 * @param folder in which folder the routine running
@@ -61,45 +71,6 @@ public:
 		 */
 		virtual void setObserver(IMeasurePattern* observer);
 		/**
-		 * activate information for given measure thread (observer)
-		 * when any subroutine from vector inform be changed.<br />
-		 * Subroutines which have no folder or folder be the same than
-		 * third parameter folder do not order any information.
-		 *
-		 * @param pStratFolder address of the first folder
-		 * @param observer measure thread which containing the own folder
-		 * @param folder name of current folder
-		 * @param subroutine name of current subroutine
-		 * @param informe vector of all folder with subroutines ([folder:]<subroutine>)
-		 * @param addinfo info string to add when any error occures
-		 */
-		//static void activateObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
-		//								const string& folder, const string& subroutine, const vector<string>& inform, const string& addinfo= "");
-		/**
-		 * remove observer inside ([folder:]<subroutine>)<br />
-		 *
-		 * @param pStratFolder address of the first folder
-		 * @param observer measure thread which containing the own folder
-		 * @param folder name of current folder
-		 * @param subroutine name of current subroutine
-		 * @param remove vector of all folder with subroutines folder and subroutines ([folder:]<subroutine>) which should removed from information
-		 * @param addinfo info string to add when any error occures
-		 */
-		//static void removeObserver(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, IMeasurePattern* observer,
-		//								const string& folder, const string& subroutine, const vector<string>& remove, const string& addinfo= "");
-		/**
-		 * filter out from and defined string first subroutine with folder
-		 *
-		 * @param pStratFolder address of the first folder
-		 * @param folder name of current folder
-		 * @param subroutine name of current subroutine
-		 * @param folders string of subroutines with folder
-		 * @param addinfo info string to add when any error occures
-		 * @return base object of ports
-		 */
-		//static portBase* filterSubroutines(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& folder,
-		//								const string& subroutine, string& folders, const string& addinfo);
-		/**
 		 * find object of port which should be inform
 		 *
 		 * @param pStratFolder address of the first folder
@@ -113,56 +84,34 @@ public:
 		static portBase* getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& folder,
 										const string& subroutine, const string& cCurrent, const bool own, const string& addinfo);
 		/**
-		 * measure new value for subroutine
+		 * measure whether switch value is set or not
 		 *
 		 * @param actValue current value
 		 * @return return measured value
 		 */
 		virtual double measure(const double actValue);
 		/**
+		 * measure also whether switch value is set or not,
+		 * but show in second parameter, maybe for decided object need,
+		 * whether value set for BEGIN, WHILE or END
+		 *
+		 * @param actValue current value
+		 * @param set whether value set begins <code>switchClass::BEGIN</code>, during <code>switchClass::WHILE</code>, ending <code>switchClass::END</code> or not set <code>switchClass::NONE</code>
+		 * @return return measured value
+		 */
+		double measure(const double actValue, setting& set);
+		/**
 		 * destructor
 		 */
 		virtual ~switchClass();
 		/**
-		 * returns the address of the given foldername
+		 * returns the address of the given folder name
 		 *
 		 * @param name name of the folder
 		 * @param pStratFolder address of the first folder
 		 * @return address of the folder in given parameter name
 		 */
 		static const SHAREDPTR::shared_ptr<measurefolder_t>  getFolder(const string &name, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
-		/**
-		 * write the value from the given folder:subroutine or comparison as string
-		 * into the parameter dResult
-		 *
-		 * @param pStartFolder first pointer to all defined folders
-		 * @param cCurrent string of subroutine or folder:subroutine
-		 * @param debug whether the debug mode outgoing from server is set
-		 * @param dResult outcomming double result of the subroutine
-		 * @return whether the subroutines in the character string all found
-		 */
-//		static bool calculateResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &cCurrent, const bool debug, double &dResult);
-		/**
-		 * write the current value from the given folder:subroutine
-		 * into the parameter dResult
-		 *
-		 * @param pStartFolder first pointer to all defined folders
-		 * @param cCurrent string of subroutine or folder:subroutine
-		 * @param dResult outcomming double result of the subroutine
-		 * @return whether the subroutines in the character string was found
-		 */
-//		static bool searchResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string &actFolder, const string &pcCurrent, double &dResult, SHAREDPTR::shared_ptr<portBase>* port= NULL);
-		/**
-		 * search subroutine value and pointer to port object if subroutine not null
-		 *
-		 * @param pStartFolder first pointer to all defined folders
-		 * @param cCurrent name of subroutine
-		 * @param dResult out coming double result of the subroutine
-		 * @param port out coming object from reading port if parameter not set as null
-		 * @return whether the subroutines in the character string was found
-		 */
-//		static bool subroutineResult(const SHAREDPTR::shared_ptr<measurefolder_t>& pfolder, const string &cCurrent, double &dResult, SHAREDPTR::shared_ptr<portBase>* port);
-
 		/**
 		 * set subroutine for output doing actions
 		 *
