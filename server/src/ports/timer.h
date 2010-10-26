@@ -41,7 +41,8 @@ public:
 	  m_tmSec(0),
 	  m_tmMicroseconds(0),
 	  m_oSetNull(folderName, subroutineName, "setnull", true),
-	  m_dSwitch(0)
+	  m_dSwitch(0),
+	  m_oEnd(folderName, subroutineName, "end", true)
 	  { };
 	virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 	/**
@@ -127,6 +128,10 @@ private:
 	 * 0 is false and 1 is true
 	 */
 	double m_dSwitch;
+	/**
+	 * calculation for end string
+	 */
+	ListCalculator m_oEnd;
 };
 
 #endif /*TIMER_H_*/
