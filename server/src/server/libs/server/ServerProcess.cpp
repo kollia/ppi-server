@@ -35,7 +35,6 @@
 #include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/XMLStartEndTagReader.h"
 
-#include "../../../ports/measureThread.h"
 
 #include "../../../logger/lib/LogInterface.h"
 

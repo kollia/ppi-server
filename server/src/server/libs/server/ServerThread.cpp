@@ -32,7 +32,7 @@
 
 #include "../../../util/XMLStartEndTagReader.h"
 
-#include "../../../ports/measureThread.h"
+//#include "../../../ports/measureThread.h"
 
 #include "../../../logger/lib/LogInterface.h"
 

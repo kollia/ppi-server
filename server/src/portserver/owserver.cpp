@@ -29,7 +29,7 @@
 #include "owserver.h"
 #include "OwServerQuestions.h"
 
-#include "../ports/timemeasure.h"
+//#include "../ports/timemeasure.h"
 
 #include "../logger/lib/LogInterface.h"
 
@@ -37,7 +37,7 @@
 
 #include "../server/libs/client/SocketClientConnection.h"
 
-using namespace ports;
+//using namespace ports;
 using namespace server;
 using namespace ppi_database;
 //using namespace boost::algorithm;

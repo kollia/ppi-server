@@ -22,7 +22,7 @@
 #include "../../../util/structures.h"
 #include "../../../util/thread/Thread.h"
 
-#include "../../../ports/measureThread.h"
+//#include "../../../ports/measureThread.h"
 
 #include "../../../pattern/util/ipropertypattern.h"
 #include "../../../pattern/server/IServerCommunicationStarterPattern.h"

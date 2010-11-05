@@ -22,9 +22,6 @@
 #include "../../../util/structures.h"
 #include "../../../util/thread/Thread.h"
 
-#include "../../../ports/portbaseclass.h"
-#include "../../../ports/measureThread.h"
-
 #include "../../../pattern/server/IServerCommunicationStarterPattern.h"
 #include "../../../pattern/server/IFileDescriptorPattern.h"
 #include "../../../pattern/server/ICommunicationPattern.h"

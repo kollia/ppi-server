@@ -32,7 +32,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
-#include "../ports/measureThread.h"
+//#include "../ports/measureThread.h"
 
 #include "../portserver/lib/OWInterface.h"
 
@@ -821,7 +821,6 @@ namespace server
 				stringstream ss(input);
 				vector<string> values;
 				unsigned short nExist= 6;
-				meash_t *pCurMeas= NULL;
 				DbInterface* db= DbInterface::instance();
 
 				while(ss >> buffer)
@@ -862,7 +861,6 @@ namespace server
 					case 1:
 						// verification of permission by path
 						// and if command is GET, write value of path to client
-						pCurMeas= NULL;
 						values= ConfigPropertyCasher::split(buffer, ":");
 						if(values.size() < 2)
 						{

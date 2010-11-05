@@ -27,7 +27,7 @@ using namespace std;
 
 #include "../../../util/process/process.h"
 
-#include "../../../ports/measureThread.h"
+//#include "../../../ports/measureThread.h"
 
 #include "../../../pattern/util/ipropertypattern.h"
 #include "../../../pattern/server/IServerPattern.h"
