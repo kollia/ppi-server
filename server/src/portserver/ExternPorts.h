@@ -27,6 +27,19 @@
 #include "../pattern/util/ipropertypattern.h"
 #include "../pattern/server/ichipaccesspattern.h"
 
+//* Variablenbelegung
+#define ITIMERTYPE ITIMER_REAL
+#define ITIMERSTARTSEC 120
+
+
+#define COM1 0x3F8 //* Adresse COM1 *
+#define COM2 0x2F8
+#define COM3 0x3E8
+#define COM4 0x2E8
+#define LPT1 0x3BC // /dev/lp0 *
+#define LPT2 0x378 // /dev/lp1 *
+#define LPT3 0x278 // /dev/lp2 *
+
 using namespace design_pattern_world;
 
 namespace ports
