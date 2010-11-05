@@ -249,7 +249,7 @@ namespace ports
 		/**
 		 * all reading codes whether get from device
 		 */
-		map<string, bool> m_mset;
+		map<string, unsigned short> m_mset;
 		/**
 		 * mutex lock to set code
 		 */

@@ -240,9 +240,10 @@ namespace ports
 
 	string LircClient::kernelmodule()
 	{
+		unsigned short num;
 		char *lircdef;
 		string id("read_"), code, remote;
-		map<string, bool>::iterator found;
+		map<string, unsigned short>::iterator found;
 
 		if(lirc_nextcode(&lircdef) == 0)
 		{
@@ -250,17 +251,22 @@ namespace ports
 				return "";
 			istringstream lirccode(lircdef);
 
+			//cout << lircdef;
 			lirccode >> code; // hex number
-			lirccode >> code; // count
+			//cout << "hex   :" << code << endl;
+			lirccode >> hex >> num; // count
+			//cout << "count: " << num << endl;
 			lirccode >> code; // code
 			lirccode >> remote; // remote;
+			//cout << "code:  " << code << endl;
+			//cout << "remote:" << remote << endl << endl;
 			free(lircdef);
 			id+= remote + "/" + code;
 			//cout << "get lirc code " << id << endl;
 			LOCK(m_READMUTEX);
 			found= m_mset.find(id);
 			if(found != m_mset.end())
-				found->second= true;
+				found->second= num+1;
 			UNLOCK(m_READMUTEX);
 		}
 		return "";
@@ -269,18 +275,15 @@ namespace ports
 	short LircClient::read(const string id, double &value)
 	{
 		short nRv= -1;
-		map<string, bool>::iterator set;
+		map<string, unsigned short>::iterator set;
 
 		value= 0;
 		LOCK(m_READMUTEX);
 		set= m_mset.find(id);
 		if(set != m_mset.end())
 		{
-			if(set->second == true)
-			{
-				value= 1;
-				set->second= false;
-			}
+			value= (double)set->second;
+			set->second= 0;
 			nRv= 0;
 		}
 		UNLOCK(m_READMUTEX);
@@ -290,7 +293,7 @@ namespace ports
 	void LircClient::range(const string id, double& min, double& max, bool &bfloat)
 	{
 		min= 0;
-		max= 1;
+		max= 600;
 		bfloat= false;
 	}
 
