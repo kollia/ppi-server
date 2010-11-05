@@ -118,6 +118,8 @@ bool CalculatorContainer::render()
 	nLen= full.length();
 	if(full == "")
 	{
+		if(m_bNeed)
+			output(true, __FILE__, __LINE__, "no calculation string be set");
 		m_bRendered= true;
 		m_bCorrect= false;
 		return false;
@@ -533,6 +535,11 @@ bool CalculatorContainer::calculate(double& dResult)
 	if(!m_bCorrect)
 	{
 		dResult= 0;
+		if(	m_bNeed == false &&
+			m_sStatement == ""	)
+		{
+			return false;
+		}
 		output(true, __FILE__, __LINE__, "ERROR: " + m_sError + "\n");
 		return false;
 	}
@@ -671,8 +678,8 @@ bool CalculatorContainer::calculateI(double& dResult)
 				{
 					string str(*itOperator);
 
-					if(*itOperator == "=")
-						str+= "=";
+					//if(*itOperator == "=")
+					//	str+= "=";
 					str+= " ";
 					outputF(false, __FILE__, __LINE__, str);
 				}

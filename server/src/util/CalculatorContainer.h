@@ -35,10 +35,11 @@ public:
 	/**
 	 * Instantiate object with values 0
 	 *
+	 * @param need whether string be set in init() method or statement() have to exist (defualt= true)
 	 * @param boolean whether should show true and false for result by output
 	 * @param message static void function to display on screen or in log file<br />for display only on screen use <code>CalculatorContainer::message</code>.
 	 */
-	CalculatorContainer(bool boolean= false, void (*message)(const bool, const string&, const int, const string&)= NULL)
+	CalculatorContainer(bool need= true, bool boolean= false, void (*message)(const bool, const string&, const int, const string&)= NULL)
 	: 	m_bRendered(false),
 	  	m_bCorrect(true),
 	  	m_bBool(boolean),
@@ -52,6 +53,7 @@ public:
 		m_dResultValue(0),
 		m_cOperatorBefore('\0'),
 		m_cOperator('\0'),
+		m_bNeed(need),
 		m_poIf(NULL),
 		m_poThen(NULL),
 		m_poElse(NULL),
@@ -295,6 +297,10 @@ private:
 	 * the last operator
 	 */
 	char m_cOperator;
+	/**
+	 * whether parameter have to be set
+	 */
+	bool m_bNeed;
 	/**
 	 * sting of statement to calculate
 	 */
