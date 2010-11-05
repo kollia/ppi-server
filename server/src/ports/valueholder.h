@@ -47,41 +47,25 @@ namespace ports
 		 */
 		bool m_bFloat;
 		/**
-		 * whether an observer for any link be set
-		 */
-		bool m_bSetLinkObserver;
-		/**
 		 * whether an observer for any value string be set
 		 */
 		bool m_bSetValueObserver;
-		/**
-		 * which link for observer be set
-		 */
-		vector<string>::size_type m_nLinkObserver;
-		/**
-		 * which value string for observer be set
-		 */
-		vector<string>::size_type m_nValueObserver;
 		/**
 		 * observer handle
 		 */
 		IMeasurePattern* m_poObserver;
 		/**
+		 * which value string for observer be set
+		 */
+		vector<string>::size_type m_nValueObserver;
+		/**
 		 * all values which can be set as content
 		 */
 		vector<ListCalculator*> m_vpoValues;
 		/**
-		 * all links to share with other subroutines
-		 */
-		vector<ListCalculator*> m_vpoLinks;
-		/**
 		 * while expression to set values from m_vdValues
 		 */
 		ListCalculator m_oWhile;
-		/**
-		 * while expression to set link from m_vsLinks
-		 */
-		ListCalculator m_oLinkWhile;
 		/**
 		 * default value for beginning and when calculated while expression
 		 * higher or lower then value count of m_vdValues
@@ -98,10 +82,8 @@ namespace ports
 		ValueHolder(const string& folderName, const string& subroutineName)
 		: portBase("VALUE", folderName, subroutineName),
 		  m_dLastValue(0),
-		  m_bSetLinkObserver(false),
 		  m_bSetValueObserver(false),
-		  m_oWhile(folderName, subroutineName, "while", false),
-		  m_oLinkWhile(folderName, subroutineName, "lwhile", false)
+		  m_oWhile(folderName, subroutineName, "while", false, false)
 		{ };
 		/**
 		 * create object of class ValueHolder.<br />
@@ -114,19 +96,17 @@ namespace ports
 		ValueHolder(string type, string folderName, string subroutineName)
 		: portBase(type, folderName, subroutineName),
 		  m_dLastValue(0),
-		  m_bSetLinkObserver(false),
 		  m_bSetValueObserver(false),
-		  m_oWhile(folderName, subroutineName, "while", false),
-		  m_oLinkWhile(folderName, subroutineName, "lwhile", false)
+		  m_oWhile(folderName, subroutineName, "while", false, false)
 		{ };
 		/**
 		 * initialing object of ValueHolder
 		 *
 		 * @param properties the properties in file measure.conf
 		 * @param pStartFolder reference to all folder
-		 * @return whether initalization was ok
+		 * @return whether initialization was OK
 		 */
-		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * this method will be called from any measure thread to set as observer
 		 * for starting own folder to get value from foreign folder

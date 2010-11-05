@@ -61,7 +61,7 @@ namespace ports
 		 * @param properties the properties in file measure.conf
 		 * @return whether initialization was OK
 		 */
-		virtual bool init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, ConfigPropertyCasher &properties);
+		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * measure new value for subroutine
 		 *
@@ -161,7 +161,7 @@ namespace ports
 		/**
 		 * settings from measure config file for defined subroutine
 		 */
-		ConfigPropertyCasher* m_pSettings;
+		IActionPropertyPattern* m_pSettings;
 
 		/**
 		 * allocate chip id and type of subroutine to one wire server

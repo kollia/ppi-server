@@ -29,19 +29,19 @@ using namespace ppi_database;
 
 namespace ports
 {
-	bool OwfsPort::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, ConfigPropertyCasher &properties)
+	bool OwfsPort::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		bool bRv= true;
 		DbInterface *db;
 		string prop;
 
-		m_pSettings= &properties;
+		m_pSettings= properties;
 		m_bRead= false;
 
-		m_sServer= properties.needValue("type");
+		m_sServer= properties->needValue("type");
 		if(m_sServer == "")
 			bRv= false;
-		m_sChipID= properties.needValue("ID");
+		m_sChipID= properties->needValue("ID");
 		if(m_sChipID == "")
 			bRv= false;
 		if(!allocateServer())
@@ -50,8 +50,8 @@ namespace ports
 		if(m_bRead)
 		{ // if server cannot be allocated m_bRead should be set to false
 		  // and this block don't be reached
-			properties.notAllowedParameter("while");
-			properties.notAllowedParameter("value");
+			properties->notAllowedParameter("while");
+			properties->notAllowedParameter("value");
 		}
 		if(m_pOWServer)
 		{ // set min and max value and action float from range by ask server if not set
@@ -62,21 +62,21 @@ namespace ports
 
 			if(range(bfloat, &min, &max))
 			{
-				if(bfloat && !properties.haveAction("float"))
-					properties.readLine("action= float");
+				if(bfloat && !properties->haveAction("float"))
+					properties->readLine("action= float");
 				prop= "min";
-				val= properties.getDouble(prop, /*warning*/false);
+				val= properties->getDouble(prop, /*warning*/false);
 				if(prop == "#ERROR")
 				{
 					sval << min;
-					properties.readLine("min= "+sval.str());
+					properties->readLine("min= "+sval.str());
 				}
 				prop= "max";
-				val= properties.getDouble(prop, /*warning*/false);
+				val= properties->getDouble(prop, /*warning*/false);
 				if(prop == "#ERROR")
 				{
 					sval << max;
-					properties.readLine("max= "+sval.str());
+					properties->readLine("max= "+sval.str());
 				}
 			}
 		}
@@ -86,9 +86,9 @@ namespace ports
 		db= DbInterface::instance();
 		db->useChip(getFolderName(), getSubroutineName(), m_sServer, m_sChipID);
 
-		m_sErrorHead= properties.getMsgHead(/*error message*/true);
-		m_sWarningHead= properties.getMsgHead(/*error message*/false);
-		m_sMsgHead= properties.getMsgHead();// without error identif
+		m_sErrorHead= properties->getMsgHead(/*error message*/true);
+		m_sWarningHead= properties->getMsgHead(/*error message*/false);
+		m_sMsgHead= properties->getMsgHead();// without error identif
 
 		return bRv;
 	}

@@ -51,7 +51,7 @@ namespace ports
 		 */
 		Counter(string folder, string subroutine)
 		: portBase("COUNTER", folder, subroutine),
-		  m_oSetNull(folder, subroutine, "setnull", true)
+		  m_oSetNull(folder, subroutine, "setnull", false, true)
 		{ };
 		/**
 		 * create object of class Counter.<br />
@@ -63,7 +63,7 @@ namespace ports
 		 */
 		Counter(string type, string folder, string subroutine)
 		: portBase(type, folder, subroutine),
-		  m_oSetNull(folder, subroutine, "setnull", true)
+		  m_oSetNull(folder, subroutine, "setnull", false, true)
 		{ };
 		/**
 		 * initialing object of counter
@@ -71,7 +71,7 @@ namespace ports
 		 * @param properties the properties in file measure.conf
 		 * @param pStartFolder pointer to first folder of all subroutines
 		 */
-		bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * this method will be called from any measure thread to set as observer
 		 * for starting own folder to get value from foreign folder

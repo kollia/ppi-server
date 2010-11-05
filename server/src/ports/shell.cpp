@@ -24,17 +24,16 @@
 
 #include "shell.h"
 
-//void Shell::init(folder *pStartFolder, string sWhile, string beginCommand, string whileCommand, string endCommand)
-bool Shell::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
-	properties.notAllowedParameter("begin");
-	properties.notAllowedParameter("end");
-	properties.notAllowedParameter("default");
+	properties->notAllowedParameter("begin");
+	properties->notAllowedParameter("end");
+	properties->notAllowedParameter("default");
 	if(!switchClass::init(properties, pStartFolder))
 		return false;
-	m_sBeginCom= properties.getValue("begincommands", /*warning*/false);
-	m_sWhileCom= properties.getValue("whilecommand", /*warning*/false);
-	m_sEndCom= properties.getValue("endcommand", /*warning*/false);
+	m_sBeginCom= properties->getValue("begincommands", /*warning*/false);
+	m_sWhileCom= properties->getValue("whilecommand", /*warning*/false);
+	m_sEndCom= properties->getValue("endcommand", /*warning*/false);
 	if(	m_sBeginCom == ""
 		&&
 		m_sWhileCom == ""
@@ -43,7 +42,7 @@ bool Shell::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	{
 		string msg;
 
-		msg= properties.getMsgHead(/*error*/true);
+		msg= properties->getMsgHead(/*error*/true);
 		msg+= "no command (begincommand/whilecommand/endcommand) be set";
 		LOG(LOG_ERROR, msg);
 		cerr << msg << endl;

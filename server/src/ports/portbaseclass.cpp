@@ -26,6 +26,10 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
 #include "portbaseclass.h"
 
 #include "../util/thread/Thread.h"
@@ -36,8 +40,13 @@
 
 using namespace ports;
 using namespace ppi_database;
+using namespace boost;
 
 portBase::portBase(const string& type, const string& folderName, const string& subroutineName)
+: m_poMeasurePattern(NULL),
+  m_oLinkWhile(folderName, subroutineName, "lwhile", false, false),
+  m_dLastLinkValue(0),
+  m_nLinkObserver(0)
 {
 #ifdef DEBUG
 	m_count= 0;
@@ -48,7 +57,6 @@ portBase::portBase(const string& type, const string& folderName, const string& s
 	m_dMax= 0;
 	m_bSwitch= false;
 	m_bDebug= false;
-	m_bCanAfterContact= true;
 	m_sType= type;
 	m_sFolder= folderName;
 	m_sSubroutine= subroutineName;
@@ -62,16 +70,16 @@ portBase::portBase(const string& type, const string& folderName, const string& s
 	m_OBSERVERLOCK= Thread::getMutex("OBSERVERLOCK");
 }
 
-bool portBase::init(ConfigPropertyCasher &properties)
+bool portBase::init(IActionPropertyPattern* properties)
 {
 	bool exist;
 	double ddv, dDef;
 	string prop("default");
 	DbInterface *db= DbInterface::instance();
 
-	dDef= properties.getDouble(prop, /*wrning*/false);
-	m_sPermission= properties.getValue("perm", /*warning*/false);
-	m_bWriteDb= properties.haveAction("db");
+	dDef= properties->getDouble(prop, /*wrning*/false);
+	m_sPermission= properties->getValue("perm", /*warning*/false);
+	m_bWriteDb= properties->haveAction("db");
 	if(m_bWriteDb)
 		db->writeIntoDb(m_sFolder, m_sSubroutine);
 
@@ -175,12 +183,7 @@ void portBase::setDeviceAccess(bool access)
 
 void portBase::setObserver(IMeasurePattern* observer)
 {
-	// nothing to do
-	//+++++++++++++++++++++++++++++++++++++++++
-	// method only for overload
-	// to start own folder thread
-	// to get next time by changing foreign value
-	// this value from the other folder
+	m_oLinkWhile.activateObserver(observer);
 }
 
 void portBase::informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
@@ -280,7 +283,7 @@ void portBase::setValue(double value, const string& from)
 		{
 			output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
 			output << "  " << sOwn << " was changed to " << m_dValue << endl;
-			if(	from.substr(0, 1) != "i" &&
+			if(	from.substr(0, 1) != "i" ||
 				from.substr(2) != sOwn		)
 			{
 				output << "  was informed from";
@@ -295,12 +298,18 @@ void portBase::setValue(double value, const string& from)
 		{
 			for(vector<string>::iterator fit= it->second.begin(); fit != it->second.end(); ++fit)
 			{
+				string::size_type pos;
+
+				pos= fit->find(" ");
 				if(	from.substr(0, 1) != "i" ||
-					from.substr(2) != *fit		)
+					(	(	pos != string::npos &&
+							from.substr(2) != fit->substr(0, pos)	) ||
+						(	pos == string::npos &&
+							from.substr(2) != *fit	) 					)	)
 				{
-					it->first->changedValue(*fit, sOwn);
 					if(debug)
 						output << "    informe " << *fit << endl;
+					it->first->changedValue(*fit, sOwn);
 
 				}else if(debug)
 					output << "    do not infomre " << *fit << " back" << endl;
@@ -331,6 +340,223 @@ double portBase::getValue(const string& who)
 	return dValue;
 }
 
+bool portBase::initLinks(const string& type, IPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+{
+	bool bOk= true, bWarning;
+	string sValue, sLinkWhile;
+	vector<string>::size_type nValue;
+
+	if(m_sType != type)
+		return true;
+	nValue= properties->getPropertyCount("link");
+	for(vector<string>::size_type i= 0; i<nValue; ++i)
+	{
+		ostringstream lk;
+		ListCalculator* calc;
+		vector<string> spl;
+
+		lk << "link[" << i+1 << "]";
+		sValue= properties->getValue("link", i);
+		trim(sValue);
+		split(spl, sValue, is_any_of(":"));
+		if(spl.size() > 0)
+			trim(spl[0]);
+		if(spl.size() == 2)
+			trim(spl[1]);
+		if(	(	spl.size() == 1 &&
+				spl[0].find(" ") == string::npos	) ||
+			(	spl.size() == 2 &&
+				spl[0].find(" ") == string::npos &&
+				spl[1].find(" ") == string::npos	)	)
+		{
+			m_vpoLinks.push_back(new ListCalculator(m_sFolder, m_sSubroutine, lk.str(), true, false));
+			calc= m_vpoLinks.back();
+			if(!calc->init(pStartFolder, sValue))
+				bOk= false;
+
+		}else
+		{
+			ostringstream msg;
+
+			msg << properties->getMsgHead(/*error*/true);
+			msg << i << ". link parameter '"  << sValue << "' can only be an single [folder:]<sburoutine>, so do not set this link";
+			LOG(LOG_ERROR, msg.str());
+			cout << msg.str() << endl;
+			bOk= false;
+		}
+	}
+	bWarning= false;
+	if(nValue > 1)
+		bWarning= true;
+	sLinkWhile= properties->getValue("lwhile", bWarning);
+	if(!m_oLinkWhile.init(pStartFolder, sLinkWhile))
+		bOk= false;
+	return bOk;
+}
+
+bool portBase::getLinkedValue(const string& type, double& val)
+{
+	bool bOk, isdebug;
+	double lvalue, linkvalue;
+	string slink, foldersub;
+	vector<string>::size_type pos;
+	vector<ListCalculator*>::size_type links(m_vpoLinks.size());
+	ListCalculator* link;
+	IListObjectPattern* port;
+
+	if(m_sType != type)
+		return false;
+	if(links > 0)
+	{
+		isdebug= isDebug();
+		foldersub= m_sFolder+":"+m_sSubroutine;
+		// create first lwhile parameter
+		if(!m_oLinkWhile.isEmpty())
+		{
+			bOk= m_oLinkWhile.calculate(lvalue);
+			if(bOk)
+			{
+				if(	lvalue < 1 ||
+					lvalue > links	)
+				{
+					if(lvalue != 0)
+					{
+						string msg("calculation of lwhile parameter is out of range but also not 0\n");
+
+						msg += "             so do not create any link to foreign subroutine";
+						if(isdebug)
+							cout << "### WARNING: " << msg << endl;
+						msg= "in folder '"+m_sFolder+"' and subroutine '"+m_sSubroutine+"'\n"+msg;
+						msg+= "\n";
+						TIMELOG(LOG_WARNING, m_sFolder+m_sSubroutine+"linkwhile", msg);
+						bOk= false; // no linked value be used
+
+					}else if(isdebug)
+						cout << "calculation of lvhile parameter is 0, so take own value" << endl;
+					slink= foldersub;
+					pos= 0;
+					bOk= false;
+
+				}else
+				{
+					pos= static_cast<vector<string>::size_type >(lvalue);
+					link= m_vpoLinks[pos-1];
+					slink= link->getStatement();
+				}
+			}else
+			{
+				string msg("cannot create calculation from lwhile parameter '");
+
+				msg+= m_oLinkWhile.getStatement();
+				msg+= "' in folder " + m_sFolder + " and subroutine " + m_sSubroutine;
+				TIMELOG(LOG_ERROR, "calcResult"+m_sFolder+":"+m_sSubroutine, msg);
+				if(isdebug)
+					cout << "### ERROR: " << msg << endl;
+				bOk= false;
+			}
+		}else
+			slink= m_vpoLinks[0]->getStatement();
+
+		if(	bOk &&
+			slink != m_sSubroutine &&
+			slink != foldersub		)
+		{
+			bOk= link->calculate(linkvalue);
+			if(!bOk)
+			{
+				ostringstream msg;
+
+				msg << "cannot find subroutine '";
+				msg << link << "' from " << dec << pos << ". link parameter";
+				msg << " in folder " << m_sFolder << " and subroutine " << m_sSubroutine;
+				TIMELOG(LOG_ERROR, "searchresult"+m_sFolder+":"+m_sSubroutine, msg.str());
+				if(isdebug)
+					cout << "### ERROR: " << msg << endl;
+				bOk= false;
+			}else
+			{
+				// define which value will be use
+				// the linked value or own
+				if(m_nLinkObserver != pos)
+				{// subroutine link to new other subroutine -> take now this value
+				 // set observer to linked subroutine
+					if(m_nLinkObserver)
+						m_vpoLinks[m_nLinkObserver-1]->removeObserver( m_poMeasurePattern);
+					if(pos > 0)
+						link->activateObserver( m_poMeasurePattern);
+					m_nLinkObserver= pos;
+					defineRange();
+					val= linkvalue;
+					bOk= true;
+
+				}else if(m_dLastLinkValue != linkvalue)
+				{// linked value from other subroutine was changed
+					val= linkvalue;
+					bOk= true;
+
+				}else if(m_dLastLinkValue != val)
+				{ // value changed from outside of server, owreader, or with subroutine SET
+				  // write new value inside foreign subroutine
+					port= link->getSubroutine(slink, /*own folder*/true);
+					if(port)
+					{
+						port->setValue(val, "i:"+foldersub);
+						port->getRunningThread()->changedValue(slink, foldersub);
+						if(isdebug)
+						{
+							cout << "own value be changed from outside or other subroutine, set this value (";
+							cout << dec << val << ") to linked subroutine '" << slink << "'" << endl;
+						}
+					}else
+					{
+						ostringstream err;
+
+						err << dec << pos << ". link '" << slink << "' is no correct subroutine";
+						if(isdebug)
+							cerr << "## ERROR: " << err.str() << endl;
+						TIMELOG(LOG_ERROR, "incorrecttimerlink"+foldersub, "In TIMER routine of foler '"+m_sFolder+
+																		"' and subroutine '"+m_sSubroutine+"'\n"+err.str());
+					}
+					bOk= false;
+				}else
+				{ // nothing was changed
+					val= linkvalue;
+					bOk= false;
+				}
+			}
+		}else // if(slink own subroutine)
+		{
+			if(m_nLinkObserver != 0)
+			{
+				if(isdebug && bOk)
+					cout << pos << ". link value '" << slink << "' link to own subroutine" << endl;
+				if(	m_nLinkObserver-1 < links	)
+				{
+					m_vpoLinks[m_nLinkObserver]->removeObserver( m_poMeasurePattern);
+					m_nLinkObserver= 0;
+					defineRange();
+				}else
+				{
+					cout << "### ERROR: in " << m_sFolder << ":" << m_sSubroutine;
+					cout << " nLinkObserver was set to " << dec << m_nLinkObserver << endl;
+				}
+			}
+			bOk= false;
+		} // end else if(slink own subroutine)
+
+	}else // if(links > 0)
+		bOk= false;
+
+	m_dLastLinkValue= val;
+	if(	!bOk ||
+		slink == m_sSubroutine ||
+		slink == foldersub			)
+	{
+		return false;
+	}
+	return true;
+}
+
 string portBase::getFolderName()
 {
 	return m_sFolder;
@@ -343,9 +569,29 @@ string portBase::getSubroutineName()
 
 void portBase::setDebug(bool bDebug)
 {
+	m_oLinkWhile.doOutput(bDebug);
+	for(vector<ListCalculator*>::iterator it= m_vpoLinks.begin(); it != m_vpoLinks.end(); ++it)
+		(*it)->doOutput(bDebug);
 	LOCK(m_DEBUG);
 	m_bDebug= bDebug;
 	UNLOCK(m_DEBUG);
+}
+
+bool portBase::range(bool& bfloat, double* min, double* max)
+{
+	if(m_nLinkObserver)
+	{
+		IListObjectPattern* port;
+
+		port= m_oLinkWhile.getSubroutine(m_vpoLinks[m_nLinkObserver-1]->getStatement(), /*own folder*/true);
+		if(	port &&
+			(	port->getFolderName() != m_sFolder ||
+				port->getSubroutineName() != m_sSubroutine	)	)
+		{
+			return port->range(bfloat, min, max);
+		}
+	}
+	return false;
 }
 
 bool portBase::isDebug()
@@ -359,6 +605,7 @@ bool portBase::isDebug()
 	return debug;
 }
 
+#if 0
 void portBase::noAfterContactPublication()
 {
 	m_bCanAfterContact= false;
@@ -825,6 +1072,7 @@ bool portBase::getPin(Pins ePin)
 	}
 	return false;*/
 }
+#endif
 
 void portBase::lockApplication(bool bSet)
 {
@@ -865,7 +1113,11 @@ bool portBase::onlySwitch()
 
 portBase::~portBase()
 {
+	vector<ListCalculator*>::iterator it;
+
 	DESTROYMUTEX(m_VALUELOCK);
 	DESTROYMUTEX(m_DEBUG);
 	DESTROYMUTEX(m_CORRECTDEVICEACCESS);
+	for(it= m_vpoLinks.begin(); it != m_vpoLinks.end(); ++it)
+		delete *it;
 }

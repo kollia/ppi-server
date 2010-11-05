@@ -29,15 +29,15 @@ using namespace boost::algorithm;
 
 namespace ports
 {
-	bool Set::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+	bool Set::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		double dDefault;
 		string prop, sFrom;
 		vector<string> spl;
 
-		sFrom= properties.needValue("from");
+		sFrom= properties->needValue("from");
 		m_oFrom.init(pStartFolder, sFrom);
-		m_sSet= properties.needValue("set");
+		m_sSet= properties->needValue("set");
 		trim(m_sSet);
 		if(m_sSet != "")
 		{
@@ -54,7 +54,7 @@ namespace ports
 			{
 				ostringstream msg;
 
-				msg << properties.getMsgHead(/*error*/true);
+				msg << properties->getMsgHead(/*error*/true);
 				msg << " set parameter '"  << m_sSet << "' can only be an single [folder:]<sburoutine>";
 				LOG(LOG_ERROR, msg.str());
 				cout << msg << endl;
@@ -62,16 +62,16 @@ namespace ports
 			}
 		}
 		prop= "min";
-		m_nMin= properties.getDouble(prop, /*warning*/false);
+		m_nMin= properties->getDouble(prop, /*warning*/false);
 		if(prop == "#ERROR")
 			m_nMin= 0;
 		prop= "max";
-		m_nMax= properties.getDouble(prop, /*warning*/false);
+		m_nMax= properties->getDouble(prop, /*warning*/false);
 		if(prop == "#ERROR")
 			m_nMax= -1;
-		m_bFloat= properties.haveAction("float");
+		m_bFloat= properties->haveAction("float");
 		prop= "default";
-		dDefault= properties.getDouble(prop, /*warning*/false);
+		dDefault= properties->getDouble(prop, /*warning*/false);
 		if(	!switchClass::init(properties, pStartFolder) ||
 			sFrom == "" ||
 			m_sSet == ""										)
@@ -103,7 +103,7 @@ namespace ports
 			bOk= m_oFrom.calculate(value);
 			if(bOk)
 			{
-				portBase* port;
+				IListObjectPattern* port;
 
 				port= m_oFrom.getSubroutine(m_sSet, /*own folder*/true);
 				if(port)

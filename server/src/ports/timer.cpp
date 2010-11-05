@@ -28,9 +28,9 @@
 
 using namespace util;
 
-bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
-	bool bsec, bmicro;
+	bool bsec, bmicro, bOk= true;
 	int milli= 0, min= 0, hour= 0, days= 0;
 	time_t sec= 0;
 	suseconds_t micro= 0;
@@ -38,15 +38,15 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 
 	//Debug info to stop by right subroutine
 	/*string stopfolder("TRANSMIT_SONY");
-	string stopsub("new_activate");
+	string stopsub("after");
 	if(	getFolderName() == stopfolder &&
 		getSubroutineName() == stopsub	)
 	{
 		cout << __FILE__ << __LINE__ << endl;
-		cout << stopfolder << ":" << stopsub << endl;
+		cout << stopfolder << ":" << getSubroutineName() << endl;
 	}*/
 	m_bSeconds= true;
-	prop= properties.getValue("end", /*warning*/false);
+	prop= properties->getValue("end", /*warning*/false);
 	if(prop != "")
 	{
 		vector<string> vars;
@@ -62,42 +62,42 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 				m_oEnd.clear();
 		}
 	}
-	m_bTime= properties.haveAction("measure");
-	bsec= properties.haveAction("sec");
-	bmicro= properties.haveAction("micro");
+	m_bTime= properties->haveAction("measure");
+	bsec= properties->haveAction("sec");
+	bmicro= properties->haveAction("micro");
 	if(bsec && bmicro)
 	{
-		prop= properties.getMsgHead(/*ERROR*/true);
+		prop= properties->getMsgHead(/*ERROR*/true);
 		prop+= "action sec and micro can not be set both";
 		LOG(LOG_ERROR, prop);
 		cerr << prop << endl;
-		return false;
+		bOk= false;
 	}else if(bmicro)
 		m_bSeconds= false;
 	if(!m_bTime)
 	{ // make count down of time
 		m_bTime= false;
-		smtime= properties.getValue("mtime", /*warning*/false);
+		smtime= properties->getValue("mtime", /*warning*/false);
 		m_omtime.init(pStartFolder, smtime);
 		if(smtime == "")
 		{
 			if(m_bSeconds)
 			{
 				prop= "day";
-				days= properties.getInt(prop, /*warning*/false);
+				days= properties->getInt(prop, /*warning*/false);
 				prop= "hour";
-				hour= properties.getInt(prop, /*warning*/false);
+				hour= properties->getInt(prop, /*warning*/false);
 			}
 			prop= "min";
-			min= properties.getInt(prop, /*warning*/false);
+			min= properties->getInt(prop, /*warning*/false);
 			prop= "sec";
-			sec= static_cast<time_t>(properties.getInt(prop, /*warning*/false));
+			sec= static_cast<time_t>(properties->getInt(prop, /*warning*/false));
 			if(!m_bSeconds)
 			{
 				prop= "millisec";
-				milli= properties.getInt(prop, /*warning*/false);
+				milli= properties->getInt(prop, /*warning*/false);
 				prop= "microsec";
-				sec= static_cast<suseconds_t>(properties.getInt(prop, /*warning*/false));
+				sec= static_cast<suseconds_t>(properties->getInt(prop, /*warning*/false));
 			}
 			sec+= (static_cast<time_t>(min) * 60);
 			sec+= (static_cast<time_t>(hour) * 60);
@@ -109,17 +109,20 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 	}else
 	{ // measure time
 		m_bTime= true;
-		sSetNull= properties.getValue("setnull", /*warning*/false);
+		sSetNull= properties->getValue("setnull", /*warning*/false);
 		m_oSetNull.init(pStartFolder, sSetNull);
 	}
+
+	if(!initLinks("TIMER", properties, pStartFolder))
+		bOk= false;
 	if(!switchClass::init(properties, pStartFolder))
-		return false;
+		bOk= false;
 	if(	!m_bTime &&
 		m_omtime.isEmpty() &&
 		m_tmSec == 0 &&
 		m_tmMicroseconds == 0	)
 	{
-		prop= properties.getMsgHead(/*ERROR*/true);
+		prop= properties->getMsgHead(/*ERROR*/true);
 		prop+= "TIMER subroutine set for count down and ";
 		if(!m_bSeconds)
 			prop+= "micro";
@@ -132,9 +135,9 @@ bool timer::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<m
 		prop+= " or mtime) be set";
 		LOG(LOG_ERROR, prop);
 		cerr << prop << endl;
-		return false;
+		bOk= false;
 	}
-	return true;
+	return bOk;
 }
 
 bool timer::range(bool& bfloat, double* min, double* max)
@@ -153,20 +156,21 @@ bool timer::range(bool& bfloat, double* min, double* max)
 
 double timer::measure(const double actValue)
 {
+	bool s= false;
 	bool bswitch;
 	bool debug= isDebug();
 	double need;
 	switchClass::setting set;
 
 	//Debug info to stop by right subroutine
-	/*string stopfolder("TRANSMIT_SONY");
-	string stopsub("new_activate");
-	if(	getFolderName() == stopfolder &&
-		getSubroutineName() == stopsub	)
+	if(	getFolderName() == "TRANSMIT_SONY2" &&
+		getSubroutineName() == "wait_after"		)
 	{
 		cout << __FILE__ << __LINE__ << endl;
-		cout << stopfolder << ":" << stopsub << endl;
-	}*/
+		cout << getFolderName() << ":" << getSubroutineName() << endl;
+		debug= false;
+		s= true;
+	}
 	m_dSwitch= switchClass::measure(m_dSwitch, set);
 	if(m_dSwitch > 0)
 		bswitch= true;
@@ -439,8 +443,17 @@ double timer::measure(const double actValue)
 				need= 0;
 		}
 	}
-	if(debug)
-		cout << "result of time is " << dec << need << " seconds" << endl;
+	if(s)
+		cout << "result before link " << need << endl;
+	if(getLinkedValue("TIMER", need))
+	{
+		if(debug)
+			cout << "result of time from linked subroutine is " << dec << need << " seconds" << endl;
+
+	}else if(debug)
+			cout << "result of time is " << dec << need << " seconds" << endl;
+	if(s)
+		cout << "finished result " << need << endl;
 	return need;
 }
 

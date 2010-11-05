@@ -21,27 +21,30 @@
 
 #include "../database/lib/DbInterface.h"
 
+#include "../pattern/util/iactionpropertypattern.h"
+
 using namespace ppi_database;
+using namespace design_pattern_world;
 
 namespace ports
 {
 
-	bool SaveSubValue::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+	bool SaveSubValue::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		string when;
 		vector<string>::size_type count;
 
-		properties.notAllowedParameter("default");
-		properties.notAllowedAction("db");
-		m_sIdentif= properties.needValue("identif");
+		properties->notAllowedParameter("default");
+		properties->notAllowedAction("action", "db", false);
+		m_sIdentif= properties->needValue("identif");
 		if(m_sIdentif == "")
 			return false;
 		if(m_sIdentif.substr(0, 6) != "clear:")
 		{
-			count= properties.getPropertyCount("sub");
+			count= properties->getPropertyCount("sub");
 			if(count == 0)
 			{ // create error massage on pull with needValue
-				properties.needValue("sub");
+				properties->needValue("sub");
 				return false;
 			}
 			for(vector<string>::size_type c= 0; c < count; ++c)
@@ -50,20 +53,20 @@ namespace ports
 				ListCalculator* calc;
 
 				param << "sub[" << c << "]";
-				//m_vSave.push_back(properties.getValue("sub", c));
-				m_vpSave.push_back(new ListCalculator(getFolderName(), getSubroutineName(), param.str(), false));
+				//m_vSave.push_back(properties->getValue("sub", c));
+				m_vpSave.push_back(new ListCalculator(getFolderName(), getSubroutineName(), param.str(), true, false));
 				calc= m_vpSave.back();
-				calc->init(pStartFolder, properties.getValue("sub", c));
+				calc->init(pStartFolder, properties->getValue("sub", c));
 			}
 		}
 
-		when= properties.getValue("when", /*warning*/false);
+		when= properties->getValue("when", /*warning*/false);
 		if(when != "")
 		{
-			properties.readLine("begin= " + when);
+			properties->readLine("begin= " + when);
 		}
-		properties.notAllowedParameter("while");
-		properties.readLine("end= true");
+		properties->notAllowedParameter("while");
+		properties->readLine("end= true");
 		if(!switchClass::init(properties, pStartFolder))
 			return false;
 		return true;

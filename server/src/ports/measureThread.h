@@ -21,6 +21,7 @@
 #include <set>
 #include <queue>
 
+#include "../pattern/util/IListObjectPattern.h"
 #include "../pattern/util/imeasurepattern.h"
 
 #include "../util/smart_ptr.h"
@@ -34,7 +35,7 @@ struct MeasureArgArray
 	vector<pair<string, PortTypes> > ports;
 	vector<sub> *subroutines;
 	//set<unsigned long> afterContact;
-	set<portBase::Pins> tAfterContactPins;
+	//set<portBase::Pins> tAfterContactPins;
 };
 
 class MeasureThread : 	public Thread,
@@ -53,7 +54,7 @@ class MeasureThread : 	public Thread,
 		 * @param subroutine name of the subroutine
 		 * @return class of subroutine
 		 */
-		SHAREDPTR::shared_ptr<portBase> getPortClass(const string subroutine, bool &bCorrect) const;
+		SHAREDPTR::shared_ptr<IListObjectPattern> getPortClass(const string subroutine, bool &bCorrect) const;
 		//double getValue(string name, bool &bFound);
 		//bool setValue(string name, double value);
 		void setDebug(bool bDebug, unsigned short sleep);
@@ -141,8 +142,8 @@ class MeasureThread : 	public Thread,
 	private:
 		vector<pair<string, PortTypes> > m_pvlPorts;
 		vector<sub> *m_pvtSubroutines;
-		set<portBase::Pins> m_vAfterContactPins;
-		map<unsigned long, unsigned> m_vAfterContactPorts;
+		//set<portBase::Pins> m_vAfterContactPins;
+		//map<unsigned long, unsigned> m_vAfterContactPorts;
 		bool m_bDebug;
 		/**
 		 * from which folder:subroutine the thread was informed to change

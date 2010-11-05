@@ -31,14 +31,15 @@
 #include "portbaseclass.h"
 #include "timemeasure.h"
 
-bool TimeMeasure::init(ConfigPropertyCasher &properties)
+bool TimeMeasure::init(IActionPropertyPattern* properties)
 {
+#if 0
 	unsigned short measuredness= 1;
 	string error("");
-	string sOut= properties.needValue("out");
-	string sIn= properties.needValue("in");
-	string sNeg= properties.getValue("neg", /*warning*/false);
-	string sMeasuredness= properties.getValue("measuredness", /*warning*/false);
+	string sOut= properties->needValue("out");
+	string sIn= properties->needValue("in");
+	string sNeg= properties->getValue("neg", /*warning*/false);
+	string sMeasuredness= properties->getValue("measuredness", /*warning*/false);
 	Pins tOut= getPinsStruct(sOut);
 	Pins tIn= getPinsStruct(sIn);
 	Pins tNegative= getPinsStruct(sNeg);
@@ -68,13 +69,6 @@ bool TimeMeasure::init(ConfigPropertyCasher &properties)
 		cout << errorOut << endl;
 		return false;
 	}
-	init(tOut, tIn, tNegative, measuredness, &vCorrection);
-	return true;
-}
-
-void TimeMeasure::init(	Pins tOut, Pins tIn, Pins tNegative,
-						unsigned short measuredness, vector<correction_t> *elkoCorrection)
-{
 	m_tOut= tOut;
 	m_tIn= tIn;
 	m_tNegative= tNegative;
@@ -84,6 +78,9 @@ void TimeMeasure::init(	Pins tOut, Pins tIn, Pins tNegative,
 	m_maxMeasuredTime= 1500000;
 	noAfterContactPublication();
 	//setCorrection(elkoCorrection);
+	return true;
+#endif
+	return false;
 }
 
 bool TimeMeasure::range(bool& bfloat, double* min, double* max)
@@ -130,7 +127,7 @@ bool TimeMeasure::range(bool& bfloat, double* min, double* max)
 
 TimeMeasure::~TimeMeasure()
 {
-	setPin(m_tOut, false);
+	//setPin(m_tOut, false);
 }
 
 double TimeMeasure::measure(const double actValue)
@@ -153,8 +150,8 @@ double TimeMeasure::measure(const double actValue)
 
 unsigned long TimeMeasure::getMeasuredTime()
 {
-	portpin_address_t tSet= getPortPinAddress(m_tOut, true);
-	portpin_address_t tGet= getPortPinAddress(m_tIn, false);
+	portpin_address_t tSet;//= getPortPinAddress(m_tOut, true);
+	portpin_address_t tGet;//= getPortPinAddress(m_tIn, false);
 	unsigned long nSetPort= tSet.nPort;
 	unsigned long nGetPort= tGet.nPort;
 	int nSetPin= tSet.nPin;
@@ -164,8 +161,8 @@ unsigned long TimeMeasure::getMeasuredTime()
 	double correction;
 	vector<correction_t> vCorrection;
 
-	setPin(m_tNegative, false);
-	setPin(m_tOut, false);
+	//setPin(m_tNegative, false);
+	//setPin(m_tOut, false);
 
 	unsigned res;
 	int nPrintPin;
@@ -180,10 +177,10 @@ unsigned long TimeMeasure::getMeasuredTime()
 		cout << "beginning status: ";
 		res= inb(nGetPort);
 		nPrintPin= (int)res;
-		printBin(&nPrintPin, nGetPort);
+		//printBin(&nPrintPin, nGetPort);
 		cout << "wait for          ";
 		nPrintPin= (int)nGetPin;
-		printBin(&nPrintPin, nGetPort);
+		//printBin(&nPrintPin, nGetPort);
 	}
 	lockApplication(true);
 	if(setitimer(ITIMERTYPE, &time, NULL)==-1)
@@ -207,14 +204,14 @@ unsigned long TimeMeasure::getMeasuredTime()
 			usleep(1);
 		}
 		mikroSleepTime= getMikrotime();
-		setPin(m_tOut, false);
+		//setPin(m_tOut, false);
 	}
 	lockApplication(false);
 	if(isDebug())
 	{
 		cout << "result:           ";
 		nPrintPin= (int)res;
-		printBin(&nPrintPin, nGetPort);
+		//printBin(&nPrintPin, nGetPort);
 	}
 	if(mikroSleepTime >= m_maxMeasuredTime)
 	{
@@ -489,7 +486,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 	string logString("### check for measuredness on port ");
 	string endlog;
 
-	logString+= getPortName(m_tIn.nPort);
+	//logString+= getPortName(m_tIn.nPort);
 #ifndef DEBUG
 	cout << logString << endl;
 #endif // DEBUUG

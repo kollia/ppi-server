@@ -52,7 +52,7 @@ namespace ports
 		 * @param properties property casher for this subroutine with type SAVE
 		 * @param pStartFolder first pointer to all defined folders
 		 */
-		bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * measure new value for subroutine
 		 *

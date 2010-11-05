@@ -22,26 +22,14 @@
 #include <map>
 
 #include "../util/debug.h"
+#include "../util/structures.h"
 
 #include "../util/properties/configpropertycasher.h"
 
+#include "../pattern/util/IListObjectPattern.h"
 #include "../pattern/util/imeasurepattern.h"
 
-using namespace std;
-
-//* Variablenbelegung
-#define ITIMERTYPE ITIMER_REAL
-#define ITIMERSTARTSEC 120
-
-
-#define COM1 0x3F8 //* Adresse COM1 *
-#define COM2 0x2F8
-#define COM3 0x3E8
-#define COM4 0x2E8
-#define LPT1 0x3BC // /dev/lp0 *
-#define LPT2 0x378 // /dev/lp1 *
-#define LPT3 0x278 // /dev/lp2 *
-
+#include "ListCalculator.h"
 
 using namespace std;
 using namespace util;
@@ -49,7 +37,7 @@ using namespace design_pattern_world::util_pattern;
 
 namespace ports
 {
-	class portBase
+	class portBase : virtual public IListObjectPattern
 	{
 		public:
 	#ifdef DEBUG
@@ -181,9 +169,9 @@ namespace ports
 			 * also when the contact was given before
 			 * running the measure function
 			 */
-			bool m_bCanAfterContact;
-			set<Pins> m_vAfterContactPins;
-			map<unsigned long, unsigned> m_vAfterContactPorts;
+			//bool m_bCanAfterContact;
+			//set<Pins> m_vAfterContactPins;
+			//map<unsigned long, unsigned> m_vAfterContactPorts;
 			pthread_mutex_t *m_VALUELOCK;
 			pthread_mutex_t *m_DEBUG;
 			/**
@@ -226,7 +214,7 @@ namespace ports
 			 * @param properties the properties in file measure.conf
 			 * @return whether initalization was ok
 			 */
-			virtual bool init(ConfigPropertyCasher &properties);
+			virtual bool init(IActionPropertyPattern* properties);
 			/**
 			 * this method will be called from any measure thread to set as observer
 			 * for starting own folder to get value from foreign folder
@@ -272,10 +260,10 @@ namespace ports
 			 *
 			 * @return string of groups
 			 */
-			string getPermissionGroups();
-			bool doForAfterContact();
-			void setAfterContact(const map<unsigned long, unsigned> &ports, const set<Pins> &pins);
-			void noAfterContactPublication();
+			virtual string getPermissionGroups();
+			//bool doForAfterContact();
+			//void setAfterContact(const map<unsigned long, unsigned> &ports, const set<Pins> &pins);
+			//void noAfterContactPublication();
 			/**
 			 * set subroutine for output doing actions
 			 *
@@ -293,7 +281,8 @@ namespace ports
 			 *
 			 * @return name of type of the subroutine
 			 */
-			string getSubroutineType();
+			virtual string getSubroutineType()
+			{ return m_sType; };
 			/**
 			 * returning the name of the folder
 			 * in which this subroutine running
@@ -317,32 +306,6 @@ namespace ports
 			 * destructor
 			 */
 			virtual ~portBase();
-
-			//unsigned long getPortAddress();
-			/**
-			 * return an string as bits
-			 *
-			 * @param value the value in an long variable
-			 * @param bits how much bits should be shown in the string
-			 * @return an string of bits which contains in the value
-			 */
-			static string getBinString(const long value, const size_t bits);
-			static void printBin(int* value, unsigned long nPort);
-			static string getPinName(Pin ePin);
-			static Pin getPinEnum(string sPinName);
-			static string getPortName(unsigned long port);
-			static unsigned long getPortAddress(string sPortName);
-			static Pin getPortType(unsigned long port);
-			static Pin getPortType(string sPinName);
-			/**
-			 * returns an struct of portBase::Pins ( { unsigned long nPort; portBase::Pin ePin; } )<br />
-			 * from given string 'port:pin' (exp. 'COM1:DTR')
-			 *
-			 * @param sPin string of port:pin
-			 * @return struct of portBase::Pins. on Error portBase::Pins.ePin= portBase::NONE
-			 */
-			static Pins getPinsStruct(string sPin);
-			static portpin_address_t getPortPinAddress(Pins tAdr, bool bSetAfter);
 			/**
 			 * measure new value for subroutine
 			 *
@@ -401,16 +364,7 @@ namespace ports
 			 * @param max the maximal value
 			 * @return whether the range is defined or can set all
 			 */
-			virtual bool range(bool& bfloat, double* min, double* max)= 0;
-			static void setDTR(unsigned long port, bool set);
-			static void setRTS(unsigned long port, bool set);
-			static void setTXD(unsigned long port, bool set);
-			static void setPin(Pins ePin, bool bSet);
-			bool getCTS(unsigned long port);
-			bool getDSR(unsigned long port);
-			bool getRI(unsigned long port);
-			bool getDCD(unsigned long port);
-			bool getPin(Pins ePin);
+			virtual bool range(bool& bfloat, double* min, double* max);
 
 		protected:
 			static void lockApplication(bool bSet);
@@ -424,9 +378,42 @@ namespace ports
 			 * define range of value. see also public range method for better description
 			 */
 			void defineRange();
+			/**
+			 * initial subroutine to get value from an other subroutine
+			 *
+			 * @param type type of subroutine defined in constructor
+			 * @param properties the properties in file measure.conf
+			 * @param pStartFolder reference to all folder
+			 * @return whether initialization was OK
+			 */
+			bool initLinks(const string& type, IPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+			/**
+			 * get the linked value
+			 *
+			 * @param type type of subroutine defined in constructor
+			 * @param val returned value from other subroutine, or same as incoming when Link show to own
+			 * @return true when the value is from an other subroutine, else false
+			 */
+			bool getLinkedValue(const string& type, double& val);
 
 		private:
 			IMeasurePattern* m_poMeasurePattern;
+			/**
+			 * all links to share with other subroutines
+			 */
+			vector<ListCalculator*> m_vpoLinks;
+			/**
+			 * while expression to set link from m_vsLinks
+			 */
+			ListCalculator m_oLinkWhile;
+			/**
+			 * last value of linked subroutine
+			 */
+			double m_dLastLinkValue;
+			/**
+			 * which link for observer be set
+			 */
+			vector<string>::size_type m_nLinkObserver;
 	};
 }
 

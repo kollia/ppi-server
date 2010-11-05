@@ -33,18 +33,18 @@ class timer : public switchClass
 {
 public:
 	timer(string folderName, string subroutineName)
-	: switchClass(folderName, subroutineName),
+	: switchClass("TIMER", folderName, subroutineName),
 	  m_bTime(false),
 	  m_bMeasure(false),
 	  m_bSeconds(true),
-	  m_omtime(folderName, subroutineName, "mtime", false),
+	  m_omtime(folderName, subroutineName, "mtime", false, false),
 	  m_tmSec(0),
 	  m_tmMicroseconds(0),
-	  m_oSetNull(folderName, subroutineName, "setnull", true),
+	  m_oSetNull(folderName, subroutineName, "setnull", false, true),
 	  m_dSwitch(0),
-	  m_oEnd(folderName, subroutineName, "end", true)
+	  m_oEnd(folderName, subroutineName, "end", false, true)
 	  { };
-	virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+	virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 	/**
 	 * measure new value for subroutine
 	 *

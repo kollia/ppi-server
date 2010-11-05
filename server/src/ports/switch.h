@@ -24,6 +24,8 @@
 #include "portbaseclass.h"
 #include "ListCalculator.h"
 
+using namespace ports;
+
 class switchClass : public portBase
 {
 public:
@@ -61,7 +63,7 @@ public:
 		 * @param pStartFolder reference to all folder
 		 * @return whether initalization was ok
 		 */
-		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * this method will be called from any measure thread to set as observer
 		 * for starting own folder to get value from foreign folder
@@ -70,19 +72,6 @@ public:
 		 * @param observer measure thread which containing the own folder
 		 */
 		virtual void setObserver(IMeasurePattern* observer);
-		/**
-		 * find object of port which should be inform
-		 *
-		 * @param pStratFolder address of the first folder
-		 * @param folder name of current folder
-		 * @param subroutine name of current subroutine
-		 * @param cCurrent string of subroutines with folder
-		 * @param own whether need own foldeer as result
-		 * @param addinfo info string to add when any error occurs
-		 * @return base object of ports
-		 */
-		static portBase* getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& folder,
-										const string& subroutine, const string& cCurrent, const bool own, const string& addinfo);
 		/**
 		 * measure whether switch value is set or not
 		 *

@@ -22,7 +22,7 @@
 namespace ports
 {
 
-	bool Counter::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+	bool Counter::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		string setnull;
 		string prop("start");
@@ -31,7 +31,7 @@ namespace ports
 		m_pStartFolder= pStartFolder;
 		// toDo: insert an starting point
 		//start= (double)properties.getInt(prop, /*warning*/false);
-		setnull= properties.getValue("setnull", /*warning*/false);
+		setnull= properties->getValue("setnull", /*warning*/false);
 		m_oSetNull.init(pStartFolder, setnull);
 		return true;
 	}

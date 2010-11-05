@@ -47,14 +47,14 @@ namespace ports
 			 */
 			ResistanceMeasure(string folderName, string subroutineName)
 			: TimeMeasure(folderName, subroutineName),
-			  m_oMeasuredSubroutine(folderName, subroutineName, "mvalue", false) { };
+			  m_oMeasuredSubroutine(folderName, subroutineName, "mvalue", true, false) { };
 			/**
 			 * initial class of saving
 			 *
 			 * @param properties property casher for this subroutine with type RESISTANCE
 			 * @param pStartFolder first pointer to all defined folders
 			 */
-			bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+			bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 			/**
 			 *
 			 */

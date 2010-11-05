@@ -26,12 +26,12 @@
 namespace ports
 {
 
-	bool Measuredness::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+	bool Measuredness::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		string mvalue, begin;
 
-		mvalue= properties.needValue("mvalue");
-		begin= properties.needValue("begin");
+		mvalue= properties->needValue("mvalue");
+		begin= properties->needValue("begin");
 		if(!portBase::init(properties))
 			return false;
 		if(	begin == ""

@@ -41,122 +41,47 @@ using namespace boost;
 switchClass::switchClass(string folderName, string subroutineName)
 : portBase("SWITCH", folderName, subroutineName),
   m_bLastValue(false),
-  m_oBegin(folderName, subroutineName, "begin", true),
-  m_oWhile(folderName, subroutineName, "while", true),
-  m_oEnd(folderName, subroutineName, "end", true)
+  m_oBegin(folderName, subroutineName, "begin", false, true),
+  m_oWhile(folderName, subroutineName, "while", false, true),
+  m_oEnd(folderName, subroutineName, "end", false, true)
 {
 }
 
 switchClass::switchClass(string type, string folderName, string subroutineName)
 : portBase(type, folderName, subroutineName),
   m_bLastValue(false),
-  m_oBegin(folderName, subroutineName, "begin", true),
-  m_oWhile(folderName, subroutineName, "while", true),
-  m_oEnd(folderName, subroutineName, "end", true)
+  m_oBegin(folderName, subroutineName, "begin", false, true),
+  m_oWhile(folderName, subroutineName, "while", false, true),
+  m_oEnd(folderName, subroutineName, "end", false, true)
 {
 }
 
-bool switchClass::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+bool switchClass::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
+	bool bOk= true;
 	string on, sWhile, off, prop("default"), type;
 	string sFolder= getFolderName();
 
 	//m_pStartFolder= pStartFolder;
-	on= properties.getValue("begin", /*warning*/false);
-	sWhile= properties.getValue("while", /*warning*/false);
-	off= properties.getValue("end", /*warning*/false);
+	on= properties->getValue("begin", /*warning*/false);
+	sWhile= properties->getValue("while", /*warning*/false);
+	off= properties->getValue("end", /*warning*/false);
 	m_oBegin.init(pStartFolder, on);
 	m_oWhile.init(pStartFolder, sWhile);
 	m_oEnd.init(pStartFolder, off);
+	if(!initLinks("SWITCH", properties, pStartFolder))
+		bOk= false;
 	if(!portBase::init(properties))
-		return false;
+		bOk= false;
 	return true;
 }
 
 void switchClass::setObserver(IMeasurePattern* observer)
 {
-	string folder(getFolderName());
-	string subroutine(getSubroutineName());
-
 	m_oBegin.activateObserver(observer);
 	m_oWhile.activateObserver(observer);
 	m_oEnd.activateObserver(observer);
-}
-
-portBase* switchClass::getPort(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder,
-								const string& folder, const string& subroutine, const string& cCurrent, const bool own, const string& addinfo)
-{
-	string found, upper, msg;
-	string sFolder;
-	string sSubroutine;
-	vector<string> spl;
-	SHAREDPTR::shared_ptr<measurefolder_t>  pfolder;
-
-	found= cCurrent;
-	trim(found);
-	upper= found;
-	transform(upper.begin(), upper.end(), upper.begin(), (int(*)(int)) toupper);
-	if(	isdigit(found.c_str()[0])
-		||
-		found.c_str()[0] == '.' // maybe a float beginning with no 0
-		||
-		upper == "TRUE"
-		||
-		upper == "FALSE"				)
-	{
-		// nothing to do
-		// string is only an number
-		// or boolean
-		return NULL;
-	}
-
-	// search in all subroutines of folders
-	// where the name is equal to the current string
-	// and ask from the class of the subroutine the value
-	split(spl, found, is_any_of(":"));
-	if(!own && (spl.size() != 2 || spl[0] == folder))
-	{
-		// information is for own folder
-		// folder is activated and do not need again
-		return NULL;
-
-	}else if(spl.size() < 2)
-	{
-		sFolder= folder;
-		sSubroutine= spl[0];
-
-	}else
-	{
-		sFolder= spl[0];
-		sSubroutine= spl[1];
-	}
-	trim(sFolder);
-	trim(sSubroutine);
-	pfolder= getFolder(sFolder, pStartFolder);
-	if(pfolder)
-	{
-		for(vector<sub>::iterator it= pfolder->subroutines.begin(); it != pfolder->subroutines.end(); ++it)
-		{
-			if(	it->bCorrect &&
-				it->name == sSubroutine	)
-			{
-				return it->portClass.get();
-			}
-		}
-	}
-	msg= "cannot found folder '";
-	msg+= sFolder + "' with subroutine '" + sSubroutine;
-	msg+= "' defined in folder " + folder + " and subroutine ";
-	msg+= subroutine;
-	if(addinfo != "")
-	{
-		if(addinfo[0] != ' ')
-			msg+= " ";
-		msg+= addinfo;
-	}
-	LOG(LOG_ERROR, msg);
-	cerr << "###ERROR: " << msg << endl;
-	return NULL;
+	portBase::setObserver(observer);
 }
 
 double switchClass::measure(const double actValue)
@@ -315,20 +240,48 @@ double switchClass::measure(const double actValue, setting& set)
 	}
 	m_bLastValue= bSwitched;
 
+	if(getLinkedValue("SWITCH", dResult))
+	{
+		if(	dResult < 0 ||
+			dResult > 0		)
+		{
+			bResultTrue= true;
+		}else
+			bResultTrue= false;
+		if(debug)
+		{// linked values only be set in SWITCH routine
+		 // SWITCH do not need BEGIN, WHILE, END
+			if(	actValue < 0 ||
+				actValue > 0	)
+			{
+				if(bResultTrue)
+					set= WHILE;
+				else
+					set= END;
+			}else
+			{
+				if(bResultTrue)
+					set= BEGIN;
+				else
+					set= NONE;
+			}
+		}
+	}
 	if(debug)
 	{
 		cout << "result for SWITCH is " << boolalpha << bResultTrue << " (";
 		switch(set)
 		{
-		case 1:
+		case BEGIN:
 			cout << "BEGIN";
 			break;
-		case 2:
+		case WHILE:
 			cout << "WHILE";
 			break;
-		case 3:
+		case END:
 			cout << "END";
 			break;
+		case NONE:
 		default:
 			cout << "NONE";
 		}

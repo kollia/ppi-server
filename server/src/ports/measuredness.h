@@ -48,8 +48,8 @@ namespace ports
 		 */
 		Measuredness(string folder, string subroutine)
 		: portBase("MEASUREDNESS", folder, subroutine),
-		  m_oMeasuredValue(folder, subroutine, "mavalue", false),
-		  m_oBegin(folder, subroutine, "begin", true)
+		  m_oMeasuredValue(folder, subroutine, "mavalue", true, false),
+		  m_oBegin(folder, subroutine, "begin", true, true)
 		{ };
 		/**
 		 * create object of class Measuredness.<br />
@@ -61,8 +61,8 @@ namespace ports
 		 */
 		Measuredness(string type, string folder, string subroutine)
 		: portBase(type, folder, subroutine),
-		  m_oMeasuredValue(folder, subroutine, "mavalue", false),
-		  m_oBegin(folder, subroutine, "begin", true)
+		  m_oMeasuredValue(folder, subroutine, "mavalue", true, false),
+		  m_oBegin(folder, subroutine, "begin", true, true)
 		{ };
 		/**
 		 * initialing object of Measuredness
@@ -70,7 +70,7 @@ namespace ports
 		 * @param properties the properties in file measure.conf
 		 * @param pStartFolder pointer to first folder of all subroutines
 		 */
-		bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * set subroutine for output doing actions
 		 *

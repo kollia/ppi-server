@@ -67,7 +67,7 @@ namespace ports
 		 */
 		Set(const string& folderName, const string& subroutineName)
 		: switchClass("SET", folderName, subroutineName),
-		  m_oFrom(folderName, subroutineName, "from", false),
+		  m_oFrom(folderName, subroutineName, "from", true, false),
 		  m_dSwitch(0)
 		{ };
 		/**
@@ -80,7 +80,7 @@ namespace ports
 		 */
 		Set(const string& type, const string& folderName, const string& subroutineName)
 		: switchClass(type, folderName, subroutineName),
-		  m_oFrom(folderName, subroutineName, "from", false),
+		  m_oFrom(folderName, subroutineName, "from", true, false),
 		  m_dSwitch(0)
 		{ };
 		/**
@@ -90,7 +90,7 @@ namespace ports
 		 * @param pStartFolder reference to all folder
 		 * @return whether initalization was ok
 		 */
-		virtual bool init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * measure new value for subroutine
 		 *

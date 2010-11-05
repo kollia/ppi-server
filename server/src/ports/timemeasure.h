@@ -21,11 +21,16 @@
 #include <sys/time.h>
 #include <errno.h>
 
+#define ITIMERTYPE ITIMER_REAL
+#define ITIMERSTARTSEC 120
+
 #include "../util/structures.h"
 
 #include "../util/properties/configpropertycasher.h"
 
 #include "portbaseclass.h"
+
+using namespace ports;
 
 class TimeMeasure : public portBase
 {
@@ -133,9 +138,7 @@ class TimeMeasure : public portBase
 		 */
 		TimeMeasure(string type, string folderName, string subroutineName)
 		: portBase(type, folderName, subroutineName) { };
-		bool init(ConfigPropertyCasher &properties);
-		void init(	Pins tOut, Pins tIn, Pins tNegative,
-					unsigned short measuredness, vector<correction_t> *elkoCorrection);
+		bool init(IActionPropertyPattern* properties);
 		unsigned long getMeasuredTime();
 		unsigned long getNewMikroseconds(vector<ohm> *elkoCorrection);
 		correction_t getNewCorrection(correction_t tCorrection, vector<ohm> vOhm, unsigned short nSleep);

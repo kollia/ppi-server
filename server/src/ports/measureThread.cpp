@@ -76,20 +76,11 @@ bool MeasureThread::isDebug()
 int MeasureThread::init(void *arg)
 {
 	int nMuch;
-	SHAREDPTR::shared_ptr<portBase> port;
+	SHAREDPTR::shared_ptr<IListObjectPattern> port;
 	MeasureArgArray tArg= *((MeasureArgArray*)arg);
 
 	m_pvlPorts= tArg.ports;
 	m_pvtSubroutines= tArg.subroutines;
-	m_vAfterContactPins= tArg.tAfterContactPins;
-	// create in map all ports with offset
-	// which are needed for after Contact
-	for(set<portBase::Pins>::iterator i= m_vAfterContactPins.begin(); i!=m_vAfterContactPins.end(); ++i)
-	{
-		portBase::portpin_address_t pin= portBase::getPortPinAddress(*i, true);
-
-		m_vAfterContactPorts[pin.nPort]= 0x00;
-	}
 
 	nMuch= m_pvtSubroutines->size();
 	for(int n= 0; n<nMuch; n++)
@@ -99,7 +90,6 @@ int MeasureThread::init(void *arg)
 			//cout << "define subroutine " << (*m_pvtSubroutines)[n].name << endl;
 			port= (*m_pvtSubroutines)[n].portClass;
 			port->setDebug(false);
-			port->setAfterContact(m_vAfterContactPorts, m_vAfterContactPins);
 			port->setObserver(this);
 			port->setRunningThread(this);
 		}
@@ -329,9 +319,9 @@ bool MeasureThread::measure()
 	return true;
 }
 
-SHAREDPTR::shared_ptr<portBase> MeasureThread::getPortClass(const string name, bool &bCorrect) const
+SHAREDPTR::shared_ptr<IListObjectPattern> MeasureThread::getPortClass(const string name, bool &bCorrect) const
 {
-	SHAREDPTR::shared_ptr<portBase> pRv;
+	SHAREDPTR::shared_ptr<IListObjectPattern> pRv;
 
 	bCorrect= false;
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)

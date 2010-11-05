@@ -29,7 +29,7 @@ using namespace ppi_database;
 
 namespace ports
 {
-	bool ResistanceMeasure::init(ConfigPropertyCasher &properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+	bool ResistanceMeasure::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		string warning, warning2;
 		string sOut, sIn, sNeg, sMeasuredness;
@@ -38,14 +38,14 @@ namespace ports
 		m_pStartFolder= pStartFolder;
 
 		// take properties from casher for own measure
-		sOut= properties.getValue("out", /*warning*/false);
-		sIn= properties.getValue("in", /*warning*/false);
-		sNeg= properties.getValue("neg", /*warning*/false);
-		sMeasuredness= properties.getValue("measuredness", /*warning*/false);
+		sOut= properties->getValue("out", /*warning*/false);
+		sIn= properties->getValue("in", /*warning*/false);
+		sNeg= properties->getValue("neg", /*warning*/false);
+		sMeasuredness= properties->getValue("measuredness", /*warning*/false);
 
 		// take properties from casher for only calculate resistance
-		sOValue= properties.getValue("ovalue", /*warning*/false);
-		sMValue= properties.getValue("mvalue", /*warning*/false);
+		sOValue= properties->getValue("ovalue", /*warning*/false);
+		sMValue= properties->getValue("mvalue", /*warning*/false);
 
 		if(	sOut != ""
 			&&
@@ -116,7 +116,7 @@ namespace ports
 			LOG(LOG_INFO, warningOut);
 			cout << warningOut << endl;
 		}
-		sMValue= properties.needValue("mvalue");
+		sMValue= properties->needValue("mvalue");
 		if(sMValue == "")
 			return false;
 		m_bOwnMeasure= false;
