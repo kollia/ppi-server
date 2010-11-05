@@ -21,7 +21,8 @@
 #include <vector>
 #include <set>
 
-#include "../ports/portbaseclass.h"
+//#include "../ports/portbaseclass.h"
+#include "../pattern/util/IListObjectPattern.h"
 
 #include "../util/smart_ptr.h"
 
@@ -29,7 +30,7 @@
 
 using namespace std;
 using namespace util;
-using namespace ports;
+using namespace design_pattern_world::util_pattern;
 
 
 struct convert_t
@@ -53,9 +54,9 @@ struct sub
 	bool bCorrect;
 	bool bAfterContact;
 	string type;
-	portBase::Pins out;
-	portBase::Pins in;
-	portBase::Pins negative;
+	//portBase::Pins out;
+	//portBase::Pins in;
+	//portBase::Pins negative;
 	string sBegin;
 	string sWhile;
 	string sEnd;
@@ -63,7 +64,7 @@ struct sub
 	string sWhileComm;
 	string sEndComm;
 	double defaultValue;
-	SHAREDPTR::shared_ptr<portBase> portClass;
+	SHAREDPTR::shared_ptr<IListObjectPattern> portClass;
 	time_t tmlong;
 	int nMax;
 	int nMin;
@@ -72,15 +73,15 @@ struct sub
 	vector<unsigned short> ohmVector;
 	unsigned short producerBValue;
 	short measuredness;
-	SHAREDPTR::shared_ptr<ConfigPropertyCasher> property;
+	SHAREDPTR::shared_ptr<IActionPropertyPattern> property;
 };
 
 struct measurefolder_t
 {
 	string name;
 	bool bCorrect;
-	set<portBase::Pins> afterContactPins;
-	set<portBase::Pins> needInPorts;
+	//set<portBase::Pins> afterContactPins;
+	//set<portBase::Pins> needInPorts;
 	vector<sub> subroutines;
 	SHAREDPTR::shared_ptr<measurefolder_t> next;
 };
