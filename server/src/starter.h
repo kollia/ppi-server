@@ -99,7 +99,9 @@ class Starter
 		 * defaultuser and loguser in server.conf
 		 */
 		void readPasswd();
+#if 0
 		void checkAfterContact();
+#endif
 		/**
 		 * read measure procedures from measure.conf
 		 *

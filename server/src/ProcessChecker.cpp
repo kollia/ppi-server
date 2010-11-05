@@ -55,7 +55,7 @@ int ProcessChecker::execute()
 		double value;
 		string folder, subroutine;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
-		SHAREDPTR::shared_ptr<portBase> port;
+		SHAREDPTR::shared_ptr<IListObjectPattern> port;
 
 		object >> folder;
 		object >> subroutine;

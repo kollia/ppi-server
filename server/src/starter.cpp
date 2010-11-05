@@ -705,7 +705,7 @@ bool Starter::execute()
 	OWInterface::checkUnused(nServerID);
 	OWInterface::endOfInitialisation(nServerID);
 
-	checkAfterContact();
+	//checkAfterContact();
 
 	bool createThread= false;
 	MeasureArgArray args;
@@ -747,7 +747,6 @@ bool Starter::execute()
 			}
 			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name));
 			args.subroutines= &aktFolder->subroutines;
-			args.tAfterContactPins= aktFolder->afterContactPins;
 			pCurrentMeasure->pMeasure->start(&args);
 		}
 		aktFolder= aktFolder->next;
@@ -911,7 +910,7 @@ void Starter::createPortObjects()
 
 				obj= SHAREDPTR::shared_ptr<switchClass>(new switchClass(aktualFolder->name,
 																		aktualFolder->subroutines[n].name));
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -922,7 +921,7 @@ void Starter::createPortObjects()
 				auto_ptr<timer> obj= auto_ptr<timer>(new timer(	aktualFolder->name,
 																aktualFolder->subroutines[n].name	));
 
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -933,7 +932,7 @@ void Starter::createPortObjects()
 				auto_ptr<Shell> obj= auto_ptr<Shell>(new Shell(	aktualFolder->name,
 																aktualFolder->subroutines[n].name	));
 
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -944,7 +943,7 @@ void Starter::createPortObjects()
 				auto_ptr<TimeMeasure> obj= auto_ptr<TimeMeasure>(new TimeMeasure(	aktualFolder->name,
 																					aktualFolder->subroutines[n].name	));
 
-				if(obj->init(*aktualFolder->subroutines[n].property))
+				if(obj->init(aktualFolder->subroutines[n].property.get()))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -955,7 +954,7 @@ void Starter::createPortObjects()
 				auto_ptr<ResistanceMeasure> obj= auto_ptr<ResistanceMeasure>(new ResistanceMeasure(	aktualFolder->name,
 																									aktualFolder->subroutines[n].name	));
 
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -966,7 +965,7 @@ void Starter::createPortObjects()
 				auto_ptr<TempMeasure> obj= auto_ptr<TempMeasure>(new TempMeasure(	aktualFolder->name,
 																					aktualFolder->subroutines[n].name	));
 
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -977,7 +976,7 @@ void Starter::createPortObjects()
 				auto_ptr<ValueHolder> obj= auto_ptr<ValueHolder>(new ValueHolder(	aktualFolder->name,
 																					aktualFolder->subroutines[n].name	));
 
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -988,7 +987,7 @@ void Starter::createPortObjects()
 				auto_ptr<Set> obj= auto_ptr<Set>(new Set(	aktualFolder->name,
 															aktualFolder->subroutines[n].name	));
 
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -999,7 +998,7 @@ void Starter::createPortObjects()
 				auto_ptr<SaveSubValue> obj= auto_ptr<SaveSubValue>(new SaveSubValue(aktualFolder->name,
 																					aktualFolder->subroutines[n].name));
 
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -1010,7 +1009,7 @@ void Starter::createPortObjects()
 				auto_ptr<Counter> obj= auto_ptr<Counter>(new Counter(	aktualFolder->name,
 																		aktualFolder->subroutines[n].name	));
 
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -1021,7 +1020,7 @@ void Starter::createPortObjects()
 				auto_ptr<Measuredness> obj= auto_ptr<Measuredness>(new Measuredness(aktualFolder->name,
 																					aktualFolder->subroutines[n].name));
 
-				if(obj->init(*aktualFolder->subroutines[n].property, m_tFolderStart))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -1035,7 +1034,7 @@ void Starter::createPortObjects()
 				obj= auto_ptr<OwfsPort>(new OwfsPort(	aktualFolder->subroutines[n].type,
 														aktualFolder->name,
 														aktualFolder->subroutines[n].name	));
-				if(obj->init(m_tFolderStart, *aktualFolder->subroutines[n].property))
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
 					correctSubroutine= true;
@@ -1320,13 +1319,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				subdir->bCorrect= false;
 				subdir->type= "";
 				subdir->producerBValue= -1;
-				subdir->out.nPort= 0x00;
-				subdir->out.ePin= portBase::NONE;
-				subdir->in.nPort= 0x00;
-				subdir->in.ePin= portBase::NONE;
 				subdir->defaultValue= 0;
-				subdir->negative.nPort= 0x00;
-				subdir->negative.ePin= portBase::NONE;
 				subdir->tmlong= 0;
 				subdir->bAfterContact= false;
 				subdir->measuredness= 0;
@@ -1408,8 +1401,18 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 						vlRv.push_back(pair<string, PortTypes>(value, act));
 				}
 				subdir->property->readLine(line);
-				if(!subdir->property->newSubroutine().correct)
-					continue;
+				{
+					ConfigPropertyCasher* p;
+
+					p= dynamic_cast<ConfigPropertyCasher*>(subdir->property.get());
+					if(	p && !p->newSubroutine().correct)
+						continue;
+				}
+
+// writing pins into aktual folder
+// hoping to never used
+/**********************************************************************************************************/
+#if 0
 				if(	subdir->type == "MPORTS"
 					||
 					subdir->type == "TEMP"
@@ -1459,8 +1462,17 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 						}
 					}
 				}
+#endif
 			}
 
+			if(type == "type")
+			{
+				subdir->type= value;
+
+			}
+// all this next stuff is reading inside Properties
+// hope this things are not usable in future
+#if 0
 			if(type=="measuredness")
 			{
 				if(subdir.get())
@@ -1479,10 +1491,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 			}else if(type=="microsecCount")
 			{
 				m_nMicrosecCount=  (unsigned short)atoi(value.c_str());
-
-			}else if(type == "type")
-			{
-				subdir->type= value;
 
 			}else if(type == "correction")
 			{
@@ -1747,6 +1755,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				}
 				cout << msg << endl;
 			}
+#endif
 
 			lines.push_back(line);
 		}// end of while(!file.eof())
@@ -1760,6 +1769,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 		aktualFolder->subroutines.push_back(*subdir);
 }
 
+#if 0
 void Starter::checkAfterContact()
 {
 	unsigned int nSize;
@@ -1880,6 +1890,7 @@ void Starter::checkAfterContact()
 		aktfolder= aktfolder->next;
 	}
 }
+#endif
 
 bool Starter::status()
 {
