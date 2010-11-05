@@ -20,16 +20,14 @@
 #include <string>
 #include <map>
 
+#include "../pattern/util/IListObjectPattern.h"
 #include "../pattern/util/imeasurepattern.h"
 
 #include "../util/smart_ptr.h"
 #include "../util/structures.h"
 #include "../util/CalculatorContainer.h"
 
-#include "portbaseclass.h"
-
 using namespace std;
-using namespace ports;
 
 /**
  * this class calculate all inserted double values to an value
@@ -45,15 +43,17 @@ public:
 	 * @param folder where the string was set
 	 * @param subroutine where the string was set
 	 * @param param parameter type in the subroutine where the string
-	 * @param boolean whether should show true and false for result by output
+	 * @param need whether string be set in init() method or statement() have to exist
+	 * @param boolean true if result for output should be TRUE or FALSE, otherwise result by output is an double
 	 */
-	ListCalculator(const string& folder, const string& subroutine, const string& param, bool boolean);
+	ListCalculator(const string& folder, const string& subroutine, const string& param, bool need, bool boolean);
 	/**
 	 * initial object with all list entrys
 	 *
 	 * @param pStartFolder first pointer to all defined folders
+	 * @return whether rendering of 2. parameter calcString was correct
 	 */
-	void init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& calcString);
+	bool init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& calcString);
 	/**
 	 * render string for faster calculation
 	 *
@@ -87,7 +87,7 @@ public:
 	 * @param var variable of subroutine with folder
 	 * @param own whether should also get portBase Class from own folder
 	 */
-	portBase* getSubroutine(const string& var, bool own);
+	IListObjectPattern* getSubroutine(const string& var, bool own);
 	/**
 	 * activate information for given measure thread (observer)
 	 * in all folder:subroutines from
@@ -134,7 +134,7 @@ protected:
 	/**
 	 * variables witch are used in calculation
 	 */
-	map<string, portBase*> m_msoVars;
+	map<string, IListObjectPattern*> m_msoVars;
 	/**
 	 * variables which should not read from other list object
 	 */

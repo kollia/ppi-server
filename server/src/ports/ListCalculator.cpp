@@ -27,8 +27,8 @@
 using namespace boost;
 using namespace design_pattern_world::util_pattern;
 
-ListCalculator::ListCalculator(const string& folder, const string& subroutine, const string& param, bool boolean)
-: CalculatorContainer(boolean),
+ListCalculator::ListCalculator(const string& folder, const string& subroutine, const string& param, bool need, bool boolean)
+: CalculatorContainer(need, boolean),
   m_sFolder(folder),
   m_sSubroutine(subroutine),
   m_sParameter(param)
@@ -37,21 +37,28 @@ ListCalculator::ListCalculator(const string& folder, const string& subroutine, c
 	allowIfSentence(true);
 }
 
-void ListCalculator::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& calcString)
+bool ListCalculator::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& calcString)
 {
+	bool bOk;
+
 	m_pStartFolder= pStartFolder;
-	if(calcString == "")
-		return;
+	if(m_pStartFolder == NULL)
+		return false;
 	statement(calcString);
-	render();
+	bOk= render();
+	if(calcString == "")
+		return true;
+	return bOk;
 }
 
 CalculatorContainer* ListCalculator::newObject()
 {
 	ListCalculator* c;
 
-	c= new ListCalculator(m_sFolder, m_sSubroutine, m_sParameter, false);
+	c= new ListCalculator(m_sFolder, m_sSubroutine, m_sParameter, /*need*/true, false);
 	c->m_pStartFolder= m_pStartFolder;
+	for(map<string, double>::iterator it= m_msSubVars.begin(); it != m_msSubVars.end(); ++it)
+		c->setSubVar(it->first, it->second);
 	return c;
 }
 
@@ -88,7 +95,7 @@ void ListCalculator::output(bool bError, const string& file, const int line, con
 	}
 }
 
-portBase* ListCalculator::getSubroutine(const string& var, bool own)
+IListObjectPattern* ListCalculator::getSubroutine(const string& var, bool own)
 {
 	string sFolder, sSubroutine, msg;
 	vector<string> spl;
@@ -141,11 +148,11 @@ portBase* ListCalculator::getSubroutine(const string& var, bool own)
 
 bool ListCalculator::variable(const string& var, double& dResult)
 {
-	portBase* oSub;
+	IListObjectPattern* oSub;
 	string v;
 	vector<string> spl;
 	map<string, double>::iterator foundSub;
-	map<string, portBase*>::iterator found;
+	map<string, IListObjectPattern*>::iterator found;
 
 	if(!isRendered())
 		return true;
@@ -183,7 +190,7 @@ bool ListCalculator::variable(const string& var, double& dResult)
 void ListCalculator::activateObserver(IMeasurePattern* observer)
 {
 	vector<string> inform;
-	portBase* found;
+	IListObjectPattern* found;
 
 	if(isEmpty())
 		return;
@@ -209,7 +216,7 @@ void ListCalculator::setSubVar(string var, const double val)
 void ListCalculator::removeObserver(IMeasurePattern* observer)
 {
 	vector<string> inform;
-	portBase* found;
+	IListObjectPattern* found;
 
 	if(isEmpty())
 		return;
