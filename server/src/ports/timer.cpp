@@ -156,21 +156,18 @@ bool timer::range(bool& bfloat, double* min, double* max)
 
 double timer::measure(const double actValue)
 {
-	bool s= false;
 	bool bswitch;
 	bool debug= isDebug();
 	double need;
 	switchClass::setting set;
 
 	//Debug info to stop by right subroutine
-	if(	getFolderName() == "TRANSMIT_SONY2" &&
+	/*if(	getFolderName() == "TRANSMIT_SONY2" &&
 		getSubroutineName() == "wait_after"		)
 	{
 		cout << __FILE__ << __LINE__ << endl;
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
-		debug= false;
-		s= true;
-	}
+	}*/
 	m_dSwitch= switchClass::measure(m_dSwitch, set);
 	if(m_dSwitch > 0)
 		bswitch= true;
@@ -443,8 +440,6 @@ double timer::measure(const double actValue)
 				need= 0;
 		}
 	}
-	if(s)
-		cout << "result before link " << need << endl;
 	if(getLinkedValue("TIMER", need))
 	{
 		if(debug)
@@ -452,8 +447,6 @@ double timer::measure(const double actValue)
 
 	}else if(debug)
 			cout << "result of time is " << dec << need << " seconds" << endl;
-	if(s)
-		cout << "finished result " << need << endl;
 	return need;
 }
 

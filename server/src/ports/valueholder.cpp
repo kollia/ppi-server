@@ -151,13 +151,12 @@ namespace ports
 		double value;
 
 		//Debug info to stop by right subroutine
-		if(	getFolderName() == "TRANSMIT_SONY2" &&
+		/*if(	getFolderName() == "TRANSMIT_SONY2" &&
 			getSubroutineName() == "actual_step"	)
 		{
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
-			setDebug(true);
-		}
+		}*/
 		value= actValue;
 		if(m_dLastValue != value)
 			bOutside= true;
