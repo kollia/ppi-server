@@ -24,6 +24,10 @@
 #include <iostream>
 #include <sstream>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
 #include "../pattern/server/IServerCommunicationStarterPattern.h"
 
 #include "../server/libs/client/SocketClientConnection.h"
@@ -60,6 +64,7 @@ using namespace logger;
 using namespace server;
 using namespace ppi_database;
 using namespace design_pattern_world::server_pattern;
+using namespace boost;
 
 //ServerThread* gInternetServer= NULL;
 
@@ -592,26 +597,30 @@ namespace server
 				sendmsg+= "\n";
 				descriptor << sendmsg;
 
-			}else if(input.substr(0, 5) == "DEBUG")
+			}else if(	input.substr(0, 5) == "DEBUG" ||
+						input.substr(0, 9) == "STOPDEBUG"	)
 			{
 				bool bWait= false;
-				unsigned short nSleep;
+				bool bDebug= true;
 				//unsigned int nFolderPos;
-				string sCommand, sFolder, sSleep;
+				string sCommand, sFolderSub, sFolder, sSubroutine;
 				stringstream ss(input);
 				vector<string> values;
 				DbInterface* db= DbInterface::instance();
 
+				if(input.substr(0, 9) == "STOPDEBUG")
+					bDebug= false;
 				ss >> sCommand;
-				ss >> sFolder;
-				ss >> sSleep;
-				nSleep= atoi(sSleep.c_str());
-				if(sFolder == "-ow")
+				ss >> sFolderSub;
+				if(sFolderSub == "-ow")
 				{
-					unsigned short ID= nSleep;
-					string sID= sSleep;
+					unsigned short ID;
 
-					if(sID == "null")
+					if(ss.eof())
+						ID= 0;
+					else
+						ss >> ID;
+					if(ID == 0)
 					{
 						ID= 0;
 						db->clearOWDebug(descriptor.getClientID());
@@ -619,16 +628,16 @@ namespace server
 					{
 						if(!db->existOWServer(ID))
 						{
-							string msg;
+							ostringstream msg;
 
-							ID= 0;
-							msg+= "client ask for '";
-							msg+= input + "'\ncannot found OWServer with ID ";
-							msg+= sID;
-							msg+= "\nsend ERROR 017";
-							LOG(LOG_SERVERERROR, msg);
+							msg << "client ask for '";
+							msg << input << "'\ncannot found OWServer with ID ";
+							msg << ID;
+							msg << "\nsend ERROR 017";
+							LOG(LOG_SERVERERROR, msg.str());
 							sendmsg= "ERROR 017\n";
 							descriptor << sendmsg;
+							ID= 0;
 #ifdef SERVERDEBUG
 							cerr << msg << endl;
 #endif
@@ -637,7 +646,10 @@ namespace server
 					}
 					if(ID != 0)
 					{
-						if(!db->needSubroutines(descriptor.getClientID(), "owserver-" + sID))
+						ostringstream server;
+
+						server << "owserver-" << ID;
+						if(!db->needSubroutines(descriptor.getClientID(), server.str()))
 						{
 							sendmsg= "ERROR 017\n";
 #ifdef SERVERDEBUG
@@ -658,30 +670,57 @@ namespace server
 					}
 				}else
 				{
-					if(sFolder == "null")
-					{
-						db->clearFolderDebug();
-						sendmsg= "done\n";
-						descriptor << sendmsg;
+					vector<string> spl;
 
-					}else if(db->existFolder(sFolder))
+					trim(sFolderSub);
+					if(sFolderSub == "")
 					{
-						db->debugFolder(sFolder);
-						sendmsg= "done\n";
-						descriptor << sendmsg;
+						if(bDebug == false)
+						{
+							db->clearFolderDebug();
+							sendmsg= "done\n";
+							descriptor << sendmsg;
+						}else
+						{
+							string msg;
+
+							msg+= "client ask for '";
+							msg+= input + "'\nno folder or folder:subroutine be given";
+							msg+= "\nsend ERROR 004";
+							LOG(LOG_SERVERERROR, msg);
+							sendmsg= "ERROR 004\n";
+							descriptor << sendmsg;
+				#ifdef SERVERDEBUG
+							cerr << msg << endl;
+				#endif
+						}
 					}else
 					{
-						string msg;
+						split(spl, sFolderSub, is_any_of(":"));
+						sFolder= spl[0];
+						if(spl.size() > 1)
+							sSubroutine= spl[1];
+						if(db->existSubroutine(sFolder, sSubroutine))
+						{
+							db->debugSubroutine(bDebug, sFolder, sSubroutine);
+							sendmsg= "done\n";
+							descriptor << sendmsg;
+						}else
+						{
+							string msg;
 
-						msg+= "client ask for '";
-						msg+= input + "'\ncannot found folder";
-						msg+= "\nsend ERROR 004";
-						LOG(LOG_SERVERERROR, msg);
-						sendmsg= "ERROR 004\n";
-						descriptor << sendmsg;
-			#ifdef SERVERDEBUG
-						cerr << msg << endl;
-			#endif
+							msg+= "client ask for '";
+							msg+= input + "'\ncannot found folder";
+							if(sSubroutine != "")
+								msg+= ":subroutine";
+							msg+= "\nsend ERROR 004";
+							LOG(LOG_SERVERERROR, msg);
+							sendmsg= "ERROR 004\n";
+							descriptor << sendmsg;
+				#ifdef SERVERDEBUG
+							cerr << msg << endl;
+				#endif
+						}
 					}
 				}
 				bWait= false;

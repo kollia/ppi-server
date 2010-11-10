@@ -240,12 +240,15 @@ void help(char* cpSelf)
 	printf("                         -     shows all files in directory ${workdir}/client which are suitable to given filter\n");
 	printf("                CONTENT <filename>\n");
 	printf("                         -     send the file content of the given filename under ${workdir}/client\n");
-	printf("                DEBUG [-ow] <folder/owreaderID>\n");
-	printf("                         -     show by running server debugging messages for given folder\n");
+	printf("                DEBUG [-ow] <folder[:subroutine]/owreaderID>\n");
+	printf("                         -     show by running server debugging messages for given folder and subroutine\n");
+	printf("                               when no subroutine given, the hole folder is set for debugging\n");
 	printf("                               if option -ow be set client get DEBUG info for bechmark owreader\n");
 	printf("                               and folder have to be the OWServer ID (owreaderID).\n");
 	printf("                               (the OWServer ID you can see by starting ppi-server on command line after '### starting OWServer)\n");
-	printf("                               If folder set as string 'null' both debugging will be ending\n");
+	printf("                STOPDEBUG [-ow] <folder[:subroutine]/owreaderID>\n");
+	printf("                         -     same as option DEBUG\n");
+	printf("                               but option stoppig given debugging from hole folder (<folder) or given subroutine (<folder>:<subroutine>)\n");
 	printf("                GETMINMAXERRORNUMS\n");
 	printf("                         -     return two integer for maximal warning- and error-number.\n");
 	printf("                               The first number is the higest negative warning number (from number to -1) or 0,\n");

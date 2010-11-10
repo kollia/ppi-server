@@ -120,21 +120,23 @@ int ProcessChecker::execute()
 		}else
 			m_sAnswer= "nofolder";
 
-	}else if(method == "debugFolder")
+	}else if(method == "debugSubroutine")
 	{
-		bool bFound= false;
-		string folder;
+		bool bFound= false, debug;
+		string folder, subroutine;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
 
+		object >> debug;
 		object >> folder;
+		object >> subroutine;
 		while(pCurMeas)
 		{
 			if(pCurMeas->pMeasure->getThreadName() == folder)
 			{
-				pCurMeas->pMeasure->setDebug(true, 3);
+				pCurMeas->pMeasure->setDebug(debug, subroutine);
 				bFound= true;
-			}else
-				pCurMeas->pMeasure->setDebug(false, 0);
+				break;
+			}
 			pCurMeas= pCurMeas->next;
 		}
 		if(!bFound)

@@ -137,12 +137,21 @@ namespace server
 				descriptor << "nofolder";
 			}
 
-		}else if(method == "debugFolder")
+		}else if(method == "debugSubroutine")
 		{
+			bool debug;
 			string folder;
+			string subroutine;
+			OMethodStringStream command("debugSubroutine");
 
+			object >> debug;
 			object >> folder;
-			descriptor.sendToOtherClient("ProcessChecker", "debugFolder \"" + folder + "\"", false);
+			object >> subroutine;
+			command << debug;
+			command << folder;
+			if(subroutine != "")
+				command << subroutine;
+			descriptor.sendToOtherClient("ProcessChecker", command.str(), false);
 
 		}else if(method == "clearFolderDebug")
 		{

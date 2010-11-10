@@ -80,7 +80,7 @@ bool Client::execute(const string& workdir, vector<string> options, string comma
 	}
 
 	if(command == "STOP " || command == "stop ")
-		command= "stop-server ";
+		command= "stop-server";
 	else if(command == "STATUS ")
 		command= "status";
 	property= "port";
@@ -114,7 +114,8 @@ bool Client::execute(const string& workdir, vector<string> options, string comma
 	}
 	if(askServer)
 	{
-		if(co == "status")
+		if(	command == "status" ||
+			command == "stop-server"	)
 		{
 			int s;
 

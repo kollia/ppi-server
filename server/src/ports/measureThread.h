@@ -55,9 +55,13 @@ class MeasureThread : 	public Thread,
 		 * @return class of subroutine
 		 */
 		SHAREDPTR::shared_ptr<IListObjectPattern> getPortClass(const string subroutine, bool &bCorrect) const;
-		//double getValue(string name, bool &bFound);
-		//bool setValue(string name, double value);
-		void setDebug(bool bDebug, unsigned short sleep);
+		/**
+		 * set debug session in subroutine or hole folder when subroutine not given
+		 *
+		 * @param bDebug wheter should debug session be set or unset
+		 * @param subroutine name of subroutine
+		 */
+		void setDebug(bool bDebug, const string& subroutine= "");
 		/**
 		 * returning true if an client set this measurethread to debug
 		 */

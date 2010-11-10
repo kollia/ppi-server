@@ -243,13 +243,19 @@ namespace ppi_database
 		return sRv;
 	}
 
-	bool DbInterface::existFolder(const string& folder)
+	bool DbInterface::existSubroutine(const string& folder, const string& subroutine/*= ""*/)
 	{
 		unsigned short res;
 
-		res= existEntry(folder, "", "", 0);
-		if(res > 0)// result should be 1 (subroutine do not exist)
+		res= existEntry(folder, subroutine, "", 0);
+		if(res > 1)// result should be 2 (identification do not exist)
 			return true; // in this case, folder exist
+		if(	res == 1 &&
+			subroutine == ""	)
+		{ // subroutine is not given
+		  // and folder do exist
+			return true;
+		}
 		return false;
 	}
 
@@ -355,13 +361,16 @@ namespace ppi_database
 		return 0;
 	}
 
-	void DbInterface::debugFolder(const string& folder)
+	void DbInterface::debugSubroutine(bool debug, const string& folder, const string& subroutine/*= ""*/)
 	{
 		int err;
 		string sRv;
-		OMethodStringStream command("debugFolder");
+		OMethodStringStream command("debugSubroutine");
 
+		command << debug;
 		command << folder;
+		if(subroutine != "")
+			command << subroutine;
 		sRv= sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)

@@ -140,15 +140,18 @@ namespace ppi_database
 		 * ask whether folder exist
 		 *
 		 * @param folder name of folder
-		 * @return whether folder exist
+		 * @param subroutine name of subroutine
+		 * @return (true) when folder and subroutine exist or folder exist and subroutine be an null string, otherwise false
 		 */
-		bool existFolder(const string& folder);
+		bool existSubroutine(const string& folder, const string& subroutine= "");
 		/**
 		 * set hole folder to output state meassage
 		 *
+		 * @param debug whether folder:subroutine should debug or stop debugging
 		 * @param folder name of folder
+		 * @param subroutine name of subroutine
 		 */
-		void debugFolder(const string& folder);
+		void debugSubroutine(bool debug, const string& folder, const string& subroutine= "");
 		/**
 		 * clear all debug states from any folders,
 		 * which should write output messages

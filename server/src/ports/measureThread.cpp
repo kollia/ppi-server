@@ -48,18 +48,35 @@ Thread(threadname, /*defaultSleep*/0)
 	m_bDebug= false;
 }
 
-void MeasureThread::setDebug(bool bDebug, unsigned short sleep)
+void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 {
-	LOCK(m_DEBUGLOCK);
-	m_bDebug= bDebug;
-	//m_nDebugSleep= sleep;
-	UNLOCK(m_DEBUGLOCK);
+	vector<sub>::size_type count(0);
+	vector<sub>::size_type nSize(m_pvtSubroutines->size());
 
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
 		if(it->bCorrect)
-			it->portClass->setDebug(bDebug);
+		{
+			if(	subroutine == "" ||
+				it->name == subroutine	)
+			{
+				it->portClass->setDebug(bDebug);
+				++count;
+				if(subroutine != "")
+					break;
+			}
+		}else
+			++count;
 	}
+	LOCK(m_DEBUGLOCK);
+	if(!bDebug)
+	{
+		if(nSize == count)
+			m_bDebug= false;
+	}else
+		m_bDebug= true;
+	//m_nDebugSleep= sleep;
+	UNLOCK(m_DEBUGLOCK);
 }
 
 bool MeasureThread::isDebug()
@@ -266,7 +283,7 @@ void MeasureThread::ending()
 
 bool MeasureThread::measure()
 {
-	bool debug(isDebug()), notime(false);
+	bool debug(isDebug()), notime(false), classdebug;
 	string folder("i:"+getThreadName());
 	timeval tv, tv_end;
 
@@ -293,8 +310,10 @@ bool MeasureThread::measure()
 				cout << __FILE__ << __LINE__ << endl;
 				cout << stopfolder << ":" << it->name << endl;
 			}*/
-			if(debug)
+			if( debug &&
+				it->portClass->isDebug())
 			{
+				classdebug= true;
 				cout << "execute subroutine " << it->portClass->getType() << " '" << it->name << "' ";
 				if(notime || gettimeofday(&tv_end, NULL))
 					cout << " (no length)" << endl;
@@ -304,14 +323,15 @@ bool MeasureThread::measure()
 					cout << " (" << tv_end.tv_sec << ".";
 					cout << getUsecString(tv_end.tv_usec) << ")" << endl;
 				}
-			}
+			}else
+				classdebug= false;
 			result= it->portClass->measure(it->portClass->getValue(folder));
 			it->portClass->setValue(result, folder+":"+it->name);
 
 
 		}else if(debug)
 			cout << "Subroutine " << it->name << " is not correct initialized" << endl;
-		if(debug)
+		if(classdebug)
 			cout << "----------------------------------" << endl;
 		if(stopping())
 			break;
