@@ -32,6 +32,7 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 {
 	bool bsec, bmicro, bOk= true;
 	int milli= 0, min= 0, hour= 0, days= 0;
+	double dDefault;
 	time_t sec= 0;
 	suseconds_t micro= 0;
 	string prop, smtime, sSetNull;
@@ -137,6 +138,18 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		cerr << prop << endl;
 		bOk= false;
 	}
+	prop= "default";
+	dDefault= properties->getDouble(prop, /*warning*/false);
+	if(prop != "default")
+	{// no default be set in configuration files for subroutine
+		if(!m_bTime)
+		{
+			setValue(-1, "i:"+getFolderName()+":"+getSubroutineName());
+			m_dTimeBefore= -1;
+
+		}//else default value is 0
+	}else
+		m_dTimeBefore= dDefault;
 	return bOk;
 }
 
@@ -162,8 +175,8 @@ double timer::measure(const double actValue)
 	switchClass::setting set;
 
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "TRANSMIT_SONY2" &&
-		getSubroutineName() == "wait_after"		)
+	/*if(	getFolderName() == "TRANSMIT_SONY" &&
+		getSubroutineName() == "new_activate")
 	{
 		cout << __FILE__ << __LINE__ << endl;
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
@@ -205,19 +218,21 @@ double timer::measure(const double actValue)
 					{ // calculate seconds (m_tmSec) and microseconds (m_tmMicroseconds) from other subroutine
 						if(m_omtime.calculate(need))
 						{
-							if(need < 0 || need > 0)
+							if(need > 0 || need < 0)
 								bneed= true;
 							if(!bneed)
 							{
 								if(debug)
 									cout << "no next measure time be set, make no count down" << endl;
-								return -1;
+								need= -1;
+							}else
+							{
+								m_tmSec= static_cast<time_t>(need);
+								need-= static_cast<double>(m_tmSec);
+								need*= (1000 * 1000);
+								m_tmMicroseconds= static_cast<suseconds_t>(need);
+								m_bSeconds= m_tmMicroseconds == 0 ? true : false;
 							}
-							m_tmSec= static_cast<time_t>(need);
-							need-= static_cast<double>(m_tmSec);
-							need*= (1000 * 1000);
-							m_tmMicroseconds= static_cast<suseconds_t>(need);
-							m_bSeconds= m_tmMicroseconds == 0 ? true : false;
 						}else
 						{
 							string msg("cannot read time in subroutine ");
@@ -254,9 +269,6 @@ double timer::measure(const double actValue)
 					}
 
 				}else if( timercmp(&tv, &m_tmStart, >=) )
-						/*	m_tmStart.tv_sec < tv.tv_sec ||
-							(	m_tmStart.tv_sec == tv.tv_sec &&
-								m_tmStart.tv_usec <= tv.tv_sec	)	)*/
 				{ // reaching end of count down
 					if(debug)
 					{
@@ -284,6 +296,7 @@ double timer::measure(const double actValue)
 						{// if end parameter with own subroutine as 0 is true,
 						 // do not begin count down again
 							bswitch= false;
+							set= switchClass::END;
 						}
 					}
 					if(bswitch)
@@ -293,21 +306,26 @@ double timer::measure(const double actValue)
 
 						if(!m_omtime.isEmpty())
 						{ // calculate seconds (m_tmSec) and microseconds (m_tmMicroseconds) from other subroutine
-							if(m_omtime.calculate(need))
+							double res;
+
+							if(m_omtime.calculate(res))
 							{
+								need= res;
 								if(need < 0 || need > 0)
 									bneed= true;
 								if(!bneed)
 								{
 									if(debug)
 										cout << "no next measure time be set, make no count down" << endl;
-									return -1;
+									need= -1;
+								}else
+								{
+									m_tmSec= static_cast<time_t>(res);
+									res-= static_cast<double>(m_tmSec);
+									res*= (1000 * 1000);
+									m_tmMicroseconds= static_cast<suseconds_t>(res);
+									m_bSeconds= m_tmMicroseconds == 0 ? true : false;
 								}
-								m_tmSec= static_cast<time_t>(need);
-								need-= static_cast<double>(m_tmSec);
-								need*= (1000 * 1000);
-								m_tmMicroseconds= static_cast<suseconds_t>(need);
-								m_bSeconds= m_tmMicroseconds == 0 ? true : false;
 							}else
 							{
 								string msg("cannot read time in subroutine ");
@@ -338,19 +356,21 @@ double timer::measure(const double actValue)
 								cout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
 							}
 							getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
+							need= 0;
 						}else
 							m_bMeasure= false;
 					}else
+					{
 						m_bMeasure= false;
-					need= 0;
+						need= 0;
+					}
 
 				}else
 				{ // count down is running
 					timeval newtime;
 
-					if(bswitch || debug)
-					{// by debug session need is set to 0 and m_bMeaure to false
-					 // inside next if(debug) sentence
+					if(set != switchClass::END)
+					{
 						timersub(&m_tmStart, &tv, &newtime);
 						need= calcResult(newtime);
 					}else
@@ -362,7 +382,7 @@ double timer::measure(const double actValue)
 					{
 						char stime[18];
 
-						if(bswitch)
+						if(set != switchClass::END)
 						{
 							cout << "folder should start again in " << need << " seconds" << endl;
 							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
@@ -370,9 +390,10 @@ double timer::measure(const double actValue)
 							cout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
 						}else
 						{
+							timersub(&m_tmStart, &tv, &newtime);
+							need= calcResult(newtime);
 							cout << "subroutine of timer stops " << need << " seconds before" << endl;
 							need= 0;
-							m_bMeasure= false;
 						}
 						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
 						cout << "actual time (" << stime << " ";
@@ -423,12 +444,12 @@ double timer::measure(const double actValue)
 
 			}
 		}
+		// bswitch was before also true
+		// or some measuring was done
+		bswitch= true;
 	}else
-	{
 		need= actValue;
-		if(!m_bTime)
-			need= -1;
-	}
+
 	if(	m_bTime &&
 		!m_oSetNull.isEmpty()	)
 	{
@@ -437,9 +458,20 @@ double timer::measure(const double actValue)
 		if(m_oSetNull.calculate(res))
 		{
 			if(res > 0 || res < 0)
+			{
 				need= 0;
+				m_bMeasure= false;
+			}
 		}
 	}
+	if(	!m_bTime &&
+		!m_bMeasure &&
+		!(m_dTimeBefore > 0 || m_dTimeBefore < 0) &&
+		!(need > 0 || need < 0)						)
+	{
+		need= -1;
+	}
+
 	if(getLinkedValue("TIMER", need))
 	{
 		if(debug)
@@ -447,8 +479,27 @@ double timer::measure(const double actValue)
 
 	}else if(debug)
 			cout << "result of time is " << dec << need << " seconds" << endl;
+
+	m_dTimeBefore= need;
 	return need;
 }
+
+#if 0
+void timer::setValue(double value, const string& from)
+{
+	if(	!m_bTime &&
+		value > 0 &&
+		from != "i:"+getFolderName()+":"+getSubroutineName()	)
+	{
+
+		next.tv_sec= m_tmSec;
+		next.tv_usec= m_tmMicroseconds;
+		timeradd(&m_tmStart, &next, &m_tmStart);
+		need= calcResult(next);
+		getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
+	}
+}
+#endif
 
 void timer::setDebug(bool bDebug)
 {

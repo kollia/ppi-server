@@ -42,6 +42,7 @@ public:
 	  m_tmMicroseconds(0),
 	  m_oSetNull(folderName, subroutineName, "setnull", false, true),
 	  m_dSwitch(0),
+	  m_dTimeBefore(0),
 	  m_oEnd(folderName, subroutineName, "end", false, true)
 	  { };
 	virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
@@ -128,6 +129,10 @@ private:
 	 * 0 is false and 1 is true
 	 */
 	double m_dSwitch;
+	/**
+	 * Time measured by last pass
+	 */
+	double m_dTimeBefore;
 	/**
 	 * calculation for end string
 	 */
