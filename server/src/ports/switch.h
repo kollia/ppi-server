@@ -81,11 +81,11 @@ public:
 		virtual double measure(const double actValue);
 		/**
 		 * measure also whether switch value is set or not,
-		 * but show in second parameter, maybe for decided object need,
-		 * whether value set for BEGIN, WHILE or END
+		 * but show in second parameter, maybe for decided class need,
+		 * whether actual value be set from BEGIN, WHILE or END
 		 *
 		 * @param actValue current value
-		 * @param set whether value set begins <code>switchClass::BEGIN</code>, during <code>switchClass::WHILE</code>, ending <code>switchClass::END</code> or not set <code>switchClass::NONE</code>
+		 * @param set whether value set from begin <code>switchClass::BEGIN</code>, while <code>switchClass::WHILE</code>, end <code>switchClass::END</code> or from none <code>switchClass::NONE</code>
 		 * @return return measured value
 		 */
 		double measure(const double actValue, setting& set);
@@ -107,34 +107,28 @@ public:
 		 * @param whether should write output
 		 */
 		virtual void setDebug(bool bDebug);
+#if 0
+		/**
+		 * get value from subroutine
+		 *
+		 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
+		 * 				This time only defined for external reading over OwPort's.
+		 * @return current value
+		 */
+		virtual double getValue(const string& who);
+		/**
+		 * set value in subroutine.<br />
+		 * All strings from parameter 'from' beginning with an one character type,
+		 * followed from an colon 'r:' by ppi-reader, 'e:' by an account connected over Internet
+		 * or 'i:' by intern folder:subroutine.
+		 *
+		 * @param value value which should be set
+		 * @param from which folder:subroutine or account changing the value
+		 */
+		virtual void setValue(const double value, const string& from);
+#endif
 
 	protected:
-		/**
-		 * value from last pass
-		 */
-		bool m_bLastValue;
-		/**
-		 * begin calculation string
-		 */
-		ListCalculator m_oBegin;
-		/**
-		 * while calculation string
-		 */
-		ListCalculator m_oWhile;
-		/**
-		 * end calculation string
-		 */
-		ListCalculator m_oEnd;
-
-		/**
-		 * write the value from the given folder:subroutine or comparison as string
-		 * into the parameter dResult
-		 *
-		 * @param cCurrent string of subroutine or folder:subroutine
-		 * @param dResult outcomming double result of the subroutine
-		 * @return whether the subroutines in the character string all found
-		 */
-//		bool calculateResult(const string &cCurrent, double &dResult);
 		/**
 		 * set min and max parameter to the range which can be set for this subroutine.<br />
 		 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.
@@ -151,55 +145,42 @@ public:
 
 	private:
 		/**
-		 * calculate whether the given string is an true value.<br />
-		 * string can be set as 'true' or 'false',<br />
-		 * or an subroutine where in this case it calculate null or not,<br />
-		 * or an comparison of two values, subroutines or numbers
-		 * This string can be also splited with '|' or '&'
-		 *
-		 * @param from string of comparison
-		 * @param result whether the comparison was true
-		 * @return whether the comparison string was correct
+		 * whether own class is from type SWITCH
 		 */
-//		bool getResult(const string &from, bool& result);
+		bool m_bSwitch;
 		/**
-		 * calculate whether the given string is an true value.<br />
-		 * string can be set as 'true' or 'false',<br />
-		 * or an subroutine where in this case it calculate null or not,<br />
-		 * or an comparison of two values, subroutines or numbers.<br />
-		 * This string can be also splited with '|' or '&'
-		 *
-		 * @param str string of comparison
-		 * @param pStratFolder address of the first folder
-		 * @param sFolder name of folder in which the subroutine running
-		 * @param debug whether the debug mode outgoing from server is set
-		 * @param result whether the comparison was true
-		 * @return whether the comparison string was correct
+		 * value from last pass
 		 */
-//		static bool getResult(string& str, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& sFolder, const bool debug, bool& result);
+		bool m_bLastValue;
 		/**
-		 * calculate whether the given string is an true value.<br />
-		 * string can be set as 'true' or 'false',<br />
-		 * or an subroutine where in this case it calculate null or not,<br />
-		 * or an comparison of two values, subroutines or numbers
-		 *
-		 * @param from string of comparison
-		 * @param pStratFolder address of the first folder
-		 * @param sFolder name of folder in which the subroutine running
-		 * @param debug whether the debug mode outgoing from server is set
-		 * @param result whether the comparison was true
-		 * @return whether the comparison string was correct
+		 * action to need only current values
 		 */
-//		static bool getSubResult(const string &from, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& sFolder, const bool debug, bool& result);
+		bool m_bCurrent;
 		/**
-		 * write the current value from the given folder:subroutine
-		 * into the parameter dResult
-		 *
-		 * @param pcCurrent string of subroutine or folder:subroutine
-		 * @param dResult outcomming double result of the subroutine
-		 * @return whether the subroutines in the character string was found
+		 * value for every subroutine or account over internet
+		 * to show whether value was switched before when no current action be set.<br />
+		 * This variable contain an map with first as name from subroutine or account
+		 * and second an pair with two boolean to define as first whether the subroutine is also
+		 * from type SWITCH or an account (true) or other subroutine (false) as first
+		 * and wether the subroutine was defined before as second
 		 */
-//		bool searchResult(const char* pcCurrent, double &dResult);
+		map<string, bool> m_msbSValue;
+		/**
+		 * begin calculation string
+		 */
+		ListCalculator m_oBegin;
+		/**
+		 * while calculation string
+		 */
+		ListCalculator m_oWhile;
+		/**
+		 * end calculation string
+		 */
+		ListCalculator m_oEnd;
+		/**
+		 * locking for set m_msbSValue;
+		 */
+		pthread_mutex_t *m_VALUELOCK;
 };
 
 #endif /*SWITCHCLASS_H_*/
