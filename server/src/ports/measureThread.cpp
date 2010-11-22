@@ -62,9 +62,9 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 			{
 				it->portClass->setDebug(bDebug);
 				++count;
-				if(subroutine != "")
-					break;
-			}
+			}else if(it->portClass->isDebug() == bDebug)
+				++count;
+
 		}else
 			++count;
 	}
@@ -145,7 +145,8 @@ struct time_sort : public binary_function<timeval, timeval, bool>
 	bool operator()(timeval x, timeval y)
 	{
 		if(x.tv_sec < y.tv_sec) return true;
-		return x.tv_usec < y.tv_usec;
+		if(x.tv_sec == y.tv_sec) return x.tv_usec < y.tv_usec;
+		return false;
 	}
 };
 
@@ -207,13 +208,12 @@ int MeasureThread::execute()
 		if(!m_vtmNextTime.empty())
 		{
 			sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
-
 			akttime= m_vtmNextTime.begin();
 			waittm.tv_sec= akttime->tv_sec;
 			waittm.tv_nsec= akttime->tv_usec * 1000;
 			if(TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm) == ETIMEDOUT)
 			{
-				if(debug || folder == "TRANSMIT_SONY")
+				if(debug)
 					cond= *akttime;
 				m_vtmNextTime.erase(akttime);
 			}
@@ -225,7 +225,7 @@ int MeasureThread::execute()
 	m_vInformed= m_vFolder;
 	m_vFolder.clear();
 
-	if(debug)
+	if(isDebug())
 	{
 		string msg("### DEBUGGING for folder ");
 
@@ -284,7 +284,7 @@ void MeasureThread::ending()
 bool MeasureThread::measure()
 {
 	bool debug(isDebug()), notime(false), classdebug;
-	string folder("i:"+getThreadName());
+	string folder(getThreadName());
 	timeval tv, tv_end;
 
 	if(debug)
@@ -310,13 +310,15 @@ bool MeasureThread::measure()
 				cout << __FILE__ << __LINE__ << endl;
 				cout << stopfolder << ":" << it->name << endl;
 			}*/
+			result= it->portClass->getValue(folder);
 			if( debug &&
 				it->portClass->isDebug())
 			{
 				classdebug= true;
-				cout << "execute subroutine " << it->portClass->getType() << " '" << it->name << "' ";
+				cout << "execute '" << folder << ":" << it->name;
+				cout << "' with value " << result << " and type " << it->portClass->getType() << " ";
 				if(notime || gettimeofday(&tv_end, NULL))
-					cout << " (no length)" << endl;
+					cout << " (cannot calculate length)" << endl;
 				else
 				{
 					timersub(&tv_end, &tv, &tv_end);
@@ -325,8 +327,8 @@ bool MeasureThread::measure()
 				}
 			}else
 				classdebug= false;
-			result= it->portClass->measure(it->portClass->getValue(folder));
-			it->portClass->setValue(result, folder+":"+it->name);
+			result= it->portClass->measure(result);
+			it->portClass->setValue(result, "i:"+folder+":"+it->name);
 
 
 		}else if(debug)
