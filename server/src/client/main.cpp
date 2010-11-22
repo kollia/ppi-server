@@ -91,14 +91,12 @@ int main(int argc, char* argv[])
 					param= "-c";
 				else if(param == "--pid")
 					param= "-p";
-				if(	param == "-w"
-					||
+				if(	param == "-w" ||
 					param == "-h"	)
 				{
 					bWait= true;
 				}
-				if(	param == "-f"
-					||
+				if(	param == "-f" ||
 					param == "-u"	)
 				{
 					param+= " ";
@@ -124,30 +122,18 @@ int main(int argc, char* argv[])
 		}else
 			param= "";
 
-		if(	param == "SET"
-			||
-			param == "GET"
-			||
-			param == "PROP"
-			||
-			param == "DEBUG"
-			||
-			param == "DIR"
-			||
-			param == "CONTENT"
-			||
-			param == "STATUS"
-			||
-			param == "status"
-			||
-			param == "GETMINMAXERRORNUMS"
-			||
-			param == "GETERRORSTRING"
-			||
-			param == "STOP"
-			||
-			param == "stop"
-			||
+		if(	param == "SET" ||
+			param == "GET" ||
+			param == "DEBUG" ||
+			param == "STOPDEBUG" ||
+			param == "DIR" ||
+			param == "CONTENT" ||
+			param == "STATUS" ||
+			param == "status" ||
+			param == "GETMINMAXERRORNUMS" ||
+			param == "GETERRORSTRING" ||
+			param == "STOP" ||
+			param == "stop"||
 			(	bWait
 				&&
 				param == ""	)	)
