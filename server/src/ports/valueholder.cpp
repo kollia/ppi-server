@@ -147,21 +147,30 @@ namespace ports
 
 	double ValueHolder::measure(const double actValue)
 	{
-		bool isdebug(isDebug()), bChanged, bOutside= false;
+		bool isdebug(isDebug()), bChanged(false), bOutside(false);
 		double value;
 
 		//Debug info to stop by right subroutine
-		/*if(	getFolderName() == "TRANSMIT_SONY2" &&
-			getSubroutineName() == "actual_step"	)
+		/*if(	getFolderName() == "TRANSMIT_SONY_choice" &&
+			getSubroutineName() == "after"	)
 		{
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
 		}*/
 		value= actValue;
-		if(m_dLastValue != value)
+		if(	isdebug &&
+			m_dLastValue != value	)
+		{// boolean only needed for debug session
 			bOutside= true;
-		bChanged= getWhileStringResult(getFolderName(), getSubroutineName(),
+		}
+		getWhileStringResult(getFolderName(), getSubroutineName(),
 										m_oWhile, m_vpoValues, m_ddefaultValue, value, isdebug);
+		if(	isdebug &&
+			(	value > actValue ||
+				value < actValue	)	)
+		{// boolean only needed for debug session
+			bChanged= true;
+		}
 		if(getLinkedValue("VALUE", value))
 		{
 			if(isdebug)
