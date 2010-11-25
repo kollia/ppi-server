@@ -722,15 +722,13 @@ bool Starter::execute()
 	{
 		if(!aktFolder->bCorrect)
 		{
-			string msg("folder '");
+			string msg("### WARNING: folder '");
 
 			msg+= aktFolder->name;
 			msg+= "' has no correct subroutine\n";
-			msg+= "so make no measure-instance for it";
+			msg+= "             so make no measure-instance for it";
 			LOG(LOG_WARNING, msg);
-#ifndef DEBUG
 			cout << msg << endl;
-#endif // DEBUG
 		}else
 		{
 			cout << "                     " << aktFolder->name << endl;
@@ -873,7 +871,7 @@ bool Starter::execute()
 
 void Starter::createPortObjects()
 {
-	bool bNewMeasure= false;
+	bool bNewMeasure(false);
 	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
 	//DbInterface* db= DbInterface::instance();
 	string property("defaultSleep");
@@ -903,7 +901,7 @@ void Starter::createPortObjects()
 			if(pvCorrection->size() == 0)
 				pvCorrection= &m_vCorrection;
 
-			//cout << "subroutine: " << aktualFolder->subroutines[n].type << endl;
+			//cout << "subroutine: " << aktualFolder->subroutines[n].name << endl;
 			if(aktualFolder->subroutines[n].type == "SWITCH")
 			{
 				SHAREDPTR::shared_ptr<switchClass> obj;
@@ -1041,6 +1039,23 @@ void Starter::createPortObjects()
 					bcheckProps= obj->haveServer();
 					aktualFolder->subroutines[n].portClass= obj;
 				}
+			}else
+			{
+				ostringstream msg;
+
+				if(aktualFolder->subroutines[n].type == "")
+				{
+					msg << "### WARNING: in folder '" << aktualFolder->name << "' and subroutine '" << aktualFolder->subroutines[n].name << "'" << endl;
+					msg << "             is no type specified, define subroutine as incorrect!";
+
+				}else
+				{
+					msg << aktualFolder->subroutines[n].property->getMsgHead(/*error*/false);
+					msg << "cannot define given type '" << aktualFolder->subroutines[n].type << "', define subroutine as incorrect!";
+				}
+				cout << msg.str() << endl;
+				LOG(LOG_WARNING, msg.str());
+				bcheckProps= false;
 			}
 
 			aktualFolder->subroutines[n].bCorrect= correctSubroutine;
