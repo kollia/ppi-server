@@ -170,6 +170,7 @@ bool timer::range(bool& bfloat, double* min, double* max)
 double timer::measure(const double actValue)
 {
 	bool bswitch;
+	bool bEndCount(false);
 	bool debug= isDebug();
 	double need;
 	switchClass::setting set;
@@ -362,6 +363,7 @@ double timer::measure(const double actValue)
 					}else
 					{
 						m_bMeasure= false;
+						bEndCount= true;
 						need= 0;
 					}
 
@@ -466,6 +468,7 @@ double timer::measure(const double actValue)
 	}
 	if(	!m_bTime &&
 		!m_bMeasure &&
+		!bEndCount &&
 		!(m_dTimeBefore > 0 || m_dTimeBefore < 0) &&
 		!(need > 0 || need < 0)						)
 	{
