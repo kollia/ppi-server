@@ -221,7 +221,10 @@ int MeasureThread::execute()
 			CONDITION(m_VALUECONDITION, m_VALUE);
 	}
 	if(stopping())
+	{
+		UNLOCK(m_VALUE);
 		return 0;
+	}
 	m_vInformed= m_vFolder;
 	m_vFolder.clear();
 
