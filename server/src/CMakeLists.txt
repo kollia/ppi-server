@@ -9,6 +9,7 @@ set(mainSrcs 	main.cpp
         		ports/measuredness.cpp
         		ports/OwfsPort.cpp
         		ports/portbaseclass.cpp
+        		ports/output.cpp
         		ports/resistancemeasure.cpp
         		ports/SaveSubValue.cpp
         		ports/shell.cpp

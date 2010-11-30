@@ -50,6 +50,7 @@ Thread(threadname, /*defaultSleep*/0)
 
 void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 {
+	bool isDebug(false);
 	vector<sub>::size_type count(0);
 	vector<sub>::size_type nSize(m_pvtSubroutines->size());
 
@@ -60,6 +61,11 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 			if(	subroutine == "" ||
 				it->name == subroutine	)
 			{
+				if(	bDebug &&
+					it->type != "DEBUG"	)
+				{
+					isDebug= true;
+				}
 				it->portClass->setDebug(bDebug);
 				++count;
 			}else if(it->portClass->isDebug() == bDebug)
@@ -74,7 +80,10 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 		if(nSize == count)
 			m_bDebug= false;
 	}else
-		m_bDebug= true;
+	{
+		if(isDebug)
+			m_bDebug= true;
+	}
 	//m_nDebugSleep= sleep;
 	UNLOCK(m_DEBUGLOCK);
 }

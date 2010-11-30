@@ -54,6 +54,7 @@
 #include "ports/portbaseclass.h"
 #include "ports/timemeasure.h"
 #include "ports/switch.h"
+#include "ports/output.h"
 #include "ports/resistancemeasure.h"
 #include "ports/tempmeasure.h"
 #include "ports/counter.h"
@@ -908,6 +909,18 @@ void Starter::createPortObjects()
 
 				obj= SHAREDPTR::shared_ptr<switchClass>(new switchClass(aktualFolder->name,
 																		aktualFolder->subroutines[n].name));
+				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
+				{
+					correctFolder= true;
+					correctSubroutine= true;
+					aktualFolder->subroutines[n].portClass= obj;
+				}
+			}else if(aktualFolder->subroutines[n].type == "DEBUG")
+			{
+				SHAREDPTR::shared_ptr<switchClass> obj;
+
+				obj= SHAREDPTR::shared_ptr<switchClass>(new Output(	aktualFolder->name,
+																	aktualFolder->subroutines[n].name));
 				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;

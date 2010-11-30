@@ -6,6 +6,7 @@ set(portsSrcs 	ListCalculator.cpp
         		measureThread.cpp
         		OwfsPort.cpp
         		portbaseclass.cpp
+        		output.cpp
         		resistancemeasure.cpp
         		SaveSubValue.cpp
         		shell.cpp
