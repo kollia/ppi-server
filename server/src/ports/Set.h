@@ -30,34 +30,14 @@ namespace ports
 	{
 	private:
 		/**
-		 * reference to all folder
+		 * array of calculating string's which values should be set
 		 */
-		//SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
+		vector<ListCalculator*> m_vpoFrom;
 		/**
-		 * calculating string which value should be set
+		 * array of folder:subroutine strings to be set with value
 		 */
-		ListCalculator m_oFrom;
-		/**
-		 * folder:subroutine to be set with value
-		 */
-		string m_sSet;
-		/**
-		 * minimal value of holdet value
-		 */
-		double m_nMin;
-		/**
-		 * maximal value of holdet value
-		 */
-		double m_nMax;
-		/**
-		 * whether value can be an float
-		 */
-		bool m_bFloat;
-		/**
-		 * whether parameter begin/while/end for set new value will be done before<br />
-		 * 0 is false and 1 is true
-		 */
-		double m_dSwitch;
+		vector<string> m_vsSet;
+
 	public:
 		/**
 		 * create object of class Set
@@ -66,9 +46,7 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		Set(const string& folderName, const string& subroutineName)
-		: switchClass("SET", folderName, subroutineName),
-		  m_oFrom(folderName, subroutineName, "from", true, false),
-		  m_dSwitch(0)
+		: switchClass("SET", folderName, subroutineName)
 		{ };
 		/**
 		 * create object of class ValueHolder.<br />
@@ -79,9 +57,7 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		Set(const string& type, const string& folderName, const string& subroutineName)
-		: switchClass(type, folderName, subroutineName),
-		  m_oFrom(folderName, subroutineName, "from", true, false),
-		  m_dSwitch(0)
+		: switchClass(type, folderName, subroutineName)
 		{ };
 		/**
 		 * initialing object of ValueHolder
@@ -104,6 +80,10 @@ namespace ports
 		 * @param whether should write output
 		 */
 		virtual void setDebug(bool bDebug);
+		/**
+		 * destructor to delete all from parameter
+		 */
+		virtual ~Set();
 
 	protected:
 		/**

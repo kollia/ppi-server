@@ -32,49 +32,89 @@ namespace ports
 	bool Set::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		double dDefault;
-		string prop, sFrom;
+		string prop, sFrom, sSet;
+		string folderName(getFolderName());
+		string subroutineName(getSubroutineName());
 		vector<string> spl;
+		vector<string>::size_type nFrom, nSet;
+		ListCalculator* calc;
 
-		sFrom= properties->needValue("from");
-		m_oFrom.init(pStartFolder, sFrom);
-		m_sSet= properties->needValue("set");
-		trim(m_sSet);
-		if(m_sSet != "")
+		//Debug info to stop by right subroutine
+		/*if(	getFolderName() == "TRANSMIT_SONY_receive" &&
+			getSubroutineName() == "stop"	)
 		{
-			split(spl, m_sSet, is_any_of(":"));
-			if(spl.size() > 0)
-				trim(spl[0]);
-			if(spl.size() == 2)
-				trim(spl[1]);
-			if(	(	spl.size() == 1 &&
-					spl[0].find(" ") != string::npos	) ||
-				(	spl.size() == 2 &&
-					(	spl[0].find(" ") != string::npos ||
-						spl[1].find(" ") != string::npos	)	)	)
+			cout << __FILE__ << __LINE__ << endl;
+			cout << getFolderName() << ":" << getSubroutineName() << endl;
+		}*/
+		nFrom= properties->getPropertyCount("from");
+		nSet= properties->getPropertyCount("set");
+		sFrom= properties->needValue("from");
+		properties->needValue("set"); // only to create error message
+		if(	nFrom > 0 &&
+			nSet > 0	)
+		{
+			m_vpoFrom.push_back(
+					new ListCalculator(folderName, subroutineName, "from[1]", true, false)	);
+			calc= m_vpoFrom.back();
+			calc->init(pStartFolder, sFrom);
+			for(size_t n= 0; n<nSet; ++n)
 			{
-				ostringstream msg;
+				sSet= properties->getValue("set", n, /*warning*/true);
+				split(spl, sSet, is_any_of(":"));
+				if(spl.size() > 0)
+					trim(spl[0]);
+				if(spl.size() == 2)
+					trim(spl[1]);
+				if(	(	spl.size() == 1 &&
+						spl[0].find(" ") != string::npos	) ||
+					(	spl.size() == 2 &&
+						(	spl[0].find(" ") != string::npos ||
+							spl[1].find(" ") != string::npos	)	)	)
+				{
+					ostringstream msg;
 
-				msg << properties->getMsgHead(/*error*/true);
-				msg << " set parameter '"  << m_sSet << "' can only be an single [folder:]<sburoutine>";
-				LOG(LOG_ERROR, msg.str());
+					msg << properties->getMsgHead(/*error*/true);
+					msg << (n+1) << ". set parameter '"  << sSet;
+					msg << "' can only be an single [folder:]<sburoutine>.";
+					msg << " Do not set any value in this subroutine.";
+					LOG(LOG_ERROR, msg.str());
+					cout << msg << endl;
+
+				}else
+					m_vsSet.push_back(sSet);
+			}
+			if(	nFrom != 1 &&
+				nFrom != m_vsSet.size()	)
+			{
+				string msg(properties->getMsgHead(/*error*/true));
+
+				msg+= "by setting more 'from' parameter than one, same count of 'set' ";
+				msg+= "parameter have to exist. Set subroutine to incorrect!";
+				LOG(LOG_ERROR, msg);
 				cout << msg << endl;
-				m_sSet= "";
+				nFrom= 0;
+				nSet= 0;
+
+			}else
+			{
+				for(vector<string>::size_type n=1; n<nFrom; ++n)
+				{
+					ostringstream from;
+
+					from << "from[" << (n+1) << "]";
+					sFrom= properties->getValue("from", n, /*warning*/true);
+					m_vpoFrom.push_back(
+							new ListCalculator(folderName, subroutineName, from.str(), true, false) );
+					calc= m_vpoFrom.back();
+					calc->init(pStartFolder, sFrom);
+				}
 			}
 		}
-		prop= "min";
-		m_nMin= properties->getDouble(prop, /*warning*/false);
-		if(prop == "#ERROR")
-			m_nMin= 0;
-		prop= "max";
-		m_nMax= properties->getDouble(prop, /*warning*/false);
-		if(prop == "#ERROR")
-			m_nMax= -1;
-		m_bFloat= properties->haveAction("float");
 		prop= "default";
 		dDefault= properties->getDouble(prop, /*warning*/false);
 		if(	!switchClass::init(properties, pStartFolder) ||
-			sFrom == "" ||
-			m_sSet == ""										)
+			nFrom == 0 ||
+			nSet == 0										)
 		{
 			return false;
 		}
@@ -84,68 +124,103 @@ namespace ports
 
 	bool Set::range(bool& bfloat, double* min, double* max)
 	{
-		bfloat= m_bFloat;
-		*min= m_nMin;
-		*max= m_nMax;
+		bfloat= false;
+		*min= 0;
+		*max= 1;
 		return true;
 	}
 
 	double Set::measure(const double actValue)
 	{
 		bool bOk, isdebug= isDebug();
-		double value;
+		double value, nRv;
 		string folder(getFolderName());
 		string subroutine(getSubroutineName());
+		vector<string>::size_type startSet(0), endSet(m_vsSet.size()-1);
+		vector<ListCalculator*>::size_type nFrom(m_vpoFrom.size());
+		IListObjectPattern* port;
 
-		m_dSwitch= switchClass::measure(m_dSwitch);
-		if(m_dSwitch > 0)
+		//Debug info to stop by right subroutine
+		/*if(	getFolderName() == "TRANSMIT_SONY_receive" &&
+			getSubroutineName() == "stop"	)
 		{
-			bOk= m_oFrom.calculate(value);
-			if(bOk)
+			cout << __FILE__ << __LINE__ << endl;
+			cout << getFolderName() << ":" << getSubroutineName() << endl;
+		}*/
+		nRv= switchClass::measure(actValue);
+		if(	nRv > 0 ||
+			nRv < 0		)
+		{
+			for(vector<ListCalculator*>::size_type n= 0; n<nFrom; ++n)
 			{
-				IListObjectPattern* port;
-
-				port= m_oFrom.getSubroutine(m_sSet, /*own folder*/true);
-				if(port)
+				bOk= m_vpoFrom[n]->calculate(value);
+				if(bOk)
 				{
-					if(isdebug)
+					if(nFrom > 1)
+						startSet= endSet= n;
+					for(vector<string>::size_type s= startSet; s<=endSet; ++s)
 					{
-						cout << "set value " << value;
-						cout << " into subroutine '" << m_sSet << "'" << endl;
+						port= m_vpoFrom[0]->getSubroutine(m_vsSet[s], /*own folder*/true);
+						if(port)
+						{
+							if(isdebug)
+							{
+								cout << "set value " << value;
+								cout << " into " << (s+1) << ". subroutine '" << m_vsSet[s] << "'" << endl;
+							}
+							port->setValue(value, "i:"+folder+":"+subroutine);
+						}else
+						{
+							ostringstream msg;
+
+							msg << "cannot set value " << value << " into given ";
+							msg << (s+1) << ". 'set' parameter '" << m_vsSet[s] << "'";
+							if(isdebug)
+								cout << "### ERROR: " << msg.str() << endl;
+							msg << endl << "do not found this subroutine from 'set' attribute" << endl;
+							msg << "from set parameter in folder " << folder << " and subroutine " << subroutine;
+							TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg.str());
+						}
 					}
-					port->setValue(value, "i:"+folder+":"+subroutine);
 				}else
 				{
-					ostringstream msg;
+					string msg("cannot create calculation from 'from' parameter '");
 
-					msg << "cannot set value " << value << " into given subroutine '" << m_sSet << "'";
+					msg+= m_vpoFrom[n]->getStatement();
+					msg+= "' in folder " + folder + " and subroutine " + subroutine;
+					TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg);
 					if(isdebug)
-						cout << "### ERROR: " << msg.str() << endl;
-					msg << endl << "do not found this subroutine from 'set' attribute" << endl;
-					msg << "from set parameter in folder " << folder << " and subroutine " << subroutine;
-					TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg.str());
+						cout << "### ERROR: " << msg << endl;
 				}
-			}else
-			{
-				string msg("cannot create calculation from 'from' parameter '");
-
-				msg+= m_oFrom.getStatement();
-				msg+= "' in folder " + folder + " and subroutine " + subroutine;
-				TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg);
-				if(isdebug)
-					cout << "### ERROR: " << msg << endl;
-				return actValue;
 			}
 
-		}else
-			value= actValue;
-		return value;
+		}
+		if(isdebug)
+		{
+			cout << "result of subroutine is ";
+			if(	nRv > 0 ||
+				nRv < 0		)
+			{
+				cout << "TRUE";
+
+			}else
+				cout << "FALSE";
+			cout << endl;
+		}
+		return nRv;
 	}
 
 	void Set::setDebug(bool bDebug)
 	{
-		m_oFrom.doOutput(bDebug);
+		for(vector<ListCalculator*>::iterator it= m_vpoFrom.begin(); it!= m_vpoFrom.end(); ++it)
+			(*it)->doOutput(bDebug);
 		switchClass::setDebug(bDebug);
+	}
+
+	Set::~Set()
+	{
+		for(vector<ListCalculator*>::iterator it= m_vpoFrom.begin(); it!= m_vpoFrom.end(); ++it)
+			delete *it;
 	}
 
 }
