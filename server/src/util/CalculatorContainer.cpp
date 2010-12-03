@@ -15,6 +15,8 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <cmath>
+
 #include <iostream>
 #include <sstream>
 
@@ -49,10 +51,12 @@ bool CalculatorContainer::add(char cOperator)
 		return true;
 	}
 	if(	cOperator == '*' ||
-		cOperator == '/'	)
+		cOperator == '/' ||
+		cOperator == '%'	)
 	{
 		if(	m_cOperator == '*' ||
 			m_cOperator == '/' ||
+			m_cOperator == '%' ||
 			m_cOperatorBefore != '\0'	)
 		{
 			m_dResultValue= calc(m_dResultValue, m_cOperator, m_dValue);
@@ -84,21 +88,21 @@ double CalculatorContainer::getResult()
 	return dRv;
 }
 
-double CalculatorContainer::calc(const double oldValue, const char op, const double value)
+double CalculatorContainer::calc(double value1, const char op, const double value2)
 {
-	double dRv= oldValue;
-
 	if(op == '+')
-		dRv+= value;
+		value1+= value2;
 	else if(op == '-')
-		dRv-= value;
+		value1-= value2;
 	else if(op == '*')
-		dRv*= value;
+		value1*= value2;
 	else if(op == '/')
-		dRv/= value;
+		value1/= value2;
+	else if(op == '%')
+		value1= fmod(value1, value2);
 	else
-		dRv= 0;
-	return dRv;
+		value1= 0;
+	return value1;
 }
 
 bool CalculatorContainer::render()
@@ -284,7 +288,8 @@ bool CalculatorContainer::render()
 						(	full[nPos] == '+' ||
 							full[nPos] == '-'	)	) ||
 					full[nPos] == '/' ||
-					full[nPos] == '*'					)
+					full[nPos] == '*' ||
+					full[nPos] == '%'					)
 		{
 			op= full[nPos];
 			m_vcOperators.push_back(op);
@@ -662,7 +667,8 @@ bool CalculatorContainer::calculateI(double& dResult)
 			if(	*itOperator == "+" ||
 				*itOperator == "-" ||
 				*itOperator == "*" ||
-				*itOperator == "/"		)
+				*itOperator == "/" ||
+				*itOperator == "%"		)
 			{
 				if(m_bOutput)
 					outputF(false, __FILE__, __LINE__, *itOperator+" ");

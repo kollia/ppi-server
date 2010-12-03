@@ -110,12 +110,12 @@ public:
 	 * calculate the two double values
 	 * with the operator
 	 *
-	 * @param oldValue first double value
+	 * @param value1 first double value
 	 * @param op operator character (+, - , * or /)
-	 * @param value second value to add, substract, ... with operator to oldValue
+	 * @param value2 second value to add, substract, ... with operator to oldValue
 	 * @return result of calculation
 	 */
-	static double calc(const double oldValue, const char op, const double value);
+	static double calc(double value1, const char op, const double value2);
 	/**
 	 * calculate string of statement
 	 *
