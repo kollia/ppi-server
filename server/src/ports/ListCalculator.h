@@ -53,7 +53,7 @@ public:
 	 * @param pStartFolder first pointer to all defined folders
 	 * @return whether rendering of 2. parameter calcString was correct
 	 */
-	bool init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& calcString);
+	bool init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, string calcString);
 	/**
 	 * render string for faster calculation
 	 *

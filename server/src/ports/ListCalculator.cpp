@@ -17,7 +17,7 @@
 
 #include <algorithm>
 
-//#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
 
 #include "../pattern/util/LogHolderPattern.h"
@@ -37,13 +37,23 @@ ListCalculator::ListCalculator(const string& folder, const string& subroutine, c
 	allowIfSentence(true);
 }
 
-bool ListCalculator::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const string& calcString)
+bool ListCalculator::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, string calcString)
 {
 	bool bOk;
+	string::size_type len, newlen;
 
 	m_pStartFolder= pStartFolder;
 	if(m_pStartFolder == NULL)
 		return false;
+	replace_all(calcString, "\n", " ");
+	replace_all(calcString, "\r", " ");
+	replace_all(calcString, "\t", " ");
+	newlen= calcString.size();
+	do{
+		len= newlen;
+		replace_all(calcString, "  ", " ");
+		newlen= calcString.size();
+	}while(len != newlen);
 	statement(calcString);
 	bOk= render();
 	if(calcString == "")
