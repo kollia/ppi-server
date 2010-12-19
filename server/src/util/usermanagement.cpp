@@ -78,7 +78,8 @@ namespace user
 		mproperties.setMsgParameter("folder");
 		mproperties.modifier("name");
 		mproperties.setMsgParameter("name", "subroutine");
-		mproperties.allowLaterModifier(true);
+		mproperties.valueLocalization("\"", "\"", /*remove*/true);
+		//mproperties.allowLaterModifier(true);
 		if(!mproperties.readFile(measurefile))
 		{
 			string msg("### fatal ERROR: cannot read correctly measure file '");

@@ -40,6 +40,7 @@
 #include "util/URL.h"
 #include "util/usermanagement.h"
 #include "util/process/ProcessStarter.h"
+#include "util/properties/interlacedactionproperties.h"
 
 #include "logger/lib/LogInterface.h"
 
@@ -887,6 +888,7 @@ void Starter::createPortObjects()
 		bool correctFolder= false;
 		int nMuch= aktualFolder->subroutines.size();
 
+		//cout << endl << "folder: " << aktualFolder->name << endl;
 		for(int n= 0; n<nMuch; n++)
 		{
 			vector<ohm> *pvOhm= &aktualFolder->subroutines[n].resistor;
@@ -902,7 +904,8 @@ void Starter::createPortObjects()
 			if(pvCorrection->size() == 0)
 				pvCorrection= &m_vCorrection;
 
-			//cout << "subroutine: " << aktualFolder->subroutines[n].name << endl;
+			//cout << "    subroutine: " << aktualFolder->subroutines[n].name;
+			//cout << " with type " << aktualFolder->subroutines[n].type << endl;
 			if(aktualFolder->subroutines[n].type == "SWITCH")
 			{
 				SHAREDPTR::shared_ptr<switchClass> obj;
@@ -1215,14 +1218,200 @@ inline vector<pair<string, PortTypes> >::iterator Starter::find(vector<pair<stri
 
 void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 {
-	static short nFolderID= 0;
+	typedef vector<IInterlacedPropertyPattern*>::iterator secIt;
+
+	short nFolderID= 0;
+	string modifier, value;
+	auto_ptr<sub> subdir;
+	ActionProperties *pProperty;
+	InterlacedActionProperties mainprop(/*check after*/true);
+	vector<IInterlacedPropertyPattern*> folderSections;
+	vector<IInterlacedPropertyPattern*> subSections;
+	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
+
+	mainprop.action("action");
+	mainprop.modifier("folder");
+	mainprop.setMsgParameter("folder");
+	mainprop.modifier("name");
+	mainprop.setMsgParameter("name", "subroutine");
+	mainprop.valueLocalization("\"", "\"", /*remove*/true);
+	mainprop.readFile(fileName);
+	folderSections= mainprop.getSections();
+	for(secIt fit= folderSections.begin(); fit != folderSections.end(); ++fit)
+	{
+		modifier= (*fit)->getSectionModifier();
+		if(modifier != "folder")
+		{
+			ostringstream out;
+
+			out << "### ERROR by reading measure.conf" << endl;
+			out << "          wrong defined modifier '" << modifier << "'" << endl;
+			out << "          with value '" << (*fit)->getSectionValue() << "'." << endl;
+			out << "          (maybe an subroutine is defined outside from an folder)" << endl;
+			out << "          Do not create this subroutine for working!";
+			cerr << out << endl << endl;
+			LOG(LOG_ERROR, out.str());
+		}else
+		{
+			ostringstream sFID;
+
+			// create new folder
+			++nFolderID;
+			sFID << "_folderID=" << nFolderID;
+			value= (*fit)->getSectionValue();
+			value= (*fit)->getValue("folder");
+			glob::replaceName(value, "folder name");
+			//cout << "create folder: " << value << endl;
+			if(aktualFolder==NULL)
+			{
+				aktualFolder= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
+				m_tFolderStart= aktualFolder;
+				aktualFolder->name= value;
+				aktualFolder->bCorrect= false;
+			}else
+			{
+				if(subdir.get() != NULL)
+				{
+					aktualFolder->subroutines.push_back(*subdir);
+					subdir= auto_ptr<sub>();
+				}
+				aktualFolder= m_tFolderStart;
+				while(aktualFolder->next != NULL)
+				{
+					if(aktualFolder->name == value)
+						break;
+					aktualFolder= aktualFolder->next;
+				}
+				if(aktualFolder->name == value)
+				{
+					string warn;
+
+					warn=  "### WARNING: found second folder name '" + value + "'\n";
+					warn+= "             write all subroutines into this folder!";
+					cout << warn << endl;
+					LOG(LOG_WARNING, warn);
+
+				}else
+				{
+					aktualFolder->next= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
+					aktualFolder= aktualFolder->next;
+					aktualFolder->name= value;
+					aktualFolder->bCorrect= false;
+				}
+			}
+			subSections= (*fit)->getSections();
+			for(secIt sit= subSections.begin(); sit != subSections.end(); ++sit)
+			{
+				modifier= (*sit)->getSectionModifier();
+				if(modifier != "name")
+				{
+					cerr << "### ALERT: modifier '" << modifier << "' defined inside folder" << endl;
+					cerr << "           STOP process of ppi-server!" << endl;
+					exit(EXIT_FAILURE);
+				}else
+				{
+					bool buse(true);
+
+					// create new subroutine
+					value= (*sit)->getSectionValue();
+					glob::replaceName(value, "folder '" + aktualFolder->name + "' for subroutine name");
+					//cout << "    with subroutine: " << value << endl;
+					for(vector<sub>::iterator it= aktualFolder->subroutines.begin(); it != aktualFolder->subroutines.end(); ++it)
+					{
+						if(it->name == value)
+						{
+							string err;
+
+							buse= false;
+							err=  "### Error: found ambiguous name \"" + value + "\" in folder " + aktualFolder->name + "\n";
+							err+= "           Do not create this subroutine for working!";
+							cerr << err << endl;
+							LOG(LOG_ERROR, err);
+							break;
+						}
+					}
+					if(buse)
+					{
+						subdir= auto_ptr<sub>(new sub);
+						/************************************************************\
+						 * fill into vlRv vector witch COM or LPT ports are needed
+						 * when type of subroutine was PORT, MPORT or RWPORT
+						 * to start
+						\************************************************************/
+						subdir->type= (*sit)->needValue("type");
+						if(	subdir->type == "PORT" ||
+							subdir->type == "MPORT" ||
+							subdir->type == "RWPORT"	)
+						{
+							bool bInsert= true;
+							PortTypes act;
+							string port;
+
+							port= (*sit)->needValue("ID");
+							if(	port.substr(0, 3) == "COM"
+								||
+								port.substr(0, 3) == "LPT"	)
+							{
+								port= port.substr(0, 3);
+							}
+							if(subdir->type == "PORT")
+								act= PORT;
+							else if(subdir->type == "MPORT")
+								act= MPORT;
+							else
+								act= RWPORT;
+							for(vector<pair<string, PortTypes> >::iterator it= vlRv.begin(); it != vlRv.end(); ++it)
+							{
+								if(	it->first == port
+									&&
+									it->second == act	)
+								{
+									bInsert= false;
+									break;
+								}
+							}
+							if(bInsert)
+								vlRv.push_back(pair<string, PortTypes>(value, act));
+						}
+						/************************************************************/
+						if(buse)
+						{
+							pProperty= new ActionProperties;
+							*pProperty= *dynamic_cast<ActionProperties*>(*sit);
+							subdir->property= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
+							subdir->property->readLine(sFID.str());
+							subdir->name= value;
+							subdir->bCorrect= false;
+							/************************************************************\
+							 * define values for subroutine witch should be obsolete
+							\************************************************************/
+							subdir->producerBValue= -1;
+							subdir->defaultValue= 0;
+							subdir->tmlong= 0;
+							subdir->bAfterContact= false;
+							subdir->measuredness= 0;
+							/************************************************************/
+
+							// to get no error if the _folderID not fetched,
+							// fetch it now
+							subdir->property->getValue("_folderID");
+
+							aktualFolder->subroutines.push_back(*subdir.get());
+						}
+					}
+				}// modifier is subroutine
+			}// iterate subroutines of folder
+		}// modifier is folder
+	}// iterate all folder in mainprop
+
+
+#if 0
 	bool bRead;
 	//Properties::param_t pparam;
 	string line;
 	//string sAktSubName;
 	ifstream file(fileName.c_str());
-	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
-	auto_ptr<sub> subdir;
+
 	//bool bWrite= true;
 	vector<string> lines;
 	vector<string> names;
@@ -1295,89 +1484,15 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 			}else if(type=="folder")
 			{
-				++nFolderID;
-
-				glob::replaceName(value, "folder name");
-				if(aktualFolder==NULL)
-				{
-					aktualFolder= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
-					m_tFolderStart= aktualFolder;
-					aktualFolder->name= value;
-					aktualFolder->bCorrect= false;
-				}else
-				{
-					if(subdir.get() != NULL)
-					{
-						aktualFolder->subroutines.push_back(*subdir);
-						subdir= auto_ptr<sub>();
-					}
-					aktualFolder= m_tFolderStart;
-					while(aktualFolder->next != NULL)
-					{
-						if(aktualFolder->name == value)
-							break;
-						aktualFolder= aktualFolder->next;
-					}
-					if(aktualFolder->name != value)
-					{
-						aktualFolder->next= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
-						aktualFolder= aktualFolder->next;
-						aktualFolder->name= value;
-						aktualFolder->bCorrect= false;
-					}
-				}
-				bRead= true;
 
 			}else if(type == "name")
 			{
-				glob::replaceName(value, "folder '" + aktualFolder->name + "' for subroutine name");
-				for(unsigned int n= 0; n<names.size(); n++)
-				{
-					if(names[n] == value)
-					{
-						cout << "### found ambigous name \"" << value << "\" in " << fileName << endl;
-						cout << "### STOP server" << endl;
-						exit(0);
-					}
-				}
-				if(subdir.get() != NULL)
-					aktualFolder->subroutines.push_back(*subdir.get());
-				subdir= auto_ptr<sub>(new sub);
-				subdir->name= value;
-				subdir->bCorrect= false;
-				subdir->type= "";
-				subdir->producerBValue= -1;
-				subdir->defaultValue= 0;
-				subdir->tmlong= 0;
-				subdir->bAfterContact= false;
-				subdir->measuredness= 0;
-				string result;
-				bRead= true;
 
 			}
 			if(	subdir.get()
 				&&
 				subdir->type != ""	)
 			{
-				string prop;
-
-				if(!subdir->property)
-				{
-					char cID[20];
-					string sFID("_folderID=");
-
-					snprintf(cID, 20, "%d", nFolderID);
-					sFID+= cID;
-					subdir->property= SHAREDPTR::shared_ptr<ConfigPropertyCasher>(new ConfigPropertyCasher());
-					subdir->property->setDefault("folder", aktualFolder->name);
-					subdir->property->setDefault("name", subdir->name);
-					subdir->property->readLine(sFID);
-					subdir->property->readLine("type="+subdir->type);
-					// to get no error if the _folderID not fetch,
-					// fetch it now
-					subdir->property->getValue("_folderID");
-					subdir->property->getValue("type");
-				}
 				if(	(	type == "ID"
 						&&
 						(	subdir->type == "PORT"
@@ -1440,7 +1555,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 // writing pins into aktual folder
 // hoping to never used
 /**********************************************************************************************************/
-#if 0
 				if(	subdir->type == "MPORTS"
 					||
 					subdir->type == "TEMP"
@@ -1490,7 +1604,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 						}
 					}
 				}
-#endif
 			}
 
 			if(type == "type")
@@ -1500,7 +1613,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 			}
 // all this next stuff is reading inside Properties
 // hope this things are not usable in future
-#if 0
 			if(type=="measuredness")
 			{
 				if(subdir.get())
@@ -1783,7 +1895,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				}
 				cout << msg << endl;
 			}
-#endif
 
 			lines.push_back(line);
 		}// end of while(!file.eof())
@@ -1795,6 +1906,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 
 	if(subdir.get() != NULL)
 		aktualFolder->subroutines.push_back(*subdir);
+#endif
 }
 
 #if 0
