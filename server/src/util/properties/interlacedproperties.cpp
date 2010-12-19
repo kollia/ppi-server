@@ -29,7 +29,7 @@
 
 namespace util {
 
-	InterlacedProperties& InterlacedProperties::operator=(const InterlacedProperties& x)
+	InterlacedProperties& InterlacedProperties::copy(const InterlacedProperties& x, bool constructor)
 	{
 		InterlacedProperties* newObj;
 
@@ -38,14 +38,20 @@ namespace util {
 		m_sModifier= x.m_sModifier;
 		m_sValue= x.m_sValue;
 		m_mvModifier= x.m_mvModifier;
+		for(vector<IInterlacedPropertyPattern*>::const_iterator it= m_vSections.begin(); it != m_vSections.end(); ++it)
+			delete *it;
+		m_vSections.clear();
 		for(vector<IInterlacedPropertyPattern*>::const_iterator it= x.m_vSections.begin(); it != x.m_vSections.end(); ++it)
 		{
 			newObj= dynamic_cast<InterlacedProperties*>(newObject("", "", 0));
 			*newObj= *dynamic_cast<InterlacedProperties*>(*it);
 			m_vSections.push_back(newObj);
 		}
+		if(!constructor)
+			Properties::copy(x);
 		return *this;
 	}
+
 
 	void InterlacedProperties::init(const string& modifier, const string& value, const unsigned short level)
 	{
@@ -53,6 +59,8 @@ namespace util {
 		m_sModifier= modifier;
 		m_sValue= value;
 		m_nLevel= level;
+		if(modifier != "")
+			setDefault(modifier, value);
 	}
 
 	void InterlacedProperties::allowLaterModifier(const bool reg)
@@ -62,12 +70,18 @@ namespace util {
 
 	bool InterlacedProperties::readLine(const string& line)
 	{
-		Properties::param_t prop;
+		Properties::param_t param;
 
-		prop= Properties::read(line);
-		if(!prop.correct)
+		param.bcontinue= false;
+		param.correct= false;
+		param.parameter= "";
+		param.read= false;
+		param.uncommented= "";
+		param.value= "";
+		Properties::read(line, &param);
+		if(!param.correct)
 			return false;
-		return readLine(prop);
+		return readLine(param);
 	}
 
 	IInterlacedPropertyPattern* InterlacedProperties::newObject(const string modifier, const unsigned short level)

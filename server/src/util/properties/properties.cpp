@@ -52,6 +52,29 @@ namespace util {
 		m_itmvActRangeDoc= m_mssDocs.end();
 	}
 
+	Properties& Properties::copy(const Properties& x)
+	{
+		m_bByCheck= x.m_bByCheck;
+		m_mErrorParams= x.m_mErrorParams;
+		m_nPropCount= x.m_nPropCount;
+		m_mvPropertyMap= x.m_mvPropertyMap;
+		m_vPropOrder= x.m_vPropOrder;
+		m_oNotAllowedParams= x.m_oNotAllowedParams;
+		m_mDefault= x.m_mDefault;
+		m_bRemoveLocal= x.m_bRemoveLocal;
+		m_sBeginLocal= x.m_sBeginLocal;
+		m_sEndLocal= x.m_sEndLocal;
+		m_oPulled= x.m_oPulled;
+		m_mFetchErrors= x.m_mFetchErrors;
+		m_sDelimiter= x.m_sDelimiter;
+		m_vsComms= x.m_vsComms;
+		m_vsUnComms= x.m_vsUnComms;
+		m_mvUncomProp= x.m_mvUncomProp;
+		m_mssDocs= x.m_mssDocs;
+		m_itmvActRangeDoc= m_mssDocs.end();
+		return *this;
+	}
+
 	void Properties::setDelimiter(const string& delimiter)
 	{
 		m_sDelimiter= delimiter;
@@ -90,6 +113,13 @@ namespace util {
 		return sRv;
 	}
 
+	void Properties::valueLocalization(const string& begin, const string& end, const bool remove/*= true*/)
+	{
+		m_sBeginLocal= begin;
+		m_sEndLocal= end;
+		m_bRemoveLocal= remove;
+	}
+
 	bool Properties::readFile(const string& filename)
 	{
 		string path, newfile;
@@ -99,10 +129,20 @@ namespace util {
 
 		if(file.is_open())
 		{
+			param.bcontinue= false;
+			param.correct= false;
+			param.parameter= "";
+			param.read= false;
+			param.uncommented= "";
+			param.value= "";
 			while(getline(file, line))
 			{
 				//cout << line << endl;
-				param= read(line);
+				read(line, &param);
+				if(param.bcontinue)
+					continue;
+				//cout << "   param: '" << param.parameter << "'" << endl;
+				//cout << "   value: '" << param.value << "'" << endl;
 				if(param.correct)
 				{
 					if(param.read)
@@ -151,6 +191,12 @@ namespace util {
 					cerr << msg << endl;
 					LOG(LOG_WARNING, msg);
 				}
+				param.bcontinue= false;
+				param.correct= false;
+				param.parameter= "";
+				param.read= false;
+				param.uncommented= "";
+				param.value= "";
 			}
 		}else
 			return false;
@@ -160,10 +206,16 @@ namespace util {
 
 	bool Properties::readLine(const string& line)
 	{
-		param_t value;
+		param_t param;
 
-		value= read(line);
-		return saveLine(value);
+		param.bcontinue= false;
+		param.correct= false;
+		param.parameter= "";
+		param.read= false;
+		param.uncommented= "";
+		param.value= "";
+		read(line, &param);
+		return saveLine(param);
 	}
 
 	bool Properties::readLine(const Properties::param_t& parameter)
@@ -186,30 +238,18 @@ namespace util {
 		if(parameter.uncommented != "")
 			m_mvUncomProp[parameter.uncommented].push_back(parameter.parameter);
 		return true;
-		/*mContent= m_mvPropertyMap.find(type);
-		if(mContent == m_mvPropertyMap.end())
-		{
-			vector<string> vContent;
-
-			vContent.push_back(value);
-			m_oPropertyMap[type]= vContent;
-		}else
-			m_oPropertyMap[type].push_back(value);
-		return true;*/
 	}
 
-	Properties::param_t Properties::read(const string& line) const
+	void Properties::read(const string& line, Properties::param_t* param) const
 	{
-		param_t tRv;
+		param_t tRv(*param);
 		string::size_type len= line.length();
-		string read(line), docline, comment;
-		string::size_type bpos, epos, elen;
+		string read(line), docline, comment, commented;
+		string::size_type bpos, epos, blen, elen;
 
 		//cout << read << endl;
 		bpos= len + 1;
 		epos= len + 1;
-		tRv.correct= false;
-		tRv.read= false;
 		if(m_itmvActRangeDoc == m_mssDocs.end())
 		{
 			// check whether line has begin of documented range
@@ -252,24 +292,52 @@ namespace util {
 			epos > len							)
 		{
 			tRv.correct= true;
-			return tRv;
+			*param= tRv;
+			return;
 		}
 		if(m_vsComms.size())
 		{
-			// check whether line has an documentation
+			// check whether line has an commented string
 			for(vector<string>::const_iterator it= m_vsComms.begin(); it != m_vsComms.end(); ++it)
 			{
 				bpos= read.find(*it);
-				if(bpos < len)
+				if(bpos != string::npos)
+				{
+					epos= bpos;
+					if(!tRv.bcontinue)
+					{
+						while(	epos &&
+								(	read[epos-1] == ' ' ||
+									read[epos-1] == '\t'	)	)
+						{
+							--epos;
+						}
+					}
+					commented= read.substr(epos);
 					break;
+				}
 			}
 		}else
 		{
-			// check whether line has an documentation string with default character '#'
+			// check whether line has an commented string with default character '#'
 			bpos= read.find("#");
+			if(bpos != string::npos)
+			{
+				epos= bpos;
+				if(!tRv.bcontinue)
+				{
+					while(	epos &&
+							(	read[epos-1] == ' ' ||
+								read[epos-1] == '\t'	)	)
+					{
+						--epos;
+					}
+				}
+				commented= read.substr(epos);
+			}
 		}
-		if(	bpos < len &&
-			m_vsUnComms.size())
+		if(	bpos != string::npos &&
+			m_vsUnComms.size()		)
 		{
 			// check whether commented line should be uncommented
 			for(vector<string>::const_iterator it= m_vsUnComms.begin(); it != m_vsUnComms.end(); ++it)
@@ -283,50 +351,195 @@ namespace util {
 				}
 			}
 		}
-		if(bpos < len)
+		if(bpos != string::npos)
 			read= read.substr(0, bpos);
-		boost::trim(read);
-		if(read == "")
+		if(!tRv.bcontinue)
 		{
-			tRv.correct= true;
-			return tRv;
-		}
-		// check for delimiter between property and value
-		for(string::const_iterator it= m_sDelimiter.begin(); it != m_sDelimiter.end(); ++it)
-		{
-			bpos= read.find(*it);
-			if(bpos < len)
-				break;
-			if(*it == ' ')
+			boost::trim(read);
+			if(read == "")
 			{
-				bpos= read.find("\t");
-				if(bpos < len)
-					break;
-
-			}else if(*it == '\t')
-			{
-				bpos= read.find(" ");
-				if(bpos < len)
-					break;
+				tRv.correct= true;
+				*param= tRv;
+				return;
 			}
+			// check for delimiter between property and value
+			for(string::const_iterator it= m_sDelimiter.begin(); it != m_sDelimiter.end(); ++it)
+			{
+				bpos= read.find(*it);
+				if(bpos < len)
+					break;
+				if(*it == ' ')
+				{
+					bpos= read.find("\t");
+					if(bpos < len)
+						break;
+
+				}else if(*it == '\t')
+				{
+					bpos= read.find(" ");
+					if(bpos < len)
+						break;
+				}
+			}
+			if(bpos > len)
+			{
+				tRv.correct= false;
+				*param= tRv;
+				return;
+			}
+			tRv.correct= true;
+			tRv.read= true;
+			tRv.parameter= read.substr(0, bpos);
+			boost::trim(tRv.parameter);
+			read= read.substr(bpos+1);
+			boost::trim(read);
+			if(comment != "")
+				tRv.uncommented= comment;
 		}
-		if(bpos > len)
-			return tRv;
-		tRv.correct= true;
-		tRv.read= true;
-		tRv.parameter= read.substr(0, bpos);
-		boost::trim(tRv.parameter);
-		tRv.value= read.substr(bpos+1);
-		boost::trim(tRv.value);
-		if(comment != "")
+		// check for localization of value string
+		if(m_sBeginLocal != "")
 		{
-			tRv.uncommented= comment;
-			//m_mvUncomProp[comment].push_back(tRv.parameter);
-			//cout << "insert parameter " << tRv.parameter << " with uncommented " << comment << " into uncommented map. Size now " << dec << m_mvUncomProp.size() << endl;
-		}
-		//cout << "property '" << tRv.parameter << "'" << endl;
-		//cout << "value    '" << tRv.value << "'" << endl;
-		return tRv;
+			bool bOk(true);
+			bool bslash(false);
+			string newread, space;
+			string::size_type count(0), bcount(0), ecount(0);
+
+			blen= m_sBeginLocal.length();
+			elen= m_sEndLocal.length();
+			bpos= string::npos;
+			epos= string::npos;
+			while(count < len)
+			{
+				if(!tRv.bcontinue)
+				{
+					// search begin of localization
+					if(read[count] == m_sBeginLocal[bcount])
+					{
+						if(m_bRemoveLocal)
+							bOk= false;
+						if(bcount == 0)
+							bpos= count;
+						++bcount;
+						if(bcount == blen)
+						{
+							tRv.bcontinue= true;
+							bcount= 0;
+						}
+
+					}else if(bcount != 0)
+					{
+						bcount= 0;
+						count= bpos;
+						bOk= true;
+					}
+				}else
+				{
+					//search end of localization
+					if(	read[count] == m_sEndLocal[ecount] &&
+						!bslash									)
+					{
+						if(m_bRemoveLocal)
+							bOk= false;
+						if(ecount == 0)
+							epos= count;
+						++ecount;
+						if(ecount == elen)
+						{
+							tRv.bcontinue= false;
+							ecount= 0;
+						}
+
+					}else
+					{
+						if(ecount != 0)
+						{
+							ecount= 0;
+							count= epos;
+							bOk= true;
+						}
+						//search whether character is an back slash
+						if(	!bslash &&
+							read[count] == '\\' &&
+							count+1 < len &&
+							(	read[count+1] == '\\' ||
+								read[count+1] == m_sEndLocal[0]	) )
+						{
+							bslash= true;
+							if(m_bRemoveLocal)
+								bOk= false;
+						}else
+							bslash= false;
+					}
+				}
+				if(bOk)
+				{
+					// write spaces into 'space' variable when position outside of localization
+					// because outside localization should not be an space on end
+					if(	!tRv.bcontinue &&
+						(	read[count] == ' ' ||
+							read[count] == '\n'		)	)
+					{
+						space+= read[count];
+					}else
+					{
+						newread+= space + read[count];
+						space= "";
+					}
+				}
+				bOk= true;
+				++count;
+				if(	count == len &&
+					tRv.bcontinue &&
+					commented != ""	)
+				{
+					read+= commented;
+					if(m_vsComms.size())
+					{
+						// check for next position of commented string
+						for(vector<string>::const_iterator it= m_vsComms.begin(); it != m_vsComms.end(); ++it)
+						{
+							bpos= read.find(*it, count+1);
+							if(bpos != string::npos)
+							{
+								commented= read.substr(bpos);
+								read= read.substr(0, bpos);
+								break;
+							}
+						}
+					}else
+					{
+						// check for next commented string with default character '#'
+						bpos= read.find("#", count+1);
+						if(bpos != string::npos)
+						{
+							commented= read.substr(bpos);
+							read= read.substr(0, bpos);
+						}
+					}
+				}
+				len= read.size();
+			}
+			//cout << endl;
+			tRv.value+= newread;
+
+		}else if(m_sEndLocal != "")
+		{
+			string::size_type nlen(read.length() - m_sEndLocal.length());
+
+			if(tRv.value.substr(nlen) == m_sEndLocal)
+			{
+				tRv.value+= read.substr(0, nlen);
+				tRv.bcontinue= true;
+
+			}else
+			{
+				tRv.value+= read;
+				tRv.bcontinue= false;
+			}
+		}else
+			tRv.value= read;
+		*param= tRv;
+		return;
 	}
 
 	void Properties::setDefault(const string& key, const string& value, const bool overwrite/*=true*/)
@@ -364,7 +577,6 @@ namespace util {
 
 	string Properties::needValue(const string property, vector<string>::size_type index/*= 0*/) const
 	{
-		bool byCheck= false;
 		map<string, vector<string> >::const_iterator mContent;
 		map<string, vector<vector<string>::size_type> >::const_iterator mPContent;
 		string value("");
@@ -380,7 +592,7 @@ namespace util {
 			msg= getMsgHead(/*error*/true);
 			msg+= "property ";
 			msg+= property + " does not exist";
-			if(byCheck)
+			if(m_bByCheck)
 				m_mFetchErrors[property]= true;
 			else
 				cerr << msg << endl;

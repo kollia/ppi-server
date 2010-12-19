@@ -134,11 +134,14 @@ namespace util {
 			 */
 			InterlacedProperties(const InterlacedProperties& x)
 			:	Properties(x)
-			{ *this = x; };
+			{ copy(x, /*constructor*/true); };
 			/**
 			 * assignment operator to copy
+			 *
+			 * @param x object to copy
 			 */
-			InterlacedProperties& operator=(const InterlacedProperties& x);
+			virtual InterlacedProperties& operator=(const InterlacedProperties& x)
+			{ return copy(x, /*constructor*/false); };
 			/**
 			 * if method set to true, class allow also no regular order of modifier.<br />
 			 * When method not be used, default usable is regular (like same as set method to <code>false</code>).
@@ -245,6 +248,13 @@ namespace util {
 			 */
 			vector<IInterlacedPropertyPattern*> m_vSections;
 
+			/**
+			 * method to copy for constructor and operator
+			 *
+			 * @param x object to copy
+			 * @param constructor whether copy is for constructor
+			 */
+			InterlacedProperties& copy(const InterlacedProperties& x, bool constructor);
 			/**
 			 * method check whether parameter is an interlaced modifier
 			 * and create in this case an new interlaced property object

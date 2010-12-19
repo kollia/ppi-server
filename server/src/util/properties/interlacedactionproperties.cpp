@@ -26,11 +26,27 @@
 
 namespace util {
 
+	InterlacedActionProperties& InterlacedActionProperties::copy(const InterlacedActionProperties& x, bool constructor)
+	{
+		if(!constructor)
+		{
+			InterlacedProperties::copy(x, /*constructor*/false);
+			ActionProperties::copy(x, /*constructor*/false);
+		}
+		return *this;
+	}
+
 	bool InterlacedActionProperties::readLine(const string& line)
 	{
 		Properties::param_t param;
 
-		param= read(line);
+		param.bcontinue= false;
+		param.correct= false;
+		param.parameter= "";
+		param.read= false;
+		param.uncommented= "";
+		param.value= "";
+		read(line, &param);
 		if(!param.correct)
 			return false;
 		return readLine(param);

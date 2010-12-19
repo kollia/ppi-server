@@ -40,11 +40,28 @@ using namespace boost::algorithm;
 
 namespace util {
 
+	ActionProperties& ActionProperties::copy(const ActionProperties& x, bool constructor)
+	{
+		m_sDefault= x.m_sDefault;
+		m_mvAllowed= x.m_mvAllowed;
+		m_mvActions= x.m_mvActions;
+		m_mmNotAllowed= x.m_mmNotAllowed;
+		if(!constructor)
+			Properties::copy(x);
+		return *this;
+	}
+
 	bool ActionProperties::readLine(const string& line)
 	{
 		Properties::param_t param;
 
-		param= read(line);
+		param.bcontinue= false;
+		param.correct= false;
+		param.parameter= "";
+		param.read= false;
+		param.uncommented= "";
+		param.value= "";
+		read(line, &param);
 		if(	!param.correct
 			||
 			!param.read		)

@@ -59,6 +59,10 @@ namespace design_pattern_world
 			 * whether the property was read inside of an comment
 			 */
 			string uncommented;
+			/**
+			 * whether to read value is localized and need more string lines to complete
+			 */
+			bool bcontinue;
 		};
 		/**
 		 * set delimiter between properties and value.<br />
@@ -93,6 +97,19 @@ namespace design_pattern_world
 		 * @return uncommented string
 		 */
 		virtual string wasCommented(const string& property)= 0;
+		/**
+		 * allow values over more rows.<br />
+		 * by define the localization, as example, with double quotes for begin and end,
+		 * the value can reach over more rows. If begin is an null string ("")
+		 * and the end maybe an back slash, when the end of an value have this character
+		 * the value follow also the next row.<br />
+		 * No Default be set
+		 *
+		 * @param begin beginning of localization
+		 * @param end ending of localization in the same or any follow rows
+		 * @param remove removing the localization on begin and end (default: true)
+		 */
+		virtual void valueLocalization(const string& begin, const string& end, const bool remove= true)= 0;
 		/**
 		 * set documentation for an range.<br />
 		 * No default be set

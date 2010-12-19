@@ -47,6 +47,22 @@ namespace util
 		 */
 		ConfigPropertyCasher();
 		/**
+		 * copy constructor for object
+		 *
+		 * @param x object to copy
+		 */
+		ConfigPropertyCasher(const ConfigPropertyCasher& x)
+		:	Properties(x),
+		 	ActionProperties(x)
+		{ copy(x, /*constructor*/true); };
+		/**
+		 * assignment operator to copy
+		 *
+		 * @param x object to copy
+		 */
+		virtual ConfigPropertyCasher& operator=(const ConfigPropertyCasher& x)
+		{ return copy(x, /*constructor*/false); };
+		/**
 		 * read line and save into variables
 		 *
 		 * @param character line
@@ -100,6 +116,15 @@ namespace util
 		 * destructor of class
 		 */
 		virtual ~ConfigPropertyCasher() {};
+
+	protected:
+		/**
+		 * method to copy for constructor and operator
+		 *
+		 * @param x object to copy
+		 * @param constructor whether copy is for constructor
+		 */
+		ConfigPropertyCasher& copy(const ConfigPropertyCasher& x, bool constructor);
 
 	private:
 		string m_sCurrent;

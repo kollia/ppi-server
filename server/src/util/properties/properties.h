@@ -39,26 +39,6 @@ namespace util {
 	class Properties: virtual public design_pattern_world::IPropertyPattern
 	{
 		public:
-#if 0
-			/**
-			 * structure of parameter and value of one line
-			 */
-			struct param_t
-			{
-				/**
-				 * whether the line have an correct parameter with value
-				 */
-				bool correct;
-				/**
-				 * parameter from line
-				 */
-				string parameter;
-				/**
-				 * value corresponding to parameter
-				 */
-				string value;
-			};
-#endif
 			/**
 			 * initialization of properties
 			 *
@@ -68,6 +48,20 @@ namespace util {
 			 * 					or elsewhere by invoke <code>checkProperties()</code> (true) (default= false).
 			 */
 			Properties(const bool byCheck= false);
+			/**
+			 * copy constructor for object
+			 *
+			 * @param x object to copy
+			 */
+			Properties(const Properties& x)
+			{ copy(x); };
+			/**
+			 * assignment operator to copy
+			 *
+			 * @param x object to copy
+			 */
+			virtual Properties& operator=(const Properties& x)
+			{ return copy(x); };
 			/**
 			 * set delimiter between properties and value.<br />
 			 * The delimiter can be more than one char and delimits by one of them.
@@ -110,6 +104,19 @@ namespace util {
 			 */
 			virtual string wasCommented(const string& property);
 			/**
+			 * allow values over more rows.<br />
+			 * by define the localization, as example, with double quotes for begin and end,
+			 * the value can reach over more rows. If begin is an null string ("")
+			 * and the end maybe an back slash, when the end of an value have this character
+			 * the value follow also the next row.<br />
+			 * No Default be set
+			 *
+			 * @param begin beginning of localization
+			 * @param end ending of localization in the same or any follow rows
+			 * @param remove removing the localization on begin and end (default: true)
+			 */
+			virtual void valueLocalization(const string& begin, const string& end, const bool remove= true);
+			/**
 			 * read file from hard disk
 			 *
 			 * @param filename name of file
@@ -123,13 +130,6 @@ namespace util {
 			 * @return whether line was an correct parameter with value
 			 */
 			virtual bool readLine(const string& line);
-			/**
-			 * read only line and split integer structure param_t
-			 *
-			 * @param line character line which should be read
-			 * @return split line
-			 */
-			param_t read(const string& line) const;
 			/**
 			 * Return true if the property container contains no elements
 			 *
@@ -387,6 +387,20 @@ namespace util {
 			 * with an alias name for display as value
 			 */
 			map<string, string> m_mErrorParams;
+
+			/**
+			 * method to copy for constructor and operator
+			 *
+			 * @param x object to copy
+			 */
+			Properties& copy(const Properties& x);
+			/**
+			 * read only line and split integer structure param_t
+			 *
+			 * @param line character line which should be read
+			 * @param param split line
+			 */
+			void read(const string& line, param_t* param) const;
 			/**
 			 * read line and save into variables
 			 *
@@ -425,6 +439,18 @@ namespace util {
 			 * all default parameter if value not exist in the file
 			 */
 			map<string, param_t> m_mDefault;
+			/**
+			 * whether delete localization for values on begin and end
+			 */
+			bool m_bRemoveLocal;
+			/**
+			 * localization for beginning
+			 */
+			string m_sBeginLocal;
+			/**
+			 * localization for ending
+			 */
+			string m_sEndLocal;
 			/**
 			 * all fetched parameters
 			 */

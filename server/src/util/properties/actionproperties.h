@@ -54,6 +54,21 @@ namespace util {
 			 	m_sDefault("action")
 				{};
 			/**
+			 * copy constructor for object
+			 *
+			 * @param x object to copy
+			 */
+			ActionProperties(const ActionProperties& x)
+			:	Properties(x)
+			{ copy(x, /*constructor*/true); };
+			/**
+			 * assignment operator to copy
+			 *
+			 * @param x object to copy
+			 */
+			virtual ActionProperties& operator=(const ActionProperties& x)
+			{ return copy(x, /*constructor*/false); };
+			/**
 			 * read line and save into variables
 			 *
 			 * @param character line
@@ -148,6 +163,7 @@ namespace util {
 			 * destructor of object
 			 */
 			virtual ~ActionProperties();
+
 		protected:
 			/**
 			 * default action
@@ -166,6 +182,13 @@ namespace util {
 			 */
 			map<string, map<string, bool> > m_mmNotAllowed;
 
+			/**
+			 * method to copy for constructor and operator
+			 *
+			 * @param x object to copy
+			 * @param constructor whether copy is for constructor
+			 */
+			ActionProperties& copy(const ActionProperties& x, bool constructor);
 			/**
 			 * read line and save into variables
 			 *

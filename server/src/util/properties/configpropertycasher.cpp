@@ -46,11 +46,26 @@ namespace util
 		m_vsModifier.push_back(subroutine);
 	}
 
+	ConfigPropertyCasher& ConfigPropertyCasher::copy(const ConfigPropertyCasher& x, bool constructor)
+	{
+		m_sCurrent= x.m_sCurrent;
+		m_vsModifier= x.m_vsModifier;
+		if(!constructor)
+			ActionProperties::copy(x, /*constructor*/false);
+		return *this;
+	}
+
 	bool ConfigPropertyCasher::readLine(const string& line)
 	{
 		param_t param;
 
-		param= read(line);
+		param.bcontinue= false;
+		param.correct= false;
+		param.parameter= "";
+		param.read= false;
+		param.uncommented= "";
+		param.value= "";
+		read(line, &param);
 		if(param.correct)
 		{
 			m_sCurrent= param.parameter;

@@ -102,6 +102,23 @@ namespace util {
 				ActionProperties(byCheck)
 			{ };
 			/**
+			 * copy constructor for object
+			 *
+			 * @param x object to copy
+			 */
+			InterlacedActionProperties(const InterlacedActionProperties& x)
+			:	Properties(x),
+				InterlacedProperties(x),
+				ActionProperties(x)
+			{ /*nothing to do*/ };
+			/**
+			 * assignment operator to copy
+			 *
+			 * @param x object to copy
+			 */
+			virtual InterlacedActionProperties& operator=(const InterlacedActionProperties& x)
+			{ return copy(x, /*constructor*/false); };
+			/**
 			 * read one line from and save paramer if exists
 			 *
 			 * @param character line to read
@@ -124,6 +141,13 @@ namespace util {
 
 		protected:
 			using InterlacedProperties::newObject;
+			/**
+			 * method to copy for constructor and operator
+			 *
+			 * @param x object to copy
+			 * @param constructor whether copy is for constructor
+			 */
+			InterlacedActionProperties& copy(const InterlacedActionProperties& x, bool constructor);
 			/**
 			 * create new object of interlaced properties
 			 *
