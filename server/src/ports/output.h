@@ -69,12 +69,6 @@ public:
 		 */
 		virtual double measure(const double actValue);
 		/**
-		 * set subroutine for output doing actions
-		 *
-		 * @param whether should write output
-		 */
-		virtual void setDebug(bool bDebug);
-		/**
 		 * destructor to delete all value ListCalculator
 		 */
 		virtual ~Output();
@@ -96,22 +90,13 @@ protected:
 
 	private:
 		/**
-		 * whether debug session is activated.<br />
-		 * display only text and value defined in subroutine
-		 */
-		bool m_bDebug;
-		/**
 		 * text for output before value
 		 */
-		vector<string> m_vsBefore;
+		vector<string> m_vsStrings;
 		/**
 		 * calculating value for output
 		 */
 		vector<ListCalculator*> m_voVal;
-		/**
-		 * text for output behind value
-		 */
-		string m_sBehind;
 };
 
 #endif /*OUTPUT_H_*/

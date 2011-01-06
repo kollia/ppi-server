@@ -20,35 +20,42 @@
 #include <sstream>
 #include <string>
 
+#include "../logger/lib/LogInterface.h"
+
+#include "../util/thread/Thread.h"
+
 #include "output.h"
 
 Output::Output(string folderName, string subroutineName)
-: switchClass("DEBUG", folderName, subroutineName),
-  m_bDebug(false)
+: switchClass("DEBUG", folderName, subroutineName)
 {
 }
 
 Output::Output(string type, string folderName, string subroutineName)
-: switchClass(type, folderName, subroutineName),
-  m_bDebug(false)
+: switchClass(type, folderName, subroutineName)
 {
 }
 
 bool Output::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
+	bool bSet(false), bSwitch;
 	string svalue;
 	string folder(getFolderName());
 	string subroutine(getSubroutineName());
 	vector<string>::size_type ncount;
 	ListCalculator* calc;
 
-	ncount= properties->getPropertyCount("before");
+	ncount= properties->getPropertyCount("string");
+	if(ncount > 0)
+		bSet= true;
 	for(vector<string>::size_type n= 0; n<ncount; ++n)
 	{
-		svalue= properties->getValue("before", n, /*warning*/false);
-		m_vsBefore.push_back(svalue);
+		svalue= properties->getValue("string", n, /*warning*/false);
+		m_vsStrings.push_back(svalue);
 	}
 	ncount= properties->getPropertyCount("value");
+	if(ncount > 0)
+		bSet= true;
 	for(vector<string>::size_type n= 0; n<ncount; ++n)
 	{
 		ostringstream val;
@@ -59,8 +66,17 @@ bool Output::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_pt
 		calc= m_voVal.back();
 		calc->init(pStartFolder, svalue);
 	}
-	m_sBehind= properties->getValue("behind", /*warning*/false);
-	if(!switchClass::init(properties, pStartFolder))
+	bSwitch= switchClass::init(properties, pStartFolder);
+	if(!bSet)
+	{
+		string msg(properties->getMsgHead(/*error*/false));
+
+		msg+= "no string or value be set for output, set subroutine to incorrect";
+		LOG(LOG_WARNING, msg);
+		cout << msg << endl;
+		return false;
+	}
+	if(!bSwitch)
 		return false;
 	return true;
 }
@@ -74,63 +90,48 @@ void Output::setObserver(IMeasurePattern* observer)
 
 double Output::measure(const double actValue)
 {
-	double output;
+	bool bDebug(isDebug());
+	double output(0);
 
-	output= switchClass::measure(actValue);
-	if(	m_bDebug ||
+	if(!bDebug)
+		output= switchClass::measure(actValue);
+	if(	bDebug ||
 		output > 0 ||
 		output < 0		)
 	{
-		bool bOk(true);
 		double val;
 		ostringstream out;
-		vector<string>::size_type ncount, ncountS, ncountV;
+		vector<ListCalculator*>::iterator itVal;
 
+		itVal= m_voVal.begin();
 		out << "### " << getFolderName() << ":" << getSubroutineName() << " >> ";
-		ncount= ncountS= m_vsBefore.size();
-		ncountV= m_voVal.size();
-		if(ncountV > ncountS)
-			ncount= ncountV;
-		for(vector<string>::size_type n= 0; n<ncount; ++n)
+		for(vector<string>::iterator itStr= m_vsStrings.begin(); itStr != m_vsStrings.end(); ++itStr)
 		{
-			if(n < ncountS)
-				out << m_vsBefore[n] << " ";
-			if(	n < ncountV &&
-				!m_voVal[n]->isEmpty()	)
+			out << *itStr << " ";
+			if(itVal != m_voVal.end())
 			{
-				if(!m_voVal[n]->calculate(val))
+				if( !(*itVal)->isEmpty() &&
+					(*itVal)->calculate(val)	)
 				{
-					out << "(## wrong value ##)";
-					bOk= false;
-
-				}else
 					out << val << " ";
+				}else
+					out << "(## wrong value ##) ";
+				++itVal;
 			}
 		}
-		out << m_sBehind << endl;
-		cout << out.str();
-		if(!bOk)
+		for(itVal= itVal; itVal != m_voVal.end(); ++itVal)
 		{
-			for(vector<ListCalculator*>::iterator it= m_voVal.begin(); it!=m_voVal.end(); ++it)
+			if( !(*itVal)->isEmpty() &&
+				(*itVal)->calculate(val)	)
 			{
-				if(	!(*it)->isEmpty() &&
-					!(*it)->calculate(val)	)
-				{
-					(*it)->doOutput(true);
-					(*it)->calculate(val);
-					(*it)->doOutput(false);
-				}
-			}
-			return 0;
+				out << val << " ";
+			}else
+				out << "(## wrong value ##) ";
 		}
+		cout << out.str() << endl;
 		return 1;
 	}
 	return 0;
-}
-
-void Output::setDebug(bool bDebug)
-{
-	m_bDebug= bDebug;
 }
 
 bool Output::range(bool& bfloat, double* min, double* max)
