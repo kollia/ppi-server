@@ -172,7 +172,13 @@ namespace ports
 			//bool m_bCanAfterContact;
 			//set<Pins> m_vAfterContactPins;
 			//map<unsigned long, unsigned> m_vAfterContactPorts;
+			/**
+			 * mutex lock for value
+			 */
 			pthread_mutex_t *m_VALUELOCK;
+			/**
+			 * mutex lock for debug
+			 */
 			pthread_mutex_t *m_DEBUG;
 			/**
 			 * mutex for variable m_bDeviceAccess
