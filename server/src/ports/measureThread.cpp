@@ -50,10 +50,13 @@ Thread(threadname, /*defaultSleep*/0)
 
 void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 {
+	bool bOpen(false);
 	bool isDebug(false);
-	vector<sub>::size_type count(0);
-	vector<sub>::size_type nSize(m_pvtSubroutines->size());
+	ostringstream open;
+	ostringstream out;
 
+	out << "-------------------------------------------------------------------" << endl;
+	out << " set debug to " << boolalpha << bDebug << " from folder " << getThreadName() << endl;
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
 		if(it->bCorrect)
@@ -61,30 +64,47 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 			if(	subroutine == "" ||
 				it->name == subroutine	)
 			{
-				if(	bDebug &&
-					it->type != "DEBUG"	)
-				{
-					isDebug= true;
-				}
+				if(it->portClass->isDebug() != bDebug)
+					out << "       in subroutine " << it->name << endl;
 				it->portClass->setDebug(bDebug);
-				++count;
-			}else if(it->portClass->isDebug() == bDebug)
-				++count;
+			}
 
-		}else
-			++count;
+		}
 	}
-	LOCK(m_DEBUGLOCK);
-	if(!bDebug)
+	open << " follow subroutines currently be set ";
+	if(bDebug)
+		open << "also ";
+	open << "for debugging:" << endl;
+	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
-		if(nSize == count)
-			m_bDebug= false;
+		if(	it->bCorrect &&
+			it->portClass->isDebug() == true	)
+		{
+			if(it->type != "DEBUG")
+				isDebug= true;
+			if(	!bDebug ||
+				it->name != subroutine	)
+			{
+				bOpen= true;
+				open << "       subroutine " << it->name << endl;
+			}
+		}
+	}
+	if(bOpen)
+		out << open.str();
+	LOCK(m_DEBUGLOCK);
+	if(isDebug)
+	{
+		m_bDebug= true;
+		out << "  write begin- and end-time of folder" << endl;
 	}else
 	{
-		if(isDebug)
-			m_bDebug= true;
+		if(m_bDebug)
+			out << "  finish writing begin- and end-time of folder" << endl;
+		m_bDebug= false;
 	}
-	//m_nDebugSleep= sleep;
+	out << "-------------------------------------------------------------------" << endl;
+	cout << out.str();
 	UNLOCK(m_DEBUGLOCK);
 }
 
