@@ -1270,11 +1270,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				aktualFolder->bCorrect= false;
 			}else
 			{
-				if(subdir.get() != NULL)
-				{
-					aktualFolder->subroutines.push_back(*subdir);
-					subdir= auto_ptr<sub>();
-				}
 				aktualFolder= m_tFolderStart;
 				while(aktualFolder->next != NULL)
 				{
