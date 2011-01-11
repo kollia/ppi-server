@@ -52,7 +52,7 @@ namespace ports
 			cout << __FILE__ << __LINE__ << endl;
 			cout << stopfolder << ":" << stopsub << endl;
 		}*/
-		m_bFloat= properties->haveAction("float");
+		m_bFloat= !properties->haveAction("int");
 		m_nMin= properties->getDouble(sMin, /*warning*/false);
 		m_nMax= properties->getDouble(sMax, /*warning*/false);
 		nValue= properties->getPropertyCount("value");

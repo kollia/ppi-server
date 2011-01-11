@@ -62,8 +62,8 @@ namespace ports
 
 			if(range(bfloat, &min, &max))
 			{
-				if(bfloat && !properties->haveAction("float"))
-					properties->readLine("action= float");
+				if(!bfloat && !properties->haveAction("int"))
+					properties->readLine("action= int");
 				prop= "min";
 				val= properties->getDouble(prop, /*warning*/false);
 				if(prop == "#ERROR")
