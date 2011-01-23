@@ -17,6 +17,13 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
+/******************************************************************************************************************\
+ * development stage of ppi-server with tools
+ */
+#define PPI_MAJOR_RELEASE 0
+#define PPI_MINOR_RELEASE 2
+#define PPI_PATCH_LEVEL   0
+#define PPI_BUILD_NUMBER 421
 
 /*******************************************************************************************************************
  * cmake define follow symbols for preprocessor from gcc
