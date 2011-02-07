@@ -486,7 +486,19 @@ bool portBase::getLinkedValue(const string& type, double& val)
 				{// subroutine link to new other subroutine -> take now this value
 				 // set observer to linked subroutine
 					if(isdebug)
-						cout << "link was changed from " << m_nLinkObserver << ". to " << pos << endl;
+					{
+						ostringstream msg;
+
+						msg << "link was changed from ";
+						if(m_nLinkObserver)
+						{
+							msg << m_nLinkObserver << ". link (";
+							msg << m_vpoLinks[m_nLinkObserver-1]->getStatement() << ") to ";
+						}else
+							msg << "own link ";
+						msg << "to " << pos << ". link (" << slink << ")" << endl;
+						cout << msg.str();
+					}
 					if(m_nLinkObserver)
 						m_vpoLinks[m_nLinkObserver-1]->removeObserver( m_poMeasurePattern);
 					if(pos > 0)
@@ -545,13 +557,13 @@ bool portBase::getLinkedValue(const string& type, double& val)
 					cout << pos << ". link value '" << slink << "' link to own subroutine" << endl;
 				if(	m_nLinkObserver-1 < links	)
 				{
-					m_vpoLinks[m_nLinkObserver]->removeObserver( m_poMeasurePattern);
+					m_vpoLinks[m_nLinkObserver-1]->removeObserver( m_poMeasurePattern);
 					m_nLinkObserver= 0;
 					//defineRange();
 				}else
 				{
-					cout << "### ERROR: in " << m_sFolder << ":" << m_sSubroutine;
-					cout << " nLinkObserver was set to " << dec << m_nLinkObserver << endl;
+					cerr << "### ERROR: in " << m_sFolder << ":" << m_sSubroutine;
+					cerr << " nLinkObserver was set to " << dec << m_nLinkObserver << endl;
 				}
 			}
 			bOk= false;
