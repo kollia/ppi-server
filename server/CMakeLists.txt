@@ -58,6 +58,8 @@ set(PPIPATTERN_LIB_SOVERSION "1")
 set(PPIDB_LIB_VERSION "1.0")
 set(PPIDB_LIB_SOVERSION "1")
 
+set(PPISUBROUTINES_LIB_VERSION "1.0")
+set(PPISUBROUTINES_LIB_SOVERSION "1")
 set(PPIPORTS_LIB_VERSION "1.0")
 set(PPIPORTS_LIB_SOVERSION "1")
 
@@ -87,8 +89,8 @@ set(PPITHREADUTIL_LIB_SOVERSION "1")
 set(PPIPROCESSUTIL_LIB_VERSION "1.0")
 set(PPIPROCESSUTIL_LIB_SOVERSION "1")
 
-set(PPICPPCLIENT_LIB_VERSION "1.0")
-set(PPICPPCLIENT_LIB_SOVERSION "1")
+set(PPICPPCLIENT_LIB_VERSION "0.1")
+set(PPICPPCLIENT_LIB_SOVERSION "0")
 
 
 
@@ -183,6 +185,7 @@ endif(USE_K8055)
 # libraries
 add_subdirectory( src/pattern/util ) # ppipattern need: ---
 
+add_subdirectory( src/ports/subroutines ) # ppiportssubroutine need: ---
 add_subdirectory( src/util/stream ) # ppistreamutil need: ---
 add_subdirectory( src/util/properties ) # ppipropertyutil need: ppistreamutil ppipattern
 add_subdirectory( src/util ) # ppiutil need: ppipropertyutil ppistreamutil ppipattern
