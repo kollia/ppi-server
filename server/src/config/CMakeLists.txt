@@ -1,8 +1,9 @@
 
-set(configSrcs    configmain.cpp )
+set(configSrcs	configmain.cpp
+				LircSupport.cpp		)
         	
 add_executable(ppi-mconfig ${configSrcs})
-target_link_libraries(ppi-mconfig ppiutil ppilogger ppiserverlib ppiserverlibclient ${RT_LIBRARIES})
+target_link_libraries(ppi-mconfig ppiportssubroutine ppiutil ppipropertyutil)
 install(TARGETS ppi-mconfig DESTINATION bin)
 
 
