@@ -177,9 +177,13 @@ namespace util
 		 */
 		string name;
 		/**
-		 * vector of all options behind this command
+		 * map of all options behind this command
 		 */
 		map<string, t_options> options;
+		/**
+		 * order of all options
+		 */
+		vector<string> order;
 		/**
 		 * whether one short definition of options is longer than one character,
 		 * so cannot make more options after one minus (exp. cannot make -abc is options -a -b -c)
@@ -419,6 +423,10 @@ namespace util
 		 */
 		map<string, t_options> m_mstAllowedOptions;
 		/**
+		 * Order of all options
+		 */
+		vector<string> m_vsOrder;
+		/**
 		 * vector of all allowed commands
 		 */
 		vector<ParamCommand> m_vtAllowdCommands;
@@ -442,12 +450,13 @@ namespace util
 		/**
 		 * write all options from given map container on command line
 		 *
+		 * @param inserted order of all options
 		 * @param mOptions map of options
 		 * @param command name of specific command when it is not the first (default:'' for first)
 		 * @param count number of command cycle (default:0)
 		 * @return whether options be written
 		 */
-		bool optionUsage(map<string, t_options> mOptions, const string& command= "", string::size_type count= 0);
+		bool optionUsage(vector<string> order, map<string, t_options> mOptions, const string& command= "", string::size_type count= 0);
 		/**
 		 * write all commands and sub commands with options on command line
 		 *

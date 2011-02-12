@@ -193,6 +193,7 @@ namespace util
 			opIt= m_mstAllowedOptions.find(name);
 			if(opIt == m_mstAllowedOptions.end())
 			{
+				m_vsOrder.push_back(name);
 				m_mstAllowedOptions[name]= option;
 				opIt= m_mstAllowedOptions.find(name);
 			}
@@ -225,6 +226,7 @@ namespace util
 			opIt= command->options.find(name);
 			if(opIt == command->options.end())
 			{
+				command->order.push_back(name);
 				command->options[name]= option;
 				opIt= command->options.find(name);
 			}
@@ -322,44 +324,9 @@ namespace util
 			replace_all(m_sDescription, "\n", "\n    ");
 			cout << endl << "    " << m_sDescription << endl;
 		}
-		optionUsage(m_mstAllowedOptions);
+		optionUsage(m_vsOrder, m_mstAllowedOptions);
 		commandUsage(m_vtAllowdCommands);
 		cout << endl;
-
-#if 0
-		vector<ParamCommand> *actCommands;
-		vector<ParamCommand*> commandHistory;
-
-		actCommands= &m_vtAllowdCommands;
-		commandHistory.push_back(&m_vtAllowdCommands);
-		actCommand= commandHistory.back();
-		while(!actCommand->empty())
-		{
-			if(nLastCommand > 0)
-				cout << " [command]";
-			else
-				cout << " <commands>";
-			++nLastCommand;
-
-		}
-
-		cout << "       options:" << endl;
-		cout << "            -?  --help         - show this help" << endl;
-		cout << endl;
-		cout << "       commands:" << endl;
-		cout << "            LIRC               - configuration for receiver and or transmitter" << endl;
-		cout << endl;
-		cout << "       spez. options for LIRC:" << endl;
-		cout << "            -f  --file             - " << endl;
-		cout << "            -l  --learn            - " << endl;
-		cout << "                                     " << endl;
-		cout << "            -r  --receiver         - create folder:subroutine *.conf file for only receiving (default)" << endl;
-		cout << "            -p  --readpermission   - permission to read receiving value (default from access.conf 'read'" << endl;
-		cout << "            -t  --transmitter      - create *.conf and *.desktop files for receiving and transmitting" << endl;
-		cout << "            -w  --writepermission  - permission to send code (default from access.conf 'change'" << endl;
-		cout << "            -v  --vertical         - vectical rows for layout file" << endl;
-		cout << endl;
-#endif
 		return true;
 	}
 
@@ -398,7 +365,7 @@ namespace util
 			cout << string(len, ' ') << "- ";
 			replace_all(it->description, "\n", nullstr);
 			cout << it->description << endl;
-			out= optionUsage(it->options, it->name, count+1);
+			out= optionUsage(it->order, it->options, it->name, count+1);
 			if(	commandUsage(it->next_commands, it->name, count+1) ||
 				out														)
 			{
@@ -414,13 +381,14 @@ namespace util
 		return true;
 	}
 
-	bool MainParams::optionUsage(map<string, t_options> mOptions, const string& command, string::size_type count)
+	bool MainParams::optionUsage(vector<string> order, map<string, t_options> mOptions, const string& command, string::size_type count)
 	{
 		string space(count*2, ' ');
 		string nullstr("\n");
 		string::size_type nOpMax(0), nOpMax2(0);
 		vector<string> options, options2;
 		vector<string>::iterator opIt;
+		vector<string>::iterator orderIt;
 		map<string, t_options>::iterator it;
 
 		if(mOptions.empty())
@@ -435,11 +403,12 @@ namespace util
 		}else
 			cout << "  options:";
 		cout << endl;
-		for(it= mOptions.begin(); it != mOptions.end(); ++it)
+		for(orderIt= order.begin(); orderIt != order.end(); ++orderIt)
 		{
 			string shop;
 			string::size_type len;
 
+			it= mOptions.find(*orderIt);
 			for(vector<string>::iterator op= it->second.shdefs.begin(); op != it->second.shdefs.end(); ++op)
 				shop+= "-" + *op + " ";
 			len= shop.length();
@@ -449,11 +418,12 @@ namespace util
 		}
 		opIt= options.begin();
 		nOpMax+= 1;
-		for(it= mOptions.begin(); it != mOptions.end(); ++it)
+		for(orderIt= order.begin(); orderIt != order.end(); ++orderIt)
 		{
 			string opstr;
 			string::size_type len;
 
+			it= mOptions.find(*orderIt);
 			opstr= *opIt;
 			opstr.append((nOpMax - opIt->length()), ' ');
 			opstr+= "--" + it->first;
@@ -466,11 +436,12 @@ namespace util
 		opIt= options2.begin();
 		nOpMax2+= 4;
 		nullstr.append(count*2 + nOpMax2 + 6, ' ');
-		for(it= mOptions.begin(); it != mOptions.end(); ++it)
+		for(orderIt= order.begin(); orderIt != order.end(); ++orderIt)
 		{
 			string opstr;
 			string::size_type add;
 
+			it= mOptions.find(*orderIt);
 			opstr= *opIt;
 			add= nOpMax2;
 			add-= opstr.length();
