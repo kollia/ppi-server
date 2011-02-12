@@ -189,6 +189,22 @@ namespace util {
 			 */
 			virtual string getValue(const string property, vector<string>::size_type index= 0, bool warning= true) const;
 			/**
+			 * return file name in witch property was found
+			 *
+			 * @param property from which property filename was needed
+			 * @param index which number of same parameter. default: 0
+			 * @return filename
+			 */
+			virtual string getPropertyFile(const string& property, vector<string>::size_type index= 0) const;
+			/**
+			 * return number of line in which the property was written
+			 *
+			 * @param property from which property line number was needed
+			 * @param index which number of same parameter. default: 0
+			 * @return line number
+			 */
+			virtual unsigned long getPropertyLine(const string& property, vector<string>::size_type index= 0) const;
+			/**
 			 * pull property from this class and write an error if not exist
 			 *
 			 * @param property value which needed
@@ -422,13 +438,17 @@ namespace util {
 			 */
 			unsigned int m_nPropCount;
 			/**
-			 * hole propertys for an subroutine
-			 */
-			map<string, vector<string> > m_mvPropertyMap;
-			/**
 			 * hole properties in order for method <code>nextProp()</code>
 			 */
 			vector<string> m_vPropOrder;
+			/**
+			 * hole properties for an subroutine
+			 */
+			map<string, vector<string> > m_mvPropertyMap;
+			/**
+			 * hole lines of properties  with filename in an subroutine
+			 */
+			map<string, vector<string> > m_mvPropertyLines;
 			/**
 			 * inherits not allowed parameter.<br />
 			 * if later in any base class the parameter will be fetched

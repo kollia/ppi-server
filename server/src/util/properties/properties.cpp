@@ -129,74 +129,81 @@ namespace util {
 
 		if(file.is_open())
 		{
+			param.breadagain= false;
 			param.bcontinue= false;
 			param.correct= false;
 			param.parameter= "";
 			param.read= false;
 			param.uncommented= "";
 			param.value= "";
+			param.filename= filename;
+			param.line= 1;
 			while(getline(file, line))
 			{
 				//cout << line << endl;
-				read(line, &param);
-				if(param.bcontinue)
-					continue;
-				//cout << "   param: '" << param.parameter << "'" << endl;
-				//cout << "   value: '" << param.value << "'" << endl;
-				if(param.correct)
-				{
-					if(param.read)
+				do{
+					read(line, &param);
+					if(param.bcontinue)
+						continue;
+					//cout << "   param: '" << param.parameter << "'" << endl;
+					//cout << "   value: '" << param.value << "'" << endl;
+					if(param.correct)
 					{
-						if(param.parameter == "file")
+						if(param.read)
 						{
-							bool fsep= false, ssep= false;
-
-							if(path == "")
+							if(param.parameter == "file")
 							{
-								string::size_type  pos= filename.find_last_of("/");
+								bool fsep= false, ssep= false;
 
-								if(pos != string::npos)
-									path= filename.substr(0, pos);
-								else
-									path= "./";
-							}
-							fsep= path.substr(path.length()-1, 1) == "/" ? true : false;
-							ssep= param.value.substr(0, 1) == "/" ? true : false;
-							newfile= path;
-							if(!fsep && !ssep)
-								newfile+= "/";
-							else if(fsep && ssep)
-								newfile= newfile.substr(0, newfile.length()-1);
-							newfile+= param.value;
-							if(!readFile(newfile))
-							{
-								string msg;
+								if(path == "")
+								{
+									string::size_type  pos= filename.find_last_of("/");
 
-								msg=  "### WARNING: cannot read new file: '";
-								msg+= newfile + "'\n";
-								msg+= "             in configuration file ";
-								msg+= filename;
-								cerr << msg << endl;
-								LOG(LOG_ERROR, msg);
-							}
-						}else
-							readLine(param);
+									if(pos != string::npos)
+										path= filename.substr(0, pos);
+									else
+										path= "./";
+								}
+								fsep= path.substr(path.length()-1, 1) == "/" ? true : false;
+								ssep= param.value.substr(0, 1) == "/" ? true : false;
+								newfile= path;
+								if(!fsep && !ssep)
+									newfile+= "/";
+								else if(fsep && ssep)
+									newfile= newfile.substr(0, newfile.length()-1);
+								newfile+= param.value;
+								if(!readFile(newfile))
+								{
+									string msg;
+
+									msg=  "### WARNING: cannot read new file: '";
+									msg+= newfile + "'\n";
+									msg+= "             in configuration file ";
+									msg+= filename;
+									cerr << msg << endl;
+									LOG(LOG_ERROR, msg);
+								}
+							}else
+								readLine(param);
+						}
+					}else
+					{
+						string msg("### WARNING: cannot read line: '");
+
+						msg+= line + "'\n             in configuration file ";
+						msg+= filename;
+						cerr << msg << endl;
+						LOG(LOG_WARNING, msg);
 					}
-				}else
-				{
-					string msg("### WARNING: cannot read line: '");
+					param.bcontinue= false;
+					param.correct= false;
+					param.parameter= "";
+					param.read= false;
+					param.uncommented= "";
+					param.value= "";
 
-					msg+= line + "'\n             in configuration file ";
-					msg+= filename;
-					cerr << msg << endl;
-					LOG(LOG_WARNING, msg);
-				}
-				param.bcontinue= false;
-				param.correct= false;
-				param.parameter= "";
-				param.read= false;
-				param.uncommented= "";
-				param.value= "";
+				}while(param.breadagain);
+				++param.line;
 			}
 		}else
 			return false;
@@ -225,6 +232,7 @@ namespace util {
 
 	bool Properties::saveLine(const Properties::param_t& parameter)
 	{
+		ostringstream nsline;
 		map<string, vector<string> >::iterator mContent;
 
 		if(	!parameter.correct
@@ -235,6 +243,8 @@ namespace util {
 		}
 		m_vPropOrder.push_back(parameter.parameter);
 		m_mvPropertyMap[parameter.parameter].push_back(parameter.value);
+		nsline << parameter.line << " " << parameter.filename;
+		m_mvPropertyLines[parameter.parameter].push_back(nsline.str());
 		if(parameter.uncommented != "")
 			m_mvUncomProp[parameter.uncommented].push_back(parameter.parameter);
 		return true;
@@ -344,9 +354,20 @@ namespace util {
 			{
 				if(read.find(*it) == bpos)
 				{// found uncommented string
-					read= read.substr(bpos + it->length());
-					bpos= len+1;
-					comment= *it; // now comment is the uncommented string
+					if(!tRv.breadagain)
+					{
+						// read first the range before the uncommented string
+						// and than in next step the commented
+						tRv.breadagain= true;
+
+					}else
+					{
+						// now read the uncommented string
+						tRv.breadagain= false;
+						read= read.substr(bpos + it->length());
+						bpos= len+1;
+						comment= *it; // now comment is the uncommented string
+					}
 					break;
 				}
 			}
@@ -613,6 +634,41 @@ namespace util {
 	string Properties::getValue(const string property, bool warning) const
 	{
 		return getValue(property, 0, warning);
+	}
+
+	string Properties::getPropertyFile(const string& property, vector<string>::size_type index/*= 0*/) const
+	{
+		unsigned long line;
+		string file;
+		map<string, vector<string> >::const_iterator found;
+
+		found= m_mvPropertyLines.find(property);
+		if(	found == m_mvPropertyLines.end() ||
+			index > (found->second.size()-1))
+		{
+			return "";
+		}
+		istringstream str(found->second[index]);
+
+		str >> line >> file;
+		return file;
+	}
+
+	unsigned long Properties::getPropertyLine(const string& property, vector<string>::size_type index/*= 0*/) const
+	{
+		unsigned long line;
+		map<string, vector<string> >::const_iterator found;
+
+		found= m_mvPropertyLines.find(property);
+		if(	found == m_mvPropertyLines.end() ||
+			index > (found->second.size()-1))
+		{
+			return 0;
+		}
+		istringstream str(found->second[index]);
+
+		str >> line;
+		return line;
 	}
 
 	vector<string>::size_type Properties::getPropertyCount(string property) const

@@ -48,6 +48,14 @@ namespace design_pattern_world
 			 */
 			bool read;
 			/**
+			 * name of file
+			 */
+			string filename;
+			/**
+			 * line number in readed file
+			 */
+			unsigned long line;
+			/**
 			 * parameter from line
 			 */
 			string parameter;
@@ -59,6 +67,10 @@ namespace design_pattern_world
 			 * whether the property was read inside of an comment
 			 */
 			string uncommented;
+			/**
+			 * whether line have also commented content to read again
+			 */
+			bool breadagain;
 			/**
 			 * whether to read value is localized and need more string lines to complete
 			 */
@@ -178,6 +190,22 @@ namespace design_pattern_world
 		 * @return defined string for property
 		 */
 		virtual string getValue(const string property, vector<string>::size_type index= 0, bool warning= true) const =0;
+		/**
+		 * return file name in witch property was found
+		 *
+		 * @param property from which property filename was needed
+		 * @param index which number of same parameter. default: 0
+		 * @return filename
+		 */
+		virtual string getPropertyFile(const string& property, vector<string>::size_type index= 0) const= 0;
+		/**
+		 * return number of line in which the property was written
+		 *
+		 * @param property from which property line number was needed
+		 * @param index which number of same parameter. default: 0
+		 * @return line number
+		 */
+		virtual unsigned long getPropertyLine(const string& property, vector<string>::size_type index= 0) const= 0;
 		/**
 		 * pull property from this class and write an error if not exist
 		 *
