@@ -23,6 +23,7 @@
 #include <vector>
 #include <map>
 
+#include "util/MainParams.h"
 #include "util/termmacro.h"
 #include "util/debug.h"
 
@@ -42,8 +43,6 @@
 using namespace std;
 using namespace util;
 using namespace ports;
-
-void usage(char* cpSelf);
 
 int main(int argc, char* argv[])
 {
@@ -137,66 +136,34 @@ int main(int argc, char* argv[])
 #endif
 
 	bool result;
-	string param;
+	string command;
 	auto_ptr<Starter> server;
-	string workdir(argv[0]);
-	vector<string> directorys;
-	vector<string>::size_type dirlen;
+	string workdir;
+	MainParams params(argc, argv, /*read path for parent dirs*/1);
+	const ICommandStructPattern* commands;
 
-	directorys= ConfigPropertyCasher::split(workdir, "/");
-	dirlen= directorys.size();
-	workdir= "";
+	params.setDescription("start or stop ppi-server to reading external sensors and devices");
 
-#if 0
-	// auto_ptr test
-	SHAREDPTR::shared_ptr<vector<string> > plv, plv2;
-	while(1)
-	{
-		plv2= std::auto_ptr<vector<string> >(new vector<string>());
-		plv= std::auto_ptr<vector<string> >(new vector<string>());
-		plv->push_back("0-string");
-		plv->push_back("1-string");
-		plv->push_back("2-string");
-		plv->push_back("3-string");
-		plv->push_back("4-string");
-		plv->push_back("5-string");
-		plv->push_back("6-string");
-		plv->push_back("7-string");
-		plv->push_back("8-string");
-		plv->push_back("9-string");
-		plv2= plv;
-		plv= SHAREDPTR::shared_ptr<vector<string> >();
-		if(!plv)
-			cout << "shared_ptr plv is NULL" << endl;
-		if(plv2)
-			cout << "shared_ptr plv2 is not NULL" << endl;
-		for(vector<string>::iterator vit= plv2->begin(); vit != plv2->end(); ++vit)
-			cout << *vit << endl;
-		cout << endl;
-	}
-#endif
-	for(vector<string>::size_type c= 0; c < dirlen; ++c)
-	{
-		if(c == dirlen-2)
-		{// directory is bin, Debug or Release
-			if(directorys[c] == ".")
-				workdir+= "../";
-			break;
-		}
-		workdir+= directorys[c] + "/";
-	}
-	if(argc != 2)
-	{
-		usage(argv[0]);
-		return EXIT_FAILURE;
-	}else
-		param= argv[1];
+	params.option("configure", "c", "display which folder configure by starting\n"
+							"(can be set by longer starting time to know what server is doing)");
+	params.version(PPI_MAJOR_RELEASE, PPI_MINOR_RELEASE, PPI_SUBVERSION, PPI_PATCH_LEVEL,
+										/*no build*/0, PPI_REVISION_NUMBER, DISTRIBUTION_RELEASE);
+
+	params.command("start", "starting server");
+	params.command("stop", "stopping server");
+	params.command("restart", "restarting the hole server");
+	params.command("status", "get feedback whether server is running");
+
+	params.execute();
+	workdir= params.getPath();
+	commands= params.getCommands();
+	command= commands->command();
 
 	try
 	{
-		if(	param == "start" ||
-			param == "stop" ||
-			param == "restart"	)
+		if(	command == "start" ||
+			command == "stop" ||
+			command == "restart"	)
 		{
 			if(getuid() != 0)
 			{
@@ -206,7 +173,7 @@ int main(int argc, char* argv[])
 		}
 
 		server= auto_ptr<Starter>(new Starter(workdir));
-		if(param == "start")
+		if(command == "start")
 		{
 			pthread_mutex_init(&g_READMUTEX, NULL);
 			result= server->execute();
@@ -219,22 +186,23 @@ int main(int argc, char* argv[])
 			cout << "successfully" << endl;
 			return EXIT_SUCCESS;
 
-		}else if(param == "status")
+		}else if(command == "status")
 		{
 			result= server->status();
 
-		}else if(param == "stop")
+		}else if(command == "stop")
 		{
 			result= server->stop();
 
-		}else if(param == "restart")
+		}else if(command == "restart")
 		{
 			server->stop();
 			cout << "### restart ppi-server" << endl;
 			result= server->execute();
 		}else
 		{
-			usage(argv[0]);
+			cout << "no correct command be set" << endl;
+			cout << "  type -? for help" << endl;
 			return EXIT_FAILURE;
 		}
 		//delete server;
@@ -245,9 +213,9 @@ int main(int argc, char* argv[])
 	}
 
 
-	if(param == "start")
+	if(command == "start")
 		cout << "LogServer" << endl;
-	if(param == "stop")
+	if(command == "stop")
 	{
 		if(result)
 		{
@@ -256,7 +224,7 @@ int main(int argc, char* argv[])
 		}
 		return EXIT_FAILURE;
 
-	}else if(param == "start")
+	}else if(command == "start")
 	{
 		if(result)
 		{
@@ -270,16 +238,4 @@ int main(int argc, char* argv[])
 		}
 	}
 	return EXIT_FAILURE;
-}
-
-void usage(char* cpSelf)
-{
-	printf("no correct command be set\n");
-	printf("syntax:  %s <command>\n", cpSelf);
-	printf("\n");
-	printf("       command:\n");
-	printf("                start    -     starting server\n");
-	printf("                stop     -     stopping server\n");
-	printf("                restart  -     restarting the hole server\n");
-	printf("                status   -     get feedback whether server is running\n");
 }
