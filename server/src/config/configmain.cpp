@@ -46,7 +46,8 @@ int main(int argc, char* argv[])
 
 	params.setDescription("create measure file for 'measure.conf' and also some layout files\n"
 							"specific for defined command.");
-	params.option("version", "v", "show information of actual version");
+	params.version(PPI_MAJOR_RELEASE, PPI_MINOR_RELEASE, PPI_SUBVERSION, PPI_PATCH_LEVEL,
+										/*no build*/0, PPI_REVISION_NUMBER, DISTRIBUTION_RELEASE);
 
 	param_id= params.command("LIRC", "create configuration for receiver and transmitter if set to fill in 'measure.conf'\n"
 										"and also corresponding layout files to copy into ppi-server client directory");
@@ -65,28 +66,6 @@ int main(int argc, char* argv[])
 
 	params.execute();
 	commands= params.getCommands();
-	if(params.hasOption("version"))
-	{
-		string buildnulls;
-		ostringstream buildstream;
-
-		cout << params.getAppName() << " ";
-		cout << PPI_MAJOR_RELEASE << ".";
-		cout << PPI_MINOR_RELEASE << ".";
-		cout << PPI_PATCH_LEVEL << ".";
-		buildstream << PPI_BUILD_NUMBER;
-		buildnulls.append(5 - buildstream.str().length(), '0');
-		cout << buildnulls << PPI_BUILD_NUMBER << endl;
-
-		cout << " version ";
-		cout << PPI_MAJOR_RELEASE << ".";
-		cout << PPI_MINOR_RELEASE << " ";
-		if(PPI_PATCH_LEVEL > 0)
-			cout << "patch " << PPI_PATCH_LEVEL << " ";
-		cout << " revision ";
-		cout << buildnulls << PPI_BUILD_NUMBER << endl;
-		return EXIT_SUCCESS;
-	}
 	workdir= params.getPath();
 	command= commands->command();
 
