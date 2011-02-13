@@ -456,6 +456,67 @@ namespace util
 		return true;
 	}
 
+	void MainParams::version(const string& soption, const string& def, unsigned int major, unsigned int minor, unsigned int sub,
+			unsigned int patch, unsigned int build, unsigned int revision, const string& distribution/*= ""*/,
+			unsigned int nsub/*= 2*/, unsigned int nbuild/*= 5*/, unsigned int nrevision/*= 5*/)
+	{
+		int count;
+		string subnulls, buildnulls, revisionnulls;
+		ostringstream version, substream, buildstream, revisionstream;
+
+		version << m_sAppName << " ";
+		version << major << ".";
+		version << minor << ".";
+		if( sub ||
+			nsub	)
+		{
+			substream << build;
+			count= nsub - substream.str().length();
+			if(count>0)
+				subnulls.append(count, '0');
+			version << subnulls << sub << ".";
+		}
+		version << patch;
+		if(build != 0)
+		{
+			buildstream << build;
+			count= nbuild - buildstream.str().length();
+			if(count>0)
+				buildnulls.append(count, '0');
+			version << "." << buildnulls << build;
+		}
+		if(revision != 0)
+		{
+			revisionstream << revision;
+			count= revisionstream.str().length();
+			count= nrevision -revisionstream.str().length();
+			if(count>0)
+				revisionnulls.append(count, '0');
+			version << "." << revisionnulls << revision;
+		}
+		if(distribution != "")
+			version << "_" << distribution;
+		version << endl;
+		version << "  version ";
+		version << major << ".";
+		version << minor;
+		if(sub || nsub)
+			version << "." << subnulls << sub;
+		version << " ";
+		if(patch > 0)
+			version << "patch " << patch << " ";
+		if(build > 0)
+			version << "build " << buildnulls << build << " ";
+		if(revision > 0)
+			version << " revision " << revisionnulls << revision << " ";
+		if(distribution != "")
+			version << " for distribution " << distribution;
+		version << endl << endl;
+		m_sVersionString= version.str();
+		m_sVersionOption= soption;
+		option(soption, def, "show information of actual version");
+	}
+
 	bool MainParams::error()
 	{
 		string help;
@@ -668,6 +729,12 @@ namespace util
 				exit(EXIT_FAILURE);
 			if(usage())
 				exit(EXIT_SUCCESS);
+			if(	m_sVersionOption != "" &&
+				hasOption(m_sVersionOption)	)
+			{
+				cout << m_sVersionString;
+				exit(EXIT_SUCCESS);
+			}
 			return false;
 		}
 		if(m_mErrors.empty())
