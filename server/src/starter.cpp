@@ -88,7 +88,7 @@ using namespace std;
 using namespace logger;
 
 
-bool Starter::execute()
+bool Starter::execute(const IOptionStructPattern* commands)
 {
 	bool bLog, bDb, bPorts, bInternet;
 	int err;
@@ -702,7 +702,7 @@ bool Starter::execute()
 #endif //_OWFSLIBRARY
 
 	--nServerID;
-	createPortObjects();
+	createPortObjects(commands->hasOption("configure"));
 
 	OWInterface::checkUnused(nServerID);
 	OWInterface::endOfInitialisation(nServerID);
@@ -710,6 +710,7 @@ bool Starter::execute()
 	//checkAfterContact();
 
 	bool createThread= false;
+	bool bStarting(commands->hasOption("folderstart"));
 	MeasureArgArray args;
 	SHAREDPTR::shared_ptr<meash_t> pFirstMeasureThreads;
 	SHAREDPTR::shared_ptr<meash_t> pCurrentMeasure;
@@ -719,7 +720,8 @@ bool Starter::execute()
 	SHAREDPTR::shared_ptr<measurefolder_t> aktFolder= m_tFolderStart;
 	args.ports= ports;
 	cout << endl;
-	cout << "### start folder thread(s) from measure.conf" << endl;
+	if(bStarting)
+		cout << "### start folder thread(s) from measure.conf" << endl;
 	while(aktFolder != NULL)
 	{
 		if(!aktFolder->bCorrect)
@@ -733,7 +735,8 @@ bool Starter::execute()
 			cout << msg << endl;
 		}else
 		{
-			cout << "                     " << aktFolder->name << endl;
+			if(bStarting)
+				cout << "                     " << aktFolder->name << endl;
 			createThread= true;
 			if(pFirstMeasureThreads == NULL)
 			{
@@ -751,6 +754,8 @@ bool Starter::execute()
 		}
 		aktFolder= aktFolder->next;
 	}
+	if(bStarting)
+		cout << endl;
 	if(!createThread)
 	{
 
@@ -871,7 +876,7 @@ bool Starter::execute()
 	return true;
 }
 
-void Starter::createPortObjects()
+void Starter::createPortObjects(bool bShowConf)
 {
 	bool bNewMeasure(false);
 	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
@@ -888,7 +893,8 @@ void Starter::createPortObjects()
 		bool correctFolder= false;
 		int nMuch= aktualFolder->subroutines.size();
 
-		//cout << endl << "folder: " << aktualFolder->name << endl;
+		if(bShowConf)
+			cout << " configure folder: '" << aktualFolder->name << "'" << endl;
 		for(int n= 0; n<nMuch; n++)
 		{
 			vector<ohm> *pvOhm= &aktualFolder->subroutines[n].resistor;
@@ -1145,6 +1151,8 @@ void Starter::createPortObjects()
 		aktualFolder->bCorrect= correctFolder;
 		aktualFolder= aktualFolder->next;
 	}
+	if(bShowConf)
+		cout << endl << endl;
 }
 
 Starter::~Starter()

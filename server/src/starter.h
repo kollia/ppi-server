@@ -28,6 +28,8 @@
 #include "util/smart_ptr.h"
 #include "util/structures.h"
 
+#include "pattern/util/ICommandStructPattern.h"
+
 #include "util/properties/configpropertycasher.h"
 
 #include "server/libs/server/ServerThread.h"
@@ -73,14 +75,16 @@ class Starter
 		 */
 		Properties m_oServerFileCasher;
 		/**
-		 * all types in any subroutine whitch be reached over an Owserver instance
+		 * all types in any subroutine which be reached over an Owserver instance
 		 */
 		vector<string> m_vOWServerTypes;
 
 		/**
-		 * create instance of all subroutine classes whitch are set in measure.conf
+		 * create instance of all subroutine classes which are set in measure.conf
+		 *
+		 * @param bShowConf whether should shown on command line which folder will be configured
 		 */
-		void createPortObjects();
+		void createPortObjects(bool bShowConf);
 		void isNoPathDefinedStop();
 		/**
 		 * search entry in an vector of used ports
@@ -117,16 +121,16 @@ class Starter
 		void printSigError(const string cpSigValue);
 
 	public:
-		Starter(string workdir) :
-			m_sWorkdir(workdir),
+		Starter() :
 			m_oServerFileCasher()
 			{ };
 		/**
 		 * start server
 		 *
+		 * @param commands object of commands to know which options be set
 		 * @return whether server running correctly
 		 */
-		bool execute();
+		bool execute(const IOptionStructPattern* commands);
 		/**
 		 * ask server for running status
 		 *
@@ -141,6 +145,13 @@ class Starter
 		bool stop();
 		//which ports as string are needeD. Second pair object bool is whether the port is defined for pin reading with ioperm()
 		void readFile(vector<pair<string, PortTypes> > &vlRv, string fileName);
+		/**
+		 * set directory of working
+		 *
+		 * @param workdir working directory
+		 */
+		void setWorkingDirectory(const string& workdir)
+		{ m_sWorkdir= workdir; };
 		~Starter();
 };
 

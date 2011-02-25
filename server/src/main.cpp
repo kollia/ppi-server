@@ -137,8 +137,7 @@ int main(int argc, char* argv[])
 
 	bool result;
 	string command;
-	auto_ptr<Starter> server;
-	string workdir;
+	Starter server;
 	MainParams params(argc, argv, /*read path for parent dirs*/1);
 	const ICommandStructPattern* commands;
 
@@ -146,8 +145,10 @@ int main(int argc, char* argv[])
 
 	params.option("configure", "c", "display which folder configure by starting\n"
 							"(can be set by longer starting time to know what server is doing)");
+	params.option("folderstart", "f", "show all folder on command line wich are starting");
 	params.version(PPI_MAJOR_RELEASE, PPI_MINOR_RELEASE, PPI_SUBVERSION, PPI_PATCH_LEVEL,
 										/*no build*/0, PPI_REVISION_NUMBER, DISTRIBUTION_RELEASE);
+	params.help("help", "?");
 
 	params.command("start", "starting server");
 	params.command("stop", "stopping server");
@@ -155,9 +156,9 @@ int main(int argc, char* argv[])
 	params.command("status", "get feedback whether server is running");
 
 	params.execute();
-	workdir= params.getPath();
 	commands= params.getCommands();
 	command= commands->command();
+	server.setWorkingDirectory(params.getPath());
 
 	try
 	{
@@ -172,11 +173,10 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		server= auto_ptr<Starter>(new Starter(workdir));
 		if(command == "start")
 		{
 			pthread_mutex_init(&g_READMUTEX, NULL);
-			result= server->execute();
+			result= server.execute(&params);
 			cout << "### ppi-server was stopped ";
 			if(!result)
 			{
@@ -188,17 +188,17 @@ int main(int argc, char* argv[])
 
 		}else if(command == "status")
 		{
-			result= server->status();
+			result= server.status();
 
 		}else if(command == "stop")
 		{
-			result= server->stop();
+			result= server.stop();
 
 		}else if(command == "restart")
 		{
-			server->stop();
+			server.stop();
 			cout << "### restart ppi-server" << endl;
-			result= server->execute();
+			result= server.execute(commands);
 		}else
 		{
 			cout << "no correct command be set" << endl;
