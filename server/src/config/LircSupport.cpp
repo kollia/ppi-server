@@ -43,20 +43,62 @@ using namespace util;
 using namespace subroutines;
 using namespace boost;
 
+
 int LircSupport::execute(const ICommandStructPattern* params)
 {
-	bool receive(params->hasOption("receiver"));
-	bool transmit(params->hasOption("transmitter"));
+	bool transmit;
 	bool learn(params->hasOption("learn"));
 	int vertical= 3;
 	string param, opname, remote;
 	string lircconf("/etc/lirc/lircd.conf");
 	string userreadperm("read"), userwriteperm("change");
 	string readperm("confread"), writeperm("confchange");
+	string ureadcw("ureadcw");
+	map<string, vector<string> >::const_iterator found;
+	map<string, string>::const_iterator f;
 	remotecodes_t r;
 
+	transmit= !params->hasOption("notransmit");
 	if(params->hasOption("file"))
 		lircconf= params->getOptionContent("file");
+	if(params->hasOption("show"))
+	{
+		if(	(	!params->hasOption("file") &&
+				params->optioncount() > 1 		) ||
+			(	params->hasOption("file") &&
+				params->optioncount() > 2 		)	)
+		{
+			cout << endl;
+			cout << "  WARNING: more than one option be set! (except --file)" << endl;
+			cout << "           show only remote names with aliases" << endl;
+		}
+		r= readLircd(lircconf);
+		cout << endl;
+		if(r.remotealias.size())
+		{
+			for(map<string, string>::iterator n= r.remotealias.begin(); n != r.remotealias.end(); ++n)
+			{
+				found= r.kill.find(n->first);
+				if(found == r.kill.end())
+					cout << "    create remote '" << n->second << "'  as  '" << n->first << "'" << endl;
+			}
+			cout << endl;
+			if(r.kill.size())
+			{
+				for(found= r.kill.begin(); found != r.kill.end(); ++found)
+				{
+					f= r.remotealias.find(found->first);
+					cout << "    do not create remote '" << f->second << "' because it is an link to remote" << endl;
+					for(vector<string>::const_iterator c= found->second.begin(); c != found->second.end(); ++c)
+						cout << "                               '" << *c << "'" << endl;
+				}
+				cout << endl;
+			}
+			return EXIT_SUCCESS;
+		}
+		cerr << "    cannot find any remote in " << lircconf << endl << endl;
+		return EXIT_FAILURE;
+	}
 	if(params->hasOption("readperm"))
 		userreadperm= params->getOptionContent("readperm");
 	if(params->hasOption("changeperm"))
@@ -65,6 +107,8 @@ int LircSupport::execute(const ICommandStructPattern* params)
 		readperm= params->getOptionContent("configreadperm");
 	if(params->hasOption("configchangeperm"))
 		writeperm= params->getOptionContent("configchangeperm");
+	if(params->hasOption("userreadconfwrite"))
+		ureadcw= params->getOptionContent("userreadconfwrite");
 	if(params->hasOption("remote"))
 		remote= params->getOptionContent("remote");
 	if(params->hasOption("vertical"))
@@ -80,27 +124,6 @@ int LircSupport::execute(const ICommandStructPattern* params)
 		}
 	}
 
-	if(	receive &&
-		transmit	)
-	{
-		cout << "do not set option for transmitting and receiving" << endl;
-		cout << "no correct command be set" << endl;
-		cout << "type -? for help" << endl;
-		return EXIT_FAILURE;
-	}
-	if(	receive &&
-		learn		)
-	{
-		cout << "option -l or --learn is only for transmitting" << endl;
-		cout << "no correct command be set" << endl;
-		cout << "type -? for help" << endl;
-		return EXIT_FAILURE;
-	}
-	if(learn)
-		transmit= true;
-	if(!transmit)
-		receive= true;
-
 	cout << endl << "### read all configured remote controls from ";
 	if(params->hasOption("file"))
 		cout << "pre-defined ";
@@ -112,7 +135,8 @@ int LircSupport::execute(const ICommandStructPattern* params)
 		return EXIT_FAILURE;
 	if(!learn)
 	{
-		if(createConfigLayoutFiles(transmit, vertical, userreadperm, userwriteperm, readperm, writeperm, r, remote) == false)
+		searchPreDefined(r);
+		if(createConfigLayoutFiles(transmit, vertical, userreadperm, userwriteperm, ureadcw, readperm, writeperm, r, remote) == false)
 			return EXIT_FAILURE;
 	}// if(!learn)
 	return EXIT_SUCCESS;
@@ -215,7 +239,7 @@ LircSupport::remotecodes_t LircSupport::readLircd(const string& lircd) const
 							}
 							++uncommentedname;
 
-						}else if(code == "###LINK")
+						}else if(code == "link")
 						{
 							string rem, co;
 							vector<string> sp;
@@ -244,16 +268,24 @@ LircSupport::remotecodes_t LircSupport::readLircd(const string& lircd) const
 								}
 								codealias[newname]= org_code;
 								co= newname;
-								r.kill[rem].push_back(name);
+								if(find(r.kill[rem].begin(), r.kill[rem].end(), name) == r.kill[rem].end())
+									r.kill[rem].push_back(name);
 								r.remotes[name].push_back(rem +":"+ co);
 								//cout << "       with code '" << co << "' linked to remote '" << rem << "'" << endl;
 							}else
-								cerr << "### warning: undefined uncommented code '" << code << "' found in remoute '" << name << "'" << endl;
+								cout << "### WARNING: undefined uncommented code '" << code << "' found in remoute '" << name << "'" << endl;
 
-						}else if(code == "###NULL")
+						}else if(code == "null")
 						{
-							r.remotes[name].push_back(code + "::");
+							r.remotes[name].push_back("###NULL::");
 							//cout << "       NULL FIELD" << endl;
+						}else if(code == "break")
+						{
+							r.remotes[name].push_back("###BREAK::");
+							//cout << "       NEW ROW" << endl;
+						}else
+						{
+							cout << "### WARNING: found undefined uncommented key value '" << code << "'" << endl;
 						}
 					}else
 					{
@@ -343,7 +375,7 @@ void LircSupport::writeHeader(ofstream& file, const string& filename) const
 }
 
 bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertical,
-		const string& userreadperm, const string& userwriteperm,
+		const string& userreadperm, const string& userwriteperm, const string& ureadcw,
 		const string& readperm, const string& writeperm, const remotecodes_t& r, const string& forremote) const
 {
 	bool bwritten(false), ballwritten(true);
@@ -364,18 +396,16 @@ bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertica
 		// write header of file for lirc.conf
 		writeHeader(file, "lirc");
 
-		if(transmit)
-		{//  write by transmitting record button
-			folder= auto_ptr<Folder>(new Folder(file, "TRANSMIT_RECEIVE_main_settings"));
-			pSwitch= folder->getSwitch("record");
-			pSwitch->description("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-			pSwitch->description(" record all changes on remote access");
-			pSwitch->action("db");
-			pSwitch->pperm(writeperm);
-			pSwitch->description();
-			pSwitch->description();
-			pSwitch->description();
-		}
+		//  write by transmitting record button
+		folder= auto_ptr<Folder>(new Folder(file, "TRANSMIT_RECEIVE_main_settings"));
+		pSwitch= folder->getSwitch("record");
+		pSwitch->description("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		pSwitch->description(" record all changes on remote access");
+		pSwitch->action("db");
+		pSwitch->pperm(writeperm);
+		pSwitch->description();
+		pSwitch->description();
+		pSwitch->description();
 
 		for(remit= r.remotes.begin(); remit != r.remotes.end(); ++remit)
 		{
@@ -383,7 +413,7 @@ bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertica
 			{
 				cout << "###" << endl;
 				cout << "###   write configuration for remote control '" << remit->first << "':" << endl;
-				if(createRemoteConfFile(remit->first, r, readperm, writeperm, userreadperm, userwriteperm, transmit))
+				if(createRemoteConfFile(remit->first, r, readperm, writeperm, ureadcw, userreadperm, userwriteperm, transmit))
 				{
 
 					file << "#" << endl;
@@ -391,7 +421,7 @@ bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertica
 					file << "# ----------------------------------------------------------------------------------------" << endl;
 					file << "file= " << remit->first << ".conf" << endl;
 					file << endl;
-					if(createRemoteDesktopFile(remit->first, r, vertical, transmit, writeperm))
+					if(createRemoteDesktopFile(remit->first, r, vertical, writeperm))
 						bwritten= true;
 				}else
 					ballwritten= false;
@@ -407,11 +437,11 @@ bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertica
 		if(found == r.kill.end())
 		{
 			cout << "###   write configuration for remote control '" << forremote << "':" << endl;
-			if(createRemoteConfFile(forremote, r, readperm, writeperm, userreadperm, userwriteperm, transmit))
+			if(createRemoteConfFile(forremote, r, readperm, writeperm, ureadcw, userreadperm, userwriteperm, transmit))
 			{
 				if(r.kill.find(forremote) == r.kill.end())
 				{
-					if(createRemoteDesktopFile(forremote, r, vertical, transmit, writeperm))
+					if(createRemoteDesktopFile(forremote, r, vertical, writeperm))
 						bwritten= true;
 				}else
 					ballwritten= false;
@@ -428,11 +458,16 @@ bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertica
 	}
 	if(bwritten == false)
 		return false;
+	cout << endl;
+	cout << "  Pleas copy now the generated *.conf file(s) into the configuration sub folder (conf) of ppi-server" << endl;
+	cout << "  and also the corresponding *desktop files to the client directory of ppi-server." << endl;
+	if(forremote == "")
+		cout << " Create also an link in the main measure.conf file to lirc.conf (file= lirc.conf)." << endl;
+	cout << endl;
 	return true;
 }
 
-bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecodes_t& r, const int vertical,
-		const bool transmit, const string& perm) const
+bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecodes_t& r, const int vertical, const string& perm) const
 {
 	int actrows= 0;
 	ofstream file;
@@ -461,20 +496,19 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 	file << "<layout>" << endl;
 	file << "  <head>" << endl;
 	file << "    <title name=\"" << org_remote << "\" />" << endl;
-	file << "    <meta name=\"permission\" content=\"" <<perm << "\" />" << endl;
+	file << "    <meta name=\"permission\" content=\"" << perm << "\" />" << endl;
 	file << "  </head>" << endl;
 	file << "  <body>" << endl;
-	if(transmit)
-	{
-		file << "    <table boder=\"1\" width=\"100\">" << endl;
-		file << "      <tr>" << endl;
-		file << "        <td>" << endl;
-		file << "          <input type=\"togglebutton\" value=\"record\" "
-					"result=\"TRANSMIT_RECEIVE_main_settings:record\" />" << endl;
-		file << "        </td>" << endl;
-		file << "      </tr>" << endl;
-		file << "    </table><br />" << endl;
-	}
+	file << "    <table boder=\"1\" width=\"100\">" << endl;
+	file << "      <tr>" << endl;
+	file << "        <td>" << endl;
+	file << "          <input type=\"togglebutton\" value=\"record\" "
+				"result=\"TRANSMIT_RECEIVE_main_settings:record\" />" << endl;
+	file << "          &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;" << endl;
+	file << "          " << org_remote << endl;
+	file << "        </td>" << endl;
+	file << "      </tr>" << endl;
+	file << "    </table><br />" << endl;
 	file << "    <table border=\"1\">" << endl;
 	file << "      <tr>" << endl;
 	file << "        <td>" << endl;
@@ -497,9 +531,10 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 			org_code= foundCodeAlias->second;
 		if(actrows == 0)
 			file << "            <tr>" << endl;
-		file << "              <td>" << endl;
+		file << "              <td align=\"center\">" << endl;
 		//cout << "read " << remote << " " << code << endl;
-		if(code != "###NULL::")
+		if(	code != "###NULL::" &&
+			code != "###BREAK::"		)
 		{
 			file << "                ";
 			file << "<input type=\"checkbox\" result=\"";
@@ -534,7 +569,8 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 			file << "                &#160;" << endl;
 		file << "              </td>" << endl;
 		++actrows;
-		if(actrows == vertical)
+		if(	actrows == vertical ||
+			code == "###BREAK::"	)
 		{
 			file << "            </tr>" << endl;
 			actrows= 0;
@@ -555,7 +591,7 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 	file << "                button:" << endl;
 	file << "              </td>" << endl;
 	file << "              <td>" << endl;
-	file << "                <input type=\"spinner\" result=\"" << remote << "__choice:group\" width=\"20\" min=\"1\" max=\"" << remit->second.size() << "\" />" << endl;
+	file << "                <input type=\"spinner\" result=\"" << remote << "__choice:group\" width=\"20\" min=\"1\" max=\"" << remit->second.size() << "\" />&#160;" << endl;
 	file << "                <input type=\"text\" result=\"" << remote << "__choice:correct_group\" value=\"\" disabled=\"disabled\" width=\"20\"/>" << endl;
 	file << "              </td>" << endl;
 	file << "            </tr>" << endl;
@@ -601,7 +637,8 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 	for(vector<string>::const_iterator coit= remit->second.begin(); coit != remit->second.end(); ++coit)
 	{
 		code= *coit;
-		if(code != "###NULL::")
+		if(	code != "###NULL::" &&
+			code != "###BREAK::"		)
 		{
 			if(code.find(":") == string::npos)
 			{
@@ -662,6 +699,26 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 	file << "                <input type=\"checkbox\" result=\"" << remote << "__choice:double\" />" << endl;
 	file << "              </td>" << endl;
 	file << "            </tr>" << endl;
+
+	file << "            <tr>" << endl;
+	file << "              <td align=\"right\">" << endl;
+	file << "                set only actual step:" << endl;
+	file << "              </td>" << endl;
+	file << "              <td>" << endl;
+	file << "                <input type=\"checkbox\" result=\"" << remote << "__choice:set_steps\" />" << endl;
+	file << "                <input type=\"spinner\" result=\"" << remote << "__choice:digits\" width=\"20\" min=\"1\" max=\"5\" />" << endl;
+	file << "                digits" << endl;
+	file << "              </td>" << endl;
+	file << "            </tr>" << endl;
+	file << "            <tr>" << endl;
+	file << "              <td align=\"right\">" << endl;
+	file << "                to value:" << endl;
+	file << "              </td>" << endl;
+	file << "              <td>" << endl;
+	file << "                <input type=\"spinner\" result=\"" << remote << "__choice:to_value\" width=\"50\" min=\"0\" max=\"99999\" />" << endl;
+	file << "              </td>" << endl;
+	file << "            </tr>" << endl;
+
 	file << "            <tr>" << endl;
 	file << "              <td align=\"right\">" << endl;
 	file << "                wait after:" << endl;
@@ -680,6 +737,7 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 	file << "            </tr>" << endl;
 	file << "            <tr>" << endl;
 	file << "              <td align=\"right\">" << endl;
+	file << "                <input type=\"checkbox\" result=\"" << remote << "__choice:wait_back_time\" readonly=\"readonly\" />" << endl;
 	file << "                back time:" << endl;
 	file << "              </td>" << endl;
 	file << "              <td>" << endl;
@@ -704,11 +762,10 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 }
 
 bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t& r,
-		const string& readperm, const string& writeperm,
+		const string& readperm, const string& writeperm, const string& ureadcw,
 		const string& userreadperm, const string& userwriteperm, const bool transmit) const
 {
 	bool setDefault;
-	bool allowdirect(false);
 	unsigned short correct_group;
 	Switch* pSwitch;
 	Value* pValue;
@@ -720,9 +777,11 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 	auto_ptr<Folder> folder;
 	ofstream file;
 	string filename(remote + ".conf");
-	string code, org_code;
+	string code, searchcode, org_code;
 	string org_remote;
+	default_t tdefault;
 
+	vector<string>::size_type count, linkcount;
 	map<string, string>::const_iterator foundRemouteAlias, foundCodeAlias;
 	map<string, map<string, string> >::const_iterator foundCodeAliasMap, displayCodeMap; //, linkCodeAliasMap;
 	map<string, vector<string> >::const_iterator remit;
@@ -767,13 +826,51 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 	folder->description();
 	folder->description();
 
-	file << "# this under comments should be templates to copy in your own measure.conf" << endl;
-	file << "# All subroutines ending with _receive you can use in subroutines witch has begin, while or end parameter" << endl;
-	if(transmit)
-	{
-		file << "#     subroutines ending with _send_once use in SET subroutines to send one signal to case or the measuered time in GUI" << endl;
-		file << "#     by ending with _send begin to sending signal. Don't forget to SEt this subroutine to 0 for stopping" << endl;
-	}
+	file << "#" << endl;
+	file << "# This under comments are templates to copy in your own measure.conf or layout file." << endl;
+	file << "# The main subroutines are 'count_steps'  - routine to send signal over transmitter" << endl;
+	file << "#                                           and count the value actual_step higher or lower" << endl;
+	file << "#            and of course 'actual_step'  - where you can read the actual count" << endl;
+	file << "#" << endl;
+	file << "# 'count_steps' is an subroutine from type 'VALUE' where you can fill in," << endl;
+	file << "#               with an subroutine from type SET, how much steps the remote folder should count" << endl;
+	file << "#               always in the direction and properties defined before in the GUI (maybe ppi-java-client)." << endl;
+	file << "#               This subroutine should be used only in own defined measure.conf files." << endl;
+	file << "#               (measure.conf means also self named files xxx.conf linked from main measure.conf file)." << endl;
+	file << "#               For layout files use the subroutine 'count' from type SWITCH, when you want to use as button." << endl;
+	file << "#               You can also use this 'count' subroutine in an configuration file when you watch" << endl;
+	file << "#               the subroutine 'actual_step' and set after right value 'count' to 0." << endl;
+	file << "# 'actual_step' if for using in an own subroutine with 'from', 'begin', 'while' or 'end' parameter " << endl;
+	file << "#               like subroutines from type SET, SWITCH, VALUE and so on." << endl;
+	file << "#" << endl;
+	file << "#        example to read 'actual_step':" << endl;
+	file << "#                     name= myNewSubroutine" << endl;
+	file << "#                     type= SWITCH" << endl;
+	file << "#                     begin= " << remote << ":actual_step = 1" << endl;
+	file << "#                     end= " << remote << ":actual_step = 0" << endl;
+	file << "#        or fill steps into 'count_steps':" << endl;
+	file << "#                     name= setCounts" << endl;
+	file << "#                     type= SET" << endl;
+	file << "#                     from= 3" << endl;
+	file << "#                     set= " << remote << ":count_steps" << endl;
+	file << "#                     while= anyFolder:subroutine = 1" << endl;
+	file << "#" << endl;
+	file << "# Important could be also the following subroutines for native access: " << endl;
+	file << "#      count          - also to send signal over transmitter, described before" << endl;
+	file << "#      receive        - receive signal from receiver or subroutine 'count' (count_steps)" << endl;
+	file << "#                       is activated from any client or measure.conf" << endl;
+	file << "#      what           - whether subroutine 'count' was as last activated (value 0)" << endl;
+	file << "#                       or lirc has received as last a signal (value 1)" << endl;
+	file << "#      wait_back_time - value is 1 while folder wait for time to show back the default value" << endl;
+	file << "#                       This subroutine will be activated an time after 'receive' was active" << endl;
+	file << "#                       when 'first touch show' inside the GUI is checked " << endl;
+	file << "#                       or the button folder is defined to 'set only actual step' with more than one digits" << endl;
+	file << "#      predef_step    - define value of actual step before when folder button be defined to 'set only actual step'" << endl;
+	file << "#                       and 'wait_back_time' is active, elsewhere this subroutine have the value -1" << endl;
+	file << "#      receive_signal - get signal number from receiver" << endl;
+	file << "#                       (not the same as actual_step but the count length of pressing on transmitter)" << endl;
+	file << "#" << endl;
+	file << "#" << endl;
 	file << "#" << endl;
 
 	/**************************************************************************************************
@@ -786,7 +883,8 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 	for(vector<string>::const_iterator coit= remit->second.begin(); coit != remit->second.end(); ++coit)
 	{
 		code= *coit;
-		if(code != "###NULL::")
+		if(	code != "###NULL::" &&
+			code != "###BREAK::"		)
 		{
 			if(code.find(":") == string::npos)
 			{
@@ -823,25 +921,23 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			}
 			file << "#" << endl;
 			file << "#        button '" << org_code << "'" << endl;
-			if(allowdirect)
-				file << "#            " << remote << "_" << code << ":receive" << endl;
-			if(transmit)
-			{
-				file << "#            " << remote << "_" << code << ":count" << endl;
-				if(allowdirect)
-				{
-					file << "#            " << remote << "_" << code << ":send_once" << endl;
-					file << "#            " << remote << "_" << code << ":send" << endl;
-				}
-			}
+			file << "#            " << remote << "_" << code << ":count_steps" << endl;
 			file << "#            " << remote << "_" << code << ":actual_step" << endl;
+			file << "#            " << remote << "_" << code << ":count" << endl;
+			file << "#            " << remote << "_" << code << ":receive" << endl;
+			file << "#            " << remote << "_" << code << ":what" << endl;
+			file << "#            " << remote << "_" << code << ":wait_back_time" << endl;
+			file << "#            " << remote << "_" << code << ":predef_step" << endl;
+			file << "#            " << remote << "_" << code << ":receive_signal" << endl;
 		}
 	}
 	file << "#" << endl;
 	file << endl;
+	file << endl;
+	file << endl;
 
 	/******************************************************************************************************
-	 * declaration of all buttons seen on client to activate
+	 * declaration of all buFttons seen on client to activate
 	 */
 	folder->description("declaration of all buttons from transmitter seen on client to activate");
 	folder->flush();
@@ -851,7 +947,8 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 	for(vector<string>::const_iterator coit= remit->second.begin(); coit != remit->second.end(); ++coit)
 	{
 		code= *coit;
-		if(code != "###NULL::")
+		if(	code != "###NULL::" &&
+			code != "###BREAK::"		)
 		{
 			if(code.find(":") == string::npos)
 			{
@@ -980,10 +1077,40 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 	pValue->pperm(writeperm);
 	pValue->description();
 
+	pSwitch= folder->getSwitch("wait_back_time");
+	pSwitch->description("whether folder wait for time to show back the default value");
+	pSwitch->flush();
+	createSubroutineLink(file, pSwitch->getName(), remote, remit->second, "correct_group");
+	pSwitch->pperm(userreadperm);
+	pSwitch->description();
+
 	pValue= folder->getValue("back_time");
 	pValue->description("how long the time after last pressed should measured");
 	pValue->flush();
 	createSubroutineLink(file, pValue->getName(), remote, remit->second, "correct_group");
+	pValue->pperm(writeperm);
+	pValue->description();
+
+	pSwitch= folder->getSwitch("set_steps");
+	pSwitch->description("whether should set actual step only to an number");
+	pSwitch->flush();
+	createSubroutineLink(file, pSwitch->getName(), remote, remit->second, "correct_group");
+	pSwitch->pperm(writeperm);
+	pSwitch->description();
+
+	pValue= folder->getValue("digits");
+	pValue->description("how many presses of numbers shuld finish setting");
+	pValue->flush();
+	createSubroutineLink(file, pValue->getName(), remote, remit->second, "correct_group");
+	pValue->action("int");
+	pValue->pperm(writeperm);
+	pValue->description();
+
+	pValue= folder->getValue("to_value");
+	pValue->description("to which value actual step should be set when subroutine set_steps is activated");
+	pValue->flush();
+	createSubroutineLink(file, pValue->getName(), remote, remit->second, "correct_group");
+	pValue->action("int");
 	pValue->pperm(writeperm);
 	pValue->description();
 
@@ -1033,10 +1160,13 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 		string display_name;
 
 		code= *coit;
-		if(code != "###NULL::")
+		if(	code != "###NULL::" &&
+			code != "###BREAK::"		)
 		{
 			if(code.find(":") == string::npos)
 			{
+				foundRemouteAlias= r.remotealias.find(remote);
+				org_remote= foundRemouteAlias->second;
 				displayCodeMap= r.dcodes.find(remote);
 				foundCodeAliasMap= r.rcodealias.find(remote);
 				foundCodeAlias= foundCodeAliasMap->second.find(code);
@@ -1053,28 +1183,105 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 					display_name= foundCodeAlias->second;
 			}else
 			{// code is an linked subroutine
+				string newremote;
 				vector<string> sp;
+				map<string, string>::const_iterator remotes;
 
 				split(sp, code , is_any_of(":"));
-				displayCodeMap= r.dcodes.find(sp[0]);
+				code= sp[1];
+				remotes= r.remotealias.find(sp[0]);
+				if(remotes != r.remotealias.end())
+					org_remote= remotes->second;
+				else
+					org_remote= sp[0];
 				foundCodeAliasMap= r.rcodealias.find(sp[0]);
-				foundCodeAlias= foundCodeAliasMap->second.find(code);
+				foundCodeAlias= foundCodeAliasMap->second.find(sp[1]);
 				if(foundCodeAlias != foundCodeAliasMap->second.end())
 					org_code= foundCodeAlias->second;
 				else
-					org_code= code;
+					org_code= sp[1];
+				displayCodeMap= r.dcodes.find(sp[0]);
 				foundCodeAlias= displayCodeMap->second.find(sp[1]);
-				if(foundCodeAlias == displayCodeMap->second.end())
-				{
-					foundCodeAlias= foundCodeAliasMap->second.find(sp[1]);
-					if(foundCodeAlias != foundCodeAliasMap->second.end())
-						display_name= foundCodeAlias->second;
-					else
-						display_name= sp[1];
-				}else
+				if(foundCodeAlias != displayCodeMap->second.end())
 					display_name= foundCodeAlias->second;
-				code= sp[1];
+				else
+					display_name= sp[0];
 			}
+			++correct_group;
+			tdefault= getDefaults(remote, org_code);
+
+			// define to which group set link as default
+			count= 1;
+			linkcount= 0;
+			for(vector<string>::const_iterator c= remit->second.begin(); c != remit->second.end(); ++c)
+			{
+				searchcode= *c;
+				if(	searchcode != "###NULL::" &&
+					searchcode != "###BREAK::"		)
+				{
+					if(searchcode.find(":") != string::npos)
+					{// code is an linked subroutine
+						string newremote;
+						vector<string> sp;
+						map<string, string>::const_iterator remotes;
+
+						split(sp, searchcode , is_any_of(":"));
+						searchcode= sp[1];
+					}
+					if(searchcode == tdefault.group)
+					{
+						linkcount= count;
+						break;
+					}
+					++count;
+				}
+			}
+			if(linkcount == 0)
+				linkcount= correct_group;
+
+#if 0
+			cout << "  create folder " << remote << "_" << code << endl;
+			cout << "                  remote: " << remote << endl;
+			cout << "                    code: " << code << endl;
+			cout << "         original remote: " << org_remote << endl;
+			cout << "         original   code: " << org_code << endl;
+			cout << "       display as button: " << display_name << endl;
+			cout << "                   with button number " << correct_group << endl;
+			cout << "                       link to button " << tdefault.group << " as number " << linkcount << " by default" << endl;
+			cout << "                          should have " << tdefault.steps << " steps by default" << endl;
+			cout << "            	pre-defined for direction '";
+			switch(tdefault.direction)
+			{
+			case LircSupport::UP_STOP:
+				cout << "UP_STOP" << "'" << endl;
+				break;
+			case LircSupport::DOWN_STOP:
+				cout << "DOWN_STOP" << "'" << endl;
+				break;
+			case LircSupport::UP_LOOP:
+				cout << "UP_LOOP" << "'" << endl;
+				break;
+			case LircSupport::DOWN_LOOP:
+				cout << "DOWN_LOOP" << "'" << endl;
+				break;
+			};
+			cout << "                                   to sending for ";
+			switch(tdefault.send)
+			{
+			case LircSupport::ONCE:
+				cout << "only one step" << endl;
+				break;
+			case LircSupport::SEND:
+				cout << "longer duration" << endl;
+				break;
+			}
+			if(tdefault.digits)
+			{
+				cout << "                    set only to value " << tdefault.setto << endl;
+				cout << "                                  for " << tdefault.digits << " digits" << endl;
+			}
+			cout << endl;
+#endif
 
 			folder= auto_ptr<Folder>(new Folder(file, remote + "_" + code));
 			folder->description("propteries for button '" + display_name + "'");
@@ -1082,7 +1289,6 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			folder->description("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 			folder->description();
 
-			++correct_group;
 			pValue= folder->getValue("correct_group");
 			pValue->description("unique group number of button");
 			pValue->pdefault(static_cast<double>(correct_group));
@@ -1093,6 +1299,20 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 
 			folder->description("-------------------------------------------------------------------------------------------------");
 			folder->description("--------------------------  begin of read sending from client  ----------------------------------");
+			pValue= folder->getValue("count_steps");
+			pValue->description("how much counts the button folder should count");
+			pValue->pmin(0);
+			pValue->action("int");
+			pValue->pperm(userwriteperm);
+			pValue->description();
+
+			pValue= folder->getValue("count_steps_do");
+			pValue->description("how much counts the button folder should count, added from count_steps");
+			pValue->pmin(0);
+			pValue->action("int");
+			pValue->pperm(userwriteperm);
+			pValue->description();
+
 			pSwitch= folder->getSwitch("count");
 			pSwitch->description("button for client to send signal over transmitter");
 			pSwitch->pperm(userwriteperm);
@@ -1102,6 +1322,19 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pSwitch->description("button should be the same for hole folder");
 			pSwitch->pwhile("count");
 			pSwitch->description();
+
+			pSet= folder->getSet("count_steps_higher");
+			pSet->description("add count_steps to count_steps_do when any filled in");
+			pSet->description("set count_steps back to 0");
+			pSet->description("and set button to 1 by action SEND or varios to 1 or 0 by action SEND_ONCE");
+			pSet->pfrom("count_steps_do + count_steps");
+			pSet->pfrom(0);
+			pSet->pfrom("transmit_action | count=0 ? 1 : 0");
+			pSet->pset("count_steps_do");
+			pSet->pset("count_steps");
+			pSet->pset("button");
+			pSet->pwhile("count_steps | count_steps_do");
+			pSet->description();
 
 			pTimer= folder->getTimer("pressed");
 			pTimer->description("calculating length of pressed client button");
@@ -1194,12 +1427,8 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->pvalue("what");
 			pValue->pwhile("button ? 0 : receive_signal ? 1 : 2");
 			pValue->action("int");
+			pValue->pperm(userreadperm);
 			pValue->description();
-
-			pSwitch= folder->getSwitch("active");
-			pSwitch->description("whether folder is active running by get signal from any client or receiver");
-			pSwitch->pbegin("receive");
-			pSwitch->description();
 
 			folder->description();
 			folder->description();
@@ -1221,6 +1450,11 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pSwitch->description("receive signal from receiver or button was pressed");
 			pSwitch->pwhile("receive_signal | button");
 			pSwitch->pperm(userreadperm);
+			pSwitch->description();
+
+			pSwitch= folder->getSwitch("active");
+			pSwitch->description("whether folder is active running by get signal from any client or receiver");
+			pSwitch->pbegin("receive");
 			folder->description("--------------  end of calculation from first_touch, receive any and first_off  -----------------");
 			folder->description("#################################################################################################");
 			folder->description();
@@ -1233,7 +1467,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->description("group of button which hold steps");
 			pValue->pmin(1);
 			pValue->pmax(remit->second.size(), "actual button count");
-			pValue->pdefault(correct_group);
+			pValue->pdefault(linkcount);
 			pValue->action("int | db");
 			pValue->pperm(writeperm);
 			pValue->description();
@@ -1242,8 +1476,8 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->description("count of exist steps");
 			pValue->pmin(0);
 			pValue->pmax(200);
-			pValue->pdefault(0);
 			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
+			pValue->pdefault(tdefault.steps);
 			pValue->action("int | db");
 			pValue->pperm(writeperm);
 			pValue->description();
@@ -1256,6 +1490,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->description("    'BACK time'  = 3  # calibrate BACK time before make again first touch");
 			pValue->pmin(0);
 			pValue->pmax(3);
+			pValue->pdefault(tdefault.send);
 			pValue->action("int | db");
 			pValue->pperm(writeperm);
 			pValue->description();
@@ -1268,6 +1503,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->description("    'DOWN LOOP' = 3");
 			pValue->pmin(0);
 			pValue->pmax(3);
+			pValue->pdefault(tdefault.direction);
 			pValue->action("int | db");
 			pValue->pperm(writeperm);
 			pValue->description();
@@ -1329,34 +1565,67 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pTimer->description("how long the time after last pressed should measured for next step");
 			pTimer->pwhile("transmit_action=3 & receive");
 			createSubroutineLink(file, pTimer->getName(), remote, remit->second, "group");
-			pTimer->pdefault(0.5);
+			pTimer->pdefault(2.5);
 			pTimer->action("db | measure | micro");
 			pTimer->pperm(writeperm);
+			pTimer->description();
+
+			pSwitch= folder->getSwitch("set_steps");
+			pSwitch->description("whether should set actual step only to an number");
+			if(tdefault.digits)
+				pSwitch->pdefault(1);
+			else
+				pSwitch->pdefault(0);
+			pSwitch->action("db");
+			pSwitch->pperm(writeperm);
+			pSwitch->description();
+
+			pValue= folder->getValue("digits");
+			pValue->description("how many presses of numbers should finish setting");
+			pValue->flush();
+			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
+			pValue->pmin(1);
+			pValue->pmax(5);
+			if(tdefault.digits == 0)
+				tdefault.digits= 1;
+			pValue->pdefault(tdefault.digits);
+			pValue->action("int | db");
+			pValue->pperm(writeperm);
+			pValue->description();
+
+			pValue= folder->getValue("to_value");
+			pValue->description("to which value actual step should be set when subroutine set_steps is activated");
+			pValue->pdefault(tdefault.setto);
+			pValue->action("int | db");
+			pValue->pperm(writeperm);
 			folder->description("---------------------  end properties can be changed from client  -------------------------------");
 			folder->description("#################################################################################################");
 			folder->description();
 
-			folder->description();
-			folder->description();
-			folder->description("-------------------------------------------------------------------------------------------------");
-			folder->description("----------------------  begin of sending signal over transmitter  -------------------------------");
-			pLirc= folder->getLirc("send_once");
-			pLirc->description("send only one signal over transmitter");
-			pLirc->premote(org_remote);
-			pLirc->pcode(org_code);
-			pLirc->pwhile("what=0 & first_touch & (transmit_action=0 | transmit_action=3)");
-			pLirc->action("send_once");
-			pLirc->description();
+			if(transmit)
+			{
+				folder->description();
+				folder->description();
+				folder->description("-------------------------------------------------------------------------------------------------");
+				folder->description("----------------------  begin of sending signal over transmitter  -------------------------------");
+				pLirc= folder->getLirc("send_once");
+				pLirc->description("send only one signal over transmitter");
+				pLirc->premote(org_remote);
+				pLirc->pcode(org_code);
+				pLirc->pwhile("what=0 & first_touch & (transmit_action=0 | transmit_action=3)");
+				pLirc->action("send_once");
+				pLirc->description();
 
-			pLirc= folder->getLirc("send_onoff");
-			pLirc->description("send signal over transmitter for longer time");
-			pLirc->premote(org_remote);
-			pLirc->pcode(org_code);
-			pLirc->pwhile("button & (transmit_action=1 | transmit_action=2)");
-			pLirc->action("send");
-			folder->description("----------------------  end of sending signal over transmitter  ---------------------------------");
-			folder->description("#################################################################################################");
-			folder->description();
+				pLirc= folder->getLirc("send_onoff");
+				pLirc->description("send signal over transmitter for longer time");
+				pLirc->premote(org_remote);
+				pLirc->pcode(org_code);
+				pLirc->pwhile("button & (transmit_action=1 | transmit_action=2)");
+				pLirc->action("send");
+				folder->description("----------------------  end of sending signal over transmitter  ---------------------------------");
+				folder->description("#################################################################################################");
+				folder->description();
+			}
 
 			folder->description();
 			folder->description();
@@ -1374,10 +1643,18 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pTimer->description("measure time after lost signal over receiver or button");
 			pTimer->description("in this time can be pressed again, next step inside this time will be not only for show");
 			pTimer->pmtime("back_time");
-			pTimer->pbegin("display_first & first_off");
+			pTimer->pbegin("(display_first & first_off) | (set_steps & digits>1 & first_touch)");
 			pTimer->pend("new_activate<=0");
 			createSubroutineLink(file, pTimer->getName(), remote, remit->second, "group");
 			pTimer->action("micro");
+			pTimer->description();
+
+			pSwitch= folder->getSwitch("wait_back_time");
+			pSwitch->description("whether folder wait for time to show back the default value");
+			pSwitch->flush();
+			//createSubroutineLink(file, pSwitch->getName(), remote, remit->second, "group");
+			pSwitch->pwhile("new_activate>0");
+			pSwitch->pperm(userreadperm);
 			folder->description("-------  end of time calculation for button (send) and new activating first touch  --------------");
 			folder->description("#################################################################################################");
 			folder->description();
@@ -1413,33 +1690,73 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->pdefault(1);
 			pValue->description();
 
+			pValue= folder->getValue("predef_step");
+			pValue->description("define value of actual step before when folder button be defined to 'set only actual step'");
+			pValue->flush();
+			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
+			pValue->pwhile("set_steps & first_touch ? ( predef_step=-1 ? to_value : predef_step*10+to_value) : predef_step");
+			pValue->action("int");
+			pValue->pdefault("-1");
+			pValue->pperm(userreadperm);
+			pValue->description();
+
+			pSwitch= folder->getSwitch("full_digs");
+			pSwitch->description("calculate whether all digits are set, or back_time is reached");
+			pSwitch->pwhile("\"set_steps=1 &\n"
+							"        predef_step!=-1 &\n"
+							"        (    digits=1 |\n"
+							"             new_activate<=0 |\n"
+							"             (    digits=2 &\n"
+							"                  predef_step>9    ) |\n"
+							"             (    digits=3 &\n"
+							"                  predef_step>99    ) |\n"
+							"             (    digits=4 &\n"
+							"                  predef_step>999    ) |\n"
+							"             (    digits=5 &\n"
+							"                  predef_step>9999    )    )\"");
+			pSwitch->description();
+
+			pValue= folder->getValue("actual_step_before");
+			pValue->description("actual step before changing to know whether actual step was changed");
+			pValue->pwhile("actual_step");
+			pValue->description();
+
 			pValue= folder->getValue("actual_step");
 			pValue->description("count of actual step");
 			pValue->pmin(0);
 			pValue->pmax(500);
 			pValue->pdefault(0);
+			pValue->pvalue("predef_step");
 			pValue->pvalue("actual_step");
 			pValue->pvalue("actual_step >= steps ? steps : actual_step + 1");
 			pValue->pvalue("actual_step <= 0 ? 0 : actual_step - 1");
 			pValue->pvalue("actual_step >= steps ? 0 : actual_step + 1");
 			pValue->pvalue("actual_step <= 0 ? steps : actual_step - 1");
-			pValue->pwhile("\"(    display_first=0 &\n"
-							"             first_touch                ) |\n"
-							"        (    what=0 &\n"
-							"             (    transmit_action=1 &\n"
-							"                  receive &\n"
-							"                  first_calc=0 &\n"
-							"                  (    first_touch |\n"
-							"                       wait_after=0 |\n"
-							"                       wait_after=after    )    )    ) |\n"
-							"        (    what=1 &\n"
-							"             (    transmit_action=1 &\n"
-							"                  first_calc=0 &\n"
-							"                  lirc_set                 )    )                ? steps_action + 1 : 0\"");
+			pValue->pwhile("\"set_steps ? ( full_digs ? 0 : 1 ) :"
+							"                (    display_first=0 &\n"
+							"                     first_touch                ) |\n"
+							"                (    what=0 &\n"
+							"                     (    transmit_action=1 &\n"
+							"                          receive &\n"
+							"                          first_calc=0 &\n"
+							"                          (    first_touch |\n"
+							"                               wait_after=0 |\n"
+							"                               wait_after=after    )    )    ) |\n"
+							"                (    what=1 &\n"
+							"                     (    transmit_action=1 &\n"
+							"                          first_calc=0 &\n"
+							"                          lirc_set                 )    )                ? steps_action + 2 : 1\"");
 			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
 			pValue->action("int | db");
-			pValue->pperm(userwriteperm);
+			pValue->pperm(ureadcw);
 			pValue->description();
+
+			pSet= folder->getSet("count_step_done");
+			pSet->description("Decrease count steps when one step was counted");
+			pSet->pfrom("count_steps -1");
+			pSet->pset("count_steps");
+			pSet->pwhile("count_steps & ((actual_step != actual_step_before) | (steps=0 & first_touch))");
+			pSet->description();
 
 			pSet= folder->getSet("again");
 			pSet->description("wait double by again pressing");
@@ -1453,6 +1770,13 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pSet->pfrom(0);
 			pSet->pset("active");
 			pSet->pwhile("receive=0 & new_activate<=0");
+			pSet->description();
+
+			pSet= folder->getSet("predef_back");
+			pSet->description("set back predefined steps (predef_step) to -1 when defined in actual_step");
+			pSet->pfrom(-1);
+			pSet->pset("predef_step");
+			pSet->pwhile("full_digs");
 			folder->description("-------------------------  end of calculation for next step  ------------------------------------");
 			folder->description("#################################################################################################");
 			folder->description();
@@ -1474,7 +1798,8 @@ void LircSupport::createSubroutineLink(ostream& file, const string& name, const 
 	for(vector<string>::const_iterator coit= linkcodes.begin(); coit != linkcodes.end(); ++coit)
 	{
 		code= *coit;
-		if(code != "###NULL::")
+		if(	code != "###NULL::" &&
+			code != "###BREAK::"		)
 		{
 			if(code.find(":") != string::npos)
 			{// code is an linked subroutine
@@ -1493,7 +1818,8 @@ void LircSupport::createSubroutineLink(ostream& file, const string& name, const 
 		for(vector<string>::const_iterator coit= linkcodes.begin(); coit != linkcodes.end(); ++coit)
 		{
 			code= *coit;
-			if(code != "###NULL::")
+			if(	code != "###NULL::" &&
+				code != "###BREAK::"		)
 			{
 				++count;
 				if(code.find(":") != string::npos)
@@ -1511,9 +1837,730 @@ void LircSupport::createSubroutineLink(ostream& file, const string& name, const 
 		file << firstlink << endl;
 }
 
+LircSupport::t_remote LircSupport::getLinkDefinition(const string& code, const remotecodes_t& r) const
+{
+	t_remote tRv, nullRv;
+	vector<string> sp;
+	map<string, string>::const_iterator remotes;
+	map<string, string>::const_iterator codes;
+	map<string, string>::const_iterator displaycodes;
+	map<string, map<string, string> >::const_iterator displayCodeMap;
+	map<string, map<string, string> >::const_iterator CodeAliasMap;
 
+	split(sp, code , is_any_of(":"));
+	if(sp.size() != 2)
+		return nullRv;
+	tRv.org_remote= sp[0];
+	for(remotes= r.remotealias.begin(); remotes != r.remotealias.end(); ++remotes)
+	{
+		if(remotes->second == sp[0])
+		{
+			tRv.alias_remote= remotes->first;
+			break;
+		}
+	}
+	if(remotes == r.remotealias.end())
+		return nullRv;
+	tRv.org_code= sp[1];
+	CodeAliasMap= r.rcodealias.find(tRv.alias_remote);
+	for(codes= CodeAliasMap->second.begin(); codes != CodeAliasMap->second.end(); ++codes)
+	{
+		if(codes->second == sp[1])
+		{
+			tRv.alias_code= codes->first;
+			break;
+		}
+	}
+	if(codes == CodeAliasMap->second.end())
+		return nullRv;
+	displayCodeMap= r.dcodes.find(tRv.alias_remote);
+	displaycodes= displayCodeMap->second.find(tRv.alias_code);
+	if(displaycodes != displayCodeMap->second.end())
+		tRv.display_code= displaycodes->second;
+	else
+		tRv.display_code= tRv.org_code;
+	return tRv;
+}
 
+void LircSupport::searchPreDefined(const remotecodes_t& r)
+{
+	short count;
+	string remote, code, org_code;
+	vector<string>::const_iterator coit;
+	map<string, vector<string> >::const_iterator remit;
+	map<string, string>::const_iterator foundCodeAlias;
+	map<string, map<string, string> >::const_iterator foundCodeAliasMap;
 
+	for(remit= r.remotes.begin(); remit != r.remotes.end(); ++remit)
+	{
+		set_t defined;
+
+		remote= remit->first;
+		if(r.kill.find(remote) == r.kill.end())
+		{
+			for(coit= remit->second.begin(); coit != remit->second.end(); ++coit)
+			{
+				code= *coit;
+				if(	code != "###NULL::" &&
+					code != "###BREAK::"		)
+				{
+					if(code.find(":") == string::npos)
+					{
+						foundCodeAliasMap= r.rcodealias.find(remote);
+						foundCodeAlias= foundCodeAliasMap->second.find(code);
+						if(foundCodeAlias != foundCodeAliasMap->second.end())
+							org_code= foundCodeAlias->second;
+						else
+							org_code= code;
+					}else
+					{// code is an linked subroutine
+						vector<string> sp;
+
+						split(sp, code , is_any_of(":"));
+						foundCodeAliasMap= r.rcodealias.find(sp[0]);
+						foundCodeAlias= foundCodeAliasMap->second.find(sp[1]);
+						if(foundCodeAlias != foundCodeAliasMap->second.end())
+							org_code= foundCodeAlias->second;
+						else
+							org_code= sp[1];
+					}
+					if(org_code == "KEY_CHANNELUP")
+						defined.KEY_CHANNELUP= true;
+					else if(org_code == "KEY_NEXT")
+						defined.KEY_NEXT= true;
+					else if(org_code == "KEY_PAGEUP")
+						defined.KEY_PAGEUP= true;
+					else if(org_code == "KEY_SCROLLUP")
+						defined.KEY_SCROLLUP= true;
+					else if(org_code == "KEY_VOLUMEUP")
+						defined.KEY_VOLUMEUP= true;
+					else if(org_code == "KEY_BRIGHTNESSUP")
+						defined.KEY_BRIGHTNESSUP= true;
+					else if(org_code == "KEY_KBDILLUMUP")
+						defined.KEY_KBDILLUMUP= true;
+					else if(org_code == "BTN_GEAR_UP")
+						defined.BTN_GEAR_UP= true;
+					else if(org_code == "KEY_LEFT")
+						defined.KEY_LEFT= true;
+					else if(org_code == "KEY_LEFTSHIFT")
+						defined.KEY_LEFTSHIFT= true;
+					else if(org_code == "KEY_LEFTALT")
+						defined.KEY_LEFTALT= true;
+					else if(org_code == "KEY_LEFTBRACE")
+						defined.KEY_LEFTBRACE= true;
+					else if(org_code == "KEY_LEFTCTRL")
+						defined.KEY_LEFTCTRL= true;
+					else if(org_code == "KEY_LEFTMETA")
+						defined.KEY_LEFTMETA= true;
+					else if(org_code == "BTN_LEFT")
+						defined.BTN_LEFT= true;
+					else if(org_code == "KEY_ZOOMIN")
+						defined.KEY_ZOOMIN= true;
+					else if(org_code == "KEY_FORWARD")
+						defined.KEY_FORWARD= true;
+					else
+					{
+						bool bOk(false);
+						size_t digs;
+
+						digs= 4;
+						if(!bOk && org_code.substr(0, digs) == "BTN_")
+						{
+							bool bbOk(true);
+							ostringstream is;
+							istringstream code(org_code.substr(digs));
+
+							if(org_code == "BTN_A")
+								count= 10;
+							else if(org_code == "BTN_B")
+								count= 11;
+							else if(org_code == "BTN_C")
+								count= 12;
+							else
+							{
+								code >> count;
+								is << org_code.substr(0, digs) << count;
+								if(org_code != is.str())
+									bbOk= false;
+							}
+							if(bbOk)
+							{
+								if(defined.BTN > count)
+									defined.BTN= count;
+								bOk= true;
+							}
+						}
+						digs= 6;
+						if(!bOk && org_code.substr(0, digs) == "KEY_KP")
+						{
+							ostringstream is;
+							istringstream code(org_code.substr(digs));
+
+							code >> count;
+							is << org_code.substr(0, digs) << count;
+							if(org_code == is.str())
+							{
+								if(defined.KEY_KP > count)
+									defined.KEY_KP= count;
+								bOk= true;
+							}
+
+						}
+						digs= 11;
+						if(!bOk && org_code.substr(0, digs) == "KEY_BRL_DOT")
+						{
+							ostringstream is;
+							istringstream code(org_code.substr(digs));
+
+							code >> count;
+							is << org_code.substr(0, digs) << count;
+							if(org_code == is.str())
+							{
+								if(defined.KEY_BRL_DOT > count)
+									defined.KEY_BRL_DOT= count;
+								bOk= true;
+							}
+
+						}
+						digs= 8;
+						if(!bOk && org_code.substr(0, digs) == "KEY_FN_F")
+						{
+							ostringstream is;
+							istringstream code(org_code.substr(digs));
+
+							count= 0;
+							code >> count;
+							is << org_code.substr(0, digs) << count;
+							if(	org_code == "KEY_FN_F" ||
+								org_code == is.str()		)
+							{
+								if(defined.KEY_FN_F > count)
+									defined.KEY_FN_F= count;
+								bOk= true;
+							}
+
+						}
+						digs= 5;
+						if(!bOk && org_code.substr(0, digs) == "KEY_F")
+						{
+							ostringstream is;
+							istringstream code(org_code.substr(digs));
+
+							count= 0;
+							code >> count;
+							is << org_code.substr(0, digs) << count;
+							if(	org_code == "KEY_F" ||
+								org_code == is.str())
+							{
+								if(defined.KEY_F > count)
+									defined.KEY_F= count;
+								bOk= true;
+							}
+
+						}
+						digs= 13;
+						if(!bOk && org_code.substr(0, digs) == "KEY_NUMMERIC_")
+						{
+							ostringstream is;
+							istringstream code(org_code.substr(digs));
+
+							code >> count;
+							is << org_code.substr(0, digs) << count;
+							if(org_code == is.str())
+							{
+								if(defined.KEY_NUMMERIC > count)
+									defined.KEY_NUMMERIC= count;
+								bOk= true;
+							}
+
+						}
+						digs= 4;
+						if(!bOk && org_code.substr(0, digs) == "KEY_")
+						{
+							ostringstream is;
+							istringstream code(org_code.substr(digs));
+
+							code >> count;
+							is << org_code.substr(0, digs) << count;
+							if(org_code == is.str())
+							{
+								if(defined.KEY > count)
+									defined.KEY= count;
+								bOk= true;
+							}
+
+						}
+					}// else single keys
+				}// if(code != "###NULL::")
+			}// for(remit->second)
+		}// if not in r.kill
+		m_mtPreDefined[remote]= defined;
+	}// for(r.remotes)
+}
+
+LircSupport::default_t LircSupport::getDefaults(const string& remote, const string& code) const
+{
+	map<string, set_t>::const_iterator defined;
+	default_t tRv;
+
+	// default settings
+	tRv.group= code;
+	tRv.steps= 1;
+	tRv.direction= UP_LOOP;
+	tRv.send= ONCE;
+	tRv.digits= 0;
+	tRv.setto= 0;
+	defined= m_mtPreDefined.find(remote);
+	if(defined == m_mtPreDefined.end())
+		return tRv;
+
+	if(code == "KEY_CHANNELUP")
+	{
+		//tRv.group is set to own
+		tRv.steps= 99;
+		tRv.direction= UP_LOOP;
+		tRv.send= SEND;
+		if(defined->second.KEY < 20)
+			tRv.digits= 2;
+
+	}else if(code == "KEY_CHANNELDOWN")
+	{
+		if(defined->second.KEY_CHANNELUP)
+			tRv.group= "KEY_CHANNELUP";
+		tRv.steps= 99;
+		tRv.direction= DOWN_LOOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_NEXT")
+	{
+		//tRv.group is set to own
+		tRv.steps= 9;
+		tRv.direction= UP_STOP;
+		tRv.send= SEND;
+		if(defined->second.KEY_NUMMERIC < 20)
+			tRv.digits= 2;
+
+	}else if(code == "KEY_PREVIOUS")
+	{
+		if(defined->second.KEY_NEXT)
+			tRv.group= "KEY_NEXT";
+		tRv.steps= 9;
+		tRv.direction= DOWN_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_PAGEUP")
+	{
+		//tRv.group is set to own
+		tRv.steps= 10;
+		tRv.direction= UP_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_PAGEDOWN")
+	{
+		if(defined->second.KEY_PAGEUP)
+			tRv.group= "KEY_PAGEUP";
+		tRv.steps= 10;
+		tRv.direction= DOWN_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_SCROLLUP")
+	{
+		//tRv.group is set to own
+		tRv.steps= 100;
+		tRv.direction= UP_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_SCROLLDOWN")
+	{
+		if(defined->second.KEY_SCROLLUP)
+			tRv.group= "KEY_SCROLLUP";
+		tRv.steps= 100;
+		tRv.direction= DOWN_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_VOLUMEUP")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_VOLUMEDOWN" )
+	{
+		if(defined->second.KEY_VOLUMEUP)
+			tRv.group= "KEY_VOLUMEUP";
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_BRIGHTNESSUP")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_BRIGHTNESSDOWN" )
+	{
+		if(defined->second.KEY_BRIGHTNESSUP)
+			tRv.group= "KEY_BRIGHTNESSUP";
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_KBDILLUMUP")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_KBDILLUMDOWN")
+	{
+		if(defined->second.KEY_KBDILLUMUP)
+			tRv.group= "KEY_KBDILLUMUP";
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "BTN_GEAR_UP")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "BTN_GEAR_DOWN")
+	{
+		if(defined->second.BTN_GEAR_UP)
+			tRv.group= "BTN_GEAR_UP";
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_LEFT")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_RIGHT")
+	{
+		if(defined->second.KEY_LEFT)
+			tRv.group= "KEY_LEFT";
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_LEFTSHIFT")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_RIGHTSHIFT")
+	{
+		if(defined->second.KEY_LEFTSHIFT)
+			tRv.group= "KEY_LEFTSHIFT";
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_LEFTALT")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_RIGHTALT")
+	{
+		if(defined->second.KEY_LEFTALT)
+			tRv.group= "KEY_LEFTALT";
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_LEFTBRACE")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_RIGHTBRACE")
+	{
+		if(defined->second.KEY_LEFTBRACE)
+			tRv.group= "KEY_LEFTBRACE";
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_LEFTCTRL")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_RIGHTCTRL")
+	{
+		if(defined->second.KEY_LEFTCTRL)
+			tRv.group= "KEY_LEFTCTRL";
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_LEFTMETA")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_RIGHTMETA")
+	{
+		if(defined->second.KEY_LEFTMETA)
+			tRv.group= "KEY_LEFTMETA";
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "BTN_LEFT")
+	{
+		//tRv.group is set to own
+		tRv.steps= 30;
+		tRv.direction= DOWN_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "BTN_RIGHT")
+	{
+		if(defined->second.BTN_LEFT)
+			tRv.group= "BTN_LEFT";
+		tRv.steps= 30;
+		tRv.direction= UP_STOP;
+		tRv.send= ONCE;
+
+	}else if(code == "KEY_ZOOMIN")
+	{
+		//tRv.group is set to own
+		tRv.steps= 50;
+		tRv.direction= UP_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_ZOOMOUT")
+	{
+		if(defined->second.KEY_ZOOMIN)
+			tRv.group= "KEY_ZOOMIN";
+		tRv.steps= 50;
+		tRv.direction= DOWN_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_FORWARD")
+	{
+		//tRv.group is set to own
+		tRv.steps= 50;
+		tRv.direction= UP_STOP;
+		tRv.send= SEND;
+
+	}else if(code == "KEY_REWIND")
+	{
+		if(defined->second.KEY_FORWARD)
+			tRv.group= "KEY_FORWARD";
+		tRv.steps= 50;
+		tRv.direction= DOWN_STOP;
+		tRv.send= SEND;
+
+	}else
+	{
+		bool bOk(false);
+		size_t digs;
+		short count;
+
+		digs= 4;
+		if(!bOk && code.substr(0, digs) == "BTN_")
+		{
+			ostringstream is;
+			istringstream cstream(code.substr(digs));
+
+			is << code.substr(0, digs);
+			if(code == "BTN_A")
+			{
+				count= 10;
+				is << "A";
+
+			}else if(code == "BTN_B")
+			{
+				count= 11;
+				is << "B";
+
+			}else if(code == "BTN_C")
+			{
+				count= 12;
+				is << "C";
+
+			}else
+			{
+				cstream >> count;
+				is << count;
+			}
+			if(code == is.str())
+			{
+				ostringstream group;
+
+				group << code.substr(0, digs) << defined->second.BTN;
+				tRv.group= group.str();
+				tRv.send= ONCE;
+				tRv.digits= 1;
+				tRv.setto= count;
+				bOk= true;
+			}
+		}
+		digs= 6;
+		if(!bOk && code.substr(0, digs) == "KEY_KP")
+		{
+			ostringstream is;
+			istringstream cstream(code.substr(digs));
+
+			cstream >> count;
+			is << code.substr(0, digs) << count;
+			if(code == is.str())
+			{
+				ostringstream group;
+
+				group << code.substr(0, digs) << defined->second.KEY_KP;
+				tRv.group= group.str();
+				tRv.send= ONCE;
+				tRv.digits= 1;
+				tRv.setto= count;
+				bOk= true;
+			}
+		}
+		digs= 11;
+		if(!bOk && code.substr(0, digs) == "KEY_BRL_DOT")
+		{
+			ostringstream is;
+			istringstream cstream(code.substr(digs));
+
+			cstream >> count;
+			is << code.substr(0, digs) << count;
+			if(code == is.str())
+			{
+				ostringstream group;
+
+				group << code.substr(0, digs) << defined->second.KEY_BRL_DOT;
+				tRv.group= group.str();
+				tRv.send= ONCE;
+				tRv.digits= 1;
+				tRv.setto= count;
+				bOk= true;
+			}
+		}
+		digs= 8;
+		if(!bOk && code.substr(0, digs) == "KEY_FN_F")
+		{
+			ostringstream is;
+			istringstream cstream(code.substr(digs));
+
+			is << code.substr(0, digs);
+			if(code != "KEY_FN_F")
+			{
+				cstream >> count;
+				is <<  count;
+			}else
+				count= 0;
+			if(code == is.str())
+			{
+				ostringstream group;
+
+				group << code.substr(0, digs) << defined->second.KEY_FN_F;
+				tRv.group= group.str();
+				tRv.send= ONCE;
+				tRv.digits= 1;
+				tRv.setto= count;
+				bOk= true;
+			}
+		}
+		digs= 5;
+		if(!bOk && code.substr(0, digs) == "KEY_F")
+		{
+			ostringstream is;
+			istringstream cstream(code.substr(digs));
+
+			is << code.substr(0, digs);
+			if(code != "KEY_F")
+			{
+				cstream >> count;
+				is <<  count;
+			}else
+				count= 0;
+			if(code == is.str())
+			{
+				ostringstream group;
+
+				group << code.substr(0, digs) << defined->second.KEY_F;
+				tRv.group= group.str();
+				tRv.send= ONCE;
+				tRv.digits= 1;
+				tRv.setto= count;
+				bOk= true;
+			}
+		}
+		digs= 13;
+		if(!bOk && code.substr(0, digs) == "KEY_NUMMERIC_")
+		{
+			ostringstream is;
+			istringstream cstream(code.substr(digs));
+
+			cstream >> count;
+			is << code.substr(0, digs) << count;
+			if(code == is.str())
+			{
+				ostringstream group;
+
+				if(!defined->second.KEY_NEXT)
+				{
+					group << code.substr(0, digs) << defined->second.KEY_NUMMERIC;
+					tRv.group= group.str();
+
+				}else
+					tRv.group= "KEY_NEXT";
+				tRv.send= ONCE;
+				tRv.digits= 2;
+				tRv.setto= count;
+				bOk= true;
+			}
+		}
+		digs= 4;
+		if(!bOk && code.substr(0, digs) == "KEY_")
+		{
+			ostringstream is;
+			istringstream cstream(code.substr(digs));
+
+			cstream >> count;
+			is << code.substr(0, digs) << count;
+			if(code == is.str())
+			{
+				ostringstream group;
+
+				if(!defined->second.KEY_CHANNELUP)
+				{
+					group << code.substr(0, digs) << defined->second.KEY;
+					tRv.group= group.str();
+
+				}else
+					tRv.group= "KEY_CHANNELUP";
+				tRv.send= ONCE;
+				tRv.digits= 2;
+				tRv.setto= count;
+				bOk= true;
+			}
+		}
+	}// else single keys
+	return tRv;
+}
 
 
 
