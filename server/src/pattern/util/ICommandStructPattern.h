@@ -20,9 +20,11 @@
 
 #include <string>
 
+#include "IOptionStructPattern.h"
+
 using namespace std;
 
-class ICommandStructPattern
+class ICommandStructPattern : virtual public IOptionStructPattern
 {
 public:
 	/**
@@ -53,36 +55,6 @@ public:
 	 * @return content behind command
 	 */
 	virtual float getCommandFloatContent(string& fault) const= 0;
-	/**
-	 * question for main option (as first) be called
-	 *
-	 * @param option name of option (no short defined option)
-	 * @return whether option be called
-	 */
-	virtual bool hasOption(const string& option) const= 0;
-	/**
-	 * return content from option in actual command
-	 *
-	 * @param option name of option
-	 * @return content of option
-	 */
-	virtual string getOptionContent(const string& option) const= 0;
-	/**
-	 * return content from option in actual command
-	 * casted as integer number
-	 *
-	 * @param option name of option (is '##ERROR' if content is no integer or '##NULL' when not set)
-	 * @return content of option
-	 */
-	virtual int getOptionIntContent(string& option) const= 0;
-	/**
-	 * return content from option in actual command
-	 * cated as floating number
-	 *
-	 * @param option name of option (is '##ERROR' if content is no float or '##NULL' when not set)
-	 * @return content of option
-	 */
-	virtual float getOptionFloatContent(string& option) const= 0;
 	/**
 	 * return pattern of next called command which inherit
 	 * all other commands and also options
