@@ -762,7 +762,7 @@ namespace util
 		return "";
 	}
 
-	int MainParams::getOptionIntContent(string option) const
+	int MainParams::getOptionIntContent(string& option) const
 	{
 		int nRv;
 		istringstream opstr(getOptionContent(option));
@@ -782,7 +782,7 @@ namespace util
 		return nRv;
 	}
 
-	float MainParams::getOptionFloatContent(string option) const
+	float MainParams::getOptionFloatContent(string& option) const
 	{
 		float fRv;
 		istringstream opstr(getOptionContent(option));

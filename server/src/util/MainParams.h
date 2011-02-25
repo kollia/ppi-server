@@ -22,6 +22,7 @@
 #include <vector>
 #include <map>
 
+#include "../pattern/util/IOptionStructPattern.h"
 #include "../pattern/util/ICommandStructPattern.h"
 
 using namespace std;
@@ -104,6 +105,13 @@ namespace util
 		 * @return whether option be called
 		 */
 		virtual bool hasOption(const string& option) const;
+		/**
+		 * return how many options be set
+		 *
+		 * @return count of options
+		 */
+		virtual size_t optioncount() const
+		{ return options.size(); };
 		/**
 		 * return content from option in actual command
 		 *
@@ -215,7 +223,7 @@ namespace util
 	/**
 	 * read parameters from starting main function <code>main(int argc, char* argv[])</code>
 	 */
-	class MainParams
+	class MainParams : virtual public IOptionStructPattern
 	{
 	public:
 		/**
@@ -249,7 +257,6 @@ namespace util
 		 * set version option to output on command line when needed.<br />
 		 * Version option is for standard '--version' with short definition '-v'
 		 *
-		 * @param def short option definition
 		 * @param major major release version
 		 * @param minor release version
 		 * @param sub additional version when needed (don't display if sub parameter is 0)
@@ -265,6 +272,16 @@ namespace util
 				unsigned int patch, unsigned int build, unsigned int revision, const string& distribution= "",
 				unsigned int nsub= 2, unsigned int nbuild= 5, unsigned int nrevision= 5)
 		{ version("version", "v", major, minor, sub, patch, build, revision, distribution, nsub, nbuild, nrevision); };
+		/**
+		 * set version option to output on command line when needed.<br />
+		 * Version option is for standard '--version' with short definition '-v'
+		 *
+		 * @param major major release version
+		 * @param minor release version
+		 * @param patch patch number for release (default:0)
+		 */
+		void version(unsigned int major, unsigned int minor, unsigned int patch= 0)
+		{ version(major, minor, /*sub version*/0, patch, /*no build*/0, /*no revision*/0, /*no distribution*/"", /*no sub version*/0); };
 		/**
 		 * return created string for Version when version be set with method <code>version(...)</code>
 		 *
@@ -344,6 +361,13 @@ namespace util
 		 */
 		void option(string command_id, const string& name, const string& sh, const bool content, const string& desc);
 		/**
+		 * return how many main options be set
+		 *
+		 * @return count of options
+		 */
+		size_t optioncount() const
+		{ return m_vsOptions.size(); };
+		/**
 		 * allocate allowd command after binary
 		 *
 		 * @param name command name
@@ -404,14 +428,14 @@ namespace util
 		 * @param option name of option (no short defined option)
 		 * @return whether option be called
 		 */
-		bool hasOption(const string& option) const;
+		virtual bool hasOption(const string& option) const;
 		/**
 		 * return content from option in actual command
 		 *
 		 * @param option name of option
 		 * @return content of option
 		 */
-		string getOptionContent(const string& option) const;
+		virtual string getOptionContent(const string& option) const;
 		/**
 		 * return content from option in actual command
 		 * casted as integer number
@@ -419,7 +443,7 @@ namespace util
 		 * @param option name of option (is '##ERROR' if content is no integer or '##NULL' when not set)
 		 * @return content of option
 		 */
-		int getOptionIntContent(string option) const;
+		virtual int getOptionIntContent(string& option) const;
 		/**
 		 * return content from option in actual command
 		 * cated as floating number
@@ -427,7 +451,7 @@ namespace util
 		 * @param option name of option (is '##ERROR' if content is no float or '##NULL' when not set)
 		 * @return content of option
 		 */
-		float getOptionFloatContent(string option) const;
+		virtual float getOptionFloatContent(string& option) const;
 		/**
 		 * return pattern of first called command which inherit
 		 * all other commands and also options
