@@ -413,10 +413,30 @@ bool CalculatorContainer::render()
 	//cout << "---------------------------------------" << endl;
 	if((m_vndoing.size()-1) != m_vcOperators.size())
 	{
+		ostringstream err;
+
+		err << endl;
+		err << "    by statement '" << m_sStatement << "'" << endl;
+		err << "       doing steps:  " << m_vndoing.size() << endl;
+		err << "       operators:    " << m_vcOperators.size() << "    ";
+		for(vector<string>::iterator op= m_vcOperators.begin(); op != m_vcOperators.end(); ++op)
+			err << *op << " ";
+		err << endl;
+		err << "       values:       " << m_vdValues.size() << "    ";
+		for(vector<double>::iterator val= m_vdValues.begin(); val != m_vdValues.end(); ++val)
+			err << *val << " ";
+		err << endl;
+		err << "       variables:    " << m_vsVariables.size() << "    ";
+		for(vector<string>::iterator var= m_vsVariables.begin(); var != m_vsVariables.end(); ++var)
+			err << *var << " ";
+		err << endl;
+		err << "       new container:" << m_voContainers.size() << endl;
+		err << "    -----------------------------------------------------------" << endl;
+
 		if((m_vndoing.size()-1) < m_vcOperators.size())
-			outputF(true, __FILE__, __LINE__, "it does not exist enough values in statement");
+			outputF(true, __FILE__, __LINE__, "it does not exist enough values in statement" + err.str());
 		else
-			outputF(true, __FILE__, __LINE__, "it exist to much operators in statement");
+			outputF(true, __FILE__, __LINE__, "it exist to much operators in statement" + err.str());
 		m_bCorrect= false;
 		return false;
 	}
