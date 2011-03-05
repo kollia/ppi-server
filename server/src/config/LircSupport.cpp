@@ -53,7 +53,7 @@ int LircSupport::execute(const ICommandStructPattern* params)
 	string lircconf("/etc/lirc/lircd.conf");
 	string userreadperm("read"), userwriteperm("change");
 	string readperm("confread"), writeperm("confchange");
-	string ureadcw("ureadcw");
+	string ureadcw("ureadlw");
 	map<string, vector<string> >::const_iterator found;
 	map<string, string>::const_iterator f;
 	remotecodes_t r;

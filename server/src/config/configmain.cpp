@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
 	params.option(param_id, "readperm", "p", true, "permission to read receiving value (default from access.conf 'read')");
 	params.option(param_id, "changeperm", "c", true, "permission to send code (default from access.conf 'change')");
 	params.option(param_id, "userreadconfwrite", "u", true, "normaly user permission to read and configureator to read and write "
-																							"(default from access.conf 'ureadcw')");
+																							"(default from access.conf 'ureadlw')");
 	params.option(param_id, "configreadperm", "P", true, "permission to read configuration (default from access.conf 'confread')");
 	params.option(param_id, "configchangeperm", "C", true, "permission to read configuration (default from access.conf 'confchange')");
 	params.option(param_id, "learn", "l", "reading pressed buttons from the database for an learning transmitter.\n"
