@@ -115,15 +115,14 @@ namespace server
 
 	inline int FileDescriptor::error() const
 	{
+		m_nErr= ferror(m_pFile);
+		if(m_nErr != 0)
+			m_bEOF= true;
 		if(m_bEOF)
 		{
 			if(m_nErr == 0)
 				m_nErr= EOF;
-			return m_nErr;
 		}
-		m_nErr= ferror(m_pFile);
-		if(m_nErr != 0)
-			m_bEOF= true;
 		return m_nErr;
 	}
 
