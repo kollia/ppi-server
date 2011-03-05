@@ -87,6 +87,14 @@ class Starter
 		void createPortObjects(bool bShowConf);
 		void isNoPathDefinedStop();
 		/**
+		 * write error or warning from server out to command line
+		 *
+		 * @param err error/warning number getting from server
+		 * @param fp handle to open connection
+		 * @return whether string was an error (true) or warning (false)
+		 */
+		bool writeErrString(const string& err, FILE *fp) const;
+		/**
 		 * search entry in an vector of used ports
 		 *
 		 * @param vec vector of used ports

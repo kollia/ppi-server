@@ -70,6 +70,13 @@ namespace server
 			void setErrors(const unsigned int warning, const unsigned int error)
 			{ m_nOutsideWarn= warning; m_nOutsideErr= error; };
 			/**
+			 * to now whether ClientTransaction has written an error
+			 *
+			 * @return whether error was written from client
+			 */
+			bool wasErrorWritten()
+			{ return m_bErrWritten; }
+			/**
 			 * return string describing error number
 			 *
 			 * @param error code number of error
@@ -98,6 +105,15 @@ namespace server
 			 * command string from shell
 			 */
 			string m_sCommand;
+			/**
+			 * transaction protocol version number for communication<br />
+			 * Latest version number be defined in file util/debug.h under PPI_SERVER_PROTOCOL
+			 */
+			float m_fProtocol;
+			/**
+			 * whether an error was written from ClientTransaction
+			 */
+			bool m_bErrWritten;
 			/**
 			 * whether client should wait for an new command
 			 */
@@ -138,9 +154,10 @@ namespace server
 			/**
 			 * print all ERROR results as translated strings on commandline
 			 *
+			 * @param descriptor file handle to get command's and send answer
 			 * @param result ERROR string with number
 			 */
-			void printError(string error);
+			void printError(IFileDescriptorPattern& descriptor, const string& error);
 
 
 	};

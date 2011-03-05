@@ -132,8 +132,12 @@ bool Client::execute(const string& workdir, vector<string> options, string comma
 		{
 			string output;
 
-			if(	clres == 25 &&
-				co == "status"	)
+			if(pClient->wasErrorWritten())
+			{
+				bRv= false;
+
+			}else if(	clres == 25 &&
+						co == "status"	)
 			{
 				cerr << "ppi-server does not running" << endl;
 				bRv= false;

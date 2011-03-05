@@ -14,15 +14,18 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cerrno>
+#include <cstring>
+
 #include <unistd.h>
 #include <termios.h>
-#include <errno.h>
-#include <string.h>
 
 #include <iostream>
 #include <sstream>
+
+#include <boost/algorithm/string/trim.hpp>
 
 #include "../../util/XMLStartEndTagReader.h"
 #include "../../util/structures.h"
@@ -33,18 +36,21 @@
 
 using namespace std;
 using namespace util;
+using namespace boost;
 
 namespace server
 {
 	ClientTransaction::ClientTransaction(vector<string> options, string command)
 	: /*m_mOwDevices(),*/ m_mOwMaxTime(), m_mOwMaxCount()
 	{
+		m_bErrWritten= false;
 		m_bWait= false;
 		m_bShowENum= false;
 		m_vOptions= options;
 		m_sCommand= command;
 		m_bHearing= false;
 		m_bOwDebug= false;
+		m_fProtocol= 0;
 	}
 
 	bool ClientTransaction::init(IFileDescriptorPattern& descriptor)
@@ -55,7 +61,8 @@ namespace server
 		 */
 		string sCommID;
 		string result, logMsg, user, pwd;
-		string sSendbuf("GET");
+		string sSendbuf;
+		ostringstream sget;
 		bool bOp= true;
 		bool bSecConn= false;
 		bool bRightServer= true;
@@ -64,6 +71,11 @@ namespace server
 		unsigned int nOptions= m_vOptions.size();
 		unsigned short owserver;
 
+		sget << "GET v";
+		sget.setf(ios_base::fixed, ios_base::floatfield);
+		sget.precision(2);
+		sget << PPI_SERVER_PROTOCOL;
+		sSendbuf= sget.str();
 		if(m_sCommand == "status")
 			bStatus= true;
 		for(unsigned int o= 0; o<nOptions; ++o)
@@ -139,8 +151,6 @@ namespace server
 				}
 			}
 		}
-		if(m_bWait)
-			sSendbuf+= " wait";
 		if(m_bHearing)
 		{
 			sSendbuf+= " ID:";
@@ -161,13 +171,28 @@ namespace server
 	cout << "get: " << result << endl;
 #endif // SERVERDEBUG
 
-		if(	result.length() < 13
+		if(	result.length() < 18
 			||
-			result.substr(0, 12) != "port-server:"	)
+			result.substr(0, 11) != "ppi-server:"	)
 		{
 			bRightServer= false;
 		}else
-			sCommID= result.substr(12);
+		{
+			istringstream res(result.substr(11));
+
+			res >> sCommID;
+			result= res.str();
+
+			if(!res.fail())
+			{
+				istringstream res2(result);
+
+				res2 >> m_fProtocol;
+				if(res2.fail())
+					bRightServer= false;
+			}else
+				bRightServer= false;
+		}
 		if(	!bRightServer
 			&&
 			result == ""	)
@@ -178,14 +203,29 @@ namespace server
 		}else
 			break;
 	}
+	if(	!bRightServer
+		&&
+		result == ""	)
+	{
+		cerr << "ERROR: get no result from server" << endl;
+		m_bErrWritten= true;
+		return false;
+	}
 		if(!bRightServer)
 		{
-			string msg("ERROR: undefined server running on port\n");
+			string::size_type nPos;
+			ostringstream msg;
 
-
-			msg+= "       getting '";
-			msg+= result + "'";
-			cerr << msg << endl;
+			if(result.length() > 20)
+				result= result.substr(0, 20) + " ...";
+			nPos= result.find('\n');
+			if(nPos != string::npos)
+				result= result.substr(0, nPos-1) + " ...";
+			msg << "ERROR: undefined server running on ";
+			msg << descriptor.getHostAddressName() << ":" << descriptor.getPort() << endl;
+			msg << "       getting '" << result << "'";
+			cerr << msg.str() << endl;
+			m_bErrWritten= true;
 			return false;
 		}
 
@@ -214,6 +254,7 @@ namespace server
 				{
 					cerr << "### ERROR: cannot read tc address for password" << endl;
 					cerr << "           " << strerror(errno) << endl;
+					m_bErrWritten= true;
 					return false;
 				}
 			}
@@ -234,6 +275,7 @@ namespace server
 					{
 						cerr << "### ERROR: cannot set tc address for password" << endl;
 						cerr << "           " << strerror(errno) << endl;
+						m_bErrWritten= true;
 						return false;
 					}
 					cout << "password:" << flush;
@@ -250,6 +292,7 @@ namespace server
 				{
 					cerr << "### ERROR: cannot set back tc address for any inserts" << endl;
 					cerr << "           " << strerror(errno) << endl;
+					m_bErrWritten= true;
 					return false;
 				}
 			}
@@ -267,7 +310,8 @@ namespace server
 			result= ConfigPropertyCasher::trim(result);
 			if(result != "OK")
 			{
-				printError(result);
+				printError(descriptor, result);
+				m_bErrWritten= true;
 				return false;
 			}
 		}
@@ -490,7 +534,7 @@ namespace server
 					||
 					result.substr(0, 8) == "WARNING "	)
 				{
-					printError(result);
+					printError(descriptor, result);
 
 				}else if(result == "done")
 				{
@@ -506,7 +550,7 @@ namespace server
 
 							error= xmlReader->error();
 							if(error != "")
-								printError(error);
+								printError(descriptor, error);
 							xmlReader= auto_ptr<XMLStartEndTagReader>();
 							break;
 						}
@@ -531,6 +575,8 @@ namespace server
 
 		}while(m_bWait);
 
+		descriptor << "ending\n";
+		descriptor.flush();
 		return true;
 	}
 
@@ -553,19 +599,17 @@ namespace server
 		return str;
 	}
 
-	void ClientTransaction::printError(string error)
+	void ClientTransaction::printError(IFileDescriptorPattern& descriptor, const string& error)
 	{
-		short param= 0;
 		int nErrorNum;
 		string buffer;
 		stringstream ss(error);
+		ostringstream newerr;
 
+		ss >> buffer;
+		ss >> nErrorNum;
 		if(m_bShowENum)
 		{
-			ostringstream newerr;
-
-			ss >> buffer;
-			ss >> nErrorNum;
 			if(buffer == "ERROR")
 				nErrorNum+= m_nOutsideErr;
 			else
@@ -575,85 +619,85 @@ namespace server
 			newerr.fill('0');
 			newerr << nErrorNum;
 			cerr << newerr.str() << endl;
+			return;
 		}
-		while(ss >> buffer)
+
+		newerr << "GETERRORSTRING ";
+		if(buffer == "WARNING")
+			nErrorNum*= -1;
+		newerr << nErrorNum << endl;
+		descriptor << newerr.str();
+		descriptor.flush();
+
+		descriptor >> buffer;
+		if(!descriptor.error())
 		{
-			if(buffer != "ERROR")
-			{
-				//char *cErr= getChars(buffer);
-				int num= atoi(buffer.c_str());
+			trim(buffer);
+			cerr << buffer << endl;
+			return;
+		}
 
-				if(param == 1)
-				{
-					switch(num)
-					{
-					case 1:
-						cerr << "client beginning fault transaction" << endl;
-						return;
+		// default error strings
+		// when any go wrong on connection
+		switch(nErrorNum)
+		{
+		case 1:
+			cerr << "client beginning fault transaction" << endl;
+			return;
 
-					case 2:
-						cerr << "no correct command given" << endl;
-						return;
+		case 2:
+			cerr << "no correct command given" << endl;
+			return;
 
-					case 3:
-						nErrorNum= 3;
-						break;
+		case 3:
+			nErrorNum= 3;
+			break;
 
-					case 4:
-						cerr << "cannot found given folder for operation" << endl;
-						return;
+		case 4:
+			cerr << "cannot found given folder for operation" << endl;
+			return;
 
-					case 5:
-						cerr << "cannot found given subroutine in folder for operation" << endl;
-						break;
+		case 5:
+			cerr << "cannot found given subroutine in folder for operation" << endl;
+			break;
 
-					case 6:
-						cerr << "unknow value to set in subroutine" << endl;
-						break;
-					case 7:
-						cerr << "no filter be set for read directory" << endl;
-						break;
-					case 8:
-						cerr << "cannot read any directory" << endl;
-						break;
-					case 9:
-						cerr << "cannot found given file for read content" << endl;
-						break;
-					case 10:
-						cerr << "given ID from client do not exist" << endl;
-						break;
-					case 11:
-						cerr << "given user do not exist" << endl;
-						break;
-					case 12:
-						cerr << "wrong password for given user" << endl;
-						break;
-					case 13:
-						cerr << "user has no permission" << endl;
-						break;
-					case 14:
-						cerr << "subrutine isn't correct defined by the settings of config file" << endl;
-						break;
-					case 15:
-						cerr << "root cannot login as first user" << endl;
-						break;
-					case 16:
-						cerr << "subroutine has no correct access to device" << endl;
-						break;
-					default:
-						cerr << error << endl;
-					}
-				}else
-				{
-					switch(nErrorNum)
-					{
-					case 3:
-						cerr << "command parameter " << num << "is incorrect" << endl;
-						return;
-					}
-				}
-			}
-			++param;
+		case 6:
+			cerr << "Unknown value to set in subroutine" << endl;
+			break;
+		case 7:
+			cerr << "no filter be set for read directory" << endl;
+			break;
+		case 8:
+			cerr << "cannot read any directory" << endl;
+			break;
+		case 9:
+			cerr << "cannot found given file for read content" << endl;
+			break;
+		case 10:
+			cerr << "given ID from client do not exist" << endl;
+			break;
+		case 11:
+			cerr << "given user do not exist" << endl;
+			break;
+		case 12:
+			cerr << "wrong password for given user" << endl;
+			break;
+		case 13:
+			cerr << "user has no permission" << endl;
+			break;
+		case 14:
+			cerr << "subrutine isn't correct defined by the settings of config file" << endl;
+			break;
+		case 15:
+			cerr << "user cannot login as first" << endl;
+			break;
+		case 16:
+			cerr << "subroutine has no correct access to device" << endl;
+			break;
+		default:
+			cerr << "### error code '" << error << "' is not defined for default" << endl;
+			cerr << "    on file " << __FILE__ << endl;
+			cerr << "   and line " << __LINE__ << endl;
 		}
 	}
 

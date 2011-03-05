@@ -2119,7 +2119,7 @@ bool Starter::status()
 bool Starter::stop()
 {
 	char	buf[64];
-	string  sendbuf("GET\n");
+	string  sendbuf;
 	string 	stopping, dostop;
 	char	stopServer[]= "stop-server\n";
 	FILE 	*fp;
@@ -2129,8 +2129,10 @@ bool Starter::stop()
 	string fileName;
 	string confpath, logpath, sLogLevel, property, username;
 	UserManagement* user= UserManagement::instance();
+	ostringstream hello;
 
-
+	hello << "GET v" << PPI_SERVER_PROTOCOL << endl;
+	sendbuf= hello.str();
 	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
 	fileName= URL::addPath(confpath, "server.conf");
 	if(!m_oServerFileCasher.readFile(fileName))
@@ -2164,15 +2166,17 @@ bool Starter::stop()
 	fgets(buf, sizeof(buf), fp);
 	result= buf;
 
-	if(	result.size() <= 12
+	if(	result.size() < 18
 		||
-		result.substr(0, 12) != "port-server:")
+		result.substr(0, 11) != "ppi-server:")
 	{
-		cout << "ERROR: undefined server running on port" << endl;
+		cout << "### ERROR: undefined server running on port" << endl;
+		fclose(fp);
 		return false;
 	}
 
-	if(!user->rootLogin())
+	username= user->getRootUser();
+	if(!user->canLoginFirst(username))
 	{
 		username= user->getNoRootUser();
 		sendbuf= "U:";
@@ -2182,17 +2186,32 @@ bool Starter::stop()
 		fputs(sendbuf.c_str(), fp);
 		fflush(fp);
 		fgets(buf, sizeof(buf), fp);
-
+		if(strcmp(buf, "OK\n"))
+		{
+			writeErrString(buf, fp);
+			fputs("ending", fp);
+			fflush(fp);
+			fclose(fp);
+			return false;
+		}
 		sendbuf= "CHANGE ";
+		username= user->getRootUser();
 	}else
 		sendbuf= "U:";
-	username= user->getRootUser();
 	sendbuf+= username + ":";
 	sendbuf+= user->getPassword(username);
 	sendbuf+= "\n";
 	fputs(sendbuf.c_str(), fp);
 	fflush(fp);
 	fgets(buf, sizeof(buf), fp);
+	if(strcmp(buf, "OK\n"))
+	{
+		writeErrString(buf, fp);
+		fputs("ending", fp);
+		fflush(fp);
+		fclose(fp);
+		return false;
+	}
 
 	fputs (stopServer, fp);
 	fflush(fp);
@@ -2213,6 +2232,13 @@ bool Starter::stop()
 		}
 		dostop= buf;
 		boost::trim(dostop);
+		if(	dostop.substr(0, 5) == "ERROR" ||
+			dostop.substr(0, 7) == "WARNING"	)
+		{
+			writeErrString(buf, fp);
+			fclose(fp);
+			return false;
+		}
 		if(stopping == dostop)
 			cout << "." << flush;
 		else
@@ -2226,6 +2252,34 @@ bool Starter::stop()
 	close(clientsocket);
 	cout << endl;
 	return true;
+}
+
+bool Starter::writeErrString(const string& err, FILE *fp) const
+{
+	bool bError(false);
+	char buf[1024];
+	string result, code, sendbuf("GETERRORSTRING ");
+	istringstream errstr(err);
+
+	errstr >> result >> code;
+	if(result == "WARNING")
+		code= "-" + code;
+	else if(result != "ERROR")
+	{
+		cerr << "### undefined ERROR occured" << endl;
+		return true;
+	}else
+		bError= true;
+	sendbuf+= code + "\n";
+	fputs(sendbuf.c_str(), fp);
+	fflush(fp);
+	fgets(buf, sizeof(buf), fp);
+	result+= buf;
+	if(bError)
+		cerr << "### ERROR: " << result << endl;
+	else
+		cout << "### WARNING: " << result << endl;
+	return bError;
 }
 
 bool Starter::checkServer()
