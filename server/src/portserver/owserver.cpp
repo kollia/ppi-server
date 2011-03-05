@@ -65,7 +65,7 @@ namespace server
 		m_pKernelModule= auto_ptr<KernelModule>(new KernelModule(type, accessPattern, m_READCACHE));
 	}
 
-	bool OWServer::readFirstChipState()
+	bool OWServer::readFirstChipState(bool out)
 	{
 		bool bCon;
 		short res;
@@ -74,16 +74,20 @@ namespace server
 		bCon= m_poChipAccess->isConnected();
 		if(m_mvReadingCache.size() > 0)
 		{
-			cout << "read all defined input for first state from " << m_poChipAccess->getServerName() << " ..." << endl;
+			if(out)
+				cout << "read all defined input for first state from " << m_poChipAccess->getServerName() << " ..." << endl;
 			for(map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >::iterator it= m_mvReadingCache.begin(); it != m_mvReadingCache.end(); ++it)
 			{
-				cout << "   sequence for cache " << dec << it->first << " seconds" << endl;
+				if(out)
+					cout << "   sequence for cache " << dec << it->first << " seconds" << endl;
 				for(vector<SHAREDPTR::shared_ptr<chip_types_t> >::iterator chip= it->second.begin(); chip != it->second.end(); ++chip)
 				{
-					cout << "      " << (*chip)->id;
+					if(out)
+						cout << "      " << (*chip)->id;
 					if(bCon == true)
 					{
-						cout << " has value " << flush;
+						if(out)
+							cout << " has value " << flush;
 						value= 0;
 						do{
 							res= m_poChipAccess->read((*chip)->id, value);
@@ -91,15 +95,17 @@ namespace server
 						if(res < 0)
 						{
 							(*chip)->device= false;
-							cout << "(cannot read correctly)" << endl;
+							if(out)
+								cout << "(cannot read correctly)" << endl;
 						}else
 						{
 							(*chip)->device= true;
 							(*chip)->value= value;
-							cout << dec << value << endl;
+							if(out)
+								cout << dec << value << endl;
 						}
 					}else
-						cout << " (owreader has no connection to any chip)" << endl;
+						cerr << " (owreader has no connection to any chip)" << endl;
 				}
 			}
 		}
@@ -108,9 +114,9 @@ namespace server
 		return true;
 	}
 
-	void OWServer::endOfInitialisation()
+	void OWServer::endOfInitialisation(bool out)
 	{
-		readFirstChipState();
+		readFirstChipState(out);
 		if(m_bKernel == true)
 		{
 			if(m_bKernelOnly == false)

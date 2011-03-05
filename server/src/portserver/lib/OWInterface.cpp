@@ -90,7 +90,7 @@ string OWInterface::getServerName()
 	return sRv;
 }
 
-void OWInterface::endOfInitialisation(const int maxServer)
+void OWInterface::endOfInitialisation(const int maxServer, bool out)
 {
 	OWI pFirst;
 	OMethodStringStream method("endOfInitialisation");
@@ -98,6 +98,7 @@ void OWInterface::endOfInitialisation(const int maxServer)
 	if(_instances.size())
 	{
 		method << maxServer;
+		method << out;
 		pFirst= _instances.begin()->second;
 		pFirst->sendMethod("ppi-db-server", method, false);
 	}

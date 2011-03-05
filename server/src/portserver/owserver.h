@@ -86,8 +86,10 @@ namespace server
 		/**
 		 * all initialication of subroutines
 		 * are done
+		 *
+		 * @param out whether result should be shown on command line
 		 */
-		void endOfInitialisation();
+		void endOfInitialisation(bool out);
 		/**
 		 * whether server has type and chipID
 		 *
@@ -339,9 +341,10 @@ namespace server
 		/**
 		 * reading all devices for first state
 		 *
+		 * @param out whether result should be shown on command line
 		 * @return whether OWServer is correct connected to external devices
 		 */
-		bool readFirstChipState();
+		bool readFirstChipState(bool out);
 		/**
 		 * define method to running thread.<br />
 		 * This method starting again when ending without an sleeptime

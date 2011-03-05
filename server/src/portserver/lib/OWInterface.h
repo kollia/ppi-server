@@ -73,8 +73,9 @@ public:
 	 * are done
 	 *
 	 * @param maxServer count of running one wire reader
+	 * @param out whether result should be shown on command line
 	 */
-	static void endOfInitialisation(const int maxServer);
+	static void endOfInitialisation(const int maxServer, bool out);
 	/**
 	 * whether server has type and chipID
 	 *

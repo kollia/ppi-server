@@ -705,7 +705,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	createPortObjects(commands->hasOption("configure"));
 
 	OWInterface::checkUnused(nServerID);
-	OWInterface::endOfInitialisation(nServerID);
+	OWInterface::endOfInitialisation(nServerID, commands->hasOption("firstvalue"));
 
 	//checkAfterContact();
 

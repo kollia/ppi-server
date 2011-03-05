@@ -99,7 +99,10 @@ int OwServerQuestions::execute()
 
 	}else if(command == "endOfInitialisation")
 	{
-		m_oServer->endOfInitialisation();
+		bool out;
+
+		stream >> out;
+		m_oServer->endOfInitialisation(out);
 		m_sAnswer= "done";
 
 	}else if(command == "checkUnused")

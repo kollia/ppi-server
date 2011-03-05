@@ -658,16 +658,19 @@ namespace server
 
 		}else if(method == "endOfInitialisation")
 		{
-			string res;
+			bool out;
 			unsigned short max;
+			OMethodStringStream command("endOfInitialisation");
 
 			object >> max;
+			object >> out;
+			command << out;
 			for(unsigned short n= 1; n <= max; ++n)
 			{
 				ostringstream server;
 
 				server << "OwServerQuestion-" << n;
-				descriptor.sendToOtherClient(server.str(), "endOfInitialisation", true);
+				descriptor.sendToOtherClient(server.str(), command.str(), true);
 			}
 			descriptor << "done";
 

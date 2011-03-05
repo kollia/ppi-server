@@ -145,7 +145,8 @@ int main(int argc, char* argv[])
 
 	params.option("configure", "c", "display which folder configure by starting\n"
 							"(can be set by longer starting time to know what server is doing)");
-	params.option("folderstart", "f", "show all folder on command line wich are starting");
+	params.option("firstvalue", "f", "show after configure folder all first values of defined ports from owreader");
+	params.option("folderstart", "F", "show all folder on command line which are starting");
 	params.version(PPI_MAJOR_RELEASE, PPI_MINOR_RELEASE, PPI_SUBVERSION, PPI_PATCH_LEVEL,
 										/*no build*/0, PPI_REVISION_NUMBER, DISTRIBUTION_RELEASE);
 	params.help("help", "?");
