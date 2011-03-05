@@ -15,6 +15,8 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <climits>
+
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
@@ -82,26 +84,20 @@ namespace ports
 		m_ddefaultValue= properties->getDouble(sValue, /*warning*/false);
 
 		if(sMin == "#ERROR")
-			m_nMin= 0;
-		if(sMax == "#ERROR")
-		{// value can have hole range
-			m_nMax= m_nMin - 1;
-		}
-		if(	(	sMin == "#ERROR" &&
-				sMax == "max"		)
-			||
-			(	sMin == "min" &&
-				sMax == "#ERROR"	)	)
 		{
-			string msg(properties->getMsgHead(/*error*/false));
-
-			msg+= "min and max must be set both! so value can have hole range of";
-			if(m_bFloat)
-				msg+= " double";
-			else
-				msg+= " integer";
-			LOG(LOG_WARNING, msg);
-			cout << msg << endl;
+			m_nMin= LONG_MIN;
+			//cout << "set minimal to " << m_nMin << endl;
+		}
+		if(sMax == "#ERROR")
+		{
+			m_nMax= LONG_MAX;
+			//cout << "set maximal to " << m_nMax << endl;
+		}
+		if(	sMin == "#ERROR" &&
+			sMax == "#ERROR"	)
+		{// value can has hole range
+			m_nMin= 0;
+			m_nMax= -1;
 		}
 		if(!portBase::init(properties))
 			bOk= false;
