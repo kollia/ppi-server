@@ -71,7 +71,8 @@ using namespace boost;
 namespace server
 {
 	ServerTransaction::ServerTransaction()
-	:	m_bStopServer(false)
+	:	m_bStopServer(false),
+	 	m_fProtocol(0)
 	{
 		m_SERVERISSTOPPINGMUTEX= Thread::getMutex("SERVERISSTOPPINGMUTEX");
 	}
@@ -324,68 +325,73 @@ namespace server
 			descriptor.endl();
 			descriptor.flush();
 
-		}else if(	!descriptor.getBoolean("access")
-					||
-					(	length > 6
-						&&
+		}else if(	!descriptor.getBoolean("access") ||
+					(	input.length() > 6 &&
 						input.substr(0, 6) == "CHANGE"	)	)
 		{
-			bool ok= false;
+			bool ok(false);
+			istringstream oinput(input);
 
-			if(	input == "GET"
-				||
-				input == "GET wait"
-				||
-				(	length > 7
-					&&
-					input.substr(0, 7) == "GET ID:"	)
-				||
-				(	length > 12
-					&&
-					input.substr(0, 12) == "GET wait ID:"	)	)
+			oinput >> input;
+			if(input == "GET")
 			{
-				short nPos= 0;
-				char cID[21];
-				unsigned int ID;
+				unsigned int ID(0);
 
-				if(	length > 7
-					&&
-					input.substr(0, 7) == "GET ID:"	)
+				oinput >> input;
+				if(input.substr(0, 1) == "v")
 				{
-					nPos= 7;
-				}else if(	length > 12
-							&&
-							input.substr(0, 12) == "GET wait ID:"	)
-				{
-					nPos= 12;
+					float getnum;
+					istringstream num(input.substr(1));
+
+					num >> getnum;
+					if(getnum > PPI_SERVER_PROTOCOL)
+						m_fProtocol= PPI_SERVER_PROTOCOL;
+					else
+						m_fProtocol= getnum;
+					oinput >> input;
 				}
-				if(nPos)
+				if(	input == "wait" ||
+					m_fProtocol >= 1.0	)
 				{
-					string sID;
+					descriptor.setBoolean("wait", true);
+					if(input == "wait")
+						oinput >> input;
 
-					sID= input.substr(nPos);
-					ID= atoi(sID.c_str());
-					if(ID)
-					{
-						descriptor.setClientID(ID);
-						descriptor.setBoolean("speaker", true);
-					}else
+				}else
+					descriptor.setBoolean("wait", false);
+				if(input.substr(0, 3) == "ID:")
+				{
+					istringstream id(input.substr(3));
+
+					id >> ID;
+					if(ID == 0)
 					{
 						string msg("ERROR: client givs no correct ID. Send ERROR code 010");
 
 						LOG(LOG_SERVERERROR, msg);
 						sendmsg= "ERROR 010";
+					}else
+					{
+						descriptor.setClientID(ID);
+						descriptor.setBoolean("speaker", true);
 					}
-				}
+				}else
+					descriptor.setBoolean("speaker", false);
 
 				if(sendmsg == "")
 				{
-					cID[20]= '\0';
-					sendmsg= "port-server:";
-					snprintf(cID, 20, "%i", descriptor.getClientID());
-					sendmsg+= cID;
-					if(input.substr(0, 8) == "GET wait")
-						descriptor.setBoolean("wait", true);
+					ostringstream out;
+
+					if(m_fProtocol >= 1.0)
+					{
+						out << "ppi-server:" << descriptor.getClientID() << " v";
+						out.setf(ios_base::fixed, ios_base::floatfield);
+						out.precision(2);
+						out << m_fProtocol;
+
+					}else
+						out << "port-server:" << descriptor.getClientID();
+					sendmsg= out.str();
 				}
 		#ifdef SERVERDEBUG
 					cout << "send: " << sendmsg << endl;
@@ -402,9 +408,7 @@ namespace server
 						||
 						(	descriptor.getBoolean("access")
 							&&
-							length > 7
-							&&
-							input.substr(0, 6) == "CHANGE"	)	)
+							input == "CHANGE"				)	)
 			{
 				bool login= true;
 				short first= 1;
@@ -412,11 +416,9 @@ namespace server
 				vector<string> split;
 				UserManagement* user= UserManagement::instance();
 
-				if(	length > 7
-					&&
-					input.substr(0, 6) == "CHANGE"	)
+				if(input == "CHANGE"	)
 				{
-					input= input.substr(7);
+					oinput >> input;
 					first= 0;
 					login= false;
 				}
@@ -437,11 +439,9 @@ namespace server
 						sendmsg= "ERROR ";
 						if(	!descriptor.getBoolean("access")
 							&&
-							!user->rootLogin()
-							&&
-							user->isRoot(split[first]))
+							!user->canLoginFirst(split[first])	)
 						{
-							msg+= " is root and cannot login as first user";
+							msg+= " cannot login as first";
 							sendmsg+= "015";
 						}else
 						{
@@ -508,7 +508,7 @@ namespace server
 				IClientHolderPattern* starter= server->getCommunicationFactory();
 
 				glob::stopMessage("get stop or restart command from outside");
-				if(!user->isRoot(descriptor.getString("username")))
+				if(user->getRootUser() != descriptor.getString("username"))
 				{
 					string msg;
 
@@ -1201,7 +1201,7 @@ namespace server
 			str= "subrutine isn't correct defined by the settings of config file";
 			break;
 		case 15:
-			str= "root cannot login as first user";
+			str= "user cannot login as first";
 			break;
 		case 16:
 			str= "subroutine has no correct access to device";

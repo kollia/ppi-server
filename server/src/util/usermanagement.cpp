@@ -17,11 +17,15 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
+#include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <set>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include "usermanagement.h"
 
@@ -64,15 +68,20 @@ namespace user
 
 	bool UserManagement::init(const string& accessfile, const string& measurefile)
 	{
-		string param;
+		bool bset;
+		bool permission;
+		string param, msg;
 		Properties casher;
 		InterlacedProperties mproperties;
 		set<string> fGroups;
 		set<string>::iterator git;
 		vector<string> splitvec;
 		vector<string>::size_type count, ecount;
+		map<string, set<string> > mssClusterRef;
 		map<string, set<string> > msGroupGroup;
-		map<string, set<string> >::iterator ggit;
+		map<string, map<string, bool> >::iterator clgrIt, clgrIt2;
+		map<string, bool>::iterator grIt;
+		map<string, string>::iterator usIt;
 
 		mproperties.modifier("folder");
 		mproperties.setMsgParameter("folder");
@@ -82,8 +91,7 @@ namespace user
 		//mproperties.allowLaterModifier(true);
 		if(!mproperties.readFile(measurefile))
 		{
-			string msg("### fatal ERROR: cannot read correctly measure file '");
-
+			msg=  "### fatal ERROR: cannot read correctly measure file '";
 			msg+= measurefile + "\n";
 			msg+= "                 ";
 			msg+= errno;
@@ -95,8 +103,7 @@ namespace user
 		}
 		if(!casher.readFile(accessfile))
 		{
-			string msg("### fatal ERROR: cannot read access config file ");
-
+			msg= "### fatal ERROR: cannot read access config file ";
 			msg+= accessfile + "\n";
 			msg+= "                 ";
 			msg+= errno;
@@ -110,34 +117,20 @@ namespace user
 		// define root-name
 		m_sroot= casher.needValue("root");
 		if(m_sroot == "")
-			return false;
-		param= casher.getValue("rootlogin");
-		if(param == "true")
-			m_bRootLogin= true;
-		else
 		{
-			m_bRootLogin= false;
-			if(	param != ""
-				&&
-				param != "false"	)
-			{
-				string msg("### WARNING; rootlogin '");
-
-				msg+= param + "' is undefined string, so set rootlogin as false";
-
-				LOG(LOG_WARNING, msg);
-				cout << msg << endl;
-			}
-		}
-		if(m_sroot.find(":") < m_sroot.size())
-		{
-			string msg("### fatal ERROR: root name should not containe an double point ':'");
-
+			msg= "### fatal ERROR: no root user be set";
 			LOG(LOG_ALERT, msg);
 			cerr << msg << endl;
 			return false;
 		}
-		// read whitch user are defined
+		if(m_sroot.find(":") != string::npos)
+		{
+			msg= "### fatal ERROR: root name should not contain an colon ':'";
+			LOG(LOG_ALERT, msg);
+			cerr << msg << endl;
+			return false;
+		}
+		// read which user are defined
 		count= casher.getPropertyCount("user");
 		ecount= 0;
 		for(vector<string>::size_type i= 0; i < count; ++i)
@@ -146,83 +139,243 @@ namespace user
 			split(splitvec, param, is_any_of(":"));
 			if(splitvec.size() != 2)
 			{
-				string msg("### WARNING: undefined user '");
-
+				msg= "### WARNING: undefined user '";
 				msg+= param + "'\n";
-				msg+= "             an user must be defined with <username>:<password> seperatly with an double point ':'\n";
+				msg+= "             an user must be defined with <username>:<password> separately with an colon ':'\n";
 				msg+= "             this user will be ignored";
+				LOG(LOG_WARNING, msg);
+				cout << msg << endl;
 			}else
 			{
 				m_mUser[splitvec[0]]= splitvec[1];
 				++ecount;
-				//cout << "read user '" << split[0] << "' with password '" << split[1] << "'" << endl;
+				//cout << "read user '" << splitvec[0] << "' with password '" << splitvec[1] << "'" << endl;
 			}
 		}
 		if(ecount == 0)
 		{
-			string msg("## fatal ERROR: no user are defined in access.conf");
-
+			msg=  "## fatal ERROR: no user are defined in access.conf";
 			LOG(LOG_ALERT, msg);
 			cerr << msg << endl;
 			return false;
 		}
-		// read all groups with permission
-		count= casher.getPropertyCount("group");
+		// read all cluster with groups and permission
+		count= casher.getPropertyCount("cluster");
 		for(vector<string>::size_type i= 0; i < count; ++i)
 		{
-			param= casher.getValue("group", i, false);
+			param= casher.getValue("cluster", i, false);
 			split(splitvec, param, is_any_of(":"));
-			if(splitvec.size() != 2)
-			{
-				string msg("### WARNING: undefined group '");
+			if(splitvec.size() == 3)
+			{// definition of <clustername>:<groupname>:<permission>
+				trim(splitvec[0]);
+				trim(splitvec[1]);
+				trim(splitvec[2]);
+				if(splitvec[2] == "write")
+					permission= true;
+				else
+				{
+					permission= false;
+					if(splitvec[2] != "read")
+					{
+						msg= "### WARNING: for cluster '";
+						msg+= param + "' in access.conf file\n";
+						msg+= "             at third position permission can only be the names of 'read' or 'write'\n";
+						msg+= "             set access to the group '" + splitvec[1] + "' only to read.";
+						LOG(LOG_WARNING, msg);
+						cout << msg << endl;
+					}
+				}
+				bset= false;
+				if(permission == false)
+				{
+					clgrIt= m_mmCluster.find(splitvec[0]);
+					if(clgrIt != m_mmCluster.end())
+					{
+						grIt= clgrIt->second.find(splitvec[1]);
+						if(grIt == clgrIt->second.end())
+							bset= true;
+					}else
+						bset= true;
+				}else
+					bset= true;
+				if(bset == true)
+				{
+					m_mmCluster[splitvec[0]][splitvec[1]]= permission;
+					//cout << "put to cluster '" << splitvec[0] << "' group '" << splitvec[1] << "' with permission '"
+					//		<< splitvec[2] << "'" << endl;
+				}
+				if(permission == false)
+				{
+					grIt= m_msbGroups.find(splitvec[1]);
+					if(grIt == m_msbGroups.end())
+						m_msbGroups[splitvec[1]]= permission;
+				}else
+					m_msbGroups[splitvec[1]]= permission;
 
-				msg+= param + "'\n";
-				msg+= "             an group must be defined with <groupname>:<permission> seperatly with an double point ':'\n";
-				msg+= "             this user will be ignored";
+			}else if(splitvec.size() == 2)
+			{// definition of <clustername>:<clustername>
+				trim(splitvec[0]);
+				trim(splitvec[1]);
+				mssClusterRef[splitvec[0]].insert(splitvec[1]);
+
 			}else
 			{
-				m_mGroup[splitvec[0]]= splitvec[1];
-				//cout << "read group '" << split[0] << "' with permission '" << split[1] << "'" << endl;
+				msg= "### WARNING: undefined cluster '";
+				msg+= param + "' in access.conf file\n";
+				msg+= "             an cluster must be defined with <clustername>:<groupname>:<permission> or <clustername>:<clustername>\n";
+				msg+= "             separately with colon's ':'. this cluster will be ignored";
+				LOG(LOG_WARNING, msg);
+				cout << msg << endl;
 			}
 		}
-		// read all allocation with user to group into m_msAllocation
-		// or goup to group into msGroupGroup for read allocation in referedGroups
+
+		vector<string> vClusterOrder;
+		vector<string>::iterator mfIt;
+		map<string, set<string> >::iterator cl;
+
+		// sort referred clusters
+		for(map<string, set<string> >::iterator cl= mssClusterRef.begin(); cl != mssClusterRef.end(); ++cl)
+		{
+			//cout << "reference from " << cl->first << endl;
+			mfIt= find(vClusterOrder.begin(), vClusterOrder.end(), cl->first);
+			if(mfIt == vClusterOrder.end())
+			{
+				//cout << "insert " << cl->first << " as last" << endl;
+				vClusterOrder.push_back(cl->first);
+			}
+			for(set<string>::iterator tocl= cl->second.begin(); tocl != cl->second.end(); ++tocl)
+				insert(*tocl, vClusterOrder, cl->first, mssClusterRef);
+			/*cout << "new order of clusters:" << endl;
+			for(vector<string>::iterator it= vClusterOrder.begin(); it != vClusterOrder.end(); ++it)
+				cout << "            " << *it << endl;
+			cout << endl;*/
+		}
+
+		// write all cluster refer to an other in order from vClusterOrder
+		for(vector<string>::iterator it= vClusterOrder.begin(); it != vClusterOrder.end(); ++it)
+		{
+			// search ordered cluster in referred cluster group to begin
+			cl= mssClusterRef.find(*it);
+			if(cl != mssClusterRef.end())
+			{
+				// by loop from all cluster to which referred:
+				for(set<string>::iterator tocl= cl->second.begin(); tocl != cl->second.end(); ++tocl)
+				{
+					// search to refer cluster in exist cluster group where groups are written
+					//cout << "cluster " << *it << " has reference to cluster " << *tocl << endl;
+					clgrIt= m_mmCluster.find(*tocl);
+					if(clgrIt != m_mmCluster.end())
+					{
+						// search whether cluster refer to cluster already exists with other groups in cluster group
+						clgrIt2= m_mmCluster.find(cl->first);
+						if(clgrIt2 != m_mmCluster.end())
+						{
+							for(map<string, bool>::iterator fromgr= clgrIt->second.begin(); fromgr != clgrIt->second.end(); ++fromgr)
+							{
+								if(fromgr->second == false)
+								{	// if new filled in group has only an read permission
+									// search whether group exit.
+									// When exist, do not fill again,
+									// because the exist group has maybe an write permission
+									grIt= clgrIt2->second.find(fromgr->first);
+									//cout << "need to insert into cluster group group " << fromgr->first
+									//		<< " which has permission write:" << boolalpha << fromgr->second << "?" << endl;
+									if(grIt == clgrIt2->second.end())
+									{
+										clgrIt2->second[fromgr->first]= fromgr->second;
+										//cout << "put to cluster '" << clgrIt2->first << "' group '" << fromgr->first
+										//		<< "' with permission write:" << boolalpha << fromgr->second << endl;
+									}
+									//else cout << "exist group " << grIt->first << " has permission write:" << boolalpha
+									//			<< grIt->second << endl;
+
+								}else
+								{
+									clgrIt2->second[fromgr->first]= fromgr->second;
+									//cout << "put to cluster '" << clgrIt2->first << "' group '" << fromgr->first
+									//		<< "' with permission write:" << boolalpha << fromgr->second << endl;
+								}
+							}
+						}else
+						{// cluster do not exist in cluster group,
+						 // so insert hole reference
+							m_mmCluster[cl->first]= clgrIt->second;
+							//cout << "put to cluster '" << cl->first << "' reference to cluster '" << clgrIt->first << "'" << endl;
+						}
+					}else
+					{
+						msg= "### ERROR: for cluster reference'";
+						msg+= cl->first + ":" + *tocl + "' in access.conf file\n";
+						msg+= "             cannot find the cluster to refer. This cluster will be ignored";
+						LOG(LOG_ERROR, msg);
+						cerr << msg << endl;
+					}
+				}
+			}// if(cl != mssClusterRef.end())
+		}
+
+		// read all allocation with user to cluster into m_msAllocation
 		count= casher.getPropertyCount("alloc");
 		for(vector<string>::size_type i= 0; i < count; ++i)
 		{
-			bool ok= false;
-
 			param= casher.getValue("alloc", i, false);
 			split(splitvec, param, is_any_of(":"));
-			if(splitvec.size() == 3)
+			if(splitvec.size() == 2)
 			{
-				if(splitvec[0] == "u")
+				trim(splitvec[0]);
+				trim(splitvec[1]);
+				usIt= m_mUser.find(splitvec[0]);
+				if(	usIt != m_mUser.end() ||
+					splitvec[0] == m_sroot	)
 				{
-					fGroups.clear();
-					referedGroups(splitvec[2], &fGroups, msGroupGroup);
-					for(set<string>::iterator f= fGroups.begin(); f != fGroups.end(); ++f)
+					clgrIt= m_mmCluster.find(splitvec[1]);
+					if(clgrIt != m_mmCluster.end())
 					{
-						m_msAllocation[splitvec[1]].insert(*f);
-						//cout << "make allocation between user '" << split[1] << "' and group '" << *f << "'" << endl;
+						m_msAllocation[splitvec[0]].insert(splitvec[1]);
+					}else
+					{
+						msg=  "### WARNING: undefined cluster in allocation '" + param + "'\n";
+						msg+= "             an allocation must be defined with string <user>:<cluster> separately with an colon ':'\n";
+						msg+= "             this cluster for user '" + splitvec[0] + "' will be ignored";
+						cout << msg << endl;
+						LOG(LOG_WARNING, msg);
 					}
-					ok= true;
-				}else if(splitvec[0] == "g")
+				}else
 				{
-					msGroupGroup[splitvec[1]].insert(splitvec[2]);
-					//cout << "make allocation between groups '" << split[1] << "' and '" << split[2] << "'" << endl;
-					ok= true;
+					msg=  "### WARNING: undefined user in allocation '" + param + "'\n";
+					msg+= "             an allocation must be defined with string <user>:<cluster> separately with an colon ':'\n";
+					msg+= "             this user will be ignored";
+					cout << msg << endl;
+					LOG(LOG_WARNING, msg);
 				}
 			}
-			if(ok == false)
-			{
-				string msg("### WARNING: undefined allocation '");
+		}
 
-				msg+= param + "'\n";
-				msg+= "             an allocation must be defined with tree strings <u|g>:<user:group>:<group> seperatly with an double point ':'\n";
-				msg+= "             this user will be ignored";
+		// read all user which should not login as first
+		count= casher.getPropertyCount("noFirstLogin");
+		for(vector<string>::size_type i= 0; i < count; ++i)
+		{
+			param= casher.getValue("noFirstLogin", i, false);
+			trim(param);
+			usIt= m_mUser.find(param);
+			if(	usIt != m_mUser.end() ||
+				param == m_sroot	)
+			{
+				m_sNoFirstLogin.insert(param);
+			}else
+			{
+				msg=  "### WARNING: undefined user  '" + param + "' for no first login (noFirstLogin) found in access.conf";
 				cerr << msg << endl;
-				LOG(LOG_ERROR, msg);
+				LOG(LOG_WARNING, msg);
 			}
+		}
+		if(m_sNoFirstLogin.size() == m_mUser.size())
+		{
+			msg=  "### ERROR: no user can login, for server account, as first\n";
+			msg+= "           same defined count of users be in noFirstLogin parameters.";
+			cerr << msg << endl;
+			LOG(LOG_ALERT, msg);
+			return false;
 		}
 
 		// read all permission groups for folder:subroutines in file measure.conf
@@ -240,11 +393,72 @@ namespace user
 				folder= (*vfit)->getSectionValue();
 				subroutine= (*vsit)->getSectionValue();
 				groups= (*vsit)->getValue("perm", /*warning*/false);
-				m_mmGroups[folder][subroutine]= groups;
-				//cout << "allow group '" << groups << "' for subroutine " << folder << ":" << subroutine << endl;
+				if(groups != "")
+				{
+					m_mmGroups[folder][subroutine]= groups;
+					//cout << "allow group '" << groups << "' for subroutine " << folder << ":" << subroutine << endl;
+				}
 			}
 		}
 		return true;
+	}
+
+	void UserManagement::insert(const string& cluster, vector<string>& inContainer, const string& reference,
+			const map<string, set<string> > refClusters)
+	{
+		bool bInsert;
+		vector<string>::iterator mfIt, fIt, sIt;
+		map<string, set<string> >::const_iterator rfCIt;
+
+		//cout << "insert " << cluster << endl;
+		mfIt= find(inContainer.begin(), inContainer.end(), reference);
+		fIt= find(inContainer.begin(), inContainer.end(), cluster);
+		if(fIt == inContainer.end())
+		{
+			bInsert= true;
+			sIt= inContainer.end();
+			if(mfIt != inContainer.begin())
+			{
+				bInsert= false;
+				for(sIt= inContainer.begin(); sIt != mfIt; ++sIt)
+				{
+					rfCIt= refClusters.find(*sIt);
+					if(rfCIt != refClusters.end())
+					{
+						for(set<string>::const_iterator setIt= rfCIt->second.begin(); setIt != rfCIt->second.end(); ++setIt)
+						{
+							//cout << "found " << rfCIt->first << " refer to " << *setIt << endl;
+							if(*setIt == cluster)
+							{
+								bInsert= true;
+								break;
+							}
+						}
+						if(bInsert)
+							break;
+					}
+				}
+				bInsert= true;
+			}
+			if(bInsert)
+			{
+				if(sIt == inContainer.end())
+					inContainer.insert(mfIt, cluster);
+				else
+					inContainer.insert(sIt, cluster);
+			}
+		}else // if(fIt == inContainer.end())
+		{// cluster exist in container
+			if(fIt > mfIt)
+			{
+				string err;
+
+				err=  "ERROR: user management cannot refer from cluster '" + *mfIt + "' to cluster '" + *fIt + "'\n";
+				err+= "       cluster '" + *fIt + "' has an link back to cluster '" + *mfIt + "'";
+				LOG(LOG_ERROR, err);
+				cerr << err << endl;
+			}
+		}
 	}
 
 	string UserManagement::getNoRootUser() const
@@ -254,8 +468,11 @@ namespace user
 		for(map<string, string>::const_iterator it= m_mUser.begin(); it != m_mUser.end(); ++it)
 		{
 			sRv= it->first;
-			if(sRv != m_sroot)
+			if(	sRv != m_sroot &&
+				canLoginFirst(sRv)	)
+			{
 				break;
+			}
 		}
 		return sRv;
 	}
@@ -285,29 +502,26 @@ namespace user
 		return false;
 	}
 
-	bool UserManagement::isRoot(const string& user) const
+	bool UserManagement::canLoginFirst(const string& user) const
 	{
-		if(m_sroot == user)
+		set<string>::iterator found;
+
+		found= m_sNoFirstLogin.find(user);
+		if(found == m_sNoFirstLogin.end())
 			return true;
 		return false;
-	}
-
-	bool UserManagement::rootLogin() const
-	{
-		return m_bRootLogin;
 	}
 
 	bool UserManagement::hasAccess(const string& user, const string& password, const bool login) const
 	{
 		map<string, string>::const_iterator fu;
+		set<string>::iterator found;
 
-		if( !m_bRootLogin
-			&&
-			login
-			&&
-			user == m_sroot	)
+		if(login == true)
 		{
-			return false;
+			found= m_sNoFirstLogin.find(user);
+			if(found != m_sNoFirstLogin.end())
+				return false;
 		}
 		fu= m_mUser.find(user);
 		if(fu != m_mUser.end())
@@ -340,57 +554,69 @@ namespace user
 		return hasPermission(user, groups, access);
 	}
 
-	bool UserManagement::hasPermission(const string& user, const string& groups, const string& access)
+	bool UserManagement::hasPermission(const string& user, string groups, const string& access)
 	{
+		bool bRoot(true);
+		map<string, map<string, bool> >::iterator cl;
 		map<string, set<string> >::iterator fu;
 		map<string, string>::iterator fg;
-		set<string>::iterator fga;
+		map<string, bool>::iterator aGr;
 		vector<string> splitvec;
 
-		if(user == m_sroot)
-			return true;
-		fu= m_msAllocation.find(user);
-		if(fu == m_msAllocation.end())
+		trim(groups);
+		if(groups == "")
 			return false;
+		if(user != m_sroot)
+		{
+			bRoot= false;
+			fu= m_msAllocation.find(user);
+			if(fu == m_msAllocation.end())
+				return false;
+		}
 		split(splitvec, groups, is_any_of(":"));
+		// search by all access groups for specific subroutine in measure.conf
 		for(vector<string>::iterator i= splitvec.begin(); i != splitvec.end(); ++i)
 		{
-			fga= fu->second.find(*i);
-			if(fga != fu->second.end())
+			trim(*i);
+			if(bRoot)
 			{
-				if(access == "read")
-					return true;
-				if(access == "write")
+				aGr= m_msbGroups.find(*i);
+				if(aGr != m_msbGroups.end())
 				{
-					fg= m_mGroup.find(*i);
-					if(	fg != m_mGroup.end()
-						&&
-						fg->second == "write"	)
+					if(access == "read")
+						return true;
+					if(	access == "write" &&
+						aGr->second == true	)
 					{
 						return true;
+					}else
+						return false;
+				}
+			}else
+			{
+				// search by all clusters defined for user
+				for(set<string>::iterator c= fu->second.begin(); c != fu->second.end(); ++c	)
+				{
+					cl= m_mmCluster.find(*c);
+					if(cl != m_mmCluster.end())
+					{
+						// search for group in cluster
+						aGr= cl->second.find(*i);
+						if(aGr != cl->second.end())
+						{
+							if(access == "read")
+								return true;
+							if(	access == "write" &&
+								aGr->second == true	)
+							{
+								return true;
+							}
+						}
 					}
 				}
 			}
 		}
 		return false;
-	}
-
-	void UserManagement::referedGroups(const string& group, set<string>* groups, const map<string, set<string> > exist)
-	{
-		map<string, string>::iterator fg;
-		map<string, set<string> >::const_iterator fe;
-
-		fg= m_mGroup.find(group);
-		if(fg != m_mGroup.end())
-		{
-			groups->insert(group);
-			return;
-		}
-		fe= exist.find(group);
-		if(fe == exist.end())
-			return;
-		for(set<string>::iterator f= fe->second.begin(); f != fe->second.end(); ++f)
-			referedGroups(*f, groups, exist);
 	}
 
 	UserManagement* UserManagement::instance()

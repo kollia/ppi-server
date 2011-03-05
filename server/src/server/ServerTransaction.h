@@ -201,7 +201,7 @@ namespace server
 			 *       015
 			 *     </td>
 			 *     <td>
-			 *       root cannot login as first user
+			 *       user cannot login as first
 			 *     </td>
 			 *   </tr>
 			 *   <tr>
@@ -274,6 +274,11 @@ namespace server
 			 * whether server will be stopping, do not connect again hearing port
 			 */
 			bool m_bStopServer;
+			/**
+			 * transaction protocol version number for communication<br />
+			 * Latest version number be defined in file util/debug.h under PPI_SERVER_PROTOCOL
+			 */
+			float m_fProtocol;
 			/**
 			 * mutex lock for StopServer variable
 			 */

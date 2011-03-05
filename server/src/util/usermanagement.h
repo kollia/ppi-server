@@ -48,18 +48,12 @@ namespace user
 			 */
 			static UserManagement* instance();
 			/**
-			 * returns true if given user is root
+			 * whether user can login as first
 			 *
 			 * @param user name of user
-			 * @return whether user is root
-			 */
-			bool isRoot(const string& user) const;
-			/**
-			 * whether root can login as first user
-			 *
 			 * @return wethe3r root can login
 			 */
-			bool rootLogin() const;
+			bool canLoginFirst(const string& user) const;
 			/**
 			 * returns an user whitch is not root
 			 *
@@ -123,7 +117,7 @@ namespace user
 			 * @param access look access for given param. can be 'read' or 'write'
 			 * @return whether user has access
 			 */
-			bool hasPermission(const string& user, const string& groups, const string& access);
+			bool hasPermission(const string& user, string groups, const string& access);
 			/**
 			 * destructor of user-management
 			 */
@@ -135,9 +129,9 @@ namespace user
 			 */
 			string m_sroot;
 			/**
-			 * wether root can login as first user
+			 * vector of all users which can not login as first
 			 */
-			bool m_bRootLogin;
+			set<string> m_sNoFirstLogin;
 			/**
 			 * map from all user as key and password as value
 			 */
@@ -145,7 +139,7 @@ namespace user
 			/**
 			 * map with all groups show to permissions ("read" or "write")
 			 */
-			map<string, string> m_mGroup;
+			map<string, map<string, bool> > m_mmCluster;
 			/**
 			 * map with user names and accesible groups
 			 */
@@ -156,6 +150,11 @@ namespace user
 			 * instance of own single object
 			 */
 			static UserManagement* _instance;
+			/**
+			 * all exist groups for root permission.<br />
+			 * <code>map&lt;group, write&gt;</code>
+			 */
+			map<string, bool> m_msbGroups;
 			/**
 			 * permission groups for folder and subroutines
 			 */
@@ -173,6 +172,15 @@ namespace user
 			 * @return whether the file loading was successful
 			 */
 			bool init(const string& access, const string& measure);
+			/**
+			 * insert cluster into sorted vector
+			 *
+			 * @param cluster name of cluster which should be inserted
+			 * @param inContainer container in which should be inserted for sorted order
+			 * @param reference name of reference cluster
+			 */
+			void insert(const string& cluster, vector<string>& inContainer, const string& reference,
+					const map<string, set<string> > refClusters);
 			/**
 			 * private method do found for given group all real defined group with permission
 			 * read or write

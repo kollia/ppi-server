@@ -28,6 +28,7 @@
 #ifndef DISTRIBUTION_RELEASE
 #define DISTRIBUTION_RELEASE ""
 #endif
+#define PPI_SERVER_PROTOCOL 1.0
 
 /*******************************************************************************************************************
  * cmake define follow symbols for preprocessor from gcc
