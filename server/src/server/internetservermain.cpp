@@ -138,6 +138,12 @@ int main(int argc, char* argv[])
 							/*wait*/true													);
 	LogHolderPattern::init(LogInterface::instance());
 
+	if(!UserManagement::initial(URL::addPath(sConfPath, "access.conf", /*always*/true),
+								URL::addPath(sConfPath, "measure.conf", /*always*/true)))
+	{
+		cerr << "### ERROR: cannot read correctly 'access.conf'" << endl;
+		return false;
+	}
 
 	property= "minconnectionthreads";
 	minThreads= oServerProperties.getUShort(property, /*warning*/true);
@@ -167,12 +173,6 @@ int main(int argc, char* argv[])
 		msg+= "             so client connection with HEAEING commands cannot be answered";
 		cerr << msg << endl;
 		LOG(LOG_WARNING, msg);
-	}
-	if(!UserManagement::initial(URL::addPath(sConfPath, "access.conf", /*always*/true),
-								URL::addPath(sConfPath, "measure.conf", /*always*/true)))
-	{
-		cerr << "### ERROR: cannot read correctly 'access.conf'" << endl;
-		return false;
 	}
 
 	ServerProcess internetserver(	"ppi-internet-server", defaultuserID,
