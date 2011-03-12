@@ -125,7 +125,7 @@ int send_packet(int fd,const char *packet)
 			fprintf(stderr,"%s: could not send packet\n",
 				progname);
 			perror(progname);
-			return(-1);
+			return(TRANSACTIONERROR);
 		}
 		data+=done;
 		todo-=done;
@@ -171,7 +171,7 @@ int send_packet(int fd,const char *packet)
 			{
 				fprintf(stderr,"%s: command failed: %s",
 					progname,packet);
-				status=-1;
+				status= PACKETERROR;
 			}
 			else
 			{
@@ -222,12 +222,13 @@ int send_packet(int fd,const char *packet)
 	}
  bad_packet:
 	fprintf(stderr,"%s: bad return packet\n",progname);
-	return(-1);
+	return(PACKETERROR);
 }
 
 //int main(int argc,char **argv)
 int irsend(const char* directive, const char* remote, const char* code) //, const int count)
 {
+	int status;
     char *lircd=NULL;
 	char *address=NULL;
 	unsigned short port = LIRC_INET_PORT;
@@ -341,7 +342,7 @@ int irsend(const char* directive, const char* remote, const char* code) //, cons
 			/* lircd is longer than sockaddr_un.sun_path field */
 			fprintf(stderr, "%s: socket name is too long\n",
 				progname);
-			return(EXIT_FAILURE);
+			return(TRANSACTIONERROR);
         }
 	}
 
@@ -388,7 +389,7 @@ int irsend(const char* directive, const char* remote, const char* code) //, cons
 	{
 		fprintf(stderr,"%s: could not connect to socket\n",progname);
 		perror(progname);
-		return(EXIT_FAILURE);
+		return(TRANSACTIONERROR);
 	};
 
 	if(address) free(address);
@@ -476,17 +477,18 @@ int irsend(const char* directive, const char* remote, const char* code) //, cons
 				{
 					sprintf(buffer,"%s %s %s\n",directive,remote,code);
 				}
-				if(send_packet(fd,buffer)==-1)
+				status= send_packet(fd,buffer);
+				if(status < 0)
 				{
 					close(fd);
-					return(EXIT_FAILURE);
+					return(status);
 				}
 			}
 			else
 			{
 				fprintf(stderr,"%s: input too long\n",progname);
 				close(fd);
-				return(EXIT_FAILURE);
+				return(PACKETERROR);
 			}
 		//}
 	}

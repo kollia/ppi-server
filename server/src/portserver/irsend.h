@@ -29,6 +29,9 @@
 #  include "config.h"
 #endif
 
+#define PACKETERROR -1
+#define TRANSACTIONERROR -2
+
 #define LIRCD "/var/run/lirc/lircd"
 #define LIRC_INET_PORT 20010
 #define PACKET_SIZE 256
