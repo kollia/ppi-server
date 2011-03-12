@@ -13,12 +13,79 @@ namespace server {
 
 	using namespace ppi_database;
 
-	KernelModule::KernelModule(const string& servertype, IChipAccessPattern* chipaccess, pthread_mutex_t* readcache)
+	KernelModule::KernelModule(const string& servertype, IChipAccessPattern* chipaccess,
+			pthread_mutex_t* readcache, pthread_cond_t* prioritycond)
 	:	Thread("KernelModule", 0),
 		m_sServerType(servertype),
 		m_poChipAccess(chipaccess),
-		m_READCACHE(readcache)
+		m_READCACHE(readcache),
+		m_PRIORITYCACHECOND(prioritycond)
 	{
+		m_POLLREAD= getMutex("POLLREAD");
+	}
+
+	bool KernelModule::changeReadPoll(map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >& sequences,
+			map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >& read)
+	{
+		bool bPoll(false);
+		vector<SHAREDPTR::shared_ptr<chip_types_t> >::iterator found;
+		map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >::iterator chip;
+
+		LOCK(m_POLLREAD);
+		// first search for all devices in maybe littler TrueReadingCache named read
+		for(map<string, bool>::iterator newChip= m_mPollRead.begin(); newChip != m_mPollRead.end(); ++newChip)
+		{
+			//cout << "search for '" << newChip->first << "'" << endl;
+			for(chip= read.begin(); chip != read.end(); ++chip)
+			{
+				for(found= chip->second.begin(); found != chip->second.end(); ++found)
+				{
+					//cout << "     find '"<< (*found)->id << "'" << endl;
+					if((*found)->id == newChip->first)
+						break;
+				}
+				if(found != chip->second.end())
+					break;
+			}
+			if(	chip != read.end()) // if chip isn't end
+			{						// found also can not be end
+				if(newChip->second == false)
+				{
+					(*found)->bPoll= false;
+					read[chip->first].erase(found);
+
+				}else if((*found)->bPoll == false)
+				{
+					(*found)->bPoll= true;
+					bPoll= true;
+				}
+			}else
+			{
+				// elsewhere if not found search in ReadingCache sequences
+				for(chip= sequences.begin(); chip != sequences.end(); ++chip)
+				{
+					for(found= chip->second.begin(); found != chip->second.end(); ++found)
+					{
+						//cout << "     find '"<< (*found)->id << "'" << endl;
+						if((*found)->id == newChip->first)
+							break;
+					}
+					if(found != chip->second.end())
+					{
+						(*found)->bPoll= newChip->second;
+						if(newChip->second)
+						{
+							bPoll= true;
+							read[chip->first].push_back(*found);
+						}
+						break;
+					}
+				}
+			}
+		}
+		m_mPollRead.clear();
+		UNLOCK(m_POLLREAD);
+		return bPoll;
 	}
 
 	int KernelModule::execute()
@@ -27,8 +94,19 @@ namespace server {
 		double value;
 		string readchip;
 		vector<chip_types_t*>::iterator chip;
+		map<string, bool> poll;
 
-		readchip= m_poChipAccess->kernelmodule();
+		readchip= m_poChipAccess->kernelmodule(poll);
+		LOCK(m_READCACHE);
+		LOCK(m_POLLREAD);
+		if(poll.size())
+		{
+			AROUSE(m_PRIORITYCACHECOND);
+			for(map<string, bool>::iterator it= poll.begin(); it != poll.end(); ++it)
+				m_mPollRead[it->first]= it->second;
+		}
+		UNLOCK(m_POLLREAD);
+		UNLOCK(m_READCACHE);
 		if(readchip != "")
 		{
 			LOCK(m_READCACHE);
@@ -63,7 +141,6 @@ namespace server {
 	}
 
 	bool KernelModule::readChip(const short endWork, const double value, chip_types_t* pActChip)
-								//const bool bDebug, vector<device_debug_t>::iterator devIt)
 	{
 		bool bDo= false;
 		bool device= false;
@@ -90,6 +167,11 @@ namespace server {
 			// was reading befor (chip wasn't read,
 			// value is correct) -> go to the next pin)
 			device= true;
+		case 4:
+			// reading was correctly and the pin is finished
+			device= true;
+			bDo= true;
+			break;
 		default:
 			// unknown result
 			device= false;
@@ -114,6 +196,7 @@ namespace server {
 
 	KernelModule::~KernelModule()
 	{
+		DESTROYMUTEX(m_POLLREAD);
 	}
 
 }

@@ -190,7 +190,7 @@ struct device_debug_t
 		return act_tm.tv_usec > other->act_tm.tv_usec ? true : false;
 	}
 	/**
-	 * find operator to comparing actual time wheteher both are the same
+	 * find operator to comparing actual time whether both are the same
 	 */
 	int operator == (const device_debug_t* other)
 	{
@@ -224,6 +224,10 @@ struct chip_types_t
 	 */
 	bool read;
 	/**
+	 * whether should read chip by polling
+	 */
+	bool bPoll;
+	/**
 	 * whether writing will be make in an cache
 	 */
 	bool writecache;
@@ -251,17 +255,33 @@ struct chip_types_t
 	/**
 	 * inline greater operator
 	 */
-	bool operator > (const chip_types_t* other)
+	virtual bool operator > (const chip_types_t* other)
 	{
+		cout << "chip_types_t '" << id << "' > '" << other->id << "'  ?" << endl;
 		return id > other->id ? true : false;
+	}
+	/**
+	 * inline greater operator
+	 */
+	virtual bool operator < (const chip_types_t* other)
+	{
+		cout << "chip_types_t '" << id << "' < '" << other->id << "'  ?" << endl;
+		return id < other->id ? true : false;
 	}
 	/**
 	 * inline similar operator
 	 */
-	bool operator == (const chip_types_t* other)
+	virtual bool operator == (const chip_types_t* other)
+	//bool operator == (const string& other)
 	{
+		cout << "chip_types_t '" << id << "' == '" << other->id << "'  ?" << endl;
+		//return id == other->id ? true : false;
 		return id == other->id ? true : false;
 	}
+	/**
+	 * dummy destruktor
+	 */
+	virtual ~chip_types_t() {};
 };
 
 #endif /*STRUCTURES_H_*/

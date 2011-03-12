@@ -210,7 +210,7 @@ namespace ports
 		 *
 		 * @return only an null string ("")
 		 */
-		virtual string kernelmodule() { return ""; };
+		virtual string kernelmodule(map<string, bool>& read) { return ""; };
 		/**
 		 * set min and max parameter to the range which can be set for the pin.<br />
 		 * If the pin is set from 0 to 1 for writing, in the config file can be set begin while and end.

@@ -231,6 +231,10 @@ namespace server
 			 */
 			timeval tm;
 			/**
+			 * whether should read sequence by polling
+			 */
+			bool bPoll;
+			/**
 			 * next chip in sequence to read
 			 */
 			 SHAREDPTR::shared_ptr<chip_types_t> nextUnique;
@@ -312,12 +316,16 @@ namespace server
 		 */
 		map<int, queue<SHAREDPTR::shared_ptr<chip_types_t> > > m_mvPriorityCache;
 		/**
-		 * cache with reading secuences
+		 * cache with all reading sequences
 		 */
 		map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > > m_mvReadingCache;
 		/**
-		 * real timeval structure for every chace sequence
-		 * to start measureing in cache again
+		 * cache of realy reading sequences
+		 */
+		map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > > m_mvTrueReadingCache;
+		/**
+		 * real timeval structure for every cache sequence
+		 * to start measuring in cache again
 		 */
 		map<double, seq_t> m_mStartSeq;
 		/**
@@ -391,6 +399,10 @@ namespace server
 		 * and have not start and second thread
 		 */
 		bool m_bKernelOnly;
+		/**
+		 * whether owserver should polling over read sequence
+		 */
+		bool m_bPollRead;
 		/**
 		 * KernelModule class reading the kernelmodule from <code>IChipAccessPattern</code>
 		 */

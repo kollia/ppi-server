@@ -52,7 +52,8 @@ namespace server
 		m_bAllInitial(false),
 		m_poChipAccess(auto_ptr<IChipAccessPattern>(accessPattern)),
 		m_bKernel(false),
-		m_bKernelOnly(true)
+		m_bKernelOnly(true),
+		m_bPollRead(false)
 	{
 		m_WRITEONCHIP= getMutex("WRITEONCHIP");
 		m_WRITECACHE= getMutex("READCACHE");
@@ -62,7 +63,7 @@ namespace server
 		m_PRIORITY1CHIP= getMutex("PRIORITY1CHIP");
 		m_CACHEWRITEENTRYS= getMutex("CACHEWRITEENTRYS");
 		m_DEBUGINFO= getMutex("DEBUGINFO");
-		m_pKernelModule= auto_ptr<KernelModule>(new KernelModule(type, accessPattern, m_READCACHE));
+		m_pKernelModule= auto_ptr<KernelModule>(new KernelModule(type, accessPattern, m_READCACHE, m_PRIORITYCACHECOND));
 	}
 
 	bool OWServer::readFirstChipState(bool out)
@@ -122,7 +123,10 @@ namespace server
 			if(m_bKernelOnly == false)
 				m_pKernelModule->start();
 		}else
-			m_bKernelOnly= false;
+		{
+			m_bKernelOnly= false; // do not need kernel module
+			m_pKernelModule= auto_ptr<KernelModule>();
+		}
 		m_bAllInitial= true;
 	}
 
@@ -253,13 +257,13 @@ namespace server
 			}
 			priority= 0;
 		}else if(res == 2)
-		{
-			//*pCache= cacheWriting;
+		{// chip is for writing
 			read= false;
 			write= true;
 			if(priority == 0)
 				priority= 9999;
 			dCacheSeq= 0;
+			m_bKernelOnly= false;
 		}else // res is 3
 		{
 			read= false;
@@ -300,17 +304,23 @@ namespace server
 			if(kernelmode == 2)
 				m_bKernelOnly= false;
 		}
-		if(	dCacheSeq &&
-			kernelmode != 1	)
+		if(	dCacheSeq )
 		{
 			long tm;
 			map<double, seq_t>::iterator found;
 
-			m_bKernelOnly= false;
 			tm= (long)dCacheSeq;
 			pchip->timeSeq.tv_sec= (time_t)tm;
 			tm= (long)((dCacheSeq - tm) * 1000000);
 			pchip->timeSeq.tv_usec= (suseconds_t)tm;
+			if(kernelmode != 1)
+			{
+				pchip->bPoll= true;
+				m_bPollRead= true;
+				m_bKernelOnly= false;
+				m_mvTrueReadingCache[dCacheSeq].push_back(pchip);
+			}else
+				pchip->bPoll= false;
 			m_mvReadingCache[dCacheSeq].push_back(pchip);
 
 			found= m_mStartSeq.find(dCacheSeq);
@@ -321,9 +331,9 @@ namespace server
 				t.tm.tv_sec= pchip->timeSeq.tv_sec;
 				t.tm.tv_usec= pchip->timeSeq.tv_usec;
 				t.nextUnique= pchip;
+				t.bPoll= true;
 				m_mStartSeq[dCacheSeq]= t;
 			}
-			m_bKernelOnly= false;
 
 		}
 		// if owreader not be connected to any board or chip
@@ -402,6 +412,8 @@ namespace server
 		typedef map<string, map<string, string> >::iterator cachemmiter;
 		typedef map<string, string>::iterator cachemiter;
 		typedef map<string, SHAREDPTR::shared_ptr<chip_types_t> >::iterator mmtype;
+		typedef map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >::iterator mdvReadingIt;
+		typedef vector<SHAREDPTR::shared_ptr<chip_types_t> >::iterator vReadingIt;
 
 		if(!m_bAllInitial)
 		{
@@ -468,22 +480,29 @@ namespace server
 				endWork= m_poChipAccess->write(chip->id, chip->value);
 				if(bDebug)
 					measureTimeDiff(&(*devIt));
-				if(endWork == -1)
-				{// an error is occured, try again the next time
+				if(	endWork == -1 ||
+					endWork == -2	)
+				{// an error is occured
 					chipTypeIt= m_mtConductors.find(chip->id);
-					chipTypeIt->second->device= false;
+					if(chipTypeIt != m_mtConductors.end())
+						chipTypeIt->second->device= false;
 					if(bDebug)
 						devIt->ok= false;
-					break;
-				}
-				chipTypeIt= m_mtConductors.find(chip->id);
-				chipTypeIt->second->device= true;
-				if(endWork == 1)
-				{// reading was correctly but the next time should make the same pin,
-					if(bDebug)
-						devIt->ok= true;
-					bDo= true;
-					break;
+					if(endWork == -1)
+						break;// try again the next time
+					// -2 - kill from queue
+				}else
+				{
+					chipTypeIt= m_mtConductors.find(chip->id);
+					if(chipTypeIt != m_mtConductors.end())
+						chipTypeIt->second->device= true;
+					if(endWork == 1)
+					{// reading was correctly but the next time should make the same pin,
+						if(bDebug)
+							devIt->ok= true;
+						bDo= true;
+						break;
+					}
 				}
 				priorityPos->second.pop();
 				if(priorityPos->second.size() == 0)
@@ -509,210 +528,291 @@ namespace server
 		// read sequences in cache
 		if(!bDo)
 		{
-			//static bool bChipVectorSet= false;
+			/**
+			 * actual device in an sequence of different caching times
+			 */
 			vector<SHAREDPTR::shared_ptr<chip_types_t> >::iterator pActChip;
+			/**
+			 * actual sequence of caches with next device
+			 */
 			map<double, seq_t>::iterator pActSeq= m_mStartSeq.begin();
-
+			/**
+			 * actual time
+			 */
 			timeval tv;
 
 			LOCK(m_READCACHE);
-			// read actual time to now in which row of sequence should be measure
-			if(gettimeofday(&tv, NULL))
+			if(	m_pKernelModule.get() &&
+				m_pKernelModule->changeReadPoll(m_mvReadingCache, m_mvTrueReadingCache) == true	)
 			{
-				string msg("WARNING: cannot get time of day,\n");
+				m_bPollRead= true;
+				for(pActSeq= m_mStartSeq.begin(); pActSeq != m_mStartSeq.end(); ++pActSeq)
+					pActSeq->second.bPoll= true;
+				pActSeq= m_mStartSeq.begin();
+			}
+			if(m_bPollRead)
+			{
+				// read actual time to now in which row of sequence should be measure
+				if(gettimeofday(&tv, NULL))
+				{
+					string msg("WARNING: cannot get time of day,\n");
 
-				msg+= "         so do not read sequence inside defined cache.\n";
-				msg+= "         In this case measureing only in sequence back to back";
-				TIMELOG(LOG_WARNING, "gettimeofday", msg);
-				cerr << msg << endl;
-				m_bReadSeq= false;
-			}else
-			{
-				//cout << "seconds: " << tv.tv_sec;
-				//cout << " mikrosec:" << tv.tv_usec;
-				//cout << " ACTUAL"<< endl;
-				m_bReadSeq= true;
-				// calculate in which row of sequence be measured
+					msg+= "         so do not read sequence inside defined cache.\n";
+					msg+= "         In this case measuring only in sequence back to back";
+					TIMELOG(LOG_WARNING, "gettimeofday", msg);
+					cerr << msg << endl;
+					m_bReadSeq= false;
+				}else
+				{
+					/**
+					 * whether find any device for reading in all sequences
+					 */
+					bool bSeqFoundDevice(false);
+					/**
+					 * whether find any device for reading in one sequence
+					 */
+					bool bFoundDevice;
+
+					//cout << "seconds: " << tv.tv_sec;
+					//cout << " mikrosec:" << tv.tv_usec;
+					//cout << " ACTUAL"<< endl;
+					m_bReadSeq= true;
+					// calculate in which row of sequence be measured
+					while(pActSeq != m_mStartSeq.end())
+					{
+						//cout << "seconds: " << pActSeq->second.tm.tv_sec;
+						//cout << " mikrosec:" << pActSeq->second.tm.tv_usec;
+						//cout << " for cache "<< pActSeq->first << endl;
+						if(pActSeq->second.bPoll)
+						{
+							if(	tv.tv_sec > pActSeq->second.tm.tv_sec
+								||
+								(	tv.tv_sec == pActSeq->second.tm.tv_sec
+									&&
+									tv.tv_usec > pActSeq->second.tm.tv_usec	)	)
+							{
+								// search for first reading device
+								if(pActSeq->second.nextUnique.get() != NULL)
+								{
+									bFoundDevice= false;
+									pActChip= find(m_mvTrueReadingCache[pActSeq->first].begin(), m_mvTrueReadingCache[pActSeq->first].end(),
+													pActSeq->second.nextUnique);
+									if(pActChip == m_mvTrueReadingCache[pActSeq->first].end())
+									{
+										pActChip= m_mvTrueReadingCache[pActSeq->first].begin();
+
+									}else if(pActChip != m_mvTrueReadingCache[pActSeq->first].begin())
+									{	// maybe one device before was OK
+										// only if began from begin know whether device found
+										bFoundDevice= true;
+										bSeqFoundDevice= true;
+									}
+								}else
+								{
+									bFoundDevice= false;
+									pActChip= m_mvTrueReadingCache[pActSeq->first].begin();
+								}
+								if(pActChip != m_mvTrueReadingCache[pActSeq->first].end())
+								{
+									pActSeq->second.nextUnique= *pActChip;
+									//cout << "read chip for cache " << pActSeq->first << endl;
+									break;
+								}
+								pActSeq->second.bPoll= bFoundDevice;
+
+							}else	// sequence is defined for polling
+							{		// but not in this time
+									// maybe there is an device for reading
+								bSeqFoundDevice= true;
+							}
+						}
+						++pActSeq;
+					}
+					if(	!bSeqFoundDevice &&
+						pActSeq == m_mStartSeq.end())
+					{ // has not found any device for reading
+						m_bPollRead= false;
+					}//else
+					//{
+						//cout << "seconds: " << pActSeq->second.tm.tv_sec;
+						//cout << " mikrosec:" << pActSeq->second.tm.tv_usec;
+						//cout << " for next cache "<< pActSeq->first << endl;
+						//cout << "------------------------------------------------" << endl;
+					//}
+				}
 				while(pActSeq != m_mStartSeq.end())
 				{
-					//cout << "seconds: " << pActSeq->second.tm.tv_sec;
-					//cout << " mikrosec:" << pActSeq->second.tm.tv_usec;
-					//cout << " for cache "<< pActSeq->first << endl;
-					if(	tv.tv_sec > pActSeq->second.tm.tv_sec
-						||
-						(	tv.tv_sec == pActSeq->second.tm.tv_sec
-							&&
-							tv.tv_usec > pActSeq->second.tm.tv_usec	)	)
+					pActChip= find(m_mvTrueReadingCache[pActSeq->first].begin(), m_mvTrueReadingCache[pActSeq->first].end(),
+									pActSeq->second.nextUnique);
+					while(pActChip != m_mvTrueReadingCache[pActSeq->first].end())
 					{
-						//cout << "read chip for cache " << pActSeq->first << endl;
-						break;
-					}
-					++pActSeq;
-				}
-				//cout << "seconds: " << pActSeq->second.tm.tv_sec;
-				//cout << " mikrosec:" << pActSeq->second.tm.tv_usec;
-				//cout << " for next cache "<< pActSeq->first << endl;
-				//cout << "------------------------------------------------" << endl;
-			}
-			while(pActSeq != m_mStartSeq.end())
-			{
-				pActChip= find(m_mvReadingCache[pActSeq->first].begin(), m_mvReadingCache[pActSeq->first].end(),
-								pActSeq->second.nextUnique);
-				while(pActChip != m_mvReadingCache[pActSeq->first].end())
-				{
-					bool device;
-					string ID;
-					double value;
-					vector<device_debug_t>::iterator devIt;
+						bool device;
+						double value;
+						vector<device_debug_t>::iterator devIt;
 
-					ID= (*pActChip)->id;
-					if(bDebug)
-					{
-						device_debug_t debug;
-
-						//cout << " for unique ID:" << (*pActChip)->id << endl;
-						debug.device= (*pActChip)->id;
-						devIt= find(m_debugInfo.begin(), m_debugInfo.end(), &debug);
-						if(devIt == m_debugInfo.end())
+						if(bDebug)
 						{
-							debug.id= m_debugInfo.size() + 1;
-							debug.read= true;
+							device_debug_t debug;
+
+							//cout << " for unique ID:" << (*pActChip)->id << endl;
 							debug.device= (*pActChip)->id;
-							debug.count= 0;
-							debug.cache= pActSeq->first;
-							m_debugInfo.push_back(debug);
 							devIt= find(m_debugInfo.begin(), m_debugInfo.end(), &debug);
-						}
-						if(gettimeofday(&devIt->act_tm, NULL))
-							devIt->btime= false;
-						else
-							devIt->btime= true;
-						bDebug= true;
-					}
-					value= 0;//(*pActChip)->value;
-					UNLOCK(m_READCACHE);
-					endWork= m_poChipAccess->read(ID, value);
-					//cout << "server read from id " << ID << " value " << dec << value << " where value before was " << (*pActChip)->value << endl;
-					LOCK(m_READCACHE);
-					switch (endWork)
-					{
-					case -1:
-						// an error occured
-						device= false;
-						if(bDebug)
-						{
-							devIt->ok= false;
-							devIt->value= 0;
-							measureTimeDiff(&(*devIt));
-						}
-						bDo= true;
-						break;
-					case 0:
-						// reading was correctly and the pin is finished
-						//cout << "server write id " << (*pActChip)->id << " to value " << dec << value << endl;
-						device= true;
-						if(bDebug)
-						{
-							devIt->value= value;
-							devIt->ok= true;
-							measureTimeDiff(&(*devIt));
-						}
-						bDo= true;
-						break;
-					case 1:
-						// reading was also correctly but the next time should make the same pin (value is not the last state),
-						device= true;
-						if(bDebug)
-							devIt->ok= true;
-						bDo= true;
-						break;
-					case 3:
-						// nothing was to do, value param set,
-						// was reading befor (chip wasn't read,
-						// value is correct) -> go to the next pin)
-						device= true;
-						if(bDebug)
-						{
-							devIt->value= value;
-							devIt->ok= true;
-							measureTimeDiff(&(*devIt));
-						}
-					default:
-						// unknown result
-						if(bDebug)
-							devIt->ok= false;
-						device= false;
-						break;
-					}
-					if(	(*pActChip)->device != device
-						||
-						(*pActChip)->value != value		)
-					{
-						db= DbInterface::instance();
-						db->changedChip(m_sServerType, (*pActChip)->id, value, device);
-					}
-					(*pActChip)->device= device;
-					(*pActChip)->value= value;
-					if(endWork == 1)
-						break;
-					++pActChip;
-					if(pActChip != m_mvReadingCache[pActSeq->first].end())
-						pActSeq->second.nextUnique= *pActChip;
-					else
-						pActSeq->second.nextUnique= SHAREDPTR::shared_ptr<chip_types_t>();
-				}
-				if(	pActSeq != m_mStartSeq.end()
-					&&
-					pActChip == m_mvReadingCache[pActSeq->first].end())
-				{
-					m_poChipAccess->endOfCacheReading(pActSeq->first);
-					pActSeq->second.nextUnique= *m_mvReadingCache[pActSeq->first].begin();
-					if(pActSeq->first != 9999)
-					{
-						if(gettimeofday(&tv, NULL))
-						{
-							string msg("WARNING: cannot get time of day,\n");
-
-							msg+= "         so do not read sequence inside defined cache.\n";
-							msg+= "         In this case measureing only in sequence back to back";
-							TIMELOG(LOG_WARNING, "gettimeofday", msg);
-							cout << msg << endl;
-							m_bReadSeq= false;
-						}else
-						{
-							timeval tmRepeat;
-							SHAREDPTR::shared_ptr<chip_types_t> chip;
-
-							//if(isDebug())
-							//{
-							/*	cout << "current seconds: " << tv.tv_sec;
-								cout << " mikrosec:" << tv.tv_usec << endl;*/
-							//}
-							chip= *(--pActChip);
-							tmRepeat= chip->timeSeq;
-							tv.tv_sec+= tmRepeat.tv_sec;
-							tv.tv_usec+= tmRepeat.tv_usec;
-							while(tv.tv_usec > 999999)
+							if(devIt == m_debugInfo.end())
 							{
-								tv.tv_sec+= 1;
-								tv.tv_usec-= 1000000;
+								debug.id= m_debugInfo.size() + 1;
+								debug.read= true;
+								debug.device= (*pActChip)->id;
+								debug.count= 0;
+								debug.cache= pActSeq->first;
+								m_debugInfo.push_back(debug);
+								devIt= find(m_debugInfo.begin(), m_debugInfo.end(), &debug);
 							}
-							pActSeq->second.tm= tv;
-							//if(isDebug())
-							//{
-							/*	cout << "set cache "<< pActSeq->first;
-								cout << "  to seconds: " << pActSeq->second.tm.tv_sec;
-								cout << " mikrosec:" << pActSeq->second.tm.tv_usec << endl;
-								cout << "-------------------------------------------------------------------------------------------" << endl;
-								*/
-							//}
+							if(gettimeofday(&devIt->act_tm, NULL))
+								devIt->btime= false;
+							else
+								devIt->btime= true;
+							bDebug= true;
 						}
+						value= 0;//(*pActChip)->value;
+						UNLOCK(m_READCACHE);
+						endWork= m_poChipAccess->read((*pActChip)->id, value);
+						//cout << "server read from id " << ID << " value " << dec << value << " where value before was " << (*pActChip)->value << endl;
+						LOCK(m_READCACHE);
+						switch (endWork)
+						{
+						case -1:
+							// an error occured
+							device= false;
+							if(bDebug)
+							{
+								devIt->ok= false;
+								devIt->value= 0;
+								measureTimeDiff(&(*devIt));
+							}
+							bDo= true;
+							break;
+						case 4:
+							// reading was correctly and the pin is finished
+							// in next time by polling this device shouldn't read (remove later from TrueReadingCache)
+							(*pActChip)->bPoll= false;
+						case 0:
+							// reading was correctly and the pin is finished
+							//cout << "server write id " << (*pActChip)->id << " to value " << dec << value << endl;
+							device= true;
+							if(bDebug)
+							{
+								devIt->value= value;
+								devIt->ok= true;
+								measureTimeDiff(&(*devIt));
+							}
+							bDo= true;
+							break;
+						case 1:
+							// reading was also correctly but the next time should make the same pin (value is not the last state),
+							device= true;
+							if(bDebug)
+								devIt->ok= true;
+							bDo= true;
+							break;
+						case 3:
+							// nothing was to do, value set,
+							// was reading before (chip wasn't read,
+							// value is correct) -> go to the next pin)
+							device= true;
+							if(bDebug)
+							{
+								devIt->value= value;
+								devIt->ok= true;
+								measureTimeDiff(&(*devIt));
+							}
+							break;
+						default:
+							// unknown result
+							if(bDebug)
+								devIt->ok= false;
+							device= false;
+							break;
+						}
+						if(	(*pActChip)->device != device
+							||
+							(*pActChip)->value != value		)
+						{
+							db= DbInterface::instance();
+							db->changedChip(m_sServerType, (*pActChip)->id, value, device);
+							(*pActChip)->device= device;
+							(*pActChip)->value= value;
+						}
+						if(endWork == 1)
+							break;
+						if(endWork == 4)
+							pActChip= m_mvTrueReadingCache[pActSeq->first].erase(pActChip);
+						else
+							++pActChip;
+						while(pActChip != m_mvTrueReadingCache[pActSeq->first].end())
+						{ // define next chip to read
+							if((*pActChip)->bPoll == true)
+								break;
+							++pActChip;
+						}
+						if((pActChip == m_mvTrueReadingCache[pActSeq->first].end()))
+							pActSeq->second.nextUnique= SHAREDPTR::shared_ptr<chip_types_t>();
+						else
+							pActSeq->second.nextUnique= *pActChip;
+						if(bDo)
+							break;
 					}
-					break;
-				}
-				if(bDo)
-					break;
-			}// end while(pActSeq != m_mStartSeq.end())
+					if(	pActSeq != m_mStartSeq.end()
+						&&
+						pActChip == m_mvTrueReadingCache[pActSeq->first].end())
+					{
+						m_poChipAccess->endOfCacheReading(pActSeq->first);
+						pActSeq->second.nextUnique= SHAREDPTR::shared_ptr<chip_types_t>();
+						if(m_mvTrueReadingCache[pActSeq->first].size() > 0)
+						{// set next new time for reading
+							if(gettimeofday(&tv, NULL))
+							{
+								string msg("WARNING: cannot get time of day,\n");
+
+								msg+= "         so do not read sequence inside defined cache.\n";
+								msg+= "         In this case measureing only in sequence back to back";
+								TIMELOG(LOG_WARNING, "gettimeofday", msg);
+								cout << msg << endl;
+								m_bReadSeq= false;
+							}else
+							{
+								timeval tmRepeat;
+								SHAREDPTR::shared_ptr<chip_types_t> chip;
+
+								//if(isDebug())
+								//{
+								/*	cout << "current seconds: " << tv.tv_sec;
+									cout << " mikrosec:" << tv.tv_usec << endl;*/
+								//}
+								chip= *(--pActChip);
+								tmRepeat= chip->timeSeq;
+								tv.tv_sec+= tmRepeat.tv_sec;
+								tv.tv_usec+= tmRepeat.tv_usec;
+								while(tv.tv_usec > 999999)
+								{
+									tv.tv_sec+= 1;
+									tv.tv_usec-= 1000000;
+								}
+								pActSeq->second.tm= tv;
+								//if(isDebug())
+								//{
+								/*	cout << "set cache "<< pActSeq->first;
+									cout << "  to seconds: " << pActSeq->second.tm.tv_sec;
+									cout << " mikrosec:" << pActSeq->second.tm.tv_usec << endl;
+									cout << "-------------------------------------------------------------------------------------------" << endl;
+									*/
+								//}
+							}
+						}// size of TrueReadingCache was more than 0
+					}// end if(pActSeq->first != 9999)
+					if(bDo)
+						break;
+				}// end while(pActSeq != m_mStartSeq.end())
+			}// end if(m_bPollRead)
 			UNLOCK(m_READCACHE);
 		}// end if(!bDo)
 		if(bDebug)
@@ -767,9 +867,12 @@ namespace server
 			LOCK(m_PRIORITYCACHE);
 			if(m_mvPriorityCache.size() == 0)
 			{
-				if(bHasStarterSeq)
+				if(	bHasStarterSeq &&
+					m_bPollRead			)
+				{
 					TIMECONDITION(m_PRIORITYCACHECOND, m_PRIORITYCACHE, &waittm);
-				else
+
+				}else
 					CONDITION(m_PRIORITYCACHECOND, m_PRIORITYCACHE);
 			}
 			UNLOCK( m_PRIORITYCACHE);

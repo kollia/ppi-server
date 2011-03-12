@@ -42,8 +42,10 @@ namespace server {
 		 * @param servertype type of server for which <code>IChipAccessPattern</code> running
 		 * @param chipaccess module to have access to extern chips or board
 		 * @param readcache mutex variable to lock reading chips
+		 * @param priorityconf condition to awake when new devices be to read
 		 */
-		KernelModule(const string& servertype, IChipAccessPattern* chipaccess, pthread_mutex_t* readcache);
+		KernelModule(const string& servertype, IChipAccessPattern* chipaccess,
+				pthread_mutex_t* readcache, pthread_cond_t* prioritycond);
 		/**
 		 * fill with chip's which should read in <code>kernelmodule()</code> from <code>IChipAccessPattern</code>
 		 *
@@ -65,6 +67,15 @@ namespace server {
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
 		virtual int stop(const bool bWait);
+		/**
+		 * check whether should changing any read by polling
+		 *
+		 * @param sequences all devices defined for reading
+		 * @param read all devices defined for polling
+		 * @return whether one chip was set now for reading
+		 */
+		bool changeReadPoll(map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >& sequences,
+				map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >& read);
 		/**
 		 * destructor of class
 		 */
@@ -108,13 +119,25 @@ namespace server {
 		 */
 		IChipAccessPattern* m_poChipAccess;
 		/**
-		 * all chips should be read over an kernel moule
+		 * all chips should be read over an kernel module
 		 */
 		vector<chip_types_t*> m_vkernelR;
+		/**
+		 * new chips to read or stop reading over polling
+		 */
+		map<string, bool> m_mPollRead;
 		/**
 		 * mutex to lock reading variables
 		 */
 		pthread_mutex_t* m_READCACHE;
+		/**
+		 * condition to awake when new devices be to read
+		 */
+		pthread_cond_t* m_PRIORITYCACHECOND;
+		/**
+		 * mutex to ask for new polling an read device
+		 */
+		pthread_mutex_t* m_POLLREAD;
 	};
 
 }

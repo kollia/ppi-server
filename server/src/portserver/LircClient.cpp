@@ -102,21 +102,21 @@ namespace ports
 			LOG(LOG_ERROR, msgh + msg);
 			return 0;
 		}
-		id= remote + "/" + code;
+		id= remote + " " + code;
 		if(bW2)
-			id+= "/SEND_ONCE";
+			id+= " SEND_ONCE";
 		else if(bW1)
-			id+= "/SEND";
+			id+= " SEND";
 		if(bread)
 		{
 			kernelmodule= 2;
-			id= "read_" + id;
+			id= "read " + id;
 			//cout  << "'" << id  << "'" << endl;
 			m_mset[id]= false;
 			nRv= 1;
 		}else
 		{
-			id= "write_" + id;
+			id= "write " + id;
 			nRv= 2;
 			if(bW1)
 				m_mSend[id]= false;
@@ -139,8 +139,11 @@ namespace ports
 		strncpy(type, "irexec", 6);
 		if(lirc_init(type, 1) == -1)
 		{
-			cout << "### ERROR: cannot initial lirc" << endl;
-			cout << "    ERRNO: " << strerror(errno) << endl;
+			string msg("### ERROR: cannot initial lirc\n");
+
+			msg+= "    ERRNO: " + *strerror(errno);
+			cerr << msg << endl;
+			LOG(LOG_ERROR, msg);
 			return false;
 		}
 		/*if(lirc_readconfig(NULL, &m_ptLircConfig, NULL) != 0)
@@ -199,50 +202,62 @@ namespace ports
 
 	short LircClient::write(const string id, const double value)
 	{
-		string directive, remote, code;
+		int res;
 		vector<string> vec;
 
-		split(vec, id, is_any_of("/"));
-		if(	vec.size() != 3 ||
-			vec[0] == "" ||
-			vec[0].substr(0, 6) != "write_" ||
-			vec[1] == ""						)
+		split(vec, id, is_any_of(" "));
+		if(	vec.size() != 4 ||
+			vec[0] != "write" ||
+			vec[1] == "" ||
+			vec[2] == "" ||
+			(	vec[3] != "SEND" &&
+				vec[3] != "SEND_ONCE"	)	)
 		{
 			TIMELOG(LOG_ERROR, id, "cannot define correctly ID '" + id + "' to send remote to LIRC");
-			return -1;
+			cerr << "cannot define correctly ID '" + id + "' to send remote to LIRC" << endl;
+			return -2;
 		}
-		directive= vec[2];
-		remote= vec[0].substr(6);
-		code= vec[1];
-		if(!value && directive == "SEND_ONCE")
+		//cout << "write code with id '" << id << "' with value " << value << endl;
+		if(!value && vec[3] == "SEND_ONCE")
 			return 0;
-		if(directive == "SEND")
+		if(vec[3] == "SEND")
 		{
 			if(value)
 			{
 				if(m_mSend[id] == true)
 					return 0; // do not send START command when START running
-				directive+= "_START";
+				vec[3]+= "_START";
 				m_mSend[id]= true;
 
 			}else
 			{
-				directive+= "_STOP";
+				vec[3]+= "_STOP";
 				if(m_mSend[id] == false)
 					return 0; // do not send STOP command when no START running
 				m_mSend[id]= false;
 			}
 		}
-		//cout << "send to lirc '" << "irsend " << directive << " " << remote << " " << code << "'" << endl;
-		irsend(directive.c_str(), remote.c_str(), code.c_str());
+		//cout << "send to lirc '" << "irsend " << vec[3] << " " << vec[1] << " " << vec[2] << "'" << endl;
+		res= irsend(vec[3].c_str(), vec[1].c_str(), vec[2].c_str());
+		if(res == PACKETERROR)
+		{
+			TIMELOG(LOG_ERROR, "packaterror"+id, "wrong sending LIRC command with id '" + id + "'");
+			//cerr << "wrong sending LIRC command with id '" + id + "'" << endl;
+			return -2;
+		}
+		if(res == TRANSACTIONERROR)
+		{
+			TIMELOG(LOG_ERROR, "LIRC_TRANSACTION", "cannot create correctly transaction to LIRC");
+			return -1;
+		}
 		return 0;
 	}
 
-	string LircClient::kernelmodule()
+	string LircClient::kernelmodule(map<string, bool>& read)
 	{
 		unsigned short num;
 		char *lircdef;
-		string id("read_"), code, remote;
+		string id, code, remote;
 		map<string, unsigned short>::iterator found;
 
 		if(lirc_nextcode(&lircdef) == 0)
@@ -261,13 +276,24 @@ namespace ports
 			//cout << "code:  " << code << endl;
 			//cout << "remote:" << remote << endl << endl;
 			free(lircdef);
-			id+= remote + "/" + code;
-			//cout << "get lirc code " << id << endl;
+			id= "read " + remote + " " + code;
+			//cout << "get value " << num << " on lirc code " << id << endl;
+			read[id]= true;
 			LOCK(m_READMUTEX);
 			found= m_mset.find(id);
 			if(found != m_mset.end())
 				found->second= num+1;
 			UNLOCK(m_READMUTEX);
+		}else
+		{
+			string msg("### ERROR: by reading native lircd\n");
+
+			msg+= "    LIRC:  " + *lircdef;
+			if(errno)
+				msg+= "\n    ERRNO: " + *strerror(errno);
+			cerr << msg << endl;
+			LOG(LOG_ERROR, msg);
+			free(lircdef);
 		}
 		return "";
 	}
@@ -284,7 +310,10 @@ namespace ports
 		{
 			value= (double)set->second;
 			set->second= 0;
-			nRv= 0;
+			if(value == 0)
+				nRv= 4;
+			else
+				nRv= 0;
 		}
 		UNLOCK(m_READMUTEX);
 		return nRv;

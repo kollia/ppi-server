@@ -19,6 +19,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "../util/iactionpropertymsgpattern.h"
 
@@ -93,7 +94,9 @@ namespace design_pattern_world
 		 *
 		 * @param prop properties from current subroutine in measure.conf
 		 * @param id this param get unique id of pin to identify reading or writing
-		 * @param kernelmode whether owreader should read values over an kernel module by one or two -&gt; read method description
+		 * @param kernelmode give back whether owreader should read values over an kernel module.<br />
+		 * 			0 for normaly read over polling by owreader, 1 by read only over kernel module
+		 * 			(no writing to chips) and 2 read over kernel but write also new state out
 		 * @return 0 if the pin is not correct, 1 if the pin is for reading, 2 for writing or 3 for unknown (reading/writing)
 		 */
 		virtual short useChip(const IActionPropertyMsgPattern* prop, string& id, unsigned short& kernelmode)=0;
@@ -108,15 +111,16 @@ namespace design_pattern_world
 		 * in two different threads.
 		 * When the returned id is undefined (not null "") all id's will be asked with <code>read()</code>.
 		 * If the returned id is null ("") owreader do nothing and start this method again.
-		 * The developer shuld return also null ("") when he/she set the chip to read by polling
+		 * The developer should return also null ("") when he/she set the chip to read by polling
 		 * (kernelmode to two ('2') in <code>useChip()</code>), because otherwise the reading will be done
 		 * in two threads and the value can be inconsistent.<br />
 		 * Please do not create an no ending loop in this method, because if owreader will stopping
 		 * the module of kernel settings this method should be stopped also by <code>disconnect()</code>.
 		 *
+		 * @param read <code>map&lt;chip id, do reading&gt;</code> set chip id to reading over polling from owreader sequence.
 		 * @return changed id defined in <code>useChip()</code>
 		 */
-		virtual string kernelmodule()= 0;
+		virtual string kernelmodule(map<string, bool>& read)= 0;
 		/**
 		 * function reading from chip
 		 * and returning the type
@@ -196,7 +200,8 @@ namespace design_pattern_world
 		 * 			 0 if reading was correctly and the pin is finished (go to the next),
 		 * 			 1 reading was also correctly but the next time should make the same pin (value is not the last state),
 		 * 			 2 when an entry was made but reading prime in an next time on an other pin (pin is finished -> go to the next)
-		 * 			 3 if nothing to do, value param set, was reading befor (chip wasn't read, value is correct) -> go to the next pin)
+		 * 			 3 if nothing to do, value param set, was reading before (chip wasn't read, value is correct) -> go to the next pin)
+		 * 			 4 reading was correct but hang out for polling again
 		 */
 		virtual short read(const string id, double &value)=0;
 		/**

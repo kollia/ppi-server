@@ -392,7 +392,7 @@ namespace ports
 			 *
 			 * @return only an null string ("")
 			 */
-			virtual string kernelmodule() { return ""; };
+			virtual string kernelmodule(map<string, bool>& read) { return ""; };
 			/**
 			 * read the time from power send into pin of out and get in the defined pin
 			 *
