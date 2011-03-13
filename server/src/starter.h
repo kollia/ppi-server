@@ -148,9 +148,10 @@ class Starter
 		/**
 		 * stop server
 		 *
+		 * @param config show on command line to read configuration
 		 * @return whether server can be sopped correctly
 		 */
-		bool stop();
+		bool stop(bool config);
 		//which ports as string are needeD. Second pair object bool is whether the port is defined for pin reading with ioperm()
 		void readFile(vector<pair<string, PortTypes> > &vlRv, string fileName);
 		/**

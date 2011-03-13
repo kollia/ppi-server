@@ -111,6 +111,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	glob::setSignals("ppi-server");
 
 
+	if(commands->hasOption("configure"))
+		cout << "  ... read configuration files" << endl;
 	m_vOWServerTypes.push_back("PORT");
 	m_vOWServerTypes.push_back("MPORT");
 	m_vOWServerTypes.push_back("OWFS");
@@ -118,7 +120,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	m_vOWServerTypes.push_back("LIRC");
 
 	m_sConfPath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
-
 	fileName= URL::addPath(m_sConfPath, "server.conf");
 	if(!m_oServerFileCasher.readFile(fileName))
 	{
@@ -2116,7 +2117,7 @@ bool Starter::status()
 	return true;
 }
 
-bool Starter::stop()
+bool Starter::stop(bool configure)
 {
 	char	buf[64];
 	string  sendbuf;
@@ -2131,6 +2132,8 @@ bool Starter::stop()
 	UserManagement* user= UserManagement::instance();
 	ostringstream hello;
 
+	if(configure)
+		cout << "  ... read configuration files" << endl;
 	hello << "GET v" << PPI_SERVER_PROTOCOL << endl;
 	sendbuf= hello.str();
 	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
