@@ -52,7 +52,7 @@ int LircSupport::execute(const ICommandStructPattern* params)
 	string param, opname, remote;
 	string lircconf("/etc/lirc/lircd.conf");
 	string userreadperm("read"), userwriteperm("change");
-	string readperm("confread"), writeperm("confchange");
+	string readperm("lconfread"), writeperm("lconfchange");
 	string ureadcw("ureadlw");
 	map<string, vector<string> >::const_iterator found;
 	map<string, string>::const_iterator f;

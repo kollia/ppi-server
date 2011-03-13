@@ -56,14 +56,15 @@ int main(int argc, char* argv[])
 	params.option(param_id, "file", "f", true, "lirc configuration file with remote codes (default: -f '/etc/lirc/lircd.conf')");
 	params.option(param_id, "show", "s", "show all defined remotes with defined alias to generate in an other step with --remote");
 	params.option(param_id, "notransmit", "n", "do not define *.conf file for transmitting");
-	params.option(param_id, "remote", "r", true, "create only for this remote control the files .conf and .desktop");
+	params.option(param_id, "remote", "r", true, "create only for this remote control the files .conf and .desktop\n"
+													"and do not create or touch lirc.conf");
 	params.option(param_id, "vertical", "v", true, "vectical default rows for layout file");
 	params.option(param_id, "readperm", "p", true, "permission to read receiving value (default from access.conf 'read')");
 	params.option(param_id, "changeperm", "c", true, "permission to send code (default from access.conf 'change')");
 	params.option(param_id, "userreadconfwrite", "u", true, "normaly user permission to read and configureator to read and write "
 																							"(default from access.conf 'ureadlw')");
-	params.option(param_id, "configreadperm", "P", true, "permission to read configuration (default from access.conf 'confread')");
-	params.option(param_id, "configchangeperm", "C", true, "permission to read configuration (default from access.conf 'confchange')");
+	params.option(param_id, "configreadperm", "P", true, "permission to read configuration (default from access.conf 'lconfread')");
+	params.option(param_id, "configchangeperm", "C", true, "permission to read configuration (default from access.conf 'lconfchange')");
 	params.option(param_id, "learn", "l", "reading pressed buttons from the database for an learning transmitter.\n"
 											"This option include option --transmitter (-t) and exclude --receiver (an error occures)");
 	//params.option(param_id, "", "", "");
