@@ -205,6 +205,7 @@ namespace server
 		{
 			DbInterface* db= DbInterface::instance();
 
+			m_fProtocol= 0;
 			db->clearOWDebug(descriptor.getClientID());
 			db->needSubroutines(descriptor.getClientID(), "stopclient");
 			msg= "connection to client:";
@@ -278,6 +279,7 @@ namespace server
 		{
 			DbInterface* db= DbInterface::instance();
 
+			m_fProtocol= 0;
 			db->clearOWDebug(descriptor.getClientID());
 			db->needSubroutines(descriptor.getClientID(), "stopclient");
 #ifdef SERVERDEBUG
