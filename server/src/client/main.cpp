@@ -122,22 +122,28 @@ int main(int argc, char* argv[])
 		}else
 			param= "";
 
-		if(	param == "SET" ||
-			param == "GET" ||
-			param == "DEBUG" ||
-			param == "STOPDEBUG" ||
-			param == "DIR" ||
-			param == "CONTENT" ||
+		if(	param == "STOP" ||
+			param == "stop"||
 			param == "STATUS" ||
 			param == "status" ||
+			param == "PERMISSION" ||
+			param == "GET" ||
+			param == "SET" ||
+			param == "CONTENT" ||
+			param == "DIR" ||
+			param == "DEBUG" ||
+			param == "STOPDEBUG" ||
 			param == "GETMINMAXERRORNUMS" ||
 			param == "GETERRORSTRING" ||
-			param == "STOP" ||
-			param == "stop"||
 			(	bWait
 				&&
-				param == ""	)	)
+				(	param == ""	||
+					param == "CHANGE" ||
+					param == "HEAR"||
+					param == "NEWENTRYS"	)	)	)
 		{
+			bool bRes;
+
 			while(nArcPos < argc)
 			{
 				param= argv[nArcPos];
@@ -145,17 +151,23 @@ int main(int argc, char* argv[])
 				++nArcPos;
 			}
 
-			if(	bWait
-				||
-				command != ""	)
-			{
-				bool bRes;
+			//cout << "command: " << command << endl;
+			bRes= client.execute(workdir, vOptions, command);
+			if(bRes > 0)
+				return EXIT_FAILURE;
 
-				//cout << "command: " << command << endl;
-				bRes= client.execute(workdir, vOptions, command);
-				if(bRes > 0)
-					return EXIT_FAILURE;
-			}
+		}else if(param == "CHANGE")
+		{
+			cerr << "this command is only when you start ppi-server with option 'wait' or 'hear' (./ppi-server -w)" << endl;
+			cerr << "type -? for helping" << endl;
+			return EXIT_FAILURE;
+
+		}else if(	param == "HEAR"||
+					param == "NEWENTRYS"	)
+		{
+			cerr << "this command is only when you start ppi-server with option 'hear' (./ppi-server -h)" << endl;
+			cerr << "type -? for helping" << endl;
+			return EXIT_FAILURE;
 
 		}else
 		{
@@ -208,6 +220,7 @@ void help(char* cpSelf)
 	printf("                               see also for options -t or -c\n");
 	printf("                CHANGE <username>:<password>\n");
 	printf("                         -     changing user, user name and password is separated with an colon\n");
+	printf("                               this command is only when ppi-server is started with option --wait or --hear");
 	printf("                PERMISSION <groupnames>\n");
 	printf("                         -     ask permission for group.\n");
 	printf("                               also more than one groups can be ask, separated with an colon\n");
@@ -217,11 +230,12 @@ void help(char* cpSelf)
 	printf("                SET <folder>:<subroutine> <value>\n");
 	printf("                         -     set the given value from given subroutine in given folder\n");
 	printf("                HEAR <folder>:<subroutine>\n");
-	printf("                         -     if the client has set an second connection with -d,\n");
+	printf("                         -     if the client has set an second connection with option --hear,\n");
 	printf("                               client can order with this command to hear on the given folder:subroutine's\n");
 	printf("                               for changes\n");
 	printf("                NEWENTRYS\n");
 	printf("                         -     clearing all entry's which are set with the command HEAR\n");
+	printf("                               this command is only when ppi-server is started with option --hear");
 	printf("                DIR <filter>\n");
 	printf("                         -     shows all files in directory ${workdir}/client which are suitable to given filter\n");
 	printf("                CONTENT <filename>\n");
