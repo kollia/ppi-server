@@ -25,10 +25,17 @@
 #define PPI_SUBVERSION 0
 #define PPI_PATCH_LEVEL   0
 #define PPI_REVISION_NUMBER 421
+
 #ifndef DISTRIBUTION_RELEASE
 #define DISTRIBUTION_RELEASE ""
 #endif
 #define PPI_SERVER_PROTOCOL 1.0
+
+#define PPI_JAVA_MAJOR_RELEASE 0
+#define PPI_JAVA_MINOR_RELEASE 2
+#define PPI_JAVA_SUBVERSION 0
+#define PPI_JAVA_PATCH_LEVEL   0
+#define PPI_JAVA_REVISION_NUMBER 336
 
 /*******************************************************************************************************************
  * cmake define follow symbols for preprocessor from gcc
