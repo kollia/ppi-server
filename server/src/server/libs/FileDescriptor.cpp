@@ -408,8 +408,12 @@ namespace server
 									// was nDo multiplied preferred
 		{							// so send the next time an string from the queue
 			waitStr= m_sSendString;
-			m_sSendString= m_qsSendStrings.front();
-			m_qsSendStrings.pop();
+			if(m_qsSendStrings.size())
+			{
+				m_sSendString= m_qsSendStrings.front();
+				m_qsSendStrings.pop();
+			}else
+				m_sSendString= "";
 			count= 0;
 		}else
 			++count;
