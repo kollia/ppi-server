@@ -355,6 +355,7 @@ namespace server
 					{
 						if(result != "done\n")
 						{
+							string device;
 							istringstream devString(result);
 
 							//cout << endl << result;
@@ -369,7 +370,14 @@ namespace server
 							devString >> tdebug.value;
 							devString >> tdebug.cache;
 							devString >> tdebug.priority;
-							devString >> tdebug.device;
+							tdebug.device= "";
+							while(	!devString.eof() &&
+									!devString.fail()		)
+							{
+								devString >> device;
+								tdebug.device+= device + " ";
+							}
+							trim(tdebug.device);
 
 							if(	tdebug.btime
 								&&
@@ -450,7 +458,7 @@ namespace server
 							cout.width(3);
 							cout << dec << nusec << "   ";
 
-							cout << sDo << " " << tdebug.device << endl;
+							cout << sDo << " '" << tdebug.device << "'" << endl;
 						}else
 						{
 							cout << endl;
