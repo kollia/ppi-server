@@ -47,12 +47,6 @@ namespace ports
 		if(!allocateServer())
 			bRv= false;
 
-		if(m_bRead)
-		{ // if server cannot be allocated m_bRead should be set to false
-		  // and this block don't be reached
-			properties->notAllowedParameter("while");
-			properties->notAllowedParameter("value");
-		}
 		if(m_pOWServer)
 		{ // set min and max value and action float from range by ask server if not set
 			bool bfloat;
@@ -80,7 +74,16 @@ namespace ports
 				}
 			}
 		}
-		if(bRv && !ValueHolder::init(properties, pStartFolder))
+		if(!m_bRead)
+		{
+			prop= properties->needValue("value");
+			if(prop != "")
+			{
+				m_oValue.init(pStartFolder, prop);
+			}else
+				bRv= false;
+		}
+		if(bRv && !switchClass::init(properties, pStartFolder))
 			bRv= false;
 
 		db= DbInterface::instance();
@@ -91,6 +94,18 @@ namespace ports
 		m_sMsgHead= properties->getMsgHead();// without error identif
 
 		return bRv;
+	}
+
+	void OwfsPort::setObserver(IMeasurePattern* observer)
+	{
+		m_oValue.activateObserver(observer);
+		switchClass::setObserver(observer);
+	}
+
+	void OwfsPort::setDebug(bool bDebug)
+	{
+		m_oValue.doOutput(bDebug);
+		switchClass::setDebug(bDebug);
 	}
 
 	bool OwfsPort::allocateServer()
@@ -172,6 +187,8 @@ namespace ports
 				msg+= m_sChipID + " for owserver ";
 				msg+= m_sServer + " cannot read correctly";
 				LOG(LOG_ERROR, msg);
+				if(debug)
+					cout << msg << endl;
 			}
 			if(!m_pOWServer)
 				return false;
@@ -180,7 +197,7 @@ namespace ports
 		if(m_bRead)
 		{
 			// nothing to do!
-			// value before set from the owreader (OWServer)
+			// value before set from owreader (OWServer)
 			value= actValue;
 			if(debug)
 			{
@@ -214,15 +231,11 @@ namespace ports
 					cout << " with type " << m_sChipType;
 				cout << endl;
 			}
-			value= ValueHolder::measure(actValue);
 
-			// 2010/08/03 ppi@magnificat.at
-			//				write always to server,
-			//				because maybe server do output when get value 1
-			//				and should only do output by next getting value 1 (like LIRC with send_once)
-			//				By behavior before server get only the first 1 and do ignore the second
-			//if(value != m_dLastWValue)
+			m_bWrite= switchClass::measure(m_bWrite);
+			if(m_bWrite)
 			{
+				m_oValue.calculate(value);
 				access= m_pOWServer->write(m_sChipID, value);
 				setDeviceAccess(access);
 				m_dLastWValue= value;

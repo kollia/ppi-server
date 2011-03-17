@@ -25,7 +25,7 @@
 
 #include "../util/properties/configpropertycasher.h"
 
-#include "valueholder.h"
+#include "switch.h"
 
 using namespace design_pattern_world::util_pattern;
 using namespace server;
@@ -39,7 +39,7 @@ namespace ports
 	 * @author Alexander Kolli
 	 * @version 1.0.0.
 	 */
-	class OwfsPort : public ValueHolder
+	class OwfsPort : public switchClass
 	{
 	public:
 		/**
@@ -51,9 +51,11 @@ namespace ports
 		 * @param subroutine name of the routine
 		 */
 		OwfsPort(string type, string folder, string subroutine) :
-		ValueHolder(type, folder, subroutine),
+		switchClass(type, folder, subroutine),
 		m_bDisplayNotFound(false),
-		m_dLastWValue(0)
+		m_oValue(folder, subroutine, "value", true, false),
+		m_dLastWValue(0),
+		m_bWrite(false)
 		{ };
 		/**
 		 * initialing object of OwfsPort
@@ -62,6 +64,20 @@ namespace ports
 		 * @return whether initialization was OK
 		 */
 		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		/**
+		 * this method will be called from any measure thread to set as observer
+		 * for starting own folder to get value from foreign folder
+		 * if there the value was changing
+		 *
+		 * @param observer measure thread which containing the own folder
+		 */
+		virtual void setObserver(IMeasurePattern* observer);
+		/**
+		 * set subroutine for output doing actions
+		 *
+		 * @param whether should write output
+		 */
+		virtual void setDebug(bool bDebug);
 		/**
 		 * measure new value for subroutine
 		 *
@@ -121,10 +137,18 @@ namespace ports
 		 * whether have given display by not founding an server
 		 */
 		bool m_bDisplayNotFound;
+		/*
+		 * calculation of value
+		 */
+		ListCalculator m_oValue;
 		/**
 		 * value by last pass of writing measure method
 		 */
 		double m_dLastWValue;
+		/**
+		 * whether write last passing any value
+		 */
+		bool m_bWrite;
 		/**
 		 * ID of dallas chip for this subroutine
 		 * without family code two digits
@@ -155,7 +179,7 @@ namespace ports
 		 */
 		bool m_bRead;
 		/**
-		 * server which read an write on one wire device
+		 * server which read and write on one wire device
 		 */
 		OWI m_pOWServer;
 		/**

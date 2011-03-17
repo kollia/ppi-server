@@ -31,6 +31,7 @@ namespace subroutines
 		virtual void premote(const string& content, const string& desc= "");
 		virtual void pcode(const string& content, const string& desc= "");
 		virtual void ppriority(const string& content, const string& desc= "");
+		using Subroutine::pvalue;
 		using Subroutine::pbegin;
 		using Subroutine::pwhile;
 		using Subroutine::pend;

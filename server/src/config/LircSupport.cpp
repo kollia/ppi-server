@@ -341,7 +341,7 @@ void LircSupport::writeHeader(ofstream& file, const string& filename) const
 	file << "#" << endl;
 	file << "#" << endl;
 	file << "#   TYPES:       properties and actions:" << endl;
-	file << "#       LIRC         properties: <ID>, <pin>, [priority], [cache], <begin|while|end>" << endl;
+	file << "#       LIRC         properties: <ID>, <pin>, [priority], [cache], [value&(begin|while|end)]" << endl;
 	file << "#                    actions= <receive|send|send_once>, [db]" << endl;
 	file << "#              [access to an chip with the unique address from maxim on property <id>    ]" << endl;
 	file << "#" << endl;
@@ -353,12 +353,18 @@ void LircSupport::writeHeader(ofstream& file, const string& filename) const
 	file << "#                    if in the queue more than one chips/pins" << endl;
 	file << "#                    higher priority's will be concerned of writing before the other" << endl;
 	file << "#                    (allowed priority 1 (highest) to priority 9999 (lowest))" << endl;
+	file << "#       value      - which value should be writing" << endl;
+	file << "#                    the value can be an defined-value" << endl;
+	file << "#                    only when set action to send_once or send" << endl;
 	file << "#       begin      - do writing if begin status occurring" << endl;
 	file << "#                    the value can be an defined-value" << endl;
+	file << "#                    only when set action to send_once or send" << endl;
 	file << "#       while      - do writing while state be set" << endl;
 	file << "#                    the value can be an defined-value" << endl;
+	file << "#                    only when set action to send_once or send" << endl;
 	file << "#       end        - set pin to 0 if expression be correct" << endl;
 	file << "#                    the value can be an defined-value" << endl;
+	file << "#                    only when set action to send_once or send" << endl;
 	file << "#       perm       - permission group to read or change this subroutine" << endl;
 	file << "#" << endl;
 	file << "#  ACTIONS:" << endl;
@@ -1612,6 +1618,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 				pLirc->description("send only one signal over transmitter");
 				pLirc->premote(org_remote);
 				pLirc->pcode(org_code);
+				pLirc->pvalue(1);
 				pLirc->pwhile("what=0 & first_touch & (transmit_action=0 | transmit_action=3)");
 				pLirc->action("send_once");
 				pLirc->description();
@@ -1620,7 +1627,8 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 				pLirc->description("send signal over transmitter for longer time");
 				pLirc->premote(org_remote);
 				pLirc->pcode(org_code);
-				pLirc->pwhile("button & (transmit_action=1 | transmit_action=2)");
+				pLirc->pvalue("button");
+				pLirc->pwhile("((button & send_onoff=0) | (button=0 & send_onoff)) & (transmit_action=1 | transmit_action=2)");
 				pLirc->action("send");
 				folder->description("----------------------  end of sending signal over transmitter  ---------------------------------");
 				folder->description("#################################################################################################");
