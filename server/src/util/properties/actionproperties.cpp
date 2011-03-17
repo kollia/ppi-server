@@ -269,14 +269,15 @@ namespace util {
 		return true;
 	}
 
-	void ActionProperties::checkProperties(string* output/*= NULL*/, const bool head/*= true*/) const
+	bool ActionProperties::checkProperties(string* output/*= NULL*/, const bool head/*= true*/) const
 	{
 		typedef  map<string, vector<string> >::const_iterator mviter;
 		typedef vector<string>::const_iterator viter;
 
+		bool bError;
 		string msg, msg1, msg2;
 
-		Properties::checkProperties(&msg1, false);
+		bError= Properties::checkProperties(&msg1, false);
 		for(mviter c= m_mvActions.begin(); c != m_mvActions.end(); ++c)
 		{
 			mviter action= m_mvAllowed.find(c->first);
@@ -314,17 +315,26 @@ namespace util {
 			msg2 != ""	)
 		{
 			if(head)
-				msg= Properties::getMsgHead(false);
+				msg= Properties::getMsgHead(bError);
 			if(msg1 != "")
 				msg+= msg1 + "\n";
 			if(msg2 != "")
 				msg+= msg2;
-			if(output)
+			if(output == NULL)
+			{
+				if(bError)
+				{
+					cerr << msg << endl;
+					LOG(LOG_ERROR, msg);
+				}else
+				{
+					cout << msg << endl;
+					LOG(LOG_WARNING, msg);
+				}
+			}else
 				*output+= msg;
-			else
-				cout << msg << endl;
-			LOG(LOG_WARNING, msg);
 		}
+		return bError;
 	}
 
 	ActionProperties::~ActionProperties()

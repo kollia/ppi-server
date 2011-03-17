@@ -969,12 +969,13 @@ namespace util {
 		return false;
 	}
 
-	void Properties::checkProperties(string* output/*= NULL*/, const bool head/*= true*/) const
+	bool Properties::checkProperties(string* output/*= NULL*/, const bool head/*= true*/) const
 	{
 		typedef map<string, bool>::const_iterator errorit;
 		typedef map<string, vector<string> >::const_iterator miter;
 		typedef map<string, vector<vector<string>::size_type> >::iterator mpiter;
 
+		bool bError(false);
 		string msg, msg1, msg2;
 
 		// write warning for all properties witch are set but not allowed
@@ -1023,8 +1024,6 @@ namespace util {
 		}
 		if(msg1 != "")
 		{
-			if(head)
-				msg= getMsgHead(false);
 			msg+= "follow properties are set, but not allowed:" + msg1;
 		}
 		msg1= "";
@@ -1032,25 +1031,37 @@ namespace util {
 		// write warning for all properties witch are fetched but not exists
 		for(errorit o= m_mFetchErrors.begin(); o != m_mFetchErrors.end(); ++o)
 		{
-			if(!o->second)
-			{
-				msg1+= "                               ";
-				msg1+= o->first + "\n";
-			}
+			msg1+= "                               ";
+			msg1+= o->first + "\n";
+			if(o->second)
+				bError= true;
 		}
 		if(msg1 != "")
 		{
-			msg+= "\n             follow properties are fetched, but not exists:\n" + msg1;
+			if(msg != "")
+				msg+= "\n             ";
+			msg+= "follow properties are fetched, but not exists:\n" + msg1;
 			msg= msg.substr(0, msg.length()-1);
 		}
 		if(msg != "")
 		{
-			if(output)
+			if(head)
+				msg= getMsgHead(bError) + msg;
+			if(output == NULL)
+			{
+				if(bError)
+				{
+					cerr << msg << endl;
+					LOG(LOG_ERROR, msg);
+				}else
+				{
+					cout << msg << endl;
+					LOG(LOG_WARNING, msg);
+				}
+			}else
 				*output= msg;
-			else
-				cout << msg << endl;
-			LOG(LOG_WARNING, msg);
 		}
+		return bError;
 	}
 
 	void Properties::setMsgParameter(const string& name, const string& as/*= ""*/)

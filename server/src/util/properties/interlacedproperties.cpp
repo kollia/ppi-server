@@ -27,6 +27,8 @@
 
 #include "interlacedproperties.h"
 
+#include "../../pattern/util/LogHolderPattern.h"
+
 namespace util {
 
 	InterlacedProperties& InterlacedProperties::copy(const InterlacedProperties& x, bool constructor)
@@ -228,23 +230,51 @@ namespace util {
 		return(spez != "" && spez == last->first ? true : false);
 	}
 
-	void InterlacedProperties::checkProperties(string* output, const bool head) const
+	bool InterlacedProperties::checkProperties(string* output, const bool head) const
 	{
 		typedef vector<IInterlacedPropertyPattern*>::const_iterator it;
 
-		Properties::checkProperties(output, head);
+		bool bError;
+
+		bError= Properties::checkProperties(output, head);
 		checkInterlaced(output, head);
 		if(!m_vSections.empty())
 		{
 			for(it o= m_vSections.begin(); o != m_vSections.end(); ++o)
-				(*o)->checkProperties(output, head);
+			{
+				if((*o)->checkProperties(output, head) == true)
+					bError= true;
+			}
 		}
+		return bError;
 	}
 
-	void InterlacedProperties::checkInterlaced(string* output, const bool head) const
+	bool InterlacedProperties::checkInterlaced(string* output, const bool head) const
 	{
+		bool bError(false);
+		string ioutput;
+
 		for(vector<IInterlacedPropertyPattern*>::const_iterator o= m_vSections.begin(); o != m_vSections.end(); ++o)
-			(*o)->checkProperties(output, head);
+		{
+			if((*o)->checkProperties(&ioutput, false))
+				bError= true;
+		}
+		if(head)
+			ioutput= getMsgHead(bError) + ioutput;
+		if(output == NULL)
+		{
+			if(bError)
+			{
+				cerr << ioutput << endl;
+				LOG(LOG_ERROR, ioutput);
+			}else
+			{
+				cout << ioutput << endl;
+				LOG(LOG_WARNING, ioutput);
+			}
+		}else
+			*output+= ioutput;
+		return bError;
 	}
 
 	InterlacedProperties::~InterlacedProperties()

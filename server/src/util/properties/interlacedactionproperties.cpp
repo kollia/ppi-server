@@ -24,6 +24,8 @@
 
 #include "interlacedactionproperties.h"
 
+#include "../../pattern/util/LogHolderPattern.h"
+
 namespace util {
 
 	InterlacedActionProperties& InterlacedActionProperties::copy(const InterlacedActionProperties& x, bool constructor)
@@ -67,10 +69,29 @@ namespace util {
 		return InterlacedProperties::readLine(param);
 	}
 
-	void InterlacedActionProperties::checkProperties(string* output, const bool head) const
+	bool InterlacedActionProperties::checkProperties(string* output, const bool head) const
 	{
+		bool bError;
+		string ioutput;
+
 		ActionProperties::checkProperties(output, head);
-		InterlacedProperties::checkInterlaced(output, head);
+		bError= InterlacedProperties::checkInterlaced(output, head);
+		if(head)
+			ioutput= getMsgHead(bError) + ioutput;
+		if(output == NULL)
+		{
+			if(bError)
+			{
+				cerr << ioutput << endl;
+				LOG(LOG_ERROR, ioutput);
+			}else
+			{
+				cout << ioutput << endl;
+				LOG(LOG_WARNING, ioutput);
+			}
+		}else
+			*output+= ioutput;
+		return bError;
 	}
 
 	IInterlacedPropertyPattern* InterlacedActionProperties::newObject(const string modifier, const string value, const unsigned short level)

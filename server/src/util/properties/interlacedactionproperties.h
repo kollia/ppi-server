@@ -132,8 +132,9 @@ namespace util {
 			 * @param output method fill this string if set with WARNINGS of parameter and actions which are set but not allowed.<br />
 			 * 				 Elsewhere if string not be set (NULL), WARNINGS will be writing on command line
 			 * @param head whether should writing WARNING with message parameter defined in setMsgParameter() (default true)
+			 * @return whether an error occurred, warnings can seen when ouptut isn't an null string ("")
 			 */
-			virtual void checkProperties(string* output= NULL, const bool head= true) const;
+			virtual bool checkProperties(string* output= NULL, const bool head= true) const;
 			/**
 			 * destructor of object
 			 */
