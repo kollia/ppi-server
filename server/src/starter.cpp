@@ -792,6 +792,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 																						host,
 																						port,
 																						10			)	));
+	if(commands->hasOption("configure"))
+		cout << "  ... read configuration files" << endl;
 	process->openendSendConnection("GET wait", "ending");
 
 	if(bInternet)
@@ -1147,7 +1149,11 @@ void Starter::createPortObjects(bool bShowConf)
 
 			subroutine= &aktualFolder->subroutines[n];
 			if(bcheckProps && subroutine->property)
+			{
 				subroutine->property->checkProperties();
+				if(!correctSubroutine)
+					cerr << "             SUBROUTINE do not running inside folder" << endl << endl;
+			}
 		}
 		aktualFolder->bCorrect= correctFolder;
 		aktualFolder= aktualFolder->next;
