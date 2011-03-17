@@ -7,7 +7,7 @@ set(mainSrcs 	main.cpp
         		ports/measureThread.cpp
 		        ports/counter.cpp
         		ports/measuredness.cpp
-        		ports/OwfsPort.cpp
+        		ports/ExternPort.cpp
         		ports/portbaseclass.cpp
         		ports/output.cpp
         		ports/resistancemeasure.cpp

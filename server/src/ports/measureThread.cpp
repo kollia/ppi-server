@@ -26,7 +26,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
-#include "../ports/OwfsPort.h"
+#include "../ports/ExternPort.h"
 
 #include "measureThread.h"
 

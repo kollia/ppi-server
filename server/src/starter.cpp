@@ -65,7 +65,7 @@
 #include "ports/valueholder.h"
 #include "ports/Set.h"
 #include "ports/SaveSubValue.h"
-#include "ports/OwfsPort.h"
+#include "ports/ExternPort.h"
 
 #include "server/libs/server/Communication.h"
 #include "server/libs/server/communicationthreadstarter.h"
@@ -1051,10 +1051,10 @@ void Starter::createPortObjects(bool bShowConf)
 				}
 			}else if(::find(m_vOWServerTypes.begin(), m_vOWServerTypes.end(), aktualFolder->subroutines[n].type) != m_vOWServerTypes.end())
 			{// type is reached over an OWServer instance
-				auto_ptr<OwfsPort> obj;
+				auto_ptr<ExternPort> obj;
 
 				//cout << "subroutine " << aktualFolder->subroutines[n].name << " from type " << aktualFolder->subroutines[n].type << endl;
-				obj= auto_ptr<OwfsPort>(new OwfsPort(	aktualFolder->subroutines[n].type,
+				obj= auto_ptr<ExternPort>(new ExternPort(	aktualFolder->subroutines[n].type,
 														aktualFolder->name,
 														aktualFolder->subroutines[n].name	));
 				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))

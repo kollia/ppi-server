@@ -4,7 +4,7 @@ set(portsSrcs 	ListCalculator.cpp
 				counter.cpp
         		measuredness.cpp
         		measureThread.cpp
-        		OwfsPort.cpp
+        		ExternPort.cpp
         		portbaseclass.cpp
         		output.cpp
         		resistancemeasure.cpp
