@@ -173,8 +173,8 @@ namespace ports
 
 	double ExternPort::measure(const double actValue)
 	{
-		bool access, debug, bsetNewValue= false;
-		double value;
+		bool access, debug, bsetNewValue(false);
+		double value(0);
 
 		debug= isDebug();
 		if(!m_pOWServer)
@@ -240,7 +240,8 @@ namespace ports
 				setDeviceAccess(access);
 				m_dLastWValue= value;
 				bsetNewValue= true;
-			}
+			}else
+				value= actValue;
 			if(debug)
 			{
 				if(!bsetNewValue)
