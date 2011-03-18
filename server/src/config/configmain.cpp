@@ -55,6 +55,7 @@ int main(int argc, char* argv[])
 										"when the LIRC command be set without any options all remotes defined in lircd.conf will be created for transmit and receive");
 	params.option(param_id, "file", "f", true, "lirc configuration file with remote codes (default: -f '/etc/lirc/lircd.conf')");
 	params.option(param_id, "show", "s", "show all defined remotes with defined alias to generate in an other step with --remote");
+	params.option(param_id, "predefined", "d", "show all namespaces for defined codes in lircd.conf has predefined defaults");
 	params.option(param_id, "notransmit", "n", "do not define *.conf file for transmitting");
 	params.option(param_id, "remote", "r", true, "create only for this remote control the files .conf and .desktop\n"
 													"and do not create or touch lirc.conf");

@@ -44,6 +44,37 @@ using namespace subroutines;
 using namespace boost;
 
 
+int LircSupport::showRemotes(const remotecodes_t& r) const
+{
+	map<string, string>::const_iterator f;
+	map<string, vector<string> >::const_iterator found;
+
+	if(r.remotealias.size())
+	{
+		for(map<string, string>::const_iterator n= r.remotealias.begin(); n != r.remotealias.end(); ++n)
+		{
+			found= r.kill.find(n->first);
+			if(found == r.kill.end())
+				cout << "    create remote '" << n->second << "'  as  '" << n->first << "'" << endl;
+		}
+		cout << endl;
+		if(r.kill.size())
+		{
+			for(found= r.kill.begin(); found != r.kill.end(); ++found)
+			{
+				f= r.remotealias.find(found->first);
+				cout << "    do not create remote '" << f->second << "' because it is an link to remote" << endl;
+				for(vector<string>::const_iterator c= found->second.begin(); c != found->second.end(); ++c)
+					cout << "                               '" << *c << "'" << endl;
+			}
+			cout << endl;
+		}
+		return EXIT_SUCCESS;
+	}
+	cerr << "    cannot find any remote in lircd.conf" << endl << endl;
+	return EXIT_FAILURE;
+}
+
 int LircSupport::execute(const ICommandStructPattern* params)
 {
 	bool transmit;
@@ -54,10 +85,89 @@ int LircSupport::execute(const ICommandStructPattern* params)
 	string userreadperm("read"), userwriteperm("change");
 	string readperm("lconfread"), writeperm("lconfchange");
 	string ureadcw("ureadlw");
-	map<string, vector<string> >::const_iterator found;
-	map<string, string>::const_iterator f;
 	remotecodes_t r;
 
+	if(params->hasOption("predefined"))
+	{
+		if(params->optioncount() > 1)
+		{
+			cout << endl;
+			cout << "  WARNING: more than one option be set! (except --predefined)" << endl;
+			cout << "           show only predefined namespaces" << endl;
+		}
+		cout << endl;
+		cout << "  use this codes inside lircd.conf" << endl;
+		cout << "  this make an default predefinition for the transmitter" << endl;
+		cout << "  ( as example for KEY_0 to KEY_9 it defines to set only the number inside subroutine actual_step" << endl;
+		cout << "    and also for KEY_CHANNELUP to KEY_CHANNELDOWN the subroutine actual_step scrolls higher and lower" << endl;
+		cout << "    KEY_0 to KEY_9 is associated with KEY_CHANNELUP to KEY_CHANNELDOWN and have the same actual_step field )" << endl;
+		cout << "  it's only for default and changeable by GUI" << endl;
+		cout << "  by using 'irrecord -l' on command line you can see all namesapaces to use as code" << endl;
+		cout << endl;
+		cout << endl;
+		cout << "  predefined COUNT codes:" << endl;
+		cout << endl;
+		cout << "      KEY_0    KEY_NUMMERIC_0    KEY_F      KEY_FN_F                       KEY_KP0    BTN_0" << endl;
+		cout << "      KEY_1    KEY_NUMMERIC_1    KEY_F1     KEY_FN_F1     KEY_BRL_DOT1     KEY_KP1    BTN_1" << endl;
+		cout << "      KEY_2    KEY_NUMMERIC_2    KEY_F2     KEY_FN_F2     KEY_BRL_DOT2     KEY_KP2    BTN_2" << endl;
+		cout << "      KEY_3    KEY_NUMMERIC_3    KEY_F3     KEY_FN_F3     KEY_BRL_DOT3     KEY_KP3    BTN_3" << endl;
+		cout << "      KEY_4    KEY_NUMMERIC_4    KEY_F4     KEY_FN_F4     KEY_BRL_DOT4     KEY_KP4    BTN_4" << endl;
+		cout << "      KEY_5    KEY_NUMMERIC_5    KEY_F5     KEY_FN_F5     KEY_BRL_DOT5     KEY_KP5    BTN_5" << endl;
+		cout << "      KEY_6    KEY_NUMMERIC_6    KEY_F6     KEY_FN_F6     KEY_BRL_DOT6     KEY_KP6    BTN_6" << endl;
+		cout << "      KEY_7    KEY_NUMMERIC_7    KEY_F7     KEY_FN_F7     KEY_BRL_DOT7     KEY_KP7    BTN_7" << endl;
+		cout << "      KEY_8    KEY_NUMMERIC_8    KEY_F8     KEY_FN_F8     KEY_BRL_DOT8     KEY_KP8    BTN_8" << endl;
+		cout << "      KEY_9    KEY_NUMMERIC_9    KEY_F9     KEY_FN_F9     KEY_BRL_DOT9     KEY_KP9    BTN_9" << endl;
+		cout << "                                 KEY_F1     KEY_FN_F10    KEY_BRL_DOT10               BTN_A" << endl;
+		cout << "                                 KEY_F1                                               BTN_B" << endl;
+		cout << "                                 KEY_F12                                              BTN_C" << endl;
+		cout << "                                 KEY_F13" << endl;
+		cout << "                                 KEY_F14" << endl;
+		cout << "                                 KEY_F15" << endl;
+		cout << "                                 KEY_F16" << endl;
+		cout << "                                 KEY_F17" << endl;
+		cout << "                                 KEY_F18" << endl;
+		cout << "                                 KEY_F19" << endl;
+		cout << "                                 KEY_F20" << endl;
+		cout << "                                 KEY_F21" << endl;
+		cout << "                                 KEY_F22" << endl;
+		cout << "                                 KEY_F23" << endl;
+		cout << "                                 KEY_F24" << endl;
+		cout << endl;
+		cout << endl;
+		cout << "  predefined UP and DOWN codes" << endl;
+		cout << endl;
+		cout << "      KEY_CHANNELUP       KEY_CHANNELDOWN" << endl;
+		cout << "      KEY_NEXT            KEY_PREVIOUS" << endl;
+		cout << endl;
+		cout << "      KEY_PAGEUP          KEY_PAGEDOWN" << endl;
+		cout << "      KEY_SCROLLUP        KEY_SCROLLDOWN" << endl;
+		cout << "      KEY_VOLUMEUP        KEY_VOLUMEDOWN" << endl;
+		cout << "      KEY_BRIGHTNESSUP    KEY_BRIGHTNESSDOWN" << endl;
+		cout << "      KEY_KBDILLUMUP      KEY_KBDILLUMDOWN" << endl;
+		cout << "      BTN_GEAR_UP         BTN_GEAR_DOWN" << endl;
+		cout << endl;
+		cout << "      KEY_LEFT            KEY_RIGHT" << endl;
+		cout << "      KEY_LEFTSHIFT       KEY_RIGHTSHIFT" << endl;
+		cout << "      KEY_LEFTALT         KEY_RIGHTALT" << endl;
+		cout << "      KEY_LEFTBRACE       KEY_RIGHTBRACE" << endl;
+		cout << "      KEY_LEFTCTRL        KEY_RIGHTCTRL" << endl;
+		cout << "      KEY_LEFTMETA        KEY_RIGHTMETA" << endl;
+		cout << "      BTN_LEFT            BTN_RIGHT" << endl;
+		cout << endl;
+		cout << "      KEY_ZOOMIN          KEY_ZOOMOUT" << endl;
+		cout << "      KEY_FORWARD         KEY_REWIND" << endl;
+		cout << endl;
+		cout << endl;
+		cout << "  associated predefined UP and DOWN codes with COUNTs" << endl;
+		cout << endl;
+		cout << "      for KEY_0 - KEY_9" << endl;
+		cout << "            KEY_CHANNELUP    KEY_CHANNELDOWN" << endl;
+		cout << endl;
+		cout << "      for KEY_NUMMERIC_0 - KEY_NUMMERIC_9" << endl;
+		cout << "            KEY_NEXT         KEY_PREVIOUS" << endl;
+		cout << endl;
+		return true;
+	}
 	transmit= !params->hasOption("notransmit");
 	if(params->hasOption("file"))
 		lircconf= params->getOptionContent("file");
@@ -72,32 +182,9 @@ int LircSupport::execute(const ICommandStructPattern* params)
 			cout << "  WARNING: more than one option be set! (except --file)" << endl;
 			cout << "           show only remote names with aliases" << endl;
 		}
-		r= readLircd(lircconf);
 		cout << endl;
-		if(r.remotealias.size())
-		{
-			for(map<string, string>::iterator n= r.remotealias.begin(); n != r.remotealias.end(); ++n)
-			{
-				found= r.kill.find(n->first);
-				if(found == r.kill.end())
-					cout << "    create remote '" << n->second << "'  as  '" << n->first << "'" << endl;
-			}
-			cout << endl;
-			if(r.kill.size())
-			{
-				for(found= r.kill.begin(); found != r.kill.end(); ++found)
-				{
-					f= r.remotealias.find(found->first);
-					cout << "    do not create remote '" << f->second << "' because it is an link to remote" << endl;
-					for(vector<string>::const_iterator c= found->second.begin(); c != found->second.end(); ++c)
-						cout << "                               '" << *c << "'" << endl;
-				}
-				cout << endl;
-			}
-			return EXIT_SUCCESS;
-		}
-		cerr << "    cannot find any remote in " << lircconf << endl << endl;
-		return EXIT_FAILURE;
+		r= readLircd(lircconf);
+		return showRemotes(r);
 	}
 	if(params->hasOption("readperm"))
 		userreadperm= params->getOptionContent("readperm");
@@ -389,6 +476,7 @@ bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertica
 	auto_ptr<Folder> folder;
 	ofstream file;
 	map<string, vector<string> >::const_iterator remit;
+	map<string, string>::const_iterator foundRemouteAlias;
 
 	if(forremote == "")
 	{
@@ -417,13 +505,14 @@ bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertica
 		{
 			if(r.kill.find(remit->first) == r.kill.end())
 			{
+				foundRemouteAlias= r.remotealias.find(remit->first);
 				cout << "###" << endl;
-				cout << "###   write configuration for remote control '" << remit->first << "':" << endl;
+				cout << "###   write configuration for remote control '" << foundRemouteAlias->second << "':" << endl;
 				if(createRemoteConfFile(remit->first, r, readperm, writeperm, ureadcw, userreadperm, userwriteperm, transmit))
 				{
 
 					file << "#" << endl;
-					file << "#  configuration file for remote control " << remit->first << endl;
+					file << "#  configuration file for remote control " <<  foundRemouteAlias->second << endl;
 					file << "# ----------------------------------------------------------------------------------------" << endl;
 					file << "file= " << remit->first << ".conf" << endl;
 					file << endl;
@@ -442,23 +531,34 @@ bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertica
 		cout << "###" << endl;
 		if(found == r.kill.end())
 		{
-			cout << "###   write configuration for remote control '" << forremote << "':" << endl;
-			if(createRemoteConfFile(forremote, r, readperm, writeperm, ureadcw, userreadperm, userwriteperm, transmit))
+			foundRemouteAlias= r.remotealias.find(forremote);
+			if(foundRemouteAlias != r.remotealias.end())
 			{
-				if(r.kill.find(forremote) == r.kill.end())
+				cout << "###   write configuration for remote control '" << foundRemouteAlias->second << "':" << endl;
+				if(createRemoteConfFile(forremote, r, readperm, writeperm, ureadcw, userreadperm, userwriteperm, transmit))
 				{
-					if(createRemoteDesktopFile(forremote, r, vertical, writeperm))
-						bwritten= true;
+					if(r.kill.find(forremote) == r.kill.end())
+					{
+						if(createRemoteDesktopFile(forremote, r, vertical, writeperm))
+							bwritten= true;
+					}else
+						ballwritten= false;
 				}else
 					ballwritten= false;
 			}else
-				ballwritten= false;
+			{
+				bwritten= false;
+				cerr << "### ERROR: given remote control name do not exist inside lircd.conf" << endl;
+				cerr << "           pleas take an other one." << endl;
+				cerr << endl;
+				showRemotes(r);
+			}
 		}else
 		{
 			cerr << "### ERROR: given file '" << forremote << "' is only an linked remote from remote ";
 			for(vector<string>::const_iterator it= found->second.begin(); it != found->second.end(); ++it)
 				cerr << *it << " ";
-			cerr << "           pleas take an other one." << endl;
+			cerr << endl << "           pleas take an other one." << endl;
 			ballwritten= false;
 		}
 	}
@@ -1246,6 +1346,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 				linkcount= correct_group;
 
 #if 0
+			// debug output for which folder will be created
 			cout << "  create folder " << remote << "_" << code << endl;
 			cout << "                  remote: " << remote << endl;
 			cout << "                    code: " << code << endl;
@@ -1702,27 +1803,19 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->description("define value of actual step before when folder button be defined to 'set only actual step'");
 			pValue->flush();
 			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
-			pValue->pwhile("set_steps & first_touch ? ( predef_step=-1 ? to_value : predef_step*10+to_value) : predef_step");
+			pValue->pwhile("active & set_steps & first_touch ? ( predef_step=-1 ? to_value : predef_step*10+to_value) : predef_step");
 			pValue->action("int");
 			pValue->pdefault("-1");
 			pValue->pperm(userreadperm);
 			pValue->description();
 
-			pSwitch= folder->getSwitch("full_digs");
-			pSwitch->description("calculate whether all digits are set, or back_time is reached");
-			pSwitch->pwhile("\"set_steps=1 &\n"
-							"        predef_step!=-1 &\n"
-							"        (    digits=1 |\n"
-							"             new_activate<=0 |\n"
-							"             (    digits=2 &\n"
-							"                  predef_step>9    ) |\n"
-							"             (    digits=3 &\n"
-							"                  predef_step>99    ) |\n"
-							"             (    digits=4 &\n"
-							"                  predef_step>999    ) |\n"
-							"             (    digits=5 &\n"
-							"                  predef_step>9999    )    )\"");
-			pSwitch->description();
+			pValue= folder->getValue("digs_set");
+			pValue->description("calculate how much digits are set for current session");
+			pValue->flush();
+			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
+			pValue->pwhile("active & set_steps & first_touch ? digs_set + 1 : digs_set");
+			pValue->pmin(0);
+			pValue->description();
 
 			pValue= folder->getValue("actual_step_before");
 			pValue->description("actual step before changing to know whether actual step was changed");
@@ -1740,20 +1833,20 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->pvalue("actual_step <= 0 ? 0 : actual_step - 1");
 			pValue->pvalue("actual_step >= steps ? 0 : actual_step + 1");
 			pValue->pvalue("actual_step <= 0 ? steps : actual_step - 1");
-			pValue->pwhile("\"set_steps ? ( full_digs ? 0 : 1 ) :"
-							"                (    display_first=0 &\n"
-							"                     first_touch                ) |\n"
-							"                (    what=0 &\n"
-							"                     (    transmit_action=1 &\n"
-							"                          receive &\n"
-							"                          first_calc=0 &\n"
-							"                          (    first_touch |\n"
-							"                               wait_after=0 |\n"
-							"                               wait_after=after    )    )    ) |\n"
-							"                (    what=1 &\n"
-							"                     (    transmit_action=1 &\n"
-							"                          first_calc=0 &\n"
-							"                          lirc_set                 )    )                ? steps_action + 2 : 1\"");
+			pValue->pwhile("\"set_steps ? ( digs_set=digits | (predef_step!=-1 & new_activate<=0) ? 0 : 1 ) :\n"
+							"                     (    display_first=0 &\n"
+							"                          first_touch                ) |\n"
+							"                     (    what=0 &\n"
+							"                          (    transmit_action=1 &\n"
+							"                               receive &\n"
+							"                               first_calc=0 &\n"
+							"                               (    first_touch |\n"
+							"                                    wait_after=0 |\n"
+							"                                    wait_after=after    )    )    ) |\n"
+							"                     (    what=1 &\n"
+							"                          (    transmit_action=1 &\n"
+							"                               first_calc=0 &\n"
+							"                               lirc_set                 )    )         ? steps_action + 2 : 1\"");
 			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
 			pValue->action("int | db");
 			pValue->pperm(ureadcw);
@@ -1773,18 +1866,20 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pSet->pwhile("display_first & double & first_touch & first_calc=0");
 			pSet->description();
 
+			pSet= folder->getSet("predef_back");
+			pSet->description("set back predefined steps (predef_step) to -1 when defined in actual_step");
+			pSet->pfrom(-1);
+			pSet->pfrom(0);
+			pSet->pset("predef_step");
+			pSet->pset("digs_set");
+			pSet->pwhile("active & (digs_set=digits | new_activate<=0)");
+			pSet->description();
+
 			pSet= folder->getSet("active_back");
 			pSet->description("set active folder back to 0 when end of new_activate is reached");
 			pSet->pfrom(0);
 			pSet->pset("active");
 			pSet->pwhile("receive=0 & new_activate<=0");
-			pSet->description();
-
-			pSet= folder->getSet("predef_back");
-			pSet->description("set back predefined steps (predef_step) to -1 when defined in actual_step");
-			pSet->pfrom(-1);
-			pSet->pset("predef_step");
-			pSet->pwhile("full_digs");
 			folder->description("-------------------------  end of calculation for next step  ------------------------------------");
 			folder->description("#################################################################################################");
 			folder->description();

@@ -95,67 +95,6 @@ private:
 		 */
 		map<string, map<string, string> > dcodes;
 	};
-#if 0
-		namespaces in lirc (>irrecord -l)
-
-	COUNTS:
-
-		KEY_0		KEY_NUMMERIC_0		KEY_F		KEY_FN_F						KEY_KP0		BTN_0
-		KEY_1		KEY_NUMMERIC_1		KEY_F1		KEY_FN_F1		KEY_BRL_DOT1	KEY_KP1		BTN_1
-		KEY_2		KEY_NUMMERIC_2		KEY_F2		KEY_FN_F2		KEY_BRL_DOT2	KEY_KP2		BTN_2
-		KEY_3		KEY_NUMMERIC_3		KEY_F3		KEY_FN_F3		KEY_BRL_DOT3	KEY_KP3		BTN_3
-		KEY_4		KEY_NUMMERIC_4		KEY_F4		KEY_FN_F4		KEY_BRL_DOT4	KEY_KP4		BTN_4
-		KEY_5		KEY_NUMMERIC_5		KEY_F5		KEY_FN_F5		KEY_BRL_DOT5	KEY_KP5		BTN_5
-		KEY_6		KEY_NUMMERIC_6		KEY_F6		KEY_FN_F6		KEY_BRL_DOT6	KEY_KP6		BTN_6
-		KEY_7		KEY_NUMMERIC_7		KEY_F7		KEY_FN_F7		KEY_BRL_DOT7	KEY_KP7		BTN_7
-		KEY_8		KEY_NUMMERIC_8		KEY_F8		KEY_FN_F8		KEY_BRL_DOT8	KEY_KP8		BTN_8
-		KEY_9		KEY_NUMMERIC_9		KEY_F9		KEY_FN_F9		KEY_BRL_DOT9	KEY_KP9		BTN_9
-										KEY_F10		KEY_FN_F10		KEY_BRL_DOT10				BTN_A
-										KEY_F11													BTN_B
-										KEY_F12													BTN_C
-										KEY_F13
-										KEY_F14
-										KEY_F15
-										KEY_F16
-										KEY_F17
-										KEY_F18
-										KEY_F19
-										KEY_F20
-										KEY_F21
-										KEY_F22
-										KEY_F23
-										KEY_F24
-
-
-	assocated UP and DOWN
-
-		for KEY_0 - KEY_9
-			KEY_CHANNELUP	KEY_CHANNELDOWN
-
-		for KEY_NUMMERIC_0 - KEY_NUMMERIC_9
-			KEY_NEXT	KEY_PREVIOUS
-
-
-	other UP and DOWN fields
-
-		KEY_PAGEUP			KEY_PAGEDOWN
-		KEY_SCROLLUP		KEY_SCROLLDOWN
-		KEY_VOLUMEUP		KEY_VOLUMEDOWN
-		KEY_BRIGHTNESSUP	KEY_BRIGHTNESSDOWN
-		KEY_KBDILLUMUP		KEY_KBDILLUMDOWN
-		BTN_GEAR_UP			BTN_GEAR_DOWN
-
-		KEY_LEFT			KEY_RIGHT
-		KEY_LEFTSHIFT		KEY_RIGHTSHIFT
-		KEY_LEFTALT			KEY_RIGHTALT
-		KEY_LEFTBRACE		KEY_RIGHTBRACE
-		KEY_LEFTCTRL		KEY_RIGHTCTRL
-		KEY_LEFTMETA		KEY_RIGHTMETA
-		BTN_LEFT			BTN_RIGHT
-
-		KEY_ZOOMIN			KEY_ZOOMOUT
-		KEY_FORWARD			KEY_REWIND
-#endif
 	/**
 	 * structure of founded pre-defined namespaces
 	 */
@@ -278,6 +217,13 @@ private:
 	 * @param filename name of file without extension
 	 */
 	void writeHeader(ofstream& file, const string& filename) const;
+	/**
+	 * show which names all remote controls from lird.conf has
+	 *
+	 * @param r structure of all new defined folders and subroutines from remote controls and codes getting from <code>readLircd()</code>
+	 * @return whether routine of method was successful. Can be used as exit code
+	 */
+	int showRemotes(const remotecodes_t& r) const;
 	/**
 	 * create measure file lirc.conf and for all remote controls an layout file (<remote>.desktop)
 	 *
