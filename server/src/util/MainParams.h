@@ -25,6 +25,8 @@
 #include "../pattern/util/IOptionStructPattern.h"
 #include "../pattern/util/ICommandStructPattern.h"
 
+#include "smart_ptr.h"
+
 using namespace std;
 
 namespace util
@@ -75,6 +77,48 @@ namespace util
 		 */
 		virtual string command() const
 		{ return name; };
+		/**
+		 * allocate allowd command after binary
+		 *
+		 * @param name command name
+		 * @param desc description for command
+		 * @return command class where can insert new options and or commands
+		 */
+		ParamCommand* command(const string name, const string desc)
+		{ return command(name, false, desc); };
+		/**
+		 * allocate allowd command after spezific command
+		 *
+		 * @param name command name
+		 * @param content whether option has an content
+		 * @param desc description for command
+		 * @return command class where can insert new options and or commands
+		 */
+		ParamCommand* command(const string name, const bool content, const string desc);
+		/**
+		 * allocate allowed option with no content
+		 *
+		 * @param name option name to set with two minus '--' before
+		 * @param sh character to set option with one minus '-' before
+		 * @param desc description for option
+		 */
+		void option(const string& name, const string& sh, const string& desc)
+		{ option(name, sh, false, desc); };
+		/**
+		 * allocate allowed option for specific command
+		 *
+		 * @param name option name to set with two minus '--' before
+		 * @param sh character to set option with one minus '-' before
+		 * @param content whether option has an content
+		 * @param desc description for option
+		 */
+		void option(const string& name, const string& sh, const bool content, const string& desc);
+		/**
+		 * make an space line with or without text between main options or main commands
+		 *
+		 * @param text specific text between commands or options
+		 */
+		void spaceline(const string& text= "");
 		/**
 		 * return content of actual command
 		 *
@@ -176,10 +220,6 @@ namespace util
 
 	private:
 		/**
-		 * unique id of commands
-		 */
-		string m_id;
-		/**
 		 * name of command.<br />
 		 * can not begin with minus '-'
 		 */
@@ -213,7 +253,7 @@ namespace util
 		/**
 		 * all other commands behind this one
 		 */
-		vector<ParamCommand> next_commands;
+		vector<SHAREDPTR::shared_ptr<ParamCommand> > next_commands;
 		/**
 		 * class MainParams has full access to ParamCommand
 		 */
@@ -320,7 +360,7 @@ namespace util
 		 * @param desc description for help option (default= 'show this help')
 		 */
 		void help(const string name, const string sh, const string desc= "show this help")
-		{ m_sHelpOption= name; option("", name, sh, false, desc); };
+		{ m_sHelpOption= name; option(name, sh, false, desc); };
 		/**
 		 * allocate allowed option with no content
 		 *
@@ -329,37 +369,22 @@ namespace util
 		 * @param desc description for option
 		 */
 		void option(const string& name, const string& sh, const string& desc)
-		{ option("", name, sh, false, desc); };
-		/**
-		 * allocate allowed option for specific command with no content
-		 *
-		 * @param command_id command id for options
-		 * @param name option name to set with two minus '--' before
-		 * @param sh character to set option with one minus '-' before
-		 * @param desc description for option
-		 */
-		void option(const string& command_id, const string& name, const string& sh, const string& desc)
-		{ option(command_id, name, sh, false, desc); };
-		/**
-		 * allocate allowed main option
-		 *
-		 * @param name option name to set with two minus '--' before
-		 * @param sh character to set option with one minus '-' before
-		 * @param content whether option has an content
-		 * @param desc description for option
-		 */
-		void option(const string& name, const string& sh, const unsigned int content, const string& desc)
-		{ option("", name, sh, content, desc); };
+		{ option(name, sh, false, desc); };
 		/**
 		 * allocate allowed option for specific command
 		 *
-		 * @param command_id command id for options
 		 * @param name option name to set with two minus '--' before
 		 * @param sh character to set option with one minus '-' before
 		 * @param content whether option has an content
 		 * @param desc description for option
 		 */
-		void option(string command_id, const string& name, const string& sh, const bool content, const string& desc);
+		void option(const string& name, const string& sh, const bool content, const string& desc);
+		/**
+		 * make an space line with or without text between main options or main commands
+		 *
+		 * @param text specific text between commands or options
+		 */
+		void spaceline(const string& text= "");
 		/**
 		 * return how many main options be set
 		 *
@@ -372,27 +397,19 @@ namespace util
 		 *
 		 * @param name command name
 		 * @param desc description for command
+		 * @return command class where can insert new options and or commands
 		 */
-		const string command(const string name, const string desc)
-		{ return command("", name, false, desc); };
-		/**
-		 * allocate allowd command after binary
-		 *
-		 * @param name command name
-		 * @param content whether option has an content
-		 * @param desc description for command
-		 */
-		const string command(const string name, const bool content, const string desc)
-		{ return command("", name, false, desc); };
+		ParamCommand* command(const string name, const string desc)
+		{ return command(name, false, desc); };
 		/**
 		 * allocate allowd command after spezific command
 		 *
-		 * @param command_id command id from command before this new definition
 		 * @param name command name
 		 * @param content whether option has an content
 		 * @param desc description for command
+		 * @return command class where can insert new options and or commands
 		 */
-		const string command(const string command_id, const string name, const bool content, const string desc);
+		ParamCommand* command(const string name, const bool content, const string desc);
 		/**
 		 * print usage of application on command line when help option be set
 		 *
@@ -507,7 +524,7 @@ namespace util
 		/**
 		 * vector of all allowed commands
 		 */
-		vector<ParamCommand> m_vtAllowdCommands;
+		vector<SHAREDPTR::shared_ptr<ParamCommand> > m_vtAllowdCommands;
 		/**
 		 * vector of all readed main options
 		 */
@@ -543,7 +560,7 @@ namespace util
 		 * @param count number of command cycle (default:0)
 		 * @return whether commands be written
 		 */
-		bool commandUsage(vector<ParamCommand> vCommands, const string& command= "", string::size_type count= 0);
+		bool commandUsage(vector<SHAREDPTR::shared_ptr<ParamCommand> > vCommands, const string& command= "", string::size_type count= 0);
 	};
 
 }

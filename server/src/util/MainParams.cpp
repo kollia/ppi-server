@@ -34,6 +34,96 @@ namespace util
 {
 	using namespace boost;
 
+	ParamCommand* ParamCommand::command(string name, bool content, string desc)
+	{
+		SHAREDPTR::shared_ptr<ParamCommand> newcommand;
+
+		for(vector<SHAREDPTR::shared_ptr<ParamCommand> >::iterator it= next_commands.begin(); it != next_commands.end(); ++it)
+		{
+			if((*it)->name == name)
+			{
+				cerr << endl;
+				cerr << "### ERROR: cannot implement two commands with same name '" << name << "'" << endl;
+				return NULL;
+			}
+		}
+		newcommand= SHAREDPTR::shared_ptr<ParamCommand>(new ParamCommand);
+		newcommand->name= name;
+		newcommand->m_bContent= content;
+		newcommand->description= desc;
+		next_commands.push_back(newcommand);
+		return next_commands.back().get();
+	}
+
+	void ParamCommand::spaceline(const string& text/*= ""*/)
+	{
+		ostringstream space;
+		t_options option;
+		SHAREDPTR::shared_ptr<ParamCommand> spacecommand;
+		static unsigned short opnr(0);
+
+		space << "---freespace";
+		if(next_commands.size() == 0)
+		{
+			option.bcontent= false;
+			option.name= space.str();
+			option.description= text;
+			space << opnr;
+			order.push_back(space.str());
+			options[space.str()]= option;
+			++opnr;
+
+		}else
+		{
+			spacecommand= SHAREDPTR::shared_ptr<ParamCommand>(new ParamCommand);
+			spacecommand->m_bLongShort= false;
+			spacecommand->m_bContent= false;
+			spacecommand->name= space.str();
+			spacecommand->description= text;
+			next_commands.push_back(spacecommand);
+		}
+	}
+
+	void ParamCommand::option(const string& name, const string& sh, const bool content, const string& desc)
+	{
+		bool exist(false);
+		t_options option;
+		vector<string>::iterator shIt;
+		map<string, t_options>::iterator opIt, op2It;
+
+
+		// get option iterator from command
+		opIt= options.find(name);
+		if(opIt == options.end())
+		{
+			option.name= name;
+			option.bcontent= false;
+			order.push_back(name);
+			options[name]= option;
+			opIt= options.find(name);
+		}
+		if(sh.length() > 1)
+			m_bLongShort= true;
+		for(op2It= options.begin(); op2It != options.end(); ++op2It)
+		{
+			shIt= find(op2It->second.shdefs.begin(), op2It->second.shdefs.end(), sh);
+			if(shIt != op2It->second.shdefs.end())
+			{
+				cerr << endl;
+				cerr << "### ERROR: short option definition -" << sh << " already exists for option --" << op2It->first << endl;
+				cerr << "           do not add this short option to option --" << name << endl;
+				exist= true;
+				break;
+			}
+		}
+		if(!exist)
+			opIt->second.shdefs.push_back(sh);
+		if(content)
+			opIt->second.bcontent= true;
+		if(desc != "")
+			opIt->second.description= desc;
+	}
+
 	int ParamCommand::getCommandIntContent(string& fault) const
 	{
 		int nRv;
@@ -140,7 +230,7 @@ namespace util
 	{
 		if(next_commands.empty())
 			return NULL;
-		return &next_commands[0];
+		return next_commands[0].get();
 	}
 
 	MainParams::MainParams(int argc, char* argv[], vector<string>::size_type nParent /*= 0*/)
@@ -179,101 +269,94 @@ namespace util
 			m_vsParams.push_back(argv[n]);
 	}
 
-	void MainParams::option(string command_id, const string& name, const string& sh, const bool content, const string& desc)
+	void MainParams::spaceline(const string& text/*= ""*/)
 	{
+		ostringstream space;
 		t_options option;
-		ParamCommand *command;
-		map<string, t_options>::iterator opIt;
+		SHAREDPTR::shared_ptr<ParamCommand> spacecommand;
+		static unsigned short opnr(0);
 
-		trim(command_id);
-		option.bcontent= false;
-		if(command_id == "")
+		space << "---freespace";
+		if(m_vtAllowdCommands.size() == 0)
 		{
-			// get main option iterator from
-			opIt= m_mstAllowedOptions.find(name);
-			if(opIt == m_mstAllowedOptions.end())
-			{
-				m_vsOrder.push_back(name);
-				m_mstAllowedOptions[name]= option;
-				opIt= m_mstAllowedOptions.find(name);
-			}
-			if(sh.length() > 1)
-				m_bLongShort= true;
+			option.bcontent= false;
+			option.name= space.str();
+			option.description= text;
+			space << opnr;
+			m_vsOrder.push_back(space.str());
+			m_mstAllowedOptions[space.str()]= option;
+			++opnr;
+
 		}else
 		{
-			vector<ParamCommand>::size_type pos;
-			istringstream cid(command_id);
-
-			// search first right command
-			cid >> pos;
-			if(pos+1 > m_vtAllowdCommands.size())
-			{
-				cerr << "### ERROR: fault command_id be set" << endl;
-				return;
-			}
-			command= &m_vtAllowdCommands[pos];
-			while(!cid.eof())
-			{
-				cid >> pos;
-				if(pos+1 > command->next_commands.size())
-				{
-					cerr << "### ERROR: fault command_id be set" << endl;
-					return;
-				}
-				command= &command->next_commands[pos];
-			}
-			// get option iterator from command
-			opIt= command->options.find(name);
-			if(opIt == command->options.end())
-			{
-				command->order.push_back(name);
-				command->options[name]= option;
-				opIt= command->options.find(name);
-			}
-			if(sh.length() > 1)
-				command->m_bLongShort= true;
+			spacecommand= SHAREDPTR::shared_ptr<ParamCommand>(new ParamCommand);
+			spacecommand->m_bLongShort= false;
+			spacecommand->m_bContent= false;
+			spacecommand->name= space.str();
+			spacecommand->description= text;
+			m_vtAllowdCommands.push_back(spacecommand);
 		}
-		opIt->second.name= name;
-		opIt->second.shdefs.push_back(sh);
+	}
+
+	void MainParams::option(const string& name, const string& sh, const bool content, const string& desc)
+	{
+		bool exist(false);
+		t_options option;
+		vector<string>::iterator shIt;
+		map<string, t_options>::iterator opIt, op2It;
+
+
+		// get option iterator from command
+		opIt= m_mstAllowedOptions.find(name);
+		if(opIt == m_mstAllowedOptions.end())
+		{
+			option.name= name;
+			option.bcontent= false;
+			m_vsOrder.push_back(name);
+			m_mstAllowedOptions[name]= option;
+			opIt= m_mstAllowedOptions.find(name);
+		}
+		if(sh.length() > 1)
+			m_bLongShort= true;
+		for(op2It= m_mstAllowedOptions.begin(); op2It != m_mstAllowedOptions.end(); ++op2It)
+		{
+			shIt= find(op2It->second.shdefs.begin(), op2It->second.shdefs.end(), sh);
+			if(shIt != op2It->second.shdefs.end())
+			{
+				cerr << endl;
+				cerr << "### ERROR: short option definition -" << sh << " already exists for option --" << op2It->first << endl;
+				cerr << "           do not add this short option to option --" << name << endl;
+				exist= true;
+				break;
+			}
+		}
+		if(!exist)
+			opIt->second.shdefs.push_back(sh);
 		if(content)
 			opIt->second.bcontent= true;
 		if(desc != "")
 			opIt->second.description= desc;
 	}
 
-	const string MainParams::command(const string command_id, string name, bool content, string desc)
+	ParamCommand* MainParams::command(string name, bool content, string desc)
 	{
-		string sRv;
-		ostringstream id;
-		istringstream cid(command_id);
-		ParamCommand *command, newcommand;
+		SHAREDPTR::shared_ptr<ParamCommand> newcommand;
 
-		if(command_id != "")
+		for(vector<SHAREDPTR::shared_ptr<ParamCommand> >::iterator it= m_vtAllowdCommands.begin(); it != m_vtAllowdCommands.end(); ++it)
 		{
-			unsigned short pos;
-
-			cid >> pos;
-			command= &m_vtAllowdCommands[pos];
-			cid >> pos;
-			while(pos != 0)
+			if((*it)->name == name)
 			{
-				command= &command->next_commands[pos];
-				cid >> pos;
+				cerr << endl;
+				cerr << "### ERROR: cannot implement two commands with same name '" << name << "'" << endl;
+				return NULL;
 			}
-			id << command->m_id << " ";
-			id << command->next_commands.size() << " ";
-
-		}else
-			id << m_vtAllowdCommands.size() << " ";
-		newcommand.m_id= id.str();
-		newcommand.name= name;
-		newcommand.m_bContent= content;
-		newcommand.description= desc;
-		if(command_id == "")
-			m_vtAllowdCommands.push_back(newcommand);
-		else
-			command->next_commands.push_back(newcommand);
-		return newcommand.m_id;
+		}
+		newcommand= SHAREDPTR::shared_ptr<ParamCommand>(new ParamCommand);
+		newcommand->name= name;
+		newcommand->m_bContent= content;
+		newcommand->description= desc;
+		m_vtAllowdCommands.push_back(newcommand);
+		return m_vtAllowdCommands.back().get();
 	}
 
 	bool MainParams::usage()
@@ -293,9 +376,9 @@ namespace util
 		if(!m_vtAllowdCommands.empty())
 		{
 			cout << " <commands>";
-			for(vector<ParamCommand>::iterator it= m_vtAllowdCommands.begin(); it != m_vtAllowdCommands.end(); ++it)
+			for(vector<SHAREDPTR::shared_ptr<ParamCommand> >::iterator it= m_vtAllowdCommands.begin(); it != m_vtAllowdCommands.end(); ++it)
 			{
-				if(!it->options.empty())
+				if(!(*it)->options.empty())
 				{
 					cout << " [specific options for command]";
 					break;
@@ -303,9 +386,9 @@ namespace util
 			}
 			bUseCont= false;
 			bAllCont= true;
-			for(vector<ParamCommand>::iterator it= m_vtAllowdCommands.begin(); it != m_vtAllowdCommands.end(); ++it)
+			for(vector<SHAREDPTR::shared_ptr<ParamCommand> >::iterator it= m_vtAllowdCommands.begin(); it != m_vtAllowdCommands.end(); ++it)
 			{
-				if(it->m_bContent)
+				if((*it)->m_bContent)
 					bUseCont= true;
 				else
 					bAllCont= false;
@@ -330,13 +413,14 @@ namespace util
 		return true;
 	}
 
-	bool MainParams::commandUsage(vector<ParamCommand> vCommands, const string& command, string::size_type count)
+	bool MainParams::commandUsage(vector<SHAREDPTR::shared_ptr<ParamCommand> > vCommands, const string& command, string::size_type count)
 	{
 		bool out;
 		string nullstr("\n");
 		string space(count*2, ' ');
 		string::size_type len, nCoMax(0);
-		vector<ParamCommand>::iterator it;
+		vector<SHAREDPTR::shared_ptr<ParamCommand> >::iterator it;
+		const string spaceline("---freespace");
 
 		if(vCommands.empty())
 			return false;
@@ -352,30 +436,43 @@ namespace util
 		cout << endl;
 		for(it= vCommands.begin(); it != vCommands.end(); ++it)
 		{
-			len= count + 4 + it->name.length();
-			if(nCoMax < len)
-				nCoMax= len;
+			if((*it)->name != spaceline)
+			{
+				len= count + 4 + (*it)->name.length();
+				if(nCoMax < len)
+					nCoMax= len;
+			}
 		}
 		nCoMax+= 4;
 		nullstr.append(count*2 + nCoMax + 2, ' ');
 		for(it= vCommands.begin(); it != vCommands.end(); ++it)
 		{
-			cout << space << "    " << it->name;
-			len= nCoMax - (count + 4 + it->name.length());
-			cout << string(len, ' ') << "- ";
-			replace_all(it->description, "\n", nullstr);
-			cout << it->description << endl;
-			out= optionUsage(it->order, it->options, it->name, count+1);
-			if(	commandUsage(it->next_commands, it->name, count+1) ||
-				out														)
+			if((*it)->name != spaceline)
 			{
-				cout << endl << endl;
+				cout << space << "    ";
+				cout << (*it)->name;
+				len= nCoMax - (count + 4 + (*it)->name.length());
+				cout << string(len, ' ') << "- ";
+				replace_all((*it)->description, "\n", nullstr);
+				cout << (*it)->description << endl;
+				out= optionUsage((*it)->order, (*it)->options, (*it)->name, count+1);
+				if(	commandUsage((*it)->next_commands, (*it)->name, count+1) ||
+					out														)
+				{
+					cout << endl << endl;
 #if 0
-				if(command != "")
-					cout << "     specific commands for " << command << ":";
-				else
-					cout << "  commands:";
+					if(command != "")
+						cout << "     specific commands for " << command << ":";
+					else
+						cout << "  commands:";
 #endif
+				}
+			}else
+			{
+				len= nCoMax - (count + 4);
+				replace_all((*it)->description, "\n", "\n" + space + "   ");
+				cout << space << "   ";
+				cout << (*it)->description << endl;
 			}
 		}
 		return true;
@@ -383,6 +480,7 @@ namespace util
 
 	bool MainParams::optionUsage(vector<string> order, map<string, t_options> mOptions, const string& command, string::size_type count)
 	{
+		const string spaceline("---freespace");
 		string space(count*2, ' ');
 		string nullstr("\n");
 		string::size_type nOpMax(0), nOpMax2(0);
@@ -408,13 +506,16 @@ namespace util
 			string shop;
 			string::size_type len;
 
-			it= mOptions.find(*orderIt);
-			for(vector<string>::iterator op= it->second.shdefs.begin(); op != it->second.shdefs.end(); ++op)
-				shop+= "-" + *op + " ";
-			len= shop.length();
-			if(len > nOpMax)
-				nOpMax= len;
-			options.push_back(shop);
+			if(orderIt->substr(0, 12) != spaceline)
+			{
+				it= mOptions.find(*orderIt);
+				for(vector<string>::iterator op= it->second.shdefs.begin(); op != it->second.shdefs.end(); ++op)
+					shop+= "-" + *op + " ";
+				len= shop.length();
+				if(len > nOpMax)
+					nOpMax= len;
+				options.push_back(shop);
+			}
 		}
 		opIt= options.begin();
 		nOpMax+= 1;
@@ -423,15 +524,18 @@ namespace util
 			string opstr;
 			string::size_type len;
 
-			it= mOptions.find(*orderIt);
-			opstr= *opIt;
-			opstr.append((nOpMax - opIt->length()), ' ');
-			opstr+= "--" + it->first;
-			options2.push_back(opstr);
-			len= opstr.length();
-			if(len > nOpMax2)
-				nOpMax2= len;
-			++opIt;
+			if(orderIt->substr(0, 12) != spaceline)
+			{
+				it= mOptions.find(*orderIt);
+				opstr= *opIt;
+				opstr.append((nOpMax - opIt->length()), ' ');
+				opstr+= "--" + it->first;
+				options2.push_back(opstr);
+				len= opstr.length();
+				if(len > nOpMax2)
+					nOpMax2= len;
+				++opIt;
+			}
 		}
 		opIt= options2.begin();
 		nOpMax2+= 4;
@@ -442,16 +546,25 @@ namespace util
 			string::size_type add;
 
 			it= mOptions.find(*orderIt);
-			opstr= *opIt;
-			add= nOpMax2;
-			add-= opstr.length();
-			opstr.append(add, ' ');
-			opstr+= "- ";
-			cout << space << "    " << opstr << flush;
-			opstr= it->second.description;
-			replace_all(opstr, "\n", nullstr);
-			cout << opstr << endl;
-			++opIt;
+			if(orderIt->substr(0, 12) != spaceline)
+			{
+				opstr= *opIt;
+				add= nOpMax2;
+				add-= opstr.length();
+				opstr.append(add, ' ');
+				opstr+= "- ";
+				cout << space << "    " << opstr << flush;
+				opstr= it->second.description;
+				replace_all(opstr, "\n", nullstr);
+				cout << opstr << endl;
+				++opIt;
+			}else
+			{
+				opstr= it->second.description;
+				replace_all(opstr, "\n", "\n" + space + "   ");
+				cout << space << "   ";
+				cout << opstr << endl;
+			}
 		}
 		return true;
 	}
@@ -540,7 +653,7 @@ namespace util
 	{
 		string err;
 		t_options emptyOp;
-		vector<ParamCommand> *actCommands;
+		vector<SHAREDPTR::shared_ptr<ParamCommand> > *actCommands;
 		map<string, t_options> *actOptions;
 		ParamCommand *psetCommand= NULL;
 		map<string, t_options>::iterator setOption;
@@ -692,11 +805,15 @@ namespace util
 			}/*if(command content)*/ else
 			{
 				// search for commands
-				vector<ParamCommand>::iterator comIt;
-				ParamCommand newCommand;
+				vector<SHAREDPTR::shared_ptr<ParamCommand> >::iterator comIt;
+				SHAREDPTR::shared_ptr<ParamCommand> newCommand;
 
-				newCommand.name= *it;
-				comIt= find(actCommands->begin(), actCommands->end(), newCommand);
+				//comIt= find(actCommands->begin(), actCommands->end(), newCommand);
+				for(comIt= actCommands->begin(); comIt != actCommands->end(); ++comIt)
+				{
+					if((*comIt)->name == *it)
+						break;
+				}
 				if(comIt == actCommands->end())
 				{
 					err= "no correct command '" + *it + "'";
@@ -708,18 +825,19 @@ namespace util
 				}
 				if(m_oCommand.name == "")
 				{
-					m_oCommand.name= comIt->name;
-					m_oCommand.m_bContent= comIt->m_bContent;
+					m_oCommand.name= (*comIt)->name;
+					m_oCommand.m_bContent= (*comIt)->m_bContent;
 					psetCommand= &m_oCommand;
 				}else
 				{
-					newCommand.name= comIt->name;
-					newCommand.m_bContent= comIt->m_bContent;
+					newCommand= SHAREDPTR::shared_ptr<ParamCommand>(new ParamCommand);
+					newCommand->name= (*comIt)->name;
+					newCommand->m_bContent= (*comIt)->m_bContent;
 					psetCommand->next_commands.push_back(newCommand);
-					psetCommand= &psetCommand->next_commands[0];
+					psetCommand= psetCommand->next_commands[0].get();
 				}
-				actOptions= &comIt->options;
-				actCommands= &comIt->next_commands;
+				actOptions= &(*comIt)->options;
+				actCommands= &(*comIt)->next_commands;
 			}// else branch of if(it->substr(0, 1) == "-")
 		}// for(m_vsParams)
 

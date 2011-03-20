@@ -36,10 +36,11 @@ void ussage(const bool full);
 
 int main(int argc, char* argv[])
 {
-	string workdir, param, param_id, command;
+	string workdir, commandname;
 	string sConfPath(PPICONFIGPATH), fileName;
 	Properties oServerProperties;
 	MainParams params(argc, argv, /*read path for parent dirs*/1);
+	ParamCommand* command;
 	const ICommandStructPattern* commands;
 
 	glob::processName("ppi-mconfig");
@@ -50,30 +51,32 @@ int main(int argc, char* argv[])
 										/*no build*/0, PPI_REVISION_NUMBER, DISTRIBUTION_RELEASE);
 	params.help("help", "?");
 
-	param_id= params.command("LIRC", "create configuration for receiver and transmitter if set to fill in 'measure.conf'\n"
-										"and also corresponding layout files to copy into ppi-server client directory\n"
-										"when the LIRC command be set without any options all remotes defined in lircd.conf will be created for transmit and receive");
-	params.option(param_id, "file", "f", true, "lirc configuration file with remote codes (default: -f '/etc/lirc/lircd.conf')");
-	params.option(param_id, "show", "s", "show all defined remotes with defined alias to generate in an other step with --remote");
-	params.option(param_id, "predefined", "d", "show all namespaces for defined codes in lircd.conf has predefined defaults");
-	params.option(param_id, "notransmit", "n", "do not define *.conf file for transmitting");
-	params.option(param_id, "remote", "r", true, "create only for this remote control the files .conf and .desktop\n"
+	command= params.command("LIRC", "create configuration for receiver and transmitter if set to fill in 'measure.conf'\n"
+									"and also corresponding layout files to copy into ppi-server client directory\n"
+									"when the LIRC command be set without any options all remotes defined in lircd.conf will be created for transmit and receive");
+	command->option("file", "f", true, "lirc configuration file with remote codes (default: -f '/etc/lirc/lircd.conf')");
+	command->option("show", "s", "show all defined remotes with defined alias to generate in an other step with --remote");
+	command->option("predefined", "d", "show all namespaces for defined codes in lircd.conf has predefined defaults");
+	command->option("vertical", "v", true, "vectical default rows for transmitter layout file (default:3)");
+	command->spaceline("");
+	command->option("notransmit", "n", "do not define *.conf file for transmitting");
+	command->option("remote", "r", true, "create only for this remote control the files .conf and .desktop\n"
 													"and do not create or touch lirc.conf");
-	params.option(param_id, "vertical", "v", true, "vectical default rows for layout file");
-	params.option(param_id, "readperm", "p", true, "permission to read receiving value (default from access.conf 'read')");
-	params.option(param_id, "changeperm", "c", true, "permission to send code (default from access.conf 'change')");
-	params.option(param_id, "userreadconfwrite", "u", true, "normaly user permission to read and configureator to read and write "
+	command->spaceline("");
+	command->option("learn", "l", "reading pressed buttons from the database for an learning transmitter.\n"
+									"inside time pressing record button");
+	command->spaceline("permission:");
+	command->option("readperm", "p", true, "to read receiving value (default from access.conf 'read')");
+	command->option("changeperm", "c", true, "to send code (default from access.conf 'change')");
+	command->option("userreadconfwrite", "u", true, "normaly user can read and configureator read and write "
 																							"(default from access.conf 'ureadlw')");
-	params.option(param_id, "configreadperm", "P", true, "permission to read configuration (default from access.conf 'lconfread')");
-	params.option(param_id, "configchangeperm", "C", true, "permission to read configuration (default from access.conf 'lconfchange')");
-	params.option(param_id, "learn", "l", "reading pressed buttons from the database for an learning transmitter.\n"
-											"This option include option --transmitter (-t) and exclude --receiver (an error occures)");
-	//params.option(param_id, "", "", "");
+	command->option("configreadperm", "P", true, "to read configuration (default from access.conf 'lconfread')");
+	command->option("configchangeperm", "C", true, "to read configuration (default from access.conf 'lconfchange')");
 
 	params.execute();
 	commands= params.getCommands();
 	workdir= params.getPath();
-	command= commands->command();
+	commandname= commands->command();
 
 	sConfPath= URL::addPath(workdir, sConfPath, /*always*/false);
 	fileName= URL::addPath(sConfPath, "server.conf");
@@ -85,7 +88,7 @@ int main(int argc, char* argv[])
 	oServerProperties.readLine("workdir= " + workdir);
 
 
-	if(command == "LIRC")
+	if(commandname == "LIRC")
 	{
 		LircSupport lirc(workdir);
 
