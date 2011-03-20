@@ -5,6 +5,7 @@ set(utilSrcs	GlobalStaticMethods.cpp
 #        		exception.cpp
 #        		Terminal.cpp
         		URL.cpp
+        		ParamCommand.cpp
         		MainParams.cpp
         		usermanagement.cpp
 	       		XMLStartEndTagReader.cpp	)
