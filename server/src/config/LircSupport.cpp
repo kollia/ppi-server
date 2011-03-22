@@ -797,7 +797,7 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 	file << "              </td>" << endl;
 	file << "            </tr>" << endl;
 	file << "            <tr>" << endl;
-	file << "              <td align=\"right\">" << endl;
+	file << "              <td align=\"left\">" << endl;
 	file << "                wait double<br />" << endl;
 	file << "                after pressed again:" << endl;
 	file << "              </td>" << endl;
@@ -808,19 +808,13 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 
 	file << "            <tr>" << endl;
 	file << "              <td align=\"right\">" << endl;
-	file << "                set only actual step:" << endl;
+	file << "                set only actual step:<br />" << endl;
+	file << "                            to value:" << endl;
 	file << "              </td>" << endl;
 	file << "              <td>" << endl;
 	file << "                <input type=\"checkbox\" result=\"" << remote << "__choice:set_steps\" />" << endl;
 	file << "                <input type=\"spinner\" result=\"" << remote << "__choice:digits\" width=\"20\" min=\"1\" max=\"5\" />" << endl;
-	file << "                digits" << endl;
-	file << "              </td>" << endl;
-	file << "            </tr>" << endl;
-	file << "            <tr>" << endl;
-	file << "              <td align=\"right\">" << endl;
-	file << "                to value:" << endl;
-	file << "              </td>" << endl;
-	file << "              <td>" << endl;
+	file << "                &#160;digits<br />" << endl;
 	file << "                <input type=\"spinner\" result=\"" << remote << "__choice:to_value\" width=\"50\" min=\"0\" max=\"99999\" />" << endl;
 	file << "              </td>" << endl;
 	file << "            </tr>" << endl;
