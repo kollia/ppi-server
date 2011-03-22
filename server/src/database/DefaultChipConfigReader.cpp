@@ -63,7 +63,9 @@ namespace ports
 	{
 		typedef vector<IInterlacedPropertyPattern*>::iterator sit;
 
-		string fileName, propName;
+		bool berror;
+		ostringstream output;
+		string fileName, propName, errmsg;
 		InterlacedProperties properties;
 		vector<IInterlacedPropertyPattern*> sections;
 
@@ -75,7 +77,7 @@ namespace ports
 		properties.modifier("range");
 		properties.setMsgParameter("range", "range of chip");
 		properties.modifier("server");
-		properties.setMsgParameter("server", "from server");
+		properties.setMsgParameter("server");
 		properties.modifier("family");
 		properties.setMsgParameter("family", "family code");
 		properties.modifier("type");
@@ -100,7 +102,21 @@ namespace ports
 		sections= properties.getSections();
 		for(sit o= sections.begin(); o != sections.end(); ++o)
 			readSection("", *o, /*default*/true);
-		properties.checkProperties();
+		berror= properties.checkProperties(&errmsg);
+		if(errmsg != "")
+		{
+			output << endl;
+			output << "###  some ";
+			if(berror)
+				output << "ERRORs and maybe ";
+			output << "WARNINGs occurred by reading 'conf/default.conf' configure file" << endl;
+			output << "     ------------------------------------------------------------------------------------" << endl;
+			output << errmsg << endl << endl;
+			if(berror)
+				cerr << output.str();
+			else
+				cout << output.str();
+		}
 	}
 
 	void DefaultChipConfigReader::define(const string& server, const string& config)
