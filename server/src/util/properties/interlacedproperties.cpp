@@ -259,21 +259,24 @@ namespace util {
 			if((*o)->checkProperties(&ioutput, false))
 				bError= true;
 		}
-		if(head)
-			ioutput= getMsgHead(bError) + ioutput;
-		if(output == NULL)
+		if(	head &&
+			ioutput != ""	)
 		{
-			if(bError)
+			ioutput= getMsgHead(bError) + ioutput;
+			if(output == NULL)
 			{
-				cerr << ioutput << endl;
-				LOG(LOG_ERROR, ioutput);
+				if(bError)
+				{
+					cerr << ioutput << endl;
+					LOG(LOG_ERROR, ioutput);
+				}else
+				{
+					cout << ioutput << endl;
+					LOG(LOG_WARNING, ioutput);
+				}
 			}else
-			{
-				cout << ioutput << endl;
-				LOG(LOG_WARNING, ioutput);
-			}
-		}else
-			*output+= ioutput;
+				*output+= ioutput;
+		}
 		return bError;
 	}
 
