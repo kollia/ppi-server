@@ -32,6 +32,8 @@
 
 #include "../util/properties/interlacedactionproperties.h"
 
+#include "../pattern/util/IChipConfigReaderPattern.h"
+
 using namespace std;
 using namespace util;
 using namespace design_pattern_world;
@@ -39,197 +41,9 @@ using namespace design_pattern_world;
 namespace ports
 {
 
-	class DefaultChipConfigReader
+	class DefaultChipConfigReader : public virtual IChipConfigReaderPattern
 	{
 	public:
-		/**
-		 * structure for highest data
-		 */
-		struct write_highest_t {
-			/**
-			 * time of highest value
-			 */
-			time_t hightime;
-			/**
-			 * highest value
-			 */
-			double highest;
-			/**
-			 * time of lowest value
-			 */
-			time_t lowtime;
-			/**
-			 * lowest value
-			 */
-			double lowest;
-		};
-		/**
-		 * structure of highest and lowest writing
-		 */
-		struct write_t {
-			/**
-			 * writing after follow actions:
-			 * no - no writing
-			 * write - writing the actual value and time
-			 * highest - write the lowest and highest time from structure write_highest_t
-			 */
-			string action;
-			/**
-			 * name of folder
-			 */
-			string folder;
-			/**
-			 * name of subroutine
-			 */
-			string subroutine;
-			/**
-			 * pointer to highest struct
-			 */
-			write_highest_t highest;
-
-		};
-		/**
-		 * structure fraction data
-		 */
-		struct fraction_t {
-			/**
-			 * whether the current static value for fractions be set
-			 */
-			bool bValue;
-			/**
-			 * writing only an value by dbwrite fractions if the new value outside
-			 * of this interval from the old (half over or half under)
-			 */
-			double dbinterval;
-			/**
-			 * writing by fractions also after this seconds
-			 */
-			time_t dbafter;
-			/**
-			 * writing value also if this time reached
-			 */
-			time_t write;
-			/**
-			 * last written value
-			 */
-			double writtenvalue;
-			/**
-			 * deepest or highest value
-			 * which was measured
-			 */
-			double deepvalue;
-			/**
-			 * time of deepest or highest value
-			 */
-			time_t deeptime;
-			/**
-			 * for witch direction the values for action fraction is gone
-			 */
-			string direction;
-		};
-		/**
-		 * structure for highest data
-		 */
-		struct highest_t {
-			/**
-			 * whether the highest, lowest value and between time for action highest be set
-			 */
-			bool bValue;
-			/**
-			 * time value specification
-			 */
-			char t;
-			/**
-			 * write only highest and lowest values between this time specified as variable t
-			 */
-			unsigned short between;
-			/**
-			 * write the highest and lowest values by or after this time
-			 */
-			time_t nextwrite;
-			/**
-			 * time of highest value
-			 */
-			time_t hightime;
-			/**
-			 * highest value
-			 */
-			double highest;
-			/**
-			 * time of lowest value
-			 */
-			time_t lowtime;
-			/**
-			 * lowest value
-			 */
-			double lowest;
-		};
-		/**
-		 * structure of time writing
-		 */
-		struct otime_t {
-			/**
-			 * whether structure will be filled with values
-			 */
-			bool active;
-			/**
-			 * after how many days, weeks, month, year
-			 * this older structure have to operate
-			 */
-			unsigned short more;
-			/**
-			 * specification for witch unit the variable more be
-			 */
-			char unit;
-			/**
-			 * writing after follow actions:
-			 * all - writing all changes
-			 * fractions - 	writing only the fractions of the values
-			 *				parameter dbinterval have to be defined
-			 * highest - save only the highest and lowest values inside the range
-			 * kill - kill exist values from database
-			 */
-			string dbwrite;
-			/**
-			 * pointer to fraction struct
-			 */
-			auto_ptr<fraction_t> fraction;
-			/**
-			 * pointer to highest struct
-			 */
-			auto_ptr<highest_t> highest;
-			/**
-			 * the next older structure should be after the current
-			 */
-			SHAREDPTR::shared_ptr<otime_t> older;
-		};
-		/**
-		 * default values
-		 */
-		struct defValues_t {
-			double dmin;
-			double dmax;
-			bool bFloat;
-			double dcache;
-			SHAREDPTR::shared_ptr<otime_t> older;
-		};
-		/**
-		 * structure of chip id's
-		 */
-		struct chips_t {
-			string server;
-			string family;
-			string type;
-			string id;
-			string pin;
-			vector<double> errorcode;
-			double dmin;
-			double dmax;
-			bool bFloat;
-			double dCache;
-			bool bWritable;
-			SHAREDPTR::shared_ptr<otime_t> older;
-		};
 
 		/**
 		 * create single instance of DefaultChipConfigReader
@@ -334,7 +148,8 @@ namespace ports
 		 * @param type specified type of chip
 		 * @param chip unique id of chip
 		 */
-		const chips_t* getRegisteredDefaultChip(const string& server, const string& family, const string& type, const string& chip) const;
+		const chips_t* getRegisteredDefaultChip(const string& server,
+						const string& family, const string& type, const string& chip) const;
 		/**
 		 * return an older structure from the chip defined with folder and subroutine
 		 * which last older is active. By this older structure, active flag will be set to false.
@@ -344,7 +159,8 @@ namespace ports
 		 * @param nonactive whether older should be set to non active
 		 * @return last active older structure
 		 */
-		const SHAREDPTR::shared_ptr<otime_t> getLastActiveOlder(const string& folder, const string& subroutine, const bool nonactive);
+		virtual const SHAREDPTR::shared_ptr<otime_t> getLastActiveOlder(const string& folder,
+												const string& subroutine, const bool nonactive);
 		/**
 		 * read all values which be inside of chips for fractions or highest be saved
 		 *
@@ -353,7 +169,7 @@ namespace ports
 		 * @return values with time for fractions or highest in variable action.<br />
 		 * 			By ending, action is 'no'. If action is fraction value and time is in variables highest.highest and hightime.
 		 */
-		write_t getLastValues(const unsigned int pos, const bool bolder= false);
+		virtual write_t getLastValues(const unsigned int pos, const bool bolder= false);
 		/**
 		 * whether allow writing into database
 		 *
@@ -364,7 +180,8 @@ namespace ports
 		 * @param newOlder if variable be set, method is to thin database and give back in this variable whether an new older structure be used
 		 * @return an structure of write_t witch describe the writing values
 		 */
-		write_t allowDbWriting(const string& folder, const string& subroutine, const double value, time_t acttime, bool *newOlder= NULL);
+		virtual write_t allowDbWriting(const string& folder, const string& subroutine, const double value,
+																		time_t acttime, bool *newOlder= NULL);
 		/**
 		 * describe whether all chips for folder and subroutine are defined to allow thin older database
 		 *
@@ -375,7 +192,7 @@ namespace ports
 		/**
 		 * describe whether all chips for folder and subroutine are defined
 		 */
-		bool chipsAreDefined()
+		virtual bool chipsAreDefined()
 		{ return m_bChipsDef; };
 		/**
 		 * delete object of DefaultChipConfigReader

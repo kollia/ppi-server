@@ -13,6 +13,6 @@ set(portserverSrcs  owserver.cpp
         		
 add_executable(ppi-owreader ${portserverSrcs})
 target_link_libraries(ppi-owreader 	ppiutil ppistreamutil ppipropertyutil ppithreadutil ppiprocessutil 
-									ppidb ppilogger ppiserverlibclient
+									ppidbinterface ppilogger ppiserverlibclient
                                     lirc_client ${OWFS_LIBRARIES} ${USB_LIBRARIES} ${K8055_LIBRARIES} )
 install(TARGETS ppi-owreader DESTINATION bin)

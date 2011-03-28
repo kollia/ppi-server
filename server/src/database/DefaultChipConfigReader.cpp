@@ -447,7 +447,8 @@ namespace ports
 		}
 	}
 
-	const SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> DefaultChipConfigReader::getLastActiveOlder(const string& folder, const string& subroutine, const bool nonactive)
+	const SHAREDPTR::shared_ptr<otime_t> DefaultChipConfigReader::getLastActiveOlder(const string& folder,
+																const string& subroutine, const bool nonactive)
 	{
 		SHAREDPTR::shared_ptr<otime_t> older;
 		map<string, chips_t*>::const_iterator subIt;
@@ -487,7 +488,7 @@ namespace ports
 		return SHAREDPTR::shared_ptr<otime_t>();
 	}
 
-	const DefaultChipConfigReader::chips_t* DefaultChipConfigReader::getRegisteredDefaultChip(const string& server, const string& chip) const
+	const chips_t* DefaultChipConfigReader::getRegisteredDefaultChip(const string& server, const string& chip) const
 	{
 		map<string, map<string, chips_t> >::const_iterator sIt;
 		map<string, chips_t>::const_iterator cIt;
@@ -513,7 +514,8 @@ namespace ports
 		return &tchip->dCache;
 	}
 
-	const DefaultChipConfigReader::chips_t* DefaultChipConfigReader::getRegisteredDefaultChip(const string& server, const string& family, const string& type, const string& chip) const
+	const chips_t* DefaultChipConfigReader::getRegisteredDefaultChip(const string& server, const string& family,
+																	const string& type, const string& chip) const
 	{
 		map<string, map<string, map<string, chips_t*> > >::const_iterator sIt;
 		map<string, map<string, chips_t*> >::const_iterator nIt;
@@ -550,7 +552,8 @@ namespace ports
 		return NULL;
 	}
 
-	SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> DefaultChipConfigReader::readOlderSection(IInterlacedPropertyPattern* property, const bool first) {
+	SHAREDPTR::shared_ptr<otime_t> DefaultChipConfigReader::readOlderSection(IInterlacedPropertyPattern* property, const bool first)
+	{
 
 		SHAREDPTR::shared_ptr<otime_t> older(new otime_t);
 		string dbolder, dbwrite, dbinterval, dbafter;
@@ -851,7 +854,7 @@ namespace ports
 		}
 	}
 
-	SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> DefaultChipConfigReader::copyOlder(const SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> &older) const
+	SHAREDPTR::shared_ptr<otime_t> DefaultChipConfigReader::copyOlder(const SHAREDPTR::shared_ptr<otime_t> &older) const
 	{
 		SHAREDPTR::shared_ptr<otime_t>  pRv;
 
@@ -918,7 +921,7 @@ namespace ports
 		return defValues.dcache;
 	}
 
-	const DefaultChipConfigReader::defValues_t DefaultChipConfigReader::getDefaultValues(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/) const
+	const defValues_t DefaultChipConfigReader::getDefaultValues(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/) const
 	{
 		bool bAll= false;
 		double dRange;
@@ -1010,7 +1013,7 @@ namespace ports
 	}
 
 
-	SHAREDPTR::shared_ptr<DefaultChipConfigReader::otime_t> DefaultChipConfigReader::getNewDefaultChipOlder(const string& folder, const string& subroutine, const double min, const double max, const bool bFloat) const
+	SHAREDPTR::shared_ptr<otime_t> DefaultChipConfigReader::getNewDefaultChipOlder(const string& folder, const string& subroutine, const double min, const double max, const bool bFloat) const
 	{
 		defValues_t def;
 
@@ -1022,7 +1025,7 @@ namespace ports
 
 
 
-	DefaultChipConfigReader::write_t DefaultChipConfigReader::allowDbWriting(const string& folder, const string& subroutine, const double value, const time_t acttime, bool* newOlder/*=NULL*/)
+	write_t DefaultChipConfigReader::allowDbWriting(const string& folder, const string& subroutine, const double value, const time_t acttime, bool* newOlder/*=NULL*/)
 	{
 		write_t tRv;
 		SHAREDPTR::shared_ptr<otime_t> parento;
@@ -1212,7 +1215,7 @@ namespace ports
 		return tRv;
 	}
 
-	DefaultChipConfigReader::write_t DefaultChipConfigReader::getLastValues(const unsigned int pos, const bool bolder/*=false*/)
+	write_t DefaultChipConfigReader::getLastValues(const unsigned int pos, const bool bolder/*=false*/)
 	{
 		unsigned int current= 0;
 		write_t tRv;

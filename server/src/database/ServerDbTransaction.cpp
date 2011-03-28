@@ -41,6 +41,7 @@
 using namespace std;
 using namespace util;
 using namespace logger;
+using namespace ports;
 using namespace ppi_database;
 using namespace design_pattern_world::server_pattern;
 using namespace boost;
@@ -58,11 +59,13 @@ namespace server
 		string method(object.getMethodName());
 		ostringstream od;
 		DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
-		DatabaseThread *db= DatabaseThread::instance();
+		DatabaseThread* dbTh= NULL;
+		IPPIDatabasePattern* db= NULL;
 
 		//cout << "work on command: " << method << endl;
 		if(method == "isEntryChanged")
 		{
+			db= DatabaseThread::instance()->getDatabaseObj();
 			descriptor.unlock();
 			db->isEntryChanged();
 			descriptor.lock();
@@ -70,7 +73,8 @@ namespace server
 
 		}else if(method == "isDbLoaded")
 		{
-			if(db->isDbLoaded())
+			dbTh= DatabaseThread::instance();
+			if(dbTh->isDbLoaded())
 				descriptor << "1";
 			else
 				descriptor << "0";
@@ -78,6 +82,7 @@ namespace server
 		{
 			string folder, subroutine;
 
+			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> folder;
 			object >> subroutine;
 			db->writeIntoDb(folder, subroutine);
@@ -89,6 +94,7 @@ namespace server
 			vector<double> values;
 			string folder, subroutine, identif;
 
+			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> folder;
 			object >> subroutine;
 			object >> identif;
@@ -110,6 +116,7 @@ namespace server
 			unsigned short nRv;
 			string folder, subroutine, identif;
 
+			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> folder;
 			object >> subroutine;
 			object >> identif;
@@ -163,6 +170,7 @@ namespace server
 			auto_ptr<double> spdRv;
 			string folder, subroutine, identif;
 
+			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> folder;
 			object >> subroutine;
 			object >> identif;
@@ -183,6 +191,7 @@ namespace server
 			string subroutine, definition;
 			vector<convert_t> vtRv;
 
+			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> subroutine;
 			object >> definition;
 			object >> value;
@@ -206,6 +215,7 @@ namespace server
 			string name;
 			unsigned long connection;
 
+			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> connection;
 			object >> name;
 			bRv= db->needSubroutines(connection, name);
@@ -219,6 +229,7 @@ namespace server
 			unsigned long connection;
 			vector<string> vsRv;
 
+			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> connection;
 			vsRv= db->getChangedEntrys(connection);
 			for(vector<string>::iterator it= vsRv.begin(); it != vsRv.end(); ++it)
@@ -234,6 +245,7 @@ namespace server
 		{
 			unsigned long oldId, newId;
 
+			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> oldId;
 			object >> newId;
 			db->changeNeededIds(oldId, newId);
@@ -312,7 +324,7 @@ namespace server
 		}else if(method.substr(0, 24) == "getRegisteredDefaultChip")
 		{
 			bool bAll= false;
-			const DefaultChipConfigReader::chips_t* chip;
+			const chips_t* chip;
 			vector<double> errorcodes;
 			string server, family, type, schip;
 
@@ -607,6 +619,7 @@ namespace server
 		{
 			string folder, subroutine, onServer, chip;
 
+			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> folder;
 			object >> subroutine;
 			object >> onServer;
@@ -622,6 +635,7 @@ namespace server
 			map<string, vector<string> >* mvFSubs;
 			OMethodStringStream command("changedChip");
 
+			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> onServer;
 			object >> chip;
 			object >> value;
@@ -687,10 +701,11 @@ namespace server
 			IClientHolderPattern* holder;
 			LogInterface* log;
 
+			dbTh= DatabaseThread::instance();
 			if(stopdb == 0)
 			{
 				glob::stopMessage("ServerDbTransaction::transfer(): stop database thread");
-				db->stop(false);
+				dbTh->stop(false);
 				++stopdb;
 			}
 			switch(stopdb)
@@ -741,8 +756,8 @@ namespace server
 			case 4:
 				glob::stopMessage("ServerDbTransaction::transfer(): wait for ending of database thread");
 				sRv= "stop database";
-				db->stop(false);
-				if(!db->running())
+				dbTh->stop(false);
+				if(!dbTh->running())
 					++stopdb;
 				else
 					usleep(500000);
@@ -801,11 +816,11 @@ namespace server
 
 	void ServerDbTransaction::connectionEnding(const unsigned int ID, const string& process, const string& client)
 	{
-		DatabaseThread* db;
+		IPPIDatabasePattern* db;
 
 		if(process == "ppi-internet-server")
 		{
-			db= DatabaseThread::instance();
+			db= DatabaseThread::instance()->getDatabaseObj();
 			db->arouseChangingPoolCondition();
 		}
 	}

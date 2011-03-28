@@ -8,5 +8,5 @@ set(databaseSrcs    DatabaseThread.cpp
         		
 add_executable(ppi-db-server ${databaseSrcs})
 target_link_libraries(ppi-db-server 	ppiutil ppistreamutil ppipropertyutil ppithreadutil ppiprocessutil 
-										ppiserverlibclient ppiserverlibserver)
+										ppidb ppiserverlibclient ppiserverlibserver)
 install(TARGETS ppi-db-server DESTINATION bin)
