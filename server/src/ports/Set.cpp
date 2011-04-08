@@ -141,7 +141,7 @@ namespace ports
 		IListObjectPattern* port;
 
 		//Debug info to stop by right subroutine
-		/*if(	getFolderName() == "TRANSMIT_SONY_receive" &&
+		/*if(	getFolderName() == "set_probe" &&
 			getSubroutineName() == "stop"	)
 		{
 			cout << __FILE__ << __LINE__ << endl;
@@ -166,7 +166,10 @@ namespace ports
 							if(isdebug)
 							{
 								cout << "set value " << value;
-								cout << " into " << (s+1) << ". subroutine '" << m_vsSet[s] << "'" << endl;
+								cout << " into " << (s+1) << ". subroutine '";
+								if(m_vsSet[s].find(":") == string::npos)
+									cout << folder << ":";
+								cout << m_vsSet[s] << "'" << endl;
 							}
 							port->setValue(value, "i:"+folder+":"+subroutine);
 						}else
@@ -174,7 +177,10 @@ namespace ports
 							ostringstream msg;
 
 							msg << "cannot set value " << value << " into given ";
-							msg << (s+1) << ". 'set' parameter '" << m_vsSet[s] << "'";
+							msg << (s+1) << ". 'set' parameter '";
+							if(m_vsSet[s].find(":") == string::npos)
+								msg << folder << ":";
+							msg << m_vsSet[s] << "'";
 							if(isdebug)
 								cout << "### ERROR: " << msg.str() << endl;
 							msg << endl << "do not found this subroutine from 'set' attribute" << endl;
