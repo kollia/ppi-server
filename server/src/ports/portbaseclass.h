@@ -109,6 +109,11 @@ namespace ports
 			 */
 			bool m_bSwitch;
 			/**
+			 * count number of subroutine
+			 * inside folder
+			 */
+			unsigned short m_nCount;
+			/**
 			 * wether access to device is correct.<br />
 			 * If pointer is <code>NULL</code> object do not know access from database
 			 */
@@ -337,6 +342,13 @@ namespace ports
 			 * @param from which folder:subroutine or account changing the value
 			 */
 			virtual void setValue(const double value, const string& from);
+			/**
+			 * return count of subroutine in folder
+			 *
+			 * @return count of subroutine
+			 */
+			virtual unsigned short getActCount()
+			{ return m_nCount; };
 			/**
 			 * set measure thread which run this object with method <code>measure()</code>
 			 *

@@ -39,6 +39,13 @@ namespace design_pattern_world
 		{
 			public:
 				/**
+				 * return actually count of current subroutine
+				 *
+				 * @param subroutine whitch count should be returned when set, elsewhere create new counts
+				 * @return count number of subroutine
+				 */
+				virtual unsigned short getActCount(const string& subroutine= "")= 0;
+				/**
 				 * activate new pass of hole folder
 				 *
 				 * @param folder name of folder

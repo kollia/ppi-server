@@ -47,6 +47,12 @@ namespace design_pattern_world
 			 */
 			virtual bool init(IActionPropertyPattern* properties)= 0;
 			/**
+			 * return count of subroutine in folder
+			 *
+			 * @return count of subroutine
+			 */
+			virtual unsigned short getActCount()= 0;
+			/**
 			 * this method will be called from any measure thread to set as observer
 			 * for starting own folder to get value from foreign folder
 			 * if there the value was changing

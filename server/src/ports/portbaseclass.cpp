@@ -51,6 +51,7 @@ portBase::portBase(const string& type, const string& folderName, const string& s
 #ifdef DEBUG
 	m_count= 0;
 #endif //DEBUG
+	m_nCount= 0;
 	m_bDefined= false;
 	m_bFloat= true;
 	m_dMin= 1;
@@ -183,6 +184,8 @@ void portBase::setDeviceAccess(bool access)
 
 void portBase::setObserver(IMeasurePattern* observer)
 {
+	if(m_nCount == 0) // set actually count number of subroutine inside folder
+		m_nCount= observer->getActCount();
 	m_oLinkWhile.activateObserver(observer);
 }
 
@@ -273,17 +276,27 @@ void portBase::setValue(double value, const string& from)
 		bool debug(isDebug());
 		string sOwn(m_sFolder+":"+m_sSubroutine);
 		ostringstream output;
+		vector<string> spl;
 
 		LOCK(m_VALUELOCK);
 		m_dValue= value;
 		UNLOCK(m_VALUELOCK);
 
+		split(spl, from, is_any_of(":"));
 		LOCK(m_OBSERVERLOCK);
+
+		if(	m_poMeasurePattern &&
+			spl[0] == "i" &&
+			spl[1] == m_sFolder &&
+			m_nCount < m_poMeasurePattern->getActCount(spl[2])	)
+		{// inform own folder to restart when setting subroutine was from an later subroutine
+			m_poMeasurePattern->changedValue(m_sFolder, from.substr(2));
+		}
 		if(debug && m_mvObservers.size() > 0)
 		{
 			output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
 			output << "  " << sOwn << " was changed to " << m_dValue << endl;
-			if(	from.substr(0, 1) != "i" ||
+			if(	spl[0] != "i" ||
 				from.substr(2) != sOwn		)
 			{
 				output << "  was informed from";

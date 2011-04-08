@@ -46,6 +46,7 @@ Thread(threadname, /*defaultSleep*/0)
 	m_VALUE= Thread::getMutex("VALUE");
 	m_VALUECONDITION= Thread::getCondition("VALUECONDITION");
 	m_bDebug= false;
+	m_nActCount= 0;
 }
 
 void MeasureThread::setDebug(bool bDebug, const string& subroutine)
@@ -55,6 +56,25 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 	ostringstream open;
 	ostringstream out;
 
+	if(bDebug)
+	{// check before output which subroutines set for debug
+	 // if an new subroutine will be set
+		open << " follow subroutines currently be set also for debugging:" << endl;
+		for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
+		{
+			if(	it->bCorrect &&
+				it->portClass->isDebug() == true	)
+			{
+				if(it->type != "DEBUG")
+					isDebug= true;
+				if(it->name != subroutine)
+				{
+					bOpen= true;
+					open << "       subroutine " << it->name << endl;
+				}
+			}
+		}
+	}
 	out << "-------------------------------------------------------------------" << endl;
 	out << " set debug to " << boolalpha << bDebug << " from folder " << getThreadName() << endl;
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
@@ -67,26 +87,31 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 				if(it->portClass->isDebug() != bDebug)
 					out << "       in subroutine " << it->name << endl;
 				it->portClass->setDebug(bDebug);
+				if(	bDebug &&
+					it->type != "DEBUG"	)
+				{
+					isDebug= true;
+				}
 			}
 
 		}
 	}
-	open << " follow subroutines currently be set ";
-	if(bDebug)
-		open << "also ";
-	open << "for debugging:" << endl;
-	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
-	{
-		if(	it->bCorrect &&
-			it->portClass->isDebug() == true	)
+	if(!bDebug)
+	{// check which subroutines be set for debugging
+	 // when one subroutine will be lose debug level
+		open << " follow subroutines currently be set for debugging:" << endl;
+		for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 		{
-			if(it->type != "DEBUG")
-				isDebug= true;
-			if(	!bDebug ||
-				it->name != subroutine	)
+			if(	it->bCorrect &&
+				it->portClass->isDebug() == true	)
 			{
-				bOpen= true;
-				open << "       subroutine " << it->name << endl;
+				if(it->type != "DEBUG")
+					isDebug= true;
+				if(it->name != subroutine)
+				{
+					bOpen= true;
+					open << "       subroutine " << it->name << endl;
+				}
 			}
 		}
 	}
@@ -117,6 +142,18 @@ bool MeasureThread::isDebug()
 	UNLOCK(m_DEBUGLOCK);
 
 	return debug;
+}
+
+unsigned short MeasureThread::getActCount(const string& subroutine)
+{
+	if(subroutine == "")
+		return ++m_nActCount;
+	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
+	{
+		if(it->portClass->getSubroutineName() == subroutine)
+			return it->portClass->getActCount();
+	}
+	return 0;
 }
 
 int MeasureThread::init(void *arg)
@@ -209,6 +246,7 @@ int MeasureThread::execute()
 		cout << "by starting folder " << stopfolder << endl;
 		//setDebug(true, 0);
 	}*/
+	timerclear(&cond);
 	measure();
 	if(debug)
 	{
@@ -228,7 +266,6 @@ int MeasureThread::execute()
 			cout << getUsecString(end_tv.tv_usec) << ")" << endl;
 		}
 		cout << "----------------------------------" << endl << endl << endl;
-		timerclear(&cond);
 	}
 	LOCK(m_VALUE);
 	m_vInformed.clear();

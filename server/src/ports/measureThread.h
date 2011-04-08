@@ -63,6 +63,13 @@ class MeasureThread : 	public Thread,
 		 */
 		void setDebug(bool bDebug, const string& subroutine= "");
 		/**
+		 * return actually count of current subroutine
+		 *
+		 * @param subroutine whitch count should be returned when set, elsewhere create new counts
+		 * @return count number of subroutine
+		 */
+		virtual unsigned short getActCount(const string& subroutine);
+		/**
 		 * returning true if an client set this measurethread to debug
 		 */
 		bool isDebug();
@@ -149,6 +156,10 @@ class MeasureThread : 	public Thread,
 		//set<portBase::Pins> m_vAfterContactPins;
 		//map<unsigned long, unsigned> m_vAfterContactPorts;
 		bool m_bDebug;
+		/**
+		 * actually count number of set subroutine
+		 */
+		unsigned short m_nActCount;
 		/**
 		 * from which folder:subroutine the thread was informed to change
 		 */
