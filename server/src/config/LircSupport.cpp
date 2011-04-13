@@ -1553,9 +1553,10 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pSwitch->pperm(userreadperm);
 			pSwitch->description();
 
-			pSwitch= folder->getSwitch("active");
-			pSwitch->description("whether folder is active running by get signal from any client or receiver");
-			pSwitch->pbegin("receive");
+			pValue= folder->getValue("last_active");
+			pValue->description("last active button in an linked block");
+			pValue->pwhile("first_touch ? correct_group : last_active");
+			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
 			folder->description("--------------  end of calculation from first_touch, receive any and first_off  -----------------");
 			folder->description("#################################################################################################");
 			folder->description();
@@ -1746,7 +1747,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pTimer->description("measure time after lost signal over receiver or button");
 			pTimer->description("in this time can be pressed again, next step inside this time will be not only for show");
 			pTimer->pmtime("back_time");
-			pTimer->pbegin("(display_first & first_off) | (set_steps & digits>1 & first_touch)");
+			pTimer->pbegin("set_steps ? digits>1 & new_activate<=0 & first_touch : display_first & first_off");
 			pTimer->pend("new_activate<=0");
 			createSubroutineLink(file, pTimer->getName(), remote, remit->second, "group");
 			pTimer->action("micro");
@@ -1772,7 +1773,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->pvalue(0);
 			pValue->pvalue("first_calc -1");
 			pValue->pvalue("first_calc");
-			pValue->pwhile("\"active=0 ? 3 :\n"
+			pValue->pwhile("\"last_active!=correct_group ? 3 :\n"
 								"                receive=0 &\n"
 								"                new_activate<=0 ? 0 :\n"
 								"                    first_touch &\n"
@@ -1797,7 +1798,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->description("define value of actual step before when folder button be defined to 'set only actual step'");
 			pValue->flush();
 			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
-			pValue->pwhile("active & set_steps & first_touch ? ( predef_step=-1 ? to_value : predef_step*10+to_value) : predef_step");
+			pValue->pwhile("last_active=correct_group & set_steps & first_touch ? ( predef_step=-1 ? to_value : predef_step*10+to_value) : predef_step");
 			pValue->action("int");
 			pValue->pdefault("-1");
 			pValue->pperm(userreadperm);
@@ -1807,7 +1808,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->description("calculate how much digits are set for current session");
 			pValue->flush();
 			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
-			pValue->pwhile("active & set_steps & first_touch ? digs_set + 1 : digs_set");
+			pValue->pwhile("last_active=correct_group & set_steps & first_touch ? digs_set + 1 : digs_set");
 			pValue->pmin(0);
 			pValue->description();
 
@@ -1864,16 +1865,11 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pSet->description("set back predefined steps (predef_step) to -1 when defined in actual_step");
 			pSet->pfrom(-1);
 			pSet->pfrom(0);
+			pSet->pfrom(0);
 			pSet->pset("predef_step");
 			pSet->pset("digs_set");
-			pSet->pwhile("active & (digs_set=digits | new_activate<=0)");
-			pSet->description();
-
-			pSet= folder->getSet("active_back");
-			pSet->description("set active folder back to 0 when end of new_activate is reached");
-			pSet->pfrom(0);
-			pSet->pset("active");
-			pSet->pwhile("receive=0 & new_activate<=0");
+			pSet->pset("new_activate");
+			pSet->pwhile("digs_set!=0 & last_active=correct_group & (digs_set=digits | new_activate<=0)");
 			folder->description("-------------------------  end of calculation for next step  ------------------------------------");
 			folder->description("#################################################################################################");
 			folder->description();
