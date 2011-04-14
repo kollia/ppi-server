@@ -33,7 +33,8 @@ namespace user
 			 * static method to create single object of UserManagement
 			 *
 			 * @param access file witch have configuration of access
-			 * @param measure file with path for measure.conf
+			 * @param measure file with path for measure.conf,
+			 * 			when permision groups of folder not be needed, this parameter can be an null string ("")
 			 * @return whether an new object is created
 			 */
 			static bool initial(const string& access, const string& measure);
@@ -168,7 +169,8 @@ namespace user
 			 * private method to load the access properties from harddisk
 			 *
 			 * @param access file witch have configuration of access
-			 * @param measure file with path for measure.conf
+			 * @param measure file with path for measure.conf,
+			 * 			when permision groups of folder not be needed, this parameter can be an null string ("")
 			 * @return whether the file loading was successful
 			 */
 			bool init(const string& access, const string& measure);

@@ -193,20 +193,16 @@ int main(int argc, char* argv[])
 
 		}else if(command == "stop")
 		{
-			bool configure;
 			vector<string>::size_type nCount;
 
-			configure= params.hasOption("configure");
 			nCount= params.optioncount();
-			if(	(	configure &&
-					nCount > 1		) ||
-				(	!configure &&
-					nCount > 0		)	)
+			if(nCount > 0)
 			{
-				cout << "not all options are for stopping ppi-server" << endl;
+				cout << "no options for stopping ppi-server allowed" << endl;
 				cout << "   for more description read help manual (./ppi-server --help)" << endl << endl;
+				return EXIT_FAILURE;
 			}
-			result= server.stop(configure);
+			result= server.stop(false);
 
 		}else if(command == "restart")
 		{

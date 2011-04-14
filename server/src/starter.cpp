@@ -2138,8 +2138,6 @@ bool Starter::stop(bool configure)
 	UserManagement* user= UserManagement::instance();
 	ostringstream hello;
 
-	if(configure)
-		cout << "  ... read configuration files" << endl;
 	hello << "GET v" << PPI_SERVER_PROTOCOL << endl;
 	sendbuf= hello.str();
 	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
@@ -2153,7 +2151,7 @@ bool Starter::stop(bool configure)
 	if(user == NULL)
 	{
 		if(!UserManagement::initial(URL::addPath(confpath, "access.conf", /*always*/true),
-									URL::addPath(confpath, "measure.conf", /*always*/true)))
+									""/*needs no definition of subroutine permission*/)		)
 			return false;
 		user= UserManagement::instance();
 	}

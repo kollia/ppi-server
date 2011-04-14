@@ -88,18 +88,20 @@ namespace user
 		mproperties.modifier("name");
 		mproperties.setMsgParameter("name", "subroutine");
 		mproperties.valueLocalization("\"", "\"", /*remove*/true);
-		//mproperties.allowLaterModifier(true);
-		if(!mproperties.readFile(measurefile))
+		if(measurefile != "")
 		{
-			msg=  "### fatal ERROR: cannot read correctly measure file '";
-			msg+= measurefile + "\n";
-			msg+= "                 ";
-			msg+= errno;
-			msg+= " ";
-			msg+= strerror(errno);
-			cerr << msg;
-			LOG(LOG_ALERT, msg);
-			return false;
+			if(!mproperties.readFile(measurefile))
+			{
+				msg=  "### fatal ERROR: cannot read correctly measure file '";
+				msg+= measurefile + "\n";
+				msg+= "                 ";
+				msg+= errno;
+				msg+= " ";
+				msg+= strerror(errno);
+				cerr << msg;
+				LOG(LOG_ALERT, msg);
+				return false;
+			}
 		}
 		if(!casher.readFile(accessfile))
 		{
@@ -378,25 +380,28 @@ namespace user
 			return false;
 		}
 
-		// read all permission groups for folder:subroutines in file measure.conf
-		typedef vector<IInterlacedPropertyPattern*>::iterator sit;
-
-		string folder, subroutine, groups;
-		vector<IInterlacedPropertyPattern*> fsection, ssection;
-
-		fsection= mproperties.getSections();
-		for(sit vfit= fsection.begin(); vfit != fsection.end(); ++vfit)
+		if(measurefile != "")
 		{
-			ssection= (*vfit)->getSections();
-			for(sit vsit= ssection.begin(); vsit != ssection.end(); ++vsit)
+			// read all permission groups for folder:subroutines in file measure.conf
+			typedef vector<IInterlacedPropertyPattern*>::iterator sit;
+
+			string folder, subroutine, groups;
+			vector<IInterlacedPropertyPattern*> fsection, ssection;
+
+			fsection= mproperties.getSections();
+			for(sit vfit= fsection.begin(); vfit != fsection.end(); ++vfit)
 			{
-				folder= (*vfit)->getSectionValue();
-				subroutine= (*vsit)->getSectionValue();
-				groups= (*vsit)->getValue("perm", /*warning*/false);
-				if(groups != "")
+				ssection= (*vfit)->getSections();
+				for(sit vsit= ssection.begin(); vsit != ssection.end(); ++vsit)
 				{
-					m_mmGroups[folder][subroutine]= groups;
-					//cout << "allow group '" << groups << "' for subroutine " << folder << ":" << subroutine << endl;
+					folder= (*vfit)->getSectionValue();
+					subroutine= (*vsit)->getSectionValue();
+					groups= (*vsit)->getValue("perm", /*warning*/false);
+					if(groups != "")
+					{
+						m_mmGroups[folder][subroutine]= groups;
+						//cout << "allow group '" << groups << "' for subroutine " << folder << ":" << subroutine << endl;
+					}
 				}
 			}
 		}
