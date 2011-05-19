@@ -35,11 +35,14 @@ public:
 	 *
 	 * @param loggingobject object to logging messages
 	 */
-	static void init(ILogPattern* loggingobject)
-	{ if(LogHolderPattern::_instance) delete LogHolderPattern::_instance;
-	  LogHolderPattern::_instance= new LogHolderPattern;
-	  LogHolderPattern::_instance->m_oLogging= loggingobject; LogHolderPattern::_instance->m_bExists= true;
-	  loggingobject->callback(LogHolderPattern::usable);				};
+	static void init(ILogPattern* loggingobject);
+	/**
+	 * initialize log instance with minimal log level
+	 * when no logging object is used
+	 *
+	 * @param loglevel minimal log level
+	 */
+	static void init(const int loglevel);
 	/**
 	 * get actual instance of object
 	 */
@@ -74,10 +77,7 @@ public:
 	 * @param message string witch should written into log-files
 	 * @param sTimeLogIdentif if this identifier be set, the message will be write only in an defined time
 	 */
-	void log(string file, int line, int type, string message, string sTimeLogIdentif= "")
-	{ 	if(m_bExists) m_oLogging->log(file, line, type, message, sTimeLogIdentif); else
-		{	cout << "****************************************************************************" << endl;
-			cout << file << " LINE: " << line << endl << message << endl; 									}	};
+	void log(string file, int line, int type, string message, string sTimeLogIdentif= "");
 	/**
 	 * destructor of object
 	 */
@@ -90,6 +90,10 @@ private:
 	 * whether object of logging exists
 	 */
 	bool m_bExists;
+	/**
+	 * minimal log level for output
+	 */
+	int m_nLogLevel;
 	/**
 	 * instance of object
 	 */
@@ -104,6 +108,7 @@ private:
 	 */
 	LogHolderPattern() :
 		m_bExists(false),
+		m_nLogLevel(0x00000000), // LOG_DEBUG
 		m_oLogging(NULL) {};
 
 };

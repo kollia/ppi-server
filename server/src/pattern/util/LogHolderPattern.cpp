@@ -19,3 +19,57 @@
 
 
 LogHolderPattern* LogHolderPattern::_instance= NULL;
+
+void LogHolderPattern::init(const int loglevel)
+{
+	if(LogHolderPattern::_instance == NULL)
+		LogHolderPattern::_instance= new LogHolderPattern;
+	LogHolderPattern::_instance->m_nLogLevel= loglevel & 0x007; // & 00000111
+}
+
+void LogHolderPattern::init(ILogPattern* loggingobject)
+{
+	if(LogHolderPattern::_instance)
+		delete LogHolderPattern::_instance;
+	LogHolderPattern::_instance= new LogHolderPattern;
+	LogHolderPattern::_instance->m_oLogging= loggingobject;
+	LogHolderPattern::_instance->m_bExists= true;
+	loggingobject->callback(LogHolderPattern::usable);
+}
+
+void LogHolderPattern::log(string file, int line, int type, string message, string sTimeLogIdentif/*= ""*/)
+{
+	if(m_bExists)
+	{
+		m_oLogging->log(file, line, type, message, sTimeLogIdentif);
+		return;
+	}
+
+	type= type & 0x007; // & 00000111
+	if(type < m_nLogLevel)
+		return;
+	switch(type)
+	{
+		case LOG_DEBUG:
+			cout << "DEBUG info";
+			break;
+		case LOG_INFO:
+			cout << "INFO";
+			break;
+		case LOG_WARNING:
+			cout << "WARNING";
+			break;
+		case LOG_ERROR:
+			cout << "ERROR";
+			break;
+		case LOG_ALERT:
+			cout << "ALERT error";
+			break;
+		default:
+			cout << "UNKNOWN logmessage";
+			break;
+	}
+	cout << ": " << message << endl;
+}
+
+
