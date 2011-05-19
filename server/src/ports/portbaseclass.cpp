@@ -287,9 +287,12 @@ void portBase::setValue(double value, const string& from)
 
 		if(	m_poMeasurePattern &&
 			spl[0] == "i" &&
-			spl[1] == m_sFolder &&
-			m_nCount < m_poMeasurePattern->getActCount(spl[2])	)
-		{// inform own folder to restart when setting subroutine was from an later subroutine
+			(	spl[1] != m_sFolder ||
+				(	spl[1] == m_sFolder &&
+					m_nCount < m_poMeasurePattern->getActCount(spl[2])	)	)	)
+		{// inform own folder to restart
+		 // when setting was from other folder
+		 // or in same folder, subroutine was from an later one
 			m_poMeasurePattern->changedValue(m_sFolder, from.substr(2));
 		}
 		if(debug && m_mvObservers.size() > 0)
@@ -329,7 +332,7 @@ void portBase::setValue(double value, const string& from)
 				break;
 			}
 		}
-		if(debug &&m_mvObservers.size() > 0)
+		if(debug && m_mvObservers.size() > 0)
 		{
 			output << "////////////////////////////////////////" << endl;
 			cout << output.str();
