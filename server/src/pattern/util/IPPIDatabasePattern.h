@@ -31,6 +31,60 @@ using namespace std;
 
 namespace design_pattern_world
 {
+	/**
+	 * struct of nessesary items
+	 * to write into database
+	 */
+	struct db_t
+	{
+		/**
+		 * time of insert
+		 */
+		time_t tm;
+		/**
+		 * name of folder in which thread running
+		 */
+		string folder;
+		/**
+		 * subroutine in folder which had called instraction
+		 */
+		string subroutine;
+		/**
+		 * identifier of value
+		 */
+		string identif;
+		/**
+		 * whether subroutine has correct access to device by reading or writing
+		 */
+		bool device;
+		/**
+		 * values which should insert into database
+		 */
+		vector<double> values;
+		/**
+		 * whether database should write only new values
+		 */
+		bool bNew;
+		/**
+		 * greater operator
+		 */
+		bool operator > (const db_t* other) const
+		{
+			if(folder > other->folder)
+				return true;
+			return subroutine > other->subroutine;
+		}
+		/**
+		 * is same operator
+		 */
+		bool operator == (const db_t* other) const
+		{
+			return (	folder == other->folder
+						&&
+						subroutine == other->subroutine	);
+		}
+	};
+
 	class IPPIDatabasePattern
 	{
 	public:
@@ -40,6 +94,33 @@ namespace design_pattern_world
 		 * @return whether can read or create database
 		 */
 		virtual bool read()= 0;
+		/**
+		 * read all actually state of subroutine inside given subroutines fromsub with value from
+		 * to subroutine tosub and value to
+		 *
+		 * @param fromsub subroutine from which should be read
+		 * @param from value from subroutine by begin of reading
+		 * @param tosub subroutine by which should ending
+		 * @param to value of subroutine by ending
+		 * @param ncount size of needed blocks
+		 */
+		virtual void readInsideSubroutine(const string& fromsub, const double from, const string& tosub,
+						const double to, const unsigned short ncount)= 0;
+		/**
+		 * read all actually state of subroutine inside value from and to
+		 *
+		 * @param sub subroutine for definition to begin end ending
+		 * @param from value of subroutine to begin
+		 * @param to value of subroutine to end
+		 * @param ncount size of needed blocks
+		 */
+		virtual void readInsideSubroutine(const string& sub, const double from, const double to, const unsigned short ncount)= 0;
+		/**
+		 * return read block of subroutine from before defined reading of begin and end
+		 *
+		 * @return block of subroutines
+		 */
+		virtual vector<vector<db_t> > getReadSubBlock()= 0;
 		/**
 		 * define which chip OwPort will be use to inform when content on server (owreader) change value
 		 *

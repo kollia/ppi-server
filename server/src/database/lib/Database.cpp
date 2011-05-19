@@ -32,16 +32,20 @@
 #include <fstream>
 #include <map>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+
 #include "Database.h"
 
 #include "../../util/URL.h"
 #include "../../util/Calendar.h"
 #include "../../util/properties/configpropertycasher.h"
 
-#include "../../logger/lib/LogInterface.h"
+#include "../../pattern/util/LogHolderPattern.h"
 
 
 using namespace util;
+using namespace boost;
 
 namespace ppi_database
 {
@@ -87,10 +91,13 @@ namespace ppi_database
 		if(m_sWorkDir.substr(m_sWorkDir.length()-1, 1) != "/")
 			m_sWorkDir+= "/";
 		LOG(LOG_INFO, "Storage database " + m_sWorkDir);
+		m_pEndReading= NULL;
+		m_nReadBlock= 0;
 	}
 
 	bool Database::read()
 	{
+		typedef vector<pair<pair<pair<string, string>, double>, pair<pair<string, string>, double> > >::iterator readVector;
 		char stime[16];
 		string dbfile;
 		string line;
@@ -171,7 +178,35 @@ namespace ppi_database
 					{
 						fillMeasureCurve(entry, false/*do not sort vector*/);
 					}else
+					{
 						setActEntry(entry);
+						if(m_pEndReading == NULL)
+						{
+							for(readVector vec= m_vReadBlockDefs.begin(); vec != m_vReadBlockDefs.end(); ++vec)
+							{
+								if(	vec->first.first.first == entry.folder &&
+									vec->first.first.second == entry.subroutine &&
+									vec->first.second == entry.values[0]				)
+								{
+									vector<db_t> first;
+
+									m_pEndReading= &vec->second;
+									first.push_back(entry);
+									m_vvDbEntrys.push_back(first);
+									m_nReadBlock= m_vvDbEntrys.size()-1;
+								}
+							}
+						}else
+						{
+							m_vvDbEntrys[m_nReadBlock].push_back(entry);
+							if(	m_pEndReading->first.first == entry.folder &&
+								m_pEndReading->first.second == entry.subroutine &&
+								m_pEndReading->second == entry.values[0]			)
+							{
+								m_pEndReading= NULL;
+							}
+						}
+					}
 				}
 			}
 			file.close();
@@ -183,6 +218,23 @@ namespace ppi_database
 		}
 
 		return true;
+	}
+
+	void Database::readInsideSubroutine(const string& fromsub, const double from, const string& tosub,
+					const double to, const unsigned short ncount)
+	{
+		vector<string> fspl, tspl;
+
+		split(fspl, fromsub, is_any_of(":"));
+		split(tspl, tosub, is_any_of(":"));
+
+		pair<string, string> fromSub(fspl[0], fspl[1]);
+		pair<string, string> toSub(tspl[0], tspl[1]);
+		pair<pair<string, string>, double> From(fromSub, from);
+		pair<pair<string, string>, double> To(toSub, to);
+		pair<pair<pair<string, string>, double>, pair<pair<string, string>, double> > block(From, To);
+
+		m_vReadBlockDefs.push_back(block);
 	}
 
 	string Database::getLastDbFile(string path, string filter, off_t &size)

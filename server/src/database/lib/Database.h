@@ -19,6 +19,8 @@
 #ifndef DATABASE_H_
 #define DATABASE_H_
 
+#include <iostream>
+#include <utility>
 #include <string>
 #include <vector>
 
@@ -38,60 +40,6 @@ namespace ppi_database
 {
 	using namespace design_pattern_world;
 
-	/**
-	 * struct of nessesary items
-	 * to write into database
-	 */
-	struct db_t
-	{
-		/**
-		 * time of insert
-		 */
-		time_t tm;
-		/**
-		 * name of folder in which thread running
-		 */
-		string folder;
-		/**
-		 * subroutine in folder which had called instraction
-		 */
-		string subroutine;
-		/**
-		 * identifier of value
-		 */
-		string identif;
-		/**
-		 * whether subroutine has correct access to device by reading or writing
-		 */
-		bool device;
-		/**
-		 * values which should insert into database
-		 */
-		vector<double> values;
-		/**
-		 * whether database should write only new values
-		 */
-		bool bNew;
-		/**
-		 * greater operator
-		 */
-		bool operator > (const db_t* other) const
-		{
-			if(folder > other->folder)
-				return true;
-			return subroutine > other->subroutine;
-		}
-		/**
-		 * is same operator
-		 */
-		bool operator == (const db_t* other) const
-		{
-			return (	folder == other->folder
-						&&
-						subroutine == other->subroutine	);
-		}
-	};
-
 	class Database : public IPPIDatabasePattern
 	{
 	public:
@@ -109,6 +57,35 @@ namespace ppi_database
 		 * @return whether can read or create database
 		 */
 		virtual bool read();
+		/**
+		 * read all actually state of subroutine inside given subroutines fromsub with value from
+		 * to subroutine tosub and value to
+		 *
+		 * @param fromsub subroutine from which should be read
+		 * @param from value from subroutine by begin of reading
+		 * @param tosub subroutine by which should ending
+		 * @param to value of subroutine by ending
+		 * @param ncount size of needed blocks
+		 */
+		virtual void readInsideSubroutine(const string& fromsub, const double from, const string& tosub,
+						const double to, const unsigned short ncount);
+		/**
+		 * return read block of subroutine from before defined reading of begin and end.
+		 *
+		 * @return block of subroutines
+		 */
+		virtual vector<vector<db_t> > getReadSubBlock()
+				{ return m_vvDbEntrys; };
+		/**
+		 * read all actually state of subroutine inside value from and to
+		 *
+		 * @param sub subroutine for definition to begin end ending
+		 * @param from value of subroutine to begin
+		 * @param to value of subroutine to end
+		 * @param ncount size of needed blocks
+		 */
+		virtual void readInsideSubroutine(const string& sub, const double from, const double to, const unsigned short ncount)
+		{ readInsideSubroutine(sub, from, sub, to, ncount); };
 		/**
 		 * define which chip OwPort will be use to inform when content on server (owreader) change value
 		 *
@@ -373,6 +350,26 @@ namespace ppi_database
 		 * saving in map<onServer, map<chip, map<folder, vector<subroutine> > > >
 		 */
 		map<string, map<string, map<string, vector<string> > > > m_mmmvServerContent;
+		/**
+		 * in which case reading information of saved subroutine result
+		 */
+		vector<pair<pair<pair<string, string>, double>, pair<pair<string, string>, double> > > m_vReadBlockDefs;
+		/**
+		 * subroutine and value to ending read of block
+		 */
+		pair<pair<string, string>, double>* m_pEndReading;
+		/**
+		 * read blocks
+		 */
+		vector<vector<db_t> > m_vvDbEntrys;
+		/**
+		 * all read subroutine lines from database
+		 */
+		vector<vector<db_t> > m_vReadBlocks;
+		/**
+		 * actual reading block
+		 */
+		vector<vector<db_t> >::size_type m_nReadBlock;
 
 		/**
 		 * write entrys into database with asking bevore DefaultChipConfigReader whether is allowed
