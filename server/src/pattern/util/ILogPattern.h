@@ -22,19 +22,19 @@
 #include <string>
 
 #ifndef LOG_DEBUG
-#define LOG_DEBUG 0x00000000
+#define LOG_DEBUG 0x000 // 00000000
 #endif // LOG_DEBUG
 #ifndef LOG_INFO
-#define LOG_INFO  0x00000001
+#define LOG_INFO 0x001 // 00000001
 #endif // LOG_INFO
 #ifndef LOG_WARNING
-#define LOG_WARNING 0x00000010
+#define LOG_WARNING 0x002 // 00000010
 #endif // LOG_WARNING
 #ifndef LOG_ERROR
-#define LOG_ERROR 0x00000011
+#define LOG_ERROR 0x003 // 00000011
 #endif // LOG_ERROR
 #ifndef LOG_ALERT
-#define LOG_ALERT 0x00000100
+#define LOG_ALERT 0x004 // 00000100
 #endif // LOG_ALERT
 
 using namespace std;

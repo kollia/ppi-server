@@ -258,7 +258,7 @@ int LogThread::execute()
 		for(unsigned int n= 0; n < nSize; n++)
 		{
 			struct log_t result= (*pvLogVector)[n];
-			if(m_nMinLogLevel <= ((*pvLogVector)[n].type & 0x00000111))
+			if(m_nMinLogLevel <= ((*pvLogVector)[n].type & 0x007 /*00000111*/))
 			{
 				bool bWrite= true;
 
