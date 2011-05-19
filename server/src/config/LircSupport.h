@@ -18,7 +18,14 @@
 #ifndef LIRCSUPPORT_H_
 #define LIRCSUPPORT_H_
 
+#include <set>
+
 #include "../pattern/util/ICommandStructPattern.h"
+#include "../pattern/util/IPPIDatabasePattern.h"
+
+#include "../ports/subroutines/Folder.h"
+
+using namespace subroutines;
 
 class LircSupport {
 public:
@@ -63,6 +70,14 @@ public:
 	 * @param argv values in an pointer array
 	 */
 	int execute(const ICommandStructPattern* params);
+	/**
+	 * set all defined names from command line
+	 * from option --learn
+	 *
+	 * @param names all defined names
+	 */
+	void setLearnNames(const vector<string> &names)
+	{ m_vLearnNames= names; };
 
 private:
 	/**
@@ -193,6 +208,42 @@ private:
 		unsigned short digits;
 		unsigned short setto;
 	};
+	/**
+	 * structure for defined button
+	 */
+	struct button_def
+	{
+		/**
+		 * remote control
+		 */
+		string remote;
+		/**
+		 * code of button
+		 */
+		string code;
+		/**
+		 * subroutine inside folder
+		 */
+		string subroutine;
+		/**
+		 * in which group the button is
+		 */
+		unsigned short group;
+		/**
+		 *  action to count steps in which direction
+		 *      'UP STOP'         = 0
+		 *      'DOWN STOP'       = 1
+		 *      'UP LOOP'         = 2
+		 *      'DOWN LOOP'       = 3
+		 *      'set only number' = 4
+		 */
+		unsigned short direction;
+		/**
+		 * set do step number when direction is 4
+		 */
+		int to_value;
+	};
+
 
 	/**
 	 * working directory
@@ -202,6 +253,11 @@ private:
 	 * pre defined codes
 	 */
 	map<string, set_t> m_mtPreDefined;
+	/**
+	 * defined parameter names from commandline
+	 * from --learn option
+	 */
+	vector<string> m_vLearnNames;
 
 	/**
 	 * read lircd file for configuration
@@ -241,6 +297,19 @@ private:
 	bool createConfigLayoutFiles(const bool transmit, const int vertical,
 			const string& userreadperm, const string& userwriteperm, const string& ureadcw,
 			const string& readperm, const string& writeperm, const remotecodes_t& r, const string& forremote) const;
+	/**
+	 * learn method to create config files for remote control
+	 * to make an work flow of pressed buttons
+	 *
+	 * @param r structure of all new defined folders and subroutines from remote controls and codes getting from <code>readLircd()</code>
+	 * @param writeperm change permission of config user
+	 * @return whether creating of measure config files was correct
+	 */
+	bool learn(const remotecodes_t& r, const string& writeperm);
+	void createConfigStep(unsigned short step, const string& remote, const unsigned short group, const double toValue,
+					Folder& folder, IPPIDatabasePattern* db,
+					const set<string>& groupbuttons,map<string, string>& aliases, map<string, button_def>& buttons);
+	bool createLearnDesktopFiles();
 	/**
 	 * make configuration file (<remote control>.conf)
 	 *

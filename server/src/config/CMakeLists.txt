@@ -3,7 +3,7 @@ set(configSrcs	configmain.cpp
 				LircSupport.cpp		)
         	
 add_executable(ppi-mconfig ${configSrcs})
-target_link_libraries(ppi-mconfig ppiportssubroutine ppiutil ppipropertyutil)
+target_link_libraries(ppi-mconfig ppiportssubroutine ppiutil ppipropertyutil ppidb)
 install(TARGETS ppi-mconfig DESTINATION bin)
 
 

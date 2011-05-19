@@ -31,17 +31,20 @@
 #include "../ports/subroutines/Switch.h"
 
 #include "../util/GlobalStaticMethods.h"
+#include "../util/URL.h"
 
 #include "../util/properties/interlacedproperties.h"
 
-#include "../ports/subroutines/Folder.h"
+#include "../database/lib/DatabaseFactory.h"
+
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "LircSupport.h"
 
 using namespace std;
 using namespace util;
-using namespace subroutines;
 using namespace boost;
+using namespace ppi_database;
 
 
 int LircSupport::showRemotes(const remotecodes_t& r) const
@@ -78,7 +81,7 @@ int LircSupport::showRemotes(const remotecodes_t& r) const
 int LircSupport::execute(const ICommandStructPattern* params)
 {
 	bool transmit;
-	bool learn(params->hasOption("learn"));
+	bool blearn(params->hasOption("learn"));
 	int vertical= 3;
 	string param, opname, remote;
 	string lircconf("/etc/lirc/lircd.conf");
@@ -107,31 +110,40 @@ int LircSupport::execute(const ICommandStructPattern* params)
 		cout << endl;
 		cout << "  predefined COUNT codes:" << endl;
 		cout << endl;
-		cout << "      KEY_0    KEY_NUMMERIC_0    KEY_F      KEY_FN_F                       KEY_KP0    BTN_0" << endl;
-		cout << "      KEY_1    KEY_NUMMERIC_1    KEY_F1     KEY_FN_F1     KEY_BRL_DOT1     KEY_KP1    BTN_1" << endl;
-		cout << "      KEY_2    KEY_NUMMERIC_2    KEY_F2     KEY_FN_F2     KEY_BRL_DOT2     KEY_KP2    BTN_2" << endl;
-		cout << "      KEY_3    KEY_NUMMERIC_3    KEY_F3     KEY_FN_F3     KEY_BRL_DOT3     KEY_KP3    BTN_3" << endl;
-		cout << "      KEY_4    KEY_NUMMERIC_4    KEY_F4     KEY_FN_F4     KEY_BRL_DOT4     KEY_KP4    BTN_4" << endl;
-		cout << "      KEY_5    KEY_NUMMERIC_5    KEY_F5     KEY_FN_F5     KEY_BRL_DOT5     KEY_KP5    BTN_5" << endl;
-		cout << "      KEY_6    KEY_NUMMERIC_6    KEY_F6     KEY_FN_F6     KEY_BRL_DOT6     KEY_KP6    BTN_6" << endl;
-		cout << "      KEY_7    KEY_NUMMERIC_7    KEY_F7     KEY_FN_F7     KEY_BRL_DOT7     KEY_KP7    BTN_7" << endl;
-		cout << "      KEY_8    KEY_NUMMERIC_8    KEY_F8     KEY_FN_F8     KEY_BRL_DOT8     KEY_KP8    BTN_8" << endl;
-		cout << "      KEY_9    KEY_NUMMERIC_9    KEY_F9     KEY_FN_F9     KEY_BRL_DOT9     KEY_KP9    BTN_9" << endl;
-		cout << "                                 KEY_F1     KEY_FN_F10    KEY_BRL_DOT10               BTN_A" << endl;
-		cout << "                                 KEY_F1                                               BTN_B" << endl;
-		cout << "                                 KEY_F12                                              BTN_C" << endl;
-		cout << "                                 KEY_F13" << endl;
-		cout << "                                 KEY_F14" << endl;
-		cout << "                                 KEY_F15" << endl;
-		cout << "                                 KEY_F16" << endl;
-		cout << "                                 KEY_F17" << endl;
-		cout << "                                 KEY_F18" << endl;
-		cout << "                                 KEY_F19" << endl;
-		cout << "                                 KEY_F20" << endl;
-		cout << "                                 KEY_F21" << endl;
-		cout << "                                 KEY_F22" << endl;
-		cout << "                                 KEY_F23" << endl;
-		cout << "                                 KEY_F24" << endl;
+		cout << "      KEY_0    KEY_NUMMERIC_0     KEY_KP0    KEY_F      KEY_FN_F                       BTN_0" << endl;
+		cout << "      KEY_1    KEY_NUMMERIC_1     KEY_KP1    KEY_F1     KEY_FN_F1     KEY_BRL_DOT1     BTN_1" << endl;
+		cout << "      KEY_2    KEY_NUMMERIC_2     KEY_KP2    KEY_F2     KEY_FN_F2     KEY_BRL_DOT2     BTN_2" << endl;
+		cout << "      KEY_3    KEY_NUMMERIC_3     KEY_KP3    KEY_F3     KEY_FN_F3     KEY_BRL_DOT3     BTN_3" << endl;
+		cout << "      KEY_4    KEY_NUMMERIC_4     KEY_KP4    KEY_F4     KEY_FN_F4     KEY_BRL_DOT4     BTN_4" << endl;
+		cout << "      KEY_5    KEY_NUMMERIC_5     KEY_KP5    KEY_F5     KEY_FN_F5     KEY_BRL_DOT5     BTN_5" << endl;
+		cout << "      KEY_6    KEY_NUMMERIC_6     KEY_KP6    KEY_F6     KEY_FN_F6     KEY_BRL_DOT6     BTN_6" << endl;
+		cout << "      KEY_7    KEY_NUMMERIC_7     KEY_KP7    KEY_F7     KEY_FN_F7     KEY_BRL_DOT7     BTN_7" << endl;
+		cout << "      KEY_8    KEY_NUMMERIC_8     KEY_KP8    KEY_F8     KEY_FN_F8     KEY_BRL_DOT8     BTN_8" << endl;
+		cout << "      KEY_9    KEY_NUMMERIC_9     KEY_KP9    KEY_F9     KEY_FN_F9     KEY_BRL_DOT9     BTN_9" << endl;
+		cout << "                                             KEY_F1     KEY_FN_F10    KEY_BRL_DOT10    BTN_A" << endl;
+		cout << "                                             KEY_F1                                    BTN_B" << endl;
+		cout << "                                             KEY_F12                                   BTN_C" << endl;
+		cout << "                                             KEY_F13" << endl;
+		cout << "                                             KEY_F14" << endl;
+		cout << "                                             KEY_F15" << endl;
+		cout << "                                             KEY_F16" << endl;
+		cout << "                                             KEY_F17" << endl;
+		cout << "                                             KEY_F18" << endl;
+		cout << "                                             KEY_F19" << endl;
+		cout << "                                             KEY_F20" << endl;
+		cout << "                                             KEY_F21" << endl;
+		cout << "                                             KEY_F22" << endl;
+		cout << "                                             KEY_F23" << endl;
+		cout << "                                             KEY_F24" << endl;
+		cout << endl;
+		cout << endl;
+		cout << "  associated predefined COUNT's with UP and DOWN codes" << endl;
+		cout << endl;
+		cout << "      for KEY_0 - KEY_9" << endl;
+		cout << "            KEY_CHANNELUP    KEY_CHANNELDOWN" << endl;
+		cout << endl;
+		cout << "      for KEY_NUMMERIC_0 - KEY_NUMMERIC_9" << endl;
+		cout << "            KEY_NEXT         KEY_PREVIOUS" << endl;
 		cout << endl;
 		cout << endl;
 		cout << "  predefined UP and DOWN codes" << endl;
@@ -156,15 +168,6 @@ int LircSupport::execute(const ICommandStructPattern* params)
 		cout << endl;
 		cout << "      KEY_ZOOMIN          KEY_ZOOMOUT" << endl;
 		cout << "      KEY_FORWARD         KEY_REWIND" << endl;
-		cout << endl;
-		cout << endl;
-		cout << "  associated predefined UP and DOWN codes with COUNTs" << endl;
-		cout << endl;
-		cout << "      for KEY_0 - KEY_9" << endl;
-		cout << "            KEY_CHANNELUP    KEY_CHANNELDOWN" << endl;
-		cout << endl;
-		cout << "      for KEY_NUMMERIC_0 - KEY_NUMMERIC_9" << endl;
-		cout << "            KEY_NEXT         KEY_PREVIOUS" << endl;
 		cout << endl;
 		return true;
 	}
@@ -220,13 +223,412 @@ int LircSupport::execute(const ICommandStructPattern* params)
 	r= readLircd(lircconf);
 	if(!r.success)
 		return EXIT_FAILURE;
-	if(!learn)
+	if(blearn)
 	{
-		searchPreDefined(r);
-		if(createConfigLayoutFiles(transmit, vertical, userreadperm, userwriteperm, ureadcw, readperm, writeperm, r, remote) == false)
-			return EXIT_FAILURE;
-	}// if(!learn)
+		if(!params->hasOption("info"))
+			LogHolderPattern::init(LOG_WARNING);
+		if(learn(r, writeperm))
+			return EXIT_SUCCESS;
+		return EXIT_FAILURE;
+	}
+	searchPreDefined(r);
+	if(createConfigLayoutFiles(transmit, vertical, userreadperm, userwriteperm, ureadcw, readperm, userwriteperm, r, remote) == false)
+		return EXIT_FAILURE;
 	return EXIT_SUCCESS;
+}
+
+bool LircSupport::learn(const remotecodes_t& r, const string& writeperm)
+{
+	/**
+	 * count of defined names on command line for learning
+	 */
+	vector<string>::size_type nNames(m_vLearnNames.size());
+	vector<vector<db_t> >::size_type nBlocks;
+	string confFile;
+	Properties properties;
+	IPPIDatabasePattern* db;
+	vector<vector<db_t> > blocks;
+	/**
+	 * map of remote controls as key
+	 * with value as map of groups as key
+	 * and all subroutines as value for this key (group)
+	 */
+	map<string, map<unsigned short, set<string> > > groups;
+	/**
+	 * map of original remote as key
+	 * and as value an map where the code is key
+	 * and the value the name of folder
+	 */
+	map<string, map<string, string> > folderalias;
+	/**
+	 * map of groups as key, are for count up or down steps
+	 * with an string value as folder name
+	 */
+	map<unsigned short, string> plusbutton, minusbutton;
+	/**
+	 * map of button structure
+	 * where folder name is key
+	 * and button structure the value
+	 */
+	map<string, button_def> defButtons;
+
+	// initial configuration path to reading default configuration for any chips
+	confFile= URL::addPath(m_sWorkDir, PPICONFIGPATH, /*always*/false);
+	confFile= URL::addPath(confFile, "server.conf");
+	properties.readFile(confFile);
+	properties.setDefault("workdir", m_sWorkDir);
+	db= DatabaseFactory::getChoosenDatabase(&properties, NULL);
+
+	db->readInsideSubroutine("TRANSMIT_RECEIVE_main_settings:record", 1, 0, nNames);
+	cout << endl << "read database ..." << endl;
+	db->read();
+	blocks= db->getReadSubBlock();
+	nBlocks= blocks.size();
+
+	if(nBlocks < nNames)
+	{
+		ostringstream err;
+
+		err << "found only " << nBlocks << " defined region of TRANSMIT_RECEIVE_main_settings:record on and off" << endl;
+		err << "and so cannot create " << nNames << " measure configurations." << endl;
+		err << "(";
+		for(vector<string>::iterator it= m_vLearnNames.begin(); it != m_vLearnNames.end(); ++it)
+			err << " " << *it;
+		err << " )";
+		LOG(LOG_ERROR, err.str());
+		return false;
+	}
+	if(	blocks[nBlocks-1][blocks[nBlocks-1].size()-1].folder != "TRANSMIT_RECEIVE_main_settings" ||
+		blocks[nBlocks-1][blocks[nBlocks-1].size()-1].subroutine != "record" ||
+		blocks[nBlocks-1][blocks[nBlocks-1].size()-1].values.size() == 0 ||
+		blocks[nBlocks-1][blocks[nBlocks-1].size()-1].values[0] != 0								)
+	{
+		LOG(LOG_WARNING, "last defined record block '" + m_vLearnNames[m_vLearnNames.size()-1]
+		                    + "' is not finished.\n(RECORD button always pressed)"				);
+	}
+	for(unsigned short b= nBlocks-nNames; b < nBlocks; ++b)
+	{
+		for(vector<db_t>::iterator it= blocks[b].begin(); it != blocks[b].end(); ++it)
+		{
+			unsigned short nGroupNr;
+			string remote, code;
+			string::size_type npos;
+			map<string, vector<string> >::const_iterator foundR;
+
+			npos= it->folder.find('_', 0);
+			while(npos != string::npos)
+			{
+				remote= it->folder.substr(0, npos);
+				foundR= r.remotes.find(remote);
+				if(foundR != r.remotes.end())
+				{
+					code= it->folder.substr(npos+1);
+					break;
+				}
+				npos= it->folder.find('_', npos+1);
+				remote= "";
+			}
+			if(	remote != "" &&
+				code != "" &&
+				it->subroutine == "actual_step")
+			{
+				nGroupNr= static_cast<unsigned short>(*db->getActEntry(it->folder, "group", "value").get());
+				cout << endl;
+				cout << "remote:'" << remote << "'  code:'" << code << "'  subroutine:'" << it->subroutine
+								<< "'  group:" << nGroupNr << endl;
+				cout << it->folder << ":" << it->subroutine << "  " << it->identif << " "
+								<< it->values[0] << "  device:" << boolalpha << it->device << endl;
+				groups[remote][nGroupNr].insert(code);
+				folderalias[remote][code]= it->folder;
+			}
+		}
+		cout << "----------------------------------------------------------------------------" << endl;
+	}
+	cout << endl;
+	for(map<string, map<unsigned short, set<string> > >::iterator rem= groups.begin(); rem != groups.end(); ++rem)
+	{
+		cout << "remote control " << rem->first << ":" << endl;
+		for(map<unsigned short, set<string> >::iterator gr= rem->second.begin(); gr != rem->second.end(); ++gr)
+		{
+			cout << "    inside button group " << gr->first << " (";
+			for(set<string>::iterator co= gr->second.begin(); co != gr->second.end(); ++co)
+				cout << " " << *co;
+			cout << " )" << endl;
+			for(set<string>::iterator co= gr->second.begin(); co != gr->second.end(); ++co)
+			{
+				unsigned short direction;
+				string folder;
+				button_def but;
+
+				folder= folderalias[rem->first][*co];
+				direction= static_cast<unsigned short>(*db->getActEntry(folder, "steps_action", "value").get());
+				cout << "                " << folder;
+				but.remote= rem->first;
+				but.code= *co;
+				but.subroutine= folder;
+				but.group= gr->first;
+				but.direction= direction;
+				but.to_value= 0;
+				if(static_cast<short>(*db->getActEntry(folder, "set_steps", "value").get()))
+				{
+					but.direction= 4; // set only steps
+					but.to_value= static_cast<int>(*db->getActEntry(folder, "to_value", "value").get());;
+					cout << "  set to actual step number ";
+					cout << but.to_value << endl;
+				}else
+				{
+					cout << "  has direction ";
+					switch(direction)
+					{
+					case 0:
+						cout << "UP STOP";
+						break;
+					case 1:
+						cout << "DOWN STOP";
+						break;
+					case 2:
+						cout << "UP LOOP";
+						break;
+					case 3:
+						cout << "DOWN LOOP";
+						break;
+					}
+					cout << endl;
+				}
+				defButtons[folder]= but;
+			}
+			cout << endl;
+		}
+		cout << endl << endl;
+	}
+
+	unsigned short ncount(0);
+
+	for(unsigned short b= nBlocks-nNames; b < nBlocks; ++b)
+	{
+		bool bwritten(true);
+		double setValue(0);
+		unsigned short actGroup(0);
+		unsigned short actStep(1);
+		button_def actButton, beforeButton;
+		string learnname(m_vLearnNames[ncount]);
+		string filename;
+		ofstream file;
+		ostringstream sStep;
+		Switch* pSwitch;
+		Set* pSet;
+		Value* pValue;
+
+		glob::replaceName(learnname);
+		filename= learnname + ".conf";
+		cout << "- write configuration file '" << filename << "':" << endl;
+		file.open(filename.c_str(), ios::out);
+		if(!file.is_open())
+		{
+			LOG(LOG_ERROR, "    cannot create "+ filename + " for writing");
+			return false;
+		}
+		writeHeader(file, learnname);
+		Folder folder(file, "LIRC_workflow_" + learnname);
+
+		pSwitch= folder.getSwitch("button");
+		pSwitch->description("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		pSwitch->description();
+		pSwitch->description("starting work flow from GUI");
+		pSwitch->pperm(writeperm);
+		pSwitch->description();
+
+		pSet= folder.getSet("beginning");
+		pSet->description("starting work flow with step 1");
+		pSet->pfrom(1);
+		pSet->pset("workflow");
+		pSet->pwhile("button & workflow=0");
+		pSet->description();
+
+		for(vector<db_t>::iterator it= blocks[b].begin(); it != blocks[b].end(); ++it)
+		{
+			cout << "   found folder " << it->folder << " with subroutine " << it->subroutine << endl;
+			actButton= defButtons[it->folder];
+			if(	actButton.subroutine == it->folder &&
+				it->subroutine == "actual_step")
+			{
+				if(	actGroup != 0 &&
+					actGroup != actButton.group	)
+				{
+					cout << "      set button group " << beforeButton.group << " to value " << setValue << endl;
+					createConfigStep(actStep, beforeButton.remote, beforeButton.group, setValue, folder, db,
+									groups[beforeButton.remote][beforeButton.group],
+									folderalias[beforeButton.remote], defButtons								);
+					actStep+= 2;
+					bwritten= true;
+				}
+				actGroup= actButton.group;
+				setValue= it->values[0];
+				beforeButton= actButton;
+				bwritten= false;
+			}
+		}
+		if(!bwritten)
+		{
+			cout << "      set button group group " << beforeButton.group << " to value " << setValue << endl;
+			createConfigStep(actStep, beforeButton.remote, beforeButton.group, setValue, folder, db,
+							groups[beforeButton.remote][beforeButton.group],
+							folderalias[beforeButton.remote], defButtons								);
+			actStep+= 2;
+			bwritten= true;
+		}
+		sStep << "workflow = " << actStep;
+		pSet= folder.getSet("stopping");
+		pSet->description("stop work flow");
+		pSet->pfrom(0);
+		pSet->pset("workflow");
+		pSet->pwhile(sStep.str());
+		pSet->description();
+
+		pValue= folder.getValue("workflow");
+		pValue->description("actual step of work flow");
+		pValue->pdefault(0);
+		pValue->description();
+		pValue->description();
+		file.close();
+		++ncount;
+		cout << endl;
+	}
+	if(createLearnDesktopFiles())
+		return true;
+	return false;
+}
+
+void LircSupport::createConfigStep(unsigned short step, const string& remote, const unsigned short group, const double toValue,
+				Folder& folder, IPPIDatabasePattern* db,
+				const set<string>& groupbuttons, map<string, string>& aliases, map<string, button_def>& buttons)
+{
+	//Switch* pSwitch;
+	//Value* pValue;
+	Set* pSet;
+	//Timer* pTimer;
+	//Shell* pShell;
+	//Debug* pDebug;
+	//Lirc* pLirc;
+	vector<string> vgroupbuttons;
+	button_def up, down, setnr;
+	ostringstream nr0, nr1, nr2;
+	ostringstream swhile;
+	string snr0, snr1, snr2;
+	string sfolder;
+
+	nr0 << step;
+	nr1 << step + 1;
+	nr2 << step + 2;
+	snr0= nr0.str();
+	snr1= nr1.str();
+	snr2= nr2.str();
+	up.remote= "";
+	down.remote= "";
+	setnr.remote= "";
+	for(set<string>::const_iterator it= groupbuttons.begin(); it != groupbuttons.end(); ++it)
+	{
+		cout << "          has ";
+		vgroupbuttons.push_back(*it);
+		if(	buttons[aliases[*it]].direction == 0 ||
+			buttons[aliases[*it]].direction == 2	)
+		{
+			up= buttons[aliases[*it]];
+			cout << "up ";
+
+		}else if(	buttons[aliases[*it]].direction == 1 ||
+					buttons[aliases[*it]].direction == 3	)
+		{
+			down= buttons[aliases[*it]];
+			cout << "down ";
+
+		}else if(	buttons[aliases[*it]].direction == 4 &&
+					buttons[aliases[*it]].to_value == toValue	)
+		{
+			setnr= buttons[aliases[*it]];
+			cout << "defined ";
+		}
+		cout << "button " << *it << endl;
+		cout << "act.subroutine is " << buttons[aliases[*it]].subroutine << endl;
+		cout << "up.sutroutine is " << up.subroutine << endl;
+	}
+	folder.description();
+	folder.description("-------------------------------------------------------------------------------------------------");
+	folder.description("---------------------------  making one step for transmitter  -----------------------------------");
+	folder.description();
+	folder.flush();
+	if(	groupbuttons.size() == 1 ||
+		setnr.remote != ""			)
+	{
+		ostringstream from;
+
+		if(setnr.remote == "")
+		{
+			sfolder= aliases[vgroupbuttons[0]];
+			from << "\"" << sfolder << ":steps_action=2 | " << sfolder << ":steps_action=0 ? " << endl <<
+			"                ( " << toValue << " >= " << sfolder << ":actual_step ? " << endl <<
+			"                            " << toValue << " - " << sfolder << ":actual_step : " << endl <<
+			"                            " << sfolder << ":steps - " << sfolder << ":actual_step + 1 + " << toValue << " ) : " << endl <<
+			"                ( " << sfolder << ":actual_step >= " << toValue << " ? " << endl <<
+			"                            " << sfolder << ":actual_step - " << toValue << " : " << endl <<
+			"                            " << sfolder << ":actual_step + 1 + " << sfolder << ":steps - " << toValue << " )    \"";
+		}else
+		{
+			sfolder= setnr.subroutine;
+			from << 1;
+		}
+		pSet= folder.getSet("count_step" + snr0);
+		pSet->description("count steps to new value on transmitted case");
+		pSet->pfrom(from.str());
+		pSet->pset(sfolder + ":count_steps");
+		pSet->pwhile("workflow = " + snr0);
+		pSet->description();
+
+	}else
+	{
+		ostringstream fromUp, fromDown, whileUp, whileDown;
+
+		fromUp << toValue << " - " << up.subroutine << ":actual_step";
+		whileUp << "workflow=" << snr0 << " & " << up.subroutine << ":actual_step < " << toValue;
+		pSet= folder.getSet("count_upStep" + snr0);
+		pSet->description("count steps to new value on transmitted case");
+		pSet->pfrom(fromUp.str());
+		pSet->pset(up.subroutine + ":count_steps");
+		pSet->pwhile(whileUp.str());
+		pSet->description();
+
+		fromDown << down.subroutine << ":actual_step - " << toValue;
+		whileDown << "workflow=" << snr0 << " & " << down.subroutine << ":actual_step > " << toValue;
+		pSet= folder.getSet("count_downStep" + snr0);
+		pSet->description("count steps to new value on transmitted case");
+		pSet->pfrom(fromDown.str());
+		pSet->pset(down.subroutine + ":count_steps");
+		pSet->pwhile(whileDown.str());
+		pSet->description();
+		sfolder= up.subroutine;
+
+	}
+	pSet= folder.getSet("next_step" + snr1);
+	pSet->description("switching work flow to next step");
+	pSet->pfrom("workflow + 1");
+	pSet->pset("workflow");
+	pSet->pwhile("workflow = " + snr0);
+	pSet->description();
+
+	swhile << "workflow = " << snr1 << " & " << sfolder << ":actual_step=" << toValue << " & " << sfolder << ":wait_after<=0";
+	pSet= folder.getSet("next_step" + snr2);
+	pSet->description("switching work flow to next step when time after changed value is expire");
+	pSet->pfrom("workflow + 1");
+	pSet->pset("workflow");
+	pSet->pwhile(swhile.str());
+	pSet->description();
+
+	folder.description("--------------------------  end of one step for transmitter  ------------------------------------");
+	folder.description("#################################################################################################");
+	folder.description();
+	folder.description();
+	folder.flush();
+
 }
 
 LircSupport::remotecodes_t LircSupport::readLircd(const string& lircd) const
@@ -573,6 +975,40 @@ bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertica
 	return true;
 }
 
+bool LircSupport::createLearnDesktopFiles()
+{
+	string button, filename("switch.desktop");
+	ofstream file;
+
+	file.open(filename.c_str());
+	if(!file.is_open())
+	{
+		LOG(LOG_ERROR, "### ERROR:    cannot create " + filename + " for writing");
+		return false;
+	}
+	file << "<layout>" << endl;
+	file << "  <head>" << endl;
+	file << "    <title name=\"start LIRC workflows\" />" << endl;
+	file << "  </head>" << endl;
+	file << "  <body>" << endl;
+	file << "    <table boder=\"1\">" << endl;
+	for(vector<string>::iterator b= m_vLearnNames.begin(); b != m_vLearnNames.end(); ++b)
+	{
+		button= *b;
+		glob::replaceName(button);
+		file << "      <tr>" << endl;
+		file << "        <td>" << endl;
+		file << "          <input type=\"button\" result=\"LIRC_workflow_" << button << ":button\""
+						<< " value=\"" << *b << "\"/>" << endl;
+		file << "        </td>" << endl;
+		file << "      </tr>" << endl;
+	}
+	file << "    </table>" << endl;
+	file << "  </body>" << endl;
+	file.close();
+	return true;
+}
+
 bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecodes_t& r, const int vertical, const string& perm) const
 {
 	int actrows= 0;
@@ -786,6 +1222,14 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 	file << "                </select>" << endl;
 	file << "                <br />" << endl;
 	file << "                <input type=\"button\" value=\"PRESS\" result=\"" << remote << "__choice:count\" />" << endl;
+	file << "              </td>" << endl;
+	file << "            </tr>" << endl;
+	file << "            <tr>" << endl;
+	file << "              <td>" << endl;
+	file << "              </td>" << endl;
+	file << "              <td>" << endl;
+	file << "                <input type=\"spinner\" result=\"" << remote << "__choice:count_run_steps\" width=\"20\" min=\"1\" />&#160;" << endl;
+	file << "                <input type=\"button\" value=\"run Steps\" result=\"" << remote << "__choice:do_run_steps\" />" << endl;
 	file << "              </td>" << endl;
 	file << "            </tr>" << endl;
 	file << "            <tr>" << endl;
@@ -1238,6 +1682,26 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 	pValue->pperm(writeperm);
 	pValue->description();
 
+	if(transmit)
+	{
+		pValue= folder->getValue("count_run_steps");
+		pValue->description("how much steps should counting for test");
+		pValue->flush();
+		createSubroutineLink(file, pValue->getName(), remote, remit->second, "correct_group");
+		pValue->pmin(0);
+		pValue->pdefault(1);
+		pValue->action("int");
+		pValue->pperm(writeperm);
+		pValue->description();
+
+		pSwitch= folder->getSwitch("do_run_steps");
+		pSwitch->description("counting at pressed this buttons steps in count_run_steps");
+		pSwitch->flush();
+		createSubroutineLink(file, pSwitch->getName(), remote, remit->second, "correct_group");
+		pSwitch->pperm(writeperm);
+		pSwitch->description();
+	}
+
 	pValue= folder->getValue("actual_step");
 	pValue->description("count of actual step");
 	pValue->flush();
@@ -1409,6 +1873,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 
 			pValue= folder->getValue("count_steps_do");
 			pValue->description("how much counts the button folder should count, added from count_steps");
+			pValue->pwhile("count_steps_do + count_steps");
 			pValue->pmin(0);
 			pValue->action("int");
 			pValue->pperm(userwriteperm);
@@ -1419,22 +1884,21 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pSwitch->pperm(userwriteperm);
 			pSwitch->description();
 
-			pSwitch= folder->getSwitch("button");
-			pSwitch->description("button should be the same for hole folder");
-			pSwitch->pwhile("count");
+			pSwitch= folder->getSwitch("run_steps");
+			pSwitch->description("is marked to true should count more steps from outside");
+			pSwitch->pbegin("count_steps_do");
 			pSwitch->description();
 
-			pSet= folder->getSet("count_steps_higher");
-			pSet->description("add count_steps to count_steps_do when any filled in");
-			pSet->description("set count_steps back to 0");
-			pSet->description("and set button to 1 by action SEND or varios to 1 or 0 by action SEND_ONCE");
-			pSet->pfrom("count_steps_do + count_steps");
+			pSwitch= folder->getSwitch("button");
+			pSwitch->description("button should be the same for hole folder");
+			pSwitch->pwhile("count | run_steps");
+			pSwitch->description();
+
+			pSet= folder->getSet("count_steps_back");
+			pSet->description("set only count_steps back to 0");
 			pSet->pfrom(0);
-			pSet->pfrom("transmit_action | count=0 ? 1 : 0");
-			pSet->pset("count_steps_do");
 			pSet->pset("count_steps");
-			pSet->pset("button");
-			pSet->pwhile("count_steps | count_steps_do");
+			pSet->pwhile("count_steps > 0");
 			pSet->description();
 
 			pTimer= folder->getTimer("pressed");
@@ -1610,6 +2074,24 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->pperm(writeperm);
 			pValue->description();
 
+			if(transmit)
+			{
+				pValue= folder->getValue("count_run_steps");
+				pValue->description("how much steps should counting for test");
+				pValue->flush();
+				createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
+				pValue->pmin(0);
+				pValue->pdefault(1);
+				pValue->action("int");
+				pValue->pperm(writeperm);
+				pValue->description();
+
+				pSwitch= folder->getSwitch("do_run_steps");
+				pSwitch->description("counting at pressed this buttons steps in count_run_steps");
+				pSwitch->pperm(writeperm);
+				pSwitch->description();
+			}
+
 			pValue= folder->getValue("display_first");
 			pValue->description("how often the interval of subroutine after is to wait for next step");
 			pValue->description("('first touch show' on jclient)");
@@ -1710,6 +2192,15 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 				folder->description();
 				folder->description("-------------------------------------------------------------------------------------------------");
 				folder->description("----------------------  begin of sending signal over transmitter  -------------------------------");
+				pSet= folder->getSet("set_run_steps");
+				pSet->description("set steps in count_steps from count_run_steps when switch from do_run_steps was activated");
+				pSet->pfrom("count_run_steps");
+				pSet->pfrom(0);
+				pSet->pset("count_steps");
+				pSet->pset("do_run_steps");
+				pSet->pwhile("do_run_steps");
+				pSet->description();
+
 				pLirc= folder->getLirc("send_once");
 				pLirc->description("send only one signal over transmitter");
 				pLirc->premote(org_remote);
@@ -1849,9 +2340,16 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 
 			pSet= folder->getSet("count_step_done");
 			pSet->description("Decrease count steps when one step was counted");
-			pSet->pfrom("count_steps -1");
-			pSet->pset("count_steps");
-			pSet->pwhile("count_steps & ((actual_step != actual_step_before) | (steps=0 & first_touch))");
+			pSet->pfrom("count_steps_do -1");
+			pSet->pset("count_steps_do");
+			pSet->pwhile("count_steps_do & ((actual_step != actual_step_before) | (steps=0 & first_touch))");
+			pSet->description();
+
+			pSet= folder->getSet("count_button_done");
+			pSet->description("set button to 0 when actual_step is reached");
+			pSet->pfrom(0);
+			pSet->pset("run_steps");
+			pSet->pwhile("run_steps & count_steps_do=0 & (wait_after<=0 | wait_after=after)");
 			pSet->description();
 
 			pSet= folder->getSet("again");

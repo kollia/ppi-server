@@ -36,8 +36,10 @@ void ussage(const bool full);
 
 int main(int argc, char* argv[])
 {
+	bool bOk;
 	string workdir, commandname;
 	string sConfPath(PPICONFIGPATH), fileName;
+	vector<string> names;
 	Properties oServerProperties;
 	MainParams params(argc, argv, /*read path for parent dirs*/1);
 	ParamCommand* command;
@@ -63,8 +65,10 @@ int main(int argc, char* argv[])
 	command->option("remote", "r", true, "create only for this remote control the files .conf and .desktop\n"
 													"and do not create or touch lirc.conf");
 	command->spaceline("");
-	command->option("learn", "l", "reading pressed buttons from the database for an learning transmitter.\n"
-									"inside time pressing record button");
+	command->option("learn", "l", true, "reading pressed buttons from the database for an learning transmitter.\n"
+											"inside time pressing record button");
+	command->option("info", "i", "show more debugging information by writing output.\n"
+									"this option is only for setting option --learn");
 	command->spaceline("permission:");
 	command->option("readperm", "p", true, "to read receiving value (default from access.conf 'read')");
 	command->option("changeperm", "c", true, "to send code (default from access.conf 'change')");
@@ -73,8 +77,41 @@ int main(int argc, char* argv[])
 	command->option("configreadperm", "P", true, "to read configuration (default from access.conf 'lconfread')");
 	command->option("configchangeperm", "C", true, "to read configuration (default from access.conf 'lconfchange')");
 
-	params.execute();
+	bOk= params.execute(/*stop by error*/false);
 	commands= params.getCommands();
+	if(	bOk == false ||
+		commands->hasOption("learn")					)
+	{
+		bool blfound(false);
+		vector<pair<pair<string, string>, string> >* errors;
+
+		errors= params.getParmeterContent();
+		for(vector<pair<pair<string, string>, string > >::iterator it= errors->begin(); it != errors->end(); ++it)
+		{
+			//cerr << it->first.first << " | " << it->first.second << " | " << it->second << endl;
+			if(	blfound &&
+				(	it->first.second == "" ||
+					it->first.second == "-learn"	)	)
+			{
+				names.push_back(it->first.first);
+				it->second= "";
+			}
+			if(it->first.second == "--learn")
+				blfound= true;
+		}
+		if(params.error())
+			return EXIT_FAILURE;
+	}
+	if(params.hasOption("help"))
+	{
+		params.usage();
+		return EXIT_SUCCESS;
+	}
+	if(params.hasOption("version"))
+	{
+		cout << params.getVersion();
+		return EXIT_SUCCESS;
+	}
 	workdir= params.getPath();
 	commandname= commands->command();
 
@@ -92,6 +129,7 @@ int main(int argc, char* argv[])
 	{
 		LircSupport lirc(workdir);
 
+		lirc.setLearnNames(names);
 		return lirc.execute(commands);
 	}
 	cout << "no correct command be set" << endl;
