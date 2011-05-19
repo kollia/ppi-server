@@ -433,14 +433,20 @@ namespace util
 
 	bool MainParams::error()
 	{
+		bool bfound(false);
 		string help;
 		t_options ohelp;
 
-		if(m_mErrors.empty())
+		for(vector<pair<pair<string, string>, string> >::iterator it= m_vContent.begin(); it != m_vContent.end(); ++it)
+		{
+			if(it->second != "")
+			{
+				cerr << it->second << endl;
+				bfound= true;
+			}
+		}
+		if(!bfound)
 			return false;
-
-		for(map<string, string>::iterator it= m_mErrors.begin(); it != m_mErrors.end(); ++it)
-			cerr << it->second << endl;
 		ohelp= m_mstAllowedOptions[m_sHelpOption];
 		if(ohelp.shdefs.empty())
 			help= "--" + m_sHelpOption;
@@ -452,6 +458,7 @@ namespace util
 
 	bool MainParams::execute(bool stop/*= true*/)
 	{
+		bool berrfound(false);
 		string err;
 		t_options emptyOp;
 		vector<SHAREDPTR::shared_ptr<ParamCommand> > *actCommands;
@@ -474,6 +481,8 @@ namespace util
 		actOptions= &m_mstAllowedOptions;
 		for(vector<string>::iterator it= m_vsParams.begin(); it != m_vsParams.end(); ++it)
 		{
+			pair<pair<string, string>, string> content(pair<string, string>(*it, ""), "");
+
 			if(it->substr(0, 2) == "--")
 			{// search for options with full length
 				opIt= actOptions->find(it->substr(2));
@@ -483,10 +492,11 @@ namespace util
 					if(psetCommand != NULL)
 						err+= " after command " + psetCommand->name;
 					err+= " be set";
-					m_mErrors[*it]= err;
+					content.second= err;
 
 				}else
 				{
+					content.first.second= *it;
 					if(psetCommand == NULL)
 					{
 						m_vsOptions.push_back(it->substr(2));
@@ -494,11 +504,12 @@ namespace util
 							optionContent.push(&opIt->second);
 					}else
 					{
-						psetCommand->options[it->substr(2)]= emptyOp;
+						psetCommand->options[it->substr(2)]= opIt->second;
 						if(opIt->second.bcontent)
 							optionContent.push(&psetCommand->options[it->substr(2)]);
 					}
 				}
+				m_vContent.push_back(content);
 
 			}else if(it->substr(0, 1) == "-")
 			{// search for options with short definition
@@ -524,6 +535,7 @@ namespace util
 					}
 					if(found)
 					{
+						content.first.second= "--" + opIt->second.name;
 						if(psetCommand == NULL)
 						{
 							m_vsOptions.push_back(opIt->first);
@@ -531,7 +543,7 @@ namespace util
 								optionContent.push(&opIt->second);
 						}else
 						{
-							psetCommand->options[opIt->first]= emptyOp;
+							psetCommand->options[opIt->first]= opIt->second;
 							if(opIt->second.bcontent)
 								optionContent.push(&psetCommand->options[opIt->first]);
 						}
@@ -541,8 +553,9 @@ namespace util
 						if(psetCommand != NULL)
 							err+= " after command " + psetCommand->name;
 						err+= " be set";
-						m_mErrors[*it]= err;
+						content.second= err;
 					} // for(actOptions)
+					m_vContent.push_back(content);
 				}else // if(m_bLongShort)
 				{ // short definition of options where all have only one character
 					for(string::size_type count= 1; count < it->length(); ++count)
@@ -550,6 +563,7 @@ namespace util
 						string comp(*it);
 
 						comp= comp[count];
+						content.first.first= "-" + comp;
 						found= false;
 						for(opIt= actOptions->begin(); opIt != actOptions->end(); ++opIt)
 						{
@@ -566,6 +580,7 @@ namespace util
 						}
 						if(found)
 						{
+							content.first.second= "--" + opIt->second.name;
 							if(psetCommand == NULL)
 							{
 								m_vsOptions.push_back(opIt->first);
@@ -573,7 +588,7 @@ namespace util
 									optionContent.push(&opIt->second);
 							}else
 							{
-								psetCommand->options[opIt->first]= emptyOp;
+								psetCommand->options[opIt->first]= opIt->second;
 								if(opIt->second.bcontent)
 									optionContent.push(&psetCommand->options[opIt->first]);
 							}
@@ -583,10 +598,11 @@ namespace util
 							if(psetCommand != NULL)
 								err+= " after command " + psetCommand->name;
 							err+= " be set";
-							m_mErrors["-"+comp]= err;
+							content.second= err;
 						} // for(actOptions)
-						if(!found)
-							break;
+						//if(!found)
+						//	break;
+						m_vContent.push_back(content);
 					} // for(string of m_vParams)
 				}// else branch of if(m_bLongShort)
 			}/*if("-")*/else if(!optionContent.empty())
@@ -596,12 +612,16 @@ namespace util
 				op= optionContent.front();
 				op->content= *it;
 				optionContent.pop();
+				content.first.second= "-" + op->name;
+				m_vContent.push_back(content);
 
 			}/*if(optionContent)*/else if(	psetCommand &&
 											psetCommand->m_bContent	&&
 											psetCommand->m_sContent == ""	)
 			{
 				psetCommand->m_sContent= *it;
+				content.first.second= "-" + psetCommand->name;
+				m_vContent.push_back(content);
 
 			}/*if(command content)*/ else
 			{
@@ -609,11 +629,13 @@ namespace util
 				vector<SHAREDPTR::shared_ptr<ParamCommand> >::iterator comIt;
 				SHAREDPTR::shared_ptr<ParamCommand> newCommand;
 
-				//comIt= find(actCommands->begin(), actCommands->end(), newCommand);
 				for(comIt= actCommands->begin(); comIt != actCommands->end(); ++comIt)
 				{
 					if((*comIt)->name == *it)
+					{
+						content.first.second= *it;
 						break;
+					}
 				}
 				if(comIt == actCommands->end())
 				{
@@ -621,24 +643,28 @@ namespace util
 					if(psetCommand != NULL)
 						err+= " after command " + psetCommand->name;
 					err+= " be set";
-					m_mErrors[*it]= err;
-					break;
-				}
-				if(m_oCommand.name == "")
-				{
-					m_oCommand.name= (*comIt)->name;
-					m_oCommand.m_bContent= (*comIt)->m_bContent;
-					psetCommand= &m_oCommand;
+					content.second= err;
 				}else
 				{
-					newCommand= SHAREDPTR::shared_ptr<ParamCommand>(new ParamCommand);
-					newCommand->name= (*comIt)->name;
-					newCommand->m_bContent= (*comIt)->m_bContent;
-					psetCommand->next_commands.push_back(newCommand);
-					psetCommand= psetCommand->next_commands[0].get();
+					if(m_oCommand.name == "")
+					{
+						m_oCommand.name= (*comIt)->name;
+						m_oCommand.m_bContent= (*comIt)->m_bContent;
+						m_oCommand.m_bLongShort= (*comIt)->m_bLongShort;
+						psetCommand= &m_oCommand;
+					}else
+					{
+						newCommand= SHAREDPTR::shared_ptr<ParamCommand>(new ParamCommand);
+						newCommand->name= (*comIt)->name;
+						newCommand->m_bContent= (*comIt)->m_bContent;
+						newCommand->m_bLongShort= (*comIt)->m_bLongShort;
+						psetCommand->next_commands.push_back(newCommand);
+						psetCommand= psetCommand->next_commands[0].get();
+					}
+					actOptions= &(*comIt)->options;
+					actCommands= &(*comIt)->next_commands;
 				}
-				actOptions= &(*comIt)->options;
-				actCommands= &(*comIt)->next_commands;
+				m_vContent.push_back(content);
 			}// else branch of if(it->substr(0, 1) == "-")
 		}// for(m_vsParams)
 
@@ -654,9 +680,17 @@ namespace util
 				cout << m_sVersionString;
 				exit(EXIT_SUCCESS);
 			}
-			return false;
+			return true;
 		}
-		if(m_mErrors.empty())
+		for(vector<pair<pair<string, string>, string> >::iterator it= m_vContent.begin(); it != m_vContent.end(); ++it)
+		{
+			if(it->second != "")
+			{
+				berrfound= true;
+				break;
+			}
+		}
+		if(berrfound)
 			return false;
 		return true;
 	}

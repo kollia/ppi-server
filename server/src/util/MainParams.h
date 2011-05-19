@@ -188,12 +188,13 @@ namespace util
 		 */
 		bool usage();
 		/**
-		 * return all errors in an map founded by typed options and or commands
+		 * return content of parameters in an vector
+		 * where  second pair string is only set when an error occurred
 		 *
-		 * @return map of errors
+		 * @return vector of content
 		 */
-		map<string, string> getParmeterErrors() const
-		{ return m_mErrors; };
+		vector<pair<pair<string, string>, string> >* getParmeterContent()
+		{ return &m_vContent; };
 		/**
 		 * execute all parameter and
 		 * print error message on command line when wrong commands or options be set
@@ -207,7 +208,7 @@ namespace util
 		 * and stopping in this cases inside of method
 		 *
 		 * @param stop whether method should stop application and writing out errors or usage
-		 * @return whether an error occures
+		 * @return whether an method was successfully done (true) or an error occurs (false)
 		 */
 		bool execute(bool stop= true);
 		/**
@@ -311,7 +312,7 @@ namespace util
 		/**
 		 * map of all incorrect commands and options
 		 */
-		map<string, string> m_mErrors;
+		vector<pair<pair<string, string>, string> > m_vContent;
 
 		/**
 		 * write all options from given map container on command line
