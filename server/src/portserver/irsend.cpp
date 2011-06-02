@@ -5,6 +5,7 @@
   irsend -  application for sending IR-codes via lirc
 
   Copyright (C) 1998 Christoph Bartelmus (lirc@bartelmus.de)
+  	  modifyed for ppi-server by Alexander Kolli (ppi@magnificat.at)
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -226,13 +227,12 @@ int send_packet(int fd,const char *packet)
 }
 
 //int main(int argc,char **argv)
-int irsend(const char* directive, const char* remote, const char* code) //, const int count)
+int irsend(const char* directive, const char* remote, const char* code, const unsigned long count/*= 1*/)
 {
 	int status;
     char *lircd=NULL;
 	char *address=NULL;
 	unsigned short port = LIRC_INET_PORT;
-	unsigned long count=1;
 	struct sockaddr_un addr_un;
 	struct sockaddr_in addr_in;
 	int fd;
