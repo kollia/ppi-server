@@ -60,6 +60,15 @@ public:
 	 */
 	virtual void setDebug(bool bDebug);
 	/**
+	 * calculate double result whether should measure in second range
+	 * or microsecond range
+	 *
+	 * @param tv current time
+	 * @param secondcalc whether should calculate in seconds (true) or microseconds (false)
+	 * @return result of subroutine
+	 */
+	static double calcResult(timeval tv, bool secondcalc);
+	/**
 	 * destructor
 	 */
 	virtual ~timer();
@@ -114,14 +123,6 @@ protected:
 	 * @return whether the range is defined or can set all
 	 */
 	virtual bool range(bool& bfloat, double* min, double* max);
-	/**
-	 * calculate double result whether should measure in second range
-	 * or microsecond range
-	 *
-	 * @param tv current time
-	 * @return result of subroutine
-	 */
-	double calcResult(timeval tv);
 
 private:
 	/**

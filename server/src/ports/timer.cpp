@@ -256,7 +256,7 @@ double timer::measure(const double actValue)
 						next.tv_sec= m_tmSec;
 						next.tv_usec= m_tmMicroseconds;
 						timeradd(&m_tmStart, &next, &m_tmStart);
-						need= calcResult(next);
+						need= calcResult(next, m_bSeconds);
 						getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
 						m_bMeasure= true;
 						if(debug)
@@ -278,7 +278,7 @@ double timer::measure(const double actValue)
 
 						was.tv_sec= m_tmSec;
 						was.tv_usec= m_tmMicroseconds;
-						need= calcResult(was);
+						need= calcResult(was, m_bSeconds);
 						cout << "folder was refreshed because time of " << need;
 						cout << " seconds was reached" << endl;
 						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
@@ -374,7 +374,7 @@ double timer::measure(const double actValue)
 					if(set != switchClass::END)
 					{
 						timersub(&m_tmStart, &tv, &newtime);
-						need= calcResult(newtime);
+						need= calcResult(newtime, m_bSeconds);
 					}else
 					{
 						need= 0;
@@ -393,7 +393,7 @@ double timer::measure(const double actValue)
 						}else
 						{
 							timersub(&m_tmStart, &tv, &newtime);
-							need= calcResult(newtime);
+							need= calcResult(newtime, m_bSeconds);
 							cout << "subroutine of timer stops " << need << " seconds before" << endl;
 							need= 0;
 						}
@@ -423,7 +423,7 @@ double timer::measure(const double actValue)
 
 					tv.tv_sec-= m_tmStart.tv_sec;
 					tv.tv_usec-= m_tmStart.tv_usec;
-					need= calcResult(tv);
+					need= calcResult(tv, m_bSeconds);
 					if(bswitch)
 					{ // while measure
 						if(debug)
@@ -512,11 +512,11 @@ void timer::setDebug(bool bDebug)
 	switchClass::setDebug(bDebug);
 }
 
-double timer::calcResult(timeval tv)
+double timer::calcResult(timeval tv, bool secondcalc)
 {
 	double dRv;
 
-	if(!m_bSeconds)
+	if(!secondcalc)
 	{
 		if(tv.tv_sec > (60 * 60)) // minutes
 		{
