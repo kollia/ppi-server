@@ -20,6 +20,8 @@
 
 #include "ExternPort.h"
 #include "valueholder.h"
+#include "measureThread.h"
+#include "timer.h"
 
 #include "../database/lib/DbInterface.h"
 
@@ -199,6 +201,7 @@ namespace ports
 			// nothing to do!
 			// value before set from owreader (OWServer)
 			value= actValue;
+			read(value);
 			if(debug)
 			{
 				cout << "read from chip " << m_sChipID;
@@ -236,12 +239,13 @@ namespace ports
 			if(m_bWrite)
 			{
 				m_oValue.calculate(value);
-				access= m_pOWServer->write(m_sChipID, value);
+				access= write(m_sChipID, value, /*no additional infos*/"");
 				setDeviceAccess(access);
 				m_dLastWValue= value;
 				bsetNewValue= true;
 			}else
 				value= actValue;
+
 			if(debug)
 			{
 				if(!bsetNewValue)

@@ -237,6 +237,10 @@ struct chip_types_t
 	 */
 	double value;
 	/**
+	 * additional info for chip
+	 */
+	string addinfo;
+	/**
 	 * priority of pin if it is for writing
 	 */
 	unsigned int priority;

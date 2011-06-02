@@ -153,9 +153,10 @@ namespace server
 		 *
 		 * @param id unique ID of pin on chip
 		 * @param value Value which should be writing
+		 * @param adinfo additional info for chip
 		 * @return whether writing on the device was by the last one correct
 		 */
-		bool write(const string& id, const double value);
+		bool write(const string& id, const double value, const string& addinfo);
 		/**
 		 * read from chipdirect if pin is set to uncached,<br />
 		 * or read from cahe which be actualiced in defined time

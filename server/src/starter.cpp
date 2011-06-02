@@ -66,6 +66,7 @@
 #include "ports/Set.h"
 #include "ports/SaveSubValue.h"
 #include "ports/ExternPort.h"
+#include "ports/LircPort.h"
 
 #include "server/libs/server/Communication.h"
 #include "server/libs/server/communicationthreadstarter.h"
@@ -1054,9 +1055,17 @@ void Starter::createPortObjects(bool bShowConf)
 				auto_ptr<ExternPort> obj;
 
 				//cout << "subroutine " << aktualFolder->subroutines[n].name << " from type " << aktualFolder->subroutines[n].type << endl;
-				obj= auto_ptr<ExternPort>(new ExternPort(	aktualFolder->subroutines[n].type,
-														aktualFolder->name,
-														aktualFolder->subroutines[n].name	));
+				if(aktualFolder->subroutines[n].type == "LIRC")
+				{
+					obj= auto_ptr<ExternPort>(new LircPort(	aktualFolder->subroutines[n].type,
+															aktualFolder->name,
+															aktualFolder->subroutines[n].name	));
+				}else
+				{
+					obj= auto_ptr<ExternPort>(new ExternPort(	aktualFolder->subroutines[n].type,
+																aktualFolder->name,
+																aktualFolder->subroutines[n].name	));
+				}
 				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;

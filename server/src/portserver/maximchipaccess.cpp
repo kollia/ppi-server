@@ -788,7 +788,7 @@ namespace ports
 		return true;
 	}
 
-	short MaximChipAccess::write(const string id, const double value)
+	short MaximChipAccess::write(const string id, const double value, const string& addinfo)
 	{
 		short nRv= 0;// writing was correctly and the pin is finished (go to the next)
 		ssize_t size;

@@ -86,6 +86,27 @@ namespace ports
 		 */
 		virtual double measure(const double actValue);
 		/**
+		 * write chip id and value to port server.<br />
+		 * This method is called from method <code>measure()</code>
+		 * and can be overloaded from any new extern port object
+		 *
+		 * @param chipID calculated id from measure.conf over portserver
+		 * @param value value to set
+		 * @param addinfo additional info for chip
+		 * @return whether access to chip was given
+		 */
+		virtual bool write(const string& chipID, const double value, string addinfo)
+		{ return m_pOWServer->write(chipID, value, addinfo); };
+		/**
+		 * This method is called from method <code>measure()</code> and is only an dummy method.
+		 * Because the the own value of this subroutine is set from portserver.
+		 * It can be overloaded from any new extern port object
+		 *
+		 * @param value actual value set from portserver
+		 */
+		virtual void read(const double value)
+		{};
+		/**
 		 * overwrite portBase class to define access from outside,
 		 * if value defined for switching between 0 and 1
 		 *

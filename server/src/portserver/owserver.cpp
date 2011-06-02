@@ -477,7 +477,7 @@ namespace server
 					devIt->value= chip->value;
 					bDebug= true;
 				}
-				endWork= m_poChipAccess->write(chip->id, chip->value);
+				endWork= m_poChipAccess->write(chip->id, chip->value, chip->addinfo);
 				if(bDebug)
 					measureTimeDiff(&(*devIt));
 				if(	endWork == -1 ||
@@ -948,7 +948,7 @@ namespace server
 		++device->count;
 	}
 
-	bool OWServer::write(const string& id, const double value)
+	bool OWServer::write(const string& id, const double value, const string& addinfo)
 	{
 	//	bool write= false;
 		SHAREDPTR::shared_ptr<chip_types_t> chip;
@@ -956,6 +956,8 @@ namespace server
 		map<string, SHAREDPTR::shared_ptr<chip_types_t> >::iterator chipIt;
 
 		chipIt= m_mtConductors.find(id);
+		if(chipIt == m_mtConductors.end())
+			return false;
 		chip= chipIt->second;
 		if(!chip->device)
 			return false;
@@ -1020,6 +1022,7 @@ namespace server
 			}
 #endif // SERVERTIMELOG
 			chip->value= value;
+			chip->addinfo= addinfo;
 			m_mvPriorityCache[chip->priority].push(chip);
 			AROUSE(m_PRIORITYCACHECOND);
 			UNLOCK(m_PRIORITYCACHE);

@@ -287,7 +287,7 @@ namespace ports
 		Thread::UNLOCK(m_DEBUGINFO);
 	}
 
-	short VellemannK8055::write(const string id, const double value)
+	short VellemannK8055::write(const string id, const double value, const string& addinfo)
 	{
 		string pin(id.substr(2));
 

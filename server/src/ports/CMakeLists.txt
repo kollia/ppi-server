@@ -5,6 +5,7 @@ set(portsSrcs 	ListCalculator.cpp
         		measuredness.cpp
         		measureThread.cpp
         		ExternPort.cpp
+        		LircPort.cpp
         		portbaseclass.cpp
         		output.cpp
         		resistancemeasure.cpp

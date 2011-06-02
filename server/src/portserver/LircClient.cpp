@@ -200,26 +200,45 @@ namespace ports
 		return true;
 	}
 
-	short LircClient::write(const string id, const double value)
+	short LircClient::write(const string id, const double value, const string& addinfo)
 	{
 		int res;
+		unsigned long num(1);
 		vector<string> vec;
+		vector<string>::size_type count;
 
 		split(vec, id, is_any_of(" "));
-		if(	vec.size() != 4 ||
+		count= vec.size();
+		if(	count != 4 ||
 			vec[0] != "write" ||
 			vec[1] == "" ||
 			vec[2] == "" ||
 			(	vec[3] != "SEND" &&
-				vec[3] != "SEND_ONCE"	)	)
+				vec[3] != "SEND_ONCE"	) )
 		{
 			TIMELOG(LOG_ERROR, id, "cannot define correctly ID '" + id + "' to send remote to LIRC");
-			cerr << "cannot define correctly ID '" + id + "' to send remote to LIRC" << endl;
+			cerr << "### ERROR: cannot define correctly ID '" + id + "' to send remote to LIRC" << endl;
 			return -2;
 		}
-		//cout << "write code with id '" << id << "' with value " << value << endl;
+		//cout << "write code with id '" << id << "' with value " << value << " send " << addinfo << " units" << endl;
 		if(!value && vec[3] == "SEND_ONCE")
 			return 0;
+		if(	vec[3] == "SEND_ONCE" &&
+			addinfo != ""				)
+		{
+			istringstream snum(addinfo);
+
+			snum >> num;
+			if(num == 0)
+			{
+				string err("undefined count (’");
+
+				err+= addinfo + "') for LIRC irsend given. Set count to 1.";
+				LOG(LOG_WARNING, err);
+				cerr << "### ERROR: " << err << endl;
+				num= 1;
+			}
+		}
 		if(vec[3] == "SEND")
 		{
 			if(value)
@@ -237,8 +256,8 @@ namespace ports
 				m_mSend[id]= false;
 			}
 		}
-		//cout << "send to lirc '" << "irsend " << vec[3] << " " << vec[1] << " " << vec[2] << "'" << endl;
-		res= irsend(vec[3].c_str(), vec[1].c_str(), vec[2].c_str());
+		//cout << "send to lirc '" << "irsend " << vec[3] << " " << vec[1] << " " << vec[2] << " " << num << "'" << endl;
+		res= irsend(vec[3].c_str(), vec[1].c_str(), vec[2].c_str(), num);
 		if(res == PACKETERROR)
 		{
 			TIMELOG(LOG_ERROR, "packaterror"+id, "wrong sending LIRC command with id '" + id + "'");

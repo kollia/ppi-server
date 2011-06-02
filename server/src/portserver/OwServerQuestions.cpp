@@ -64,12 +64,13 @@ int OwServerQuestions::execute()
 	if(command == "write")
 	{
 		bool bRv;
-		string chip;
+		string chip, addinfo;
 		double value;
 
 		stream >> chip;
 		stream >> value;
-		bRv= m_oServer->write(chip, value);
+		stream >> addinfo;
+		bRv= m_oServer->write(chip, value, addinfo);
 		if(bRv)
 			m_sAnswer= "true";
 		else

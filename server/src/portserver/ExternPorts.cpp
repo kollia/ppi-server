@@ -771,7 +771,7 @@ namespace ports
 		return true;
 	}
 
-	short ExternPorts::write(const string id, const double value)
+	short ExternPorts::write(const string id, const double value, const string& addinfo)
 	{
 		bool bSet= false;
 		map<string, portpin_address_t>::iterator it;

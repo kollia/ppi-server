@@ -8,6 +8,7 @@ set(mainSrcs 	main.cpp
 		        ports/counter.cpp
         		ports/measuredness.cpp
         		ports/ExternPort.cpp
+        		ports/LircPort.cpp
         		ports/portbaseclass.cpp
         		ports/output.cpp
         		ports/resistancemeasure.cpp
