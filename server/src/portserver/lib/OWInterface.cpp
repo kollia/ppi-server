@@ -163,13 +163,14 @@ void OWInterface::setDebug(bool set)
 	sendMethod(m_stoClient, method, false);
 }
 
-bool OWInterface::write(const string& id, const double value)
+bool OWInterface::write(const string& id, const double value, const string& addinfo)
 {
 	string res;
 	OMethodStringStream method("write");
 
 	method << id;
 	method << value;
+	method << addinfo;
 	res= sendMethod(m_stoClient, method, true);
 	if(res == "true")
 		return true;
