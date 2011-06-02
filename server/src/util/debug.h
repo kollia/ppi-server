@@ -130,5 +130,10 @@
 #endif // _OWFSLIBRARY
 #endif // _EXTERNVENDORLIBRARYS
 
+// debugging output for LIRC components
+// how long transmitting is activated
+// output <folder>: <subroutine:digits>  <subroutine:after> = <time>
+//#define DEBUG_ACTIVATEDLIRCOUTPUT
+
 #endif /*DEBUG_H_*/
 
