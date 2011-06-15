@@ -111,7 +111,7 @@ namespace ppi_database
 		m_sDbFile= getLastDbFile(m_sWorkDir, "entrys_", size);
 		if(m_sDbFile == "")
 		{
-			dbfile= "entrys_";
+			m_sDbFile= "entrys_";
 			time(&tmDb);
 			strftime(stime, 15, "%Y%m%d%H%M%S", localtime(&tmDb));
 			m_sDbFile+= stime;
@@ -160,16 +160,19 @@ namespace ppi_database
 			{
 				getline(file, line);
 				entry= splitDbLine(line);
-	#if 0
-				cout << line << endl;
-				if(entry.folder == "TRANSMIT_SONY")
+#if 0
+				if(	(	entry.folder == "SONY_CMT_MINUS_CP100_KEY_CHANNELUP" ||
+						entry.folder == "SONY_CMT_MINUS_CP100_KEY_CHANNELDOWN"	) &&
+					entry.subroutine == "actual_step"									)
 				{
+					cout << line << endl;
 					cout << "device  " << entry.folder << ":" << entry.subroutine << endl;
 					cout << " access " << boolalpha << entry.device << endl;
+					cout << " value  " << entry.values[0] << endl;
 					cout << " new    " << boolalpha << entry.bNew << endl;
 					cout << endl;
 				}
-	#endif
+#endif
 				if(entry.identif != "")
 				{
 					if(	entry.identif.substr(0, 4) == "def:"
@@ -482,7 +485,11 @@ namespace ppi_database
 
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// output on command line to set new value as actual
-	#if 0
+#if 0
+				if(	(	entry.folder == "SONY_CMT_MINUS_CP100_KEY_CHANNELUP" ||
+						entry.folder == "SONY_CMT_MINUS_CP100_KEY_CHANNELDOWN"	) &&
+					entry.subroutine == "actual_step"									)
+				{
 					ostringstream out;
 
 					out << "DB >> write new " << entry.identif << " in ";
@@ -504,7 +511,8 @@ namespace ppi_database
 					}
 					out << endl;
 					cout << out.str();
-	#endif
+				}
+#endif
 					if(entry.identif == "access")
 					{
 						if(tvalue.device != entry.device)
@@ -537,13 +545,13 @@ namespace ppi_database
 					if(changed)
 					{
 						m_mCurrent[tvalue.folder][tvalue.subroutine][tvalue.identif].values= entry.values;
-	#if 0
+#if 0
 						cout << "--  insert " << tvalue.folder << ":" << tvalue.subroutine << " with identifier '" << tvalue.identif << "'";
 						cout << " with values ";
 						for(vector<double>::const_iterator it= entry.values.begin(); it != entry.values.end(); ++it)
 							cout << dec << *it << "  ";
 						cout << endl;
-	#endif
+#endif
 						UNLOCK(m_DBCURRENTENTRY);
 						return true;
 					}
