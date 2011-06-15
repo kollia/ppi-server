@@ -171,6 +171,7 @@ double timer::measure(const double actValue)
 {
 	bool bswitch;
 	bool bEndCount(false);
+	bool bNormallyCountDown(false);
 	bool debug= isDebug();
 	double need;
 	switchClass::setting set;
@@ -214,6 +215,9 @@ double timer::measure(const double actValue)
 				{ // starting first count down
 					bool bneed= true;
 
+					// count down begins
+					// this is no normally count down
+					bNormallyCountDown= false;
 					m_tmStart= tv;
 					if(!m_omtime.isEmpty())
 					{ // calculate seconds (m_tmSec) and microseconds (m_tmMicroseconds) from other subroutine
@@ -271,6 +275,9 @@ double timer::measure(const double actValue)
 
 				}else if( timercmp(&tv, &m_tmStart, >=) )
 				{ // reaching end of count down
+				  // now polling ending, or begin with new time
+				  // this is no normally count down
+					bNormallyCountDown= false;
 					if(debug)
 					{
 						char stime[18];
@@ -298,6 +305,8 @@ double timer::measure(const double actValue)
 						 // do not begin count down again
 							bswitch= false;
 							set= switchClass::END;
+							if(debug)
+								cout << "end of count down is reached, stop polling" << endl;
 						}
 					}
 					if(bswitch)
@@ -371,6 +380,9 @@ double timer::measure(const double actValue)
 				{ // count down is running
 					timeval newtime;
 
+					// by normally count down do not inform
+					// other linked subroutines
+					bNormallyCountDown= true;
 					if(set != switchClass::END)
 					{
 						timersub(&m_tmStart, &tv, &newtime);
@@ -475,7 +487,7 @@ double timer::measure(const double actValue)
 		need= -1;
 	}
 
-	if(getLinkedValue("TIMER", need))
+	if(getLinkedValue("TIMER", need, bNormallyCountDown))
 	{
 		if(debug)
 			cout << "result of time from linked subroutine is " << dec << need << " seconds" << endl;

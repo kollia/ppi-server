@@ -410,9 +410,10 @@ namespace ports
 			 *
 			 * @param type type of subroutine defined in constructor
 			 * @param val returned value from other subroutine, or same as incoming when Link show to own
+			 * @param bCountDown whether getting linked value is an count down (only for TIMER subroutines) do not inform liked values
 			 * @return true when the value is from an other subroutine, else false
 			 */
-			bool getLinkedValue(const string& type, double& val);
+			bool getLinkedValue(const string& type, double& val, bool bCountDown= false);
 
 		private:
 			IMeasurePattern* m_poMeasurePattern;

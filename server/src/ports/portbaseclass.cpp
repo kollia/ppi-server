@@ -410,7 +410,7 @@ bool portBase::initLinks(const string& type, IPropertyPattern* properties, const
 	return bOk;
 }
 
-bool portBase::getLinkedValue(const string& type, double& val)
+bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*=false*/)
 {
 	bool bOk, isdebug;
 	double lvalue, linkvalue;
@@ -524,7 +524,8 @@ bool portBase::getLinkedValue(const string& type, double& val)
 					val= linkvalue;
 					bOk= true;
 
-				}else if(m_dLastLinkValue != val)
+				}else if(	!bCountDown &&
+							m_dLastLinkValue != val)
 				{ // value changed from outside of server, owreader, or with subroutine SET
 				  // write new value inside foreign subroutine
 					port= link->getSubroutine(slink, /*own folder*/true);
