@@ -113,7 +113,7 @@ namespace ports
 		return res;
 	}
 
-	bool LircPort::write(const string& chipID, const double value, string addinfo)
+	bool LircPort::write(const string& chipID, const double value, string& addinfo)
 	{
 		bool access;
 #ifdef DEBUG_ACTIVATEDLIRCOUTPUT

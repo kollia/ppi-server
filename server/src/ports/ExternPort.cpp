@@ -177,6 +177,7 @@ namespace ports
 	{
 		bool access, debug, bsetNewValue(false);
 		double value(0);
+		string addinfo;
 
 		debug= isDebug();
 		if(!m_pOWServer)
@@ -223,7 +224,7 @@ namespace ports
 							cout << " no input" << endl;
 					}
 				}else
-					cout << "unique id '" << m_sChipID << "' do not reache correctly device for reading" << endl;
+					cout << "unique id '" << m_sChipID << "' do not reach correctly device for reading" << endl;
 			}
 		}else
 		{
@@ -239,7 +240,7 @@ namespace ports
 			if(m_bWrite)
 			{
 				m_oValue.calculate(value);
-				access= write(m_sChipID, value, /*no additional infos*/"");
+				access= write(m_sChipID, value, addinfo);
 				setDeviceAccess(access);
 				m_dLastWValue= value;
 				bsetNewValue= true;
@@ -252,14 +253,14 @@ namespace ports
 					access= hasDeviceAccess();
 				if(access)
 				{
-					cout << "on unique id '" << m_sChipID;
-
-					if(value)
-						cout << " set to output " << value;
-					else
-						cout << " set to output " << value;
-					if(bsetNewValue)
-						cout << " in passing before";
+					if(m_bWrite)
+					{
+						cout << "write on unique id '" << m_sChipID;
+						cout << "' to output " << value;
+						if(addinfo != "")
+							cout << " with additional info '" << addinfo << "'";
+					}else
+						cout << " do not write on '" << m_sChipID << "'";
 					cout << endl;
 				}else
 					cout << "unique id '" << m_sChipID << "' do not reach correctly device for writing" << endl;

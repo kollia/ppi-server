@@ -95,7 +95,7 @@ namespace ports
 		 * @param addinfo additional info for chip
 		 * @return whether access to chip was given
 		 */
-		virtual bool write(const string& chipID, const double value, string addinfo);
+		virtual bool write(const string& chipID, const double value, string& addinfo);
 
 	private:
 		/**
