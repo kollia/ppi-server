@@ -30,6 +30,8 @@ namespace subroutines
 		Lirc(ofstream& out, const string& name);
 		virtual void premote(const string& content, const string& desc= "");
 		virtual void pcode(const string& content, const string& desc= "");
+		virtual void pcount(const double& content, const string& desc= "");
+		virtual void pcount(const string& content, const string& desc= "");
 		virtual void ppriority(const string& content, const string& desc= "");
 		using Subroutine::pvalue;
 		using Subroutine::pbegin;

@@ -16,7 +16,11 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
+#include <sstream>
+
 #include "Lirc.h"
+
 
 namespace subroutines
 {
@@ -34,6 +38,19 @@ namespace subroutines
 	void Lirc::pcode(const string& content, const string& desc)
 	{
 		writeParam("pin", content, desc);
+	}
+
+	void Lirc::pcount(const double& content, const string& desc)
+	{
+		ostringstream ocont;
+
+		ocont << content;
+		pcount(ocont.str(), desc);
+	}
+
+	void Lirc::pcount(const string& content, const string& desc)
+	{
+		writeParam("count", content, desc);
 	}
 
 	void Lirc::ppriority(const string& content, const string& desc)
