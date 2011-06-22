@@ -426,9 +426,14 @@ namespace ports
 			 */
 			ListCalculator m_oLinkWhile;
 			/**
-			 * last value of linked subroutine
+			 * last set value inside method <code>getLinkedValue()</code>
 			 */
-			double m_dLastLinkValue;
+			double m_dLastSetValue;
+			/**
+			 * last value from other linked subroutine
+			 * only used when subroutine from TIMER
+			 */
+			double m_dLastTimeLinkValue;
 			/**
 			 * which link for observer be set
 			 */

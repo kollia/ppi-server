@@ -45,7 +45,8 @@ using namespace boost;
 portBase::portBase(const string& type, const string& folderName, const string& subroutineName)
 : m_poMeasurePattern(NULL),
   m_oLinkWhile(folderName, subroutineName, "lwhile", false, false),
-  m_dLastLinkValue(0),
+  m_dLastSetValue(0),
+  m_dLastTimeLinkValue(-1),
   m_nLinkObserver(0)
 {
 #ifdef DEBUG
@@ -524,9 +525,16 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 					val= linkvalue;
 					bOk= true;
 
-				}else if(	!bCountDown &&
-							m_dLastLinkValue != val)
-				{ // value changed from outside of server, owreader, or with subroutine SET
+				}else if(linkvalue != m_dLastTimeLinkValue)
+				{// linked value from other subroutine was changed
+					if(isdebug)
+						cout << "oldvalue(" << m_dLastTimeLinkValue << ") take changed value " << linkvalue << " from foreign subroutine " << slink << endl;
+					val= linkvalue;
+					m_dLastTimeLinkValue= linkvalue;
+					bOk= true;
+
+				}else if(m_dLastSetValue != val)
+				{ // value is changed inside own subroutine
 				  // write new value inside foreign subroutine
 					port= link->getSubroutine(slink, /*own folder*/true);
 					if(port)
@@ -535,7 +543,9 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 						{
 							cout << "value was changed in own subroutine," << endl;
 							cout << "set foreign subroutine " << slink << " to " << dec << val << endl;
+							cout << "set old value to " << val << endl;
 						}
+						m_dLastTimeLinkValue= val;
 						port->setValue(val, "i:"+foldersub);
 						port->getRunningThread()->changedValue(slink, foldersub);
 					}else
@@ -550,17 +560,10 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 					}
 					bOk= false;
 
-				}else if(m_dLastLinkValue != linkvalue)
-				{// linked value from other subroutine was changed
-					if(isdebug)
-						cout << "take changed value " << linkvalue << " from foreign subroutine " << slink << endl;
-					val= linkvalue;
-					bOk= true;
-
 				}else
 				{ // nothing was changed
 					if(isdebug)
-						cout << "no changes be necessary" << endl;
+						cout << "oldvalue(" << m_dLastTimeLinkValue << ") no changes be necessary" << endl;
 					bOk= false;
 				}
 			}
@@ -594,7 +597,7 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 	}else // if(links > 0)
 		bOk= false;
 
-	m_dLastLinkValue= val;
+	m_dLastSetValue= val;
 	if(	!bOk ||
 		slink == m_sSubroutine ||
 		slink == foldersub			)
