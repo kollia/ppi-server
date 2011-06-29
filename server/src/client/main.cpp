@@ -23,7 +23,6 @@
 #include <vector>
 #include <map>
 
-#include "../util/termmacro.h"
 #include "../util/debug.h"
 
 #include "../util/properties/configpropertycasher.h"
