@@ -27,6 +27,8 @@
 
 #include "../util/properties/properties.h"
 
+#include "../pattern/util/LogHolderPattern.h"
+
 #include "LircSupport.h"
 
 using namespace std;
@@ -52,6 +54,9 @@ int main(int argc, char* argv[])
 	params.version(PPI_MAJOR_RELEASE, PPI_MINOR_RELEASE, PPI_SUBVERSION, PPI_PATCH_LEVEL,
 										/*no build*/0, PPI_REVISION_NUMBER, DISTRIBUTION_RELEASE);
 	params.help("help", "?");
+	params.option("info", "i", "show more information by writing output.");
+	params.option("debug", "d", "show debugging information by writing output.\n"
+									"also the information for option --info");
 
 	command= params.command("LIRC", "create configuration for receiver and transmitter if set to fill in 'measure.conf'\n"
 									"and also corresponding layout files to copy into ppi-server client directory\n"
@@ -66,9 +71,8 @@ int main(int argc, char* argv[])
 													"and do not create or touch lirc.conf");
 	command->spaceline("");
 	command->option("learn", "l", true, "reading pressed buttons from the database for an learning transmitter.\n"
-											"inside time pressing record button");
-	command->option("info", "i", "show more debugging information by writing output.\n"
-									"this option is only for setting option --learn");
+											"Inside time pressing record button and leaf, should be defined one name.\n"
+											"More than one names can be defined calculating to the last unit");
 	command->spaceline("permission:");
 	command->option("readperm", "p", true, "to read receiving value (default from access.conf 'read')");
 	command->option("changeperm", "c", true, "to send code (default from access.conf 'change')");
@@ -79,6 +83,15 @@ int main(int argc, char* argv[])
 
 	bOk= params.execute(/*stop by error*/false);
 	commands= params.getCommands();
+
+	if(params.hasOption("debug"))
+		LogHolderPattern::init(LOG_DEBUG);
+	else
+		if(params.hasOption("info"))
+			LogHolderPattern::init(LOG_INFO);
+		else
+			LogHolderPattern::init(LOG_WARNING);
+
 	if(	bOk == false ||
 		commands->hasOption("learn")					)
 	{

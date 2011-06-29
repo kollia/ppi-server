@@ -193,8 +193,11 @@ private:
 	 */
 	enum sending_e
 	{
-		ONCE= 0,
-		SEND
+		SEND_ONCE= 0,
+	//	SEND_units,
+		SEND= 2
+	//	WAIT_after,
+	//	BACK_time
 	};
 	/**
 	 * default value for definition in measure.conf
@@ -306,26 +309,43 @@ private:
 	 * @return whether creating of measure config files was correct
 	 */
 	bool learn(const remotecodes_t& r, const string& writeperm);
-	void createConfigStep(unsigned short step, const string& remote, const unsigned short group, const double toValue,
-					Folder& folder, IPPIDatabasePattern* db,
+	/**
+	 * write for learning one step on work flow
+	 *
+	 * @param output debug output on command line
+	 * @param step actual next step in work flow and gives back also the next step
+	 * @param toValue to which value the actual_step field should set
+	 * @param folder actual folder to write in for configuration file
+	 * @param db access to database with all actual values
+	 * @param groupbuttons all defined button names in the same group
+	 * @param aliases folder names for different remote with code
+	 * @param buttons all buttons with behavior of direction, remote, code, ...
+	 */
+	void createConfigStep(ostringstream& output, unsigned short& step,
+					const double toValue, Folder& folder, IPPIDatabasePattern* db,
 					const set<string>& groupbuttons,map<string, string>& aliases, map<string, button_def>& buttons);
+	/**
+	 * create desktop file
+	 *
+	 * @return wheter creating was correct
+	 */
 	bool createLearnDesktopFiles();
 	/**
 	 * make configuration file (<remote control>.conf)
 	 *
 	 * @param remote name of remote control
 	 * @param r structure of all new defined folders and subroutines from remote controls and codes getting from <code>readLircd()</code>
-	 * @param readperm read permission of config user
-	 * @param writeperm change permission of config user
+	 * @param userreadperm read permission defined in access.conf for configuration user
+	 * @param userwriteperm write permission defined in access.conf for configuration user
 	 * @param ureadcw permission for normal user to read and config user to read and write
-	 * @param userreadperm read permission of normal user
-	 * @param userwriteperm change permission of normal user
+	 * @param readperm name of group in access.conf which can reading the subroutine
+	 * @param writeperm name of group in access.conf which can reading and changing the subroutine
 	 * @param transmit whether the configuration should be defined also for transmitter (true), or only reseiver (false)
 	 * @return whether the creating of configuration file was correct
 	 */
 	bool createRemoteConfFile(const string& remote, const remotecodes_t& r,
-			const string& readperm, const string& writeperm, const string& ureadcw,
-			const string& userreadperm, const string& userwriteperm, const bool transmit) const;
+					const string& userreadperm, const string& userwriteperm, const string& ureadcw,
+					const string& readperm, const string& writeperm, const bool transmit) const;
 	/**
 	 * make layout file (<remote control>.desktop)
 	 *
