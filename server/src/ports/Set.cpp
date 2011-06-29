@@ -22,6 +22,8 @@
 
 #include "Set.h"
 
+#include "../util/Terminal.h"
+
 #include "../logger/lib/LogInterface.h"
 
 using namespace boost;
@@ -78,7 +80,7 @@ namespace ports
 					msg << "' can only be an single [folder:]<sburoutine>.";
 					msg << " Do not set any value in this subroutine.";
 					LOG(LOG_ERROR, msg.str());
-					cout << msg << endl;
+					tout << msg << endl;
 
 				}else
 					m_vsSet.push_back(sSet);
@@ -91,7 +93,7 @@ namespace ports
 				msg+= "by setting more 'from' parameter than one, same count of 'set' ";
 				msg+= "parameter have to exist. Set subroutine to incorrect!";
 				LOG(LOG_ERROR, msg);
-				cout << msg << endl;
+				tout << msg << endl;
 				nFrom= 0;
 				nSet= 0;
 
@@ -165,11 +167,11 @@ namespace ports
 						{
 							if(isdebug)
 							{
-								cout << "set value " << value;
-								cout << " into " << (s+1) << ". subroutine '";
+								tout << "set value " << value;
+								tout << " into " << (s+1) << ". subroutine '";
 								if(m_vsSet[s].find(":") == string::npos)
-									cout << folder << ":";
-								cout << m_vsSet[s] << "'" << endl;
+									tout << folder << ":";
+								tout << m_vsSet[s] << "'" << endl;
 							}
 							port->setValue(value, "i:"+folder+":"+subroutine);
 						}else
@@ -182,7 +184,7 @@ namespace ports
 								msg << folder << ":";
 							msg << m_vsSet[s] << "'";
 							if(isdebug)
-								cout << "### ERROR: " << msg.str() << endl;
+								tout << "### ERROR: " << msg.str() << endl;
 							msg << endl << "do not found this subroutine from 'set' attribute" << endl;
 							msg << "from set parameter in folder " << folder << " and subroutine " << subroutine;
 							TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg.str());
@@ -196,22 +198,22 @@ namespace ports
 					msg+= "' in folder " + folder + " and subroutine " + subroutine;
 					TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg);
 					if(isdebug)
-						cout << "### ERROR: " << msg << endl;
+						tout << "### ERROR: " << msg << endl;
 				}
 			}
 
 		}
 		if(isdebug)
 		{
-			cout << "result of subroutine is ";
+			tout << "result of subroutine is ";
 			if(	nRv > 0 ||
 				nRv < 0		)
 			{
-				cout << "TRUE";
+				tout << "TRUE";
 
 			}else
-				cout << "FALSE";
-			cout << endl;
+				tout << "FALSE";
+			tout << endl;
 		}
 		return nRv;
 	}

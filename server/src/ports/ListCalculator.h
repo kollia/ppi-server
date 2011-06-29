@@ -25,6 +25,7 @@
 
 #include "../util/smart_ptr.h"
 #include "../util/structures.h"
+#include "../util/Terminal.h"
 #include "../util/CalculatorContainer.h"
 
 using namespace std;
@@ -155,6 +156,14 @@ protected:
 	 * @param msg string of message
 	 */
 	void output(bool bError, const string& file, const int line, const string& msg);
+	/**
+	 * direct output called from method <code>output()</code>
+	 *
+	 * @param bError whether output should be an error
+	 * @param msg output string
+	 */
+	virtual void out(const bool bError, const string& msg)
+	{ tout << msg; };
 	/**
 	 * this method is only to overload by an new child
 	 * to get variables and will be called when parameter vars be set in constructor as true.<br />

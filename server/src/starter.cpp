@@ -38,6 +38,7 @@
 #include "util/GlobalStaticMethods.h"
 #include "util/smart_ptr.h"
 #include "util/URL.h"
+#include "util/Terminal.h"
 #include "util/usermanagement.h"
 #include "util/process/ProcessStarter.h"
 #include "util/properties/interlacedactionproperties.h"
@@ -705,6 +706,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	--nServerID;
 	createPortObjects(commands->hasOption("configure"));
+	TERMINALEND;
 
 	OWInterface::checkUnused(nServerID);
 	OWInterface::endOfInitialisation(nServerID, commands->hasOption("firstvalue"));

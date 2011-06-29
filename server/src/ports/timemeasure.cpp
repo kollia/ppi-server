@@ -25,6 +25,7 @@
 #include <list>
 
 #include "../util/structures.h"
+#include "../util/Terminal.h"
 
 #include "../logger/lib/LogInterface.h"
 
@@ -66,7 +67,7 @@ bool TimeMeasure::init(IActionPropertyPattern* properties)
 		errorOut+= error;
 		errorOut+= " does not be set correctly";
 		LOG(LOG_ERROR, errorOut);
-		cout << errorOut << endl;
+		tout << errorOut << endl;
 		return false;
 	}
 	m_tOut= tOut;
@@ -143,7 +144,7 @@ double TimeMeasure::measure(const double actValue)
 		msg+= buf;
 		msg+=" us";
 		TIMELOG(LOG_INFO, getFolderName(), msg);
-		cout << msg << endl;
+		tout << msg << endl;
 	}
 	return (double)nLightValue;
 }
@@ -173,12 +174,12 @@ unsigned long TimeMeasure::getMeasuredTime()
 	time.it_value.tv_usec= 0;
 	if(isDebug())
 	{
-		cout << "maximal calculating for " << m_maxMeasuredTime << " mikroseconds" << endl;
-		cout << "beginning status: ";
+		tout << "maximal calculating for " << m_maxMeasuredTime << " mikroseconds" << endl;
+		tout << "beginning status: ";
 		res= inb(nGetPort);
 		nPrintPin= (int)res;
 		//printBin(&nPrintPin, nGetPort);
-		cout << "wait for          ";
+		tout << "wait for          ";
 		nPrintPin= (int)nGetPin;
 		//printBin(&nPrintPin, nGetPort);
 	}
@@ -196,7 +197,7 @@ unsigned long TimeMeasure::getMeasuredTime()
 	}else
 	{
 		outb(inb(nSetPort) | nSetPin, nSetPort);
-		//cout << flush; // flush after outb() -> maybe an bug
+		//tout << flush; // flush after outb() -> maybe an bug
 		while(	!(res= inb(nGetPort) & nGetPin)
 				&&
 				(unsigned long)getMikrotime() < m_maxMeasuredTime	);
@@ -209,7 +210,7 @@ unsigned long TimeMeasure::getMeasuredTime()
 	lockApplication(false);
 	if(isDebug())
 	{
-		cout << "result:           ";
+		tout << "result:           ";
 		nPrintPin= (int)res;
 		//printBin(&nPrintPin, nGetPort);
 	}
@@ -254,9 +255,9 @@ unsigned long TimeMeasure::getMeasuredTime()
 #ifdef DEBUG
 	if(isDebug())
 	{
-		cout << "found nearest given mikrosecounds:" << endl;
-		cout << vCorrection[0].correction << " correction is " << vCorrection[0].nMikrosec << " mikroseconds" << endl;
-		cout << vCorrection[1].correction << " correction is " << vCorrection[1].nMikrosec << " mikroseconds" << endl;
+		tout << "found nearest given mikrosecounds:" << endl;
+		tout << vCorrection[0].correction << " correction is " << vCorrection[0].nMikrosec << " mikroseconds" << endl;
+		tout << vCorrection[1].correction << " correction is " << vCorrection[1].nMikrosec << " mikroseconds" << endl;
 		printf("is correction:%.60lf\n", vCorrection[0].correction);
 	}
 #endif // DEBUG
@@ -319,15 +320,15 @@ unsigned long TimeMeasure::getNewMikroseconds(vector<ohm> *elkoCorrection)
 	logString+= res;
 	logString+= " OHM ";
 #ifndef DEBUG
-	cout << logString << endl;
-	cout << "." << flush;
+	tout << logString << endl;
+	tout << "." << flush;
 #endif
 
 	time= getMeasuredTime();
 	for(short i= 0; i<1; ++i)
 	{
 #ifndef DEBUG
-		cout << "." << flush;
+		tout << "." << flush;
 #endif // DEBUG
 		time+= getMeasuredTime();
 		time/= 2;
@@ -337,8 +338,8 @@ unsigned long TimeMeasure::getNewMikroseconds(vector<ohm> *elkoCorrection)
 	logString2= "    measured time: ";
 	logString2+= res;
 #ifndef DEBUG
-	cout << endl;
-	cout << "measured time:" << time << endl;
+	tout << endl;
+	tout << "measured time:" << time << endl;
 #endif // DEBUG
 	logString+= "\n";
 	logString+= logString2;
@@ -399,7 +400,7 @@ correction_t TimeMeasure::getNewCorrection(correction_t tCorrection, vector<ohm>
 	logString+= res;
 	logString+= " OHM ";
 #ifndef DEBUG
-	cout << logString << endl;
+	tout << logString << endl;
 #endif
 
 	unsigned long time2;
@@ -410,58 +411,58 @@ correction_t TimeMeasure::getNewCorrection(correction_t tCorrection, vector<ohm>
 			time= (time + time2) / 2;
 		else
 			time= time2;
-		cout << "." << flush;
+		tout << "." << flush;
 		sleep(nSleep);
 	}
-	cout << endl << "measured time:" << time << endl;
+	tout << endl << "measured time:" << time << endl;
 
 	vNearest= getNearestOhm(time, vOhm);
 #ifdef DEBUG
-	cout << "found nearest given mikrosecounds:" << endl;
-	cout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-	cout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
-	cout << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
-	cout << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
-	cout << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
+	tout << "found nearest given mikrosecounds:" << endl;
+	tout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+	tout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+	tout << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
+	tout << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
+	tout << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
 #endif // DEBUG
 
 	resistance = vNearest[0].be + (vNearest[1].be - vNearest[0].be) *
 				 (double)(time - vNearest[0].nMikrosec) /
 				 (double)(vNearest[1].nMikrosec - vNearest[0].nMikrosec);
-	cout << "calculated OHM are " << resistance << endl;
-	cout << "but should be " << tCorrection.be << " Ohm" << endl;
+	tout << "calculated OHM are " << resistance << endl;
+	tout << "but should be " << tCorrection.be << " Ohm" << endl;
 
 	vNearest= getNearestOhm((unsigned long)tCorrection.be, vOhm, /*bCheckOhm*/true);
 #ifdef DEBUG
-	cout << "found nearest given OHM:" << endl;
-	cout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-	cout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+	tout << "found nearest given OHM:" << endl;
+	tout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+	tout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
 #endif
 
 	newtime= (unsigned long)(((tCorrection.be - vNearest[0].be) *
 			 (double)(vNearest[1].nMikrosec - vNearest[0].nMikrosec)) /
 			 (vNearest[1].be - vNearest[0].be) + (double)vNearest[0].nMikrosec);
-	cout << "old time was " << time << " should be now " << newtime << endl;
+	tout << "old time was " << time << " should be now " << newtime << endl;
 	correction= tCorrection.be / resistance;
 	logString2= "fill correction in configfile with ";
 	sprintf(res, "%.60lf", correction);
 	logString2+= res;
 #ifndef DEBUG
-	cout << logString2 << endl;
+	tout << logString2 << endl;
 #else // DEBUG
 
 	vNearest= getNearestOhm(newtime, vOhm);
 	resistance = vNearest[0].be + (vNearest[1].be - vNearest[0].be) *
 					 (double)(newtime - vNearest[0].nMikrosec) /
 					 (double)(vNearest[1].nMikrosec - vNearest[0].nMikrosec);
-	cout << "found nearest given mikrosecounds:" << endl;
-	cout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-	cout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
-	cout << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
-	cout << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
-	cout << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
-	cout << "new time with correction is " << (unsigned long)newtime << endl;
-	cout << "calculated OHM are " << resistance << endl;
+	tout << "found nearest given mikrosecounds:" << endl;
+	tout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+	tout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+	tout << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
+	tout << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
+	tout << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
+	tout << "new time with correction is " << (unsigned long)newtime << endl;
+	tout << "calculated OHM are " << resistance << endl;
 #endif // DEBUG
 
 	logString+= "\n";
@@ -488,7 +489,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 
 	//logString+= getPortName(m_tIn.nPort);
 #ifndef DEBUG
-	cout << logString << endl;
+	tout << logString << endl;
 #endif // DEBUUG
 	LOG(LOG_INFO, logString);
 
@@ -498,10 +499,10 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 	{
 		time= getMeasuredTime();
 #ifndef DEBUG
-		cout << "." << flush;
+		tout << "." << flush;
 #else
 		if(n< wait)
-			cout << "." << flush;
+			tout << "." << flush;
 #endif // DEBUG
 		if(n > wait)
 		{
@@ -524,10 +525,10 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 				&&
 				n > 5			)
 			{
-				cout << endl << logString << endl;
+				tout << endl << logString << endl;
 			}
 #else // DEBUG
-			cout << logString << endl << endl;
+			tout << logString << endl << endl;
 #endif // DEBUG
 			endlog+= ".";
 			if(	diff != olddiff
@@ -552,9 +553,9 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 	}
 	LOG(LOG_INFO, endlog);
 #ifdef DEBUG
-	cout << endlog << endl << endl;
+	tout << endlog << endl << endl;
 #endif // DEBUG
-	cout << endl;
+	tout << endl;
 	maxtime= 0;
 	mintime= ULONG_MAX;
 
@@ -584,7 +585,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 	logString+= ".\n";
 	LOG(LOG_INFO, logString);
 #ifndef DEBUG
-	cout << logString << endl;
+	tout << logString << endl;
 #endif //DEBUG
 
 	maxtime= maxtime-mintime;

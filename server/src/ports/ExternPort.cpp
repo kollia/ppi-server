@@ -23,6 +23,8 @@
 #include "measureThread.h"
 #include "timer.h"
 
+#include "../util/Terminal.h"
+
 #include "../database/lib/DbInterface.h"
 
 #include "../logger/lib/LogInterface.h"
@@ -191,7 +193,7 @@ namespace ports
 				msg+= m_sServer + " cannot read correctly";
 				LOG(LOG_ERROR, msg);
 				if(debug)
-					cout << msg << endl;
+					tout << msg << endl;
 			}
 			if(!m_pOWServer)
 				return false;
@@ -205,35 +207,35 @@ namespace ports
 			read(value);
 			if(debug)
 			{
-				cout << "read from chip " << m_sChipID;
+				tout << "read from chip " << m_sChipID;
 				if(m_sChipType != "")
-					cout << " with type " << m_sChipType;
-				cout << endl;
+					tout << " with type " << m_sChipType;
+				tout << endl;
 				if(hasDeviceAccess())
 				{
 					if(m_sChipFamily == "10")
 					{
-						cout << value << "° Grad Celsius" << endl;
+						tout << value << "° Grad Celsius" << endl;
 					}else
 					{
-						cout << "on unique id '" << m_sChipID << "' (" << value << ")";
+						tout << "on unique id '" << m_sChipID << "' (" << value << ")";
 
 						if(value)
-							cout << " valid input" << endl;
+							tout << " valid input" << endl;
 						else
-							cout << " no input" << endl;
+							tout << " no input" << endl;
 					}
 				}else
-					cout << "unique id '" << m_sChipID << "' do not reach correctly device for reading" << endl;
+					tout << "unique id '" << m_sChipID << "' do not reach correctly device for reading" << endl;
 			}
 		}else
 		{
 			if(debug)
 			{
-				cout << "write on chip " << m_sChipID;
+				tout << "write on chip " << m_sChipID;
 				if(m_sChipType != "")
-					cout << " with type " << m_sChipType;
-				cout << endl;
+					tout << " with type " << m_sChipType;
+				tout << endl;
 			}
 
 			m_bWrite= switchClass::measure(m_bWrite);
@@ -255,15 +257,15 @@ namespace ports
 				{
 					if(m_bWrite)
 					{
-						cout << "write on unique id '" << m_sChipID;
-						cout << "' to output " << value;
+						tout << "write on unique id '" << m_sChipID;
+						tout << "' to output " << value;
 						if(addinfo != "")
-							cout << " with additional info '" << addinfo << "'";
+							tout << " with additional info '" << addinfo << "'";
 					}else
-						cout << " do not write on '" << m_sChipID << "'";
-					cout << endl;
+						tout << " do not write on '" << m_sChipID << "'";
+					tout << endl;
 				}else
-					cout << "unique id '" << m_sChipID << "' do not reach correctly device for writing" << endl;
+					tout << "unique id '" << m_sChipID << "' do not reach correctly device for writing" << endl;
 			}
 		}
 

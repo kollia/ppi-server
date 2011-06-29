@@ -21,6 +21,8 @@
 #include "resistancemeasure.h"
 #include "switch.h"
 
+#include "../util/Terminal.h"
+
 #include "../logger/lib/LogInterface.h"
 
 #include "../database/lib/DbInterface.h"
@@ -70,7 +72,7 @@ namespace ports
 				warningOut+= "\n             on set parameter 'out' and 'in', ";
 				warningOut+= warning + "will be ignored.";
 				LOG(LOG_INFO, warningOut);
-				cout << warningOut << endl;
+				tout << warningOut << endl;
 			}
 			return TimeMeasure::init(properties);
 		}
@@ -114,7 +116,7 @@ namespace ports
 			warningOut+= "\n             so parameters ";
 			warningOut+= warning + " will be ignored";
 			LOG(LOG_INFO, warningOut);
-			cout << warningOut << endl;
+			tout << warningOut << endl;
 		}
 		sMValue= properties->needValue("mvalue");
 		if(sMValue == "")
@@ -137,7 +139,7 @@ namespace ports
 		msg+=" Ohm";
 		TIMELOG(LOG_INFO, getFolderName(), msg);
 		if(isDebug())
-			cout << msg << endl;
+			tout << msg << endl;
 		return dResistance;
 	}
 
@@ -168,8 +170,8 @@ namespace ports
 #ifdef DEBUG
 			if(isDebug())
 			{
-				cout << "measured time is " << time << endl;
-				cout << "found no nearest given mikrosecounds," << endl;
+				tout << "measured time is " << time << endl;
+				tout << "found no nearest given mikrosecounds," << endl;
 			}
 #endif // DEBUG
 			return time;
@@ -179,10 +181,10 @@ namespace ports
 #ifdef DEBUG
 			if(isDebug())
 			{
-				cout << "measured time is " << time << endl;
-				cout << "found nearest given mikrosecounds:" << endl;
-				cout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-				cout << vNearest[0].be << " / " << vNearest[0].nMikrosec << " * " << time << endl;
+				tout << "measured time is " << time << endl;
+				tout << "found nearest given mikrosecounds:" << endl;
+				tout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+				tout << vNearest[0].be << " / " << vNearest[0].nMikrosec << " * " << time << endl;
 			}
 #endif // DEBUG
 			return vNearest[0].be / vNearest[0].nMikrosec * time;
@@ -191,13 +193,13 @@ namespace ports
 	#ifdef DEBUG
 		if(isDebug())
 		{
-			cout << "measured time is " << time << endl;
-			cout << "found nearest given mikrosecounds:" << endl;
-			cout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-			cout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
-			cout << vNearest[0].be << " + ((" << vNearest[1].be << " - " << vNearest[0].be;
-			cout << ")) * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
-			cout << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
+			tout << "measured time is " << time << endl;
+			tout << "found nearest given mikrosecounds:" << endl;
+			tout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+			tout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+			tout << vNearest[0].be << " + ((" << vNearest[1].be << " - " << vNearest[0].be;
+			tout << ")) * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
+			tout << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
 		}
 	#endif // DEBUG
 		resistance= vNearest[0].be + (vNearest[1].be - vNearest[0].be) * (time - vNearest[0].nMikrosec) / (vNearest[1].nMikrosec - vNearest[0].nMikrosec);

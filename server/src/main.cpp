@@ -24,8 +24,8 @@
 #include <map>
 
 #include "util/MainParams.h"
-#include "util/termmacro.h"
 #include "util/debug.h"
+#include "util/Terminal.h"
 
 #include "portserver/LircClient.h"
 
@@ -182,9 +182,11 @@ int main(int argc, char* argv[])
 			if(!result)
 			{
 				cout << "with an ERROR" << endl;
+				Terminal::deleteObj();
 				return EXIT_FAILURE;
 			}
 			cout << "successfully" << endl;
+			Terminal::deleteObj();
 			return EXIT_SUCCESS;
 
 		}else if(command == "status")

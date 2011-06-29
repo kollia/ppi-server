@@ -23,6 +23,8 @@
 #include "timer.h"
 #include "measureThread.h"
 
+#include "../util/Terminal.h"
+
 #include "../logger/lib/LogInterface.h"
 
 
@@ -228,7 +230,7 @@ double timer::measure(const double actValue)
 							if(!bneed)
 							{
 								if(debug)
-									cout << "no next measure time be set, make no count down" << endl;
+									tout << "no next measure time be set, make no count down" << endl;
 								need= -1;
 							}else
 							{
@@ -268,8 +270,8 @@ double timer::measure(const double actValue)
 							char stime[18];
 
 							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
-							cout << "folder should start again in " << need << " seconds by (" << stime << " ";
-							cout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
+							tout << "folder should start again in " << need << " seconds by (" << stime << " ";
+							tout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
 						}
 					}
 
@@ -286,14 +288,14 @@ double timer::measure(const double actValue)
 						was.tv_sec= m_tmSec;
 						was.tv_usec= m_tmMicroseconds;
 						need= calcResult(was, m_bSeconds);
-						cout << "folder was refreshed because time of " << need;
-						cout << " seconds was reached" << endl;
+						tout << "folder was refreshed because time of " << need;
+						tout << " seconds was reached" << endl;
 						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
-						cout << "refresh time (" << stime << " ";
-						cout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
+						tout << "refresh time (" << stime << " ";
+						tout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
 						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
-						cout << " actual time (" << stime << " ";
-						cout << MeasureThread::getUsecString(tv.tv_usec) << ")" << endl;
+						tout << " actual time (" << stime << " ";
+						tout << MeasureThread::getUsecString(tv.tv_usec) << ")" << endl;
 					}
 					if(bswitch && !m_oEnd.isEmpty())
 					{
@@ -306,7 +308,7 @@ double timer::measure(const double actValue)
 							bswitch= false;
 							set= switchClass::END;
 							if(debug)
-								cout << "end of count down is reached, stop polling" << endl;
+								tout << "end of count down is reached, stop polling" << endl;
 						}
 					}
 					if(bswitch)
@@ -326,7 +328,7 @@ double timer::measure(const double actValue)
 								if(!bneed)
 								{
 									if(debug)
-										cout << "no next measure time be set, make no count down" << endl;
+										tout << "no next measure time be set, make no count down" << endl;
 									need= -1;
 								}else
 								{
@@ -361,9 +363,9 @@ double timer::measure(const double actValue)
 								char stime[18];
 
 								strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
-								cout << "refresh again for polling count down in " << need;
-								cout << " seconds by (" << stime << " ";
-								cout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
+								tout << "refresh again for polling count down in " << need;
+								tout << " seconds by (" << stime << " ";
+								tout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
 							}
 							getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
 							need= 0;
@@ -398,20 +400,20 @@ double timer::measure(const double actValue)
 
 						if(set != switchClass::END)
 						{
-							cout << "folder should start again in " << need << " seconds" << endl;
+							tout << "folder should start again in " << need << " seconds" << endl;
 							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
-							cout << "    by time (" << stime << " ";
-							cout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
+							tout << "    by time (" << stime << " ";
+							tout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
 						}else
 						{
 							timersub(&m_tmStart, &tv, &newtime);
 							need= calcResult(newtime, m_bSeconds);
-							cout << "subroutine of timer stops " << need << " seconds before" << endl;
+							tout << "subroutine of timer stops " << need << " seconds before" << endl;
 							need= 0;
 						}
 						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
-						cout << "actual time (" << stime << " ";
-						cout << MeasureThread::getUsecString(tv.tv_usec) << ")" << endl;
+						tout << "actual time (" << stime << " ";
+						tout << MeasureThread::getUsecString(tv.tv_usec) << ")" << endl;
 					}
 				}
 			}else
@@ -423,12 +425,12 @@ double timer::measure(const double actValue)
 					m_bMeasure= true;
 					if(debug)
 					{
-						cout << "subroutine begin to measure time in ";
+						tout << "subroutine begin to measure time in ";
 						if(m_bSeconds)
-							cout << "seconds";
+							tout << "seconds";
 						else
-							cout << "microseconds";
-						cout << endl;
+							tout << "microseconds";
+						tout << endl;
 					}
 				}else
 				{ // while or end measure
@@ -439,20 +441,20 @@ double timer::measure(const double actValue)
 					if(bswitch)
 					{ // while measure
 						if(debug)
-							cout << "actually measured time is ";
+							tout << "actually measured time is ";
 					}else
 					{ // end measure
 
 						m_bMeasure= false;
 						if(debug)
-							cout << "ending time measure by ";
+							tout << "ending time measure by ";
 					}
 					if(debug)
 					{
-						cout  << dec << need << " ";
+						tout  << dec << need << " ";
 						if(!m_bSeconds)
-							cout << "micro";
-						cout << "seconds" << endl;
+							tout << "micro";
+						tout << "seconds" << endl;
 					}
 				}
 
@@ -490,10 +492,10 @@ double timer::measure(const double actValue)
 	if(getLinkedValue("TIMER", need, bNormallyCountDown))
 	{
 		if(debug)
-			cout << "result of time from linked subroutine is " << dec << need << " seconds" << endl;
+			tout << "result of time from linked subroutine is " << dec << need << " seconds" << endl;
 
 	}else if(debug)
-			cout << "result of time is " << dec << need << " seconds" << endl;
+			tout << "result of time is " << dec << need << " seconds" << endl;
 
 	m_dTimeBefore= need;
 	return need;

@@ -32,6 +32,7 @@
 
 #include "portbaseclass.h"
 
+#include "../util/Terminal.h"
 #include "../util/thread/Thread.h"
 
 #include "../logger/lib/LogInterface.h"
@@ -335,8 +336,13 @@ void portBase::setValue(double value, const string& from)
 		}
 		if(debug && m_mvObservers.size() > 0)
 		{
+			bool registeredThread;
+
 			output << "////////////////////////////////////////" << endl;
-			cout << output.str();
+			registeredThread= Terminal::instance()->isRegistered();
+			tout << output.str();
+			if(!registeredThread)
+				TERMINALEND;
 		}
 		UNLOCK(m_OBSERVERLOCK);
 		if(dbvalue != oldMember)
@@ -398,7 +404,7 @@ bool portBase::initLinks(const string& type, IPropertyPattern* properties, const
 			msg << properties->getMsgHead(/*error*/true);
 			msg << i << ". link parameter '"  << sValue << "' can only be an single [folder:]<sburoutine>, so do not set this link";
 			LOG(LOG_ERROR, msg.str());
-			cout << msg.str() << endl;
+			tout << msg.str() << endl;
 			bOk= false;
 		}
 	}
@@ -428,8 +434,8 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 		isdebug= isDebug();
 		if(isdebug)
 		{
-			cout << "  __________________" << endl;
-			cout << " << check link's >>>>" << endl;
+			tout << "  __________________" << endl;
+			tout << " << check link's >>>>" << endl;
 		}
 		foldersub= m_sFolder+":"+m_sSubroutine;
 		// create first lwhile parameter
@@ -447,14 +453,14 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 
 						msg += "             so do not create any link to foreign subroutine";
 						if(isdebug)
-							cout << "### WARNING: " << msg << endl;
+							tout << "### WARNING: " << msg << endl;
 						msg= "in folder '"+m_sFolder+"' and subroutine '"+m_sSubroutine+"'\n"+msg;
 						msg+= "\n";
 						TIMELOG(LOG_WARNING, m_sFolder+m_sSubroutine+"linkwhile", msg);
 						bOk= false; // no linked value be used
 
 					}else if(isdebug)
-						cout << "calculation of lvhile parameter is 0, so take own value" << endl;
+						tout << "calculation of lvhile parameter is 0, so take own value" << endl;
 					slink= foldersub;
 					pos= 0;
 					bOk= false;
@@ -473,7 +479,7 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 				msg+= "' in folder " + m_sFolder + " and subroutine " + m_sSubroutine;
 				TIMELOG(LOG_ERROR, "calcResult"+m_sFolder+":"+m_sSubroutine, msg);
 				if(isdebug)
-					cout << "### ERROR: " << msg << endl;
+					tout << "### ERROR: " << msg << endl;
 				bOk= false;
 			}
 		}else
@@ -493,7 +499,7 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 				msg << " in folder " << m_sFolder << " and subroutine " << m_sSubroutine;
 				TIMELOG(LOG_ERROR, "searchresult"+m_sFolder+":"+m_sSubroutine, msg.str());
 				if(isdebug)
-					cout << "### ERROR: " << msg << endl;
+					tout << "### ERROR: " << msg << endl;
 				bOk= false;
 			}else
 			{
@@ -514,7 +520,7 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 						}else
 							msg << "own link ";
 						msg << "to " << pos << ". link (" << slink << ")" << endl;
-						cout << msg.str();
+						tout << msg.str();
 					}
 					if(m_nLinkObserver)
 						m_vpoLinks[m_nLinkObserver-1]->removeObserver( m_poMeasurePattern);
@@ -528,7 +534,7 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 				}else if(linkvalue != m_dLastTimeLinkValue)
 				{// linked value from other subroutine was changed
 					if(isdebug)
-						cout << "oldvalue(" << m_dLastTimeLinkValue << ") take changed value " << linkvalue << " from foreign subroutine " << slink << endl;
+						tout << "oldvalue(" << m_dLastTimeLinkValue << ") take changed value " << linkvalue << " from foreign subroutine " << slink << endl;
 					val= linkvalue;
 					m_dLastTimeLinkValue= linkvalue;
 					bOk= true;
@@ -541,9 +547,9 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 					{
 						if(isdebug)
 						{
-							cout << "value was changed in own subroutine," << endl;
-							cout << "set foreign subroutine " << slink << " to " << dec << val << endl;
-							cout << "set old value to " << val << endl;
+							tout << "value was changed in own subroutine," << endl;
+							tout << "set foreign subroutine " << slink << " to " << dec << val << endl;
+							tout << "set old value to " << val << endl;
 						}
 						m_dLastTimeLinkValue= val;
 						port->setValue(val, "i:"+foldersub);
@@ -563,18 +569,18 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 				}else
 				{ // nothing was changed
 					if(isdebug)
-						cout << "oldvalue(" << m_dLastTimeLinkValue << ") no changes be necessary" << endl;
+						tout << "oldvalue(" << m_dLastTimeLinkValue << ") no changes be necessary" << endl;
 					bOk= false;
 				}
 			}
 		}else // else of if(slink own subroutine)
 		{
 			if(isdebug)
-				cout << "link is showen to owen subroutine, make no changes" << endl;
+				tout << "link is showen to owen subroutine, make no changes" << endl;
 			if(m_nLinkObserver != 0)
 			{
 				if(isdebug && bOk)
-					cout << pos << ". link value '" << slink << "' link to own subroutine" << endl;
+					tout << pos << ". link value '" << slink << "' link to own subroutine" << endl;
 				if(	m_nLinkObserver-1 < links	)
 				{
 					m_vpoLinks[m_nLinkObserver-1]->removeObserver( m_poMeasurePattern);
@@ -591,8 +597,8 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 
 		if(isdebug)
 		{
-			cout << " << end of check >>>>" << endl;
-			cout << "   --------------" << endl;
+			tout << " << end of check >>>>" << endl;
+			tout << "   --------------" << endl;
 		}
 	}else // if(links > 0)
 		bOk= false;

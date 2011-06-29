@@ -20,12 +20,14 @@
 
 #include "tempmeasure.h"
 
+#include "../util/Terminal.h"
+
 double TempMeasure::measure(const double actValue)
 {
 	float nTemperature= getTemperature();
 
 	if(isDebug())
-		cout << "Temperature:" << m_nTemperature << endl;
+		tout << "Temperature:" << m_nTemperature << endl;
 	return (double)nTemperature;
 }
 

@@ -23,6 +23,7 @@
 #include <sstream>
 
 #include "../util/debug.h"
+#include "../util/Terminal.h"
 
 #include "../logger/lib/LogInterface.h"
 
@@ -129,7 +130,8 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 		m_bDebug= false;
 	}
 	out << "-------------------------------------------------------------------" << endl;
-	cout << out.str();
+	tout << out.str();
+	TERMINALEND;
 	UNLOCK(m_DEBUGLOCK);
 }
 
@@ -239,33 +241,34 @@ int MeasureThread::execute()
 	timespec waittm;
 	vector<timeval>::iterator akttime;
 
-	/*string stopfolder("TRANSMIT_SONY_choice");
-	if(folder == stopfolder)
+	//Debug info to stop by right folder
+	/*if(folder == "Hauppauge_KEY_6")
 	{
 		cout << __FILE__ << __LINE__ << endl;
-		cout << "by starting folder " << stopfolder << endl;
-		//setDebug(true, 0);
+		cout << "starting folder " << folder << endl;
 	}*/
 	timerclear(&cond);
 	measure();
 	if(debug)
 	{
 		folder= getThreadName();
+		tout << "--------------------------------------------------------------------" << endl;
 		if(gettimeofday(&end_tv, NULL))
-			cout << " ERROR: cannot calculate time of ending" << endl;
+			tout << " ERROR: cannot calculate time of ending" << endl;
 		else
 		{
 			char stime[18];
 
 			strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&end_tv.tv_sec));
-			cout << " folder '" << folder << "' STOP (" << stime << " ";
-			cout << getUsecString(end_tv.tv_usec) << ")";
+			tout << " folder '" << folder << "' STOP (" << stime << " ";
+			tout << getUsecString(end_tv.tv_usec) << ")";
 
 			timersub(&end_tv, &start_tv, &end_tv);
-			cout << "  running time (" << end_tv.tv_sec << ".";
-			cout << getUsecString(end_tv.tv_usec) << ")" << endl;
+			tout << "  running time (" << end_tv.tv_sec << ".";
+			tout << getUsecString(end_tv.tv_usec) << ")" << endl;
 		}
-		cout << "----------------------------------" << endl << endl << endl;
+		tout << "--------------------------------------------------------------------" << endl;
+		TERMINALEND;
 	}
 	LOCK(m_VALUE);
 	m_vInformed.clear();
@@ -284,11 +287,22 @@ int MeasureThread::execute()
 				m_vtmNextTime.erase(akttime);
 			}
 		}else
+		{
 			CONDITION(m_VALUECONDITION, m_VALUE);
+			static pid_t pid(0);
+
+			if(Thread::gettid() == pid)
+			{
+				cout << "running thread " << pid << endl;
+				cout << __FILE__ << " " << __LINE__ << endl;
+			}
+		}
 	}
 	if(stopping())
 	{
 		UNLOCK(m_VALUE);
+		if(debug)
+			TERMINALEND;
 		return 0;
 	}
 	m_vInformed= m_vFolder;
@@ -301,36 +315,37 @@ int MeasureThread::execute()
 		msg+= folder + " is aktivated!";
 		TIMELOG(LOG_INFO, folder, msg);
 
-		cout << "----------------------------------" << endl;
+		tout << "--------------------------------------------------------------------" << endl;
 		if(gettimeofday(&start_tv, NULL))
-			cout << " ERROR: cannot calculate time of beginning" << endl;
+			tout << " ERROR: cannot calculate time of beginning" << endl;
 		else
 		{
 			char stime[18];
 
 			strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&start_tv.tv_sec));
-			cout << " folder '" << folder << "' START (" << stime << " ";
-			cout << getUsecString(start_tv.tv_usec) << ")" << endl;
+			tout << " folder '" << folder << "' START (" << stime << " ";
+			tout << getUsecString(start_tv.tv_usec) << ")" << endl;
 			if(timerisset(&cond))
 			{
 				strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&cond.tv_sec));
-				cout << "      awaked from setting time " << stime << " ";
-				cout << getUsecString(cond.tv_usec) << ")" << endl;
+				tout << "      awaked from setting time " << stime << " ";
+				tout << getUsecString(cond.tv_usec) << ")" << endl;
 			}
 			for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
 			{
-				cout << "    informed ";
+				tout << "    informed ";
 				if(i->substr(0, 1) == "|")
 				{
 					if(i->substr(1, 1) == "|")
-						cout << "from ppi-reader '" << i->substr(2) << "'" << endl;
+						tout << "from ppi-reader '" << i->substr(2) << "'" << endl;
 					else
-						cout << "over Internet connection account '" << i->substr(1) << "'" << endl;
+						tout << "over Internet connection account '" << i->substr(1) << "'" << endl;
 				}else
-					cout << "from " << *i << " because value was changed" << endl;
+					tout << "from " << *i << " because value was changed" << endl;
 			}
 		}
-		cout << "----------------------------------" << endl;
+		tout << "--------------------------------------------------------------------" << endl;
+		TERMINALEND;
 	}
 	UNLOCK(m_VALUE);
 	return 0;
@@ -360,7 +375,7 @@ bool MeasureThread::measure()
 	{
 		if(gettimeofday(&tv, NULL))
 		{
-			cout << " ERROR: cannot calculate time of ending" << endl;
+			tout << " ERROR: cannot calculate time of ending" << endl;
 			notime= true;
 		}
 	}
@@ -370,6 +385,7 @@ bool MeasureThread::measure()
 		{
 			double result;
 
+			//Debug info to stop always by right folder or subroutine
 			/*string stopfolder("TRANSMIT_SONY");
 			string stopsub("correct_group");
 			if(	getThreadName() == stopfolder &&
@@ -384,15 +400,16 @@ bool MeasureThread::measure()
 				it->portClass->isDebug())
 			{
 				classdebug= true;
-				cout << "execute '" << folder << ":" << it->name;
-				cout << "' with value " << result << " and type " << it->portClass->getType() << " ";
+				tout << "--------------------------------------------------------------------" << endl;
+				tout << "execute '" << folder << ":" << it->name;
+				tout << "' with value " << result << " and type " << it->portClass->getType() << " ";
 				if(notime || gettimeofday(&tv_end, NULL))
-					cout << " (cannot calculate length)" << endl;
+					tout << " (cannot calculate length)" << endl;
 				else
 				{
 					timersub(&tv_end, &tv, &tv_end);
-					cout << " (" << tv_end.tv_sec << ".";
-					cout << getUsecString(tv_end.tv_usec) << ")" << endl;
+					tout << " (" << tv_end.tv_sec << ".";
+					tout << getUsecString(tv_end.tv_usec) << ")" << endl;
 				}
 			}else
 				classdebug= false;
@@ -401,9 +418,12 @@ bool MeasureThread::measure()
 
 
 		}else if(debug)
-			cout << "Subroutine " << it->name << " is not correct initialized" << endl;
+			tout << "Subroutine " << it->name << " is not correct initialized" << endl;
 		if(classdebug)
-			cout << "----------------------------------" << endl;
+		{
+			tout << "--------------------------------------------------------------------" << endl;
+			TERMINALEND;
+		}
 		if(stopping())
 			break;
 	}

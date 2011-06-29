@@ -30,6 +30,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
+#include "../util/Terminal.h"
 #include "../util/CalculatorContainer.h"
 
 #include "../database/lib/DbInterface.h"
@@ -127,7 +128,7 @@ double switchClass::measure(const double actValue, setting& set)
 	 // the variable be set over the server from outside
 		bOutside= true;
 		if(debug)
-			cout << "SWITCH value was enabled from remote access" << endl;
+			tout << "SWITCH value was enabled from remote access" << endl;
 
 	}else if(	!bSwitched &&
 				m_bLastValue	)
@@ -135,7 +136,7 @@ double switchClass::measure(const double actValue, setting& set)
 	 // but on the last session it was true
 	 // the variable be set over the server from outside
 		if(debug)
-			cout << "SWITCH value was disabled from remote access" << endl;
+			tout << "SWITCH value was disabled from remote access" << endl;
 		bOutside= true;
 	}
 
@@ -230,26 +231,26 @@ double switchClass::measure(const double actValue, setting& set)
 	}
 	if(debug)
 	{
-		cout << "result for SWITCH is ";
+		tout << "result for SWITCH is ";
 		if(bOutside)
-			cout << "set from outside to ";
-		cout << boolalpha << bSwitched << " (";
+			tout << "set from outside to ";
+		tout << boolalpha << bSwitched << " (";
 		switch(set)
 		{
 		case BEGIN:
-			cout << "BEGIN";
+			tout << "BEGIN";
 			break;
 		case WHILE:
-			cout << "WHILE";
+			tout << "WHILE";
 			break;
 		case END:
-			cout << "END";
+			tout << "END";
 			break;
 		case NONE:
 		default:
-			cout << "NONE";
+			tout << "NONE";
 		}
-		cout << ")" << endl;
+		tout << ")" << endl;
 	}
 	m_bLastValue= bSwitched;
 	if(bSwitched)

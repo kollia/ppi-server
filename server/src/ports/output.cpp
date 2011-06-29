@@ -22,6 +22,7 @@
 
 #include "../logger/lib/LogInterface.h"
 
+#include "../util/Terminal.h"
 #include "../util/thread/Thread.h"
 
 #include "output.h"
@@ -73,7 +74,7 @@ bool Output::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_pt
 
 		msg+= "no string or value be set for output, set subroutine to incorrect";
 		LOG(LOG_WARNING, msg);
-		cout << msg << endl;
+		tout << msg << endl;
 		return false;
 	}
 	if(!bSwitch)
@@ -128,7 +129,7 @@ double Output::measure(const double actValue)
 			}else
 				out << "(## wrong value ##) ";
 		}
-		cout << out.str() << endl;
+		tout << out.str() << endl;
 		return 1;
 	}
 	return 0;

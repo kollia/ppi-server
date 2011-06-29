@@ -90,8 +90,8 @@ void ListCalculator::output(bool bError, const string& file, const int line, con
 		string err("rendering ERROR by folder '");
 
 		err+= m_sFolder + "' and subroutine '" + m_sSubroutine + "' in parameter " + m_sParameter;
-		cerr << "### " << err << endl;
-		cerr << "    " << msg << endl;
+		tout << "### " << err << endl;
+		tout << "    " << msg << endl;
 		err+= "\n" + msg;
 		LOG(LOG_ERROR, err);
 

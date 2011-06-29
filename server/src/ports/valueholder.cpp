@@ -24,6 +24,8 @@
 #include "switch.h"
 #include "measureThread.h"
 
+#include "../util/Terminal.h"
+
 #include "../logger/lib/LogInterface.h"
 
 #include "../database/lib/DbInterface.h"
@@ -170,18 +172,18 @@ namespace ports
 		if(getLinkedValue("VALUE", value))
 		{
 			if(isdebug)
-				cout << "VALUE be set from foreign subroutine to " << dec << value << endl;
+				tout << "VALUE be set from foreign subroutine to " << dec << value << endl;
 
 		}else
 		{
 			if(isdebug)
 			{
 				if(bChanged)
-					cout << "new value " << dec << value << " be changed from own subroutine" << endl;
+					tout << "new value " << dec << value << " be changed from own subroutine" << endl;
 				else if(bOutside)
-					cout << "own value was changed from outside to value " << dec << value << endl;
+					tout << "own value was changed from outside to value " << dec << value << endl;
 				else
-					cout << "current value is " << dec << value << endl;
+					tout << "current value is " << dec << value << endl;
 			}
 		}
 		m_dLastValue= value;
@@ -270,9 +272,9 @@ namespace ports
 				}
 				if(debug)
 				{
-					cout << "select " << dec << count+1 << ". string from value parameters" << endl;
+					tout << "select " << dec << count+1 << ". string from value parameters" << endl;
 					for(vector<ListCalculator*>::const_iterator it= content.begin(); it != content.end(); ++it)
-						cout << "               " << (*it)->getStatement() << endl;
+						tout << "               " << (*it)->getStatement() << endl;
 				}
 				if(!content[count]->calculate(value))
 				{
@@ -288,10 +290,10 @@ namespace ports
 					TIMELOG(LOG_WARNING, def.str(), msg.str());
 					value= defaultVal;
 					if(debug)
-						cout << "### WARNING: " << msg.str() << endl;
+						tout << "### WARNING: " << msg.str() << endl;
 				}
 				if(debug)
-					cout << "value be set from value paramter to " << value << endl;
+					tout << "value be set from value paramter to " << value << endl;
 			}
 
 		}else
@@ -302,7 +304,7 @@ namespace ports
 			msg+= "' in folder " + folder + " and subroutine " + subroutine;
 			TIMELOG(LOG_ERROR, "ValueHoldeCalc"+folder+":"+subroutine, msg);
 			if(debug)
-				cout << "### ERROR: " << msg << endl;
+				tout << "### ERROR: " << msg << endl;
 			value= defaultVal;
 			return false;
 		}

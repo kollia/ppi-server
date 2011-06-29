@@ -19,6 +19,7 @@
 #include <iostream>
 
 #include "../util/structures.h"
+#include "../util/Terminal.h"
 
 #include "../logger/lib/LogInterface.h"
 
@@ -73,7 +74,7 @@ double Shell::measure(const double actValue)
 				msg+= "' for beginning";
 				TIMELOG(LOG_INFO, getFolderName(), msg);
 				if(isDebug())
-					cout << msg << endl;
+					tout << msg << endl;
 				system(m_sBeginCom.c_str());
 				dRv= 1;
 				bMaked= true;
@@ -87,7 +88,7 @@ double Shell::measure(const double actValue)
 				msg+= "' while during contact exists";
 				TIMELOG(LOG_INFO, getFolderName(), msg);
 				if(isDebug())
-					cout << msg << endl;
+					tout << msg << endl;
 				system(m_sWhileCom.c_str());
 				dRv= 2;
 			}
@@ -102,7 +103,7 @@ double Shell::measure(const double actValue)
 				msg+= "' for ending";
 				TIMELOG(LOG_DEBUG, getFolderName(), msg);
 				if(isDebug())
-					cout << msg << endl;
+					tout << msg << endl;
 				system(m_sEndCom.c_str());
 				dRv= 3;
 			}
@@ -141,8 +142,8 @@ void Shell::system(const char *command)
 			msg+= "'";
 			LOG(LOG_ALERT, msg);
 		}
-		//cout << "ending child witch starting command '" << command << "'" << endl;
-		//cout << "------------------------------------------------------------------------------------------" << endl;
+		//tout << "ending child witch starting command '" << command << "'" << endl;
+		//tout << "------------------------------------------------------------------------------------------" << endl;
 		exit(1);
 	}
 }

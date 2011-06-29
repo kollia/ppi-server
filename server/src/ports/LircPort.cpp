@@ -21,6 +21,8 @@
 #include "LircPort.h"
 #include "timer.h"
 
+#include "../util/Terminal.h"
+
 namespace ports
 {
 	bool LircPort::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
@@ -87,14 +89,14 @@ namespace ports
 					m_mtResult.size()	)
 				{
 					show= true;
-					cout << "-----------------------------------------------------------------------------------------" << endl;
+					tout << "-----------------------------------------------------------------------------------------" << endl;
 					for(map<double, pair<double, double> >::iterator i= m_mtResult.begin(); i != m_mtResult.end(); ++i)
 					{
 						safter= i->second.second;
-						cout << getFolderName() << ":  " << i->second.first << "  " << safter << "->" << (safter+safter/2);
-						cout << " = " << i->first << endl;
+						tout << getFolderName() << ":  " << i->second.first << "  " << safter << "->" << (safter+safter/2);
+						tout << " = " << i->first << endl;
 					}
-					cout << "-----------------------------------------------------------------------------------------" << endl;
+					tout << "-----------------------------------------------------------------------------------------" << endl;
 				}
 			}else
 				if(dbef != digbefore)
@@ -102,9 +104,9 @@ namespace ports
 					map<double, pair<double, double> >::iterator found;
 
 					digbefore= dbef;
-					cout << getFolderName() << ":       <<<<<<<<<<<<<< wrong set before" << endl;
-					cout << getFolderName() << ":  " << digbefore << "  " << setafter << "->" << (setafter+setafter/2) << " =  ";
-					cout << newtime << endl;
+					tout << getFolderName() << ":       <<<<<<<<<<<<<< wrong set before" << endl;
+					tout << getFolderName() << ":  " << digbefore << "  " << setafter << "->" << (setafter+setafter/2) << " =  ";
+					tout << newtime << endl;
 					m_mtResult[newtime]= pair<double, double>(digbefore, setafter);
 					show= false;
 				}
@@ -175,8 +177,8 @@ namespace ports
 					digits.calculate(digbefore);
 					timersub(&needtime, &m_tTime, &needtime);
 					newtime= timer::calcResult(needtime, false);
-					cout << getFolderName() << ":  " << digbefore << "  " << setafter << "->" << (setafter+setafter/2) << " =  ";
-					cout << newtime << endl;
+					tout << getFolderName() << ":  " << digbefore << "  " << setafter << "->" << (setafter+setafter/2) << " =  ";
+					tout << newtime << endl;
 					m_mtResult[newtime]= pair<double, double>(digbefore, setafter);
 					show= false;
 					timerclear(&m_tTime);
