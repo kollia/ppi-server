@@ -34,6 +34,7 @@ class timer : public switchClass
 public:
 	timer(string folderName, string subroutineName)
 	: switchClass("TIMER", folderName, subroutineName),
+	  m_bHasLinks(false),
 	  m_bTime(false),
 	  m_bMeasure(false),
 	  m_bSeconds(true),
@@ -74,6 +75,10 @@ public:
 	virtual ~timer();
 
 protected:
+	/**
+	 * whether subroutine is linked with an other one
+	 */
+	bool m_bHasLinks;
 	/**
 	 * whether subroutine measure time (true)
 	 * or makes an count down (false)

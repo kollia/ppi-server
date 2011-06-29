@@ -47,7 +47,6 @@ portBase::portBase(const string& type, const string& folderName, const string& s
 : m_poMeasurePattern(NULL),
   m_oLinkWhile(folderName, subroutineName, "lwhile", false, false),
   m_dLastSetValue(0),
-  m_dLastTimeLinkValue(-1),
   m_nLinkObserver(0)
 {
 #ifdef DEBUG
@@ -417,7 +416,7 @@ bool portBase::initLinks(const string& type, IPropertyPattern* properties, const
 	return bOk;
 }
 
-bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*=false*/)
+bool portBase::getLinkedValue(const string& type, double& val, const double& maxCountDownValue/*=0*/)
 {
 	bool bOk, isdebug;
 	double lvalue, linkvalue;
@@ -531,15 +530,27 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 					val= linkvalue;
 					bOk= true;
 
-				}else if(linkvalue != m_dLastTimeLinkValue)
-				{// linked value from other subroutine was changed
+				}else if(	maxCountDownValue &&
+							linkvalue != m_dLastSetValue &&
+							(	linkvalue <= 0 ||
+								linkvalue == maxCountDownValue	)	)
+				{
 					if(isdebug)
-						tout << "oldvalue(" << m_dLastTimeLinkValue << ") take changed value " << linkvalue << " from foreign subroutine " << slink << endl;
+					{
+						tout << "value be set from linked subroutine to";
+						if(linkvalue == 0)
+							tout << " end (0)";
+						else
+							tout << " new begin (" << linkvalue << ")";
+						tout << " time" << endl;
+					}
 					val= linkvalue;
-					m_dLastTimeLinkValue= linkvalue;
 					bOk= true;
 
-				}else if(m_dLastSetValue != val)
+				}else if(	m_dLastSetValue != val &&
+							(	maxCountDownValue == 0 || // <- no timer count down set
+								val < linkvalue || // by count down wins the lower or max value
+								val == maxCountDownValue	)	)
 				{ // value is changed inside own subroutine
 				  // write new value inside foreign subroutine
 					port= link->getSubroutine(slink, /*own folder*/true);
@@ -549,9 +560,7 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 						{
 							tout << "value was changed in own subroutine," << endl;
 							tout << "set foreign subroutine " << slink << " to " << dec << val << endl;
-							tout << "set old value to " << val << endl;
 						}
-						m_dLastTimeLinkValue= val;
 						port->setValue(val, "i:"+foldersub);
 						port->getRunningThread()->changedValue(slink, foldersub);
 					}else
@@ -566,10 +575,19 @@ bool portBase::getLinkedValue(const string& type, double& val, bool bCountDown/*
 					}
 					bOk= false;
 
+				}else if(	linkvalue != m_dLastSetValue &&
+							(	maxCountDownValue == 0 ||
+								linkvalue < val				)		)
+				{// linked value from other subroutine was changed
+					if(isdebug)
+						tout << "take changed value " << linkvalue << " from foreign subroutine " << slink << endl;
+					val= linkvalue;
+					bOk= true;
+
 				}else
 				{ // nothing was changed
 					if(isdebug)
-						tout << "oldvalue(" << m_dLastTimeLinkValue << ") no changes be necessary" << endl;
+						tout << "no changes be necessary" << endl;
 					bOk= false;
 				}
 			}

@@ -413,7 +413,7 @@ namespace ports
 			 * @param bCountDown whether getting linked value is an count down (only for TIMER subroutines) do not inform liked values
 			 * @return true when the value is from an other subroutine, else false
 			 */
-			bool getLinkedValue(const string& type, double& val, bool bCountDown= false);
+			bool getLinkedValue(const string& type, double& val, const double& maxCountDownValue= 0);
 
 		private:
 			IMeasurePattern* m_poMeasurePattern;
@@ -429,11 +429,6 @@ namespace ports
 			 * last set value inside method <code>getLinkedValue()</code>
 			 */
 			double m_dLastSetValue;
-			/**
-			 * last value from other linked subroutine
-			 * only used when subroutine from TIMER
-			 */
-			double m_dLastTimeLinkValue;
 			/**
 			 * which link for observer be set
 			 */

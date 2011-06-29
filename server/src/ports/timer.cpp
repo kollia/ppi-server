@@ -116,6 +116,8 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		m_oSetNull.init(pStartFolder, sSetNull);
 	}
 
+	if(properties->getPropertyCount("link"))
+		m_bHasLinks= true;
 	if(!initLinks("TIMER", properties, pStartFolder))
 		bOk= false;
 	if(!switchClass::init(properties, pStartFolder))
@@ -173,9 +175,8 @@ double timer::measure(const double actValue)
 {
 	bool bswitch;
 	bool bEndCount(false);
-	bool bNormallyCountDown(false);
 	bool debug= isDebug();
-	double need;
+	double need, nBeginTime(0);
 	switchClass::setting set;
 
 	//Debug info to stop by right subroutine
@@ -212,20 +213,18 @@ double timer::measure(const double actValue)
 		{
 			if(!m_bTime)
 			{ // measure count down
-				if(	m_bMeasure == false ||
-					set == switchClass::BEGIN	)
-				{ // starting first count down
-					bool bneed= true;
+				bool bneed= true;
+				timeval next;
 
-					// count down begins
-					// this is no normally count down
-					bNormallyCountDown= false;
-					m_tmStart= tv;
+				if(	m_bMeasure == false ||
+					set == switchClass::BEGIN ||
+					m_bHasLinks					)
+				{
 					if(!m_omtime.isEmpty())
 					{ // calculate seconds (m_tmSec) and microseconds (m_tmMicroseconds) from other subroutine
 						if(m_omtime.calculate(need))
 						{
-							if(need > 0 || need < 0)
+							if(need > 0)
 								bneed= true;
 							if(!bneed)
 							{
@@ -239,6 +238,9 @@ double timer::measure(const double actValue)
 								need*= (1000 * 1000);
 								m_tmMicroseconds= static_cast<suseconds_t>(need);
 								m_bSeconds= m_tmMicroseconds == 0 ? true : false;
+								next.tv_sec= m_tmSec;
+								next.tv_usec= m_tmMicroseconds;
+								nBeginTime= calcResult(next, m_bSeconds);
 							}
 						}else
 						{
@@ -254,15 +256,22 @@ double timer::measure(const double actValue)
 							need= -1;
 							bneed= false;
 						}
-					}
-					if(bneed)
+					}else
 					{
-						timeval next;
-
 						next.tv_sec= m_tmSec;
 						next.tv_usec= m_tmMicroseconds;
+						nBeginTime= calcResult(next, m_bSeconds);
+						bneed= true;
+					}
+				}
+				if(	m_bMeasure == false ||
+					set == switchClass::BEGIN	)
+				{ // starting first count down
+					m_tmStart= tv;
+					if(bneed)
+					{
 						timeradd(&m_tmStart, &next, &m_tmStart);
-						need= calcResult(next, m_bSeconds);
+						need= nBeginTime;
 						getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
 						m_bMeasure= true;
 						if(debug)
@@ -278,8 +287,6 @@ double timer::measure(const double actValue)
 				}else if( timercmp(&tv, &m_tmStart, >=) )
 				{ // reaching end of count down
 				  // now polling ending, or begin with new time
-				  // this is no normally count down
-					bNormallyCountDown= false;
 					if(debug)
 					{
 						char stime[18];
@@ -382,9 +389,6 @@ double timer::measure(const double actValue)
 				{ // count down is running
 					timeval newtime;
 
-					// by normally count down do not inform
-					// other linked subroutines
-					bNormallyCountDown= true;
 					if(set != switchClass::END)
 					{
 						timersub(&m_tmStart, &tv, &newtime);
@@ -489,13 +493,16 @@ double timer::measure(const double actValue)
 		need= -1;
 	}
 
-	if(getLinkedValue("TIMER", need, bNormallyCountDown))
+	if(m_bHasLinks)
 	{
-		if(debug)
-			tout << "result of time from linked subroutine is " << dec << need << " seconds" << endl;
+		if(getLinkedValue("TIMER", need, nBeginTime))
+		{
+			if(debug)
+				tout << "result of time from linked subroutine is " << dec << need << " seconds" << endl;
 
-	}else if(debug)
-			tout << "result of time is " << dec << need << " seconds" << endl;
+		}else if(debug)
+				tout << "result of time is " << dec << need << " seconds" << endl;
+	}
 
 	m_dTimeBefore= need;
 	return need;
