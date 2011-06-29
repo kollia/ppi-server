@@ -805,7 +805,7 @@ bool CalculatorContainer::calculateI(double& dResult)
 	return true;
 }
 
-void CalculatorContainer::doOutput(bool write)
+void CalculatorContainer::doOutput(const bool write/*= true*/)
 {
 	m_bOutput= write;
 	if(m_poIf)
@@ -878,6 +878,7 @@ void CalculatorContainer::outputF(bool bError, const string& file, const int lin
 
 void CalculatorContainer::output(bool bError, const string& file, const int line, const string& msg)
 {
+	ostringstream o;
 
 	if(m_funcMessage)
 	{
@@ -887,21 +888,25 @@ void CalculatorContainer::output(bool bError, const string& file, const int line
 	if(!m_bRendered)
 	{
 		if(bError)
-			cerr << "ERROR: " << msg << endl;
+			o << "ERROR: ";
 		else
-			cout << "WARNING: " << msg << endl;
-	}else
+			o << "WARNING: ";
+		o << msg << endl;
+		out(bError, o.str());
+		return;
+	}
+	if(	m_bOutput || 
+		(	bError &&
+			m_bShowErrors	)	)
 	{
-		if(m_bOutput)
+		if(msg == "\n")
 		{
-			if(msg == "\n")
-			{
-				cout << endl;
-				for(unsigned short n= 0; n < m_nSpaces; ++n)
-					cout << " ";
-			}else
-				cout << msg << flush;
-		}
+			o << endl;
+			for(unsigned short n= 0; n < m_nSpaces; ++n)
+				o << " ";
+		}else
+			o << msg << flush;
+		out(bError, o.str());
 	}
 }
 

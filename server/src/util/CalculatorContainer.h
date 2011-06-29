@@ -46,6 +46,7 @@ public:
 	  	m_bCBool(boolean),
 	  	m_bComparison(false),
 	  	m_bIfAllow(false),
+	  	m_bShowErrors(false),
 	  	m_bOutput(false),
 	  	m_nSpaces(0),
 		m_dValue(0),
@@ -94,11 +95,28 @@ public:
 	virtual bool isRendered() const
 	{ return m_bRendered; };
 	/**
-	 * write calculation output over message function getting in constructor
+	 * whether CalculatorContainer should only show errors.<br />
+	 * This behavior is also activated by <code>doOutput()</code>.<br />
+	 * Default setting is <code>false</code>.
+	 *
+	 * @param show whether should shown errors
+	 */
+	virtual void showErrors(const bool show)
+	{ m_bShowErrors= show; };
+	/**
+	 * return whether should shown errors
+	 *
+	 * @return whether should shown errors
+	 */
+	virtual bool showErrors()
+	{ if(m_bOutput || m_bShowErrors) return true; else return false; };
+	/**
+	 * write calculation output over message function getting in constructor.<br />
+	 * Default setting is <code>false</code>.
 	 *
 	 * @param write wheter should write
 	 */
-	virtual void doOutput(bool write);
+	virtual void doOutput(const bool write);
 	/**
 	 * return whether output is set
 	 *
@@ -222,6 +240,14 @@ protected:
 	 */
 	virtual void output(bool bError, const string& file, const int line, const string& msg);
 	/**
+	 * direct output called from method <code>output()</code>
+	 *
+	 * @param bError whether output should be an error
+	 * @param msg output string
+	 */
+	virtual void out(const bool bError, const string& msg)
+	{ if(bError) cerr << msg; else cout << msg; };
+	/**
 	 * this method is only to overload by an new child, otherwise variables not be allowed.<br />
 	 * This method will be also called by rendering, when overload class give back (by rendering)
 	 * an error, method <code>calculate()</code> do not calculate string by next call.
@@ -268,7 +294,12 @@ private:
 	 */
 	bool m_bIfAllow;
 	/**
-	 * wheter should write output over message function (getting in constructor)
+	 * whether should shown errors
+	 */
+	bool m_bShowErrors;
+	/**
+	 * whether should write output over message function (getting in constructor),
+	 * show also errors
 	 */
 	bool m_bOutput;
 	/**
