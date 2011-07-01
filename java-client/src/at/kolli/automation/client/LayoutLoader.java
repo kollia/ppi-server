@@ -415,19 +415,7 @@ public class LayoutLoader extends Thread
 		
 				final short itype= type;
 				TreeNodes.m_hmDirectory= folder;
-				/*Display.getDefault().syncExec(new Runnable()
-				{
-				
-					//@Override
-					public void run()
-					{
-						if(itype == CREATE)
-							initializeMainWidget(TreeNodes.m_hmDirectory);
-						else
-							updateMainWidget(TreeNodes.m_hmDirectory);
-					}
-				
-				});*/
+				dialog.show(trans.translate("dialogLoadContent"));
 				if(itype == CREATE)
 					initializeMainWidget(TreeNodes.m_hmDirectory);
 				else
@@ -440,7 +428,7 @@ public class LayoutLoader extends Thread
 				}else
 					// change user back;
 					client.changeUser(olduser, oldpwd);
-			}
+			}	
 			synchronized (this.type) {
 				
 				this.type= 0;
@@ -851,6 +839,7 @@ public class LayoutLoader extends Thread
 		Set<String> folderSet= folderMap.keySet();
 		ArrayList<TreeNodes> nodes;	
 		DialogThread dialog= DialogThread.instance(m_oTopLevelShell);
+		NoStopClientConnector client= NoStopClientConnector.instance();
 
 		if(m_aoComponents == null)
 			m_aoComponents= m_oAktTreeNode.getComponents();
@@ -869,6 +858,7 @@ public class LayoutLoader extends Thread
 			});
 		}
 		nodes= creatingWidgets(m_oTree, m_oMainComposite, folderSet);
+		client.secondConnection();
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 		{
 			for (TreeNodes node : nodes) {

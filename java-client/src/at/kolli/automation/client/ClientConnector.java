@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import at.kolli.layout.permission;
 
@@ -276,13 +277,15 @@ public class ClientConnector
 	/**
 	 * open an second connection to server for hearing on changes
 	 * 
-	 * @return boolean true/false whether connection is created
+	 * @return boolean true, whether connection is or was created, elsewhere false
 	 */
 	public synchronized boolean secondConnection()
 	{
 		String res;
 		PrintWriter oPut;
 
+		if(m_bSecond == true)
+			return true;
 		m_sErrorMsg= "NONE";
 		m_sErrorCode= "NONE";
 		try{
@@ -419,11 +422,7 @@ public class ClientConnector
 			m_oSecGet= null;
 			return false;
 		}
-		//oPut.close();
-		//synchronized (m_bSecond) {
-			
-			m_bSecond= true;
-		//}
+		m_bSecond= true;
 		return true;
 	}
 	
@@ -432,15 +431,9 @@ public class ClientConnector
 	 * 
 	 * @return true if second connection is established
 	 */
-	public boolean haveSecondConnection()
+	public synchronized boolean haveSecondConnection()
 	{
-		boolean bRv= false;
-		
-		//synchronized (m_bSecond) {
-		
-			bRv= m_bSecond;
-		//}
-		return bRv;
+		return m_bSecond;
 	}
 		
 	/**
@@ -975,17 +968,13 @@ public class ClientConnector
 	 * @version 1.00.00, 30.11.2007
 	 * @since JDK 1.6
 	 */
-	public boolean closeConnection()
+	public synchronized boolean closeConnection()
 	{
 		m_sErrorMsg= "NONE";
 		m_sErrorCode= "NONE";
 		m_oPut.println("ending");
 		m_oPut.flush();
-
-		//synchronized (m_bSecond) {
-		
-			m_bSecond= false;
-		//}
+		m_bSecond= false;
 		synchronized (this)
 		{	
 			try{
