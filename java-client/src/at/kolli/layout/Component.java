@@ -963,11 +963,10 @@ public class Component extends HtmTags
 		}else if(this.type.equals("text"))
 		{
 			RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+\\.([0-9])+([ +-/]|\\*|\\(|\\)|$)");
-			String patternString= "^[ ]*[0-9]+";
+			String patternString= "[0-9]*";
 			
 			if(floatStr.match(this.format))
-				patternString+= "(\\.[0-9]*)?";
-			patternString+= " " +this.value+ "[ ]*$";
+				patternString+= "(\\.[0-9]+)?";
 			
 			final String suffix= this.value;
 			final RE pattern= new RE(patternString);
@@ -979,20 +978,25 @@ public class Component extends HtmTags
 				{
 					String string= ((Text)m_oComponent).getText();
 					double value;
-					int nNeed= string.length() - suffix.length() - 1;
 					
-					if(nNeed > 0)
+					if(pattern.match(string))
 					{
-						string= string.substring(0, nNeed);
-						System.out.println(string);
+						if(HtmTags.debug)
+							System.out.println("user change text field " + name + " to " + string);
+						string= pattern.getParen(0);
+						if(HtmTags.debug)
+							System.out.println(" generate to number '" + string + "'");
 						try{
 							value= Double.parseDouble(string);
 							
 						}catch(NumberFormatException ex)
 						{
-							System.out.println("NumberFormatException for textfield " + name);
-							System.out.println(" cannot convert value " + string);
-							System.out.println();
+							if(HtmTags.debug)
+							{
+								System.out.println("NumberFormatException for textfield " + name);
+								System.out.println(" cannot convert value " + string);
+								System.out.println();
+							}
 							value= 0;
 						}
 					}else
@@ -1000,32 +1004,6 @@ public class Component extends HtmTags
 					client.setValue(result, value);
 				}
 			
-			});
-			((Text)m_oComponent).addVerifyListener(m_eVerifyListener= new VerifyListener()
-			{			
-				//@Override
-				public void verifyText(VerifyEvent arg) {
-					String buffer= ((Text)m_oComponent).getText();
-					String string;
-					
-					// when charracter is '\0'
-					// verifycation is from own app
-					if(arg.character != '\0')
-					{
-						if(arg.start == 0)
-							string= arg.text + buffer;
-						else if(arg.start == buffer.length())
-							string= buffer + arg.text;
-						else
-						{
-							string= buffer.substring(0, arg.start);
-							string+= arg.text;
-							string+= buffer.substring(arg.end);
-						}
-						if(!pattern.match(string))
-							arg.doit= false;
-					}			
-				}			
 			});
 			
 		}else if(this.type.equals("slider"))
@@ -1217,7 +1195,7 @@ public class Component extends HtmTags
 		}else if(this.type.equals("text"))
 		{
 			((Text)m_oComponent).removeSelectionListener(m_eSelectionListener);
-			((Text)m_oComponent).removeVerifyListener(m_eVerifyListener);
+			//((Text)m_oComponent).removeVerifyListener(m_eVerifyListener);
 			
 		}else if(this.type.equals("slider"))
 		{
