@@ -286,8 +286,7 @@ public class Component extends HtmTags
 		NoStopClientConnector client= NoStopClientConnector.instance();
 
 		//System.out.println(type + " " + result);
-		if(	actLayout.compareTo(layout.disabled) == 0
-			||
+		if(	actLayout.compareTo(layout.disabled) == 0 ||
 			!m_bDeviceAccess								)
 		{
 			disabled= true;
@@ -643,10 +642,10 @@ public class Component extends HtmTags
 			if(data != null)
 				combo.setLayoutData(data);
 			combo.setEnabled(!disabled);
-			if(	!m_lContent.isEmpty()
-				&&
-				akt != null				)
+			if(	!m_lContent.isEmpty())
 			{
+				boolean bfirst= true;
+				
 				for(HtmTags tag : m_lContent)
 				{
 					if(tag instanceof Option)
@@ -660,8 +659,15 @@ public class Component extends HtmTags
 							++value;
 						addComboEntrys(entry, option.value);
 						combo.add(entry);
-						if(akt.equals(m_asComboValueEntrys.get(entry)))
+						if(	(	akt == null &&
+								bfirst == true	) ||
+							(	akt != null &&
+								akt.equals(m_asComboValueEntrys.get(entry))	)
+																)
+						{
 							combo.setText(entry);
+							bfirst= false;
+						}
 					}
 				}
 			}
