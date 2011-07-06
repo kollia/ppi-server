@@ -24,6 +24,8 @@ import java.util.HashMap;
 
 import org.eclipse.swt.layout.GridData;
 import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -130,7 +132,7 @@ public class XMLSaxParser extends DefaultHandler
 	  {
 		  m_sFolder= folder;
 	  }
-	  
+
  	  /**
  	   * method returning the folder for which the XMLSaxParser in use
  	   * 
@@ -200,12 +202,14 @@ public class XMLSaxParser extends DefaultHandler
 								String localName,   // local name
 	                            String qName,       // qualified name
 	                            Attributes attrs ) throws SAXException
-	{                      
+	{ 
+		
 		HtmTags tag= null;
 		ContentFields td= null;
 		ContentRows tr= null;
 		String eName = ( "".equals( localName ) ) ? qName : localName;
 		
+		//System.out.println("method startElement(" + eName + ")");
 		if(	m_bFinishedLayout
 			||
 			(	m_bFinishedBody
@@ -545,7 +549,8 @@ public class XMLSaxParser extends DefaultHandler
   throws SAXException
   {
 	  String eName = ( "".equals( localName ) ) ? qName : localName;
-	  
+	  //System.out.println("method endElement(" + eName + ")");
+		
 	  if(m_bFinishedLayout)
 		  return;
 	  createTextBuffer();
@@ -629,7 +634,17 @@ public class XMLSaxParser extends DefaultHandler
   public void characters( char[] buf, int offset, int len )
   throws SAXException
   {
-    String s = new String( buf, offset, len );
+	  String before;
+	  String s = new String( buf, offset, len );
+
+	s= s.replaceAll("\n", " ");
+	s= s.replaceAll("\t", " ");
+    
+    do{
+    	before= s;
+    	s= before.replaceAll("  ", " ");
+    }while(before != s);
+
     if( textBuffer == null )
       textBuffer = new StringBuffer( s );
     else
@@ -714,7 +729,7 @@ public class XMLSaxParser extends DefaultHandler
   {
     try {
       if( null == out )
-        out = new OutputStreamWriter( System.out, "UTF8" );
+        out = new OutputStreamWriter( System.out, "UTF-8" );
       out.write( s );
       out.flush();
     } catch( IOException ex )
