@@ -967,8 +967,8 @@ public class Component extends HtmTags
 			
 			if(floatStr.match(this.format))
 				patternString+= "(\\.[0-9]+)?";
+			//patternString+= ").*";
 			
-			final String suffix= this.value;
 			final RE pattern= new RE(patternString);
 			
 			((Text)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter()
@@ -984,23 +984,41 @@ public class Component extends HtmTags
 						if(HtmTags.debug)
 							System.out.println("user change text field " + name + " to " + string);
 						string= pattern.getParen(0);
-						if(HtmTags.debug)
-							System.out.println(" generate to number '" + string + "'");
-						try{
-							value= Double.parseDouble(string);
-							
-						}catch(NumberFormatException ex)
+						if(!string.equals(""))
+						{
+							if(HtmTags.debug)
+								System.out.println(" generate to number '" + string + "'");
+							try{
+								value= Double.parseDouble(string);
+								
+							}catch(NumberFormatException ex)
+							{
+								if(HtmTags.debug)
+								{
+									System.out.println("NumberFormatException for textfield " + name);
+									System.out.println(" cannot convert value " + string);
+									System.out.println();
+								}
+								value= 0;
+							}
+						}else
 						{
 							if(HtmTags.debug)
 							{
-								System.out.println("NumberFormatException for textfield " + name);
-								System.out.println(" cannot convert value " + string);
-								System.out.println();
+								System.out.println("found no correct value for new string '" + string + "'");
+								System.out.println("set value to 0");
 							}
 							value= 0;
 						}
 					}else
+					{
+						if(HtmTags.debug)
+						{
+							System.out.println("found no correct value for new string '" + string + "'");
+							System.out.println("set value to 0");
+						}
 						value= 0;
+					}
 					client.setValue(result, value);
 				}
 			
