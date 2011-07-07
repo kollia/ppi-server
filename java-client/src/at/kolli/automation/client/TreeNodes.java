@@ -691,6 +691,7 @@ public class TreeNodes
 		String fileName= m_sParentFolder+"/"+m_sName;
 		String osFileName;
 		File file;
+		SAXParserFactory factory= null;
 		XMLSaxParser handler= null;
 		final GridLayout grid= new GridLayout();
 		NoStopClientConnector client= NoStopClientConnector.instance();
@@ -781,7 +782,9 @@ public class TreeNodes
 	        // Use an instance of ourselves as the SAX event handler
 	        handler = new XMLSaxParser(fileName);
 	        // Parse the input with the default (non-validating) parser
-	        SAXParser saxParser = SAXParserFactory.newInstance().newSAXParser();
+	        factory= SAXParserFactory.newInstance();
+	        factory.setValidating(true);
+	        SAXParser saxParser = factory.newSAXParser();
 	        saxParser.parse(file, handler );
 	        m_mMetaBlock= handler.getMetaBlock();
 	        m_aoButtons= handler.getComponents();
@@ -861,7 +864,7 @@ public class TreeNodes
 	      permGroup= m_mMetaBlock.get("permission");
 	      if(permGroup != null)
 	      {
-	    	  if(client.permission("permGroup").compareTo(permission.readable) < 0)
+	    	  if(client.permission(permGroup).compareTo(permission.readable) < 0)
 	    		  return false;
 	      }
 	      return true;
