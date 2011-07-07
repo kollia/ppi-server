@@ -82,7 +82,27 @@ public abstract class HtmTags
 	/**
 	 * actual permission of component
 	 */
-	public permission actPermission;
+	private permission actPermission= permission.writeable;
+	
+	/**
+	 * getter routine to get actual permission from outside
+	 * 
+	 * @return actual permission
+	 */
+	public permission getPermission()
+	{
+		return actPermission;
+	}
+	
+	/**
+	 * setter routine to set actual permission inside of an tag
+	 * 
+	 * @param perm permission to set
+	 */
+	protected void setPermission(permission perm)
+	{
+		actPermission= perm;
+	}
 	
 	/**
 	 * base constructor of all tags

@@ -320,9 +320,10 @@ public class XMLSaxParser extends DefaultHandler
 		    }
 		    
 			if(m_aoPermission.size() == 0)
-				m_oAktTag.actPermission= permission.writeable;
+				
+				m_oAktTag.setPermission(permission.writeable);
 			else
-				m_oAktTag.actPermission= m_aoPermission.get(0);
+				m_oAktTag.setPermission(m_aoPermission.get(0));
 			
 		}
 		
@@ -400,16 +401,10 @@ public class XMLSaxParser extends DefaultHandler
 	        	else if(aName.equals("size"))
 	        		component.size= Integer.parseInt(attrs.getValue(i));
 	        	else if(aName.equals("disabled"))
-	        	{
-	        		component.actLayout= Component.layout.disabled;
-	        		component.normal= Component.layout.disabled;
-	        		
-	        	}else if(aName.equals("readonly"))
-	        	{
-	        		component.actLayout= Component.layout.readonly;
-	        		component.normal= Component.layout.readonly;
-	        		
-	        	}else if(aName.equals("result"))
+	        		component.setLayoutPermission(Component.layout.disabled);
+	        	else if(aName.equals("readonly"))
+	        		component.setLayoutPermission(Component.layout.readonly);
+	        	else if(aName.equals("result"))
 	        		component.result= attrs.getValue(i);
 	        	else if(aName.equals("min"))
 	        		component.min= Integer.parseInt(attrs.getValue(i));
@@ -510,14 +505,14 @@ public class XMLSaxParser extends DefaultHandler
 	        	&&
 	        	aName.equals("permission")
     			&&
-    			m_oAktTag.actPermission.compareTo(permission.None) != 0	)
+    			m_oAktTag.getPermission().compareTo(permission.None) != 0	)
 	        {
 	        	NoStopClientConnector client= NoStopClientConnector.instance();
 	        	permission perm= client.permission(attrs.getValue(i));
 	        	
-	        	if(perm.compareTo(m_oAktTag.actPermission) < -1)
+	        	if(perm.compareTo(m_oAktTag.getPermission()) < -1)
 	        	{
-	        		m_oAktTag.actPermission= perm;
+	        		m_oAktTag.setPermission(perm);
 	        		m_aoPermission.add(0, perm);
 	        		m_aoPermissionTag.add(0, m_oAktTag);
 	        	}

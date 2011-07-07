@@ -180,7 +180,7 @@ public class Table extends HtmTags
 		GridLayout layout= new GridLayout();
 		ArrayList<Integer> isAlsoNext= new ArrayList<Integer>();
 		
-		if(actPermission.equals(permission.None))
+		if(getPermission().equals(permission.None))
 			return;
 		for(HtmTags tag : m_lContent)
 		{

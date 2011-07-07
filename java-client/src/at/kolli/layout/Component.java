@@ -96,20 +96,20 @@ public class Component extends HtmTags
 	/**
 	 * layout type by no read
 	 */
-	public layout noRead= layout.disabled;
+	private layout noRead= layout.disabled;
 	/**
 	 * layout type by no write
 	 */
-	public layout noWrite= layout.readonly;
+	private layout noWrite= layout.readonly;
 	/**
 	 * layout type from layout file if permission is correctly
 	 * and permission on server is not checked
 	 */
-	public layout normal= layout.normal;
+	private layout normal= layout.normal;
 	/**
 	 * disabled or read only attribute of component.<br />
 	 */
-	public layout actLayout= layout.normal;
+	private layout actLayout= layout.normal;
 	/**
 	 * type attribute of component<br />
 	 * button, togglebutton, checkbox, radio, text, spinner, slider, scale or combo
@@ -827,6 +827,48 @@ public class Component extends HtmTags
 	}
 	
 	/**
+	 * set constant permission defined in layout file getting from server
+	 * 
+	 * @param perm permission layout from layout file
+	 */
+	public void setLayoutPermission(layout perm)
+	{
+		actLayout= perm;
+		normal= perm;
+	}
+	/**
+	 * setter routine to set actual permission inside of an tag
+	 * 
+	 * @param perm permission to set
+	 */
+	protected void setPermission(permission perm)
+	{
+		super.setPermission(perm);
+		switch (perm)
+		{
+		case writeable:			
+			if(	normal == layout.readonly ||
+				normal == layout.disabled	)
+			{
+				actLayout= normal;
+			}else
+				actLayout= layout.normal;
+			break;
+			
+		case readable:
+			if(normal == layout.disabled)
+				actLayout= normal;
+			else
+				actLayout= layout.readonly;
+			
+		case None:
+		default:
+			actLayout= layout.disabled;
+			break;
+		}
+	}
+	
+	/**
 	 * set the actual permission of the component
 	 */
 	public void setPermission()
@@ -834,37 +876,28 @@ public class Component extends HtmTags
 		Double res;
 		NoStopClientConnector client;
 		
-		if(actPermission.equals(permission.None))
+		/*if(getPermission().equals(permission.None))
 		{
 			actLayout= noRead;
 			return;
-		}
+		}*/
 		client= NoStopClientConnector.instance();
 		res= client.getValue(result);
 		if(!client.hasError())
 		{
-			if(	actPermission.equals(permission.readable)
-				||
-				!client.setValue(result, res)				)
+			if(	normal == layout.readonly ||
+				!client.setValue(result, res)	)
 			{
-				actPermission= permission.readable;
-				actLayout= noWrite;
+				setPermission(permission.readable);
 				
 			}else
-			{
-				actPermission= permission.writeable;
-				actLayout= normal;
-			}
+				setPermission(permission.writeable);
+				
 		}else
 		{
+			setPermission(permission.None);
 			if(client.getErrorCode().equals("ERROR 016"))
-			{
 				m_bDeviceAccess= false;
-			}else
-			{
-				actPermission= permission.None;
-				actLayout= noRead;
-			}
 		}
 	}
 	
@@ -885,7 +918,7 @@ public class Component extends HtmTags
 		//System.out.println(type + " " + result);
 		if(	m_bCorrectName
 			&&
-			actPermission.compareTo(permission.readable) >= 0
+			getPermission().compareTo(permission.readable) >= 0
 			&&
 			client.haveSecondConnection()						)
 		{
@@ -893,7 +926,7 @@ public class Component extends HtmTags
 		}
 		if(	!m_bCorrectName
 			||
-			(	!actPermission.equals(permission.writeable)
+			(	!getPermission().equals(permission.writeable)
 				&&
 				!this.type.equals("combo")					)	)
 		{// if Component has no permission but type is an combo
@@ -1064,7 +1097,7 @@ public class Component extends HtmTags
 					&&
 					this.size == 1				)
 		{
-			final permission perm= this.actPermission;
+			final permission perm= getPermission();
 			
 			((Combo)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter() 
 			{			
@@ -1087,7 +1120,7 @@ public class Component extends HtmTags
 				&&
 				this.size > 1					)
 		{
-			final permission perm= this.actPermission;
+			final permission perm= getPermission();
 			
 			((List)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter() 
 			{			
@@ -1139,7 +1172,7 @@ public class Component extends HtmTags
 		char stringChars[]= stringValue.toCharArray();
 		String Rv= "";
 		
-		if(actPermission.equals(permission.None))
+		if(getPermission().equals(permission.None))
 			return " --- ";
 		else if(!m_bDeviceAccess)
 			return "ERROR";
@@ -1184,7 +1217,7 @@ public class Component extends HtmTags
 			||
 			!haveListener
 			||
-			(	!actPermission.equals(permission.writeable)
+			(	!getPermission().equals(permission.writeable)
 				&&
 				!this.type.equals("combo")					)	)
 		{
@@ -1323,7 +1356,7 @@ public class Component extends HtmTags
 		
 		if(	!m_bCorrectName
 			||
-			actPermission.equals(permission.None) 	)
+			getPermission().equals(permission.None) 	)
 		{
 			return;
 		}
