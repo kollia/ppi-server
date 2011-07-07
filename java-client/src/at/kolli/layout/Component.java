@@ -25,8 +25,6 @@ import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.events.VerifyEvent;
-import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
@@ -93,14 +91,6 @@ public class Component extends HtmTags
 	public enum layout	{	normal,
 							readonly,
 							disabled	}
-	/**
-	 * layout type by no read
-	 */
-	private layout noRead= layout.disabled;
-	/**
-	 * layout type by no write
-	 */
-	private layout noWrite= layout.readonly;
 	/**
 	 * layout type from layout file if permission is correctly
 	 * and permission on server is not checked
@@ -238,10 +228,6 @@ public class Component extends HtmTags
 	 * SelectionListener for components
 	 */
 	private SelectionListener m_eSelectionListener= null;
-	/**
-	 * VerifyListener for component text
-	 */
-	private VerifyListener m_eVerifyListener;
 	
 	/**
 	 * create instance of all components whitch can display in the window
@@ -773,8 +759,6 @@ public class Component extends HtmTags
 			}
 			if(height != -1)
 			{
-				if(data == null)
-					data= new GridData();
 				data.heightHint= height;
 			}
 			if(data != null)
