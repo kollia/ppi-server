@@ -20,9 +20,11 @@
  */
 package at.kolli.automation.client;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -49,6 +51,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
+import org.xml.sax.InputSource;
 
 import at.kolli.dialogs.DialogThread;
 import at.kolli.dialogs.DisplayAdapter;
@@ -504,7 +507,7 @@ public class TreeNodes
 	 * @throws IllegalAccessException if side have no access for user
 	 */
 	private void init(final short pos, final Composite subComposite, ArrayList<String> folder, String parentFolder) throws IllegalAccessException
-	{ m_mMetaBlock= null;
+	{ 
 		short ipos= 0;
 		String name;
 		String aktName= "";
@@ -512,6 +515,7 @@ public class TreeNodes
 		DialogThread dialog= DialogThread.instance(null);
 		TreeNodes node= null;
 		
+		m_mMetaBlock= null;
 		m_sParentFolder= parentFolder;
 		m_oSubComposite= subComposite;
 		m_aSubnodes= new ArrayList<TreeNodes>();
@@ -685,6 +689,7 @@ public class TreeNodes
 	private boolean createPage()
 	{
 		String permGroup;
+		InputStream emptyStream= null;
 		Layout layout= null;
 		Head head= null;
 		Title title;
@@ -696,6 +701,8 @@ public class TreeNodes
 		final GridLayout grid= new GridLayout();
 		NoStopClientConnector client= NoStopClientConnector.instance();
 		ArrayList<Body> bodyList= null;
+		Date serverDate;
+		Date fileDate;
 		
 		if(fileName.startsWith("/"))
 			fileName= fileName.substring(1);
@@ -713,19 +720,24 @@ public class TreeNodes
 		}
 		
 		boolean exists= false;
-		if(file.isFile())
+		serverDate= m_hmDirectory.get(fileName + "." + m_sLayoutStyle);
+		if(serverDate == null)
 		{
-			Date fileDate= new Date(file.lastModified());
-			Date serverDate= m_hmDirectory.get(fileName + "." + m_sLayoutStyle);
+			String emptyFile;
+			//InputSource emptySource;
 			
-			if(serverDate == null)
-			{
-				// if found an locally layout file but the date for server do not exist
-				// this case can be when searching an layout for an sub-directory
-				// the layout file on server maybe deleted or changed
-				// so do not load the locally file and return
-				return false;
-			}
+			// if found an locally layout file but the date for server do not exist
+			// this case can be when searching an layout for an sub-directory
+			// but on server is no extra file for this directory
+			// now create an own empty one
+			emptyFile=	"<layout>";
+			emptyFile+=	"</layout>";
+			//emptySource= new InputSource(emptyFile);
+			emptyStream= new ByteArrayInputStream(emptyFile.getBytes());
+			
+		}else if(file.isFile())
+		{
+			fileDate= new Date(file.lastModified());
 			if(fileDate.after(serverDate))
 			{
 				exists= true;
@@ -736,17 +748,18 @@ public class TreeNodes
 				}
 			}
 		}
-		if(!exists)
+		if( emptyStream == null &&
+			!exists					)
 		{
 			FileOutputStream output;
-			ArrayList<String> xmlFile= client.getContent(fileName + "." +m_sLayoutStyle);
+			ArrayList<String> xmlFile= client.getContent(fileName + "." + m_sLayoutStyle);
 			File path= file.getParentFile();
 			
 			if(xmlFile == null)
 			{
 				if(HtmTags.debug)
 				{
-					System.out.println("cannot read file '" + fileName + "' from server");
+					System.out.println("cannot read file '" + fileName + "." + m_sLayoutStyle + "' from server");
 					System.out.println(client.getErrorMessage());
 				}
 				return false;
@@ -785,7 +798,10 @@ public class TreeNodes
 	        factory= SAXParserFactory.newInstance();
 	        factory.setValidating(true);
 	        SAXParser saxParser = factory.newSAXParser();
-	        saxParser.parse(file, handler );
+	        if(emptyStream == null)
+	        	saxParser.parse(file, handler );
+	        else
+	        	saxParser.parse(emptyStream, handler);
 	        m_mMetaBlock= handler.getMetaBlock();
 	        m_aoButtons= handler.getComponents();
 		    layout= (Layout)handler.getMainTag();
@@ -831,6 +847,12 @@ public class TreeNodes
 	        	body.insert(label);
 	        }
 	      }
+	      permGroup= m_mMetaBlock.get("permission");
+	      if(permGroup != null)
+	      {
+	    	  if(client.permission(permGroup).compareTo(permission.readable) < 0)
+	    		  return false;
+	      }
 		    if(head != null)
 		    {
 		    	title= head.getTitle();
@@ -861,12 +883,6 @@ public class TreeNodes
 			    	
 			    }
 		    }
-	      permGroup= m_mMetaBlock.get("permission");
-	      if(permGroup != null)
-	      {
-	    	  if(client.permission(permGroup).compareTo(permission.readable) < 0)
-	    		  return false;
-	      }
 	      return true;
 	}
 	
