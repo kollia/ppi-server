@@ -390,29 +390,34 @@ public class Component extends HtmTags
 			Text text= new Text(composite, style);
 			GridData data= new GridData();
 			Double akt= client.getValue(this.result);
-			RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+(\\.([0-9])+)?([ +-/]|\\*|\\(|\\)|$)");
+			RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+(\\.([0-9])*)?([ +-/]|\\*|\\(|\\)|$)");
 			
 			// calculating the digits before decimal point
 			// and after. save in m_numBefore and m_numBehind
 			if(floatStr.match(this.format))
 			{
-				String v;
+				String v, b;
 				
 				try{
 					v= floatStr.getParen(2);
-					if(	v != null
-						&&
+					if(	v != null &&
 						v.length() > 0	)
 					{
 						m_numBefore= Integer.parseInt(v);
 					}
+					b= floatStr.getParen(3);
 					v= floatStr.getParen(4);
-					if(	v != null
-						&&
+					if(	v != null &&
 						v.length() > 0	)
 					{
 						m_numBehind= Integer.parseInt(v);
+						
+					}else if(	b != null &&
+								b.equals(".")	)
+					{
+						m_numBehind= -1;
 					}
+					
 				}catch(NumberFormatException ex)
 				{
 					// do nothing,
@@ -985,7 +990,7 @@ public class Component extends HtmTags
 			
 		}else if(this.type.equals("text"))
 		{
-			RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+\\.([0-9])+([ +-/]|\\*|\\(|\\)|$)");
+			RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+\\.([0-9])*([ +-/]|\\*|\\(|\\)|$)");
 			String patternString= "[0-9]*";
 			
 			if(floatStr.match(this.format))
@@ -1151,15 +1156,16 @@ public class Component extends HtmTags
 	 */
 	protected String calculateInputValue(Double value)
 	{
+		boolean bInt= false;
 		String stringValue= "" + value;
 		int strPos= 0;
 		char stringChars[]= stringValue.toCharArray();
 		String Rv= "";
 		
-		if(getPermission().equals(permission.None))
-			return " --- ";
-		else if(!m_bDeviceAccess)
+		if(!m_bDeviceAccess)
 			return "ERROR";
+		else if(getPermission().equals(permission.None))
+			return " --- ";
 		while((	stringChars.length > strPos
 				&&
 				stringChars[strPos] != '.'	))
@@ -1167,20 +1173,32 @@ public class Component extends HtmTags
 			Rv+= stringChars[strPos];
 			++strPos;
 		}
+		Double sh= new Double(stringValue.substring(0, strPos));
+		if(value.equals(sh))
+			bInt= true;
 		for(int c= strPos; c<m_numBefore; ++c)
 			Rv= "0" + Rv;
-		if(m_numBehind > 0)
+		if(	m_numBehind > 0 ||
+			m_numBehind == -1	)
 		{
-			Rv+= ".";
-			++strPos;
-			for(int c= 0; c<m_numBehind; ++c)
+			int behind= m_numBehind;
+
+			if(	m_numBehind >0 ||
+				!bInt				)
 			{
-				if(stringChars.length > strPos)
+				++strPos;
+				if(m_numBehind == -1)
+					behind= stringValue.length() - strPos;
+				Rv+= ".";
+				for(int c= 0; c<behind; ++c)
 				{
-					Rv+= stringChars[strPos];
-					++strPos;
-				}else
-					Rv+= "0";
+					if(stringChars.length > strPos)
+					{
+						Rv+= stringChars[strPos];
+						++strPos;
+					}else
+						Rv+= "0";
+				}
 			}
 		}
 		return Rv+= " " + this.value;
