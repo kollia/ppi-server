@@ -27,7 +27,7 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import at.kolli.automation.client.NoStopClientConnector;
+import at.kolli.automation.client.MsgClientConnector;
 
 import org.apache.regexp.RE;
 
@@ -318,7 +318,6 @@ public class XMLSaxParser extends DefaultHandler
 		    }
 		    
 			if(m_aoPermission.size() == 0)
-				
 				m_oAktTag.setPermission(permission.writeable);
 			else
 				m_oAktTag.setPermission(m_aoPermission.get(0));
@@ -493,9 +492,17 @@ public class XMLSaxParser extends DefaultHandler
 		    		else
 		    			table.height= height;
 		        	
+		        }else if(aName.equals("permission"))
+		        {
+		        	if(td != null)
+		        		td.permgroup= attrs.getValue(i);
+		        	else if(tr != null)
+		        		tr.permgroup= attrs.getValue(i);
+		        	else
+		        		table.permgroup= attrs.getValue(i);
 		        }
 	        }
-	        if(	(	m_oAktTag instanceof Table
+/*	        if(	(	m_oAktTag instanceof Table
 	        		||
 	        		m_oAktTag instanceof ContentRows
 	        		||
@@ -506,15 +513,27 @@ public class XMLSaxParser extends DefaultHandler
     			m_oAktTag.getPermission().compareTo(permission.None) != 0	)
 	        {
 	        	NoStopClientConnector client= NoStopClientConnector.instance();
-	        	permission perm= client.permission(attrs.getValue(i));
+	        	permission perm= null;
 	        	
-	        	if(perm.compareTo(m_oAktTag.getPermission()) < -1)
+	        	try{
+	        		perm= client.permission(attrs.getValue(i), /*bthrow*false);
+	        		
+	        	}catch(IOException ex)
+	        	{}
+	        	if(	HtmTags.debug &&
+	        		client.hasError()	)
+	        	{
+	        		System.out.println("ERROR: by ask permision for group " + attrs.getValue(i) + " in XMLSayParser.startElement()");
+	        		System.out.println("       " + client.getErrorMessage());
+	        	}
+	        	if(	perm != null && 
+	        		perm.compareTo(m_oAktTag.getPermission()) < -1)
 	        	{
 	        		m_oAktTag.setPermission(perm);
 	        		m_aoPermission.add(0, perm);
 	        		m_aoPermissionTag.add(0, m_oAktTag);
 	        	}
-	        }
+	        }*/
 	      }
 	    }
 	    if(HtmTags.debug)
@@ -531,7 +550,6 @@ public class XMLSaxParser extends DefaultHandler
 	 * @param localName The local name (without prefix), or the empty string if Namespace processing is not being performed.
 	 * @param qName The qualified name (with prefix), or the empty string if qualified names are not available.
 	 * @throws SAXException
-	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
@@ -600,13 +618,13 @@ public class XMLSaxParser extends DefaultHandler
 	    		m_bFinishedBody= true;
 	    	else if(eName.equals("layout"))
 	    		m_bFinishedLayout= true;
-	    	else if(m_bBody
+	    	/*else if(m_bBody
 	    			&&
 	    			(	eName.equals("input") ||
 	    				eName.equals("select")	)	)
 	    	{
-	    		((Component)m_oAktTag).setPermission();
-	    	}
+	    		((Component)m_oAktTag).askPermissions();
+	    	}*/
 	    	m_oAktTag= m_oAktTag.getParentTag();
 	    }
     }

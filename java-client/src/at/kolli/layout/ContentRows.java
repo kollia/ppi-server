@@ -16,10 +16,13 @@
  */
 package at.kolli.layout;
 
+import java.io.IOException;
 import java.security.acl.Group;
 import java.util.ArrayList;
 
 import org.eclipse.swt.widgets.Composite;
+
+import at.kolli.automation.client.MsgClientConnector;
 
 /**
  * class representing an row in an table for layout on display
@@ -53,6 +56,10 @@ public class ContentRows extends HtmTags
 	 * height of all columns in the row
 	 */
 	public int height= -1;
+	/**
+	 * group name for permission
+	 */
+	public String permgroup= "";
 	/**
 	 * whether the user want to see an border by all composites<br />
 	 * in this case it will be create an  {@link Group} control
@@ -120,7 +127,31 @@ public class ContentRows extends HtmTags
 		}
 		return columns;
 	}
-	
+
+	/**
+	 * check permission on server for this component
+	 * 
+	 * @throws IOException
+	 * @author Alexander Kolli
+	 * @version 1.00.00, 04.12.2007
+	 * @since JDK 1.6
+	 */
+	public void askPermission() throws IOException
+	{
+    	MsgClientConnector client= MsgClientConnector.instance();
+    	permission perm;
+    	
+    	if(!permgroup.equals(""))
+    	{
+	    	perm= client.permission(permgroup, /*bthrow*/false);
+	    	if(perm == null)
+	    	{
+	    		setPermission(permission.None);
+	    		
+			}else if(perm.compareTo(getPermission()) < -1)
+	    		setPermission(perm);
+    	}
+	}
 	/**
 	 * Overridden method of execute
 	 * which start the execute in fields class (td) to calibrate
@@ -132,7 +163,7 @@ public class ContentRows extends HtmTags
 	 * @version 1.00.00, 06.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite)
+	public void execute(Composite composite) throws IOException
 	{
 		execute(composite, null);
 	}
@@ -146,11 +177,14 @@ public class ContentRows extends HtmTags
 	 * @version 1.00.00, 07.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite, ArrayList<Integer> isAlsoNextColumn)
+	public void execute(Composite composite, ArrayList<Integer> isAlsoNextColumn) throws IOException
 	{
 		int column= 0;
 		int maxColumns= isAlsoNextColumn.size();
 		
+		askPermission();
+		if(getPermission().compareTo(permission.readable) == -1)
+			return;
 		for(HtmTags tag : m_lContent)
 		{
 			boolean again= false;

@@ -24,6 +24,7 @@
 package at.kolli.automation.client;
 
 import java.awt.Toolkit;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -35,11 +36,7 @@ import org.eclipse.jface.dialogs.DialogSettings;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
-import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.StackLayout;
-import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.MouseMoveListener;
-import org.eclipse.swt.events.MouseTrackListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.TreeAdapter;
@@ -65,7 +62,6 @@ import at.kolli.dialogs.DisplayAdapter;
 import at.kolli.dialogs.DialogThread.states;
 import at.kolli.layout.Component;
 import at.kolli.layout.HtmTags;
-import at.kolli.layout.PopupMenu;
 import at.kolli.layout.WidgetChecker;
 
 /**
@@ -94,6 +90,10 @@ public class LayoutLoader extends Thread
 	 * constant variable to refresh content
 	 */
 	public static final short REFRESH= 3;
+	/**
+	 * constant variable when connection was broken
+	 */
+	public static final short BROKEN= 4;
 	/**
 	 * type of layout creation<br />
 	 * CREATE for first beginning<br />
@@ -142,9 +142,13 @@ public class LayoutLoader extends Thread
 	 */
 	public SashForm m_shellForm= null;
 	/**
+	 * whether main window is initialized
+	 */
+	private boolean m_bInitialized= false;
+	/**
 	 * array of all root nodes
 	 */
-	private ArrayList<TreeNodes> m_aTreeNodes= new ArrayList<TreeNodes>();
+	private ArrayList<TreeNodes> m_aTreeNodes= null;
 	/**
 	 * actual visible node on the screen
 	 */
@@ -283,157 +287,163 @@ public class LayoutLoader extends Thread
 		HashMap<String, Date> folder= new HashMap<String, Date>();
 		DialogThread dialog= DialogThread.instance();
 		MsgTranslator trans= MsgTranslator.instance();
-		NoStopClientConnector client;
+		MsgClientConnector client;
 		String loginname;
 		IDialogSettings login= TreeNodes.m_Settings.getSection("loginDialog");
 		
 		setName("LayoutLoader");
+		client= MsgClientConnector.instance(m_sHost, m_nPort);
 		while(!stopping())
 		{
-			while(getType() == 0)
-			{
-				try{
-					sleep(100);
-				}catch(InterruptedException ex)
+			try{
+				while(getType() == 0)
 				{
-					System.out.println("cannot sleep 10 milliseconds for wating on LayoutLoader-therad");
-					ex.printStackTrace();
-				}
-				if(stopping())
-					return;
-			}
-			while(	!dialog.isOpen()
-					&&
-					getType() != 0	)
-			{
-				try{
-					sleep(100);
-				}catch(InterruptedException ex)
-				{
-					
-				}
-				if(stopping())
-					return;
-			}
-			type= getType();
-			if(type == 0)
-				continue;
-			bConnected= false;
-			client= NoStopClientConnector.instance(m_sHost, m_nPort);
-			olduser= user= TreeNodes.m_sUser;
-			oldpwd= pwd= TreeNodes.m_sPwd;
-			if(	type != REFRESH
-				&&
-				login != null	)
-			{
-				loginname= null;
-				if(type == LayoutLoader.UPDATE)
-					loginname= login.get("lastchangename");
-				if(loginname == null)
-					loginname= login.get("lastloginname");
-				user= loginname;
-			}
-			while(!bConnected)
-			{
-				if(	type == CREATE
-					||
-					type == UPDATE	)
-				{
-					if(dialog.verifyUser(user, pwd, error).equals(states.CANCEL))
-						break;
-					user= TreeNodes.m_sUser;
-				}		
-				dialog.needProgressBar();
-				dialog.show(trans.translate("dialogConnectionTitle"), trans.translate("dialogConnectionSearchMsg"));
-				
-				if(type != REFRESH)
-				{
-					if(type == CREATE)
-						client.openConnection(TreeNodes.m_sUser, TreeNodes.m_sPwd);
-					else
-						client.changeUser(TreeNodes.m_sUser, TreeNodes.m_sPwd);
-					if(client.hasError())
+					try{
+						sleep(100);
+					}catch(InterruptedException ex)
 					{
-						Toolkit oKit= Toolkit.getDefaultToolkit();
+						System.out.println("cannot sleep 10 milliseconds for wating on LayoutLoader-thread");
+						ex.printStackTrace();
+					}
+					if(stopping())
+						return;
+				}
+				while(	!dialog.isOpen()
+						&&
+						getType() != 0	)
+				{
+					try{
+						sleep(100);
+					}catch(InterruptedException ex)
+					{
 						
-						oKit.beep();
-						error= client.getErrorCode();
-						dialog.show(client.getErrorMessage());
-						
+					}
+					if(stopping())
+						return;
+				}
+				type= getType();
+				if(type == 0)
+					continue;
+				bConnected= false;
+				olduser= user= TreeNodes.m_sUser;
+				oldpwd= pwd= TreeNodes.m_sPwd;
+				if(	type != REFRESH &&
+					type != BROKEN &&
+					login != null		)
+				{
+					loginname= null;
+					if(type == LayoutLoader.UPDATE)
+						loginname= login.get("lastchangename");
+					if(loginname == null)
+						loginname= login.get("lastloginname");
+					user= loginname;
+				}
+				while(!bConnected)
+				{
+					if(	type == CREATE ||
+						type == UPDATE		)
+					{
+						if(dialog.verifyUser(user, pwd, error).equals(states.CANCEL))
+							break;
+						user= TreeNodes.m_sUser;
+					}		
+					dialog.needProgressBar();
+					dialog.show(trans.translate("dialogConnectionTitle"), trans.translate("dialogConnectionSearchMsg"));
+					
+					if(type != REFRESH)
+					{
+						if(	type == CREATE ||
+							type == BROKEN		)
+						{
+							client.openNewConnection(TreeNodes.m_sUser, TreeNodes.m_sPwd);
+						}else
+							client.changeUser(TreeNodes.m_sUser, TreeNodes.m_sPwd, /*bthrow*/true);
+						if(client.hasError())
+						{
+							Toolkit oKit= Toolkit.getDefaultToolkit();
+							
+							oKit.beep();
+							error= client.getErrorCode();
+							dialog.show(client.getErrorMessage());
+							
+						}else
+							bConnected= true;
 					}else
 						bConnected= true;
-				}else
-					bConnected= true;
-			}
-	
-			if(dialog.dialogState().equals(states.RUN))
-			{
-				user= TreeNodes.m_sUser;
-				if(login == null)
-				{
-					login= new DialogSettings("loginDialog");
-					login.put("lastloginname", user);
-					login.put("loginnames", user);
-					TreeNodes.m_Settings.addSection(login);
-				}else
-				{
-					Boolean exists= false;
-					String names= login.get("loginnames");
-					String[] snames= names.split(":");
-					
-					for (String name : snames)
-					{
-						if(name.equals(user))
-						{
-							exists= true;
-							break;
-						}
-					}
-					if(!exists)
-						login.put("loginnames", names + ":" + user);
-					if(type == CREATE)
-						login.put("lastloginname", user);
-					else if(type == UPDATE)
-						login.put("lastchangename", user);
-				}
-				
-				folder= client.getDirectory("." + TreeNodes.m_sLayoutStyle);
-				if(!client.hasError())
-				{
-					if(HtmTags.debug)
-					{
-						Set<String> folderKeys= folder.keySet();
-						
-						for(String str : folderKeys)
-							System.out.println(str);
-					}
-				}else
-				{
-					System.out.println(client.getErrorMessage());
-					return;
 				}
 		
-				final short itype= type;
-				TreeNodes.m_hmDirectory= folder;
-				dialog.show(trans.translate("dialogLoadContent"));
-				if(itype == CREATE)
-					initializeMainWidget(TreeNodes.m_hmDirectory);
-				else
-					updateMainWidget(TreeNodes.m_hmDirectory);
-			
 				if(dialog.dialogState().equals(states.RUN))
 				{
-					//System.out.println("Close Dialog Box");
-					dialog.close();
-				}else
-					// change user back;
-					client.changeUser(olduser, oldpwd);
-			}	
-			synchronized (this.type) {
+					user= TreeNodes.m_sUser;
+					if(login == null)
+					{
+						login= new DialogSettings("loginDialog");
+						login.put("lastloginname", user);
+						login.put("loginnames", user);
+						TreeNodes.m_Settings.addSection(login);
+					}else
+					{
+						Boolean exists= false;
+						String names= login.get("loginnames");
+						String[] snames= names.split(":");
+						
+						for (String name : snames)
+						{
+							if(name.equals(user))
+							{
+								exists= true;
+								break;
+							}
+						}
+						if(!exists)
+							login.put("loginnames", names + ":" + user);
+						if(type == CREATE)
+							login.put("lastloginname", user);
+						else if(type == UPDATE)
+							login.put("lastchangename", user);
+					}
+					
+					folder= client.getDirectory("." + TreeNodes.m_sLayoutStyle, /*bthrow*/true);
+					if(!client.hasError())
+					{
+						if(HtmTags.debug)
+						{
+							Set<String> folderKeys= folder.keySet();
+							
+							for(String str : folderKeys)
+								System.out.println(str);
+						}
+					}else
+					{
+						System.out.println(client.getErrorMessage());
+						return;
+					}
+			
+					TreeNodes.m_hmDirectory= folder;
+					dialog.show(trans.translate("dialogLoadContent"));
+					initializeMainWidget(TreeNodes.m_hmDirectory);
+					if(dialog.dialogState().equals(states.RUN))
+					{
+						//System.out.println("Close Dialog Box");
+						dialog.close();
+					}else
+						// change user back;
+						client.changeUser(olduser, oldpwd, /*bthrow*/true);
+				}	
+				setState(WAIT);
+				type= WAIT;
 				
-				this.type= 0;
-				type= 0;
-			}
+			}catch(IOException ex)
+			{
+				if(HtmTags.debug)
+				{
+					System.out.println("-----------------------------------------------");
+					System.out.println(client.getErrorMessage());
+					System.out.println("-----------------------------------------------");
+				}	
+				setState(BROKEN);
+				type= WAIT;
+			}	
 		}
 	}
 
@@ -480,11 +490,22 @@ public class LayoutLoader extends Thread
 						public void run() {
 							
 							for(final Component component : m_aoComponents)
-							{										
-								component.addListeners();
-							}
+							{
+								try{
+									component.addListeners();
+								}catch(IOException ex)
+								{
+							    	if(	HtmTags.debug)
+							    	{
+							    		MsgTranslator trans= MsgTranslator.instance();
+							    		
+							    		System.out.println("ERROR: connection to server is broken by trying to set node");
+							    		System.out.println("       " + trans.translate(ex.getMessage()));
+							    	}
+								}
+						    }							
 						}						
-					}, "LayoutLoader::setActiveSideVisible() addListeners()");						
+					}, "LayoutLoader::setActiveSideVisible() addListeners()");					
 				}
 				checker.setTreeNode(m_oAktTreeNode);
 				return true;
@@ -567,12 +588,12 @@ public class LayoutLoader extends Thread
 					super.widgetSelected(e);
 					synchronized (TreeNodes.m_DISPLAYLOCK)
 					{
-						loader.start(LayoutLoader.REFRESH);
+						loader.setState(LayoutLoader.REFRESH);
 						dialog.needProgressBar();
 						dialog.needUserVerificationFields();
 						dialog.show(trans.translate("dialogChangeUser"), trans.translate("dialogUserVerification"));
 						dialog.produceDialog(REFRESH);
-						loader.start(LayoutLoader.WAIT);
+						loader.setState(LayoutLoader.WAIT);
 					}
 				}
 			
@@ -589,7 +610,7 @@ public class LayoutLoader extends Thread
 					super.widgetSelected(e);
 					synchronized (TreeNodes.m_DISPLAYLOCK)
 					{
-						loader.start(LayoutLoader.UPDATE);
+						loader.setState(LayoutLoader.UPDATE);
 						dialog.needProgressBar();
 						dialog.needUserVerificationFields();
 						dialog.show(trans.translate("dialogChangeUser"), trans.translate("dialogUserVerification"));
@@ -753,21 +774,65 @@ public class LayoutLoader extends Thread
 	 * 
 	 * @param folder all exist folder which should displayed in the nodes
 	 */
-	protected void initializeMainWidget(HashMap<String, Date> folderMap)
+	protected void initializeMainWidget(HashMap<String, Date> folderMap) throws IOException
 	{
-		NoStopClientConnector client= NoStopClientConnector.instance();
+		MsgClientConnector client= MsgClientConnector.instance();
+		DialogThread dialog= DialogThread.instance(m_oTopLevelShell);
+		ArrayList<TreeNodes> nodes;	
 		final WidgetChecker checker;
 		final Set<String> folderSet= folderMap.keySet();
 		
-		DisplayAdapter.syncExec(new Runnable() {
-		
-			public void run() 
+		if(!m_bInitialized)
+		{// when no tree nodes exists
+		 // initialization of main window cannot be done
+			DisplayAdapter.syncExec(new Runnable() {
+			
+				public void run() 
+				{				
+					execInitialize();
+				}			
+			});
+			m_bInitialized= true;
+			
+		}else
+		{// remove all Listeners from actually side
+			if(	m_aoComponents == null &&
+				m_oAktTreeNode != null		)
 			{				
-				execInitialize();
+				m_aoComponents= m_oAktTreeNode.getComponents();
 			}
-		
-		});
-		m_aTreeNodes= creatingWidgets(m_oTree, m_oMainComposite, folderSet);
+			if(m_aoComponents != null)
+			{
+				DisplayAdapter.syncExec(new Runnable() {
+					
+					public void run() {
+						
+						for(final Component component : m_aoComponents)
+						{
+							component.removeListeners();
+						}
+					}
+					
+				});
+			}
+		}
+		nodes= creatingWidgets(m_oTree, m_oMainComposite, folderSet);
+		if(m_aTreeNodes != null)
+		{// dispose all old sides
+			for (TreeNodes node : m_aTreeNodes) {
+				
+				node.dispose();
+			}
+		}
+		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+		{
+			for (TreeNodes node : nodes) {
+				
+				node.dispose();
+			}
+			return;
+		}
+		m_aTreeNodes= nodes;
 
 		if(	m_nWidth != 0
 			&&
@@ -783,14 +848,20 @@ public class LayoutLoader extends Thread
 		}
 		client.secondConnection();
 		checker= WidgetChecker.instance(m_aTreeNodes.get(0));
-		checker.start();
+		if(!checker.isAlive())
+			checker.start();
 		
-		if(HtmTags.notree)
+/*		if(HtmTags.notree)
 		{
 			synchronized (TreeNodes.m_DISPLAYLOCK)
 			{
 				setFirstSide(m_aTreeNodes, "");
 			}
+		}*/
+		if(!setActSideVisible())
+		{
+			m_sAktFolder= nodes.get(0).getName();
+			setActSideVisible();
 		}
 	}
 	/**
@@ -820,7 +891,7 @@ public class LayoutLoader extends Thread
 	 * 
 	 * @param type CREATE, UPDATE or REFRESH layout
 	 */
-	public void start(short type)
+	public void setState(short type)
 	{
 		synchronized (this.type) {
 		
@@ -834,49 +905,11 @@ public class LayoutLoader extends Thread
 	 * 
 	 * @param folder all exist folder which should displayed in the nodes
 	 */
-	private void updateMainWidget(HashMap<String, Date> folderMap)
+	private void updateMainWidget(HashMap<String, Date> folderMap) throws IOException
 	{
 		Set<String> folderSet= folderMap.keySet();
-		ArrayList<TreeNodes> nodes;	
-		DialogThread dialog= DialogThread.instance(m_oTopLevelShell);
-		NoStopClientConnector client= NoStopClientConnector.instance();
+		MsgClientConnector client= MsgClientConnector.instance();
 
-		if(m_aoComponents == null)
-			m_aoComponents= m_oAktTreeNode.getComponents();
-		if(m_aoComponents != null)
-		{
-			DisplayAdapter.syncExec(new Runnable() {
-				
-				public void run() {
-					
-					for(final Component component : m_aoComponents)
-					{
-						component.removeListeners();
-					}
-				}
-				
-			});
-		}
-		nodes= creatingWidgets(m_oTree, m_oMainComposite, folderSet);
-		client.secondConnection();
-		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
-		{
-			for (TreeNodes node : nodes) {
-				
-				node.dispose();
-			}
-			return;
-		}
-		for (TreeNodes node : m_aTreeNodes) {
-			
-			node.dispose();
-		}
-		m_aTreeNodes= nodes;
-		if(!setActSideVisible())
-		{
-			m_sAktFolder= nodes.get(0).getName();
-			setActSideVisible();
-		}
 		//System.out.println("End or update --------------");
 	}
 	/**
@@ -888,7 +921,7 @@ public class LayoutLoader extends Thread
 	 * @param folderSet all side names
 	 * @return ArrayList of created TreeNodes
 	 */
-	private ArrayList<TreeNodes> creatingWidgets(final Tree tree, Composite subComposite, Set<String> folderSet)
+	private ArrayList<TreeNodes> creatingWidgets(final Tree tree, Composite subComposite, Set<String> folderSet) throws IOException
 	{
 		boolean access;
 		short pos= 0;
@@ -938,6 +971,8 @@ public class LayoutLoader extends Thread
 					{
 						if(ex.getMessage().equals("no side access"))
 						{
+							if(HtmTags.debug)
+								System.out.println("user has no access to side!");
 							access= false;
 						}
 					}

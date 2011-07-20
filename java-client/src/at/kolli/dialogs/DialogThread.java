@@ -16,12 +16,17 @@
  */
 package at.kolli.dialogs;
 
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import at.kolli.automation.client.LayoutLoader;
 import at.kolli.automation.client.TreeNodes;
+import at.kolli.layout.HtmTags;
 
 /**
  * class running as thread and waiting to display an dialog
@@ -67,6 +72,14 @@ public class DialogThread // extends Thread
 	 */
 	private volatile boolean m_bOpen= false;//new Boolean(false);
 	/**
+	 * lock object to create conditions
+	 */
+	private final Lock lock= new ReentrantLock();
+	/**
+	 * condition to wait if more threads want to open the dialog box
+	 */
+	private final Condition closeDialog= lock.newCondition();
+	/**
 	 * whether Connection needs an progress bar
 	 */
 	private Boolean m_bProgress= false;
@@ -74,10 +87,6 @@ public class DialogThread // extends Thread
 	 * whether ConnectionDialog needs an user verification
 	 */
 	private Boolean m_bVerification= false;
-	/**
-	 * dialog on screen should be close
-	 */
-	private volatile boolean m_bClose= false;
 	/**
 	 * dialog thread should ending
 	 */
@@ -148,6 +157,15 @@ public class DialogThread // extends Thread
 	{
 		if(!m_bVerification)
 			return states.ERROR;
+		while(m_oDialog == null)
+		{
+			if(HtmTags.debug)
+				System.out.println("WARNING: DialogThread.verifyUser() no Dialog defined for verifying, wait until dialog starts");
+			try{
+				Thread.sleep(500);
+			}catch(InterruptedException ex)
+			{}
+		}
 		return m_oDialog.verifyUser(user, password, error);
 	}
 	/**
@@ -228,40 +246,60 @@ public class DialogThread // extends Thread
 	 * 
 	 * @return integer result of user action
 	 */
-	public synchronized states produceDialog(short layoutType)
+	public states produceDialog(short layoutType)
 	{
-		if(!m_bClose)
-		{
-			int result;
-			
-			m_eState= states.RUN;
-			m_oDialog= new ConnectionDialog(m_oShell);
-			if(m_bProgress)
-				m_oDialog.needProgressBar();
-			if(m_bVerification)
-				m_oDialog.needUserVerificationFields();				
-			m_oDialog.create(layoutType);
-			m_oDialog.setTitle(m_sTitle);
-			m_oDialog.setMessage(m_sMessage);
-			m_bOpen= true;
-			if(!m_bClose)
+			if(!m_bOpen)
 			{
-				result= m_oDialog.open();
-				if(result == Dialog.OK)
-					m_eState= states.OK;
-				else if(result == Dialog.CANCEL)
-					m_eState= states.CANCEL;
-				else
-					m_eState= states.ERROR;
+				final short ltype= layoutType;
+
+				m_bOpen= true;
+				m_eState= states.RUN;
+				m_oDialog= new ConnectionDialog(m_oShell);
+				if(m_bProgress)
+					m_oDialog.needProgressBar();
+				if(m_bVerification)
+					m_oDialog.needUserVerificationFields();	
+				DisplayAdapter.syncExec(new Runnable() {
+				
+					public void run() {
+
+						int result;
+						
+						m_oDialog.create(ltype);
+						m_oDialog.setTitle(m_sTitle);
+						m_oDialog.setMessage(m_sMessage);
+						result= m_oDialog.open();
+						if(result == Dialog.OK)
+							m_eState= states.OK;
+						else if(result == Dialog.CANCEL)
+							m_eState= states.CANCEL;
+						else
+							m_eState= states.ERROR;
+						m_oDialog.close();			
+					}
+				}, "DialogThread::produceDialog() create dialog");
+			
+				m_oDialog= null;
+				m_bOpen= false;
+				m_bProgress= false;
+				m_bVerification= false;
+				lock.lock();
+				closeDialog.signalAll();
+				lock.unlock();
+				
 			}else
-				m_oDialog.close();
-			m_oDialog= null;
-			m_bOpen= false;
-			m_bProgress= false;
-			m_bVerification= false;
-			m_oDialog= null;
-			m_bClose= false;
-		}
+			{
+				lock.lock();
+				try{
+				// wait until dialog was closed by other thread
+					closeDialog.await();
+				}catch(InterruptedException ex)
+				{}
+				finally
+				{
+					lock.unlock();
+				}					
+			}
 		return m_eState;
 	}
 	
@@ -273,9 +311,21 @@ public class DialogThread // extends Thread
 	 * @version 1.00.00, 23.12.2007
 	 * @since JDK 1.6
 	 */
-	public boolean isOpen()
+	synchronized public boolean isOpen()
 	{
 		return m_bOpen;
+	}
+	/**
+	 * set state of open
+	 * 
+	 * @param open whether dialog is open
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 16.07.2011
+	 * @since JDK 1.6
+	 */
+	synchronized protected void setOpen(boolean open)
+	{
+		m_bOpen= open;
 	}
 	
 	/**
@@ -440,7 +490,7 @@ public class DialogThread // extends Thread
 		{
 			if(!m_bOpen)
 				return 0;
-			DisplayAdapter.syncExec(new Runnable()
+			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run()
@@ -487,7 +537,7 @@ public class DialogThread // extends Thread
 	 */
 	public void close()
 	{
-		m_bClose= true;
+		m_bStop= true;
 		//synchronized (TreeNodes.m_DISPLAYLOCK)
 		{
 			Display.getDefault().asyncExec(new Runnable()

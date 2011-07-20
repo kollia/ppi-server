@@ -16,6 +16,7 @@
  */
 package at.kolli.layout;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.eclipse.swt.widgets.Composite;
@@ -103,7 +104,6 @@ public abstract class HtmTags
 	{
 		actPermission= perm;
 	}
-	
 	/**
 	 * base constructor of all tags
 	 * 
@@ -140,7 +140,7 @@ public abstract class HtmTags
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public abstract void execute(Composite composite);
+	public abstract void execute(Composite composite) throws IOException;
 
 	/**
 	 * returning the parent tag

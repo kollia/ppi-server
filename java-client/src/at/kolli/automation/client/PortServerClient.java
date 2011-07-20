@@ -20,7 +20,6 @@
  */
 package at.kolli.automation.client;
 
-import java.awt.image.SampleModel;
 import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
@@ -353,7 +352,7 @@ public class PortServerClient
 		int mainStyle= SWT.NONE;
 		DialogThread dialog;
 		WidgetChecker checker;
-		NoStopClientConnector client;
+		MsgClientConnector client;
 		LayoutLoader loader;
 		MsgTranslator trans= MsgTranslator.init(lang);
 
@@ -375,16 +374,16 @@ public class PortServerClient
 		if(HtmTags.fullscreen)
 			toplevelShell.setMaximized(true);
 		setDisplayImages(display, toplevelShell);
-		loader= LayoutLoader.instance();
-		loader.start(LayoutLoader.CREATE);
 		dialog.needProgressBar();
 		if(	TreeNodes.m_sUser.equals("")
-				||
-				TreeNodes.m_sPwd.equals("")	)
+			||
+			TreeNodes.m_sPwd.equals("")	)
 		{
 			dialog.show(trans.translate("dialogConnectionTitle"), trans.translate("dialogUserVerification"));
 			dialog.needUserVerificationFields();
 		}
+		loader= LayoutLoader.instance();
+		loader.setState(LayoutLoader.CREATE);
 		if(dialog.produceDialog(LayoutLoader.CREATE).equals(DialogThread.states.CANCEL))
 		{
 			loader.stopThread();
@@ -425,7 +424,7 @@ public class PortServerClient
 		}
 
 		
-		client= NoStopClientConnector.instance();
+		client= MsgClientConnector.instance();
 		client.closeConnection();
 		checker= WidgetChecker.instance();
 		try{

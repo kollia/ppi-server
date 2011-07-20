@@ -16,6 +16,7 @@
  */
 package at.kolli.layout;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -37,10 +38,11 @@ import org.eclipse.swt.widgets.Scale;
 import org.eclipse.swt.widgets.Slider;
 import org.eclipse.swt.widgets.Spinner;
 import org.eclipse.swt.widgets.Text;
+import org.xml.sax.SAXException;
 
 import org.apache.regexp.RE;
 
-import at.kolli.automation.client.NoStopClientConnector;
+import at.kolli.automation.client.MsgClientConnector;
 import at.kolli.automation.client.NodeContainer;
 import at.kolli.dialogs.DisplayAdapter;
 
@@ -265,13 +267,14 @@ public class Component extends HtmTags
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite)
+	public void execute(Composite composite) throws IOException
 	{
 		boolean disabled= false;
 		boolean readonly= false;
-		NoStopClientConnector client= NoStopClientConnector.instance();
+		MsgClientConnector client= MsgClientConnector.instance();
 
 		//System.out.println(type + " " + result);
+		askPermission();
 		if(	actLayout.compareTo(layout.disabled) == 0 ||
 			!m_bDeviceAccess								)
 		{
@@ -299,7 +302,7 @@ public class Component extends HtmTags
 			int type= 0;
 			Button button;
 			GridData data= null;
-			Double akt= client.getValue(this.result);
+			Double akt= client.getValue(this.result, /*bthrow*/true);
 
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
@@ -389,7 +392,7 @@ public class Component extends HtmTags
 			int style= readonly ? SWT.SINGLE | SWT.READ_ONLY : SWT.SINGLE;
 			Text text= new Text(composite, style);
 			GridData data= new GridData();
-			Double akt= client.getValue(this.result);
+			Double akt= client.getValue(this.result, /*bthrow*/true);
 			RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+(\\.([0-9])*)?([ +-/]|\\*|\\(|\\)|$)");
 			
 			// calculating the digits before decimal point
@@ -460,7 +463,7 @@ public class Component extends HtmTags
 			final Slider slider;
 			GridData data= new GridData();
 			int style= SWT.HORIZONTAL;
-			Double akt= client.getValue(this.result);
+			Double akt= client.getValue(this.result, /*bthrow*/true);
 			int value= this.min;
 
 			if(	!client.getErrorCode().equals("ERROR 016")
@@ -526,7 +529,7 @@ public class Component extends HtmTags
 			Scale scale;
 			GridData data= new GridData();
 			int style= SWT.HORIZONTAL;
-			Double akt= client.getValue(this.result);
+			Double akt= client.getValue(this.result, /*bthrow*/true);
 			int value= this.min;
 
 			if(	!client.getErrorCode().equals("ERROR 016")
@@ -595,7 +598,7 @@ public class Component extends HtmTags
 		{
 			Combo combo= new Combo(composite, SWT.READ_ONLY | SWT.DROP_DOWN);
 			GridData data= null;
-			Double akt= client.getValue(this.result);
+			Double akt= client.getValue(this.result, /*bthrow*/true);
 			double value= -1;
 			
 			if(	!client.getErrorCode().equals("ERROR 016")
@@ -669,7 +672,7 @@ public class Component extends HtmTags
 		{
 			List list= new List(composite, m_lContent.size() > this.size ? SWT.SINGLE | SWT.V_SCROLL : SWT.SINGLE);
 			GridData data= new GridData();
-			Double akt= client.getValue(this.result);
+			Double akt= client.getValue(this.result, /*bthrow*/true);
 			int item= 0;
 			double value= -1;
 
@@ -734,7 +737,7 @@ public class Component extends HtmTags
 			int style= readonly ? SWT.READ_ONLY  : SWT.NONE;			
 			final Spinner spinner= new Spinner(composite, style);
 			GridData data= new GridData();
-			Double akt= client.getValue(this.result);
+			Double akt= client.getValue(this.result, /*bthrow*/true);
 
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
@@ -858,24 +861,24 @@ public class Component extends HtmTags
 	}
 	
 	/**
-	 * set the actual permission of the component
+	 * check permission on server for this component
+	 * 
+	 * @throws IOException
+	 * @author Alexander Kolli
+	 * @version 1.00.00, 04.12.2007
+	 * @since JDK 1.6
 	 */
-	public void setPermission()
+	public void askPermission() throws IOException
 	{
 		Double res;
-		NoStopClientConnector client;
+		MsgClientConnector client;
 		
-		/*if(getPermission().equals(permission.None))
-		{
-			actLayout= noRead;
-			return;
-		}*/
-		client= NoStopClientConnector.instance();
-		res= client.getValue(result);
+		client= MsgClientConnector.instance();
+		res= client.getValue(result, /*bthrow*/true);
 		if(!client.hasError())
 		{
 			if(	normal == layout.readonly ||
-				!client.setValue(result, res)	)
+				!client.setValue(result, res, /*bthrow*/true)	)
 			{
 				setPermission(permission.readable);
 				
@@ -899,11 +902,11 @@ public class Component extends HtmTags
 	 * @version 1.00.00, 09.12.2007
 	 * @since JDK 1.6
 	 */
-	public void addListeners()
+	public void addListeners() throws IOException
 	{
 		final String result= this.result;
-		final NoStopClientConnector client= NoStopClientConnector.instance();
-		
+		final MsgClientConnector client= MsgClientConnector.instance();
+
 		//System.out.println(type + " " + result);
 		if(	m_bCorrectName
 			&&
@@ -911,7 +914,7 @@ public class Component extends HtmTags
 			&&
 			client.haveSecondConnection()						)
 		{
-			client.hear(result);
+			client.hear(result, /*bthrow*/true);
 		}
 		if(	!m_bCorrectName
 			||
@@ -953,9 +956,16 @@ public class Component extends HtmTags
 						else
 							nValue= 0;
 					}
-					client.setValue(result, nValue);
-					if(client.hasError())
-						System.out.println(client.getErrorMessage());
+					try{
+						client.setValue(result, nValue, /*bthrow*/false);
+					}catch(IOException ex)
+					{}
+			    	if(	HtmTags.debug &&
+			    		client.hasError()	)
+			    	{
+			    		System.out.println("ERROR: by setValue() inside SelectionListener");
+			    		System.out.println("       " + client.getErrorMessage());
+			    	}
 				}
 			});
 			
@@ -973,18 +983,32 @@ public class Component extends HtmTags
 			{
 			    public void handleEvent(final Event event)
 			    {
-			    	client.setValue(result, 1);
-					if(client.hasError())
-						System.out.println(client.getErrorMessage());
+			    	try{
+			    		client.setValue(result, 1, /*bthrow*/false);
+					}catch(IOException ex)
+					{}
+			    	if(	HtmTags.debug &&
+			    		client.hasError()	)
+			    	{
+			    		System.out.println("ERROR: by setValue() inside Listener");
+			    		System.out.println("       " + client.getErrorMessage());
+			    	}
 			    }
 			});
 			m_oComponent.addListener(SWT.MouseUp, m_eListener2= new Listener()
 			{
 			    public void handleEvent(final Event event)
 			    {
-			    	client.setValue(result, 0);
-					if(client.hasError())
-						System.out.println(client.getErrorMessage());
+			    	try{
+			    		client.setValue(result, 0, /*bthrow*/false);
+					}catch(IOException ex)
+					{}
+			    	if(	HtmTags.debug &&
+			    		client.hasError()	)
+			    	{
+			    		System.out.println("ERROR: by setValue() inside Listener");
+			    		System.out.println("       " + client.getErrorMessage());
+			    	}
 			    }
 			}); 
 			
@@ -1047,7 +1071,16 @@ public class Component extends HtmTags
 						}
 						value= 0;
 					}
-					client.setValue(result, value);
+					try{
+						client.setValue(result, value, /*bthrow*/false);
+					}catch(IOException ex)
+					{}
+			    	if(	HtmTags.debug &&
+			    		client.hasError()	)
+			    	{
+			    		System.out.println("ERROR: by setValue() inside SelectionListener");
+			    		System.out.println("       " + client.getErrorMessage());
+			    	}
 				}
 			
 			});
@@ -1061,7 +1094,16 @@ public class Component extends HtmTags
 				{
 					double value= ((Slider)m_oComponent).getSelection();
 					
-					client.setValue(result, value);
+					try{
+						client.setValue(result, value, /*bthrow*/false);
+					}catch(IOException ex)
+					{}
+			    	if(	HtmTags.debug &&
+			    		client.hasError()	)
+			    	{
+			    		System.out.println("ERROR: by setValue() inside SelectionListener");
+			    		System.out.println("       " + client.getErrorMessage());
+			    	}
 					super.widgetSelected(e);
 				}
 			
@@ -1076,7 +1118,16 @@ public class Component extends HtmTags
 				{
 					double value= ((Scale)m_oComponent).getSelection();
 					
-					client.setValue(result, value);
+					try{
+						client.setValue(result, value, /*bthrow*/false);
+					}catch(IOException ex)
+					{}
+			    	if(	HtmTags.debug &&
+			    		client.hasError()	)
+			    	{
+			    		System.out.println("ERROR: by setValue() inside SelectionListener");
+			    		System.out.println("       " + client.getErrorMessage());
+			    	}
 					super.widgetSelected(e);
 				}
 			
@@ -1100,7 +1151,18 @@ public class Component extends HtmTags
 					{
 						((Combo)m_oComponent).setText(m_asComboNameEntrys.get(m_nAktValue));
 					}else
-						client.setValue(result, value);
+					{
+						try{
+							client.setValue(result, value, /*bthrow*/false);
+						}catch(IOException ex)
+						{}
+				    	if(	HtmTags.debug &&
+				    		client.hasError()	)
+				    	{
+				    		System.out.println("ERROR: by setValue() inside SelectionListener");
+				    		System.out.println("       " + client.getErrorMessage());
+				    	}
+					}
 					super.widgetSelected(e);
 				}			
 			});
@@ -1123,7 +1185,18 @@ public class Component extends HtmTags
 					{
 						((List)m_oComponent).setSelection((int)m_nAktValue);
 					}else
-						client.setValue(result, value);
+					{
+						try{
+							client.setValue(result, value, /*bthrow*/false);
+						}catch(IOException ex)
+						{}
+				    	if(	HtmTags.debug &&
+				    		client.hasError()	)
+				    	{
+				    		System.out.println("ERROR: by setValue() inside SelectionListener");
+				    		System.out.println("       " + client.getErrorMessage());
+				    	}
+					}
 					super.widgetSelected(e);
 				}
 			
@@ -1138,7 +1211,16 @@ public class Component extends HtmTags
 				{						
 					int value= ((Spinner)m_oComponent).getSelection();
 					
-					client.setValue(result, value);
+					try{
+						client.setValue(result, value, /*bthrow*/false);
+					}catch(IOException ex)
+					{}
+			    	if(	HtmTags.debug &&
+			    		client.hasError()	)
+			    	{
+			    		System.out.println("ERROR: by setValue() inside SelectionListener");
+			    		System.out.println("       " + client.getErrorMessage());
+			    	}
 					super.widgetSelected(e);
 				}			
 			});
@@ -1320,15 +1402,15 @@ public class Component extends HtmTags
 	 * @version 1.00.00, 09.12.2007
 	 * @since JDK 1.6
 	 */
-	private boolean setNewValue(final Map<String, Double> results)
+	private boolean setNewValue(final Map<String, Double> results) throws IOException
 	{
-		NoStopClientConnector client;
+		MsgClientConnector client;
 		Double get= results.get(this.result);
 		
 		if(get == null)
 		{
-			client= NoStopClientConnector.instance();
-			get= client.getValue(this.result);
+			client= MsgClientConnector.instance();
+			get= client.getValue(this.result, /*bthrow*/true);
 			if(get == null)
 			{
 				System.out.println(client.getErrorMessage());
@@ -1352,10 +1434,10 @@ public class Component extends HtmTags
 	 * @version 1.00.00, 09.12.2007
 	 * @since JDK 1.6
 	 */
-	public void serverListener(final Map<String, Double> results, NodeContainer cont)
+	public void serverListener(final Map<String, Double> results, NodeContainer cont) throws IOException
 	{
 		boolean bValue= false;
-		
+
 		if(	!m_bCorrectName
 			||
 			getPermission().equals(permission.None) 	)

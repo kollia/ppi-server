@@ -16,9 +16,11 @@
  */
 package at.kolli.layout;
 
+import java.io.IOException;
+
 import at.kolli.automation.client.LayoutLoader;
 import at.kolli.automation.client.MsgTranslator;
-import at.kolli.automation.client.NoStopClientConnector;
+import at.kolli.automation.client.MsgClientConnector;
 import at.kolli.automation.client.NodeContainer;
 import at.kolli.automation.client.TreeNodes;
 import at.kolli.dialogs.DialogThread;
@@ -119,7 +121,7 @@ public class WidgetChecker extends Thread
 	public void run()
 	{
 		NodeContainer cont= null;
-		NoStopClientConnector client= NoStopClientConnector.instance();
+		MsgClientConnector client= MsgClientConnector.instance();
 		
 		setName("hearingThread");
 		if(client.haveSecondConnection())
@@ -129,42 +131,31 @@ public class WidgetChecker extends Thread
 			try{
 				if(cont != null)
 				{
-					String res= client.hearing();
+					String res= client.hearing(/*bthrow*/false);
 					
 					if(	!cont.read("%f:%s=%d", res)
 						&&
 						!cont.read("%f:%s %c", res))
 					{// result can be an other command
 						if(res == null)
-						{
+						{ 
 							//final DialogThread.states retState= DialogThread.states.OK;
+							DialogThread.states retState;
+							LayoutLoader loader= LayoutLoader.instance();
+							DialogThread dialog= DialogThread.instance();//m_oTopLevelShell);
+							MsgTranslator trans= MsgTranslator.instance();
 							
 							client.closeConnection();
-							DisplayAdapter.syncExec(new Runnable() {
-								
-								public void run() {
-
-									DialogThread.states retState;
-									LayoutLoader loader= LayoutLoader.instance();
-									DialogThread dialog= DialogThread.instance();//m_oTopLevelShell);
-									MsgTranslator trans= MsgTranslator.instance();
-									
-									synchronized (TreeNodes.m_DISPLAYLOCK)
-									{
-										loader.start(LayoutLoader.REFRESH);
-										dialog.needProgressBar();
-										dialog.needUserVerificationFields();
-										dialog.show(trans.translate("dialogChangeUser"), trans.translate("dialogUserVerification"));
-										retState= dialog.produceDialog(LayoutLoader.REFRESH);
-										if(retState == DialogThread.states.CANCEL)
-										{
-											System.exit(1);
-										}else
-											loader.start(LayoutLoader.WAIT);
-									}
-								}
-								
-							}, "WidgetChecker::run() refresh by connection ending");
+							loader.setState(LayoutLoader.BROKEN);
+							dialog.needProgressBar();
+							dialog.needUserVerificationFields();
+							dialog.show(trans.translate("dialogChangeUser"), trans.translate("dialogUserVerification"));
+							retState= dialog.produceDialog(LayoutLoader.REFRESH);
+							if(retState == DialogThread.states.CANCEL)
+							{
+								return;
+							}else
+								loader.setState(LayoutLoader.WAIT);
 							client.secondConnection();
 							continue;
 						}
@@ -187,8 +178,15 @@ public class WidgetChecker extends Thread
 					sleep(10);
 			}catch(InterruptedException ex)
 			{
-				//anyone iterrupt thread from WidgetChecker,
-				//so stoping hole checking
+				//anyone interrupt thread from WidgetChecker,
+				//so stopping hole checking
+			}catch(IOException ex)
+			{
+				if(HtmTags.debug)
+				{
+					System.out.println(MsgTranslator.instance().translate(ex.getMessage()));
+					ex.printStackTrace();
+				}
 			}
 		}
 	}

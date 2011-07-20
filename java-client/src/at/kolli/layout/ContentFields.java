@@ -16,12 +16,16 @@
  */
 package at.kolli.layout;
 
+import java.io.IOException;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
+
+import at.kolli.automation.client.MsgClientConnector;
 
 /**
  * class representing an field (column) in an table for layout on display
@@ -67,6 +71,10 @@ public class ContentFields extends HtmTags
 	 * constant value from GridData BEGINNING, CENTER or ENDING
 	 */
 	public int valign;
+	/**
+	 * group name for permission
+	 */
+	public String permgroup= "";
 	/**
 	 * whether the user want to see an border by all composites<br />
 	 * in this case it will be create an  {@link Group}
@@ -129,6 +137,30 @@ public class ContentFields extends HtmTags
 		m_bBorder= set;
 	}
 	/**
+	 * check permission on server for this component
+	 * 
+	 * @throws IOException
+	 * @author Alexander Kolli
+	 * @version 1.00.00, 04.12.2007
+	 * @since JDK 1.6
+	 */
+	public void askPermission() throws IOException
+	{
+    	MsgClientConnector client= MsgClientConnector.instance();
+    	permission perm;
+    	
+    	if(!permgroup.equals(""))
+    	{
+	    	perm= client.permission(permgroup, /*bthrow*/false);
+	    	if(perm == null)
+	    	{
+	    		setPermission(permission.None);
+	    		
+			}else if(perm.compareTo(getPermission()) < -1)
+	    		setPermission(perm);
+    	}
+	}
+	/**
 	 * method to generate the widget in the display window
 	 * 
 	 * @param composite parent {@link Composite}
@@ -137,7 +169,7 @@ public class ContentFields extends HtmTags
 	 * @version 1.00.00, 08.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite)
+	public void execute(Composite composite) throws IOException
 	{
 		Composite cp;
 		Composite outCp;
@@ -146,7 +178,10 @@ public class ContentFields extends HtmTags
 		GridData data= new GridData();
 		RowLayout outLayout= new RowLayout();
 		RowLayout inLayout= new RowLayout();
-		
+
+		askPermission();
+		if(getPermission().compareTo(permission.readable) == -1)
+			return;
 		if(m_bBorder)
 			cp= new Group(composite, SWT.SHADOW_NONE);
 		else

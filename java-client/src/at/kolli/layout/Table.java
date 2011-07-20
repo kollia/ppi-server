@@ -16,6 +16,7 @@
  */
 package at.kolli.layout;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.eclipse.swt.SWT;
@@ -23,6 +24,8 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
+
+import at.kolli.automation.client.MsgClientConnector;
 
 //import at.kolli.layout.Component.permission;
 
@@ -62,6 +65,10 @@ public class Table extends HtmTags
 	 * height of all columns in the row
 	 */
 	public int height= -1;
+	/**
+	 * group name for permission
+	 */
+	public String permgroup= "";
 	/**
 	 * actual field (column) in the row
 	 */
@@ -164,7 +171,31 @@ public class Table extends HtmTags
 		cr.cellpadding= this.cellpadding;
 		m_lContent.add(cr);
 	}
-	
+
+	/**
+	 * check permission on server for this component
+	 * 
+	 * @throws IOException
+	 * @author Alexander Kolli
+	 * @version 1.00.00, 04.12.2007
+	 * @since JDK 1.6
+	 */
+	public void askPermission() throws IOException
+	{
+    	MsgClientConnector client= MsgClientConnector.instance();
+    	permission perm;
+    	
+    	if(!permgroup.equals(""))
+    	{
+	    	perm= client.permission(permgroup, /*bthrow*/false);
+	    	if(perm == null)
+	    	{
+	    		setPermission(permission.None);
+	    		
+			}else if(perm.compareTo(getPermission()) < -1)
+	    		setPermission(perm);
+    	}
+	}
 	/**
 	 * execute method to create the composite for display
 	 * 
@@ -174,12 +205,13 @@ public class Table extends HtmTags
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite)
+	public void execute(Composite composite) throws IOException
 	{
 		int columns= 1;
 		GridLayout layout= new GridLayout();
 		ArrayList<Integer> isAlsoNext= new ArrayList<Integer>();
 		
+		askPermission();
 		if(getPermission().equals(permission.None))
 			return;
 		for(HtmTags tag : m_lContent)

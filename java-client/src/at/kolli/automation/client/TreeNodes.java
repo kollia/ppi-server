@@ -38,20 +38,10 @@ import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.StackLayout;
-import org.eclipse.swt.events.MouseAdapter;
-import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.MouseListener;
-import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Group;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
-import org.xml.sax.InputSource;
 
 import at.kolli.dialogs.DialogThread;
 import at.kolli.dialogs.DisplayAdapter;
@@ -113,10 +103,6 @@ public class TreeNodes
 	 */
 	private TreeItem m_oItem= null;
 	/**
-	 * shell for menu popup window
-	 */
-	private Shell m_popupShell;
-	/**
 	 * main Composite for every node with StackLayout for scrolling
 	 */
 	private ScrolledComposite m_oScrolledComposite= null;
@@ -133,13 +119,13 @@ public class TreeNodes
 	 */
 	private Composite m_oPopupComposite= null;
 	/**
-	 * menu name of pop up label
-	 */
-	private Label m_oMenuText= null;
-	/**
 	 * Body-tag with user-layout (tables) and all components
 	 */
 	private Body m_oBodyTag= null;
+	/**
+	 * instance variable for throwing exception inside DisplayAdapter.syncExec
+	 */
+	private IOException m_runnable_ex;
 	/**
 	 * holder from all components to get an faster access for actions
 	 */
@@ -192,7 +178,8 @@ public class TreeNodes
 	 * @param folder array of exist node-names (folder:subroutine:...)
 	 * @throws IllegalAccessException if side have no access for user
 	 */
-	public TreeNodes(short pos, Composite subComposite, Tree parent, ArrayList<String> folder) throws IllegalAccessException
+	public TreeNodes(short pos, Composite subComposite, Tree parent, ArrayList<String> folder) 
+	throws IllegalAccessException, IOException
 	{
 		m_oParent= parent;
 		init(pos, subComposite, folder, "");
@@ -209,7 +196,8 @@ public class TreeNodes
 	 * @param folder array of exist node-names (folder:subroutine:...)
 	 * @throws IllegalAccessException if side have no access for user
 	 */
-	public TreeNodes(short pos, Composite popup, Composite subComposite, Tree parent, ArrayList<String> folder) throws IllegalAccessException
+	public TreeNodes(short pos, Composite popup, Composite subComposite, Tree parent, ArrayList<String> folder) 
+	throws IllegalAccessException, IOException
 	{
 		m_oParent= parent;
 		m_oPopupComposite= popup;
@@ -307,7 +295,8 @@ public class TreeNodes
 	 * @param parentFolder name of parent folder
 	 * @throws IllegalAccessException if side have no access for user
 	 */
-	public TreeNodes(short pos, Composite subComposite, TreeNodes parentItem, ArrayList<String> folder, String parentFolder) throws IllegalAccessException
+	public TreeNodes(short pos, Composite subComposite, TreeNodes parentItem, ArrayList<String> folder, String parentFolder) 
+	throws IllegalAccessException, IOException
 	{
 		m_oParentNode= parentItem;
 		init(pos, subComposite, folder, parentFolder);
@@ -447,10 +436,19 @@ public class TreeNodes
 	 */
 	public void setInvisible()
 	{
-		NoStopClientConnector client= NoStopClientConnector.instance();
+		MsgClientConnector client= MsgClientConnector.instance();
 		
 		m_bVisible= false;
-		client.clearHearing();
+		try{
+			client.clearHearing(/*bthrow*/false);
+		}catch(IOException ex)
+		{}
+    	if(	HtmTags.debug &&
+    		client.hasError()	)
+    	{
+    		System.out.println("ERROR: by clear all hearing subroutines in TreeNodes.setInvisible()");
+    		System.out.println("       " + client.getErrorMessage());
+    	}
 		for(TreeNodes node : m_aSubnodes)
 			node.setInvisible();
 	}
@@ -506,7 +504,8 @@ public class TreeNodes
 	 * @param parentFolder name of parent folder
 	 * @throws IllegalAccessException if side have no access for user
 	 */
-	private void init(final short pos, final Composite subComposite, ArrayList<String> folder, String parentFolder) throws IllegalAccessException
+	private void init(final short pos, final Composite subComposite, ArrayList<String> folder, String parentFolder) 
+	throws IllegalAccessException, IOException
 	{ 
 		short ipos= 0;
 		String name;
@@ -686,7 +685,7 @@ public class TreeNodes
 	 * 
 	 * @return whether the side can displayed
 	 */
-	private boolean createPage()
+	private boolean createPage() throws IOException
 	{
 		String permGroup;
 		InputStream emptyStream= null;
@@ -699,7 +698,7 @@ public class TreeNodes
 		SAXParserFactory factory= null;
 		XMLSaxParser handler= null;
 		final GridLayout grid= new GridLayout();
-		NoStopClientConnector client= NoStopClientConnector.instance();
+		MsgClientConnector client= MsgClientConnector.instance();
 		ArrayList<Body> bodyList= null;
 		Date serverDate;
 		Date fileDate;
@@ -713,19 +712,13 @@ public class TreeNodes
 		file= new File(m_sLayoutPath + File.separator + osFileName+"." + m_sLayoutStyle );
 		
 		if(HtmTags.debug)
-		{
-			System.out.print("read file: '");
-			System.out.print(file);
-			System.out.println("'");
-		}
+			System.out.println("read file: '" + file + "'");
 		
 		boolean exists= false;
 		serverDate= m_hmDirectory.get(fileName + "." + m_sLayoutStyle);
 		if(serverDate == null)
 		{
 			String emptyFile;
-			//InputSource emptySource;
-			
 			// if found an locally layout file but the date for server do not exist
 			// this case can be when searching an layout for an sub-directory
 			// but on server is no extra file for this directory
@@ -734,6 +727,8 @@ public class TreeNodes
 			emptyFile+=	"</layout>";
 			//emptySource= new InputSource(emptyFile);
 			emptyStream= new ByteArrayInputStream(emptyFile.getBytes());
+			if(HtmTags.debug)
+				System.out.println("no file is available, create an empty file with no body");
 			
 		}else if(file.isFile())
 		{
@@ -745,16 +740,21 @@ public class TreeNodes
 				{
 					System.out.println("cannot read file "+fileName);
 					exists= false;
-				}
+					
+				}else if(HtmTags.debug)
+					System.out.println("take local stored file");
 			}
 		}
 		if( emptyStream == null &&
 			!exists					)
 		{
 			FileOutputStream output;
-			ArrayList<String> xmlFile= client.getContent(fileName + "." + m_sLayoutStyle);
+			ArrayList<String> xmlFile;
 			File path= file.getParentFile();
 			
+			if(HtmTags.debug)
+				System.out.println("take file from server");
+			xmlFile= client.getContent(fileName + "." + m_sLayoutStyle, /*bthrow*/true);
 			if(xmlFile == null)
 			{
 				if(HtmTags.debug)
@@ -850,8 +850,21 @@ public class TreeNodes
 	      permGroup= m_mMetaBlock.get("permission");
 	      if(permGroup != null)
 	      {
-	    	  if(client.permission(permGroup).compareTo(permission.readable) < 0)
+	    	  permission perm;
+	    	  
+	    	  perm= client.permission(permGroup, /*bthrow*/true);	    		  
+	    	  if(	perm == null ||
+	    			perm == permission.None	)
+	    	  {
+	    		  if(HtmTags.debug)
+	    		  {
+	    				if(client.hasError())
+	    					System.out.println(client.getErrorMessage());
+	    				else
+	    					System.out.println("Client hase no access to group(s) '" + permGroup + "'");
+	    		  }
 	    		  return false;
+	    	  }
 	      }
 		    if(head != null)
 		    {
@@ -871,15 +884,22 @@ public class TreeNodes
 			    m_oBodyTag= bodyList.get(0);
 			    if(m_oBodyTag != null)
 			    {
+			    	m_runnable_ex= null;
 			    	DisplayAdapter.syncExec(new Runnable() {
 					
 						public void run() {
 							
-							m_oBodyTag.execute(m_oComposite);
+							try{
+								m_oBodyTag.execute(m_oComposite);
+							}catch(IOException ex)
+							{
+								m_runnable_ex= ex;
+							}
 						}
 					
 					});
-			    	
+			    	if(m_runnable_ex != null)
+			    		throw m_runnable_ex;
 			    	
 			    }
 		    }
@@ -910,7 +930,7 @@ public class TreeNodes
 	 * 
 	 * @param client interface handle to the server
 	 */
-	public void listenClient(ClientConnector client, NodeContainer cont)
+	public void listenClient(ClientConnector client, NodeContainer cont) throws IOException
 	{
 		if(isVisible())
 		{
