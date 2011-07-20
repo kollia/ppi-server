@@ -353,6 +353,10 @@ public class XMLSaxParser extends DefaultHandler
 	        		else if(aName.equals("content"))
 	        			m_mMetaBox.put(metaName, attrs.getValue(i));
 	        	}
+	        }else if(m_oAktTag instanceof Body)
+	        {
+	        	((Body)m_oAktTag).href= attrs.getValue(i);
+	        	
 	        }else if(m_oAktTag instanceof Option)
 	    	{
 	        	Option option= (Option)m_oAktTag;
@@ -499,41 +503,9 @@ public class XMLSaxParser extends DefaultHandler
 		        	else if(tr != null)
 		        		tr.permgroup= attrs.getValue(i);
 		        	else
-		        		table.permgroup= attrs.getValue(i);
-		        }
+		        		table.permgroup= attrs.getValue(i);		        	
+		        }		        	
 	        }
-/*	        if(	(	m_oAktTag instanceof Table
-	        		||
-	        		m_oAktTag instanceof ContentRows
-	        		||
-	        		m_oAktTag instanceof ContentFields	)
-	        	&&
-	        	aName.equals("permission")
-    			&&
-    			m_oAktTag.getPermission().compareTo(permission.None) != 0	)
-	        {
-	        	NoStopClientConnector client= NoStopClientConnector.instance();
-	        	permission perm= null;
-	        	
-	        	try{
-	        		perm= client.permission(attrs.getValue(i), /*bthrow*false);
-	        		
-	        	}catch(IOException ex)
-	        	{}
-	        	if(	HtmTags.debug &&
-	        		client.hasError()	)
-	        	{
-	        		System.out.println("ERROR: by ask permision for group " + attrs.getValue(i) + " in XMLSayParser.startElement()");
-	        		System.out.println("       " + client.getErrorMessage());
-	        	}
-	        	if(	perm != null && 
-	        		perm.compareTo(m_oAktTag.getPermission()) < -1)
-	        	{
-	        		m_oAktTag.setPermission(perm);
-	        		m_aoPermission.add(0, perm);
-	        		m_aoPermissionTag.add(0, m_oAktTag);
-	        	}
-	        }*/
 	      }
 	    }
 	    if(HtmTags.debug)

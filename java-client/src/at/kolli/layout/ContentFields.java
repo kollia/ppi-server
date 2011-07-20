@@ -19,6 +19,8 @@ package at.kolli.layout;
 import java.io.IOException;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.browser.Browser;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
@@ -80,6 +82,11 @@ public class ContentFields extends HtmTags
 	 * in this case it will be create an  {@link Group}
 	 */
 	private boolean m_bBorder= false;
+	/**
+	 * if this variable filled,
+	 * this field or body as internet browser
+	 */
+	public String href= "";
 	
 	/**
 	 * create instance of td-tag
@@ -186,17 +193,19 @@ public class ContentFields extends HtmTags
 			cp= new Group(composite, SWT.SHADOW_NONE);
 		else
 			cp= new Composite(composite, SWT.NONE);
-		outCp= new Composite(cp, SWT.NONE);
-		//inCp= new Group(outCp, SWT.SHADOW_NONE);
-		inCp= new Composite(outCp, SWT.NONE);
-		/*int count= 0;		
-		for(ArrayList<HtmTags> list : m_lRows)
+		
+		if(href != "")
 		{
-			int c= list.size();
+			Browser browser= new Browser(cp, SWT.NONE);
 			
-			if(c > count)
-				count= c;
-		}*/
+			composite.setLayout(new FillLayout());
+			cp.setLayout(new FillLayout());
+			browser.setUrl(href);
+			return;
+		}
+		outCp= new Composite(cp, SWT.NONE);
+		inCp= new Composite(outCp, SWT.NONE);
+		
 		data.horizontalSpan= colspan;
 		data.verticalSpan= rowspan;
 		data.horizontalAlignment= align;
@@ -219,12 +228,6 @@ public class ContentFields extends HtmTags
 		inLayout.type= SWT.HORIZONTAL;
 		inLayout.wrap= false;
 		inLayout.spacing= 0;
-		/*inLayout.marginTop= 0;
-		inLayout.marginBottom= 0;
-		inLayout.marginLeft= 0;
-		inLayout.marginRight= 0;
-		inLayout.marginHeight= 0;
-		inLayout.marginWidth= 0;*/
 
 		cp.setLayoutData(data);
 		cp.setLayout(oLayout);
@@ -232,40 +235,26 @@ public class ContentFields extends HtmTags
 		inCp.setLayout(inLayout);
 
 		if(m_lContent.size() == 0)
-		{
-			/*data.heightHint= 10;
-			data.widthHint= 10;*/
-			//inCp.setLayout(inLayout);
-			//outCp.setLayout(outLayout);
-			//outCp.setLayoutData(new RowData(5, 5));
-			//inCp.setLayoutData(new RowData(100, 20));
+		{// no content exist
 			return;
 		}
-		//for(ArrayList<HtmTags> list : m_lRows)
-		//{
-			for(HtmTags tag : m_lContent)
+		for(HtmTags tag : m_lContent)
+		{
+			if(tag instanceof Break)
 			{
-				if(tag instanceof Break)
-				{
-					inCp= new Composite(outCp, SWT.NONE);
-					//inCp= new Group(outCp, SWT.SHADOW_NONE);
-					inCp.setLayout(inLayout);
-				}else
-				{
-					Composite gridCompo= new Composite(inCp, SWT.NONE);
-					GridLayout gridLayout= new GridLayout();
-					
-					//gridLayout.numColumns= 1;
-					gridLayout.marginWidth= 0;
-					gridLayout.marginHeight= 0;
-					/*gridLayout.marginLeft= 0;
-					gridLayout.marginTop= 0;
-					gridLayout.marginRight= 0;
-					gridLayout.marginBottom= 0;*/
-					gridCompo.setLayout(gridLayout);
-					tag.execute(gridCompo);
-				}
+				inCp= new Composite(outCp, SWT.NONE);
+				//inCp= new Group(outCp, SWT.SHADOW_NONE);
+				inCp.setLayout(inLayout);
+			}else
+			{
+				Composite gridCompo= new Composite(inCp, SWT.NONE);
+				GridLayout gridLayout= new GridLayout();
+				
+				gridLayout.marginWidth= 0;
+				gridLayout.marginHeight= 0;
+				gridCompo.setLayout(gridLayout);
+				tag.execute(gridCompo);
 			}
-		//}
+		}
 	}
 }
