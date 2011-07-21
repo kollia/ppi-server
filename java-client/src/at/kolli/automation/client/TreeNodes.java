@@ -397,7 +397,7 @@ public class TreeNodes
 		name= token.nextToken();
 		if(	!m_sTitleName.equals(name)
 			||
-			(	!haveBody()
+			(	!hasBody()
 				&&
 				!token.hasMoreElements()	)	)
 		{
@@ -543,7 +543,7 @@ public class TreeNodes
 				
 				
 				if(!createPage())
-					throw new IllegalAccessException("no side access");			
+					throw new IllegalAccessException("no side access");
 				if(HtmTags.notree)
 				{
 					if(m_oPopupComposite != null)
@@ -665,6 +665,10 @@ public class TreeNodes
 			if(access)
 				m_aSubnodes.add(node);
 		}
+		
+		if(!hasContent())
+			throw new IllegalAccessException("no side access");
+		
 		if(m_oScrolledComposite != null)
 		{
 			DisplayAdapter.syncExec(new Runnable() {
@@ -907,6 +911,33 @@ public class TreeNodes
 	}
 	
 	/**
+	 * show whether node has an body
+	 * 
+	 * @return true when node has an body, otherwise false
+	 */
+	public boolean hasBody()
+	{
+		return m_oBodyTag != null;
+	}
+	
+	/**
+	 * show whether node has body or child nodes with body
+	 * 
+	 * @return true when node has child nodes, otherwise false
+	 */
+	public boolean hasContent()
+	{
+		if(hasBody())
+			return true;
+		for (TreeNodes node : m_aSubnodes)
+		{
+			if(node.hasContent())
+				return true;
+		}
+		return false;
+	}
+	
+	/**
 	 * return an array of all components in this node
 	 * 
 	 * @return array of components
@@ -914,15 +945,6 @@ public class TreeNodes
 	public ArrayList<Component> getComponents()
 	{
 		return m_aoButtons;
-	}
-	/**
-	 * show whether node have an body
-	 * 
-	 * @param whether body exist
-	 */
-	public boolean haveBody()
-	{
-		return (m_oBodyTag != null);
 	}
 	/**
 	 * server listener if the node is visible,
