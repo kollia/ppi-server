@@ -195,18 +195,17 @@ add_subdirectory( src/util/thread ) # ppithreadutil need: rt ppiutil ppipattern
 add_subdirectory( src/server/libs ) # ppiserverlib need: ppithreadutil
 add_subdirectory( src/server/libs/client ) # ppiserverlibclient need: ppiserverlib
 add_subdirectory( src/util/process ) # ppiprocessutil need: ppistreamutil ppithreadutil ppiserverlibclient
-add_subdirectory( src/logger/lib ) # ppilogger need: ppithreadutil ppistreamutil ppiserverlibclient
-add_subdirectory( src/server/libs/server ) # ppiserverlibserver need: ppiprocessutil ppiserverlib ppiserverlibclient ppilogger
-add_subdirectory( src/database/lib ) # ppidb need: ppithreadutil ppistreamutil ppiserverlibclient ppilogger
-add_subdirectory( src/portserver/lib ) # ppiow need: ppistreamutil ppiserverlibclient ppilogger
-#add_subdirectory( src/ports ) # ppiports need: ppiutil ppithreadutil ppiserverlibclient ppidb ppiow ppilogger
+add_subdirectory( src/database/logger/lib ) # ppilogger need: ppithreadutil ppistreamutil ppiserverlibclient
+add_subdirectory( src/server/libs/server ) # ppiserverlibserver need: ppiprocessutil ppiserverlib ppiserverlibclient ppipattern
+add_subdirectory( src/database/lib ) # ppidb need: ppithreadutil ppistreamutil ppiserverlibclient ppipattern
+add_subdirectory( src/portserver/lib ) # ppiow need: ppistreamutil ppiserverlibclient ppipattern
+#add_subdirectory( src/ports ) # ppiports need: ppiutil ppithreadutil ppiserverlibclient ppidb ppiow ppipattern
 add_subdirectory( src/client/lib ) # ppicppclient need: ppiutil ppistreamutil ppithreadutil ppiserverlibclient
 
 
 # binaries
 add_subdirectory( src/config )
 add_subdirectory( src/server )
-add_subdirectory( src/logger )
 add_subdirectory( src/database )
 add_subdirectory( src/portserver )
 add_subdirectory( src/client )
