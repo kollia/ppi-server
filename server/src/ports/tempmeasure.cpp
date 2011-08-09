@@ -20,7 +20,7 @@
 
 #include "tempmeasure.h"
 
-#include "../util/Terminal.h"
+#include "../util/thread/Terminal.h"
 
 double TempMeasure::measure(const double actValue)
 {

@@ -27,14 +27,14 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+#include "../../../pattern/util/LogHolderPattern.h"
+
 #include "../../../pattern/server/IClientPattern.h"
 #include "../../../pattern/server/IClientHolderPattern.h"
 #include "../../../pattern/server/IServerPattern.h"
 
 #include "../../../util/structures.h"
 #include "../../../util/debugtransaction.h"
-
-#include "../../../logger/lib/LogInterface.h"
 
 #include "ServerMethodTransaction.h"
 #include "ServerThread.h"
@@ -87,10 +87,7 @@ namespace server
 			else
 				msg << " ending of stream";
 			msg << endl << "         so close connection";
-			input= msg.str();
-			boost::algorithm::replace_all(input, "\n", "\\n");
-			input= "log \"SereverMethodTransaction.cpp\" 95 4 \"" + input +"\"";
-			descriptor.sendToOtherClient("LogServer", input, false);
+			LOG(LOG_INFO, msg.str());
 #ifdef ALLOCATEONMETHODSERVER
 			msg << endl;
 			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)

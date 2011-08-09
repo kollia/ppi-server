@@ -28,15 +28,13 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include "../pattern/util/LogHolderPattern.h"
+
 #include "../pattern/server/IServerCommunicationStarterPattern.h"
 
 #include "../server/libs/client/SocketClientConnection.h"
 
 #include "../util/structures.h"
-
-#include "../logger/lib/LogInterface.h"
-
-//#include "../ports/measureThread.h"
 
 #include "../portserver/lib/OWInterface.h"
 
@@ -46,6 +44,8 @@
 #include "../util/URL.h"
 
 #include "../util/properties/configpropertycasher.h"
+
+#include "../database/logger/lib/logstructures.h"
 
 #include "../database/lib/DbInterface.h"
 #include "../database/lib/NeedDbChanges.h"
@@ -60,7 +60,6 @@ extern string global_clientpath;
 using namespace std;
 using namespace user;
 using namespace util;
-using namespace logger;
 using namespace server;
 using namespace ppi_database;
 using namespace design_pattern_world::server_pattern;
@@ -503,7 +502,7 @@ namespace server
 			{
 				string action;
 				DbInterface* db= DbInterface::instance();
-				LogInterface* logger= LogInterface::instance();
+				//LogInterface* logger= LogInterface::instance();
 				UserManagement* user= UserManagement::instance();
 				NeedDbChanges* dbchanges= NeedDbChanges::instance();
 				IServerPattern* server= descriptor.getServerObject();
@@ -562,7 +561,7 @@ namespace server
 				descriptor.endl();
 				descriptor.flush();
 				glob::stopMessage("ending connection to LogInterface");
-				logger->closeSendConnection();
+				//logger->closeSendConnection();
 				sendmsg= "OK";
 				descriptor << sendmsg;
 				descriptor.endl();

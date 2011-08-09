@@ -31,8 +31,6 @@
 
 #include "lib/DatabaseFactory.h"
 
-#include "../logger/lib/LogInterface.h"
-
 #include "../server/libs/client/ExternClientInputTemplate.h"
 
 #include "../pattern/server/IClientPattern.h"

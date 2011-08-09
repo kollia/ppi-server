@@ -21,10 +21,9 @@
 
 #include <iostream>
 
-#include "../../../logger/lib/LogInterface.h"
+#include "../../../pattern/util/LogHolderPattern.h"
 
 #include "../../../util/GlobalStaticMethods.h"
-//#include "../../../util/StatusLogRoutine.h"
 
 #include "SocketServerConnection.h"
 

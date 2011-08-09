@@ -18,6 +18,9 @@
 #include <stdio.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <unistd.h>
+#include <sys/io.h>
+
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -25,9 +28,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-#include "../logger/lib/LogInterface.h"
-
-//#include "../ports/portbaseclass.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "../util/thread/Thread.h"
 

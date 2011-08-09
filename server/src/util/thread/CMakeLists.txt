@@ -1,6 +1,7 @@
 
 set(utilSrcs	StatusLogRoutine.cpp
-				Thread.cpp				)
+				Thread.cpp
+				Terminal.cpp			)
 
 add_library(ppithreadutil ${libraries} ${utilSrcs})
 target_link_libraries(ppithreadutil ${RT_LIBRARIES} ppiutil ppipattern)

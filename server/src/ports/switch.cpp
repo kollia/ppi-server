@@ -28,9 +28,9 @@
 
 #include "switch.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
-#include "../util/Terminal.h"
+#include "../util/thread/Terminal.h"
 #include "../util/CalculatorContainer.h"
 
 #include "../database/lib/DbInterface.h"

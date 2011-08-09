@@ -29,7 +29,7 @@
 
 #include "../pattern/util/LogHolderPattern.h"
 
-#include "../logger/lib/LogInterface.h"
+//#include "../database/logger/lib/PPILogInterface.h"
 
 #include "../util/GlobalStaticMethods.h"
 #include "../util/URL.h"
@@ -117,9 +117,6 @@ int main(int argc, char* argv[])
 		host= "127.0.0.1";
 	property= "port";
 	port= oServerProperties.needUShort(property);
-
-	global_clientpath= URL::addPath(workdir, PPICLIENTPATH, /*always*/true);
-
 	// initial Log Interface
 	property= "timelogSec";
 	nLogAllSec= oServerProperties.getInt(property, /*warning*/false);// warning be written in starter.cpp
@@ -129,14 +126,16 @@ int main(int argc, char* argv[])
 	{
 		nLogAllSec= 1800;
 	}
-	LogInterface::initial(	"ppi-internet-server",
-							new SocketClientConnection(	SOCK_STREAM,
-														commhost,
-														commport,
-														0								),
-							/*identif log wait*/nLogAllSec,
-							/*wait*/true													);
-	LogHolderPattern::init(LogInterface::instance());
+
+	global_clientpath= URL::addPath(workdir, PPICLIENTPATH, /*always*/true);
+
+	// initial main connection to database to send questions and logs
+	DbInterface::initial("ppi-internet-server", new SocketClientConnection(	SOCK_STREAM,
+																			commhost,
+																			commport,
+																			5				),
+												/*identif log wait*/nLogAllSec					);
+
 
 	if(!UserManagement::initial(URL::addPath(sConfPath, "access.conf", /*always*/true),
 								URL::addPath(sConfPath, "measure.conf", /*always*/true)))
@@ -155,12 +154,6 @@ int main(int argc, char* argv[])
 	{
 		maxThreads= 4;
 	}
-
-	// initial main connection to database to send questions
-	DbInterface::initial("ppi-internet-server", new SocketClientConnection(	SOCK_STREAM,
-																			commhost,
-																			commport,
-																			5				)	);
 
 	// initial get connection to database server for get questions
 	if(!NeedDbChanges::initial("ppi-internet-server", new SocketClientConnection(	SOCK_STREAM,

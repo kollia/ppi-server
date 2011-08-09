@@ -30,13 +30,12 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "../../../pattern/util/LogHolderPattern.h"
+
 #include "../../../pattern/server/IFileDescriptorPattern.h"
 
 #include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/XMLStartEndTagReader.h"
-
-
-#include "../../../logger/lib/LogInterface.h"
 
 #include "../client/SocketClientConnection.h"
 #include "../client/ExternClientInputTemplate.h"
@@ -46,7 +45,6 @@
 
 namespace server
 {
-	using namespace logger;
 	using namespace design_pattern_world::server_pattern;
 
 	ServerProcess::ServerProcess(string processName, const uid_t uid, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect,
@@ -137,9 +135,8 @@ namespace server
 			cerr << "### any server running on port, so do not start server" << endl;
 			return 10;
 		}
-		LogInterface::instance()->setThreadName(getProcessName());
+		LogHolderPattern::instance()->setThreadName(getProcessName());
 		m_pStarterPool->start(args);
-		setuid(m_uid);
 		return m_pConnect->init();
 	}
 

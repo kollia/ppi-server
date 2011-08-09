@@ -32,8 +32,8 @@
 
 #include <pthread.h>
 
-#include "smart_ptr.h"
-#include "thread/Thread.h"
+#include "../smart_ptr.h"
+#include "Thread.h"
 
 using namespace std;
 

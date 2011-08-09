@@ -15,9 +15,6 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//#include <string.h>
-//#include <stdlib.h>
-
 #include <iostream>
 #include <sstream>
 #include <string.h>
@@ -26,8 +23,6 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include "../pattern/util/LogHolderPattern.h"
-
-#include "../logger/lib/LogInterface.h"
 
 #include "../util/GlobalStaticMethods.h"
 #include "../util/URL.h"
@@ -39,6 +34,8 @@
 #include "../server/libs/server/ServerProcess.h"
 #include "../server/libs/server/communicationthreadstarter.h"
 
+#include "logger/LogThread.h"
+
 #include "ServerDbTransaction.h"
 #include "DatabaseThread.h"
 
@@ -46,12 +43,38 @@ using namespace std;
 using namespace boost;
 using namespace util;
 using namespace ppi_database;
-using namespace logger;
 
 int main(int argc, char* argv[])
 {
-	uid_t defaultuserID;
+	/**
+	 * log file name for logging process
+	 */
+	string logpath;
+	/**
+	 * minimal log level to write inside log file
+	 * as string from server configuration file
+	 */
+	string sLogLevel;
+	/**
+	 * minimal log level to write inside log file
+	 * as integer
+	 */
+	int nLogLevel;
+	/**
+	 * how often TIMELOG is logging the same log message
+	 */
 	int nLogAllSec;
+	/**
+	 * after how much days logging process should create an new logging file
+	 */
+	int nLogDays;
+	/**
+	 * after how much logging files should be deleted.<br />
+	 * -1 is never
+	 */
+	unsigned short nDelete;
+
+	uid_t defaultuserID;
 	string defaultuser;
 	string workdir;
 	string commhost;
@@ -66,6 +89,8 @@ int main(int argc, char* argv[])
 	Properties oServerProperties;
 	DatabaseThread* db;
 	CommunicationThreadStarter* starter;
+	LogThread logObj(/*check*/true, /*asServer*/true);
+	ServerDbTransaction* pDbTransaction;
 
 	glob::processName("ppi-db-server");
 	glob::setSignals("ppi-db-server");
@@ -113,14 +138,37 @@ int main(int argc, char* argv[])
 		defaultuser= "nobody";
 	}
 	defaultuserID= URL::getUserID(defaultuser);
+	setuid(defaultuserID);
+
 	commhost= oServerProperties.getValue("communicationhost", /*warning*/false);
 	if(commhost == "")
 		commhost= "127.0.0.1";
 	property= "communicationport";
 	commport= oServerProperties.needUShort(property);
 
-	// initial interface to log client
-
+	// ------------------------------------------------------------------------------
+	// initial logging service
+	//
+	logpath= URL::addPath(workdir, PPILOGPATH, /*always*/false);
+	logpath= URL::addPath(logpath, "ppi-server_");
+	property= "log";
+	sLogLevel= oServerProperties.getValue(property, false);
+	if(sLogLevel == "DEBUG")
+		nLogLevel= LOG_DEBUG;
+	else if(sLogLevel == "INFO")
+		nLogLevel= LOG_INFO;
+	else if(sLogLevel == "WARNING")
+		nLogLevel= LOG_WARNING;
+	else if(sLogLevel == "ERROR")
+		nLogLevel= LOG_ERROR;
+	else if(sLogLevel == "ALERT")
+		nLogLevel= LOG_ALERT;
+	else
+	{
+		cerr << "### WARNING: undefined log level '" << sLogLevel << "' in config file server.conf" << endl;
+		cerr << "             set log-level to DEBUG" << endl;
+		nLogLevel= LOG_DEBUG;
+	}
 	property= "timelogSec";
 	nLogAllSec= oServerProperties.getInt(property);
 	if(	nLogAllSec == 0
@@ -129,28 +177,40 @@ int main(int argc, char* argv[])
 	{
 		nLogAllSec= 1800;
 	}
-	LogInterface::initial(	"ppi-db-server",
-							new SocketClientConnection(	SOCK_STREAM,
-														commhost,
-														commport,
-														0			),
-							/*identif log*/nLogAllSec,
-							/*wait*/true								);
-	LogHolderPattern::init(LogInterface::instance());
+	property= "newfileAfterDays";
+	nLogDays= oServerProperties.getInt(property);
+	if(	nLogAllSec == 0
+		&&
+		property == "#ERROR"	)
+	{
+		nLogDays= 30;
+	}
+	property= "deleteLogFiles";
+	nDelete= oServerProperties.getUShort(property);
+
+	logObj.setProperties(logpath, nLogLevel, nLogAllSec, nLogDays, nDelete);
+	LogHolderPattern::init(dynamic_cast<ILogPattern*>(&logObj));
+	logObj.start();
+	LogHolderPattern::instance()->setThreadName(glob::getProcessName());
+	//
+	// ------------------------------------------------------------------------------
+
+
 
 	LOG(LOG_DEBUG, "starting database");
-
 	starter= new CommunicationThreadStarter(0, nDbConnectors);
 	// start initialitation from database
 	DatabaseThread::initial(dbpath, sConfPath, &oServerProperties);
 	db= DatabaseThread::instance();
 	db->setCommunicator(starter);
 
+	pDbTransaction= new ServerDbTransaction();
+	pDbTransaction->setLogObject(&logObj);
 	ServerProcess database(	"ppi-db-server", defaultuserID, starter,
 							new TcpServerConnection(	commhost,
 														commport,
 														10,
-														new ServerDbTransaction()	),
+														pDbTransaction	),
 							new SocketClientConnection(	SOCK_STREAM,
 														commhost,
 														commport,
@@ -159,6 +219,7 @@ int main(int argc, char* argv[])
 	err= database.run(&oServerProperties);
 	if(err != 0)
 	{
+		logObj.stop();
 		if(err > 0)
 			cerr << "### ERROR: for ";
 		else
@@ -168,5 +229,6 @@ int main(int argc, char* argv[])
 		return err;
 	}
 	glob::stopMessage("### ending database process with all threads", /*all process names*/true);
+	logObj.stop();
 	return EXIT_SUCCESS;
 }

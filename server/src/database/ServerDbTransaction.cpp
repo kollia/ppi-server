@@ -25,6 +25,8 @@
 
 #include <boost/algorithm/string/split.hpp>
 
+#include "../pattern/util/LogHolderPattern.h"
+
 #include "../pattern/server/IServerPattern.h"
 
 #include "../util/GlobalStaticMethods.h"
@@ -32,15 +34,17 @@
 #include "../util/stream/OParameterStringStream.h"
 #include "../util/stream/OMethodStringStream.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../server/libs/client/ExternClientInputTemplate.h"
+
+#include "logger/LogThread.h"
 
 #include "ServerDbTransaction.h"
 #include "DatabaseThread.h"
 #include "DefaultChipConfigReader.h"
 
+
 using namespace std;
 using namespace util;
-using namespace logger;
 using namespace ports;
 using namespace ppi_database;
 using namespace design_pattern_world::server_pattern;
@@ -688,6 +692,40 @@ namespace server
 			}
 			descriptor << "done";
 
+		}else if(method == "log")
+		{
+			log_t log;
+
+			object >> log.file;
+			object >> log.line;
+			object >> log.type;
+			object >> log.message;
+			object >> log.pid;
+			object >> log.tid;
+			object >> log.thread;
+			object >> log.identif;
+			m_pLogObject->log(log);
+			descriptor << "done";
+
+		}else if(method == "setThreadName")
+		{
+			string name;
+			pthread_t id;
+
+			object >> name;
+			object >> id;
+			m_pLogObject->setThreadName(name, id);
+			descriptor << "done";
+
+		}else if(method == "getThreadName")
+		{
+			string name;
+			pthread_t id;
+
+			object >> id;
+			m_pLogObject->getThreadName(id);
+			descriptor << name;
+
 		}else if(method == "stop-all")
 		{
 			string sRv;
@@ -699,7 +737,7 @@ namespace server
 			ostringstream owclient;
 			IServerPattern* server;
 			IClientHolderPattern* holder;
-			LogInterface* log;
+			//ILogPattern* log;
 
 			dbTh= DatabaseThread::instance();
 			if(stopdb == 0)
@@ -764,6 +802,7 @@ namespace server
 				break;
 
 			case 5:
+#if 0
 				glob::stopMessage("ServerDbTransaction::transfer(): send stop message to logging server");
 				sRv= descriptor.sendToOtherClient("LogServer", "stop", true);
 				if(sRv == "done")
@@ -771,12 +810,14 @@ namespace server
 					++stopdb;
 					descriptor.sendToOtherClient("LogServer", "stop-OK", false);
 					sRv= "stop logging client";
-					log= LogInterface::instance();
-					delete log;
+					//log= LogInterface::instance();
+					//delete log;
 
 				}
 				break;
-
+#else
+				++stopdb;
+#endif
 			case 6:
 				glob::stopMessage("ServerDbTransaction::transfer(): all stopping be done, send finished to client");
 				descriptor << "done";
@@ -806,6 +847,8 @@ namespace server
 		}else
 		{
 			// undefined command was sending
+			LOG(LOG_WARNING, "get undefined question with method name '" + method + "'\n"
+							"from client " + descriptor.getString("client"));
 			descriptor << "ERROR 011";
 		}
 		descriptor.endl();

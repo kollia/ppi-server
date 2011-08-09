@@ -35,8 +35,7 @@
 #include "../../util/stream/OMethodStringStream.h"
 #include "../../util/stream/IMethodStringStream.h"
 
-#include "../../logger/lib/logstructures.h"
-#include "../../logger/lib/LogInterface.h"
+#include "../../pattern/util/LogHolderPattern.h"
 
 #include "DbInterface.h"
 
@@ -47,14 +46,16 @@ namespace ppi_database
 
 	map<short, DbInterface*> DbInterface::_instance;
 
-	short DbInterface::initial(const string& process, IClientConnectArtPattern* connection)
+	short DbInterface::initial(const string& process, IClientConnectArtPattern* connection, const int identifwait)
 	{
 		short n;
 		int ret;
 		DbInterface* pdb;
 
 		n= _instance.size();
-		pdb= new DbInterface(process, connection);
+		pdb= new DbInterface(process, connection, identifwait);
+		if(n == 0)
+			LogHolderPattern::init(pdb);
 		ret= pdb->openSendConnection();
 		if(ret > 0 && ret != 35)
 		{
@@ -66,6 +67,13 @@ namespace ppi_database
 			cout << pdb->strerror(ret) << endl;
 		_instance[n]= pdb;
 		return n;
+	}
+
+	int DbInterface::openConnection(string toopen/*= ""*/)
+	{
+		if(ExternClientInputTemplate::hasOpenGetConnection())
+			return 0;
+		return ExternClientInputTemplate::openSendConnection(toopen);
 	}
 
 	DbInterface* DbInterface::instance(const short number/*= 0*/)
@@ -86,7 +94,7 @@ namespace ppi_database
 		string sRv;
 		OMethodStringStream loaded("isDbLoaded");
 
-		sRv= sendMethod("ppi-db-server", loaded, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", loaded, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -117,7 +125,7 @@ namespace ppi_database
 
 		command << folder;
 		command << subroutine;
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -146,7 +154,7 @@ namespace ppi_database
 		command << subroutine;
 		command << value;
 		command << account;
-		sRv= sendMethod("ProcessChecker", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ProcessChecker", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -198,7 +206,7 @@ namespace ppi_database
 		out << endl;
 		cout << out.str();
 #endif
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -223,7 +231,7 @@ namespace ppi_database
 		string sRv;
 		OMethodStringStream command("isEntryChanged");
 
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -269,7 +277,7 @@ namespace ppi_database
 		command << subroutine;
 		command << onServer;
 		command << chip;
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -299,7 +307,7 @@ namespace ppi_database
 		command << chip;
 		command << value;
 		command << device;
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -328,7 +336,7 @@ namespace ppi_database
 		command << subroutine;
 		command << identif;
 		command << number;
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -371,7 +379,7 @@ namespace ppi_database
 		command << folder;
 		if(subroutine != "")
 			command << subroutine;
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -396,7 +404,7 @@ namespace ppi_database
 		string sRv;
 		OMethodStringStream command("clearFolderDebug");
 
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -427,7 +435,7 @@ namespace ppi_database
 		command << subroutine;
 		command << identif;
 		command << number;
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -467,7 +475,7 @@ namespace ppi_database
 		command << subroutine;
 		command << definition;
 		command << value;
-		vsRv= sendMethod("ppi-db-server", command, "done", true);
+		vsRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, "done", true);
 
 		istringstream oRv;
 		for(vector<string>::iterator o= vsRv.begin(); o != vsRv.end(); ++o)
@@ -508,7 +516,7 @@ namespace ppi_database
 
 		command << connection;
 		command << name;
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -538,7 +546,7 @@ namespace ppi_database
 		OMethodStringStream command("getChangedEntrys");
 
 		command << connection;
-		vRv= sendMethod("ppi-db-server", command, "done", true);
+		vRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, "done", true);
 		for(vector<string>::iterator o= vRv.begin(); o != vRv.end(); ++o)
 		{
 			err= error(*o);
@@ -569,7 +577,7 @@ namespace ppi_database
 
 		command << oldId;
 		command << newId;
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -595,7 +603,7 @@ namespace ppi_database
 		OMethodStringStream command("chipsDefined");
 
 		command << defined;
-		sRv= sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -622,7 +630,7 @@ namespace ppi_database
 
 		command << server;
 		command << config;
-		sRv= sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -657,7 +665,7 @@ namespace ppi_database
 		command << pdmax;
 		command << pbFloat;
 		command << pdCache;
-		sRv= sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -686,7 +694,7 @@ namespace ppi_database
 		command << folder;
 		command << server;
 		command << chip;
-		sRv= sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -714,7 +722,7 @@ namespace ppi_database
 
 		command << server;
 		command << chip;
-		sRv= sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -774,7 +782,7 @@ namespace ppi_database
 			command << type;
 		}
 		command << chip;
-		sRv= sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -835,7 +843,7 @@ namespace ppi_database
 		command << bFloat;
 		command << folder;
 		command << subroutine;
-		sRv= sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -865,7 +873,7 @@ namespace ppi_database
 		OMethodStringStream command("existOWServer");
 
 		command << sID;
-		res= sendMethod("ppi-db-server", command, true);
+		res= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		if(res == "true")
 			return true;
 		return false;
@@ -877,7 +885,7 @@ namespace ppi_database
 		OMethodStringStream command("getStatusInfo");
 
 		command << param;
-		return sendMethod("ppi-db-server", command, "done", true);
+		return ExternClientInputTemplate::sendMethod("ppi-db-server", command, "done", true);
 	}
 
 	vector<string> DbInterface::getOWDebugInfo(const unsigned short ID)
@@ -887,7 +895,7 @@ namespace ppi_database
 		OMethodStringStream command("getOWDebugInfo");
 
 		command << ID;
-		vRv= sendMethod("ppi-db-server", command, "done", true);
+		vRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, "done", true);
 		for(vector<string>::iterator o= vRv.begin(); o != vRv.end(); ++o)
 		{
 			err= error(*o);
@@ -919,7 +927,7 @@ namespace ppi_database
 		command << serverID;
 		command << connectionID;
 		command << set;
-		res= sendMethod("ppi-db-server", command, false);
+		res= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(res);
 		if(err != 0)
 		{
@@ -945,7 +953,7 @@ namespace ppi_database
 		OMethodStringStream command("clearOWDebug");
 
 		command << connectionID;
-		res= sendMethod("ppi-db-server", command, false);
+		res= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(res);
 		if(err != 0)
 		{
@@ -970,7 +978,7 @@ namespace ppi_database
 		string sRv;
 		OMethodStringStream command("stop-all");
 
-		sRv= sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{

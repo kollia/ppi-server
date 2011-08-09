@@ -23,9 +23,9 @@
 #include <sstream>
 
 #include "../util/debug.h"
-#include "../util/Terminal.h"
+#include "../util/thread/Terminal.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "../ports/ExternPort.h"
 

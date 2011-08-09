@@ -57,7 +57,7 @@ namespace design_pattern_world
 			 *
 			 * @param name specified name
 			 */
-			virtual void setThreadName(string threadName)= 0;
+			virtual void setThreadName(const string& threadName)= 0;
 			/**
 			 * return name of thread from given thread-id.<br />
 			 * When no parameter of thread id is given, method take actual thread.
@@ -65,7 +65,7 @@ namespace design_pattern_world
 			 *
 			 * @param threadID id of thread
 			 */
-			virtual string getThreadName(pthread_t threadID= 0)= 0;
+			virtual string getThreadName(const pthread_t threadID= 0)= 0;
 			/**
 			 * to log an message
 			 *
@@ -75,7 +75,7 @@ namespace design_pattern_world
 			 * @param message string witch should written into log-files
 			 * @param sTimeLogIdentif if this identifier be set, the message will be write only in an defined time
 			 */
-			virtual void log(string file, int line, int type, string message, string sTimeLogIdentif= "")= 0;
+			virtual void log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif= "")= 0;
 			/**
 			 * callback method to inform when logging object destroy or can be used
 			 *

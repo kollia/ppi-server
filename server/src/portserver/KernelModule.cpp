@@ -7,6 +7,8 @@
 
 #include "KernelModule.h"
 
+#include "../pattern/util/LogHolderPattern.h"
+
 #include "../database/lib/DbInterface.h"
 
 namespace server {
@@ -22,6 +24,15 @@ namespace server {
 		m_PRIORITYCACHECOND(prioritycond)
 	{
 		m_POLLREAD= getMutex("POLLREAD");
+	}
+
+	int KernelModule::init(void *args)
+	{
+		string threadName("KernelModul[");
+
+		threadName+= m_poChipAccess->getServerName() + ")";
+		LogHolderPattern::instance()->setThreadName(threadName);
+		return 0;
 	}
 
 	bool KernelModule::changeReadPoll(map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >& sequences,

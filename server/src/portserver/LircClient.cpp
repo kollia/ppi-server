@@ -27,9 +27,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-#include "../logger/lib/LogInterface.h"
-
-//#include "../util/ProcessStarter.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "LircClient.h"
 
@@ -39,7 +37,6 @@
 
 namespace ports
 {
-	using namespace util;
 	using namespace boost;
 
 	bool LircClient::init(const IPropertyPattern* properties)

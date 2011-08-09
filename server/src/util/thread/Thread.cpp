@@ -138,6 +138,7 @@ int Thread::start(void *args, bool bHold)
 
 void Thread::run()
 {
+	LogHolderPattern* logObj;
 	string error("undefined error by ");
 	string thname(getThreadName());
 	string startmsg("starting thread with name '");
@@ -147,7 +148,9 @@ void Thread::run()
 	m_nThreadId= gettid();
 	initstatus(getThreadName(), this);
 	startmsg+= thname + "'";
-	LOG(LOG_DEBUG, startmsg);
+	logObj= LogHolderPattern::instance();
+	logObj->setThreadName(thname);
+	logObj->log(__FILE__, __LINE__, 0, startmsg, "");
 #ifdef SERVERDEBUG
 	cout << startmsg << endl;
 #endif // SERVERDEBUG

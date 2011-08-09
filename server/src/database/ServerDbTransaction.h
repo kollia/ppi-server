@@ -207,6 +207,13 @@ namespace server
 			 */
 			ServerDbTransaction();
 			/**
+			 * set log object for logging from extern processes
+			 *
+			 * @param logObj logging object <code>LogThread</code>
+			 */
+			void setLogObject(LogThread* logObj)
+			{ m_pLogObject= logObj; };
+			/**
 			 * method transaction protocol between server to client.<br />
 			 * This method is called from main method of transfer,
 			 * if the sending string is for actual server
@@ -280,6 +287,10 @@ namespace server
 			 * opened one wire server
 			 */
 			map<unsigned short, list<unsigned int> > m_msiOpenedOWServer;
+			/**
+			 * logging object to log from extern processes
+			 */
+			LogThread* m_pLogObject;
 	};
 
 }

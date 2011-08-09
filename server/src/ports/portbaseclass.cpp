@@ -22,7 +22,7 @@
 #include <time.h>
 #include <sys/io.h>
 #include <sys/time.h>
-//Standard http://www.open-std.org/JTC1/SC22/WG14/www/docs/n1124.pdf für bool
+//Standard http://www.open-std.org/JTC1/SC22/WG14/www/docs/n1124.pdf for boolean
 #include <stdbool.h>
 #include <string.h>
 
@@ -32,10 +32,10 @@
 
 #include "portbaseclass.h"
 
-#include "../util/Terminal.h"
 #include "../util/thread/Thread.h"
+#include "../util/thread/Terminal.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "../database/lib/DbInterface.h"
 

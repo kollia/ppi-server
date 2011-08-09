@@ -21,9 +21,9 @@
 #include "resistancemeasure.h"
 #include "switch.h"
 
-#include "../util/Terminal.h"
+#include "../util/thread/Terminal.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "../database/lib/DbInterface.h"
 

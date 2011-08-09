@@ -25,7 +25,7 @@
 
 #include "util/MainParams.h"
 #include "util/debug.h"
-#include "util/Terminal.h"
+#include "util/thread/Terminal.h"
 
 #include "portserver/LircClient.h"
 

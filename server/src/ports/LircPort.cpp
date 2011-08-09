@@ -21,7 +21,7 @@
 #include "LircPort.h"
 #include "timer.h"
 
-#include "../util/Terminal.h"
+#include "../util/thread/Terminal.h"
 
 namespace ports
 {

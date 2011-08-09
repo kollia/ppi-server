@@ -20,14 +20,13 @@
 #include <unistd.h>
 #include <iostream>
 
-#include "../../../logger/lib/LogInterface.h"
-
 #include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/XMLStartEndTagReader.h"
 #include "../../../util/usermanagement.h"
 
 #include "../../../util/properties/configpropertycasher.h"
 
+#include "../../../pattern/util/LogHolderPattern.h"
 #include "../../../pattern/server/IFileDescriptorPattern.h"
 
 #include "Communication.h"

@@ -193,7 +193,7 @@ public:
 	/**
 	 * delete all created instances
 	 */
-	void deleteAll();
+	static void deleteAll();
 	/**
 	 * dummy destructor of OWInterface
 	 */

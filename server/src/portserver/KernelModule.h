@@ -92,7 +92,7 @@ namespace server {
 		 * 				method start(void *args).
 		 * @return defined error code from extended class
 		 */
-		virtual int init(void *args) { return 0; };
+		virtual int init(void *args);
 		/**
 		 * read direct from chip
 		 *

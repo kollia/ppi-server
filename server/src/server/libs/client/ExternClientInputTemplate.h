@@ -224,6 +224,20 @@ namespace util
 			 */
 			bool hasOpenGetConnection()
 			{ return m_pGetTransaction == NULL ? false : true; };
+			/**
+			 * return used connection for sending requests
+			 *
+			 * @return connection object
+			 */
+			IClientConnectArtPattern* getSendConnection()
+			{ return m_oSendConnect; };
+			/**
+			 * return used connection for getting requests
+			 *
+			 * @return connection object
+			 */
+			IClientConnectArtPattern* getGetConnection()
+			{ return m_oGetConnect; };
 			/*
 			 * close sending connection to server
 			 *
@@ -300,7 +314,7 @@ namespace util
 			 * @param answer whether client should wait for answer
 			 * @return backward send return value from server if answer is true, elsewhere returning null string
 			 */
-			string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true);
+			virtual string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true);
 			/**
 			 * send message to given server in constructor
 			 *
@@ -310,7 +324,7 @@ namespace util
 			 * @param answer whether client should wait for answer
 			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
 			 */
-			vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
+			virtual vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
 			/**
 			 * ask server for question from any client
 			 *

@@ -15,15 +15,13 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "../../logger/lib/LogInterface.h"
+#include "../../pattern/util/LogHolderPattern.h"
 
 #include "../../util/stream/IParameterStringStream.h"
 
 #include "OWInterface.h"
 
 namespace server {
-
-using namespace logger;
 
 map<unsigned short, SHAREDPTR::shared_ptr<OWInterface> > OWInterface::_instances;
 

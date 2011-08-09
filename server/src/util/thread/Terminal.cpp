@@ -21,11 +21,10 @@
 
 #include "Terminal.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../../pattern/util/LogHolderPattern.h"
 
 Terminal* Terminal::_instance= NULL;
 
-using namespace logger;
 using namespace boost;
 
 Terminal* Terminal::instance()

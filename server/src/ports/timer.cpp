@@ -23,9 +23,9 @@
 #include "timer.h"
 #include "measureThread.h"
 
-#include "../util/Terminal.h"
+#include "../util/thread/Terminal.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 
 using namespace util;

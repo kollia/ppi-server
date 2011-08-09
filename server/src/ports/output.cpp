@@ -20,10 +20,10 @@
 #include <sstream>
 #include <string>
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
-#include "../util/Terminal.h"
 #include "../util/thread/Thread.h"
+#include "../util/thread/Terminal.h"
 
 #include "output.h"
 

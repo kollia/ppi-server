@@ -38,12 +38,10 @@
 #include "util/GlobalStaticMethods.h"
 #include "util/smart_ptr.h"
 #include "util/URL.h"
-#include "util/Terminal.h"
+#include "util/thread/Terminal.h"
 #include "util/usermanagement.h"
 #include "util/process/ProcessStarter.h"
 #include "util/properties/interlacedactionproperties.h"
-
-#include "logger/lib/LogInterface.h"
 
 #include "database/lib/DbInterface.h"
 
@@ -92,7 +90,7 @@ using namespace logger;
 
 bool Starter::execute(const IOptionStructPattern* commands)
 {
-	bool bLog, bDb, bPorts, bInternet;
+	bool bDb, bPorts, bInternet;
 	int err;
 	unsigned short nDbConnectors;
 	vector<pair<string, PortTypes> > ports; // whitch ports as string are needet. Second pair object bool is whether the port is defined for pin reading with ioperm()
@@ -105,6 +103,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	// starting time
 	struct tm ttime;
 	timeval startingtime, acttime;
+	string stimemsg;
 	ostringstream timemsg;
 
 	gettimeofday(&startingtime, NULL);
@@ -132,19 +131,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	readFile(ports, URL::addPath(m_sConfPath, "measure.conf"));
 
 	// check whether should be start which server
-	property= m_oServerFileCasher.getValue("logserver", /*warning*/true);
-	if(	property == ""
-		||
-		(	property != "true"
-			&&
-			property != "false"	)	)
-	{
-		cerr << "###          parameter logserver not be set, so start server" << endl;
-		bLog= true;
-	}else if(property == "true")
-		bLog= true;
-	else
-		bLog= false;
 	property= m_oServerFileCasher.getValue("databaseserver", /*warning*/true);
 	if(	property == ""
 		||
@@ -188,8 +174,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	readPasswd();
 
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// initial interface to log server
 	string commhost;
 	unsigned short commport;
 	int nLogAllSec;
@@ -215,37 +199,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	{
 		nLogAllSec= 1800;
 	}
-	LogInterface::initial(	"ppi-server",
-							new SocketClientConnection(	SOCK_STREAM,
-														commhost,
-														commport,
-														0			),
-							/*identif log*/nLogAllSec,
-							/*wait*/true								);
-	// ------------------------------------------------------------------------------------------------------------
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// start logging process
-
-	cout << "### start ppi log client" << endl;
-	logprocess= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", "LogServer",
-																new SocketClientConnection(	SOCK_STREAM,
-																							commhost,
-																							commport,
-																							10			),
-																/* wait for initialisation*/false			));
-
-	err= 0;
-	if(bLog)
-		err= logprocess->start(URL::addPath(m_sWorkdir, "bin/ppi-log-client").c_str(), NULL);
-	if(err > 0)
-	{
-		cerr << "### WARNING: cannot start log-server" << endl;
-		cerr << "             so no log can be written into any files" << endl;
-		cerr << "             " << process->strerror(err) << endl;
-	}
-	LogHolderPattern::init(LogInterface::instance());
-	// ------------------------------------------------------------------------------------------------------------
 
 	bool blirc= false;
 	char type[8];
@@ -319,7 +272,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	cout << " ***                                                            ***" << endl;
 	cout << " ***   for database server are "
 						   << conns.str() << " clients configured";
-	for(short c= 0; c < (spaces - conns.str().size()); ++c)
+	for(short c= 0; c < (spaces - (short)conns.str().size()); ++c)
 		cout << " ";
 	cout <<                                                                 "***" << endl;
 	cout << " ***                                                            ***" << endl;
@@ -361,41 +314,19 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	// ------------------------------------------------------------------------------------------------------------
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// check whether log client is available
-
-	err= logprocess->check();
-	if(err > 0)
-	{
-		cerr << "### WARNING: cannot start log-server" << endl;
-		cerr << "             so no log can be written into any files" << endl;
-		cerr << "             " << logprocess->strerror(err) << endl;
-	}
-
-	LogInterface::instance()->setThreadName("ppi-server");
-	LOG(LOG_DEBUG, "check logging of starter in ppi-server");
-	// ------------------------------------------------------------------------------------------------------------
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start database interface and check whether database is loaded
 
 	DbInterface::initial(	"ppi-server",
 							new SocketClientConnection(	SOCK_STREAM,
 														commhost,
 														commport,
-														5			)	);
-	db= DbInterface::instance();
+														5			),
+							/*identif log*/nLogAllSec					);
 
-	cout << "### initial database " << flush;
-	while(!db->isDbLoaded())
-	{
-		sleep(1);
-		cout << "." << flush;
-	}
-	cout << " OK" << endl << endl;
-	// ------------------------------------------------------------------------------------------------------------
-
-
-	LOG(LOG_INFO, "### -> starting server application.\n       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	DbInterface::instance()->setThreadName(glob::getProcessName());
 	LOG(LOG_INFO, "Read configuration files from " + m_sConfPath);
+
+	// ------------------------------------------------------------------------------------------------------------
 
 	/***********************************************************************************\
 	 *
@@ -783,6 +714,19 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	{
 		exit(EXIT_FAILURE);
 	}
+
+	db= DbInterface::instance();
+	if(!db->isDbLoaded())
+	{
+		cout << "### database is busy" << endl;
+		cout << "    wait for initialing " << flush;
+		while(!db->isDbLoaded())
+		{
+			sleep(1);
+			cout << "." << flush;
+		}
+		cout << " OK" << endl << endl;
+	}
 	// after creating all threads and objects
 	// all chips should be defined in DefaultChipConfigReader
 	db->chipsDefined(true);
@@ -855,11 +799,13 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		timemsg << " and ";
 	}
 	timemsg << ttime.tm_sec << "." << acttime.tv_usec << " seconds";
-	cout << timemsg.str() << " ..." << endl;
-	LOG(LOG_INFO, timemsg.str());
+	stimemsg= timemsg.str();
+	cout << stimemsg << " ..." << endl;
+	LOG(LOG_INFO, stimemsg);
 	// ------------------------------------------------------------------------------------------------------------
 	checker.start(pFirstMeasureThreads.get(), true);
 
+	OWInterface::deleteAll();
 	Thread::applicationStops();
 	// ending process ppi-server
 	SHAREDPTR::shared_ptr<meash_t> delMeash;
@@ -878,7 +824,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	pFirstMeasureThreads= SHAREDPTR::shared_ptr<meash_t>();
 	checker.stop(true);
 	DbInterface::deleteAll();
-	LogInterface::deleteObj();
 	return true;
 }
 
@@ -2245,7 +2190,7 @@ bool Starter::stop(bool configure)
 			printf("ERROR: lost connection to server\n");
 			printf("       maybe server always running\n");
 #endif // DEBUG
-			LOG(LOG_SERVERERROR, "ERROR: lost connection to server\n       maybe server always running");
+			LOG(LOG_ERROR, "ERROR: lost connection to server\n       maybe server always running");
 			break;
 		}
 		dostop= buf;

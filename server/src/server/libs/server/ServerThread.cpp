@@ -32,17 +32,13 @@
 
 #include "../../../util/XMLStartEndTagReader.h"
 
-//#include "../../../ports/measureThread.h"
-
-#include "../../../logger/lib/LogInterface.h"
+#include "../../../pattern/util/LogHolderPattern.h"
 
 #include "../../../pattern/server/IFileDescriptorPattern.h"
 
 #include "ServerThread.h"
 #include "Communication.h"
 #include "communicationthreadstarter.h"
-
-using namespace logger;
 
 namespace server
 {
@@ -126,20 +122,20 @@ namespace server
 
 		if(print)
 			cout << msg << endl;
-		if(LogInterface::instance())
+		if(LogHolderPattern::instance())
 			LOG(LOG_INFO, msg);
 
 		clientsocket = socket(PF_INET, SOCK_STREAM, 0);
 
 		if (clientsocket < 0)
 		{
-			logger::LogInterface *log= logger::LogInterface::instance();
+			//LogHolderPattern *log= LogHolderPattern::instance();
 
 			msg= "ERROR: app cannot connect to socket!";
-			if(LogInterface::instance())
+			if(LogHolderPattern::instance())
 			{
 				LOG(LOG_ALERT, msg);
-				log->stop();
+				//log->stop();
 			}
 			cerr << msg << endl;
 			exit(1);

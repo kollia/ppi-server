@@ -20,7 +20,7 @@
 
 #include "OwServerQuestions.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "../util/stream/IMethodStringStream.h"
 
@@ -28,7 +28,6 @@
 
 namespace server {
 
-using namespace logger;
 using namespace boost;
 
 int OwServerQuestions::init(void* args)

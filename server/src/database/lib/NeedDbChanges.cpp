@@ -56,7 +56,7 @@ int NeedDbChanges::init(void* args)
 {
 	short n;
 
-	n= DbInterface::initial(m_sProcess, m_oConnection);
+	n= DbInterface::initial(m_sProcess, m_oConnection, 0/*do not need for second interface*/);
 	m_oDb= DbInterface::instance(n);
 	return 0;
 }

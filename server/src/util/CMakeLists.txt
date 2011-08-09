@@ -3,7 +3,6 @@ set(utilSrcs	GlobalStaticMethods.cpp
 		        CalculatorContainer.cpp
 		        Calendar.cpp
 #        		exception.cpp
-        		Terminal.cpp
         		URL.cpp
         		ParamCommand.cpp
         		MainParams.cpp
@@ -11,6 +10,7 @@ set(utilSrcs	GlobalStaticMethods.cpp
 	       		XMLStartEndTagReader.cpp	)
 #        		thread/StatusLogRoutine.cpp
 #        		thread/Thread.cpp
+#				thread/Terminal.cpp
 #        		stream/IMethodStringStream.cpp
 #        		stream/IParameterStringStream.cpp
 #        		stream/OMethodStringStream.cpp

@@ -28,8 +28,11 @@
 
 #include "../../server/libs/client/ProcessInterfaceTemplate.h"
 
+#include "../logger/lib/LogInterface.h"
+
 using namespace std;
 using namespace util;
+using namespace logger;
 
 namespace ppi_database
 {
@@ -41,7 +44,8 @@ namespace ppi_database
 	 * @author Alexander Kolli
 	 * @version 1.0.0.
 	 */
-	class DbInterface : public ProcessInterfaceTemplate
+	class DbInterface : public LogInterface,
+						public ProcessInterfaceTemplate
 	{
 	public:
 		/**
@@ -69,9 +73,10 @@ namespace ppi_database
 		 *
 		 * @param process name of process in which the log-interface running
 		 * @param connection to which server this interface should connect to send messages
+		 * @param identifwait how many seconds an log with an identif string should wait to write again into the log file
 		 * @return return number of instance, elsewhere by error -1
 		 */
-		static short initial(const string& process, IClientConnectArtPattern* connection);
+		static short initial(const string& process, IClientConnectArtPattern* connection, const int identifwait);
 		/**
 		 * return instance of database object
 		 *
@@ -79,6 +84,61 @@ namespace ppi_database
 		 * @return database object
 		 */
 		static DbInterface* instance(const short number= 0);
+		/**
+		 * open the connection to server for sending questions
+		 * <b>errorcodes:</b>
+		 * <table>
+		 * 	<tr>
+		 * 		<td>
+		 * 			0
+		 * 		</td>
+		 * 		<td>
+		 * 			no error occurred
+		 * 		</td>
+		 * 	</tr>
+		 * 	<tr>
+		 * 		<td>
+		 * 			-1
+		 * 		</td>
+		 * 		<td>
+		 * 			WARNING: connection exist before
+		 * 		</td>
+		 * 	</tr>
+		 * 	<tr>
+		 * 		<td>
+		 * 			1
+		 * 		</td>
+		 * 		<td>
+		 * 			ERROR: no <code>IClientConnectArtPattern</code> be given for sending
+		 * 		</td>
+		 * 	</tr>
+		 * 	<tr>
+		 * 		<td>
+		 * 			2
+		 * 		</td>
+		 * 		<td>
+		 * 			cannot connect with server, or initialization was fail
+		 * 		</td>
+		 * 	</tr>
+		 * 	<tr>
+		 * 		<td colspan="2">
+		 * 			all other ERRORs or WARNINGs see in <code>IClientConnectArtPattern</code>
+		 * 			for beginning connection by sending
+		 * 		</td>
+		 * 	</tr>
+		 * </table>
+		 *
+		 * @param toopen string for open question, otherwise by null the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
+		 * @return error number
+		 */
+		virtual int openConnection(string toopen= "");
+		/**
+		 * return used connection for sending requests
+		 *
+		 * @return connection object
+		 */
+		IClientConnectArtPattern* getConnection()
+		{ return ProcessInterfaceTemplate::getSendConnection(); };
 		/**
 		 * delete all objects of database interface
 		 */
@@ -362,16 +422,43 @@ namespace ppi_database
 		 *
 		 * @param process name of process in which the log-interface running
 		 * @param connection to which server this interface should connect to send messages
+		 * @param identifwait how many seconds an log with an identif string should wait to write again into the log file
 		 */
-		DbInterface(const string& process, IClientConnectArtPattern* connection)
-		: ProcessInterfaceTemplate(process, "DbInterface", "DatabaseServer", connection, NULL)
+		DbInterface(const string& process, IClientConnectArtPattern* connection, const int identifwait)
+		: LogInterface("ppi-db-server", identifwait, true),
+		  ProcessInterfaceTemplate(process, "DbInterface", "DatabaseServer", connection, NULL)
 		{ };
+		/**
+		 * send message to given server in constructor
+		 *
+		 * @param toProcess for which process the method should be
+		 * @param method object of method which is sending to server
+		 * @param answer whether client should wait for answer
+		 * @return backward send return value from server if answer is true, elsewhere returning null string
+		 */
+		virtual string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true)
+		{ return ExternClientInputTemplate::sendMethod(toProcess, method, answer); };
 
 	private:
 		/**
 		 * single instance of DbInterface
 		 */
 		static map<short, DbInterface*> _instance;
+
+		/**
+		 * return used connection for sending requests
+		 *
+		 * @return connection object
+		 */
+		IClientConnectArtPattern* getSendConnection()
+		{ return ProcessInterfaceTemplate::getSendConnection(); };
+		/**
+		 * return used connection for getting requests
+		 *
+		 * @return connection object
+		 */
+		IClientConnectArtPattern* getGetConnection()
+		{ return ProcessInterfaceTemplate::getGetConnection(); };
 		/**
 		 * return registered default chip from DefaultChipConfigReader if exist.
 		 * beginning search on backward parameter chip, type and than family
@@ -387,5 +474,10 @@ namespace ppi_database
 	};
 
 }
+
+#undef LOG
+#define LOG(type, message) ppi_database::DbInterface::instance()->log(__FILE__, __LINE__, type, message)
+#undef TIMELOG
+#define TIMELOG(type, identif, message) ppi_database::DbInterface::instance()->log(__FILE__, __LINE__, type, message, identif)
 
 #endif /*DBINTERFACE_H_*/

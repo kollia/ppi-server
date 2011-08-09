@@ -25,7 +25,7 @@
 
 #include "../util/smart_ptr.h"
 #include "../util/structures.h"
-#include "../util/Terminal.h"
+#include "../util/thread/Terminal.h"
 #include "../util/CalculatorContainer.h"
 
 using namespace std;

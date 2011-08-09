@@ -24,23 +24,17 @@
 #include <sstream>
 #include <vector>
 
-//#include <boost/algorithm/string/split.hpp>
-
 #include "owserver.h"
 #include "OwServerQuestions.h"
 
-//#include "../ports/timemeasure.h"
-
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "../database/lib/DbInterface.h"
 
 #include "../server/libs/client/SocketClientConnection.h"
 
-//using namespace ports;
 using namespace server;
 using namespace ppi_database;
-//using namespace boost::algorithm;
 
 namespace server
 {
@@ -139,6 +133,7 @@ namespace server
 
 	int OWServer::init(void* arg)
 	{
+		string threadName("owreader[");
 		string defaultConfig(m_poChipAccess->getDefaultFileName());
 
 		m_oServerProperties= static_cast<IPropertyPattern*>(arg);
@@ -146,6 +141,8 @@ namespace server
 			DbInterface::instance()->define(m_poChipAccess->getServerName(), defaultConfig);
 		if(!m_poChipAccess->init(m_oServerProperties))
 			return 1;
+		threadName+= m_poChipAccess->getServerName() + "]";
+		LogHolderPattern::instance()->setThreadName(threadName);
 		if(!m_poChipAccess->isConnected())
 		{
 			string msg(" connection to device was failed, try to connect all seconds");

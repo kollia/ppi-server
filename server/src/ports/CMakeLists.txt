@@ -19,6 +19,6 @@ set(portsSrcs 	ListCalculator.cpp
         		Set.cpp					)
         
 add_library(ppiports ${libraries} ${portsSrcs})
-target_link_libraries(ppiports ppiutil ppithreadutil ppiserverlibclient ppidb ppiow ppilogger)
+target_link_libraries(ppiports ppiutil ppithreadutil ppiserverlibclient ppidb ppiow ppipattern)
 set_target_properties(ppiports PROPERTIES VERSION ${PPIPORTS_LIB_VERSION} SOVERSION ${PPIPORTS_LIB_SOVERSION})
 install(TARGETS ppiports DESTINATION lib)

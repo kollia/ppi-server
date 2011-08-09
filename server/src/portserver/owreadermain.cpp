@@ -32,8 +32,6 @@
 
 #include "../util/properties/properties.h"
 
-#include "../logger/lib/LogInterface.h"
-
 #include "../database/lib/DbInterface.h"
 
 #include "../server/libs/client/SocketClientConnection.h"
@@ -128,26 +126,16 @@ int main(int argc, char* argv[])
 
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// start logging interface
-	LogInterface::initial(	"ppi-owreader",
-							new SocketClientConnection(	SOCK_STREAM,
-														commhost,
-														commport,
-														0			),
-							/*identif log*/nLogAllSec,
-							/*wait*/true								);
-	LogHolderPattern::init(LogInterface::instance());
-
-	// ------------------------------------------------------------------------------------------------------------
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// start database interface
 
 	DbInterface::initial(	"ppi-owreader",
 							new SocketClientConnection(	SOCK_STREAM,
 														commhost,
 														commport,
-														5			)	);
+														5			),
+							nLogAllSec									);
 	db= DbInterface::instance();
+	db->setThreadName(glob::getProcessName());
 	// ------------------------------------------------------------------------------------------------------------
 
 
@@ -302,14 +290,19 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
+	ostringstream out, output;
 
-	cout << "    one wire reader" << flush;
+	out << "    one wire reader" << flush;
+	cout << out.str();
+	output << out.str();
 	owserver= auto_ptr<OWServer>(new OWServer(nServerID, servertype, accessPort));
-	cout << " with name '" << owserver->getServerName();
-	cout << "' and ID '" << dec << nServerID << "'" << endl;
-	cout << "    " << usestring.str();
+	output << " with name '" << owserver->getServerName();
+	output << "' and ID '" << dec << nServerID << "'" << endl;
+	output << "    " << usestring.str();
 	if(strncmp(argv[2], "maxim", vLength[2]) != 0)
-		cout << endl;
+		output << endl;
+	cout << output.str();
+	LOG(LOG_INFO, "starting owreader object for extern interfaces\n\n" + output.str());
 
 	questionservername+= argv[1];
 	pQuestions= auto_ptr<OwServerQuestions>(new OwServerQuestions(	"ppi-owreader", questionservername,
@@ -323,6 +316,8 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 
 	err= pQuestions->run();
+	owserver->stop();
+	DbInterface::deleteAll();
 	if(err > 0)
 	{
 		string msg;
@@ -332,14 +327,10 @@ int main(int argc, char* argv[])
 		cerr << msg << endl;
 		LOG(LOG_ERROR, msg);
 		pQuestions= auto_ptr<OwServerQuestions>();// delete OwServerQuestions before OWServer
-		LogInterface::deleteObj();
-		DbInterface::deleteAll();
 		return EXIT_FAILURE;
 	}
 
 	pQuestions= auto_ptr<OwServerQuestions>();// delete OwServerQuestions before OWServer
-	LogInterface::deleteObj();
-	DbInterface::deleteAll();
 	glob::stopMessage("### ending correctly ppi-owreader process for library '" + servertype + "'", /*all process names*/true);
 	return EXIT_SUCCESS;
 }

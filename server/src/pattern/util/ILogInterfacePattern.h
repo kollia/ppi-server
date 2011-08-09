@@ -90,7 +90,7 @@ namespace design_pattern_world
 			 * @param toopen string for open question, otherwise by null the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
 			 * @return error number
 			 */
-			virtual int openSendConnection(string toopen= "")= 0;
+			virtual int openConnection(string toopen= "")= 0;
 			/**
 			 * this method will be called when ConnectionChecker ending
 			 */

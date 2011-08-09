@@ -9,6 +9,6 @@ set(serverlibserverSrcs    Communication.cpp
                 		   SSLConnect.cpp			        )
 
 add_library(ppiserverlibserver ${libraries} ${serverlibserverSrcs})
-target_link_libraries(ppiserverlibserver ppiprocessutil ppiserverlib ppiserverlibclient ppilogger)
+target_link_libraries(ppiserverlibserver ppiprocessutil ppiserverlib ppiserverlibclient ppipattern)
 set_target_properties(ppiserverlibserver PROPERTIES VERSION ${PPISERVERSERVER_LIB_VERSION} SOVERSION ${PPISERVERSERVER_LIB_SOVERSION})
 install(TARGETS ppiserverlibserver DESTINATION lib)

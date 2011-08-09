@@ -23,11 +23,11 @@
 #include "measureThread.h"
 #include "timer.h"
 
-#include "../util/Terminal.h"
+#include "../util/thread/Terminal.h"
 
 #include "../database/lib/DbInterface.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 using namespace ppi_database;
 

@@ -66,7 +66,7 @@ public:
 	 *
 	 * @param threadID id of thread
 	 */
-	string getThreadName(pthread_t threadID= 0) const
+	string getThreadName(pthread_t threadID= 0)
 	{ if(m_bExists) return m_oLogging->getThreadName(threadID); else return "no logging process exists"; };
 	/**
 	 * to log an message

@@ -25,9 +25,9 @@
 #include <list>
 
 #include "../util/structures.h"
-#include "../util/Terminal.h"
+#include "../util/thread/Terminal.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "portbaseclass.h"
 #include "timemeasure.h"
