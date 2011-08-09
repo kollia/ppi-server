@@ -1,6 +1,7 @@
 
 
 set(loggerLibSrcs	LogInterface.cpp
+					ProcessLogInterface.cpp
 					LogConnectionChecker.cpp	)
         
 add_library(ppilogger ${libraries} ${loggerLibSrcs})

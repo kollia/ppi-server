@@ -23,7 +23,7 @@ namespace logger {
 int LogConnectionChecker::execute()
 {
 	sleep(1);
-	if(m_poStarter->openSendConnection() <= 0)
+	if(m_poStarter->openConnection() <= 0)
 	{
 		LOCK(m_WRITELOOP);
 		if(!m_poStarter->writeVectors())

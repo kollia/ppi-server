@@ -28,55 +28,42 @@
 #include "logstructures.h"
 #include "LogConnectionChecker.h"
 
-#include "../../server/libs/client/ProcessInterfaceTemplate.h"
+#include "../../../pattern/util/ILogPattern.h"
+#include "../../../pattern/util/ILogInterfacePattern.h"
 
-#include "../../pattern/util/ILogPattern.h"
-#include "../../pattern/util/ILogInterfacePattern.h"
+#include "../../../util/stream/OMethodStringStream.h"
 
 using namespace std;
-using namespace design_pattern_world::server_pattern;
+using namespace util;
 using namespace design_pattern_world::util_pattern;
 
 namespace logger
 {
-	class LogInterface :	public util::ProcessInterfaceTemplate,
-							public ILogPattern,
+	class LogInterface :	public ILogPattern,
 							public ILogInterfacePattern
 	{
 		public:
 			/**
-			 * Instantiate class of log-server.<br/>
-			 * By cancel this LogInterface object, second parameter object will be also delete in parent class.
+			 * creating instance of LogInterface
 			 *
-			 * @param process name of process in which the log-interface running
-			 * @param connection to which server this interface should connect to send messages
-			 * @param identifwait how many seconds an log with an identif string should wait to write again into the logfile
+			 * @param toProcess name of process to which log messages are sending
+			 * @param identifwait how many seconds an log with an identif string should wait to write again into the log file
 			 * @param wait whether connection should wait for correct access
-			 * @return whether connection to LogProccess was correct
 			 */
-			static bool initial(const string& process, IClientConnectArtPattern* connection, const int identifwait, const bool wait);
-			/**
-			 * delete object of LogInterface
-			 */
-			static void deleteObj();
-			/**
-			 * method to get single instance of interface
-			 */
-			static LogInterface *instance()
-			{ return _instance; };
+			LogInterface(const string& toProcess, const int identifwait, const bool wait);
 			/**
 			 * set for all process or thread an name to identify in log-messages
 			 *
 			 * @param name specified name
 			 */
-			virtual void setThreadName(string threadName);
+			virtual void setThreadName(const string& threadName);
 			/**
 			 * return name of thread from given thread-id.<br />
 			 * When no parameter of thread id is given, method take actual thread.
 			 *
 			 * @param threadID id of thread
 			 */
-			virtual string getThreadName(pthread_t threadID= 0);
+			virtual string getThreadName(const pthread_t threadID= 0);
 			/**
 			 * callback method to inform when logging object destroy or can be used
 			 *
@@ -92,7 +79,7 @@ namespace logger
 			 * @param message string witch should written into log-files
 			 * @param sTimeLogIdentif if this identifier be set, the message will be write only in an defined time
 			 */
-			virtual void log(string file, int line, int type, string message, string sTimeLogIdentif= "");
+			virtual void log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif= "");
 			/**
 			 * write vector log and threadNames which was read
 			 * before get connection
@@ -152,29 +139,28 @@ namespace logger
 			 * @param toopen string for open question, otherwise by null the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
 			 * @return error number
 			 */
-			virtual int openSendConnection(string toopen= "");
+			virtual int openConnection(string toopen= "")= 0;
 			/**
 			 * destructor of log interface
 			 */
-			virtual ~LogInterface()
-			{ _instance= NULL; };
+			virtual ~LogInterface();
 
 		protected:
-			/**
-			 * creating instance of LogInterface
-			 *
-			 * @param process name of process in which the log-interface running
-			 * @param connection to which server this interface should connect to send messages
-			 * @param identifwait how many seconds an log with an identif string should wait to write again into the logfile
-			 * @param wait whether connection should wait for correct access
-			 */
-			LogInterface(const string& process, IClientConnectArtPattern* connection, const int identifwait, const bool wait);
 			/**
 			 * check whether connection to logserver is open
 			 *
 			 * @return whether connection is given
 			 */
-			bool openedConnection();
+			virtual bool openedConnection();
+			/**
+			 * send message to given server in constructor
+			 *
+			 * @param toProcess for which process the method should be
+			 * @param method object of method which is sending to server
+			 * @param answer whether client should wait for answer
+			 * @return backward send return value from server if answer is true, elsewhere returning null string
+			 */
+			virtual string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true)= 0;
 			/**
 			 * write threadName to log server
 			 *
@@ -190,9 +176,9 @@ namespace logger
 
 		private:
 			/**
-			 * instance of single logging interface
+			 * to which process the log message should be sending
 			 */
-			static LogInterface* _instance;
+			string m_sToProcess;
 			/**
 			 * status whether connection is open<br />
 			 * 0	-	no connection<br />

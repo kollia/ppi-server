@@ -18,9 +18,9 @@
 #ifndef CONNECTIONCHECKER_H_
 #define CONNECTIONCHECKER_H_
 
-#include "../../util/thread/Thread.h"
+#include "../../../util/thread/Thread.h"
 
-#include "../../pattern/util/ILogInterfacePattern.h"
+#include "../../../pattern/util/ILogInterfacePattern.h"
 
 namespace logger {
 

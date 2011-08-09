@@ -19,18 +19,16 @@
 
 #include "LogInterface.h"
 
-#include "../../util/thread/Thread.h"
-#include "../../util/stream/OMethodStringStream.h"
+#include "../../../util/thread/Thread.h"
+#include "../../../util/stream/OMethodStringStream.h"
 
 using namespace util;
 
 namespace logger
 {
-	LogInterface* LogInterface::_instance= NULL;
-
-	LogInterface::LogInterface(const string& process, IClientConnectArtPattern* connection, const int identifwait, const bool wait)
-	:	ProcessInterfaceTemplate(process, "LogInterface", "LogServer", connection, NULL),
-		m_nOpen(0),
+	LogInterface::LogInterface(const string& toProcess, const int identifwait, const bool wait)
+	:	m_sToProcess(toProcess),
+	 	m_nOpen(0),
 		m_nTimeLogWait(identifwait),
 		m_funcUsable(NULL),
 		m_poChecker(NULL)
@@ -38,29 +36,66 @@ namespace logger
 		m_WRITELOOP= Thread::getMutex("WRITELOOP");
 	}
 
-	bool LogInterface::initial(const string& process, IClientConnectArtPattern* connection, const int identifwait, const bool wait/*= true*/)
+	LogInterface::~LogInterface()
 	{
-		if(_instance == NULL)
+		if(m_funcUsable)
+			m_funcUsable(false);
+		if(m_poChecker)
 		{
-			_instance= new LogInterface(process, connection, identifwait, wait);
+			m_poChecker->stop(/*wait*/true);
+			delete m_poChecker;
 		}
-		return true;
 	}
 
-	void LogInterface::deleteObj()
+	bool LogInterface::openedConnection()
 	{
-		if(_instance)
+		bool bRv;
+
+		LOCK(m_WRITELOOP);
+		switch(m_nOpen)
 		{
-			if(_instance->m_funcUsable)
-				_instance->m_funcUsable(false);
-			if(_instance->m_poChecker)
+		case 0:
+			int err;
+
+			m_nOpen= 1;
+			UNLOCK(m_WRITELOOP);
+			err= openConnection();
+			LOCK(m_WRITELOOP);
+			if(err > 0)
 			{
-				_instance->m_poChecker->stop();
-				_instance->m_poChecker= NULL;
+				bRv= false;
+				m_nOpen= 0;
+				if(m_poChecker == NULL)
+				{
+					m_poChecker= new LogConnectionChecker(this, m_WRITELOOP);
+					UNLOCK(m_WRITELOOP); // unlock WRITELOOP because thread write LOG message
+					m_poChecker->start();
+					LOCK(m_WRITELOOP);
+				}
+			}else
+			{
+				bRv= true;
+				m_nOpen= 2;
+				writeVectors();
+				if(m_poChecker)
+				{
+					m_poChecker->stop(/*wait*/true);
+					delete m_poChecker;
+					m_poChecker= NULL;
+				}
 			}
-			delete _instance;
-			_instance= NULL;
+			break;
+
+		case 1:
+			bRv= false;
+			break;
+
+		case 2:
+			bRv= true;
+			break;
 		}
+		UNLOCK(m_WRITELOOP);
+		return bRv;
 	}
 
 	bool LogInterface::writeVectors()
@@ -82,74 +117,7 @@ namespace logger
 		return write;
 	}
 
-	int LogInterface::openSendConnection(string toopen/*= ""*/)
-	{
-		int nRv;
-
-		LOCK(m_WRITELOOP);
-		if(m_nOpen == 2)
-		{
-			UNLOCK(m_WRITELOOP);
-			return 0;
-		}
-		m_nOpen= 1;
-		UNLOCK(m_WRITELOOP);
-		nRv= ExternClientInputTemplate::openSendConnection(toopen);
-		LOCK(m_WRITELOOP);
-		if(nRv <= 0)
-			m_nOpen= 2;
-		else
-			m_nOpen= 0;
-		UNLOCK(m_WRITELOOP);
-		return nRv;
-	}
-
-	bool LogInterface::openedConnection()
-	{
-		bool bRv;
-
-		LOCK(m_WRITELOOP);
-		switch(m_nOpen)
-		{
-		case 0:
-			int err;
-
-			m_nOpen= 1;
-			UNLOCK(m_WRITELOOP);
-			err= ExternClientInputTemplate::openSendConnection();
-			LOCK(m_WRITELOOP);
-			if(err > 0)
-			{
-				bRv= false;
-				m_nOpen= 0;
-				if(m_poChecker == NULL)
-				{
-					m_poChecker= new LogConnectionChecker(this, m_WRITELOOP);
-					UNLOCK(m_WRITELOOP); // unlock WRITELOOP because thread write LOG message
-					m_poChecker->start();
-					LOCK(m_WRITELOOP);
-				}
-			}else
-			{
-				bRv= true;
-				m_nOpen= 2;
-				writeVectors();
-			}
-			break;
-
-		case 1:
-			bRv= false;
-			break;
-
-		case 2:
-			bRv= true;
-			break;
-		}
-		UNLOCK(m_WRITELOOP);
-		return bRv;
-	}
-
-	void LogInterface::setThreadName(string threadName)
+	void LogInterface::setThreadName(const string& threadName)
 	{
 		threadNames tName;
 
@@ -164,14 +132,14 @@ namespace logger
 			writethread(tName);
 	}
 
-	string LogInterface::getThreadName(pthread_t threadID/*= 0*/)
+	string LogInterface::getThreadName(const pthread_t threadID/*= 0*/)
 	{
 		OMethodStringStream command("getThreadName");
 
 		if(!openedConnection())
 			return "no connection to logging client";
 		command << threadID;
-		return sendMethod("LogServer", command, true);
+		return sendMethod(/*LogServer*/m_sToProcess, command, true);
 
 	}
 
@@ -186,10 +154,10 @@ namespace logger
 
 		command << thread.name;
 		command << thread.thread;
-		sendMethod("LogServer", command, false);
+		sendMethod(/*LogServer*/m_sToProcess, command, false);
 	}
 
-	void LogInterface::log(string file, int line, int type, string message, string sTimeLogIdentif/*= ""*/)
+	void LogInterface::log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif/*= ""*/)
 	{
 		log_t log;
 
@@ -268,6 +236,6 @@ namespace logger
 		command << log.tid;
 		command << log.thread;
 		command << log.identif;
-		sendMethod("LogServer", command, false);
+		sendMethod(/*LogServer*/m_sToProcess, command, false);
 	}
 }
