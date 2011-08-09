@@ -27,11 +27,14 @@
 
 #include "lib/logstructures.h"
 
-#include "../util/thread/Thread.h"
+#include "../../util/thread/Thread.h"
+
+#include "../../pattern/util/ILogPattern.h"
 
 using namespace std;
 
-class LogThread : public Thread
+class LogThread : 	public Thread,
+					public ILogPattern
 {
 	public:
 		/**
@@ -64,13 +67,13 @@ class LogThread : public Thread
 		 * @param writeLogDays writing an new log file after this days
 		 * @param nDeleteAfter after how much days the old log files should be delete
 		 */
-		void setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays, const unsigned short nDeleteAfter);
+		virtual void setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays, const unsigned short nDeleteAfter);
 		/**
 		 * set name of thread to running thread-id
 		 *
 		 * @param threadName name of thread
 		 */
-		void setThreadName(const string& threadName)
+		virtual void setThreadName(const string& threadName)
 		{ setThreadName(threadName, pthread_self()); };
 		/**
 		 * set name of thread to specified thread-id
@@ -85,7 +88,7 @@ class LogThread : public Thread
 		 *
 		 * @param threadID id of thread
 		 */
-		string getThreadName(pthread_t threadID= 0) const;
+		virtual string getThreadName(const pthread_t threadID= 0);
 		bool ownThread(string threadName, pid_t currentPid);
 		/**
 		 * write log message into files
@@ -95,13 +98,20 @@ class LogThread : public Thread
 		 * @param type which type of message should be written
 		 * @param sTimeLogIdentif identification for messages whitch are not be write by every call (default= "" -> write every call)
 		 */
-		void log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif= "");
+		virtual void log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif= "");
 		/**
 		 * write log message into files
 		 *
 		 * @param messageStruct structure of log message which contains all info (file, line, message, thread-id, ...)
 		 */
 		void log(const log_t& messageStruct);
+		/**
+		 * callback method to inform when logging object destroy or can be used
+		 *
+		 * @param usable function whether can use logging process
+		 */
+		virtual void callback(void (*usable)(bool))
+		{ /* not used */ };
 
 	protected:
 		/**

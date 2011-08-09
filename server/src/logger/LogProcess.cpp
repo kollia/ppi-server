@@ -28,11 +28,11 @@
 #include "LogProcess.h"
 #include "lib/LogInterface.h"
 
-#include "../util/URL.h"
+#include "../../util/URL.h"
 
-#include "../util/stream/IMethodStringStream.h"
+#include "../../util/stream/IMethodStringStream.h"
 
-#include "../pattern/util/ipropertypattern.h"
+#include "../../pattern/util/ipropertypattern.h"
 
 using namespace boost;
 

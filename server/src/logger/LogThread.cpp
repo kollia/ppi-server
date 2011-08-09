@@ -25,14 +25,14 @@
 #include <iostream>
 #include <fstream>
 
-#include "boost/algorithm/string/split.hpp"
+#include <boost/algorithm/string/split.hpp>
 
 #include "LogThread.h"
 
-#include "../database/lib/DbInterface.h"
+#include "../lib/DbInterface.h"
 
-#include "../util/URL.h"
-#include "../util/Calendar.h"
+#include "../../util/URL.h"
+#include "../../util/Calendar.h"
 
 LogThread::LogThread(bool check, bool asServer)
 :	Thread("LogThread", 0),
@@ -138,19 +138,22 @@ void LogThread::setThreadName(const string& threadName, const pthread_t threadID
 	UNLOCK(m_READTHREADS);
 }
 
-string LogThread::getThreadName(pthread_t threadID/*= 0*/) const
+string LogThread::getThreadName(const pthread_t threadID/*= 0*/)
 {
 	string sThreadName("");
 	unsigned int nSize;
 	char caWord[40];
+	pthread_t thread;
 
 	if(threadID == 0)
-		threadID= pthread_self();
+		thread= pthread_self();
+	else
+		thread= threadID;
 	LOCK(m_READTHREADS);
 	nSize= m_vtThreads.size();
 	for(unsigned int n= 0; n < nSize; n++)
 	{
-		if(pthread_equal(m_vtThreads[n].thread, threadID))
+		if(pthread_equal(m_vtThreads[n].thread, thread))
 		{
 			sprintf(caWord, "%d", m_vtThreads[n].count);
 			sThreadName= m_vtThreads[n].name;
@@ -208,7 +211,11 @@ auto_ptr<vector<log_t> > LogThread::getLogVector()
 		}else
 		{
 			if(!stopping())
+			{
+				//cout << endl << "wait for next logging messages" << endl;
 				conderror= CONDITION(m_READLOGMESSAGESCOND, m_READLOGMESSAGES);
+			}
+			//cout << "awake from waiting" << endl;
 		}
 		UNLOCK(m_READLOGMESSAGES);
 		if(conderror)
@@ -216,6 +223,7 @@ auto_ptr<vector<log_t> > LogThread::getLogVector()
 	}while(	vtRv.get() == NULL
 			&&
 			!stopping()	);
+	//cout << "write " << vtRv->size() << " log messages" << endl;
 	return vtRv;
 }
 

@@ -28,12 +28,12 @@
 
 #include "LogProcess.h"
 
-#include "../util/GlobalStaticMethods.h"
-#include "../util/URL.h"
+#include "../../util/GlobalStaticMethods.h"
+#include "../../util/URL.h"
 
-#include "../util/properties/properties.h"
+#include "../../util/properties/properties.h"
 
-#include "../server/libs/client/SocketClientConnection.h"
+#include "../../server/libs/client/SocketClientConnection.h"
 
 using namespace std;
 using namespace boost::algorithm;
