@@ -461,7 +461,7 @@ bool LircSupport::learn(const remotecodes_t& r, const string& writeperm)
 		file << "#" << endl;
 		file << "#  ( if you changing some time behavior ('first touch show', 'wait double time by begin', 'wait after' or 'back time')" << endl;
 		file << "#    'actual step' or the exceptions 'when button' in the GUI " << endl;
-		file << "#    you have not to make the procedure of './ppi-mconfig LIRC -l ...' again )" << endl;
+		file << "#    you has not to make the procedure of './ppi-mconfig LIRC -l ...' again )" << endl;
 		file << "#" << endl;
 		file << "##################################################################################" << endl;
 		file << endl;
@@ -556,7 +556,7 @@ bool LircSupport::learn(const remotecodes_t& r, const string& writeperm)
 	cout << "to use as example how to start the created work flow procedures." << endl;
 	cout << "( if you changing some time behavior ('first touch show', 'wait double time by begin', 'wait after' or 'back time')" << endl;
 	cout << "  'actual step' or the exceptions 'when button' in the GUI " << endl;
-	cout << "  you have not to make this procedure again                )" << endl;
+	cout << "  you has not to make this procedure again                 )" << endl;
 	cout << endl;
 	if(createLearnDesktopFiles())
 		return true;
@@ -1226,7 +1226,7 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 	file << "        <td>" << endl;
 	file << "          <input type=\"togglebutton\" value=\"record\" "
 				"result=\"TRANSMIT_RECEIVE_main_settings:record\" />" << endl;
-	file << "          &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;" << endl;
+	file << "          &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;" << endl;
 	file << "          " << org_remote << endl;
 	file << "        </td>" << endl;
 	file << "      </tr>" << endl;
@@ -1486,7 +1486,7 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 	file << "              </td>" << endl;
 	file << "            </tr>" << endl;
 	file << "            <tr>" << endl;
-	file << "              <td colspan=\"2\">" << endl;
+	file << "              <td colspan=\"2\" align=\"right\">" << endl;
 	for(unsigned short c= 1; c <= 2; ++c)
 	{
 		ostringstream NR;
@@ -1540,9 +1540,9 @@ bool LircSupport::createRemoteDesktopFile(const string& remote, const remotecode
 			}
 		}
 		file << "                </select>" << endl;
-		file << "                have value" << endl;
+		file << "                &#160;has value" << endl;
 		file << "                <input type=\"spinner\" result=\"" << remote << "__choice:isvalue" << NR.str() << "\" width=\"20\" min=\"0\" />" << endl;
-		file << "                &#160; set actual step to" << endl;
+		file << "                <br />set actual step to" << endl;
 		file << "                <input type=\"spinner\" result=\"" << remote << "__choice:tovalue" << NR.str() << "\" width=\"20\" min=\"0\" />" << endl;
 		file << "                <br />" << endl;
 	}
@@ -1568,7 +1568,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 	Set* pSet;
 	Timer* pTimer;
 	//Shell* pShell;
-	//Debug* pDebug;
+	Debug* pDebug;
 	Lirc* pLirc;
 	auto_ptr<Folder> folder;
 	ofstream file;
@@ -1865,7 +1865,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 
 	pSwitch= folder->getSwitch("double");
 	pSwitch->description("repeat when sending is set to SEND ONCE");
-	pValue->action("int");
+	pSwitch->action("db");
 	pSwitch->pperm(writeperm);
 	pSwitch->description();
 
@@ -2630,31 +2630,53 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			folder->description();
 			folder->description("-------------------------------------------------------------------------------------------------");
 			folder->description("-------------------------  begin of calculation for next step  ----------------------------------");
-			pValue= folder->getValue("first_calc");
+			pSet= folder->getSet("first_calc_start");
+			pSet->description("set start value of first_calc_do by starting server");
+			pSet->pfrom("SONY_CMT_MINUS_CP100__choice:double + display_first + 1");
+			pSet->pset("first_calc_do");
+			pSet->pwhile("first_calc_do = -1");
+			pSet->description();
+
+			pValue= folder->getValue("first_calc_do");
 			pValue->description("length of first_touch multiplicator");
-			pValue->pvalue(remote + ":double");
+			pValue->pvalue(remote + "__choice:double + display_first + 1");
+			pValue->pvalue(remote + "__choice:double + 1");
 			pValue->pvalue(0);
-			pValue->pvalue("first_calc -1");
-			pValue->pvalue("first_calc");
-			pValue->pwhile("\"last_active!=correct_group ? 3 :\n"
+			pValue->pvalue("first_calc_do -1");
+			pValue->pvalue("first_calc_do");
+			pValue->pwhile("\"last_active!=correct_group ? 4 :\n"
 								"                receive=0 &\n"
 								"                new_activate<=0 ? 0 :\n"
+								"                receive=0 ? 1 :\n"
 								"                    first_touch &\n"
-								"                    first_calc>=2 ? 1 :\n"
+								"                    (   display_first=0 |\n"
+								"                        new_activate>0    ) ? 2 :\n"
 								"                        receive &\n"
-								"                        first_calc>0 &\n"
+								"                        first_calc_do > 0 &\n"
 								"                        (    (    what=0 &\n"
-								"                                  (    wait_after=0 |\n"
-								"                                       (    new_activate > 0 &\n"
-								"                                            wait_after=after        )    )    ) |\n"
+								"                                  (    wait_after<=0 |\n"
+								"                                       wait_after=after |\n"
+                                "                                       wait_after= after * SONY_CMT_MINUS_CP100__choice:multi_wait   )   ) |\n"
 								"                             (    what=1 &\n"
-								"                                  lirc_set &\n"
-								"                                  (    first_touch=0 |\n"
-								"                                       receive_signal > calculate_lirc |\n"
-								"                                       new_activate > 0                    )    )    ) ? 2 : 3\"");
+								"                                  lirc_set    )                     ) ? 3 : 4\"");
 			createSubroutineLink(file, pValue->getName(), remote, remit->second, "group");
 			pValue->action("int");
-			pValue->pdefault(1);
+			pValue->pdefault(-1);
+			pValue->description();
+
+			pValue= folder->getValue("first_calc");
+			pValue->description("pre define first calculation when transmit_action is 'SEND units' (1) and what is from client (0)");
+			pValue->description("set first_calc one lower");
+			pValue->description("or by other transmit_action's than 1 or 2 set first_calc to 0");
+			pValue->pvalue(0);
+			pValue->pvalue("first_calc_do");
+			pValue->pvalue("first_calc_do - SONY_CMT_MINUS_CP100__choice:double");
+			pValue->pwhile("\"transmit_action=2 |\n"
+			               "        (   transmit_action=1 &\n"
+			               "            what=1               ) ? 1 :\n"
+			               "                    transmit_action=1 &\n"
+			               "                    what=0              ?\n"
+			               "                            ( first_calc_do - SONY_CMT_MINUS_CP100__choice:double > 0 ? 2 : 0 ) : 0\"");
 			pValue->description();
 
 			pValue= folder->getValue("predef_step");
@@ -2727,9 +2749,9 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 							"                                 transmit_action=2  ) &\n"
 							"                               receive &\n"
 							"                               first_calc=0 &\n"
-							"                               (    first_touch |\n"
-							"                                    wait_after=0 |\n"
-							"                                    wait_after=after    )    )    ) |\n"
+							"                               (    wait_after=0 |\n"
+							"                                    wait_after=after |\n"
+                            "                                    wait_after= after * SONY_CMT_MINUS_CP100__choice:multi_wait   )   )   ) |\n"
 							"                     (    what=1 &\n"
 							"                          (    ( transmit_action=1 |\n"
 							"                                 transmit_action=2  ) &\n"
@@ -2739,12 +2761,35 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pValue->action("int | db");
 			pValue->pperm(ureadcw);
 			pValue->description();
+			pValue->description();
+
+			pDebug= folder->getDebug("debug_output");
+			pDebug->description("Output every step of count, and show whether actual_step change to one higher (or lower)");
+			pDebug->pstring("-----------------------------------------------------------------------------------");
+			pDebug= folder->getDebug("debug_show_b");
+			pDebug->pstring("begin count of steps");
+			pDebug->pwhile("debug_output & (what=0 & (wait_after=after | wait_after= after * SONY_CMT_MINUS_CP100__choice:multi_wait)) | (what=1 & first_touch)");
+			pDebug= folder->getDebug("debug_show_0");
+			pDebug->pstring("reach step of");
+			pDebug->pvalue("after");
+			pDebug->pstring("seconds");
+			pDebug->pwhile("debug_output & wait_after=0 & receive");
+			pDebug= folder->getDebug("debug_show_1");
+			pDebug->pstring("reach lirc signal");
+			pDebug->pvalue("lirc_high");
+			pDebug->pwhile("debug_output & lirc_set");
+			pDebug= folder->getDebug("debug_show_s");
+			pDebug->pstring("change step value to");
+			pDebug->pvalue("actual_step");
+			pDebug->pwhile("debug_output & actual_step != actual_step_before");
+			pDebug->description();
+			pDebug->description();
 
 			pSet= folder->getSet("again");
 			pSet->description("wait double by again pressing");
-			pSet->pfrom(2);
-			pSet->pset("first_calc");
-			pSet->pwhile("first_touch & " + remote + ":double & count_steps_do=0 & transmit_action=2 | what=1 & transmit_action=1");
+			pSet->pfrom(remote + "__choice:double + 1");
+			pSet->pset("first_calc_do");
+			pSet->pwhile("first_touch & (display_first=0 | new_activate>0) & transmit_action=2 | what=1 & transmit_action=1");
 			pSet->description();
 
 			pSet= folder->getSet("count_step_done");
