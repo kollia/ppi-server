@@ -118,7 +118,7 @@ namespace ppi_database
 			m_sDbFile+= ".dat";
 			bNew= true;
 		}
-		LOG(LOG_DEBUG, "beginning to read database file " + m_sDbFile);
+		LOG(LOG_INFO, "beginning to read database file " + m_sDbFile);
 		m_sDbFile= URL::addPath(m_sWorkDir, m_sDbFile);
 
 		// delete all .new files because the are half finished
@@ -214,12 +214,11 @@ namespace ppi_database
 			}
 			file.close();
 		}
-		LOG(LOG_DEBUG, "reading of database file " + m_sDbFile + " is finished");
 		if(size > 15000000)
 		{// create an new database file
 			createNewDbFile(/*check whether*/false);
 		}
-
+		LOG(LOG_INFO, "reading of database file " + m_sDbFile + " is finished");
 		return true;
 	}
 
