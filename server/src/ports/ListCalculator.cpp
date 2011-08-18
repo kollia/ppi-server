@@ -147,11 +147,19 @@ IListObjectPattern* ListCalculator::getSubroutine(const string& var, bool own)
 	}
 	if(isRendered())
 	{
-		msg= "cannot found folder '";
-		msg+= sFolder + "' with subroutine '" + sSubroutine;
-		msg+= "' defined in folder " + m_sFolder + " and subroutine ";
-		msg+= m_sSubroutine + " by parameter " + m_sParameter;
-		LOG(LOG_ERROR, msg);
+		msg=  "by folder '" + m_sFolder + "' and subroutine '" + m_sSubroutine + "' in parameter " + m_sParameter + ":\n";
+		msg+= "cannot find ";
+		if(pFolder)
+		{
+			msg+= "subroutine '" + sSubroutine + "' ";
+			msg+= "for folder '" + sFolder + "' ";
+		}else
+		{
+			msg+= "folder '" + sFolder + "' ";
+			msg+= "with subroutine '" + sSubroutine + "' ";
+		}
+		msg+= "\ndefine value only as 0";
+		TIMELOG(LOG_WARNING, m_sFolder+" "+m_sSubroutine+" "+m_sParameter+" "+sFolder+" "+sSubroutine, msg);
 	}
 	return NULL;
 }
