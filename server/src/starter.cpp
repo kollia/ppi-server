@@ -249,16 +249,12 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	}
 
 	//*	for all processes without db-server and internet-server to give answers
-	//		ppi-server(ProcessChecker), ppi-log-client, ppi-owreader
-	nDbConnectors= 2 + nOWReader;
+	//		ppi-server(ProcessChecker), ppi-owreader
+	nDbConnectors= 1 + nOWReader;
 
-	//*		for all process an log client
-	//			ppi-server, ppi-db-server, ppi-internet-server, ppi-owreader
-	nDbConnectors+= 3 + nOWReader;
-
-	//*		for all process other then logger an db client but the internet-server needs an second for callback routines (second connection by client)
+	//*		for all process an db client but the internet-server needs an second for callback routines (second connection by client)
 	//			ppi-server, ppi-internet-server, ppi-owreader
-	nDbConnectors+= 3 + nOWReader;
+	nDbConnectors+= 1 + 2 + nOWReader;
 
 	//*		for all one wire server (ppi-owreader) are needs the polling action list in ppi-server an OWInterface
 	nDbConnectors+= nOWReader;
@@ -275,6 +271,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	for(short c= 0; c < (spaces - (short)conns.str().size()); ++c)
 		cout << " ";
 	cout <<                                                                 "***" << endl;
+	cout << " ***   now also 2 extra for testing                             ***" << endl;
+	cout << " ***   whether really this count be needed                      ***" << endl;
 	cout << " ***                                                            ***" << endl;
 	cout << " ******************************************************************" << endl;
 	// only for debugging to know whether the allocated connections to db are ok
@@ -314,7 +312,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	// ------------------------------------------------------------------------------------------------------------
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// start database interface and check whether database is loaded
+	// start database interface
 
 	DbInterface::initial(	"ppi-server",
 							new SocketClientConnection(	SOCK_STREAM,
@@ -324,9 +322,9 @@ bool Starter::execute(const IOptionStructPattern* commands)
 							/*identif log*/nLogAllSec					);
 
 	DbInterface::instance()->setThreadName(glob::getProcessName());
-	LOG(LOG_INFO, "Read configuration files from " + m_sConfPath);
-
 	// ------------------------------------------------------------------------------------------------------------
+
+	LOG(LOG_INFO, "Read configuration files from " + m_sConfPath);
 
 	/***********************************************************************************\
 	 *
@@ -635,10 +633,28 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	}
 #endif //_OWFSLIBRARY
 
-	--nServerID;
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// check whether database loadeding is finished
+
+	db= DbInterface::instance();
+	if(!db->isDbLoaded())
+	{
+		cout << "### database is busy" << endl;
+		cout << "    wait for initialing " << flush;
+		while(!db->isDbLoaded())
+		{
+			sleep(1);
+			cout << "." << flush;
+		}
+		cout << " OK" << endl << endl;
+	}
+	// ------------------------------------------------------------------------------------------------------------
+
+	LOG(LOG_INFO, "after knowing database was loaded, starting to configure all control list's to measure");
 	createPortObjects(commands->hasOption("configure"));
 	TERMINALEND;
 
+	--nServerID;
 	OWInterface::checkUnused(nServerID);
 	OWInterface::endOfInitialisation(nServerID, commands->hasOption("firstvalue"));
 
@@ -715,18 +731,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		exit(EXIT_FAILURE);
 	}
 
-	db= DbInterface::instance();
-	if(!db->isDbLoaded())
-	{
-		cout << "### database is busy" << endl;
-		cout << "    wait for initialing " << flush;
-		while(!db->isDbLoaded())
-		{
-			sleep(1);
-			cout << "." << flush;
-		}
-		cout << " OK" << endl << endl;
-	}
 	// after creating all threads and objects
 	// all chips should be defined in DefaultChipConfigReader
 	db->chipsDefined(true);
