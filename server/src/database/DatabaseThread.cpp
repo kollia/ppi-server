@@ -45,7 +45,8 @@ namespace ppi_database
 DatabaseThread* DatabaseThread::_instance= NULL;
 
 DatabaseThread::DatabaseThread(string dbDir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep)
-:	Thread("database", defaultSleep, false)
+:	Thread("database", defaultSleep, false),
+ 	m_bDbLoaded(false)
 {
 	IChipConfigReaderPattern* reader;
 
