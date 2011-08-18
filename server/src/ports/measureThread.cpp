@@ -274,6 +274,7 @@ int MeasureThread::execute()
 	m_vInformed.clear();
 	if(m_vFolder.empty())
 	{
+		TERMINALEND;
 		if(!m_vtmNextTime.empty())
 		{
 			sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
