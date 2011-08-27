@@ -436,30 +436,11 @@ namespace server
 					break;
 				}
 				++step;
-			case 1: // get status info from process ppi-log-client
-				send= auto_ptr<ostringstream>(new ostringstream);
-				(*send) << "getStatusInfo";
-				if(param != "")
-					(*send) << " \"" << param << "\"";
-				msg= descriptor.sendToOtherClient("LogServer", send->str(), true);
-				if(msg != "done")
-				{
-					if(ExternClientInputTemplate::error(msg))
-					{
-						msg= "no communication to ppi-log-client " + msg;
-						++step;
-					}
-					//cout << "send: " << msg << endl;
-					descriptor << msg;
-					descriptor.endl();
-					break;
-				}
-				++step;
-			case 2: // read status info from own process ppi-db-server
+			case 1: // read status info from own process ppi-db-server
 				msg= Thread::getStatusInfo(param);
 				split(status, msg, is_any_of("\n"));
 				++step;
-			case 3: // send status info lines from own process ppi-db-server
+			case 2: // send status info lines from own process ppi-db-server
 				bsend= false;
 				while(status.size() > 0)
 				{
@@ -478,14 +459,14 @@ namespace server
 				if(bsend)
 					break;
 				++step;
-			case 4: // check how much one wire reader does exist
+			case 3: // check how much one wire reader does exist
 				msg= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true);
 				piOWReader= new istringstream(msg);
 				*piOWReader >> nMaxOWReader;
 				delete piOWReader;
 				++step;
 				error= false;
-			case 5:// get status info from all one wire reader
+			case 4:// get status info from all one wire reader
 				while(nOWReader <= nMaxOWReader)
 				{
 					send= auto_ptr<ostringstream>(new ostringstream);
