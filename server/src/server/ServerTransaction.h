@@ -256,7 +256,7 @@ namespace server
 			 * @param error code number of error
 			 * @return error string
 			 */
-			virtual string strerror(int error) const;
+			virtual string strerror(const int error) const;
 			/**
 			 * get maximal error or warning number in positive values from own class
 			 *
@@ -309,16 +309,25 @@ namespace server
 			 */
 			bool getDirectory(string filter, string verz, vector<string> &list);
 			/**
-			 * return error code from returned number of method <code>DbInterface::existEntry()</code>
+			 * write logging message as LOG_SERVERDEBUG and return error string to send back on client
 			 *
-			 * @param err error number
-			 * @param folder name of folder for log message
-			 * @param subroutine name of subroutine for log message
-			 * @return string of error code to send back to client
+			 * @param file name from witch source file the method is called, specified with <code>__FILE__</code>
+			 * @param line number of line in the source file, specified with <code>__LINE__</code>
+			 * @param type defined type of log-message (<code>LOG_DEBUG, LOG_INFO, ...</code>)
+			 * @param desc descriptor to write in log message user, host and client ID
+			 * @param num number of error
+			 * @param input in comming question from client
+			 * @param add additional string for logging
+			 * @return error string to send back on client
 			 */
-			string getNoExistErrorCode(const unsigned short err, const string& folder, const string& subroutine);
+			string senderror(const string& file, const int line, const int type, const IFileDescriptorPattern& desc,
+							const int num, string input, const string& add);
 	};
 
 }
+
+#define ERROR(descriptor, num, input, add) senderror(__FILE__, __LINE__, LOG_SERVERERROR, descriptor, num, input, add)
+#define INFOERROR(descriptor, num, input, add) senderror(__FILE__, __LINE__, LOG_SERVERINFO, descriptor, num, input, add)
+#define DEBUGERROR(descriptor, num, input, add) senderror(__FILE__, __LINE__, LOG_SERVERDEBUG, descriptor, num, input, add)
 
 #endif /*SERVERTRANSACTION_H_*/

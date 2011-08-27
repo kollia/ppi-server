@@ -84,6 +84,7 @@ namespace server
 		descriptor.setBoolean("wait", false);
 		descriptor.setUShort("actualized", 0);
 		descriptor.setBoolean("readdebuginfo", false);
+		descriptor.setBoolean("nextconnection", true);
 		return true;
 	}
 
@@ -92,6 +93,15 @@ namespace server
 		bool hold;
 		bool bServerStops;
 
+		if(descriptor.getBoolean("nextconnection"))
+		{
+			ostringstream omsg;
+
+			omsg << "server get new connection from host '" << descriptor.getHostAddressName() << "' ";
+			omsg << " ID:" << descriptor.getClientID();
+			LOG(LOG_SERVERINFO, omsg.str());
+			descriptor.setBoolean("nextconnection", false);
+		}
 		LOCK(m_SERVERISSTOPPINGMUTEX);
 		bServerStops= m_bStopServer;
 		UNLOCK(m_SERVERISSTOPPINGMUTEX);
@@ -113,9 +123,15 @@ namespace server
 					descriptor.getBoolean("speaker")	)
 		{
 			hold= hearingPort(descriptor);
+			if(!hold) // wait for next connection
+				descriptor.setBoolean("nextconnection", true);
 
 		}else
+		{
 			hold= clientCommands(descriptor);
+			if(!hold) // wait for next connection
+				descriptor.setBoolean("nextconnection", true);
+		}
 
 		return hold;
 	}
@@ -197,6 +213,8 @@ namespace server
 		string::size_type length;
 		string input;
 		string sendmsg, msg;
+		ostringstream omsg;
+		string username(descriptor.getString("username"));
 
 		POS("#client#wait-forQuestion");
 		descriptor >> input;
@@ -281,6 +299,11 @@ namespace server
 			m_fProtocol= 0;
 			db->clearOWDebug(descriptor.getClientID());
 			db->needSubroutines(descriptor.getClientID(), "stopclient");
+			omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
+			if(username != "")
+				omsg << "with user '" << username << "' ";
+			omsg << "and ID:" << descriptor.getClientID() << " stopping connection to server";
+			LOG(LOG_SERVERINFO, omsg.str());
 #ifdef SERVERDEBUG
 			cout << "client stop connection" << endl;
 #endif
@@ -293,6 +316,11 @@ namespace server
 			descriptor << "done";
 			descriptor.endl();
 			descriptor.flush();
+			omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
+			if(username != "")
+				omsg << "with user '" << username << "' ";
+			omsg << "and ID:" << descriptor.getClientID() << " asking only for initialization";
+			LOG(LOG_SERVERINFO, omsg.str());
 
 		}else if(	input == "GETMINMAXERRORNUMS"
 					||
@@ -331,50 +359,54 @@ namespace server
 						input.substr(0, 6) == "CHANGE"	)	)
 		{
 			bool ok(false);
+			string spinput;
 			istringstream oinput(input);
 
-			oinput >> input;
-			if(input == "GET")
+			oinput >> spinput;
+			if(spinput == "GET")
 			{
 				unsigned int ID(0);
 
-				oinput >> input;
-				if(input.substr(0, 1) == "v")
+				oinput >> spinput;
+				if(spinput.substr(0, 1) == "v")
 				{
 					float getnum;
-					istringstream num(input.substr(1));
+					istringstream num(spinput.substr(1));
 
 					num >> getnum;
 					if(getnum > PPI_SERVER_PROTOCOL)
 						m_fProtocol= PPI_SERVER_PROTOCOL;
 					else
 						m_fProtocol= getnum;
-					oinput >> input;
+					oinput >> spinput;
 				}
-				if(	input == "wait" ||
+				if(	spinput == "wait" ||
 					m_fProtocol >= 1.0	)
 				{
 					descriptor.setBoolean("wait", true);
-					if(input == "wait")
-						oinput >> input;
+					if(spinput == "wait")
+						oinput >> spinput;
 
 				}else
 					descriptor.setBoolean("wait", false);
-				if(input.substr(0, 3) == "ID:")
+				if(spinput.substr(0, 3) == "ID:")
 				{
-					istringstream id(input.substr(3));
+					istringstream id(spinput.substr(3));
 
 					id >> ID;
+					omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
+					if(username != "")
+						omsg << "with user '" << username << "' ";
+					omsg << "and ID:" << descriptor.getClientID() << ",\n";
 					if(ID == 0)
 					{
-						string msg("ERROR: client givs no correct ID. Send ERROR code 010");
-
-						LOG(LOG_SERVERERROR, msg);
-						sendmsg= "ERROR 010";
+						sendmsg= INFOERROR(descriptor, 10, input, "");
 					}else
 					{
 						descriptor.setClientID(ID);
 						descriptor.setBoolean("speaker", true);
+						omsg << "switch connection to hearing and gets ID:" << descriptor.getClientID();
+						LOG(LOG_SERVERINFO, omsg.str());
 					}
 				}else
 					descriptor.setBoolean("speaker", false);
@@ -405,11 +437,11 @@ namespace server
 							&&
 							length > 2
 							&&
-							input.substr(0, 2) == "U:"	)
+							spinput.substr(0, 2) == "U:"	)
 						||
 						(	descriptor.getBoolean("access")
 							&&
-							input == "CHANGE"				)	)
+							spinput == "CHANGE"				)	)
 			{
 				bool login= true;
 				short first= 1;
@@ -417,13 +449,13 @@ namespace server
 				vector<string> split;
 				UserManagement* user= UserManagement::instance();
 
-				if(input == "CHANGE"	)
+				if(spinput == "CHANGE"	)
 				{
-					oinput >> input;
+					oinput >> spinput;
 					first= 0;
 					login= false;
 				}
-				split= ConfigPropertyCasher::split(input, ":");
+				split= ConfigPropertyCasher::split(spinput, ":");
 				if(	(	first == 0
 						&&
 						split.size() == 2	)
@@ -434,64 +466,57 @@ namespace server
 				{
 					if(!user->hasAccess(split[first], split[first+1], login))
 					{
-						string msg("### ERROR: user ");
+						int error;
+						string msg("for user ");
 
 						msg+= split[first];
-						sendmsg= "ERROR ";
 						if(	!descriptor.getBoolean("access")
 							&&
 							!user->canLoginFirst(split[first])	)
 						{
-							msg+= " cannot login as first";
-							sendmsg+= "015";
+							error= 15;
+							sendmsg= INFOERROR(descriptor, error, input, msg);
 						}else
 						{
 							if(user->isUser(split[first]))
-							{
-								msg+= " have no correct password";
-								sendmsg+= "012";
-							}else
-							{
-								msg+= " is no correct user";
-								sendmsg+= "011";
-							}
+								error= 12;
+							else
+								error= 11;
 							if(!descriptor.getBoolean("access"))
-								msg+= ", so permission denied";
+								msg+= ", permission denied";
+							sendmsg= ERROR(descriptor, error, input, msg);
 						}
-						LOG(LOG_SERVERERROR, msg);
 						sleep(2);
-	#ifdef SERVERDEBUG
-						cerr << "send: " << sendmsg << endl;
-						cerr << msg << endl;
-	#endif // SERVERDEBUG
-						sendmsg+= "\n";
 						descriptor << sendmsg;
-						if(descriptor.getBoolean("access"))
+						if(	descriptor.getBoolean("access") ||
+							error == 15							)
+						{
 							return descriptor.getBoolean("wait");
+						}
+						sendmsg= ERROR(descriptor, error, input, msg);
 						return false;
 					}
+					omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
+					if(username != "")
+						omsg << "with user '" << username << "' ";
+					omsg << "and ID:" << descriptor.getClientID();
 					descriptor.setString("username", split[first]);
 					descriptor.setBoolean("access", true);
 					ok= true;
 					sendmsg= "OK\n";
 					descriptor << sendmsg;
 					descriptor.flush();
+					if(login)
+						omsg << "\nget access to server with user name '" << split[first] << "'";
+					else
+						omsg << "\nchange user correctly to user '" << split[first] << "'";
+					LOG(LOG_SERVERINFO, omsg.str());
 					return true;
 				}
 			}
 			if(!ok)
 			{
-				string msg("can not identify command '");
-
-				msg+= input;
-				msg+= "'";
-				msg+= "\nsend ERROR 002";
-				LOG(LOG_SERVERERROR, msg);
-				sendmsg= "ERROR 002\n";
-				descriptor << sendmsg;
-		#ifdef SERVERDEBUG
-					cerr << msg << endl;
-		#endif
+				descriptor << DEBUGERROR(descriptor, 2, input, "");
 				return false;
 			}
 		}else
@@ -515,17 +540,17 @@ namespace server
 
 					msg+= "client want to stop server with no root user '";
 					msg+= descriptor.getString("username") + "'\n";
-					msg+= "permisson denied, send ERROR 013";
-					LOG(LOG_SERVERERROR, msg);
+					msg+= "permisson denied";
+					sendmsg= INFOERROR(descriptor, 13, input, msg);
 					glob::stopMessage(msg);
-					sendmsg= "ERROR 013\n";
 					descriptor << sendmsg;
 	#ifdef SERVERDEBUG
 					cerr << msg << endl;
 	#endif
 					return descriptor.getBoolean("wait");
 				}
-				LOG(LOG_SERVERINFO, "user stop server with foreign application");
+				omsg << "user '" << username << "' with ID:" << descriptor.getClientID() << " stop hole server application";
+				LOG(LOG_SERVERINFO, omsg.str());
 				glob::stopMessage("do not allow new connections");
 				server->allowNewConnections(false);
 				glob::stopMessage("ending all Debug message output from owreader to any client");
@@ -634,14 +659,8 @@ namespace server
 							msg << "client ask for '";
 							msg << input << "'\ncannot found OWServer with ID ";
 							msg << ID;
-							msg << "\nsend ERROR 017";
-							LOG(LOG_SERVERERROR, msg.str());
-							sendmsg= "ERROR 017\n";
-							descriptor << sendmsg;
+							descriptor << INFOERROR(descriptor, 17, input, msg.str());
 							ID= 0;
-#ifdef SERVERDEBUG
-							cerr << msg << endl;
-#endif
 						}else
 							db->setOWDebug(ID, descriptor.getClientID(), true);
 					}
@@ -652,12 +671,7 @@ namespace server
 						server << "owserver-" << ID;
 						if(!db->needSubroutines(descriptor.getClientID(), server.str()))
 						{
-							sendmsg= "ERROR 017\n";
-#ifdef SERVERDEBUG
-							cerr << "send: ERROR 017" << endl;
-							cerr << "      undifined Error in DbInterface::needSubroutine()" << endl;
-#endif
-							descriptor << sendmsg;
+							descriptor << INFOERROR(descriptor, 17, input, "Undefined Error in DbInterface::needSubroutine()");
 						}else
 						{
 							sendmsg= "done\n";
@@ -682,19 +696,7 @@ namespace server
 							sendmsg= "done\n";
 							descriptor << sendmsg;
 						}else
-						{
-							string msg;
-
-							msg+= "client ask for '";
-							msg+= input + "'\nno folder or folder:subroutine be given";
-							msg+= "\nsend ERROR 004";
-							LOG(LOG_SERVERERROR, msg);
-							sendmsg= "ERROR 004\n";
-							descriptor << sendmsg;
-				#ifdef SERVERDEBUG
-							cerr << msg << endl;
-				#endif
-						}
+							descriptor << DEBUGERROR(descriptor, 4, input, "no folder or folder:subroutine be given");
 					}else
 					{
 						split(spl, sFolderSub, is_any_of(":"));
@@ -707,21 +709,7 @@ namespace server
 							sendmsg= "done\n";
 							descriptor << sendmsg;
 						}else
-						{
-							string msg;
-
-							msg+= "client ask for '";
-							msg+= input + "'\ncannot found folder";
-							if(sSubroutine != "")
-								msg+= ":subroutine";
-							msg+= "\nsend ERROR 004";
-							LOG(LOG_SERVERERROR, msg);
-							sendmsg= "ERROR 004\n";
-							descriptor << sendmsg;
-				#ifdef SERVERDEBUG
-							cerr << msg << endl;
-				#endif
-						}
+							descriptor << INFOERROR(descriptor, 5, input, "");
 					}
 				}
 				bWait= false;
@@ -736,14 +724,7 @@ namespace server
 
 				if(input.length() <= 5)
 				{
-					string msg;
-
-					msg+= "client ask for '";
-					msg+= input + "'\n";
-					msg+= "\nsend ERROR 007";
-					LOG(LOG_SERVERERROR, msg);
-					sendmsg= "ERROR 007\n";
-					descriptor << sendmsg;
+					descriptor << DEBUGERROR(descriptor, 7, input, "");
 				}else
 				{
 					int begin= 3, len= 0;
@@ -776,19 +757,7 @@ namespace server
 							//descriptor.flush();
 						}
 					}else
-					{
-						string msg;
-
-						msg+= "client ask for '";
-						msg+= input + "'\n";
-						msg+= "\nsend ERROR 008";
-						LOG(LOG_SERVERERROR, msg);
-						sendmsg= "ERROR 008\n";
-						descriptor << sendmsg;
-		#ifdef SERVERDEBUG
-						cerr << msg << endl;
-		#endif
-					}
+						descriptor << ERROR(descriptor, 8, input, "with this filter '" + filter + "'");
 				}
 
 		#ifdef SERVERDEBUG
@@ -833,19 +802,7 @@ namespace server
 						descriptor << line;
 					file.close();
 				}else
-				{
-					string msg;
-
-					msg+= "client ask for '";
-					msg+= input + "'\n";
-					msg+= "send ERROR 009";
-					LOG(LOG_SERVERERROR, msg);
-					sendmsg= "<error number=\"009\" />\n";
-					descriptor << sendmsg;
-		#ifdef SERVERDEBUG
-					cerr << msg << endl;
-		#endif
-				}
+					descriptor << INFOERROR(descriptor, 9, input, "");
 
 
 			}else if(	input.substr(0, 4) == "SET "
@@ -888,7 +845,7 @@ namespace server
 							msg+= buffer;
 							msg+= " is incorrect";
 							msg+= "\nsend ERROR 003 0";
-							LOG(LOG_SERVERERROR, msg);
+							LOG(LOG_SERVERDEBUG, msg);
 							sendmsg= "ERROR 003 0\n";
 							descriptor << sendmsg;
 							bWait= false;
@@ -912,7 +869,7 @@ namespace server
 							msg+= buffer;
 							msg+= " is incorrect";
 							msg+= "\nsend ERROR 003 1";
-							LOG(LOG_SERVERERROR, msg);
+							LOG(LOG_SERVERDEBUG, msg);
 							sendmsg= "ERROR 003 1\n";
 							descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -970,24 +927,35 @@ namespace server
 							{
 								string msg;
 
-								msg+= "client ask for '";
-								msg+= input + "'\n";
-								msg+= "but user '";
-								msg+= descriptor.getString("username") + "' has no permisson to subroutine\n";
-								msg+= "so permisson denied, send ERROR 013";
-								LOG(LOG_SERVERERROR, msg);
-								sendmsg= "ERROR 013\n";
-								descriptor << sendmsg;
-								bWait= false;
-#ifdef SERVERDEBUG
-								cerr << msg << endl;
-#endif
+								msg=  "user '";
+								msg+= descriptor.getString("username") + "' has no permisson to subroutine";
+								descriptor << DEBUGERROR(descriptor, 13, input, msg);
 							}
 						}else
 						{
-							descriptor << getNoExistErrorCode(nExist, values[0], values[1]);
-							if(nExist != 4)
-								bWait= false;
+							switch(nExist)
+							{
+							case 4:
+								// no access to device
+								descriptor << DEBUGERROR(descriptor, 16, input, "");
+								break;
+							case 3:
+								// number of value count do not exist
+								// but this number is always 0 and cannot be
+								// when this error code reached, write error code for 1
+							case 2:
+								// this identifier is every time 'value' and have to exist
+								// when this error code reached, write error code for 1
+							case 1:
+								// subroutine do not exist
+								descriptor << DEBUGERROR(descriptor, 5, input, "");
+								break;
+							default: // inherit code 0
+								// folder do not exist
+								descriptor << DEBUGERROR(descriptor, 4, input, "");
+								break;
+							}
+							bWait= descriptor.getBoolean("wait");
 						}
 						break;
 
@@ -1032,7 +1000,7 @@ namespace server
 					msg+= entry;
 					msg+= " is incorrect";
 					msg+= "\nsend ERROR 003 1";
-					LOG(LOG_SERVERERROR, msg);
+					LOG(LOG_SERVERDEBUG, msg);
 					sendmsg= "ERROR 003 1\n";
 					descriptor << sendmsg;
 	#ifdef SERVERDEBUG
@@ -1047,109 +1015,105 @@ namespace server
 					{
 						if(user->hasPermission(descriptor.getString("username"), split[0], split[1], "read"))
 						{
-							if(!db->needSubroutines(descriptor.getClientID(), entry))
-							{
-								sendmsg= "ERROR 005\n";
-#ifdef SERVERDEBUG
-								cerr << "send: ERROR 005" << endl;
-								cerr << "      cannot found given folder or subroutine" << endl;
-#endif
-								descriptor << sendmsg;
-							}else
+							if(db->needSubroutines(descriptor.getClientID(), entry))
 							{
 								sendmsg= "done\n";
 								descriptor << sendmsg;
-							}
+							}else
+								descriptor << DEBUGERROR(descriptor, 5, input, "cannot found given folder or subroutine");
 
 						}else
 						{
 							string msg;
 
-							msg+= "client ask for '";
-							msg+= input + "'\n";
-							msg+= "user '";
-							msg+= descriptor.getString("username") + "' but has no permisson to subroutine\n";
-							msg+= "so permisson denied, send ERROR 013";
-							LOG(LOG_SERVERERROR, msg);
-							sendmsg= "ERROR 013\n";
-							descriptor << sendmsg;
-	#ifdef SERVERDEBUG
-							cerr << msg << endl;
-	#endif
+							msg= "by user '";
+							msg+= descriptor.getString("username") + "'";
+							descriptor << DEBUGERROR(descriptor, 13, input, msg);
 						}
 					}else
-						descriptor << getNoExistErrorCode(nExist, split[0], split[1]);
+					{
+						switch(nExist)
+						{
+						case 4:
+							// no access to device
+							// by this error code make also an hearing (block before)
+							// because client should wait for access
+							break;
+						case 3:
+							// number of value count do not exist
+							// but this number is always 0 and cannot be
+							// when this error code reached, write error code for 1
+						case 2:
+							// this identifier is every time 'value' and have to exist
+							// when this error code reached, write error code for 1
+						case 1:
+							// subroutine do not exist
+							descriptor << DEBUGERROR(descriptor, 5, input, "");
+							break;
+						default: // inherit code 0
+							// folder do not exist
+							descriptor << DEBUGERROR(descriptor, 4, input, "");
+							break;
+						}
+					}
 				}
 			}else
 			{
-				string msg("can not identify command '");
-
-				msg+= input;
-				msg+= "'";
-				msg+= "\nsend ERROR 002";
-				LOG(LOG_SERVERERROR, msg);
-				sendmsg= "ERROR 002\n";
-				descriptor << sendmsg;
-		#ifdef SERVERDEBUG
-					cerr << msg << endl;
-		#endif
-				return false; // server not wait
+				descriptor << ERROR(descriptor, 2, input, "");
+				return descriptor.getBoolean("wait");
 			}
 		}
 		return descriptor.getBoolean("wait");
 	}
 
-	string ServerTransaction::getNoExistErrorCode(const unsigned short err, const string& folder, const string& subroutine)
+	string ServerTransaction::senderror(const string& file, const int line, const int type,
+					const IFileDescriptorPattern& descriptor, const int num, string input, const string& add)
 	{
-		string sRv;
-		string msg;
+		string user(descriptor.getString("username"));
+		ostringstream logmsg;
+		ostringstream sendmsg;
 
-		switch(err)
-		{
-		case 4:
-			msg+= "client ask for '";
-			msg+= folder + ":" + subroutine + "'\n";
-			msg+= "but subroutine has no correct acces to device\n";
-			msg+= "send ERROR 016";
-			LOG(LOG_SERVERERROR, msg);
-#ifdef SERVERDEBUG
-			cerr << msg << endl;
-#endif
-			sRv= "ERROR 016\n";
-			break;
+		sendmsg << "ERROR ";
+		if(num < 100)
+			sendmsg << "0";
+		if(num < 10)
+			sendmsg << "0";
+		sendmsg << num <<  "\n";
+		logmsg << "client from host '" << descriptor.getHostAddressName() << "' ";
+		if(user != "")
+			logmsg << " with user '" << user << "' ";
+		logmsg << "and ID:" << descriptor.getClientID();
+		if(	input.substr(0, 2) == "U:" ||
+			input.substr(0, 7) == "change "	)
+		{// make password irrecognizable with stars
+			string::size_type n(1);
+			vector<string> spl;
 
-		case 1:
-			msg+= "client ask for '";
-			msg+= folder + ":" + subroutine + "'\n";
-			msg+= "cannot find subroutine ";
-			msg+= subroutine;
-			msg+= " in folder ";
-			msg+= folder;
-			msg+= "\nsend ERROR 005";
-			LOG(LOG_SERVERERROR, msg);
-			sRv= "ERROR 005\n";
-#ifdef SERVERDEBUG
-			cerr << msg << endl;
-#endif
-			break;
-
-		case 0:
-			msg+= "client ask for >> ";
-			msg+= folder + ":" + subroutine;
-			msg+= "cannot find folder ";
-			msg+= folder;
-			msg+= "\nsend ERROR 004";
-			LOG(LOG_SERVERERROR, msg);
-	#ifdef SERVERDEBUG
-			cout << "send: ERROR 004" << endl;
-	#endif
-			sRv= "ERROR 004\n";
-			break;
+			if(input.substr(0, 2) == "U:")
+				n= 2;
+			split(spl, input, is_any_of(":"));
+			input= spl[0] + ":";
+			if( spl.size() > 1 &&
+				n == 2				)
+			{
+				input+=  spl[1] + ":";
+			}
+			if(spl.size() > n)
+				input.append(spl[n].length(), '*');
 		}
-		return sRv;
+		logmsg << " ask for '" << input << "'\n";
+		logmsg << "send: " << sendmsg.str();
+		if(add != "")
+			logmsg <<  add << "\n";
+		logmsg << strerror(num);
+		ppi_database::DbInterface::instance()->log(file, line, type, logmsg.str());
+#ifdef SERVERDEBUG
+		cout << logmsg.str() << endl;
+#endif
+		return sendmsg.str();
 	}
 
-	string ServerTransaction::strerror(int error) const
+	string ServerTransaction::strerror(const int error) const
 	{
 		string str;
 
@@ -1175,7 +1139,7 @@ namespace server
 			str= "cannot found given subroutine in folder for operation";
 			break;
 		case 6:
-			str= "unknow value to set in subroutine";
+			str= "unknown value to set in subroutine";
 			break;
 		case 7:
 			str= "no filter be set for read directory";
@@ -1199,7 +1163,7 @@ namespace server
 			str= "user has no permission";
 			break;
 		case 14:
-			str= "subrutine isn't correct defined by the settings of config file";
+			str= "subroutine isn't correct defined by the settings of config file";
 			break;
 		case 15:
 			str= "user cannot login as first";
