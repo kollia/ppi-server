@@ -192,7 +192,7 @@ namespace ppi_database
 		 * @param subroutine subroutine inside of given folder
 		 * @param identif identification of which value be set
 		 * @param number count of double value which is required
-		 * @return 4 when all exists, 3 when number of value not exist, 2 when value with identifier not exist, 1 if subroutine not exist and 0 when folder not exist
+		 * @return 5 when device exists correctly, 4 when no physical access exist, 3 when number of value count not exist, 2 when value with identifier not exist, 1 if subroutine not exist and 0 when folder not exist
 		 */
 		unsigned short existEntry(const string& folder, const string& subroutine, const string& identif,
 																const vector<double>::size_type number= 0);
