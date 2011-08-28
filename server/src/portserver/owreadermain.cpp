@@ -290,11 +290,9 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	ostringstream out, output;
+	ostringstream output;
 
-	out << "    one wire reader" << flush;
-	cout << out.str();
-	output << out.str();
+	output << "    one wire reader";
 	owserver= auto_ptr<OWServer>(new OWServer(nServerID, servertype, accessPort));
 	output << " with name '" << owserver->getServerName();
 	output << "' and ID '" << dec << nServerID << "'" << endl;
