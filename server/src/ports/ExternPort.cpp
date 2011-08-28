@@ -61,33 +61,32 @@ namespace ports
 			if(range(bfloat, &min, &max))
 			{
 				if(!bfloat && !properties->haveAction("int"))
-					properties->readLine("action= int");
+					properties->setDefaultActionName("int");
 				prop= "min";
 				val= properties->getDouble(prop, /*warning*/false);
 				if(prop == "#ERROR")
 				{
 					sval << min;
-					properties->readLine("min= "+sval.str());
+					properties->setDefault("min", sval.str());
 				}
 				prop= "max";
 				val= properties->getDouble(prop, /*warning*/false);
 				if(prop == "#ERROR")
 				{
 					sval << max;
-					properties->readLine("max= "+sval.str());
+					properties->setDefault("max", sval.str());
 				}
 			}
 		}
 		if(!m_bRead)
 		{
-			prop= properties->needValue("value");
+			prop= properties->getValue("value", /*warning*/false);
 			if(prop != "")
 			{
 				m_oValue.init(pStartFolder, prop);
-			}else
-				bRv= false;
+			}
 		}
-		if(bRv && !switchClass::init(properties, pStartFolder))
+		if(!switchClass::init(properties, pStartFolder))
 			bRv= false;
 
 		db= DbInterface::instance();
@@ -239,9 +238,13 @@ namespace ports
 			}
 
 			m_bWrite= switchClass::measure(m_bWrite);
-			if(m_bWrite)
+			if(	m_bWrite ||
+				m_oValue.isEmpty()	)
 			{
-				m_oValue.calculate(value);
+				if(!m_oValue.isEmpty())
+					m_oValue.calculate(value);
+				else
+					value= m_bWrite ? 1 : 0;
 				access= write(m_sChipID, value, addinfo);
 				setDeviceAccess(access);
 				m_dLastWValue= value;
