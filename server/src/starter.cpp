@@ -114,11 +114,11 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	if(commands->hasOption("configure"))
 		cout << "  ... read configuration files" << endl;
-	m_vOWServerTypes.push_back("PORT");
-	m_vOWServerTypes.push_back("MPORT");
-	m_vOWServerTypes.push_back("OWFS");
-	m_vOWServerTypes.push_back("Vk8055");
-	m_vOWServerTypes.push_back("LIRC");
+	m_vOWReaderTypes.insert("PORT");
+	m_vOWReaderTypes.insert("MPORT");
+	m_vOWReaderTypes.insert("OWFS");
+	m_vOWReaderTypes.insert("Vk8055");
+	m_vOWReaderTypes.insert("LIRC");
 
 	m_sConfPath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
 	fileName= URL::addPath(m_sConfPath, "server.conf");
@@ -201,21 +201,24 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	}
 
 	bool blirc= false;
-	char type[8];
-	//*********************************************************************************
-	//* check whether any lirc is configured
-	strncpy(type, "irexec", 6);
-	if(lirc_init(type, 1) != -1)
+	if(m_vOWReaderNeed.find("LIRC") != m_vOWReaderNeed.end())
 	{
-		//struct lirc_config *ptLircConfig;
-
-		blirc= true;
-		/*if(lirc_readconfig(NULL, &ptLircConfig, NULL) == 0)
+		char type[8];
+		//*********************************************************************************
+		//* check whether any lirc is configured
+		strncpy(type, "irexec", 6);
+		if(lirc_init(type, 1) != -1)
 		{
+			//struct lirc_config *ptLircConfig;
+
 			blirc= true;
-			lirc_freeconfig(ptLircConfig);
-		}*/
-		lirc_deinit();
+			/*if(lirc_readconfig(NULL, &ptLircConfig, NULL) == 0)
+			{
+				blirc= true;
+				lirc_freeconfig(ptLircConfig);
+			}*/
+			lirc_deinit();
+		}
 	}
 	// ------------------------------------------------------------------------------------------------------------
 
@@ -1001,7 +1004,7 @@ void Starter::createPortObjects(bool bShowConf)
 					correctSubroutine= true;
 					aktualFolder->subroutines[n].portClass= obj;
 				}
-			}else if(::find(m_vOWServerTypes.begin(), m_vOWServerTypes.end(), aktualFolder->subroutines[n].type) != m_vOWServerTypes.end())
+			}else if(::find(m_vOWReaderTypes.begin(), m_vOWReaderTypes.end(), aktualFolder->subroutines[n].type) != m_vOWReaderTypes.end())
 			{// type is reached over an OWServer instance
 				auto_ptr<ExternPort> obj;
 
@@ -1023,6 +1026,7 @@ void Starter::createPortObjects(bool bShowConf)
 					correctSubroutine= true;
 					bcheckProps= obj->haveServer();
 					aktualFolder->subroutines[n].portClass= obj;
+					m_vOWReaderNeed.insert(aktualFolder->subroutines[n].type);
 				}
 			}else
 			{
@@ -1318,12 +1322,6 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 							string port;
 
 							port= (*sit)->needValue("ID");
-							if(	port.substr(0, 3) == "COM"
-								||
-								port.substr(0, 3) == "LPT"	)
-							{
-								port= port.substr(0, 3);
-							}
 							if(subdir->type == "PORT")
 								act= PORT;
 							else if(subdir->type == "MPORT")
@@ -1341,7 +1339,7 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 								}
 							}
 							if(bInsert)
-								vlRv.push_back(pair<string, PortTypes>(value, act));
+								vlRv.push_back(pair<string, PortTypes>(port, act));
 						}
 						/************************************************************/
 						if(buse)

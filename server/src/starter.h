@@ -75,9 +75,14 @@ class Starter
 		 */
 		Properties m_oServerFileCasher;
 		/**
-		 * all types in any subroutine which be reached over an Owserver instance
+		 * all types of owreader defined in server.conf
 		 */
-		vector<string> m_vOWServerTypes;
+		set<string> m_vOWReaderTypes;
+		/**
+		 * all types of owreader defined in <code>m_vOWReaderTypes</code>
+		 * and used in any subroutine of one measure.conf file
+		 */
+		set<string> m_vOWReaderNeed;
 
 		/**
 		 * create instance of all subroutine classes which are set in measure.conf
