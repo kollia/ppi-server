@@ -637,7 +637,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 #endif //_OWFSLIBRARY
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// check whether database loadeding is finished
+	// check whether database loading is finished
 
 	db= DbInterface::instance();
 	if(!db->isDbLoaded())
@@ -653,7 +653,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	}
 	// ------------------------------------------------------------------------------------------------------------
 
-	LOG(LOG_INFO, "after knowing database was loaded, starting to configure all control list's to measure");
+	LOG(LOG_DEBUG, "after knowing database was loaded, starting to configure all control list's to measure");
 	createPortObjects(commands->hasOption("configure"));
 	TERMINALEND;
 
