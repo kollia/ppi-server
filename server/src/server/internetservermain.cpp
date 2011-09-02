@@ -113,8 +113,6 @@ int main(int argc, char* argv[])
 	property= "communicationport";
 	commport= oServerProperties.needUShort(property);
 	host= oServerProperties.getValue("listen", /*warning*/false);
-	if(host == "")
-		host= "127.0.0.1";
 	property= "port";
 	port= oServerProperties.needUShort(property);
 	// initial Log Interface
@@ -127,7 +125,7 @@ int main(int argc, char* argv[])
 		nLogAllSec= 1800;
 	}
 
-	global_clientpath= URL::addPath(workdir, PPICLIENTPATH, /*always*/true);
+	global_clientpath= URL::addPath(workdir, PPICLIENTPATH, /*always*/false);
 
 	// initial main connection to database to send questions and logs
 	DbInterface::initial("ppi-internet-server", new SocketClientConnection(	SOCK_STREAM,
@@ -175,8 +173,8 @@ int main(int argc, char* argv[])
 																5,
 																new ServerTransaction()	),
 									new SocketClientConnection(	SOCK_STREAM,
-																host,
-																port,
+																commhost,
+																commport,
 																5			),
 									/*open connection with*/"GET"									);
 
