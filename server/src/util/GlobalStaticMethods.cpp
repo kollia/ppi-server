@@ -66,6 +66,37 @@ void GlobalStaticMethods::threadStopMessage(const string& message)
 
 void GlobalStaticMethods::setSignals(const string& process)
 {
+	/**********************************************************************************************\
+		SIGHUP     │    1 │ A      │ Verbindung beendet (aufgehängt)
+		SIGINT     │    2 │ A      │ Interrupt-Signal von der Tastatur
+		SIGQUIT    │    3 │ A      │ Quit-Signal von der Tastatur
+		SIGILL     │    4 │ A      │ Falsche Instruktion
+		SIGTRAP    │    5 │ CG     │ Überwachung/Stopp-Punkt
+		SIGABRT    │    6 │ C      │ Abbruch
+		SIGUNUSED  │    7 │ AG     │ Nicht verwendet
+		SIGFPE     │    8 │ C      │ Fließkomma-Überschreitung
+		SIGKILL    │    9 │ AEF    │ Beendigungssignal
+		SIGUSR1    │   10 │ A      │ Benutzer-definiertes Signal 1
+		SIGSEGV    │   11 │ C      │ Ungültige Speicherreferenz
+		SIGUSR2    │   12 │ A      │ Benutzer-definiertes Signal 2
+		SIGPIPE    │   13 │ A      │ Schreiben in eine Pipeline ohne Lesen
+		SIGALRM    │   14 │ A      │ Zeitsignal von alarm(1).
+		SIGTERM    │   15 │ A      │ Beendigungssignal
+		SIGSTKFLT  │   16 │ AG     │ Stack-Fehler im Coprozessor
+		SIGCHLD    │   17 │ B      │ Kindprozess beendet
+		SIGCONT    │   18 │        │ Weiterfahren, wenn gestoppt
+		SIGSTOP    │   19 │ DEF    │ Prozessstopp
+		SIGTSTP    │   20 │ D      │ Stopp getippt an einem TTY
+		SIGTTIN    │   21 │ D      │ TTY-Eingabe für Hintergrundprozesse
+		SIGTTOU    │   22 │ D      │ TTY-Ausgabe für Hintergrundprozesse
+		SIGIO      │   23 │ AG     │ E/A-Fehler
+		SIGXCPU    │   24 │ AG     │ CPU-Zeitlimite überschritten
+		SIGXFSZ    │   25 │ AG     │ Dateien Größenlimite überschritten
+		SIGVTALRM  │   26 │ AG     │ Virtueller Zeitalarm (???)
+		SIGPROF    │   27 │ AG     │ Profile Signal
+		SIGWINCH   │   29 │ BG     │ Fenstergrößenänderung
+	\**********************************************************************************************/
+
 	if(signal(SIGINT, signalconverting) == SIG_ERR)
 		printSigError("SIGINT", process);
 	if(signal(SIGHUP, signalconverting) == SIG_ERR)
@@ -74,6 +105,38 @@ void GlobalStaticMethods::setSignals(const string& process)
 		printSigError("SIGSEGV", process);
 	if(signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 		printSigError("SIGPIPE", process);
+
+#if 0
+	// set all signals for debugging
+	//signal(SIGHUP, signalconverting);
+	//signal(SIGINT, signalconverting);
+	signal(SIGQUIT, signalconverting);
+	signal(SIGILL, signalconverting);
+	signal(SIGTRAP, signalconverting);
+	signal(SIGABRT, signalconverting);
+	signal(SIGUNUSED, signalconverting);
+	signal(SIGFPE, signalconverting);
+	signal(SIGKILL, signalconverting);
+	signal(SIGUSR1, signalconverting);
+	//signal(SIGSEGV, signalconverting);
+	signal(SIGUSR2, signalconverting);
+	//signal(SIGPIPE, signalconverting);
+	signal(SIGALRM, signalconverting);
+	signal(SIGTERM , signalconverting);
+	signal(SIGSTKFLT, signalconverting);
+	signal(SIGCHLD , signalconverting);
+	signal(SIGCONT, signalconverting);
+	signal(SIGSTOP, signalconverting);
+	signal(SIGTSTP, signalconverting);
+	signal(SIGTTIN, signalconverting);
+	signal(SIGTTOU , signalconverting);
+	signal(SIGIO, signalconverting);
+	signal(SIGXCPU , signalconverting);
+	signal(SIGXFSZ , signalconverting);
+	signal(SIGVTALRM, signalconverting);
+	signal(SIGPROF, signalconverting);
+	signal(SIGWINCH, signalconverting);
+#endif // 0
 }
 
 void GlobalStaticMethods::printSigError(const string& cpSigValue, const string& process)
@@ -112,7 +175,11 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 
 		case SIGSEGV:
 			cout << "SIGSEGV: \"" << m_sProcessName << "\" close from system" << endl;
-			exit(0);
+			exit(EXIT_FAILURE);
+			break;
+		// definition of all other signals
+		default:
+			cout << "system sending signal (" << nSignal << ") to process " << m_sProcessName << endl;
 			break;
 	}
 }
