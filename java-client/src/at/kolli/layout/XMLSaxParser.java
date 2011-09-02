@@ -216,6 +216,8 @@ public class XMLSaxParser extends DefaultHandler
 		{
 			return;
 		}
+		if(eName.equals("component"))
+			System.out.print("");
 		createTextBuffer();
 		//if(!eName.equals("br"))
 			echoTextBuffer();
@@ -315,6 +317,11 @@ public class XMLSaxParser extends DefaultHandler
 		    	m_oAktTag= tag;
 		    	//if(m_sBuffer != null)
 		    	//	m_sBuffer.append("\n");
+		    }else
+		    {
+		    	System.out.println("");
+		    	System.out.println("wrong tag <" + eName + "> be set");
+		    	throw new SAXException( "wrong tag <" + eName + "> be set");
 		    }
 		    
 			if(m_aoPermission.size() == 0)
