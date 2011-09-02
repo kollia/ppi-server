@@ -20,6 +20,8 @@
 
 #include <limits.h>
 #include <errno.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include <iostream>
 #include <sstream>
@@ -29,7 +31,7 @@ extern "C" {
 #include <k8055.h>
 }
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "../util/thread/Thread.h"
 

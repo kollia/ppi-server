@@ -193,7 +193,7 @@ namespace ports
 		 * 			 2 when an entry was made but writing prime in an next time on an other pin (pin is finished -> go to the next)
 		 * 			 3 if nothing to do (value the same as set time before -> go to the next pin)
 		 */
-		virtual short write(const string id, const double value, const string addinfo);
+		virtual short write(const string id, const double value, const string& addinfo);
 		/**
 		 * read from chip directly
 		 *

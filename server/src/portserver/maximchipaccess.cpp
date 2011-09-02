@@ -36,7 +36,7 @@
 
 #include "../database/lib/DbInterface.h"
 
-#include "../logger/lib/LogInterface.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 using namespace util;
 using namespace std;
@@ -144,7 +144,7 @@ namespace ports
 
 			path= URL::addPath(path, chipID);
 			path= URL::addPath(path, "strobe");
-			if(write(path, 1) == -1)
+			if(write(path, 1, "") == -1)
 			{
 				char cerrno[20];
 				string msg;
