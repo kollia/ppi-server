@@ -100,6 +100,9 @@ namespace server
 			omsg << "server get new connection from host '" << descriptor.getHostAddressName() << "' ";
 			omsg << " ID:" << descriptor.getClientID();
 			LOG(LOG_SERVERINFO, omsg.str());
+#ifdef SERVERDEBUG
+			cout << omsg << endl;
+#endif
 			descriptor.setBoolean("nextconnection", false);
 		}
 		LOCK(m_SERVERISSTOPPINGMUTEX);
@@ -316,6 +319,9 @@ namespace server
 			descriptor << "done";
 			descriptor.endl();
 			descriptor.flush();
+#ifdef SERVERDEBUG
+			cout << "send: done" << endl;
+#endif
 			omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
 			if(username != "")
 				omsg << "with user '" << username << "' ";
@@ -334,6 +340,9 @@ namespace server
 			descriptor << output.str();
 			descriptor.endl();
 			descriptor.flush();
+#ifdef SERVERDEBUG
+			cout "send: " << output.str() << endl;
+#endif
 
 		}else if(	input.substr(0, 15) == "GETERRORSTRING "
 					||
@@ -353,6 +362,9 @@ namespace server
 			descriptor << strerror(errnr);
 			descriptor.endl();
 			descriptor.flush();
+#ifdef SERVERDEBUG
+			cout << "send: " << sterror(errnr);
+#endif
 
 		}else if(	!descriptor.getBoolean("access") ||
 					(	input.length() > 6 &&
@@ -407,6 +419,9 @@ namespace server
 						descriptor.setBoolean("speaker", true);
 						omsg << "switch connection to hearing and gets ID:" << descriptor.getClientID();
 						LOG(LOG_SERVERINFO, omsg.str());
+#ifdef SERVERDEBUG
+						cout << omsg.str() << endl;
+#endif
 					}
 				}else
 					descriptor.setBoolean("speaker", false);
@@ -511,6 +526,9 @@ namespace server
 					else
 						omsg << "\nchange user correctly to user '" << split[first] << "'";
 					LOG(LOG_SERVERINFO, omsg.str());
+#ifdef SERVERDEBUG
+					cout << omsg.str() << endl;
+#endif
 					return true;
 				}
 			}
@@ -782,6 +800,9 @@ namespace server
 				}
 				path+= fileName;
 
+#ifdef SERVERDEBUG
+				int nContent(0);
+#endif
 				file.open(path.c_str());
 				if(file.is_open())
 				{
@@ -793,6 +814,9 @@ namespace server
 						{
 							line+= "\n";
 							descriptor << line;
+#ifdef SERVERDEBUG
+							++nContent;
+#endif
 						}
 						if(reader.end())
 							break;
@@ -801,6 +825,9 @@ namespace server
 					if(line != "")
 						descriptor << line;
 					file.close();
+#ifdef SERVERDEBUG
+					cerr << "sending content of " << nContent << "rows is finished" << endl;
+#endif
 				}else
 					descriptor << INFOERROR(descriptor, 9, input, "");
 
