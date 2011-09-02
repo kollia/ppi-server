@@ -16,7 +16,7 @@
  * Folder::  along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "/home/kollia/development/C/workspace/ppi-server/src/ports/subroutines/Folder.h"
+#include "Folder.h"
 
 namespace subroutines
 {
