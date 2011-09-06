@@ -169,22 +169,35 @@ public class PortServerClient
 			
 			if(c != null)
 			{
+				if(HtmTags.debug)
+					System.out.println("read password from console with method readPassword()");
 				TreeNodes.m_sPwd= new String(c.readPassword("password: "));
 			}else
 			{
 				int input= 0;
-				
+
+				if(HtmTags.debug)
+					System.out.println("read password from IO string");
 				try{
 					while(input != 10)
 					{
-						TreeNodes.m_sPwd+= (char)input;
+						if(input != 0)
+							TreeNodes.m_sPwd+= (char)input;
 						input= System.in.read();
 					}
+							
 				}catch(IOException ex)
 				{
 					System.out.println("ERROR on input password");
 					return;
 				}
+			}
+			//if(HtmTags.debug)
+			//	System.out.println("get password: '" + TreeNodes.m_sPwd + "'");
+			if(TreeNodes.m_sPwd.equals(""))
+			{
+				System.out.println("cannot create NULL password ('') for user " + TreeNodes.m_sUser);
+				System.exit(1);
 			}
 		}
 		try{
