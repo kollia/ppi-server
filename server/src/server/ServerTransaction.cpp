@@ -341,7 +341,7 @@ namespace server
 			descriptor.endl();
 			descriptor.flush();
 #ifdef SERVERDEBUG
-			cout "send: " << output.str() << endl;
+			cout << "send: " << output.str() << endl;
 #endif
 
 		}else if(	input.substr(0, 15) == "GETERRORSTRING "
