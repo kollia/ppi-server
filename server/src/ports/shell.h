@@ -53,11 +53,35 @@ protected:
 	virtual bool range(bool& bfloat, double* min, double* max);
 
 private:
+	/**
+	 * begin command when set
+	 */
 	string m_sBeginCom;
+	/**
+	 * while command when set
+	 */
 	string m_sWhileCom;
+	/**
+	 * end command when set
+	 */
 	string m_sEndCom;
+	/**
+	 * value from last pass
+	 */
+	bool m_bLastValue;
+	/**
+	 * whether subroutine should waiting for result of command
+	 */
+	bool m_bWait;
+	/**
+	 * whether commands should be sending to an client with X-Server access
+	 */
+	string m_sGUI;
 
-	void system(const char *command);
+	/**
+	 * execute shell command on system or send command to client with X-Server
+	 */
+	int system(const char *command);
 };
 
 #endif /*SHELL_H_*/
