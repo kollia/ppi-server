@@ -219,6 +219,12 @@ namespace util {
 			virtual string getSectionValue() const
 							{ return m_sValue; };
 			/**
+			 * return how much values for the given properties are set
+			 *
+			 * @param property name of property variable
+			 */
+			vector<string>::size_type getPropertyCount(const string property) const;
+			/**
 			 * pull first property from this class and write an warning
 			 * if not exist and flag 'warning' be set
 			 *
@@ -284,9 +290,9 @@ namespace util {
 			/**
 			 * add all defined modifier in the new opject
 			 */
-			void addModifier(IInterlacedPropertyPattern* obj) const;
+			void addDefinitions(IInterlacedPropertyPattern* obj) const;
 			/**
-			 * check also all iterlaced properties
+			 * check also all interlaced properties
 			 * @see checkProperties
 			 *
 			 * @param output method fill this string if set with WARNINGS of parameter and actions which are set but not allowed.<br />

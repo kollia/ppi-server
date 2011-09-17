@@ -75,9 +75,35 @@ namespace util {
 		return *this;
 	}
 
+	void Properties::addDefinitions(IPropertyPattern* obj) const
+	{
+		for(map<string, param_t>::const_iterator it= m_mDefault.begin(); it != m_mDefault.end(); ++it)
+			obj->setDefault(it->first, it->second.value, it->second.correct);
+		if(m_sDelimiter != "")
+			obj->setDelimiter(m_sDelimiter);
+		for(map<string, pair<string, string> >::const_iterator it= m_mpDelimiter.begin(); it != m_mpDelimiter.end(); ++it)
+			obj->setDelimiter(it->first, it->second.first, it->second.second);
+		for(vector<string>::const_iterator it= m_vsComms.begin(); it != m_vsComms.end(); ++it)
+			obj->setComment(*it);
+		for(map<string, vector<string> >::const_iterator it= m_mssDocs.begin(); it != m_mssDocs.end(); ++it)
+			for(vector<string>::const_iterator iit= it->second.begin(); iit != it->second.end(); ++iit)
+				obj->setComment(it->first, *iit);
+		for(vector<string>::const_iterator it= m_vsUnComms.begin(); it != m_vsUnComms.end(); ++it)
+			obj->setUncomment(*it);
+		for(map<string, string>::const_iterator it= m_oNotAllowedParams.begin(); it != m_oNotAllowedParams.end(); ++it)
+			obj->notAllowedParameter(it->first, it->second);
+		for(map<string, string>::const_iterator it= m_mErrorParams.begin(); it != m_mErrorParams.end(); ++it)
+			obj->setMsgParameter(it->first, it->second);
+	}
+
 	void Properties::setDelimiter(const string& delimiter)
 	{
 		m_sDelimiter= delimiter;
+	}
+
+	void Properties::setDelimiter(const string& name, const string& begindelimiter, const string& enddelimiter/*= ""*/)
+	{
+		m_mpDelimiter[name]= pair<string, string>(begindelimiter, enddelimiter);
 	}
 
 	void Properties::setComment(const string& doc)
@@ -140,7 +166,9 @@ namespace util {
 			param.line= 1;
 			while(getline(file, line))
 			{
-				//cout << line << endl;
+				cout << line << endl;
+				if(line.substr(0, 1) == "[")
+					cout << "found modifier" << endl;
 				do{
 					read(line, &param);
 					if(param.bcontinue)
@@ -383,39 +411,79 @@ namespace util {
 				*param= tRv;
 				return;
 			}
-			// check for delimiter between property and value
-			for(string::const_iterator it= m_sDelimiter.begin(); it != m_sDelimiter.end(); ++it)
-			{
-				bpos= read.find(*it);
-				if(bpos < len)
-					break;
-				if(*it == ' ')
-				{
-					bpos= read.find("\t");
-					if(bpos < len)
-						break;
+			// check first whether property has an begin- and end-delimiter
+			// for specific property
+			string vread;
 
-				}else if(*it == '\t')
+			for(map<string, pair<string, string> >::const_iterator specIt= m_mpDelimiter.begin(); specIt != m_mpDelimiter.end(); ++specIt)
+			{
+				string::size_type delem(specIt->second.first.length());
+
+				if(delem > 0)
 				{
-					bpos= read.find(" ");
-					if(bpos < len)
-						break;
+					if(read.substr(0, delem) == specIt->second.first)
+					{
+						vread= read.substr(delem);
+						if(specIt->second.second != "")
+						{
+							delem= vread.find(specIt->second.second);
+							if(delem != string::npos)
+							{
+								vread= vread.substr(0, delem);
+								tRv.correct= true;
+							}
+						}else
+							tRv.correct= true;
+						if(tRv.correct)
+						{
+							tRv.read= true;
+							tRv.parameter= specIt->first;
+							boost::trim(vread);
+							tRv.value= vread;
+							read= vread; // tRv.value will be set later again
+							if(comment != "")
+								tRv.uncommented= comment;
+							//*param= tRv;
+							break;
+						}
+					}
 				}
 			}
-			if(bpos > len)
-			{
-				tRv.correct= false;
-				*param= tRv;
-				return;
+			if(!tRv.correct)
+			{// check for delimiter between property and value
+				for(string::const_iterator it= m_sDelimiter.begin(); it != m_sDelimiter.end(); ++it)
+				{
+					bpos= read.find(*it);
+					if(bpos < len)
+						break;
+					if(*it == ' ')
+					{
+						bpos= read.find("\t");
+						if(bpos < len)
+							break;
+
+					}else if(*it == '\t')
+					{
+						bpos= read.find(" ");
+						if(bpos < len)
+							break;
+					}
+				}
+				if(bpos == string::npos)
+				{
+					tRv.correct= false;
+					*param= tRv;
+					return;
+				}
+				tRv.correct= true;
+				tRv.read= true;
+				tRv.parameter= read.substr(0, bpos);
+				boost::trim(tRv.parameter);
+				read= read.substr(bpos+1);
+				boost::trim(read);
+				if(comment != "")
+					tRv.uncommented= comment;
 			}
-			tRv.correct= true;
-			tRv.read= true;
-			tRv.parameter= read.substr(0, bpos);
-			boost::trim(tRv.parameter);
-			read= read.substr(bpos+1);
-			boost::trim(read);
-			if(comment != "")
-				tRv.uncommented= comment;
 		}
 		// check for localization of value string
 		if(m_sBeginLocal != "")

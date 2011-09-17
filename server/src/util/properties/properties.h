@@ -31,7 +31,7 @@
 
 #include "../../pattern/util/ipropertypattern.h"
 
-	using namespace std;
+using namespace std;
 
 namespace util {
 
@@ -63,14 +63,25 @@ namespace util {
 			virtual Properties& operator=(const Properties& x)
 			{ return copy(x); };
 			/**
-			 * set delimiter between properties and value.<br />
+			 * set delimiter between property and value.<br />
 			 * The delimiter can be more than one char and delimits by one of them.
 			 * If the delimiter string have an space, the delimiter can also be one or more spaces
-			 * or an tabulator (\t). Default, when method not called is an equals sign ('=')
+			 * or an tabulator (\t). Default, when method not called is an equals sign ('=').
 			 *
-			 * @param delimiter set delimiter
+			 * @param delimiter delimiter between property and value
 			 */
 			virtual void setDelimiter(const string& delimiter);
+			/**
+			 * set an begin- and end-delimiter for an property with specific name.<br />
+			 * For example when you define <code>setDelimiter( "foo", "[". "]")</code>.
+			 * You can write in the property file only <code>[true]</code> and the property
+			 * foo has the value <code>"true"</code>.
+			 *
+			 * @param name specific name of property
+			 * @param begindelimiter delimiter between property and value
+			 * @param enddelimiter end-delimiter only if used
+			 */
+			virtual void setDelimiter(const string& name, const string& begindelimiter, const string& enddelimiter= "");
 			/**
 			 * set documentation string for hole lines.<br />
 			 * default character is an hash ('#') if the method not called.
@@ -81,7 +92,7 @@ namespace util {
 			 */
 			virtual void setComment(const string& doc);
 			/**
-			 * set documentation for an range.<br />
+			 * set commendation for an hole range.<br />
 			 * No default be set
 			 *
 			 * @param begin the begin of range
@@ -329,6 +340,10 @@ namespace util {
 			 */
 			virtual bool notAllowedParameter(const string property, const string& sDefault= "");
 			/**
+			 * add all defined localizations and delimiters in the new opject
+			 */
+			void addDefinitions(IPropertyPattern* obj) const;
+			/**
 			 * return an string of all properties
 			 *
 			 * @return string of properties
@@ -485,6 +500,10 @@ namespace util {
 			 * one or more character for delimiter
 			 */
 			string m_sDelimiter;
+			/**
+			 * all begin and end delimiter for specific name
+			 */
+			map<string, pair<string, string> > m_mpDelimiter;
 			/**
 			 * all documentation strings for lines
 			 */

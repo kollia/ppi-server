@@ -96,11 +96,11 @@ namespace util {
 		IInterlacedPropertyPattern *prop;
 
 		prop= new InterlacedProperties(modifier, value, level, m_bByCheck); // maintained outside of method
-		addModifier(prop);
+		InterlacedProperties::addDefinitions(prop);
 		return prop;
 	}
 
-	void InterlacedProperties::addModifier(IInterlacedPropertyPattern* obj) const
+	void InterlacedProperties::addDefinitions(IInterlacedPropertyPattern* obj) const
 	{
 		string value;
 
@@ -122,6 +122,7 @@ namespace util {
 				obj->setDefault(o->first, value);
 		}
 		obj->allowLaterModifier(!m_bRegOrder);
+		Properties::addDefinitions(obj);
 	}
 
 	bool InterlacedProperties::readLine(const Properties::param_t& prop)// throw(runtime_error)
@@ -166,26 +167,50 @@ namespace util {
 		return false;
 	}
 
+	vector<string>::size_type InterlacedProperties::getPropertyCount(const string property) const
+	{
+		map<string, vector<pos_t> >::const_iterator mit;
+
+		mit= m_mvModifier.find(property);
+		if(mit != m_mvModifier.end())
+		{
+			vector<string>::size_type count(0);
+			vector<IInterlacedPropertyPattern*>::const_iterator sIt;
+
+			for(sIt= m_vSections.begin(); sIt != m_vSections.end(); ++sIt)
+			{
+				if((*sIt)->getSectionModifier() == property)
+					++count;
+			}
+			return count;
+		}
+		return Properties::getPropertyCount(property);
+	}
+
 	string InterlacedProperties::getValue(const string property, vector<string>::size_type index/*= 0*/, bool warning/*= true*/) const
 	{
+		map<string, vector<pos_t> >::const_iterator mit;
+
 		if(property == m_sModifier)
 		{
 			return m_sValue;
-		}/*else
+		}
+		mit= m_mvModifier.find(property);
+		if(mit != m_mvModifier.end())
 		{
-			map<string, pos_t>::const_iterator mit;
+			vector<string>::size_type count(0);
+			vector<IInterlacedPropertyPattern*>::const_iterator sIt;
 
-			mit= m_mvModifier.find(property);
-			if(mit != m_mvModifier.end())
+			for(sIt= m_vSections.begin(); sIt != m_vSections.end(); ++sIt)
 			{
-				cout << __FILE__ << " line:" << __LINE__ << endl;
-				cout << "getValue('" << property << "', " << index << ", " << boolalpha << warning << ")" << endl;
-				cout << "           where object modifier is '" << m_sModifier << "'" << endl;
-				cout << "            give back '" << mit->second.currentval << "'" << endl;
-				cout << "            property of object '" << Properties::getValue(property, index, warning) << "'" << endl << endl;
-				return mit->second.currentval;
+				if((*sIt)->getSectionModifier() == property)
+				{
+					if(index == count)
+						return (*sIt)->getSectionValue();
+					++count;
+				}
 			}
-		}*/
+		}
 		return Properties::getValue(property, index, warning);
 	}
 

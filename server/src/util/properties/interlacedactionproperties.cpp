@@ -102,7 +102,7 @@ namespace util {
 		prop= new InterlacedActionProperties(modifier, value, level, m_bByCheck); // maintained outside of method
 		for(map<string, vector<string> >::iterator o= m_mvActions.begin(); o != m_mvActions.end(); ++o)
 			prop->action(o->first);
-		addModifier(prop);
+		addDefinitions(prop);
 		return prop;
 	}
 
