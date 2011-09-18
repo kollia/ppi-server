@@ -87,9 +87,28 @@ namespace design_pattern_world
 		/**
 		 * return all modified sections
 		 *
+		 * @param modifier when this parameter set, only sections of this modifier will be returned
 		 * @return array of sections in this object
 		 */
-		virtual const vector<IInterlacedPropertyPattern*> getSections() const= 0;
+		virtual const vector<IInterlacedPropertyPattern*> getSections(const string& modifier= "") const= 0;
+		/**
+		 * return specific section of modifier and value
+		 *
+		 * @param modifier name of specific modifier
+		 * @param value specific value of modifier
+		 * @param index for more than one modifier with the same value, you can set also the index
+		 * @return defined section of modifier and value
+		 */
+		virtual const IInterlacedPropertyPattern* getSection(const string& modifier, const string& value,
+															vector<IInterlacedPropertyPattern*>::size_type index= 0) const= 0;
+		/**
+		 * calculate count of all sections
+		 *
+		 * @param modifier name of specific modifier
+		 * @param value specific value of modifier
+		 * @return index of sections
+		 */
+		virtual vector<IInterlacedPropertyPattern*>::size_type getSectionCount(const string& modifier= "", const string& value= "") const= 0;
 		/**
 		 * return name of current section
 		 *

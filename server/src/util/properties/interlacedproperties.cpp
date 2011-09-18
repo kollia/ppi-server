@@ -187,6 +187,60 @@ namespace util {
 		return Properties::getPropertyCount(property);
 	}
 
+	const vector<IInterlacedPropertyPattern*> InterlacedProperties::getSections(const string& modifier/*= ""*/) const
+	{
+		vector<IInterlacedPropertyPattern*>::const_iterator it;
+		vector<IInterlacedPropertyPattern*> vRv;
+
+		if(modifier == "")
+			return m_vSections;
+		for(it= m_vSections.begin(); it != m_vSections.end(); ++it)
+			if((*it)->getSectionModifier() == modifier)
+				vRv.push_back(*it);
+		return vRv;
+	}
+
+	const IInterlacedPropertyPattern* InterlacedProperties::getSection(const string& modifier, const string& value,
+																			vector<IInterlacedPropertyPattern*>::size_type index) const
+	{
+		vector<IInterlacedPropertyPattern*>::size_type count(0);
+		vector<IInterlacedPropertyPattern*>::const_iterator it;
+
+		for(it= m_vSections.begin(); it != m_vSections.end(); ++it)
+		{
+			if(	(*it)->getSectionModifier() == modifier &&
+				(*it)->getSectionValue() == value			)
+			{
+				if(count == index)
+					return *it;
+				++count;
+			}
+		}
+		return NULL;
+	}
+
+	vector<IInterlacedPropertyPattern*>::size_type InterlacedProperties::getSectionCount(const string& modifier/*= ""*/, const string& value/*= ""*/) const
+	{
+		vector<IInterlacedPropertyPattern*>::size_type nRv(0);
+		vector<IInterlacedPropertyPattern*>::const_iterator it;
+
+		if(modifier == "")
+			return m_vSections.size();
+		for(it= m_vSections.begin(); it != m_vSections.end(); ++it)
+		{
+			if(	modifier == "" ||
+				(*it)->getSectionModifier() == modifier	)
+			{
+				if(	value == "" ||
+					(*it)->getSectionValue() == value	)
+				{
+					++nRv;
+				}
+			}
+		}
+		return nRv;
+	}
+
 	string InterlacedProperties::getValue(const string property, vector<string>::size_type index/*= 0*/, bool warning/*= true*/) const
 	{
 		map<string, vector<pos_t> >::const_iterator mit;
