@@ -229,6 +229,10 @@ namespace ports
 
 	private:
 		/**
+		 * lircd path defined in server.conf
+		 */
+		string m_sLircSocket;
+		/**
 		 * whether should shown debug info
 		 * for which cache be reading
 		 */

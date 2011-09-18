@@ -41,6 +41,9 @@ namespace ports
 
 	bool LircClient::init(const IPropertyPattern* properties)
 	{
+		m_sLircSocket= properties->getValue("socket", /*warning*/false);
+		if(m_sLircSocket == "")
+			m_sLircSocket= "/var/run/lircd";
 		return connect();
 	}
 
@@ -136,7 +139,7 @@ namespace ports
 		strncpy(type, "irexec", 6);
 		if(lirc_init(type, 1) == -1)
 		{
-			string msg("### ERROR: cannot initial lirc\n");
+			string msg("### ERROR: cannot initial LIRC\n");
 
 			msg+= "    ERRNO: " + *strerror(errno);
 			cerr << msg << endl;
@@ -254,7 +257,7 @@ namespace ports
 			}
 		}
 		//cout << "send to lirc '" << "irsend " << vec[3] << " " << vec[1] << " " << vec[2] << " " << num << "'" << endl;
-		res= irsend(vec[3].c_str(), vec[1].c_str(), vec[2].c_str(), num);
+		res= irsend(m_sLircSocket.c_str(), vec[3].c_str(), vec[1].c_str(), vec[2].c_str(), num);
 		if(res == PACKETERROR)
 		{
 			TIMELOG(LOG_ERROR, "packaterror"+id, "wrong sending LIRC command with id '" + id + "'");

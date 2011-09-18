@@ -33,7 +33,7 @@
 #define PACKETERROR -1
 #define TRANSACTIONERROR -2
 
-#define LIRCD "/var/run/lirc/lircd"
+//#define LIRCD "/var/run/lirc/lircd"
 #define LIRC_INET_PORT 20010
 #define PACKET_SIZE 256
 /* three seconds */
@@ -53,6 +53,6 @@ enum packet_state
 void sigalrm(int sig);
 const char *read_string(int fd);
 int send_packet(int fd,const char *packet);
-int irsend(const char* directive, const char* remote, const char* code, const unsigned long count= 1);
+int irsend(const char* sock, const char* directive, const char* remote, const char* code, const unsigned long count= 1);
 
 #endif // IRSEND_H_

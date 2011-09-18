@@ -227,7 +227,7 @@ int send_packet(int fd,const char *packet)
 }
 
 //int main(int argc,char **argv)
-int irsend(const char* directive, const char* remote, const char* code, const unsigned long count/*= 1*/)
+int irsend(const char* sock, const char* directive, const char* remote, const char* code, const unsigned long count/*= 1*/)
 {
 	int status;
     char *lircd=NULL;
@@ -331,10 +331,10 @@ int irsend(const char* directive, const char* remote, const char* code, const un
 
 	if(lircd==NULL)
 	{
-		size_t nLen= strlen(LIRCD);
+		size_t nLen= strlen(sock);
 
 		lircd= new char[nLen+2];
-		strncpy(lircd, LIRCD, nLen+1);
+		strncpy(lircd, sock, nLen+1);
 	}else
 	{
         if(strlen(lircd)+1 > sizeof(addr_un.sun_path))
