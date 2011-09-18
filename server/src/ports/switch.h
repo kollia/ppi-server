@@ -61,7 +61,7 @@ public:
 		 *
 		 * @param properties the properties in file measure.conf
 		 * @param pStartFolder reference to all folder
-		 * @return whether initalization was ok
+		 * @return whether initialization was OK
 		 */
 		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**

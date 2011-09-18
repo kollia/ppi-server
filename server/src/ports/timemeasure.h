@@ -138,7 +138,15 @@ class TimeMeasure : public portBase
 		 */
 		TimeMeasure(string type, string folderName, string subroutineName)
 		: portBase(type, folderName, subroutineName) { };
-		bool init(IActionPropertyPattern* properties);
+		/**
+		 * initial extended object to check whether write into database and define range of value.<br />
+		 * Before called this method all parameters for method range have be set.
+		 *
+		 * @param properties the properties of subroutine from file measure.conf
+		 * @param pStartFolder reference to all folder
+		 * @return whether initalization was ok
+		 */
+		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		unsigned long getMeasuredTime();
 		unsigned long getNewMikroseconds(vector<ohm> *elkoCorrection);
 		correction_t getNewCorrection(correction_t tCorrection, vector<ohm> vOhm, unsigned short nSleep);

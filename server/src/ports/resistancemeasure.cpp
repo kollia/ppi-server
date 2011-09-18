@@ -74,7 +74,7 @@ namespace ports
 				LOG(LOG_INFO, warningOut);
 				tout << warningOut << endl;
 			}
-			return TimeMeasure::init(properties);
+			return TimeMeasure::init(properties, pStartFolder);
 		}
 		if(sOut != "")
 			warning= "'out'";
@@ -119,6 +119,8 @@ namespace ports
 			tout << warningOut << endl;
 		}
 		sMValue= properties->needValue("mvalue");
+		if(portBase::init(properties, pStartFolder))
+			return false;
 		if(sMValue == "")
 			return false;
 		m_bOwnMeasure= false;

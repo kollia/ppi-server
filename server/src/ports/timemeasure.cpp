@@ -32,7 +32,7 @@
 #include "portbaseclass.h"
 #include "timemeasure.h"
 
-bool TimeMeasure::init(IActionPropertyPattern* properties)
+bool TimeMeasure::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
 #if 0
 	unsigned short measuredness= 1;
@@ -81,6 +81,9 @@ bool TimeMeasure::init(IActionPropertyPattern* properties)
 	//setCorrection(elkoCorrection);
 	return true;
 #endif
+
+	if(!portBase::init(properties, pStartFolder))
+		return false;
 	return false;
 }
 

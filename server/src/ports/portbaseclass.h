@@ -222,10 +222,26 @@ namespace ports
 			 * initial extended object to check whether write into database and define range of value.<br />
 			 * Before called this method all parameters for method range have be set.
 			 *
-			 * @param properties the properties in file measure.conf
+			 * @param properties the properties of subroutine from file measure.conf
+			 * @param pStartFolder reference to all folder
 			 * @return whether initalization was ok
 			 */
-			virtual bool init(IActionPropertyPattern* properties);
+			virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+			/**
+			 * check whether subroutine need an external owreader server
+			 *
+			 * @return whether need an server
+			 */
+			virtual bool needServer() const
+			{ return false; };
+			/**
+			 * check whether object found for chip in subroutine correct server.<br />
+			 * Only when server needed.
+			 *
+			 * @return whether server found
+			 */
+			virtual bool hasServer() const
+			{ return false; }
 			/**
 			 * this method will be called from any measure thread to set as observer
 			 * for starting own folder to get value from foreign folder

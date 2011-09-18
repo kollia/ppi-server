@@ -101,7 +101,7 @@ namespace ports
 			m_nMin= 0;
 			m_nMax= -1;
 		}
-		if(!portBase::init(properties))
+		if(!portBase::init(properties, pStartFolder))
 			bOk= false;
 
 		if(!bOk)

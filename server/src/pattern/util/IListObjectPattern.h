@@ -39,13 +39,18 @@ namespace design_pattern_world
 		{
 			public:
 			/**
-			 * initial extended object to check whether write into database and define range of value.<br />
-			 * Before called this method all parameters for method range have be set.
+			 * check whether subroutine need an external owreader server
 			 *
-			 * @param properties the properties in file measure.conf
-			 * @return whether initalization was ok
+			 * @return whether need an server
 			 */
-			virtual bool init(IActionPropertyPattern* properties)= 0;
+			virtual bool needServer() const= 0;
+			/**
+			 * check whether object found for chip in subroutine correct server.<br />
+			 * Only when server needed.
+			 *
+			 * @return whether server found
+			 */
+			virtual bool hasServer() const= 0;
 			/**
 			 * return count of subroutine in folder
 			 *

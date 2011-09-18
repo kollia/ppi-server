@@ -27,7 +27,7 @@
 #include "../util/GlobalStaticMethods.h"
 #include "../util/URL.h"
 
-#include "../util/properties/properties.h"
+#include "../util/properties/interlacedproperties.h"
 
 #include "../server/libs/client/SocketClientConnection.h"
 #include "../server/libs/server/TcpServerConnection.h"
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
 	int err;
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
-	Properties oServerProperties;
+	InterlacedProperties oServerProperties;
 	DatabaseThread* db;
 	CommunicationThreadStarter* starter;
 	LogThread logObj(/*check*/true, /*asServer*/true);
@@ -123,12 +123,14 @@ int main(int argc, char* argv[])
 	sConfPath= URL::addPath(workdir, PPICONFIGPATH, /*always*/false);
 	dbpath= URL::addPath(workdir, PPIDATABASEPATH, /*always*/false);
 	fileName= URL::addPath(sConfPath, "server.conf");
+	oServerProperties.setDelimiter("owreader", "[", "]");
+	oServerProperties.modifier("owreader");
+	oServerProperties.readLine("workdir= " + workdir);
 	if(!oServerProperties.readFile(fileName))
 	{
-		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
+		cout << "### ERROR: db-server cannot read '" << fileName << "'" << endl;
 		exit(EXIT_FAILURE);
 	}
-	oServerProperties.readLine("workdir= " + workdir);
 
 	defaultuser= oServerProperties.getValue("defaultuser", /*warning*/false);
 	if(defaultuser == "")

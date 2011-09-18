@@ -35,7 +35,7 @@
 #include "../util/URL.h"
 #include "../util/usermanagement.h"
 
-#include "../util/properties/properties.h"
+#include "../util/properties/interlacedproperties.h"
 
 #include "../database/lib/NeedDbChanges.h"
 
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	int nLogAllSec;
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
-	Properties oServerProperties;
+	InterlacedProperties oServerProperties;
 
 	glob::processName("ppi-internet-server");
 	glob::setSignals("ppi-internet-server");
@@ -90,12 +90,14 @@ int main(int argc, char* argv[])
 	}
 	sConfPath= URL::addPath(workdir, PPICONFIGPATH, /*always*/false);
 	fileName= URL::addPath(sConfPath, "server.conf");
+	oServerProperties.setDelimiter("owreader", "[", "]");
+	oServerProperties.modifier("owreader");
+	oServerProperties.readLine("workdir= " + workdir);
 	if(!oServerProperties.readFile(fileName))
 	{
-		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
+		cout << "### ERROR: internet server cannot read '" << fileName << "'" << endl;
 		exit(EXIT_FAILURE);
 	}
-	oServerProperties.readLine("workdir= " + workdir);
 
 	// start logging server
 	defaultuser= oServerProperties.getValue("defaultuser", /*warning*/false);

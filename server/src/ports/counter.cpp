@@ -27,12 +27,13 @@ namespace ports
 		string setnull;
 		string prop("start");
 
-		portBase::init(properties);
 		m_pStartFolder= pStartFolder;
 		// toDo: insert an starting point
 		//start= (double)properties.getInt(prop, /*warning*/false);
 		setnull= properties->getValue("setnull", /*warning*/false);
 		m_oSetNull.init(pStartFolder, setnull);
+		if(portBase::init(properties, pStartFolder))
+			return false;
 		return true;
 	}
 

@@ -115,11 +115,18 @@ namespace ports
 		 */
 		virtual double getValue(const string who);
 		/**
+		 * check whether subroutine need an external owreader server
+		 *
+		 * @return whether need an server
+		 */
+		virtual bool needServer() const
+		{ return true; };
+		/**
 		 * check whether object found for chip in subroutine correct server
 		 *
 		 * @return whether server found
 		 */
-		bool haveServer()
+		virtual bool hasServer() const
 		{ return m_pOWServer != NULL ? true : false; };
 		/**
 		 * destructor of class ExternPort.<br />

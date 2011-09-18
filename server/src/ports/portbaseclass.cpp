@@ -72,7 +72,7 @@ portBase::portBase(const string& type, const string& folderName, const string& s
 	m_OBSERVERLOCK= Thread::getMutex("OBSERVERLOCK");
 }
 
-bool portBase::init(IActionPropertyPattern* properties)
+bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
 	bool exist;
 	double ddv, dDef;

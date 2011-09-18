@@ -81,7 +81,7 @@ bool switchClass::init(IActionPropertyPattern* properties, const SHAREDPTR::shar
 		m_bCurrent= properties->haveAction("current");
 	if(!initLinks("SWITCH", properties, pStartFolder))
 		bOk= false;
-	if(!portBase::init(properties))
+	if(!portBase::init(properties, pStartFolder))
 		bOk= false;
 	return true;
 }

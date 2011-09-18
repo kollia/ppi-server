@@ -30,7 +30,7 @@
 #include "../util/GlobalStaticMethods.h"
 #include "../util/URL.h"
 
-#include "../util/properties/properties.h"
+#include "../util/properties/interlacedproperties.h"
 
 #include "../database/lib/DbInterface.h"
 
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	vector<string>::size_type dirlen;
 	auto_ptr<OWServer> owserver;
 	vector<string> vParams;
-	Properties oServerProperties;
+	InterlacedProperties oServerProperties;
 	DbInterface *db;
 	IChipAccessPattern* accessPort;
 	auto_ptr<OwServerQuestions> pQuestions;
@@ -93,12 +93,14 @@ int main(int argc, char* argv[])
 	}
 	sConfPath= URL::addPath(workdir, PPICONFIGPATH, /*always*/false);
 	fileName= URL::addPath(sConfPath, "server.conf");
+	oServerProperties.setDelimiter("owreader", "[", "]");
+	oServerProperties.modifier("owreader");
+	oServerProperties.readLine("workdir= " + workdir);
 	if(!oServerProperties.readFile(fileName))
 	{
-		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
+		cout << "### ERROR: owreader cannot read '" << fileName << "'" << endl;
 		return EXIT_FAILURE;
 	}
-	oServerProperties.readLine("workdir= " + workdir);
 
 	defaultuser= oServerProperties.getValue("defaultuser", /*warning*/false);
 	if(defaultuser == "")
@@ -290,7 +292,10 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
+	string value;
 	ostringstream output;
+	Properties newProp;
+	const IPropertyPattern* pProp;
 
 	output << "    one wire reader";
 	owserver= auto_ptr<OWServer>(new OWServer(nServerID, servertype, accessPort));
@@ -309,8 +314,22 @@ int main(int argc, char* argv[])
 																								commport,
 																								10			),
 																	owserver.get()								));
+	pProp= oServerProperties.getSection("owreader", servertype);
+	if(pProp == NULL)
+	{
+		string msg("spezification of external port reading " + servertype + " has no entry inside server.conf");
 
-	if(owserver->start(&oServerProperties) != 0)
+		LOG(LOG_ERROR, msg);
+		cerr << "### ERROR: " << msg << endl;
+	}
+	// copy all properties with value in new Properties object
+	// because start method of Thread object allow no const object
+	while((property= pProp->nextProp()) != "")
+	{
+		value= pProp->getValue(property);
+		newProp.setDefault(property, value);
+	}
+	if(owserver->start(&newProp) != 0)
 		return EXIT_FAILURE;
 
 	err= pQuestions->run();

@@ -32,7 +32,7 @@ namespace ports
 
 		mvalue= properties->needValue("mvalue");
 		begin= properties->needValue("begin");
-		if(!portBase::init(properties))
+		if(!portBase::init(properties, pStartFolder))
 			return false;
 		if(	begin == ""
 			||

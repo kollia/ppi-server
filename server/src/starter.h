@@ -30,7 +30,7 @@
 
 #include "pattern/util/ICommandStructPattern.h"
 
-#include "util/properties/configpropertycasher.h"
+#include "util/properties/interlacedproperties.h"
 
 #include "server/libs/server/ServerThread.h"
 
@@ -73,7 +73,7 @@ class Starter
 		/*
 		 * casher of defined variables in file server.conf
 		 */
-		Properties m_oServerFileCasher;
+		InterlacedProperties m_oServerFileCasher;
 		/**
 		 * all types of owreader defined in server.conf
 		 */
@@ -85,11 +85,15 @@ class Starter
 		set<string> m_vOWReaderNeed;
 
 		/**
-		 * create instance of all subroutine classes which are set in measure.conf
+		 * create defined folder list beginning by measure.conf
+		 */
+		void createFolderLists();
+		/**
+		 * configure all subroutine classes which are created in method <code>createFolderLists()</code>
 		 *
 		 * @param bShowConf whether should shown on command line which folder will be configured
 		 */
-		void createPortObjects(bool bShowConf);
+		void configurePortObjects(bool bShowConf);
 		void isNoPathDefinedStop();
 		/**
 		 * write error or warning from server out to command line

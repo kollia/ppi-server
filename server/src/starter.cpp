@@ -50,6 +50,7 @@
 #include "portserver/maximchipaccess.h"
 #include "portserver/VellemannK8055.h"
 
+#include "ports/portbaseclass.h"
 #include "ports/measureThread.h"
 #include "ports/portbaseclass.h"
 #include "ports/timemeasure.h"
@@ -99,6 +100,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	DbInterface *db;
 	string prop;
 	auto_ptr<ProcessStarter> process, logprocess;
+	vector<string>::size_type readercount;
 
 	// starting time
 	struct tm ttime;
@@ -113,21 +115,27 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 
 	if(commands->hasOption("configure"))
-		cout << "  ... read configuration files" << endl;
-	m_vOWReaderTypes.insert("PORT");
-	m_vOWReaderTypes.insert("MPORT");
-	m_vOWReaderTypes.insert("OWFS");
-	m_vOWReaderTypes.insert("Vk8055");
-	m_vOWReaderTypes.insert("LIRC");
-
+		cout << "   read configuration files ..." << endl;
 	m_sConfPath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
 	fileName= URL::addPath(m_sConfPath, "server.conf");
+	m_oServerFileCasher.setDelimiter("owreader", "[", "]");
+	m_oServerFileCasher.modifier("owreader");
+	m_oServerFileCasher.readLine("workdir= " + m_sWorkdir);
 	if(!m_oServerFileCasher.readFile(fileName))
 	{
 		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
 		exit(EXIT_FAILURE);
 	}
-	m_oServerFileCasher.readLine("workdir= " + m_sWorkdir);
+	// look for defined owreader in server.conf configuration file
+	readercount= m_oServerFileCasher.getPropertyCount("owreader");
+	for(vector<string>::size_type owreaders= 0; owreaders < readercount; ++owreaders)
+	{
+		string owreader(m_oServerFileCasher.getValue("owreader", owreaders));
+
+		m_vOWReaderTypes.insert(owreader);
+		if(owreader == "PORT")
+			m_vOWReaderTypes.insert("MPORT");
+	}
 	readFile(ports, URL::addPath(m_sConfPath, "measure.conf"));
 
 	// check whether should be start which server
@@ -200,41 +208,74 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		nLogAllSec= 1800;
 	}
 
-	bool blirc= false;
-	if(m_vOWReaderNeed.find("LIRC") != m_vOWReaderNeed.end())
-	{
-		char type[8];
-		//*********************************************************************************
-		//* check whether any lirc is configured
-		strncpy(type, "irexec", 6);
-		if(lirc_init(type, 1) != -1)
-		{
-			//struct lirc_config *ptLircConfig;
-
-			blirc= true;
-			/*if(lirc_readconfig(NULL, &ptLircConfig, NULL) == 0)
-			{
-				blirc= true;
-				lirc_freeconfig(ptLircConfig);
-			}*/
-			lirc_deinit();
-		}
-	}
 	// ------------------------------------------------------------------------------------------------------------
+
+
+	if(commands->hasOption("configure"))
+		cout << "  create folder lists ..." << endl;
+	createFolderLists();
 
 	//*********************************************************************************
 	//* calculate how much communication threads should be running
 	bool bPort= false;
 	bool bMPort= false;
-	unsigned short nOWReader;
+	bool bowfs= false;
+	bool bvk8055= false;
+	bool blirc= false;
+	unsigned short nOWReaderCount;
+	unsigned short nOWReader(0);
+	const IPropertyPattern* pProp;
 
 	//* count in nOWReader how much one wire reader (OWServer) should running
-	property= "maximinit";
-	nOWReader=  static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
-	property= "Vk8055";
-	nOWReader+= static_cast<unsigned short>(m_oServerFileCasher.getPropertyCount(property));
-	if(blirc)
-		++nOWReader;
+	if(m_vOWReaderNeed.find("OWFS") != m_vOWReaderNeed.end())
+	{
+		pProp= m_oServerFileCasher.getSection("owreader", "OWFS");
+		if(pProp)
+		{
+			property= "maximinit";
+			nOWReaderCount=  static_cast<unsigned short>(pProp->getPropertyCount(property));
+			if(nOWReaderCount > 0)
+				bowfs= true;
+			nOWReader+= nOWReaderCount;
+		}
+	}
+	if(m_vOWReaderNeed.find("Vk8055") != m_vOWReaderNeed.end())
+	{
+		pProp= m_oServerFileCasher.getSection("owreader", "Vk8055");
+		if(pProp)
+		{
+			property= "port";
+			nOWReaderCount= static_cast<unsigned short>(pProp->getPropertyCount(property));
+			if(nOWReaderCount > 0)
+				bvk8055= true;
+			nOWReader+= nOWReaderCount;
+		}
+	}
+	if(m_vOWReaderNeed.find("LIRC") != m_vOWReaderNeed.end())
+	{
+		pProp= m_oServerFileCasher.getSection("owreader", "LIRC");
+		if(pProp)
+		{
+			char type[8];
+			//*********************************************************************************
+			//* check whether any lirc is configured
+			strncpy(type, "irexec", 6);
+			if(lirc_init(type, 1) != -1)
+			{
+				//struct lirc_config *ptLircConfig;
+
+				blirc= true;
+				/*if(lirc_readconfig(NULL, &ptLircConfig, NULL) == 0)
+				{
+					blirc= true;
+					lirc_freeconfig(ptLircConfig);
+				}*/
+				lirc_deinit();
+			}
+			if(blirc)
+				++nOWReader;
+		}
+	}
 	for(vector<pair<string, PortTypes> >::iterator it= ports.begin(); it != ports.end(); ++it)
 	{
 		if(	!bPort && it->second == PORT	)
@@ -488,151 +529,159 @@ bool Starter::execute(const IOptionStructPattern* commands)
 #endif // _EXTERNVENDORLIBRARYS
 
 #ifdef _K8055LIBRARY
-	bool bError;
-	int nVk8055Address;
-	vector<int> vVk8055;
-	vector<int>::iterator vit;
-
-	// start Vellemann k8055 ports
-	nVk8055Count= m_oServerFileCasher.getPropertyCount("Vk8055");
-	for(vector<string>::size_type n= 0; n < nVk8055Count; ++n)
+	if(bvk8055)
 	{
-		bError= false;
-		prop= "Vk8055";
-		nVk8055Address= m_oServerFileCasher.getInt(prop, n, /*warning*/false);
+		bool bError;
+		int nVk8055Address;
+		vector<int> vVk8055;
+		vector<int>::iterator vit;
 
-		if(	prop == "#ERROR"
-			||
-			nVk8055Address < 0
-			||
-			nVk8055Address > 3	)
+		// start Vellemann k8055 ports
+		pProp= m_oServerFileCasher.getSection("owreader", "Vk8055");
+		nVk8055Count= pProp->getPropertyCount("port");
+		for(vector<string>::size_type n= 0; n < nVk8055Count; ++n)
 		{
-			bError= true;
-		}else
-		{
-			vit= ::find(vVk8055.begin(), vVk8055.end(), nVk8055Address);
-			if(vit == vVk8055.end())
+			bError= false;
+			prop= "port";
+			nVk8055Address= pProp->getInt(prop, n, /*warning*/false);
+
+			if(	prop == "#ERROR"
+				||
+				nVk8055Address < 0
+				||
+				nVk8055Address > 3	)
 			{
-				ostringstream oServerID;
-				ostringstream oVK8055Address;
-
-				cout << "### starting OWServer" << endl;
-				vVk8055.push_back(nVk8055Address);
-				oVK8055Address << nVk8055Address;
-				oServerID << nServerID;
-				process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
-																		new SocketClientConnection(	SOCK_STREAM,
-																									commhost,
-																									commport,
-																									10			)	));
-
-				if(bPorts)
+				bError= true;
+			}else
+			{
+				vit= ::find(vVk8055.begin(), vVk8055.end(), nVk8055Address);
+				if(vit == vVk8055.end())
 				{
-					ostringstream oDbConnectors;
+					ostringstream oServerID;
+					ostringstream oVK8055Address;
 
-					oDbConnectors << nDbConnectors;
-					err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
-														"vellemann", "k8055", oVK8055Address.str().c_str(), NULL);
-				}else
-					err= process->check();
-				if(err > 0)
-				{
-					string msg;
+					cout << "### starting OWServer" << endl;
+					vVk8055.push_back(nVk8055Address);
+					oVK8055Address << nVk8055Address;
+					oServerID << nServerID;
+					process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+																			new SocketClientConnection(	SOCK_STREAM,
+																										commhost,
+																										commport,
+																										10			)	));
 
-					msg=  "### WARNING: cannot start one wire reader\n";
-					msg+= "             " + process->strerror(err) + "\n";
-					msg+= "             so ppi-server cannot read or write on Vellemann k8055 board";
-					cerr << endl << msg << endl;
-					LOG(LOG_ALERT, msg);
-				}else
-				{// create reading interface to one wire reader
-					OWInterface::getServer(	"ppi-server",
-											new SocketClientConnection(	SOCK_STREAM,
-																		commhost,
-																		commport,
-																		5			),
-											nServerID									);
-					++nServerID;
+					if(bPorts)
+					{
+						ostringstream oDbConnectors;
+
+						oDbConnectors << nDbConnectors;
+						err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
+															"vellemann", "k8055", oVK8055Address.str().c_str(), NULL);
+					}else
+						err= process->check();
+					if(err > 0)
+					{
+						string msg;
+
+						msg=  "### WARNING: cannot start one wire reader\n";
+						msg+= "             " + process->strerror(err) + "\n";
+						msg+= "             so ppi-server cannot read or write on Vellemann k8055 board";
+						cerr << endl << msg << endl;
+						LOG(LOG_ALERT, msg);
+					}else
+					{// create reading interface to one wire reader
+						OWInterface::getServer(	"ppi-server",
+												new SocketClientConnection(	SOCK_STREAM,
+																			commhost,
+																			commport,
+																			5			),
+												nServerID									);
+						++nServerID;
+					}
 				}
 			}
-		}
-		if(bError)
-		{
-			string sVk8055Address;
-			ostringstream msg;
+			if(bError)
+			{
+				string sVk8055Address;
+				ostringstream msg;
 
-			sVk8055Address= m_oServerFileCasher.getValue("Vk8055", n, false);
-			msg << "    ERROR by define " << (n+1) << ". port with address " << sVk8055Address << endl;
-			msg << "          so ppi-server cannot read or write on Vellemann k8055 board";
-			cerr << msg.str() << endl;
-			LOG(LOG_ALERT, msg.str());
+				sVk8055Address= pProp->getValue("port", n, false);
+				msg << "    ERROR by define " << (n+1) << ". port with address " << sVk8055Address << endl;
+				msg << "          so ppi-server cannot read or write on Vellemann k8055 board";
+				cerr << msg.str() << endl;
+				LOG(LOG_ALERT, msg.str());
+			}
+			cout << endl;
 		}
-		cout << endl;
 	}
 #endif //_K8055LIBRARY
 
 #ifdef _OWFSLIBRARY
-	vector<string> adapters;
-	vector<string> maximconf, conf;
-	vector<string>::iterator first;
-	vector<string>::size_type nMaximCount;
-
-	// read first all maxim adapters
-	nMaximCount= m_oServerFileCasher.getPropertyCount("maximadapter");
-	for(vector<string>::size_type n= 0; n < nMaximCount; ++n)
+	if(bowfs)
 	{
-		maximinit= m_oServerFileCasher.getValue("maximadapter", n, /*warning*/false);
-		adapters.push_back(maximinit);
-	}
-	// start maxim ports with owfs driver
-	nMaximCount= m_oServerFileCasher.getPropertyCount("maximinit");
-	for(vector<string>::size_type n= 0; n < nMaximCount; ++n)
-	{
-		ostringstream oServerID;
+		vector<string> adapters;
+		vector<string> maximconf, conf;
+		vector<string>::iterator first;
+		vector<string>::size_type nMaximCount;
 
-		maximinit= m_oServerFileCasher.getValue("maximinit", n, /*warning*/false);
-		for(vector<string>::iterator ad= adapters.begin(); ad != adapters.end(); ++ad)
+		// read first all maxim adapters
+		pProp= m_oServerFileCasher.getSection("owreader", "OWFS");
+		nMaximCount= pProp->getPropertyCount("maximadapter");
+		for(vector<string>::size_type n= 0; n < nMaximCount; ++n)
 		{
-			maximinit+= ":";
-			maximinit+= *ad;
+			maximinit= pProp->getValue("maximadapter", n, /*warning*/false);
+			adapters.push_back(maximinit);
 		}
-		cout << "### starting OWServer" << endl;
-		oServerID << nServerID;
-		process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
-																new SocketClientConnection(	SOCK_STREAM,
-																							commhost,
-																							commport,
-																							10			)	));
-
-		if(bPorts)
+		// start maxim ports with owfs driver
+		nMaximCount= pProp->getPropertyCount("maximinit");
+		for(vector<string>::size_type n= 0; n < nMaximCount; ++n)
 		{
-			ostringstream oDbConnectors;
+			ostringstream oServerID;
 
-			oDbConnectors << nDbConnectors;
-			err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
-												"maxim", maximinit.c_str(), NULL);
-		}else
-			err= process->check();
-		if(err > 0)
-		{
-			string msg;
+			maximinit= pProp->getValue("maximinit", n, /*warning*/false);
+			for(vector<string>::iterator ad= adapters.begin(); ad != adapters.end(); ++ad)
+			{
+				maximinit+= ":";
+				maximinit+= *ad;
+			}
+			cout << "### starting OWServer" << endl;
+			oServerID << nServerID;
+			process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+																	new SocketClientConnection(	SOCK_STREAM,
+																								commhost,
+																								commport,
+																								10			)	));
 
-			msg=  "### WARNING: cannot start one wire reader\n";
-			msg+= "             " + process->strerror(err) + "\n";
-			msg+= "             so ppi-server cannot read or write on Maxim/Dallas semiconductors";
-			cerr << endl << msg << endl;
-			LOG(LOG_ALERT, msg);
-		}else
-		{// create reading interface to one wire reader
-			OWInterface::getServer(	"ppi-server",
-									new SocketClientConnection(	SOCK_STREAM,
-																commhost,
-																commport,
-																5			),
-									nServerID									);
-			++nServerID;
+			if(bPorts)
+			{
+				ostringstream oDbConnectors;
+
+				oDbConnectors << nDbConnectors;
+				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
+													"maxim", maximinit.c_str(), NULL);
+			}else
+				err= process->check();
+			if(err > 0)
+			{
+				string msg;
+
+				msg=  "### WARNING: cannot start one wire reader\n";
+				msg+= "             " + process->strerror(err) + "\n";
+				msg+= "             so ppi-server cannot read or write on Maxim/Dallas semiconductors";
+				cerr << endl << msg << endl;
+				LOG(LOG_ALERT, msg);
+			}else
+			{// create reading interface to one wire reader
+				OWInterface::getServer(	"ppi-server",
+										new SocketClientConnection(	SOCK_STREAM,
+																	commhost,
+																	commport,
+																	5			),
+										nServerID									);
+				++nServerID;
+			}
+			cout << endl;
 		}
-		cout << endl;
 	}
 #endif //_OWFSLIBRARY
 
@@ -654,7 +703,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	// ------------------------------------------------------------------------------------------------------------
 
 	LOG(LOG_DEBUG, "after knowing database was loaded, starting to configure all control list's to measure");
-	createPortObjects(commands->hasOption("configure"));
+	configurePortObjects(commands->hasOption("configure"));
 	TERMINALEND;
 
 	--nServerID;
@@ -834,7 +883,139 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	return true;
 }
 
-void Starter::createPortObjects(bool bShowConf)
+void Starter::createFolderLists()
+{
+	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
+	//DbInterface* db= DbInterface::instance();
+
+	while(aktualFolder != NULL)
+	{
+		int nMuch= aktualFolder->subroutines.size();
+
+		//cout << "  create folder: '" << aktualFolder->name << "'" << endl;
+		for(int n= 0; n<nMuch; n++)
+		{
+			//cout << "    subroutine: " << aktualFolder->subroutines[n].name;
+			//cout << " with type " << aktualFolder->subroutines[n].type << endl;
+			if(aktualFolder->subroutines[n].type == "SWITCH")
+			{
+				SHAREDPTR::shared_ptr<switchClass> obj;
+
+				obj= SHAREDPTR::shared_ptr<switchClass>(new switchClass(aktualFolder->name,
+																		aktualFolder->subroutines[n].name));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "DEBUG")
+			{
+				SHAREDPTR::shared_ptr<switchClass> obj;
+
+				obj= SHAREDPTR::shared_ptr<Output>(new Output(	aktualFolder->name,
+																aktualFolder->subroutines[n].name));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "TIMER")
+			{
+				auto_ptr<timer> obj= auto_ptr<timer>(new timer(	aktualFolder->name,
+																aktualFolder->subroutines[n].name	));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "SHELL")
+			{
+				auto_ptr<Shell> obj= auto_ptr<Shell>(new Shell(	aktualFolder->name,
+																aktualFolder->subroutines[n].name	));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
+			{
+				auto_ptr<TimeMeasure> obj= auto_ptr<TimeMeasure>(new TimeMeasure(	aktualFolder->name,
+																					aktualFolder->subroutines[n].name	));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "RESISTANCE")
+			{
+				auto_ptr<ResistanceMeasure> obj= auto_ptr<ResistanceMeasure>(new ResistanceMeasure(	aktualFolder->name,
+																									aktualFolder->subroutines[n].name	));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "TEMP")
+			{
+				auto_ptr<TempMeasure> obj= auto_ptr<TempMeasure>(new TempMeasure(	aktualFolder->name,
+																					aktualFolder->subroutines[n].name	));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "VALUE")
+			{
+				auto_ptr<ValueHolder> obj= auto_ptr<ValueHolder>(new ValueHolder(	aktualFolder->name,
+																					aktualFolder->subroutines[n].name	));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "SET")
+			{
+				auto_ptr<Set> obj= auto_ptr<Set>(new Set(	aktualFolder->name,
+															aktualFolder->subroutines[n].name	));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "SAVE")
+			{
+				auto_ptr<SaveSubValue> obj= auto_ptr<SaveSubValue>(new SaveSubValue(aktualFolder->name,
+																					aktualFolder->subroutines[n].name));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "COUNTER")
+			{
+				auto_ptr<Counter> obj= auto_ptr<Counter>(new Counter(	aktualFolder->name,
+																		aktualFolder->subroutines[n].name	));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(aktualFolder->subroutines[n].type == "MEASUREDNESS")
+			{
+				auto_ptr<Measuredness> obj= auto_ptr<Measuredness>(new Measuredness(aktualFolder->name,
+																					aktualFolder->subroutines[n].name));
+				aktualFolder->subroutines[n].portClass= obj;
+
+			}else if(::find(m_vOWReaderTypes.begin(), m_vOWReaderTypes.end(), aktualFolder->subroutines[n].type) != m_vOWReaderTypes.end())
+			{// type is reached over an OWServer instance
+				auto_ptr<ExternPort> obj;
+
+				//cout << "subroutine " << aktualFolder->subroutines[n].name << " from type " << aktualFolder->subroutines[n].type << endl;
+				if(aktualFolder->subroutines[n].type == "LIRC")
+				{
+					obj= auto_ptr<ExternPort>(new LircPort(	aktualFolder->subroutines[n].type,
+															aktualFolder->name,
+															aktualFolder->subroutines[n].name	));
+				}else
+				{
+					obj= auto_ptr<ExternPort>(new ExternPort(	aktualFolder->subroutines[n].type,
+																aktualFolder->name,
+																aktualFolder->subroutines[n].name	));
+				}
+				aktualFolder->subroutines[n].portClass= obj;
+				m_vOWReaderNeed.insert(aktualFolder->subroutines[n].type);
+
+			}else
+			{
+				ostringstream msg;
+
+				if(aktualFolder->subroutines[n].type == "")
+				{
+					msg << "### WARNING: in folder '" << aktualFolder->name << "' and subroutine '" << aktualFolder->subroutines[n].name << "'" << endl;
+					msg << "             is no type specified, define subroutine as incorrect!";
+
+				}else
+				{
+					msg << aktualFolder->subroutines[n].property->getMsgHead(/*error*/false);
+					msg << "cannot define given type '" << aktualFolder->subroutines[n].type << "', define subroutine as incorrect!";
+				}
+				cout << msg.str() << endl;
+				LOG(LOG_WARNING, msg.str());
+			}
+
+		}
+		aktualFolder= aktualFolder->next;
+	}
+}
+
+void Starter::configurePortObjects(bool bShowConf)
 {
 	bool bNewMeasure(false);
 	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
@@ -855,10 +1036,12 @@ void Starter::createPortObjects(bool bShowConf)
 			cout << " configure folder: '" << aktualFolder->name << "'" << endl;
 		for(int n= 0; n<nMuch; n++)
 		{
+			//cout << "    subroutine: " << aktualFolder->subroutines[n].name;
+			//cout << " with type " << aktualFolder->subroutines[n].type << endl;
+			SHAREDPTR::shared_ptr<IListObjectPattern> obj(aktualFolder->subroutines[n].portClass);
+			portBase* pobj;
 			vector<ohm> *pvOhm= &aktualFolder->subroutines[n].resistor;
 			vector<correction_t> *pvCorrection= &aktualFolder->subroutines[n].correction;
-			bool correctSubroutine= false;
-			bool bcheckProps= true;
 			short measuredness= aktualFolder->subroutines[n].measuredness;
 
 			if(measuredness == 0)
@@ -868,190 +1051,31 @@ void Starter::createPortObjects(bool bShowConf)
 			if(pvCorrection->size() == 0)
 				pvCorrection= &m_vCorrection;
 
-			//cout << "    subroutine: " << aktualFolder->subroutines[n].name;
-			//cout << " with type " << aktualFolder->subroutines[n].type << endl;
-			if(aktualFolder->subroutines[n].type == "SWITCH")
+			pobj= dynamic_cast<portBase*>(obj.get());
+			if(pobj)
 			{
-				SHAREDPTR::shared_ptr<switchClass> obj;
-
-				obj= SHAREDPTR::shared_ptr<switchClass>(new switchClass(aktualFolder->name,
-																		aktualFolder->subroutines[n].name));
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
+				if(pobj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "DEBUG")
-			{
-				SHAREDPTR::shared_ptr<switchClass> obj;
-
-				obj= SHAREDPTR::shared_ptr<switchClass>(new Output(	aktualFolder->name,
-																	aktualFolder->subroutines[n].name));
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "TIMER")
-			{
-				auto_ptr<timer> obj= auto_ptr<timer>(new timer(	aktualFolder->name,
-																aktualFolder->subroutines[n].name	));
-
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "SHELL")
-			{
-				auto_ptr<Shell> obj= auto_ptr<Shell>(new Shell(	aktualFolder->name,
-																aktualFolder->subroutines[n].name	));
-
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
-			{
-				auto_ptr<TimeMeasure> obj= auto_ptr<TimeMeasure>(new TimeMeasure(	aktualFolder->name,
-																					aktualFolder->subroutines[n].name	));
-
-				if(obj->init(aktualFolder->subroutines[n].property.get()))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "RESISTANCE")
-			{
-				auto_ptr<ResistanceMeasure> obj= auto_ptr<ResistanceMeasure>(new ResistanceMeasure(	aktualFolder->name,
-																									aktualFolder->subroutines[n].name	));
-
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "TEMP")
-			{
-				auto_ptr<TempMeasure> obj= auto_ptr<TempMeasure>(new TempMeasure(	aktualFolder->name,
-																					aktualFolder->subroutines[n].name	));
-
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "VALUE")
-			{
-				auto_ptr<ValueHolder> obj= auto_ptr<ValueHolder>(new ValueHolder(	aktualFolder->name,
-																					aktualFolder->subroutines[n].name	));
-
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "SET")
-			{
-				auto_ptr<Set> obj= auto_ptr<Set>(new Set(	aktualFolder->name,
-															aktualFolder->subroutines[n].name	));
-
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "SAVE")
-			{
-				auto_ptr<SaveSubValue> obj= auto_ptr<SaveSubValue>(new SaveSubValue(aktualFolder->name,
-																					aktualFolder->subroutines[n].name));
-
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "COUNTER")
-			{
-				auto_ptr<Counter> obj= auto_ptr<Counter>(new Counter(	aktualFolder->name,
-																		aktualFolder->subroutines[n].name	));
-
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(aktualFolder->subroutines[n].type == "MEASUREDNESS")
-			{
-				auto_ptr<Measuredness> obj= auto_ptr<Measuredness>(new Measuredness(aktualFolder->name,
-																					aktualFolder->subroutines[n].name));
-
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					aktualFolder->subroutines[n].portClass= obj;
-				}
-			}else if(::find(m_vOWReaderTypes.begin(), m_vOWReaderTypes.end(), aktualFolder->subroutines[n].type) != m_vOWReaderTypes.end())
-			{// type is reached over an OWServer instance
-				auto_ptr<ExternPort> obj;
-
-				//cout << "subroutine " << aktualFolder->subroutines[n].name << " from type " << aktualFolder->subroutines[n].type << endl;
-				if(aktualFolder->subroutines[n].type == "LIRC")
-				{
-					obj= auto_ptr<ExternPort>(new LircPort(	aktualFolder->subroutines[n].type,
-															aktualFolder->name,
-															aktualFolder->subroutines[n].name	));
-				}else
-				{
-					obj= auto_ptr<ExternPort>(new ExternPort(	aktualFolder->subroutines[n].type,
-																aktualFolder->name,
-																aktualFolder->subroutines[n].name	));
-				}
-				if(obj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
-					correctSubroutine= true;
-					bcheckProps= obj->haveServer();
-					aktualFolder->subroutines[n].portClass= obj;
-					m_vOWReaderNeed.insert(aktualFolder->subroutines[n].type);
+					aktualFolder->subroutines[n].bCorrect= true;
 				}
 			}else
 			{
-				ostringstream msg;
+				string alert("inside folder ");
 
-				if(aktualFolder->subroutines[n].type == "")
-				{
-					msg << "### WARNING: in folder '" << aktualFolder->name << "' and subroutine '" << aktualFolder->subroutines[n].name << "'" << endl;
-					msg << "             is no type specified, define subroutine as incorrect!";
-
-				}else
-				{
-					msg << aktualFolder->subroutines[n].property->getMsgHead(/*error*/false);
-					msg << "cannot define given type '" << aktualFolder->subroutines[n].type << "', define subroutine as incorrect!";
-				}
-				cout << msg.str() << endl;
-				LOG(LOG_WARNING, msg.str());
-				bcheckProps= false;
+				alert+= aktualFolder->name + " witch subroutine ";
+				alert+= aktualFolder->subroutines[n].name;
+				alert+= " from type " + aktualFolder->subroutines[n].type + "\n";
+				alert+= "can not cast object IListObjectPattern to object portBase\n";
+				alert+= "this is an programming FAULT, maype the ";
+				alert+= aktualFolder->subroutines[n].type + "-object don't depence from portBase?";
+				LOG(LOG_ALERT, alert);
+				cerr << "### ALLERT ERROR: " << alert << endl << endl;
 			}
+			if(!aktualFolder->subroutines[n].bCorrect)
+				aktualFolder->subroutines[n].portClass= SHAREDPTR::shared_ptr<IListObjectPattern>();
 
-			aktualFolder->subroutines[n].bCorrect= correctSubroutine;
-			if(!correctSubroutine)
-			{
-				aktualFolder->subroutines[n].bCorrect= false;
-			}else
+			if(aktualFolder->subroutines[n].bCorrect)
 			{
 				if(dynamic_cast<TimeMeasure*>(aktualFolder->subroutines[n].portClass.get()))
 				{
@@ -1109,13 +1133,15 @@ void Starter::createPortObjects(bool bShowConf)
 					}
 				}
 			}
-			sub* subroutine;
 
-			subroutine= &aktualFolder->subroutines[n];
-			if(bcheckProps && subroutine->property)
+			if(aktualFolder->subroutines[n].property)
+				aktualFolder->subroutines[n].property->checkProperties();
+			if(	(	obj->needServer() &&		// if subroutine need an external Server
+					obj->hasServer()	) ||	// but has actually no access to them
+				!obj->needServer()			)	// subroutine check all seconds for access
+												// and subroutine should starting
 			{
-				subroutine->property->checkProperties();
-				if(!correctSubroutine)
+				if(!aktualFolder->subroutines[n].bCorrect)
 					cerr << "             SUBROUTINE do not running inside folder" << endl << endl;
 			}
 		}
@@ -2100,6 +2126,9 @@ bool Starter::stop(bool configure)
 	sendbuf= hello.str();
 	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
 	fileName= URL::addPath(confpath, "server.conf");
+	m_oServerFileCasher.setDelimiter("owreader", "[", "]");
+	m_oServerFileCasher.modifier("owreader");
+	m_oServerFileCasher.readLine("workdir= " + m_sWorkdir);
 	if(!m_oServerFileCasher.readFile(fileName))
 	{
 		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
