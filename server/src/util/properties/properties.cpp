@@ -166,9 +166,7 @@ namespace util {
 			param.line= 1;
 			while(getline(file, line))
 			{
-				cout << line << endl;
-				if(line.substr(0, 1) == "[")
-					cout << "found modifier" << endl;
+				//cout << line << endl;
 				do{
 					read(line, &param);
 					if(param.bcontinue)
@@ -641,7 +639,7 @@ namespace util {
 		m_mDefault[key]= param;
 	}
 
-	string Properties::nextProp()
+	string Properties::nextProp() const
 	{
 		unsigned int count= 0;
 		string sRv;
@@ -654,7 +652,7 @@ namespace util {
 			return "";
 		}
 		++m_nPropCount;
-		for(vector<string>::iterator it= m_vPropOrder.begin(); it != m_vPropOrder.end(); ++it)
+		for(vector<string>::const_iterator it= m_vPropOrder.begin(); it != m_vPropOrder.end(); ++it)
 		{
 			++count;
 			sRv= *it;

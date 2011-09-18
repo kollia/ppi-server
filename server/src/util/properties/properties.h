@@ -165,12 +165,12 @@ namespace util {
 			 *
 			 * @return property name
 			 */
-			virtual string nextProp();
+			virtual string nextProp() const;
 			/**
 			 * reset the iterator from <code>Properties</code> object to 0
 			 * to get by next call from method <code>nextProp()</code> again the first property
 			 */
-			virtual void resetProp()
+			virtual void resetProp() const
 			{ m_nPropCount= 0; };
 			/**
 			 * pull property from this class and write an error if not exist
@@ -452,7 +452,7 @@ namespace util {
 			/**
 			 * counter for property iterator
 			 */
-			unsigned int m_nPropCount;
+			mutable unsigned int m_nPropCount;
 			/**
 			 * hole properties in order for method <code>nextProp()</code>
 			 */

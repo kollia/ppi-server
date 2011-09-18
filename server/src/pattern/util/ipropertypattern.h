@@ -86,6 +86,17 @@ namespace design_pattern_world
 		 */
 		virtual void setDelimiter(const string& delimiter)= 0;
 		/**
+		 * set an begin- and end-delimiter for an property with specific name.<br />
+		 * For example when you define <code>setDelimiter( "foo", "[". "]")</code>.
+		 * You can write in the property file only <code>[true]</code> and the property
+		 * foo has the value <code>"true"</code>.
+		 *
+		 * @param name specific name of property
+		 * @param begindelimiter delimiter between property and value
+		 * @param enddelimiter end-delimiter only if used
+		 */
+		virtual void setDelimiter(const string& name, const string& begindelimiter, const string& enddelimiter)= 0;
+		/**
 		 * set documentation string for hole lines.<br />
 		 * default character is an hash ('#') if the method not called.
 		 * When you need also an second character or string call this mehtod with an hash ('#')
@@ -157,12 +168,12 @@ namespace design_pattern_world
 		 *
 		 * @return property name
 		 */
-		virtual string nextProp()= 0;
+		virtual string nextProp() const= 0;
 		/**
 		 * reset the iterator from <code>IPropertyPattern</code> object to 0
 		 * to get by next call from method <code>nextProp()</code> again the first property
 		 */
-		virtual void resetProp()= 0;
+		virtual void resetProp() const= 0;
 		/**
 		 * pull property from this class and write an error if not exist
 		 *
