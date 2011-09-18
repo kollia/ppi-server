@@ -1,0 +1,334 @@
+<layout>
+  <head>
+    <title name="hauppauge_pvr" />
+    <meta name="permission" content="lconfchange" />
+  </head>
+  <body>
+    <table boder="1" width="100">
+      <tr>
+        <td>
+          <input type="togglebutton" value="record" result="TRANSMIT_RECEIVE_main_settings:record" />
+          &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;
+          hauppauge_pvr
+        </td>
+      </tr>
+    </table><br />
+    <table border="1">
+      <tr>
+        <td>
+          <table border="0" >
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Power:receive" readonly="readonly" />
+                <input type="togglebutton" value="Power" result="hauppauge_pvr__show:Power" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Go:receive" readonly="readonly" />
+                <input type="togglebutton" value="Go" result="hauppauge_pvr__show:Go" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr__1:receive" readonly="readonly" />
+                <input type="togglebutton" value="1" result="hauppauge_pvr__show:_1" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr__2:receive" readonly="readonly" />
+                <input type="togglebutton" value="2" result="hauppauge_pvr__show:_2" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr__3:receive" readonly="readonly" />
+                <input type="togglebutton" value="3" result="hauppauge_pvr__show:_3" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr__4:receive" readonly="readonly" />
+                <input type="togglebutton" value="4" result="hauppauge_pvr__show:_4" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr__5:receive" readonly="readonly" />
+                <input type="togglebutton" value="5" result="hauppauge_pvr__show:_5" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr__6:receive" readonly="readonly" />
+                <input type="togglebutton" value="6" result="hauppauge_pvr__show:_6" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr__7:receive" readonly="readonly" />
+                <input type="togglebutton" value="7" result="hauppauge_pvr__show:_7" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr__8:receive" readonly="readonly" />
+                <input type="togglebutton" value="8" result="hauppauge_pvr__show:_8" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr__9:receive" readonly="readonly" />
+                <input type="togglebutton" value="9" result="hauppauge_pvr__show:_9" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Back_THRU_Exit:receive" readonly="readonly" />
+                <input type="togglebutton" value="Back/Exit" result="hauppauge_pvr__show:Back_THRU_Exit" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr__0:receive" readonly="readonly" />
+                <input type="togglebutton" value="0" result="hauppauge_pvr__show:_0" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Menu:receive" readonly="readonly" />
+                <input type="togglebutton" value="Menu" result="hauppauge_pvr__show:Menu" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Red:receive" readonly="readonly" />
+                <input type="togglebutton" value="Red" result="hauppauge_pvr__show:Red" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Green:receive" readonly="readonly" />
+                <input type="togglebutton" value="Green" result="hauppauge_pvr__show:Green" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Yellow:receive" readonly="readonly" />
+                <input type="togglebutton" value="Yellow" result="hauppauge_pvr__show:Yellow" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Blue:receive" readonly="readonly" />
+                <input type="togglebutton" value="Blue" result="hauppauge_pvr__show:Blue" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Ch_PLUS_:receive" readonly="readonly" />
+                <input type="togglebutton" value="Ch+" result="hauppauge_pvr__show:Ch_PLUS_" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Ch_MINUS_:receive" readonly="readonly" />
+                <input type="togglebutton" value="Ch-" result="hauppauge_pvr__show:Ch_MINUS_" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Vol_MINUS_:receive" readonly="readonly" />
+                <input type="togglebutton" value="Vol-" result="hauppauge_pvr__show:Vol_MINUS_" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Vol_PLUS_:receive" readonly="readonly" />
+                <input type="togglebutton" value="Vol+" result="hauppauge_pvr__show:Vol_PLUS_" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Ok:receive" readonly="readonly" />
+                <input type="togglebutton" value="Ok" result="hauppauge_pvr__show:Ok" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Mute:receive" readonly="readonly" />
+                <input type="togglebutton" value="Mute" result="hauppauge_pvr__show:Mute" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Blank:receive" readonly="readonly" />
+                <input type="togglebutton" value="Blank" result="hauppauge_pvr__show:Blank" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Full:receive" readonly="readonly" />
+                <input type="togglebutton" value="Full" result="hauppauge_pvr__show:Full" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Rewind:receive" readonly="readonly" />
+                <input type="togglebutton" value="Rewind" result="hauppauge_pvr__show:Rewind" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Play:receive" readonly="readonly" />
+                <input type="togglebutton" value="Play" result="hauppauge_pvr__show:Play" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Forward:receive" readonly="readonly" />
+                <input type="togglebutton" value="Forward" result="hauppauge_pvr__show:Forward" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Record:receive" readonly="readonly" />
+                <input type="togglebutton" value="Record" result="hauppauge_pvr__show:Record" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Stop:receive" readonly="readonly" />
+                <input type="togglebutton" value="Stop" result="hauppauge_pvr__show:Stop" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Pause:receive" readonly="readonly" />
+                <input type="togglebutton" value="Pause" result="hauppauge_pvr__show:Pause" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Replay:receive" readonly="readonly" />
+                <input type="togglebutton" value="Replay" result="hauppauge_pvr__show:Replay" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="hauppauge_pvr_Skip:receive" readonly="readonly" />
+                <input type="togglebutton" value="Skip" result="hauppauge_pvr__show:Skip" />
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+          <table>
+            <tr>
+              <td align="right">
+                button:
+              </td>
+              <td>
+                <input type="spinner" result="hauppauge_pvr__choice:group" width="20" min="1" max="34" />&#160;
+                <input type="text" result="hauppauge_pvr__choice:correct_group" value="" disabled="disabled" width="20"/>
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                steps:
+              </td>
+              <td>
+                <input type="spinner" result="hauppauge_pvr__choice:steps" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <select size="1" result="hauppauge_pvr__choice:steps_action">
+                  <option value="0">UP STOP</option>
+                  <option value="1">DOWN STOP</option>
+                  <option value="2">UP LOOP</option>
+                  <option value="3">DOWN LOOP</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <select size="1" result="hauppauge_pvr__choice:transmit_action">
+                  <option value="0">SEND ONCE</option>
+                  <option value="1">SEND</option>
+                  <option value="2">WAIT after</option>
+                  <option value="3">BACK time</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                <input type="checkbox" result="hauppauge_pvr__choice:receive" readonly="readonly" />
+              </td>
+              <td>
+                <select size="1" result="hauppauge_pvr__choice:correct_group" disabled="disabled">
+                  <option value="1">Power</option>
+                  <option value="2">Go</option>
+                  <option value="3">1</option>
+                  <option value="4">2</option>
+                  <option value="5">3</option>
+                  <option value="6">4</option>
+                  <option value="7">5</option>
+                  <option value="8">6</option>
+                  <option value="9">7</option>
+                  <option value="10">8</option>
+                  <option value="11">9</option>
+                  <option value="12">Back/Exit</option>
+                  <option value="13">0</option>
+                  <option value="14">Menu</option>
+                  <option value="15">Red</option>
+                  <option value="16">Green</option>
+                  <option value="17">Yellow</option>
+                  <option value="18">Blue</option>
+                  <option value="19">Ch+</option>
+                  <option value="20">Ch-</option>
+                  <option value="21">Vol-</option>
+                  <option value="22">Vol+</option>
+                  <option value="23">Ok</option>
+                  <option value="24">Mute</option>
+                  <option value="25">Blank</option>
+                  <option value="26">Full</option>
+                  <option value="27">Rewind</option>
+                  <option value="28">Play</option>
+                  <option value="29">Forward</option>
+                  <option value="30">Record</option>
+                  <option value="31">Stop</option>
+                  <option value="32">Pause</option>
+                  <option value="33">Replay</option>
+                  <option value="34">Skip</option>
+                </select>
+                <br />
+                <input type="button" value="PRESS" result="hauppauge_pvr__choice:count" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                first touch show:
+              </td>
+              <td>
+                <input type="checkbox" result="hauppauge_pvr__choice:display_first" />
+              </td>
+            </tr>
+            <tr>
+              <td align="left">
+                wait double<br />
+                after pressed again:
+              </td>
+              <td>
+                <input type="checkbox" result="hauppauge_pvr__choice:double" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                set only actual step:<br />
+                            to value:
+              </td>
+              <td>
+                <input type="checkbox" result="hauppauge_pvr__choice:set_steps" />
+                <input type="spinner" result="hauppauge_pvr__choice:digits" width="20" min="1" max="5" />
+                &#160;digits<br />
+                <input type="spinner" result="hauppauge_pvr__choice:to_value" width="50" min="0" max="99999" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                wait after:
+              </td>
+              <td>
+                <input type="text" value="sec" format="#1.3" result="hauppauge_pvr__choice:after" /><br />
+                <input type="text" value="items" result="hauppauge_pvr__choice:calculate_lirc" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <input type="button" value="CALCULATE" result="hauppauge_pvr__choice:calcbutton" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                <input type="checkbox" result="hauppauge_pvr__choice:wait_back_time" readonly="readonly" />
+                back time:
+              </td>
+              <td>
+                <input type="text" value="sec" format="#1.3" result="hauppauge_pvr__choice:back_time" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                actual step:
+              </td>
+              <td>
+                <input type="spinner" result="hauppauge_pvr__choice:actual_step" />
+              </td>
+            </tr>
+          </table>
+  </body>

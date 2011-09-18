@@ -1,0 +1,389 @@
+<layout>
+  <head>
+    <title name="SONY_CMT-CP100" />
+    <meta name="permission" content="lconfread" />
+  </head>
+  <body>
+    <table boder="1" width="100">
+      <tr>
+        <td>
+          <input type="togglebutton" value="record" result="TRANSMIT_RECEIVE_main_settings:record" />
+          &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;
+          SONY_CMT-CP100
+        </td>
+      </tr>
+    </table><br />
+    <table border="1">
+      <tr>
+        <td>
+          <table border="0" >
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_BASSBOOST:receive" readonly="readonly" />
+                <input type="togglebutton" value="DSG" result="SONY_CMT_MINUS_CP100__show:KEY_BASSBOOST" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_DISPLAYTOGGLE:receive" readonly="readonly" />
+                <input type="togglebutton" value="DISPLAY" result="SONY_CMT_MINUS_CP100__show:KEY_DISPLAYTOGGLE" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_POWER:receive" readonly="readonly" />
+                <input type="togglebutton" value="I/O" result="SONY_CMT_MINUS_CP100__show:KEY_POWER" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_CD:receive" readonly="readonly" />
+                <input type="togglebutton" value="CD" result="SONY_CMT_MINUS_CP100__show:KEY_CD" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_PAUSE:receive" readonly="readonly" />
+                <input type="togglebutton" value="PAUSE" result="SONY_CMT_MINUS_CP100__show:KEY_PAUSE" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_STOP:receive" readonly="readonly" />
+                <input type="togglebutton" value="STOP" result="SONY_CMT_MINUS_CP100__show:KEY_STOP" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_TUNER_MINUS_BAND:receive" readonly="readonly" />
+                <input type="togglebutton" value="TUNER/BAND" result="SONY_CMT_MINUS_CP100__show:TUNER_MINUS_BAND" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_CHANNELDOWN:receive" readonly="readonly" />
+                <input type="togglebutton" value="BACKWARD" result="SONY_CMT_MINUS_CP100__show:KEY_CHANNELDOWN" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_CHANNELUP:receive" readonly="readonly" />
+                <input type="togglebutton" value="FORWARD" result="SONY_CMT_MINUS_CP100__show:KEY_CHANNELUP" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_TAPE:receive" readonly="readonly" />
+                <input type="togglebutton" value="TAPE" result="SONY_CMT_MINUS_CP100__show:KEY_TAPE" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_PREVIOUS:receive" readonly="readonly" />
+                <input type="togglebutton" value="preview" result="SONY_CMT_MINUS_CP100__show:KEY_PREVIOUS" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_NEXT:receive" readonly="readonly" />
+                <input type="togglebutton" value="next" result="SONY_CMT_MINUS_CP100__show:KEY_NEXT" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_DIRECTORY:receive" readonly="readonly" />
+                <input type="togglebutton" value="DIR MODE" result="SONY_CMT_MINUS_CP100__show:KEY_DIRECTORY" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_PLAY:receive" readonly="readonly" />
+                <input type="togglebutton" value="PLAY MODE" result="SONY_CMT_MINUS_CP100__show:KEY_PLAY" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_RECORD:receive" readonly="readonly" />
+                <input type="togglebutton" value="REC" result="SONY_CMT_MINUS_CP100__show:KEY_RECORD" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_MEDIA_REPEAT:receive" readonly="readonly" />
+                <input type="togglebutton" value="CD REPEAT" result="SONY_CMT_MINUS_CP100__show:KEY_MEDIA_REPEAT" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_STEREO_MINUS_MONO:receive" readonly="readonly" />
+                <input type="togglebutton" value="STEREO/MONO" result="SONY_CMT_MINUS_CP100__show:STEREO_MINUS_MONO" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_TUNER:receive" readonly="readonly" />
+                <input type="togglebutton" value="TUNING MODE" result="SONY_CMT_MINUS_CP100__show:KEY_TUNER" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                &#160;
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_MEMORY:receive" readonly="readonly" />
+                <input type="togglebutton" value="MEMORY" result="SONY_CMT_MINUS_CP100__show:KEY_MEMORY" />
+              </td>
+              <td align="center">
+                &#160;
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_TIME:receive" readonly="readonly" />
+                <input type="togglebutton" value="TIMER SET" result="SONY_CMT_MINUS_CP100__show:KEY_TIME" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_ENTER:receive" readonly="readonly" />
+                <input type="togglebutton" value="ENTER" result="SONY_CMT_MINUS_CP100__show:KEY_ENTER" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_SELECT:receive" readonly="readonly" />
+                <input type="togglebutton" value="TIMER SELECT" result="SONY_CMT_MINUS_CP100__show:KEY_SELECT" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                &#160;
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_SLEEP:receive" readonly="readonly" />
+                <input type="togglebutton" value="SLEEP" result="SONY_CMT_MINUS_CP100__show:KEY_SLEEP" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_VOLUMEUP:receive" readonly="readonly" />
+                <input type="togglebutton" value="VOL +" result="SONY_CMT_MINUS_CP100__show:KEY_VOLUMEUP" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                &#160;
+              </td>
+              <td align="center">
+                &#160;
+              </td>
+              <td align="center">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100_KEY_VOLUMEDOWN:receive" readonly="readonly" />
+                <input type="togglebutton" value="VOL -" result="SONY_CMT_MINUS_CP100__show:KEY_VOLUMEDOWN" />
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+          <table>
+            <tr>
+              <td align="right">
+                button:
+              </td>
+              <td>
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:group" width="20" min="1" max="30" />&#160;
+                <input type="text" result="SONY_CMT_MINUS_CP100__choice:correct_group" value="" disabled="disabled" width="20"/>
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                steps:
+              </td>
+              <td>
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:steps" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <select size="1" result="SONY_CMT_MINUS_CP100__choice:steps_action">
+                  <option value="0">UP STOP</option>
+                  <option value="1">DOWN STOP</option>
+                  <option value="2">UP LOOP</option>
+                  <option value="3">DOWN LOOP</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <select size="1" result="SONY_CMT_MINUS_CP100__choice:transmit_action">
+                  <option value="0">SEND ONCE</option>
+                  <option value="1">SEND units</option>
+                  <option value="2">SEND</option>
+                  <option value="3">WAIT after</option>
+                  <option value="4">BACK time</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100__choice:receive" readonly="readonly" />
+              </td>
+              <td>
+                <select size="1" result="SONY_CMT_MINUS_CP100__choice:correct_group" disabled="disabled">
+                  <option value="1">DSG</option>
+                  <option value="2">DISPLAY</option>
+                  <option value="3">I/O</option>
+                  <option value="4">CD</option>
+                  <option value="5">PAUSE</option>
+                  <option value="6">STOP</option>
+                  <option value="7">TUNER/BAND</option>
+                  <option value="8">BACKWARD</option>
+                  <option value="9">FORWARD</option>
+                  <option value="10">TAPE</option>
+                  <option value="11">preview</option>
+                  <option value="12">next</option>
+                  <option value="13">DIR MODE</option>
+                  <option value="14">PLAY MODE</option>
+                  <option value="15">REC</option>
+                  <option value="16">CD REPEAT</option>
+                  <option value="17">STEREO/MONO</option>
+                  <option value="18">TUNING MODE</option>
+                  <option value="19">MEMORY</option>
+                  <option value="20">TIMER SET</option>
+                  <option value="21">ENTER</option>
+                  <option value="22">TIMER SELECT</option>
+                  <option value="23">SLEEP</option>
+                  <option value="24">VOL +</option>
+                  <option value="25">VOL -</option>
+                </select>
+                <br />
+                <input type="button" value="PRESS" result="SONY_CMT_MINUS_CP100__choice:count" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                send units per step:
+              </td>
+              <td>
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:lirc_step" width="20" min="1" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:count_run_steps" width="20" min="1" />&#160;
+                <input type="button" value="run Steps" result="SONY_CMT_MINUS_CP100__choice:do_run_steps" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                first touch show:
+              </td>
+              <td>
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100__choice:display_first" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                wait double time<br />
+                by begin:
+              </td>
+              <td>
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100__choice:double" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                set only actual step:<br />
+                            to value:
+              </td>
+              <td>
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100__choice:set_steps" />
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:digits" width="20" min="1" max="5" />
+                &#160;digits<br />
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:to_value" width="50" min="0" max="99999" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                wait after:
+              </td>
+              <td>
+                <input type="text" value="sec" format="#1.3" result="SONY_CMT_MINUS_CP100__choice:after" /><br />
+                <input type="text" value="items" result="SONY_CMT_MINUS_CP100__choice:calculate_lirc" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <input type="button" value="CALCULATE" result="SONY_CMT_MINUS_CP100__choice:calcbutton" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                <input type="checkbox" result="SONY_CMT_MINUS_CP100__choice:wait_back_time" readonly="readonly" />
+                back time:
+              </td>
+              <td>
+                <input type="text" value="sec" format="#1.3" result="SONY_CMT_MINUS_CP100__choice:back_time" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                actual step:
+              </td>
+              <td>
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:actual_step" />
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2" align="right">
+                when button
+                <select size="1" result="SONY_CMT_MINUS_CP100__choice:change1">
+                  <option value="0">- undefined -</option>
+                  <option value="1">DSG</option>
+                  <option value="2">DISPLAY</option>
+                  <option value="3">I/O</option>
+                  <option value="4">CD</option>
+                  <option value="5">PAUSE</option>
+                  <option value="6">STOP</option>
+                  <option value="7">TUNER/BAND</option>
+                  <option value="8">BACKWARD</option>
+                  <option value="9">FORWARD</option>
+                  <option value="10">TAPE</option>
+                  <option value="11">preview</option>
+                  <option value="12">next</option>
+                  <option value="13">DIR MODE</option>
+                  <option value="14">PLAY MODE</option>
+                  <option value="15">REC</option>
+                  <option value="16">CD REPEAT</option>
+                  <option value="17">STEREO/MONO</option>
+                  <option value="18">TUNING MODE</option>
+                  <option value="19">MEMORY</option>
+                  <option value="20">TIMER SET</option>
+                  <option value="21">ENTER</option>
+                  <option value="22">TIMER SELECT</option>
+                  <option value="23">SLEEP</option>
+                  <option value="24">VOL +</option>
+                  <option value="25">VOL -</option>
+                </select>
+                &#160;has value
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:isvalue1" width="20" min="0" />
+                <br />set actual step to
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:tovalue1" width="20" min="0" />
+                <br />
+                when button
+                <select size="1" result="SONY_CMT_MINUS_CP100__choice:change2">
+                  <option value="0">- undefined -</option>
+                  <option value="1">DSG</option>
+                  <option value="2">DISPLAY</option>
+                  <option value="3">I/O</option>
+                  <option value="4">CD</option>
+                  <option value="5">PAUSE</option>
+                  <option value="6">STOP</option>
+                  <option value="7">TUNER/BAND</option>
+                  <option value="8">BACKWARD</option>
+                  <option value="9">FORWARD</option>
+                  <option value="10">TAPE</option>
+                  <option value="11">preview</option>
+                  <option value="12">next</option>
+                  <option value="13">DIR MODE</option>
+                  <option value="14">PLAY MODE</option>
+                  <option value="15">REC</option>
+                  <option value="16">CD REPEAT</option>
+                  <option value="17">STEREO/MONO</option>
+                  <option value="18">TUNING MODE</option>
+                  <option value="19">MEMORY</option>
+                  <option value="20">TIMER SET</option>
+                  <option value="21">ENTER</option>
+                  <option value="22">TIMER SELECT</option>
+                  <option value="23">SLEEP</option>
+                  <option value="24">VOL +</option>
+                  <option value="25">VOL -</option>
+                </select>
+                &#160;has value
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:isvalue2" width="20" min="0" />
+                <br />set actual step to
+                <input type="spinner" result="SONY_CMT_MINUS_CP100__choice:tovalue2" width="20" min="0" />
+                <br />
+              </td>
+            </tr>
+          </table>
+  </body>

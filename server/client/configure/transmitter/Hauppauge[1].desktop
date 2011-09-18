@@ -1,0 +1,407 @@
+<layout>
+  <head>
+    <title name="Hauppauge" />
+    <meta name="permission" content="lconfchange" />
+  </head>
+  <body>
+    <table boder="1" width="100">
+      <tr>
+        <td>
+          <input type="togglebutton" value="record" result="TRANSMIT_RECEIVE_main_settings:record" />
+          &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;
+          Hauppauge
+        </td>
+      </tr>
+    </table><br />
+    <table border="1">
+      <tr>
+        <td>
+          <table border="0" >
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_power:receive" readonly="readonly" />
+                <input type="togglebutton" value="power" result="Hauppauge[1]__show:power" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_go:receive" readonly="readonly" />
+                <input type="togglebutton" value="go" result="Hauppauge[1]__show:go" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_tv:receive" readonly="readonly" />
+                <input type="togglebutton" value="tv" result="Hauppauge[1]__show:tv" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_videos:receive" readonly="readonly" />
+                <input type="togglebutton" value="videos" result="Hauppauge[1]__show:videos" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_music:receive" readonly="readonly" />
+                <input type="togglebutton" value="music" result="Hauppauge[1]__show:music" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_pictures:receive" readonly="readonly" />
+                <input type="togglebutton" value="pictures" result="Hauppauge[1]__show:pictures" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_guide:receive" readonly="readonly" />
+                <input type="togglebutton" value="guide" result="Hauppauge[1]__show:guide" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_radio:receive" readonly="readonly" />
+                <input type="togglebutton" value="radio" result="Hauppauge[1]__show:radio" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_exit:receive" readonly="readonly" />
+                <input type="togglebutton" value="exit" result="Hauppauge[1]__show:exit" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_menu:receive" readonly="readonly" />
+                <input type="togglebutton" value="menu" result="Hauppauge[1]__show:menu" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_prevch:receive" readonly="readonly" />
+                <input type="togglebutton" value="prevch" result="Hauppauge[1]__show:prevch" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_mute:receive" readonly="readonly" />
+                <input type="togglebutton" value="mute" result="Hauppauge[1]__show:mute" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_up:receive" readonly="readonly" />
+                <input type="togglebutton" value="up" result="Hauppauge[1]__show:up" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_down:receive" readonly="readonly" />
+                <input type="togglebutton" value="down" result="Hauppauge[1]__show:down" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_left:receive" readonly="readonly" />
+                <input type="togglebutton" value="left" result="Hauppauge[1]__show:left" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_right:receive" readonly="readonly" />
+                <input type="togglebutton" value="right" result="Hauppauge[1]__show:right" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_ok:receive" readonly="readonly" />
+                <input type="togglebutton" value="ok" result="Hauppauge[1]__show:ok" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_volup:receive" readonly="readonly" />
+                <input type="togglebutton" value="volup" result="Hauppauge[1]__show:volup" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_voldown:receive" readonly="readonly" />
+                <input type="togglebutton" value="voldown" result="Hauppauge[1]__show:voldown" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_chup:receive" readonly="readonly" />
+                <input type="togglebutton" value="chup" result="Hauppauge[1]__show:chup" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_chdown:receive" readonly="readonly" />
+                <input type="togglebutton" value="chdown" result="Hauppauge[1]__show:chdown" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_record:receive" readonly="readonly" />
+                <input type="togglebutton" value="record" result="Hauppauge[1]__show:record" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_stop:receive" readonly="readonly" />
+                <input type="togglebutton" value="stop" result="Hauppauge[1]__show:stop" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_rewind:receive" readonly="readonly" />
+                <input type="togglebutton" value="rewind" result="Hauppauge[1]__show:rewind" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_fastfwd:receive" readonly="readonly" />
+                <input type="togglebutton" value="fastfwd" result="Hauppauge[1]__show:fastfwd" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_play:receive" readonly="readonly" />
+                <input type="togglebutton" value="play" result="Hauppauge[1]__show:play" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_replay:receive" readonly="readonly" />
+                <input type="togglebutton" value="replay" result="Hauppauge[1]__show:replay" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_skip:receive" readonly="readonly" />
+                <input type="togglebutton" value="skip" result="Hauppauge[1]__show:skip" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_pause:receive" readonly="readonly" />
+                <input type="togglebutton" value="pause" result="Hauppauge[1]__show:pause" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__1:receive" readonly="readonly" />
+                <input type="togglebutton" value="1" result="Hauppauge[1]__show:_1" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__2:receive" readonly="readonly" />
+                <input type="togglebutton" value="2" result="Hauppauge[1]__show:_2" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__3:receive" readonly="readonly" />
+                <input type="togglebutton" value="3" result="Hauppauge[1]__show:_3" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__4:receive" readonly="readonly" />
+                <input type="togglebutton" value="4" result="Hauppauge[1]__show:_4" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__5:receive" readonly="readonly" />
+                <input type="togglebutton" value="5" result="Hauppauge[1]__show:_5" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__6:receive" readonly="readonly" />
+                <input type="togglebutton" value="6" result="Hauppauge[1]__show:_6" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__7:receive" readonly="readonly" />
+                <input type="togglebutton" value="7" result="Hauppauge[1]__show:_7" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__8:receive" readonly="readonly" />
+                <input type="togglebutton" value="8" result="Hauppauge[1]__show:_8" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__9:receive" readonly="readonly" />
+                <input type="togglebutton" value="9" result="Hauppauge[1]__show:_9" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__MULTI_:receive" readonly="readonly" />
+                <input type="togglebutton" value="*" result="Hauppauge[1]__show:_MULTI_" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]__0:receive" readonly="readonly" />
+                <input type="togglebutton" value="0" result="Hauppauge[1]__show:_0" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_red:receive" readonly="readonly" />
+                <input type="togglebutton" value="red" result="Hauppauge[1]__show:red" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_green:receive" readonly="readonly" />
+                <input type="togglebutton" value="green" result="Hauppauge[1]__show:green" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_yellow:receive" readonly="readonly" />
+                <input type="togglebutton" value="yellow" result="Hauppauge[1]__show:yellow" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_blue:receive" readonly="readonly" />
+                <input type="togglebutton" value="blue" result="Hauppauge[1]__show:blue" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_sub_THRU_cc:receive" readonly="readonly" />
+                <input type="togglebutton" value="sub/cc" result="Hauppauge[1]__show:sub_THRU_cc" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_text:receive" readonly="readonly" />
+                <input type="togglebutton" value="text" result="Hauppauge[1]__show:text" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge[1]_home:receive" readonly="readonly" />
+                <input type="togglebutton" value="home" result="Hauppauge[1]__show:home" />
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+          <table>
+            <tr>
+              <td align="right">
+                button:
+              </td>
+              <td>
+                <input type="spinner" result="Hauppauge[1]__choice:group" width="20" min="1" max="47" />&#160;
+                <input type="text" result="Hauppauge[1]__choice:correct_group" value="" disabled="disabled" width="20"/>
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                steps:
+              </td>
+              <td>
+                <input type="spinner" result="Hauppauge[1]__choice:steps" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <select size="1" result="Hauppauge[1]__choice:steps_action">
+                  <option value="0">UP STOP</option>
+                  <option value="1">DOWN STOP</option>
+                  <option value="2">UP LOOP</option>
+                  <option value="3">DOWN LOOP</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <select size="1" result="Hauppauge[1]__choice:transmit_action">
+                  <option value="0">SEND ONCE</option>
+                  <option value="1">SEND</option>
+                  <option value="2">WAIT after</option>
+                  <option value="3">BACK time</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                <input type="checkbox" result="Hauppauge[1]__choice:receive" readonly="readonly" />
+              </td>
+              <td>
+                <select size="1" result="Hauppauge[1]__choice:correct_group" disabled="disabled">
+                  <option value="1">power</option>
+                  <option value="2">go</option>
+                  <option value="3">tv</option>
+                  <option value="4">videos</option>
+                  <option value="5">music</option>
+                  <option value="6">pictures</option>
+                  <option value="7">guide</option>
+                  <option value="8">radio</option>
+                  <option value="9">exit</option>
+                  <option value="10">menu</option>
+                  <option value="11">prevch</option>
+                  <option value="12">mute</option>
+                  <option value="13">up</option>
+                  <option value="14">down</option>
+                  <option value="15">left</option>
+                  <option value="16">right</option>
+                  <option value="17">ok</option>
+                  <option value="18">volup</option>
+                  <option value="19">voldown</option>
+                  <option value="20">chup</option>
+                  <option value="21">chdown</option>
+                  <option value="22">record</option>
+                  <option value="23">stop</option>
+                  <option value="24">rewind</option>
+                  <option value="25">fastfwd</option>
+                  <option value="26">play</option>
+                  <option value="27">replay</option>
+                  <option value="28">skip</option>
+                  <option value="29">pause</option>
+                  <option value="30">1</option>
+                  <option value="31">2</option>
+                  <option value="32">3</option>
+                  <option value="33">4</option>
+                  <option value="34">5</option>
+                  <option value="35">6</option>
+                  <option value="36">7</option>
+                  <option value="37">8</option>
+                  <option value="38">9</option>
+                  <option value="39">*</option>
+                  <option value="40">0</option>
+                  <option value="41">red</option>
+                  <option value="42">green</option>
+                  <option value="43">yellow</option>
+                  <option value="44">blue</option>
+                  <option value="45">sub/cc</option>
+                  <option value="46">text</option>
+                  <option value="47">home</option>
+                </select>
+                <br />
+                <input type="button" value="PRESS" result="Hauppauge[1]__choice:count" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                first touch show:
+              </td>
+              <td>
+                <input type="checkbox" result="Hauppauge[1]__choice:display_first" />
+              </td>
+            </tr>
+            <tr>
+              <td align="left">
+                wait double<br />
+                after pressed again:
+              </td>
+              <td>
+                <input type="checkbox" result="Hauppauge[1]__choice:double" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                set only actual step:<br />
+                            to value:
+              </td>
+              <td>
+                <input type="checkbox" result="Hauppauge[1]__choice:set_steps" />
+                <input type="spinner" result="Hauppauge[1]__choice:digits" width="20" min="1" max="5" />
+                &#160;digits<br />
+                <input type="spinner" result="Hauppauge[1]__choice:to_value" width="50" min="0" max="99999" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                wait after:
+              </td>
+              <td>
+                <input type="text" value="sec" format="#1.3" result="Hauppauge[1]__choice:after" /><br />
+                <input type="text" value="items" result="Hauppauge[1]__choice:calculate_lirc" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <input type="button" value="CALCULATE" result="Hauppauge[1]__choice:calcbutton" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                <input type="checkbox" result="Hauppauge[1]__choice:wait_back_time" readonly="readonly" />
+                back time:
+              </td>
+              <td>
+                <input type="text" value="sec" format="#1.3" result="Hauppauge[1]__choice:back_time" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                actual step:
+              </td>
+              <td>
+                <input type="spinner" result="Hauppauge[1]__choice:actual_step" />
+              </td>
+            </tr>
+          </table>
+  </body>

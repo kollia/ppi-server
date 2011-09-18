@@ -4,7 +4,7 @@
 #	written by Alexander Kolli
 #
 
-extenshion of files are .layout
+extenshion of files are as default .desktop
 the server look in this subdirectory "client"
 and send the sources as folder description to the client
 the position from an folder in the tree of the left side
@@ -18,27 +18,39 @@ the <head></haead> and <body></body> tag
 in the body tag you can display also <component>'s, <table>-tags and text like HTML
 all tags which not inherit other tags
 must have an slash "/" before closing with ">"
+as entity you can use &#160;, &lt;, &gt; &amp;, &apos; and &quot;
 
 <head>:
 	elements:	attribute:			description:
 
-	<meta />	name="<string>"			name of meta tag (key)
-							allowed names:
-								permission	-	for hole side permission
-											content value is group name
-								popupwidth	-	by starting with -t --notree
-											width of pop-up button on top
-								popupheight	-	by starting with -t --notree
-											height of pop-up button on top
-								popupfont	-	character font in pop-up button
-			content="<string>"		value of meta tag
-	<title />					real title at the tree on the left side	
-			name="<string>"			the name of the title which should be display
+  <meta name="<value>" content="<value>" />
+  
+    allowed names:
+           permission  -  for hole side permission
+                          content value is string of group name
+           popupwidth  -  by starting with -t --notree
+                          width of pop-up button on top
+                          content value is an unsigned integer
+           popupheight -	by starting with -t --notree
+                          height of pop-up button on top
+                          content value is an unsigned integer
+           popupfont   -  character font in pop-up button
+           
+  <title name="<string>"/>
+           real title at the tree on the left side
+           is the defined name in the title tag
+           If this tag is not defined, it apear the name of
+           file without extension
 
 
 <body>:
 	elements:	attribute:			description:
-	
+
+	<body>
+			href="<address>"
+							show side as internet side
+							body cannot have any other content
+							
 	<table>						table to calibrate the components (near HTML)
 			cellpadding="<number>"		the with and height border witch should be indented
 							the several fields
@@ -46,9 +58,13 @@ must have an slash "/" before closing with ">"
 							you do not see the different when the border is not displayed
 			border="<number>"		create border of all fields inside the table
 							most time only for debugging
+			permission="<group>"	whether user have permission to see this table
+														group must have only permisson to read
 
 	<tr>						an row inside of table tag (near HTML)
 			height="<number>"		the height of all fields in the row
+			permission="<group>"	whether user have permission to see this row in table
+														group must have only permisson to read
 
 	<td>						fields inside of row tag (tr) from table (near HTML)
 			height="<number>"		height of field, if there nothing give other in the row (<tr>)
@@ -65,19 +81,25 @@ must have an slash "/" before closing with ">"
 								top 
 								center [DEFAULT]
 								bottom
+			permission="<group>"	whether user have permission to see this field in row
+														group must have only permisson to read
 
-	<component>					components to control the subroutines SWITCH and VALUE
+	<input />					components to control the defined subroutines in measure.conf
 			type="<string>"			type of component can be:
-								check		-	checkbox
+								button		-	click button wich only be set when you hold
+								leftbutton	-	show inside the button an arrow to left "<"
+								rightbutton	-	show inside the button an arrow to right ">"
+								upbutton	-	show inside the button an arrow to up
+								downbutton	-	show inside the button an arrow to down
+								togglebutton	-	button witch hold the value after one click
+								checkbox	-	checkbox
 								radio		-	radiobutton
-								push			click button wich only be set when you hold
-								toggle			button witch hold the value after one click
-								input			input field witch can hold an number
-								spinner			input field with up and down button
-								slider			an slider witch have botton to set more or less
+								text		-	input field witch can hold an number
+								spinner		-	input field with up and down button
+								slider		-	an slider witch have botton to set more or less
 											like an scrollbar
-								scale			slider without the buttons
-								combo			pop-up box or list to select strings
+								scale		-	slider without the buttons
+								combo		-	pop-up box or list to select strings
 			result="<path>"			describing the position in the measure folders
 							the subroutines only can be from type SWITCH for boolean or VALUE for numbers
 							exp. "folder:subroutine"
@@ -91,37 +113,39 @@ must have an slash "/" before closing with ">"
 							    type input the suffix behind the number
 			name="<string>"			only for type radio
 							describe the group in which the radio button is
-			size="<number>"			only for type combo
-							describe how much rows should be displayed
 			min="<number>"			minimal-value for component slider and scale
 			max="<number>"			maximal-value for component slider and scale
 			scroll="<number>"		higher or lower value by clicking into the scroll bar
 							for components slider and scale
 			arrow="<number>"		value for get higher or lower by pressing the arrow keys
-							only for component slider
+							only for type slider
 			format="<string>"		format of displayed number beginning with '#' than a number whitch
 							representing the digits before decimal point and maby followd with an point
 							for any decimal places or with an number how much decimal places should be showen
 							exp.: "#<number>[.[<number>]]"
 								"#1"	for	12.211	=	12
-									for	 3.0	=	 3
+											for	 3.0	=	 3
 								"#1."	for	12.211	=	12.211
-									for	 3.0	=	 3
+											for	 3.0	=	 3
 								"#1.2"	for	12.211	=	12.21
-									for	 3.0	=	 3.00
+												for	 3.0	=	 3.00
 								"#2.1"	for	12.211	=	12.2
-									for	 3.0	=	03.0
+												for	 3.0	=	03.0
 			disabled="disabled"		set the component to disabled. Component can not changed from user
-							and is grey deposited.
+														and is grey deposited. If this attribute is not set, but user have no permission to read,
+							the component is also set to disabled
 			readonly="readonly"		set the component to readonly. Component can not change from user.
 							If this attribute is not set, but user have no permission to change,
 							the component is also set to readonly
 
-	<option>					tag inside of component tag
-							only if type is combo
+	<select>					component to create an combo box
+			size="<number>"			describe how much rows should be displayed
+			result="<path>"			describing the position in the measure folders
+							the subroutines only can be from type VALUE for numbers
+							exp. "folder:subroutine"
+	<option>					tag inside of select tag
 							to describe between the beginning and end tag
 							the strings which are displayed
-							similary about the select-tag in HTML
 			value="<number>"		the value which should be set in the result on the server
 							when the user select the string
 							if no value be defined

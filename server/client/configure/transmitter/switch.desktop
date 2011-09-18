@@ -1,0 +1,13 @@
+<layout>
+  <head>
+    <title name="start LIRC workflows" />
+  </head>
+  <body>
+    <table boder="1">
+      <tr>
+        <td>
+          <input type="button" result="LIRC_workflow_test:button" value="test"/>
+        </td>
+      </tr>
+    </table>
+  </body>

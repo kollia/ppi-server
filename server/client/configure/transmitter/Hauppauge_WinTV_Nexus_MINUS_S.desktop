@@ -1,0 +1,356 @@
+<layout>
+  <head>
+    <title name="Hauppauge_WinTV_Nexus-S" />
+    <meta name="permission" content="lconfchange" />
+  </head>
+  <body>
+    <table boder="1" width="100">
+      <tr>
+        <td>
+          <input type="togglebutton" value="record" result="TRANSMIT_RECEIVE_main_settings:record" />
+          &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;
+          Hauppauge_WinTV_Nexus-S
+        </td>
+      </tr>
+    </table><br />
+    <table border="1">
+      <tr>
+        <td>
+          <table border="0" >
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Up:receive" readonly="readonly" />
+                <input type="togglebutton" value="Up" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Up" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Down:receive" readonly="readonly" />
+                <input type="togglebutton" value="Down" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Down" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Left:receive" readonly="readonly" />
+                <input type="togglebutton" value="Left" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Left" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Right:receive" readonly="readonly" />
+                <input type="togglebutton" value="Right" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Right" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Power:receive" readonly="readonly" />
+                <input type="togglebutton" value="Power" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Power" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Ok:receive" readonly="readonly" />
+                <input type="togglebutton" value="Ok" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Ok" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Menu:receive" readonly="readonly" />
+                <input type="togglebutton" value="Menu" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Menu" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Back:receive" readonly="readonly" />
+                <input type="togglebutton" value="Back" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Back" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Red:receive" readonly="readonly" />
+                <input type="togglebutton" value="Red" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Red" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Green:receive" readonly="readonly" />
+                <input type="togglebutton" value="Green" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Green" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Yellow:receive" readonly="readonly" />
+                <input type="togglebutton" value="Yellow" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Yellow" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Blue:receive" readonly="readonly" />
+                <input type="togglebutton" value="Blue" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Blue" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__0:receive" readonly="readonly" />
+                <input type="togglebutton" value="0" result="Hauppauge_WinTV_Nexus_MINUS_S__show:_0" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__1:receive" readonly="readonly" />
+                <input type="togglebutton" value="1" result="Hauppauge_WinTV_Nexus_MINUS_S__show:_1" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__2:receive" readonly="readonly" />
+                <input type="togglebutton" value="2" result="Hauppauge_WinTV_Nexus_MINUS_S__show:_2" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__3:receive" readonly="readonly" />
+                <input type="togglebutton" value="3" result="Hauppauge_WinTV_Nexus_MINUS_S__show:_3" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__4:receive" readonly="readonly" />
+                <input type="togglebutton" value="4" result="Hauppauge_WinTV_Nexus_MINUS_S__show:_4" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__5:receive" readonly="readonly" />
+                <input type="togglebutton" value="5" result="Hauppauge_WinTV_Nexus_MINUS_S__show:_5" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__6:receive" readonly="readonly" />
+                <input type="togglebutton" value="6" result="Hauppauge_WinTV_Nexus_MINUS_S__show:_6" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__7:receive" readonly="readonly" />
+                <input type="togglebutton" value="7" result="Hauppauge_WinTV_Nexus_MINUS_S__show:_7" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__8:receive" readonly="readonly" />
+                <input type="togglebutton" value="8" result="Hauppauge_WinTV_Nexus_MINUS_S__show:_8" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__9:receive" readonly="readonly" />
+                <input type="togglebutton" value="9" result="Hauppauge_WinTV_Nexus_MINUS_S__show:_9" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Play:receive" readonly="readonly" />
+                <input type="togglebutton" value="Play" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Play" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Pause:receive" readonly="readonly" />
+                <input type="togglebutton" value="Pause" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Pause" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Stop:receive" readonly="readonly" />
+                <input type="togglebutton" value="Stop" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Stop" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Record:receive" readonly="readonly" />
+                <input type="togglebutton" value="Record" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Record" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_FastFwd:receive" readonly="readonly" />
+                <input type="togglebutton" value="FastFwd" result="Hauppauge_WinTV_Nexus_MINUS_S__show:FastFwd" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_FastRwd:receive" readonly="readonly" />
+                <input type="togglebutton" value="FastRwd" result="Hauppauge_WinTV_Nexus_MINUS_S__show:FastRwd" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Channel_PLUS_:receive" readonly="readonly" />
+                <input type="togglebutton" value="Channel+" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Channel_PLUS_" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Channel_MINUS_:receive" readonly="readonly" />
+                <input type="togglebutton" value="Channel-" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Channel_MINUS_" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Volume_PLUS_:receive" readonly="readonly" />
+                <input type="togglebutton" value="Volume+" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Volume_PLUS_" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Volume_MINUS_:receive" readonly="readonly" />
+                <input type="togglebutton" value="Volume-" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Volume_MINUS_" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Mute:receive" readonly="readonly" />
+                <input type="togglebutton" value="Mute" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Mute" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Timers:receive" readonly="readonly" />
+                <input type="togglebutton" value="Timers" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Timers" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Recordings:receive" readonly="readonly" />
+                <input type="togglebutton" value="Recordings" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Recordings" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Back[1]:receive" readonly="readonly" />
+                <input type="togglebutton" value="Back" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Back[1]" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Record[1]:receive" readonly="readonly" />
+                <input type="togglebutton" value="Record" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Record[1]" />
+              </td>
+              <td align="center">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S_Pause[1]:receive" readonly="readonly" />
+                <input type="togglebutton" value="Pause" result="Hauppauge_WinTV_Nexus_MINUS_S__show:Pause[1]" />
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+          <table>
+            <tr>
+              <td align="right">
+                button:
+              </td>
+              <td>
+                <input type="spinner" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:group" width="20" min="1" max="38" />&#160;
+                <input type="text" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:correct_group" value="" disabled="disabled" width="20"/>
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                steps:
+              </td>
+              <td>
+                <input type="spinner" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:steps" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <select size="1" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:steps_action">
+                  <option value="0">UP STOP</option>
+                  <option value="1">DOWN STOP</option>
+                  <option value="2">UP LOOP</option>
+                  <option value="3">DOWN LOOP</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <select size="1" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:transmit_action">
+                  <option value="0">SEND ONCE</option>
+                  <option value="1">SEND</option>
+                  <option value="2">WAIT after</option>
+                  <option value="3">BACK time</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:receive" readonly="readonly" />
+              </td>
+              <td>
+                <select size="1" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:correct_group" disabled="disabled">
+                  <option value="1">Up</option>
+                  <option value="2">Down</option>
+                  <option value="3">Left</option>
+                  <option value="4">Right</option>
+                  <option value="5">Power</option>
+                  <option value="6">Ok</option>
+                  <option value="7">Menu</option>
+                  <option value="8">Back</option>
+                  <option value="9">Red</option>
+                  <option value="10">Green</option>
+                  <option value="11">Yellow</option>
+                  <option value="12">Blue</option>
+                  <option value="13">0</option>
+                  <option value="14">1</option>
+                  <option value="15">2</option>
+                  <option value="16">3</option>
+                  <option value="17">4</option>
+                  <option value="18">5</option>
+                  <option value="19">6</option>
+                  <option value="20">7</option>
+                  <option value="21">8</option>
+                  <option value="22">9</option>
+                  <option value="23">Play</option>
+                  <option value="24">Pause</option>
+                  <option value="25">Stop</option>
+                  <option value="26">Record</option>
+                  <option value="27">FastFwd</option>
+                  <option value="28">FastRwd</option>
+                  <option value="29">Channel+</option>
+                  <option value="30">Channel-</option>
+                  <option value="31">Volume+</option>
+                  <option value="32">Volume-</option>
+                  <option value="33">Mute</option>
+                  <option value="34">Timers</option>
+                  <option value="35">Recordings</option>
+                  <option value="36">Back</option>
+                  <option value="37">Record</option>
+                  <option value="38">Pause</option>
+                </select>
+                <br />
+                <input type="button" value="PRESS" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:count" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                first touch show:
+              </td>
+              <td>
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:display_first" />
+              </td>
+            </tr>
+            <tr>
+              <td align="left">
+                wait double<br />
+                after pressed again:
+              </td>
+              <td>
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:double" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                set only actual step:<br />
+                            to value:
+              </td>
+              <td>
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:set_steps" />
+                <input type="spinner" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:digits" width="20" min="1" max="5" />
+                &#160;digits<br />
+                <input type="spinner" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:to_value" width="50" min="0" max="99999" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                wait after:
+              </td>
+              <td>
+                <input type="text" value="sec" format="#1.3" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:after" /><br />
+                <input type="text" value="items" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:calculate_lirc" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <input type="button" value="CALCULATE" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:calcbutton" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                <input type="checkbox" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:wait_back_time" readonly="readonly" />
+                back time:
+              </td>
+              <td>
+                <input type="text" value="sec" format="#1.3" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:back_time" />
+              </td>
+            </tr>
+            <tr>
+              <td align="right">
+                actual step:
+              </td>
+              <td>
+                <input type="spinner" result="Hauppauge_WinTV_Nexus_MINUS_S__choice:actual_step" />
+              </td>
+            </tr>
+          </table>
+  </body>
