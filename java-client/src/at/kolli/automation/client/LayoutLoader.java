@@ -44,11 +44,13 @@ import org.eclipse.swt.events.TreeEvent;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
@@ -640,57 +642,6 @@ public class LayoutLoader extends Thread
 			login= new DialogSettings(TreeNodes.m_sLayoutStyle);
 			TreeNodes.m_Settings.addSection(login);
 		}
-		mainComposite= new Composite(m_oTopLevelShell, SWT.NONE);
-		if(HtmTags.notree)
-		{
-			GridLayout layout= new GridLayout();
-			RowLayout popupLayout= new RowLayout();
-			
-			m_oPopupComposite= new Composite(mainComposite, SWT.NONE);
-			m_oMainComposite= new Composite(mainComposite, SWT.H_SCROLL);
-			treeComposite= null;
-			m_shellForm= null;
-			m_oTree= null;
-			mainComposite.setLayout(layout);
-			m_oPopupComposite.setLayout(popupLayout);
-			
-		}else
-		{
-			m_shellForm = new SashForm(mainComposite, SWT.HORIZONTAL);
-			treeComposite= new Group(m_shellForm, SWT.SHADOW_ETCHED_IN);
-			m_oMainComposite= new Composite(m_shellForm, SWT.NONE);
-			m_oTree= new Tree(treeComposite, SWT.SINGLE);
-
-			mainLayout.marginHeight= 10;
-			mainLayout.marginWidth= 10;
-			mainComposite.setLayout(mainLayout);
-			
-
-			check= login.get("sashwidth");
-			if(check != null)
-			{
-				sashWeight[0]= login.getInt("sashwidth");
-				sashWeight[1]= login.getInt("sashheight");
-			}
-			m_shellForm.setLayout(new FillLayout());
-			m_shellForm.setWeights(sashWeight);
-		}
-		
-		if(!HtmTags.notree)
-		{
-			treeLayout.marginWidth= 1;
-			treeLayout.marginHeight= 1;
-			treeComposite.setLayout(treeLayout);		
-			treeComposite.setVisible(true);
-		}
-		
-		m_StackLayout.marginHeight= 10;
-		m_StackLayout.marginWidth= 10;
-		m_oMainComposite.setLayout(m_StackLayout);
-
-		m_oTopLevelShell.setLayout(new FillLayout());
-		m_oTopLevelShell.setText("ppi-client  (physical port interface client)");
-
 		monitor= Display.getDefault().getPrimaryMonitor().getBounds();
 		if(HtmTags.fullscreen)
 		{
@@ -717,6 +668,57 @@ public class LayoutLoader extends Thread
 			}
 			m_oTopLevelShell.setLocation(xLocation, yLocation);
 		}
+		
+		mainComposite= new Composite(m_oTopLevelShell, SWT.NONE);
+		if(HtmTags.notree)
+		{
+			RowLayout popupLayout= new RowLayout();
+			
+			m_shellForm = new SashForm(mainComposite, SWT.VERTICAL);
+			m_oPopupComposite= new Composite(m_shellForm, SWT.NONE);
+			m_oMainComposite= new Composite(m_shellForm, SWT.NONE);
+			
+			mainComposite.setLayout(mainLayout);
+			m_oPopupComposite.setLayout(popupLayout);
+			treeComposite= null;
+			m_oTree= null;
+			
+		}else
+		{
+			m_shellForm = new SashForm(mainComposite, SWT.HORIZONTAL);
+			treeComposite= new Group(m_shellForm, SWT.SHADOW_ETCHED_IN);
+			m_oMainComposite= new Composite(m_shellForm, SWT.NONE);
+			m_oTree= new Tree(treeComposite, SWT.SINGLE);
+
+			mainLayout.marginHeight= 10;
+			mainLayout.marginWidth= 10;
+			mainComposite.setLayout(mainLayout);
+
+			check= login.get("sashwidth");
+			if(check != null)
+			{
+				sashWeight[0]= login.getInt("sashwidth");
+				sashWeight[1]= login.getInt("sashheight");
+			}
+			m_shellForm.setWeights(sashWeight);
+			m_shellForm.setLayout(new FillLayout());
+		}
+		
+		if(!HtmTags.notree)
+		{
+			treeLayout.marginWidth= 1;
+			treeLayout.marginHeight= 1;
+			treeComposite.setLayout(treeLayout);		
+			treeComposite.setVisible(true);
+		}
+		
+		m_StackLayout.marginHeight= 10;
+		m_StackLayout.marginWidth= 10;
+		m_oMainComposite.setLayout(m_StackLayout);
+
+		m_oTopLevelShell.setLayout(new FillLayout());
+		m_oTopLevelShell.setText("ppi-client  (physical port interface client)");
+
 		if(!HtmTags.notree)
 		{// add listeners for tree
 			
@@ -843,6 +845,18 @@ public class LayoutLoader extends Thread
 				public void run() 
 				{
 					m_oTopLevelShell.setSize(m_nWidth, m_nHeight);
+					if(m_oPopupComposite != null)
+					{
+						int sashHeight[]= { 200, 800 };
+						Rectangle size, pop;
+						
+						pop= m_oPopupComposite.getChildren()[0].getBounds();
+						size= m_shellForm.getBounds();
+						sashHeight[0]= pop.height;
+						sashHeight[1]= size.height - pop.height;
+						m_shellForm.setWeights(sashHeight);
+						//m_shellForm.pack();
+					}
 				}
 			});
 		}
