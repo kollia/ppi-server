@@ -18,8 +18,6 @@ package at.kolli.dialogs;
 
 import org.eclipse.swt.widgets.Display;
 
-import at.kolli.layout.HtmTags;
-
 /**
  * adapter pattern for synchronize SWT syncExec and asyncExec
  * for debugging messages

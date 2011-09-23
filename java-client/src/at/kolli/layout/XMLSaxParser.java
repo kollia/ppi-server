@@ -27,8 +27,6 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import at.kolli.automation.client.MsgClientConnector;
-
 import org.apache.regexp.RE;
 
 /**

@@ -24,7 +24,6 @@ import at.kolli.automation.client.MsgClientConnector;
 import at.kolli.automation.client.NodeContainer;
 import at.kolli.automation.client.TreeNodes;
 import at.kolli.dialogs.DialogThread;
-import at.kolli.dialogs.DisplayAdapter;
 
 /**
  * Thread to read continually the state for the components on the server

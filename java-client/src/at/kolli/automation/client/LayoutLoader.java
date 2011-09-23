@@ -901,18 +901,6 @@ public class LayoutLoader extends Thread
 	}
 	
 	/**
-	 * method update and manage the sides content of the widget to display
-	 * 
-	 * @param folder all exist folder which should displayed in the nodes
-	 */
-	private void updateMainWidget(HashMap<String, Date> folderMap) throws IOException
-	{
-		Set<String> folderSet= folderMap.keySet();
-		MsgClientConnector client= MsgClientConnector.instance();
-
-		//System.out.println("End or update --------------");
-	}
-	/**
 	 * initialize content of widgets
 	 * 
 	 * @param start whether initialization is for first creation

@@ -24,8 +24,6 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
-import at.kolli.automation.client.LayoutLoader;
-import at.kolli.automation.client.TreeNodes;
 import at.kolli.layout.HtmTags;
 
 /**

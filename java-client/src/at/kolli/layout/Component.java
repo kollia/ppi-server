@@ -38,7 +38,6 @@ import org.eclipse.swt.widgets.Scale;
 import org.eclipse.swt.widgets.Slider;
 import org.eclipse.swt.widgets.Spinner;
 import org.eclipse.swt.widgets.Text;
-import org.xml.sax.SAXException;
 
 import org.apache.regexp.RE;
 
