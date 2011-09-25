@@ -208,12 +208,15 @@ public class Table extends HtmTags
 	public void execute(Composite composite) throws IOException
 	{
 		int columns= 1;
+		int heighest= -1;
+		ArrayList<Integer> maxwidth= new ArrayList<Integer>();
 		GridLayout layout= new GridLayout();
 		ArrayList<Integer> isAlsoNext= new ArrayList<Integer>();
 		
 		askPermission();
 		if(getPermission().equals(permission.None))
 			return;
+		// calculate the highest count of columns in all rows
 		for(HtmTags tag : m_lContent)
 		{
 			ContentRows row= (ContentRows)tag;
@@ -222,6 +225,36 @@ public class Table extends HtmTags
 			if(c > columns)
 				columns= c;
 		}
+		// calculate the highest height per column
+		for(HtmTags tag : m_lContent)
+		{
+			ContentRows row= (ContentRows)tag;
+			int hig= row.getHighestField();
+			if(hig > -1)
+				row.setHighestField(hig);
+		}
+		// calculate the maximun width for each column
+		for(HtmTags tag : m_lContent)
+		{
+			ArrayList<Integer> mwidth;
+			
+			ContentRows row= (ContentRows)tag;
+			mwidth= row.getMaxWidth();
+			for(int i= 0; i < mwidth.size(); ++i)
+			{			
+				if(i >= maxwidth.size())
+					maxwidth.add(mwidth.get(i));
+				else if(maxwidth.get(i) < mwidth.get(i))
+					maxwidth.set(i, mwidth.get(i));
+			}
+		}
+		// set the maximum width in each column
+		for(HtmTags tag : m_lContent)
+		{
+			ContentRows row= (ContentRows)tag;
+			row.setMaxWidth(maxwidth);
+		}
+				
 		for(int o= 0; o<columns; ++o)
 			isAlsoNext.add(0);
 		layout.numColumns= columns;

@@ -23,7 +23,6 @@ import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 
@@ -178,79 +177,129 @@ public class ContentFields extends HtmTags
 	 */
 	public void execute(Composite composite) throws IOException
 	{
-		Composite cp;
-		Composite outCp;
-		Composite inCp;
-		GridLayout oLayout= new GridLayout();
-		GridData data= new GridData();
-		RowLayout outLayout= new RowLayout();
-		RowLayout inLayout= new RowLayout();
+		int count;
+		Composite mainCp;
+		Composite fieldCp;
+		Composite rowCp;
+		GridLayout mainLayout= new GridLayout();
+		GridLayout fieldLayout= new GridLayout();
+		GridLayout rowLayout= new GridLayout();
+		GridData mainData= new GridData();
+		GridData fieldData= new GridData();
+		GridData rowData= new GridData();
 
 		askPermission();
 		if(getPermission().compareTo(permission.readable) == -1)
 			return;
-		if(m_bBorder)
-			cp= new Group(composite, SWT.SHADOW_NONE);
-		else
-			cp= new Composite(composite, SWT.NONE);
+		if(	m_bBorder && 
+			(	m_lContent.size() > 0 ||
+				href != ""				)	)
+		{
+			mainCp= new Group(composite, SWT.SHADOW_ETCHED_IN);
+			
+		}else
+			mainCp= new Composite(composite, SWT.NONE);
 		
 		if(href != "")
 		{
-			Browser browser= new Browser(cp, SWT.NONE);
+			Browser browser= new Browser(mainCp, SWT.NONE);
 			
 			composite.setLayout(new FillLayout());
-			cp.setLayout(new FillLayout());
+			mainCp.setLayout(new FillLayout());
 			browser.setUrl(href);
 			return;
 		}
-		outCp= new Composite(cp, SWT.NONE);
-		inCp= new Composite(outCp, SWT.NONE);
-		
-		data.horizontalSpan= colspan;
-		data.verticalSpan= rowspan;
-		data.horizontalAlignment= align;
-		data.verticalAlignment= valign;
-		if(this.width != -1)
-			data.minimumWidth= this.width;
-		if(this.height != -1)
-			data.minimumHeight= this.height;
-		
-		oLayout.numColumns= 1;
-		oLayout.marginWidth= cellpadding;
-		oLayout.marginHeight= cellpadding;
-
-		outLayout.type= SWT.VERTICAL;
-		outLayout.wrap= false;
-		outLayout.spacing= 0;
-		outLayout.marginHeight= 0;
-		outLayout.marginWidth= 0;
-		
-		inLayout.type= SWT.HORIZONTAL;
-		inLayout.wrap= false;
-		inLayout.spacing= 0;
-
-		cp.setLayoutData(data);
-		cp.setLayout(oLayout);
-		outCp.setLayout(outLayout);
-		inCp.setLayout(inLayout);
-
 		if(m_lContent.size() == 0)
 		{// no content exist
 			return;
 		}
+		fieldCp= new Composite(mainCp, SWT.NONE);
+		//fieldCp= new Group(mainCp, SWT.SHADOW_ETCHED_IN);
+		rowCp= new Composite(fieldCp, SWT.NONE);
+		//rowCp= new Group(fieldCp, SWT.SHADOW_ETCHED_IN);	
+		
+		
+		mainLayout.numColumns= 1;
+		mainLayout.marginWidth= cellpadding;
+		mainLayout.marginHeight= cellpadding;
+
+		fieldLayout.marginHeight= 0;
+		fieldLayout.marginWidth= 0;
+		
+		rowLayout.marginHeight= 0;
+		rowLayout.marginWidth= 0;
+		rowLayout.marginTop= 0;
+		rowLayout.marginBottom= 0;
+		count= 0;
+		for(HtmTags tag : m_lContent)
+		{
+			if(tag instanceof Break)
+				break;
+			++count;
+		}
+		rowLayout.numColumns= count;
+		
+		
+		mainCp.setLayout(mainLayout);
+		fieldCp.setLayout(fieldLayout);
+		rowCp.setLayout(rowLayout);
+
+		mainData.horizontalSpan= colspan;
+		mainData.horizontalAlignment= GridData.FILL;
+		mainData.verticalSpan= rowspan;
+		mainData.verticalAlignment= GridData.FILL;
+		if(this.width != -1)
+			mainData.widthHint= this.width;
+		if(rowspan == 1)
+		{
+			if(this.height != -1)
+				mainData.heightHint= this.height;
+		}
+
+		fieldData.horizontalAlignment= align;
+		fieldData.grabExcessHorizontalSpace= true;
+		fieldData.verticalAlignment= valign;
+		fieldData.grabExcessVerticalSpace= true;
+
+		rowData.horizontalAlignment= align;
+		rowData.grabExcessHorizontalSpace= true;
+		
+		
+		mainCp.setLayoutData(mainData);
+		fieldCp.setLayoutData(fieldData);
+		rowCp.setLayoutData(rowData);
+
 		for(HtmTags tag : m_lContent)
 		{
 			if(tag instanceof Break)
 			{
-				inCp= new Composite(outCp, SWT.NONE);
-				//inCp= new Group(outCp, SWT.SHADOW_NONE);
-				inCp.setLayout(inLayout);
+				rowCp= new Composite(fieldCp, SWT.NONE);
+				//rowCp= new Group(fieldCp, SWT.SHADOW_NONE);
+				rowLayout= new GridLayout();
+				rowData= new GridData();
+				
+				rowData.horizontalAlignment= align;
+				rowData.grabExcessHorizontalSpace= true;
+				rowLayout.marginTop= 0;
+				rowLayout.marginBottom= 0;
+				rowLayout.marginHeight= 0;
+				rowLayout.marginWidth= 0;
+				count= 0;
+				for(HtmTags ntag : m_lContent)
+				{
+					if(ntag instanceof Break)
+						break;
+					++count;
+				}
+				rowLayout.numColumns= count;
+				rowCp.setLayout(rowLayout);
+				rowCp.setLayoutData(rowData);
 			}else
 			{
-				Composite gridCompo= new Composite(inCp, SWT.NONE);
+				Composite gridCompo= new Composite(rowCp, SWT.NONE);
 				GridLayout gridLayout= new GridLayout();
 				
-				gridLayout.marginWidth= 0;
+				gridLayout.marginWidth= 1;
 				gridLayout.marginHeight= 0;
 				gridCompo.setLayout(gridLayout);
 				tag.execute(gridCompo);

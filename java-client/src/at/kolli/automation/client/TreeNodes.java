@@ -675,7 +675,7 @@ public class TreeNodes
 				
 				@Override
 				public void run() {
-					// define minimal shoen size
+					// define minimal shown size
 					m_oScrolledComposite.setMinSize(m_oComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT, true));
 					//System.out.println(m_sName + ": " + m_oComposite.getSize());
 				}

@@ -44,13 +44,10 @@ import org.eclipse.swt.events.TreeEvent;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
@@ -852,8 +849,8 @@ public class LayoutLoader extends Thread
 						
 						pop= m_oPopupComposite.getChildren()[0].getBounds();
 						size= m_shellForm.getBounds();
-						sashHeight[0]= pop.height;
-						sashHeight[1]= size.height - pop.height;
+						sashHeight[0]= pop.height + 10;
+						sashHeight[1]= size.height - pop.height - 10;
 						m_shellForm.setWeights(sashHeight);
 						//m_shellForm.pack();
 					}
