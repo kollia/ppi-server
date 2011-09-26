@@ -17,6 +17,7 @@
 package at.kolli.layout;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
@@ -178,6 +179,7 @@ public class ContentFields extends HtmTags
 	public void execute(Composite composite) throws IOException
 	{
 		int count;
+		ArrayList<Integer > lenList= new ArrayList<Integer>();
 		Composite mainCp;
 		Composite fieldCp;
 		Composite rowCp;
@@ -231,13 +233,18 @@ public class ContentFields extends HtmTags
 		rowLayout.marginTop= 0;
 		rowLayout.marginBottom= 0;
 		count= 0;
-		for(HtmTags tag : m_lContent)
+		for(HtmTags ntag : m_lContent)
 		{
-			if(tag instanceof Break)
-				break;
-			++count;
+			if(ntag instanceof Break)
+			{
+				lenList.add(count);
+				count= 0;
+			}else
+				++count;
 		}
-		rowLayout.numColumns= count;
+		lenList.add(count);
+		rowLayout.numColumns= lenList.get(0);
+		count= 1; //<- for next list index
 		
 		
 		mainCp.setLayout(mainLayout);
@@ -284,14 +291,8 @@ public class ContentFields extends HtmTags
 				rowLayout.marginBottom= 0;
 				rowLayout.marginHeight= 0;
 				rowLayout.marginWidth= 0;
-				count= 0;
-				for(HtmTags ntag : m_lContent)
-				{
-					if(ntag instanceof Break)
-						break;
-					++count;
-				}
-				rowLayout.numColumns= count;
+				rowLayout.numColumns= lenList.get(count);
+				++count; //<- for next list index
 				rowCp.setLayout(rowLayout);
 				rowCp.setLayoutData(rowData);
 			}else
