@@ -138,7 +138,7 @@ public class ContentRows extends HtmTags
 	 */
 	public int getHighestField()
 	{
-		int highest= 0;
+		int highest= -1;
 		
 		for(HtmTags tag : m_lContent)
 		{
