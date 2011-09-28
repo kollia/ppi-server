@@ -363,7 +363,7 @@ namespace server
 			descriptor.endl();
 			descriptor.flush();
 #ifdef SERVERDEBUG
-			cout << "send: " << sterror(errnr);
+			cout << "send: " << strerror(errnr);
 #endif
 
 		}else if(	!descriptor.getBoolean("access") ||
