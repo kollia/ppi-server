@@ -240,8 +240,6 @@ public class XMLSaxParser extends DefaultHandler
 				echoString(">");
 			return;
 		}
-		if(eName.equals("component"))
-			System.out.print("");
 		createTextBuffer();
 		echoTextBuffer();
 	
@@ -286,6 +284,10 @@ public class XMLSaxParser extends DefaultHandler
 				m_oAktTag.insert(tag);
 				m_oAktTag= tag;
 				m_bBody= true;
+			}else
+			{
+				if(HtmTags.debug)
+					echoString("\nfind unknown tag <" + eName + ">\n");
 			}
 		}else
 		{
@@ -377,7 +379,13 @@ public class XMLSaxParser extends DefaultHandler
 	        	}
 	        }else if(m_oAktTag instanceof Body)
 	        {
-	        	((Body)m_oAktTag).href= attrs.getValue(i);
+	        	if(aName.equals("href"))
+	        		((Body)m_oAktTag).href= attrs.getValue(i);
+	        	else
+				{
+					if(HtmTags.debug)
+						echoString("\nfind unknown attribute " + aName + " in tag <" + eName + ">\n");
+				}
 	        	
 	        }else if(m_oAktTag instanceof Option)
 	    	{
@@ -395,7 +403,11 @@ public class XMLSaxParser extends DefaultHandler
 	        		}
 	        		//doubleValue= value;
 	        		option.value= value;//Double.valueOf(value);
-	        	}
+	        	}else
+				{
+					if(HtmTags.debug)
+						echoString("\nfind unknown attribute " + aName + " in tag <" + eName + ">\n");
+				}
 	        	
 	    	}else if(m_oAktTag instanceof Component)
 	        {
@@ -439,6 +451,11 @@ public class XMLSaxParser extends DefaultHandler
 	        		component.rollbarfield= Integer.parseInt(attrs.getValue(i));
 	        	else if(aName.equals("format"))
 	        		component.format= attrs.getValue(i);
+	        	else
+				{
+					if(HtmTags.debug)
+						echoString("\nfind unknown attribute " + aName + " in tag <" + eName + ">\n");
+				}
 	        	
 	        }else if(m_oAktTag instanceof Table)
 	        {
@@ -526,7 +543,11 @@ public class XMLSaxParser extends DefaultHandler
 		        		tr.permgroup= attrs.getValue(i);
 		        	else
 		        		table.permgroup= attrs.getValue(i);		        	
-		        }		        	
+		        }else
+				{
+					if(HtmTags.debug)
+						echoString("\nfind unknown attribute " + aName + " inside tag <table>\n");
+				}		        	
 	        }
 	      }
 	    }
@@ -651,6 +672,8 @@ public class XMLSaxParser extends DefaultHandler
     	s= before.replaceAll("  ", " ");
     }while(before != s);
 
+    if(HtmTags.debug)
+    	echoString(s);
     if(!m_bTitleDef)
     {
 	    if( textBuffer == null )
