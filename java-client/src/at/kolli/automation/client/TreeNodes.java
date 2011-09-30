@@ -902,8 +902,8 @@ public class TreeNodes
 	        		display.equals("false")	)
 		        {
 		        	if(HtmTags.debug)
-		        		System.out.println("page is set to display false");
-		        	throw new IllegalAccessException("no side access");
+		        		System.out.println("page is set to display false, do not show this page inside navigation bar");
+		        	return false;
 		        }
 	        }
 	        m_aoButtons= handler.getComponents();
@@ -912,7 +912,8 @@ public class TreeNodes
 		    bodyList= layout.getBody();
 	      } catch( Throwable t ) 
 	      {
-	    	  t.printStackTrace();
+	    	  if(!t.getMessage().equals("no side access"))
+	    		  t.printStackTrace();
 	        if(m_mMetaBlock == null)
 	        	m_mMetaBlock= new HashMap<String, String>();
 	        if(layout == null)

@@ -196,6 +196,19 @@ public class PopupMenu
 		}
 	}
 	/**
+	 * clearing all menu entries from pop-up list
+	 * 
+	 */
+	public static void clearAll()
+	{
+		if(_instance != null)
+		{
+			_instance.m_mRootEntrys.clear();
+			_instance.m_mRootNodes.clear();
+		}
+		_instance= null;
+	}
+	/**
 	 * returning instance of this object if exit
 	 */
 	public static PopupMenu instance()

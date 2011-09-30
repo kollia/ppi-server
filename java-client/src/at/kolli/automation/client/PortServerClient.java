@@ -31,6 +31,7 @@ import org.eclipse.jface.dialogs.DialogSettings;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.custom.PopupList;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.graphics.Image;
@@ -429,7 +430,6 @@ public class PortServerClient
 		
 		});
 		toplevelShell.open();
-		
 		while(!toplevelShell.isDisposed())
 		{
 			if(!display.readAndDispatch())

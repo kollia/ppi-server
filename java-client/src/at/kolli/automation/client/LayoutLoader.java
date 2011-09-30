@@ -61,6 +61,7 @@ import at.kolli.dialogs.DisplayAdapter;
 import at.kolli.dialogs.DialogThread.states;
 import at.kolli.layout.Component;
 import at.kolli.layout.HtmTags;
+import at.kolli.layout.PopupMenu;
 import at.kolli.layout.WidgetChecker;
 
 /**
@@ -128,6 +129,10 @@ public class LayoutLoader extends Thread
 	 * relative offset position of user-array inside the shell 
 	 */
 	public static volatile Point mainRelPoint;
+	/**
+	 * composite which inherit pop-up navigation bar
+	 */
+	private static Composite m_oPopupIn= null;
 	/**
 	 * composite for popup menu if notree be set
 	 */
@@ -712,13 +717,18 @@ public class LayoutLoader extends Thread
 		mainComposite= new Composite(m_oTopLevelShell, SWT.NONE);
 		if(HtmTags.notree)
 		{
+			FillLayout fill= new FillLayout();
 			RowLayout popupLayout= new RowLayout();
 			
 			m_shellForm = new SashForm(mainComposite, SWT.VERTICAL);
-			m_oPopupComposite= new Composite(m_shellForm, SWT.NONE);
+			m_oPopupIn= new Composite(m_shellForm, SWT.NONE);
+			m_oPopupComposite= new Composite(m_oPopupIn, SWT.NONE);
 			m_oMainComposite= new Composite(m_shellForm, SWT.NONE);
 			
+			fill.marginHeight= 3;
+			fill.marginWidth= 3;
 			mainComposite.setLayout(mainLayout);
+			m_oPopupIn.setLayout(fill);
 			m_oPopupComposite.setLayout(popupLayout);
 			treeComposite= null;
 			m_oTree= null;
@@ -837,7 +847,22 @@ public class LayoutLoader extends Thread
 			m_bInitialized= true;
 			
 		}else
-		{// remove all Listeners from actually side
+		{
+			if(HtmTags.notree)
+			{// remove old, and create new pop-up bar
+				DisplayAdapter.syncExec(new Runnable() {
+					
+					public void run() {
+						
+						PopupMenu.clearAll();
+						m_oPopupComposite.dispose();
+						m_oPopupComposite= new Composite(m_oPopupIn, SWT.NONE);
+						m_oPopupComposite.setLayout(new RowLayout());
+					}
+					
+				});
+			}
+			// remove all Listeners from actually side
 			if(	m_aoComponents == null &&
 				m_oAktTreeNode != null		)
 			{				
@@ -890,6 +915,7 @@ public class LayoutLoader extends Thread
 						int sashHeight[]= { 200, 800 };
 						Rectangle size, pop;
 						
+						m_oPopupComposite.pack(true);
 						pop= m_oPopupComposite.getChildren()[0].getBounds();
 						size= m_shellForm.getBounds();
 						sashHeight[0]= pop.height + 10;
@@ -905,10 +931,9 @@ public class LayoutLoader extends Thread
 		if(!checker.isAlive())
 			checker.start();
 		
-		synchronized (TreeNodes.m_DISPLAYLOCK)
-		{
-			setFirstSide(m_aTreeNodes, "");
-		}
+		m_oAktTreeNode= null;
+		setFirstSide(m_aTreeNodes, "");
+		//}
 /*		if(!setActSideVisible(/*inform server/true))
 		{
 			m_sAktFolder= nodes.get(0).getName();
