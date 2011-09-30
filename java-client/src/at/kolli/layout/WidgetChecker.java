@@ -174,7 +174,7 @@ public class WidgetChecker extends Thread
 					if(!node.equals(""))
 					{// set new side active
 						loader.m_sAktFolder= node;
-						loader.setActSideVisible(/*inform server*/false);
+						loader.setActSideVisible(/*inform server by no body*/false);
 					}else
 					{// fill values into actual side
 						synchronized(m_AktTreeNode)

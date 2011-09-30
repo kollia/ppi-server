@@ -482,7 +482,7 @@ public class LayoutLoader extends Thread
 	/**
 	 * set defined side in <code>m_sAktFolder</code> to new active side
 	 * 
-	 * @param whether should inform server to set page active
+	 * @param whether should inform server want to set page active also when node has no body
 	 * @return whether can set new page or was also before active
 	 */
 	public boolean setActSideVisible(boolean inform)
@@ -498,7 +498,7 @@ public class LayoutLoader extends Thread
 		}
 		for(TreeNodes node : m_aTreeNodes)
 		{
-			newNode= node.setVisible(m_StackLayout, m_sAktFolder);
+			newNode= node.setVisible(m_StackLayout, m_sAktFolder, inform);
 			
 			if(newNode != null)
 			{
@@ -798,7 +798,7 @@ public class LayoutLoader extends Thread
 						if(HtmTags.debug)
 							System.out.println("Treenode "+ name + " is selected");
 						m_sAktFolder= name;
-						setActSideVisible(/*inform server*/true);
+						setActSideVisible(/*inform server by no body*/true);
 					}
 				}
 			});
@@ -952,7 +952,7 @@ public class LayoutLoader extends Thread
 		for(TreeNodes current : nodes)
 		{
 			m_sAktFolder= path + current.getName();
-			if(setActSideVisible(/*inform server*/true))
+			if(setActSideVisible(/*inform server by no body*/false))
 				return true;
 		}
 		for(TreeNodes current : nodes)

@@ -389,12 +389,13 @@ public class TreeNodes
 	 * 
 	 * @param layout Stacklayout which gets the main-composite
 	 * @param folder name of folder which should be the same to set visible
+	 * @param inform inform server for activating also when node has no body
 	 * @return node which is now set on the top
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 02.12.2007
 	 * @since JDK 1.6
 	 */
-	public TreeNodes setVisible(final StackLayout layout, String folder)
+	public TreeNodes setVisible(final StackLayout layout, String folder, boolean inform)
 	{
 		String name;
 		StringTokenizer token= new StringTokenizer(folder, ":");
@@ -405,7 +406,9 @@ public class TreeNodes
 		name= token.nextToken();
 		if(!m_sTitleName.equals(name))
 			return null;
-		if(m_mMetaBlock != null)
+		if(	m_mMetaBlock != null &&
+			(	inform == true ||
+				hasBody()			)	)
 		{// inform server also when side has no body
 			String result;
 			
@@ -446,7 +449,7 @@ public class TreeNodes
 		}
 		for(TreeNodes node : m_aSubnodes)
 		{
-			oRv= node.setVisible(layout, folder.substring(name.length()+1));
+			oRv= node.setVisible(layout, folder.substring(name.length()+1), inform);
 			if(oRv != null)
 				return oRv;
 		}

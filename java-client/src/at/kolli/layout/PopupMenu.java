@@ -132,7 +132,7 @@ public class PopupMenu
 				{
 					loader= LayoutLoader.instance();
 					loader.m_sAktFolder= entry;
-					loader.setActSideVisible(/*inform server*/true); 
+					loader.setActSideVisible(/*inform server by no body*/true); 
 				}
 			}
 		});
@@ -147,7 +147,7 @@ public class PopupMenu
 				{
 					loader= LayoutLoader.instance();
 					loader.m_sAktFolder= entry;
-					loader.setActSideVisible(/*inform server*/true);
+					loader.setActSideVisible(/*inform server by no body*/true);
 				}
 			}
 		});
@@ -293,7 +293,7 @@ public class PopupMenu
 						loader.m_sAktFolder= entry;
 						synchronized (TreeNodes.m_DISPLAYLOCK)
 						{
-							loader.setActSideVisible(/*inform server*/true);
+							loader.setActSideVisible(/*inform server by no body*/true);
 						}
 						destroy();
 						m_sMenu= "";
@@ -309,7 +309,7 @@ public class PopupMenu
 						loader.m_sAktFolder= entry;
 						synchronized (TreeNodes.m_DISPLAYLOCK)
 						{
-							loader.setActSideVisible(/*inform server*/true);
+							loader.setActSideVisible(/*inform server by no body*/true);
 						}
 						destroy();
 						m_sMenu= "";
