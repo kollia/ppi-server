@@ -44,6 +44,10 @@ public abstract class HtmTags
 	 */
 	public static boolean debug= false;
 	/**
+	 * show also sides defined with meta tag display false
+	 */
+	public static boolean showFalse= false;
+	/**
 	 * whether set window to full screen
 	 */
 	public static boolean fullscreen= false;

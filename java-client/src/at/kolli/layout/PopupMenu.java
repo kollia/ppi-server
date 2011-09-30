@@ -16,6 +16,7 @@
  */
 package at.kolli.layout;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -33,7 +34,9 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Shell;
 
 import at.kolli.automation.client.LayoutLoader;
+import at.kolli.automation.client.MsgClientConnector;
 import at.kolli.automation.client.TreeNodes;
+import at.kolli.dialogs.DisplayAdapter;
 
 /**
  * singelton pattern for popup menu if the parameter -t for no tree be set
@@ -86,24 +89,23 @@ public class PopupMenu
 		m_oMenu= menubar;
 	}
 	/**
-	 * creating new object of popup-menu if not exist
+	 * creating new object of pop-up menu if not exist
 	 * and set main menu entry
 	 * 
 	 * @param menubar composite where the root of menues should appear
-	 * @param string of one entry on the root
-	 * @param metablock all meta data defined inside of the head tag
+	 * @param node object of tree node for pop-up menu
 	 */
-	public static void init(Composite menubar, TreeNodes nodes)
+	public static void init(Composite menubar, TreeNodes node)
 	{
 		RowLayout layout= new RowLayout();
 		final Group popup= new Group(menubar, SWT.NONE);
 		Label text= new Label(popup, SWT.SHADOW_IN);
-		HashMap<String, String> metablock= nodes.getMetaData();
+		HashMap<String, String> metablock= node.getMetaData();
 		final String entry;
 		String spacing= metablock.get("popupspace");
 		int space;
 		
-		entry= nodes.getName();
+		entry= node.getName();
 		if(_instance == null)
 		{
 			_instance= new PopupMenu(menubar);
@@ -130,7 +132,7 @@ public class PopupMenu
 				{
 					loader= LayoutLoader.instance();
 					loader.m_sAktFolder= entry;
-					loader.setActSideVisible();
+					loader.setActSideVisible(/*inform server*/true); 
 				}
 			}
 		});
@@ -145,7 +147,7 @@ public class PopupMenu
 				{
 					loader= LayoutLoader.instance();
 					loader.m_sAktFolder= entry;
-					loader.setActSideVisible();
+					loader.setActSideVisible(/*inform server*/true);
 				}
 			}
 		});
@@ -164,7 +166,34 @@ public class PopupMenu
 			}
 		});
 		_instance.m_mRootEntrys.put(entry, popup);
-		_instance.m_mRootNodes.put(entry, nodes);
+		_instance.m_mRootNodes.put(entry, node);
+	}
+	/**
+	 * destroy menu entry from pop-up list
+	 * 
+	 * @param node object of tree node for pop-up menu to destroy
+	 */
+	public static void destroy(TreeNodes node)
+	{
+		if(_instance != null)
+		{
+			final String name= node.getName();
+			
+			DisplayAdapter.syncExec(new Runnable() {
+			
+				public void run() 
+				{
+					Group popup;
+					
+					popup= _instance.m_mRootEntrys.get(name);
+					if(popup != null)
+						popup.dispose();
+				}
+		
+			});
+			_instance.m_mRootEntrys.remove(name);
+			_instance.m_mRootNodes.remove(name);
+		}
 	}
 	/**
 	 * returning instance of this object if exit
@@ -247,12 +276,11 @@ public class PopupMenu
 					{
 						LayoutLoader loader;
 						
-						//_instance.show(entry, false);
 						loader= LayoutLoader.instance();
 						loader.m_sAktFolder= entry;
 						synchronized (TreeNodes.m_DISPLAYLOCK)
 						{
-							loader.setActSideVisible();
+							loader.setActSideVisible(/*inform server*/true);
 						}
 						destroy();
 						m_sMenu= "";
@@ -264,12 +292,11 @@ public class PopupMenu
 					{
 						LayoutLoader loader;
 						
-						//_instance.show(entry, false);
 						loader= LayoutLoader.instance();
 						loader.m_sAktFolder= entry;
 						synchronized (TreeNodes.m_DISPLAYLOCK)
 						{
-							loader.setActSideVisible();
+							loader.setActSideVisible(/*inform server*/true);
 						}
 						destroy();
 						m_sMenu= "";

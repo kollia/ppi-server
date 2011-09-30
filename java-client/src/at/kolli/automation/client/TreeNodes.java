@@ -373,7 +373,15 @@ public class TreeNodes
 	{
 		return m_oItem;
 	}
-	
+	/**
+	 * return title name of node
+	 * 
+	 * @return name of node
+	 */
+	public String getTitle()
+	{
+		return m_sTitleName;
+	}
 	/**
 	 * set the composite from this node visible in the StackLayout
 	 * only if the given folder is the same as the own.
@@ -395,11 +403,29 @@ public class TreeNodes
 		if(!token.hasMoreElements())
 			return null;
 		name= token.nextToken();
-		if(	!m_sTitleName.equals(name)
-			||
-			(	!hasBody()
-				&&
-				!token.hasMoreElements()	)	)
+		if(!m_sTitleName.equals(name))
+			return null;
+		if(m_mMetaBlock != null)
+		{// inform server also when side has no body
+			String result;
+			
+			result= m_mMetaBlock.get("pageset");						
+			if(	result != null &&
+				!result.equals("")	)
+			{
+				MsgClientConnector client= MsgClientConnector.instance();
+				
+				try{
+					client.setValue(result, 1, /*throw*/false);
+				}catch(IOException ex)
+				{
+					// this will not been thrown
+				}
+			}
+		}
+		if(	!hasBody()
+			&&
+			!token.hasMoreElements()	)
 		{
 			return null;
 		}
@@ -441,6 +467,17 @@ public class TreeNodes
 		m_bVisible= false;
 		try{
 			client.clearHearing(/*bthrow*/false);
+			if(m_mMetaBlock != null)
+			{
+				String result;
+				
+				result= m_mMetaBlock.get("pageset");						
+				if(	result != null &&
+					!result.equals("")	)
+				{
+					client.setValue(result, 0, /*throw*/false);
+				}
+			}
 		}catch(IOException ex)
 		{}
     	if(	HtmTags.debug &&
@@ -496,6 +533,39 @@ public class TreeNodes
 		return m_mMetaBlock;
 	}
 	/**
+	 * check whether given side sequence is actual side
+	 * 
+	 * @param sides sequence of sides
+	 * @return whether given sequence is same
+	 */
+	public boolean isCorrectTitleSequence(String sides)
+	{
+		String[] aSides= sides.split(":");
+		
+		return isCorrectTitleSequence(aSides);
+	}
+	/**
+	 * check whether given side sequence is actual side
+	 * 
+	 * @param sides sequence of sides
+	 * @return whether given sequence is same
+	 */
+	public boolean isCorrectTitleSequence(String[] sides)
+	{
+		int nLastPos= sides.length-1;
+		
+		while(sides[nLastPos].equals(""))
+			--nLastPos;
+		if(nLastPos < 0)
+			return true;
+		if(!getTitle().equals(sides[nLastPos]))
+			return false;
+		if(nLastPos == 0)
+			return true;
+		sides[nLastPos]= "";
+		return m_oParentNode.isCorrectTitleSequence(sides);
+	}
+	/**
 	 * initial the node from the constructor and creates all child nodes
 	 * 
 	 * @param pos position of tree entry
@@ -543,7 +613,10 @@ public class TreeNodes
 				
 				
 				if(!createPage())
+				{
+					dispose();
 					throw new IllegalAccessException("no side access");
+				}
 				if(HtmTags.notree)
 				{
 					if(m_oPopupComposite != null)
@@ -667,7 +740,20 @@ public class TreeNodes
 		}
 		
 		if(!hasContent())
-			throw new IllegalAccessException("no side access");
+		{
+			String display= null;
+			
+			if(m_mMetaBlock != null)
+				display= m_mMetaBlock.get("display");
+			if(	display == null ||
+				!display.equals("true")	)
+			{
+				if(HtmTags.debug)
+					System.out.println("Page has no body or child page with body!");
+				PopupMenu.destroy(this);
+				throw new IllegalAccessException("no side access");
+			}
+		}
 		
 		if(m_oScrolledComposite != null)
 		{
@@ -807,6 +893,19 @@ public class TreeNodes
 	        else
 	        	saxParser.parse(emptyStream, handler);
 	        m_mMetaBlock= handler.getMetaBlock();
+	        if(	m_mMetaBlock != null &&
+	        	!HtmTags.showFalse		)
+	        {
+	        	String display= m_mMetaBlock.get("display");
+	        	
+	        	if(	display != null &&
+	        		display.equals("false")	)
+		        {
+		        	if(HtmTags.debug)
+		        		System.out.println("page is set to display false");
+		        	throw new IllegalAccessException("no side access");
+		        }
+	        }
 	        m_aoButtons= handler.getComponents();
 		    layout= (Layout)handler.getMainTag();
 		    head= layout.getHead();
@@ -971,5 +1070,68 @@ public class TreeNodes
 			for(TreeNodes node : m_aSubnodes)
 				node.listenClient(client, cont);
 		}
+	}
+	/**
+	 * search whether folder and subroutine shows to an defined side in meta tags pageset
+	 * 
+	 * @param sub folder and subroutine separated by an colon
+	 * @return new side name when should be activated
+	 */
+	public String getPageFrom(String sub)
+	{
+		String sRv, result;
+		
+		if(m_mMetaBlock != null)
+		{
+			result= m_mMetaBlock.get("pageset");
+			if(	result != null &&
+				result.equals(sub)	)
+			{
+				return m_sTitleName;
+			}
+		}
+		sRv= "";
+		if(m_aSubnodes != null)
+		{
+			for(TreeNodes node : m_aSubnodes)
+			{
+				sRv= node.getPageFrom(sub);
+				if(!sRv.equals(""))
+				{
+					sRv= m_sTitleName + ":" + sRv;
+					break;
+				}
+			}
+		}
+		return sRv; 
+	}
+	/**
+	 * insert into server connection all sides having an defined address
+	 * in meta-tags for pageset
+	 */
+	public void hearOnSides()
+	{
+
+		MsgClientConnector client;
+		String result;
+		
+		if(	m_mMetaBlock != null &&
+			m_oBodyTag != null		)
+		{
+			result= m_mMetaBlock.get("pageset");
+			if(	result != null &&
+				!result.equals("")	)
+			{
+				client= MsgClientConnector.instance();
+				try{
+					client.hear(result, /*throw*/false);
+				}catch(IOException ex)
+				{
+					// this will not been thrown
+				}
+			}
+		}
+		for(TreeNodes node : m_aSubnodes)
+			node.hearOnSides();
 	}
 }

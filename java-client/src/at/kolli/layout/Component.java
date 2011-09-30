@@ -1429,6 +1429,7 @@ public class Component extends HtmTags
 	 * method listen on server whether value of component is changed
 	 * 
 	 * @param results map of result attributes with actual values
+	 * @param cont container with new value on which result of folder and subroutine
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 09.12.2007
 	 * @since JDK 1.6

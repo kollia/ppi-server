@@ -446,19 +446,60 @@ public class LayoutLoader extends Thread
 		}
 	}
 
-	public boolean setActSideVisible()
+	/**
+	 * check whether new value should activate an new side
+	 * 
+	 * @param cont container with new value on which result of folder and subroutine
+	 * @return new side name when should be activated
+	 */
+	public String checkNewSide(NodeContainer cont)
 	{
+		String sRv, sub;
+		
+		sRv= "";
+		if(	cont != null &&
+			cont.hasDoubleValue()	)
+		{
+			if(cont.getDValue() > 0)
+			{
+				sub= cont.getFolderName() + ":" + cont.getSubroutineName();
+				for(TreeNodes node : m_aTreeNodes)
+				{
+					sRv= node.getPageFrom(sub);
+					if(!sRv.equals(""))
+						break;
+				}
+			}
+		}
+		return sRv;
+	}
+	
+	/**
+	 * set defined side in <code>m_sAktFolder</code> to new active side
+	 * 
+	 * @param whether should inform server to set page active
+	 * @return whether can set new page or was also before active
+	 */
+	public boolean setActSideVisible(boolean inform)
+	{
+		TreeNodes newNode;
 		TreeNodes oldNode= m_oAktTreeNode;
 		WidgetChecker checker= WidgetChecker.instance();
 		
-		if(m_oAktTreeNode != null)
-			m_oAktTreeNode.setInvisible();
+		if(	m_oAktTreeNode != null &&
+			m_oAktTreeNode.isCorrectTitleSequence(m_sAktFolder)	)
+		{
+			return true;
+		}
 		for(TreeNodes node : m_aTreeNodes)
 		{
-			m_oAktTreeNode= node.setVisible(m_StackLayout, m_sAktFolder);
+			newNode= node.setVisible(m_StackLayout, m_sAktFolder);
 			
-			if(m_oAktTreeNode != null)
+			if(newNode != null)
 			{
+				if(m_oAktTreeNode != null)
+					m_oAktTreeNode.setInvisible();
+				m_oAktTreeNode= newNode;
 				if(	m_aoComponents != null
 					&&
 					m_aoComponents.size() > 0	)
@@ -478,6 +519,8 @@ public class LayoutLoader extends Thread
 					}, "LayoutLoader::setActiveSideVisible() removeListeners()");	
 				}
 				m_aoComponents= m_oAktTreeNode.getComponents();
+				for(TreeNodes page : m_aTreeNodes)
+					page.hearOnSides();
 				if(	m_aoComponents != null
 					&&
 					m_aoComponents.size() > 0	)
@@ -745,7 +788,7 @@ public class LayoutLoader extends Thread
 						if(HtmTags.debug)
 							System.out.println("Treenode "+ name + " is selected");
 						m_sAktFolder= name;
-						setActSideVisible();
+						setActSideVisible(/*inform server*/true);
 					}
 				}
 			});
@@ -862,18 +905,15 @@ public class LayoutLoader extends Thread
 		if(!checker.isAlive())
 			checker.start();
 		
-/*		if(HtmTags.notree)
+		synchronized (TreeNodes.m_DISPLAYLOCK)
 		{
-			synchronized (TreeNodes.m_DISPLAYLOCK)
-			{
-				setFirstSide(m_aTreeNodes, "");
-			}
-		}*/
-		if(!setActSideVisible())
+			setFirstSide(m_aTreeNodes, "");
+		}
+/*		if(!setActSideVisible(/*inform server/true))
 		{
 			m_sAktFolder= nodes.get(0).getName();
-			setActSideVisible();
-		}
+			setActSideVisible(/*inform server/true);
+		}*/
 	}
 	/**
 	 * set first side by starting active
@@ -887,7 +927,7 @@ public class LayoutLoader extends Thread
 		for(TreeNodes current : nodes)
 		{
 			m_sAktFolder= path + current.getName();
-			if(setActSideVisible())
+			if(setActSideVisible(/*inform server*/true))
 				return true;
 		}
 		for(TreeNodes current : nodes)

@@ -121,6 +121,7 @@ public class WidgetChecker extends Thread
 	{
 		NodeContainer cont= null;
 		MsgClientConnector client= MsgClientConnector.instance();
+		LayoutLoader loader= LayoutLoader.instance();
 		
 		setName("hearingThread");
 		if(client.haveSecondConnection())
@@ -140,7 +141,6 @@ public class WidgetChecker extends Thread
 						{ 
 							//final DialogThread.states retState= DialogThread.states.OK;
 							DialogThread.states retState;
-							LayoutLoader loader= LayoutLoader.instance();
 							DialogThread dialog= DialogThread.instance();//m_oTopLevelShell);
 							MsgTranslator trans= MsgTranslator.instance();
 							
@@ -168,9 +168,19 @@ public class WidgetChecker extends Thread
 				}
 				synchronized (TreeNodes.m_DISPLAYLOCK)
 				{
-					synchronized(m_AktTreeNode)
-					{
-						m_AktTreeNode.listenClient(client, cont);
+					String node;
+					
+					node= loader.checkNewSide(cont);
+					if(!node.equals(""))
+					{// set new side active
+						loader.m_sAktFolder= node;
+						loader.setActSideVisible(/*inform server*/false);
+					}else
+					{// fill values into actual side
+						synchronized(m_AktTreeNode)
+						{
+							m_AktTreeNode.listenClient(client, cont);
+						}
 					}
 				}
 				if(cont == null)
