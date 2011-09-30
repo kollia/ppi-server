@@ -53,6 +53,10 @@ public class XMLSaxParser extends DefaultHandler
 	 */
 	private boolean m_bHead= false;
 	/**
+	 * whether title will be actually defined
+	 */
+	private boolean m_bTitleDef= false;
+	/**
 	 * whether the reading of head is finished
 	 */
 	private boolean m_bFinishedHead= false;
@@ -214,14 +218,33 @@ public class XMLSaxParser extends DefaultHandler
 		{
 			return;
 		}
+
+		if(HtmTags.debug)
+			echoString( "<" + eName );
+		if(m_bTitleDef)
+		{
+			((Title)m_oAktTag).name+= "<" + eName;
+			for( int i=0; i<attrs.getLength(); i++ )
+		    {
+				String aName = attrs.getLocalName( i ); // Attr name
+				String value;
+		        
+		        if( "".equals( aName ) )  aName = attrs.getQName( i );
+				value= " " + aName + "=\"" + attrs.getValue( i ) + "\"";
+		        ((Title)m_oAktTag).name+= value;
+		        if(HtmTags.debug)
+		        	echoString(value);
+		    }
+			((Title)m_oAktTag).name+=  ">";
+			if(HtmTags.debug)
+				echoString(">");
+			return;
+		}
 		if(eName.equals("component"))
 			System.out.print("");
 		createTextBuffer();
-		//if(!eName.equals("br"))
-			echoTextBuffer();
+		echoTextBuffer();
 	
-		if(HtmTags.debug)
-			echoString( "<" + eName );
 		if(m_bBody == false)
 		{
 			if(	m_bLayout == false
@@ -253,6 +276,7 @@ public class XMLSaxParser extends DefaultHandler
 					tag= new Title();
 					m_oAktTag.insert(tag);
 					m_oAktTag= tag;
+					m_bTitleDef= true;
 				}
 			}else if(	m_bFinishedBody == false
 						&&
@@ -344,14 +368,7 @@ public class XMLSaxParser extends DefaultHandler
 				&&
 				m_bFinishedHead == false	)
 	        {
-	        	if(m_oAktTag instanceof Title)
-		        {
-		        	Title title= (Title)m_oAktTag;
-		        	
-		        	if(aName.equals("name"))
-		        		title.name= attrs.getValue(i);
-		        	
-		        }else if(eName.equals("meta"))
+	        	if(eName.equals("meta"))
 	        	{
 	        		if(aName.equals("name"))
 	        			metaName= attrs.getValue(i);
@@ -546,38 +563,44 @@ public class XMLSaxParser extends DefaultHandler
 		  echoTextBuffer();
     
 	  if(HtmTags.debug)
-	    	echoString( "</" + eName + ">" );           // element name
-    if(m_oAktTag != null)
-    {
-    	if(	m_aoPermissionTag.size() != 0
-    		&&
-    		!eName.equals("tr")
-    		&&
-    		!eName.equals("td")
-    		&&
-    		m_aoPermissionTag.get(0) == m_oAktTag	)
-    	{
-    		m_aoPermission.remove(0);
-    		m_aoPermissionTag.remove(0);
-    	}
-    	
-    	if(	eName.equals("layout")
-    		||
-    		eName.equals("head")
-    		||
-    		eName.equals("title")
-    		||
-    		eName.equals("body")
-    		||
-    		eName.equals("table")
-    		||
-    		eName.equals("input")
-    		||
-    		eName.equals("select")
-    		||
-    		eName.equals("option")
-    		||
-    		eName.equals("br")			)
+	    	echoString( "</" + eName + ">" ); // element name
+		if(	m_bTitleDef &&
+			!eName.equals("title")	)
+		{
+			((Title)m_oAktTag).name+= "</" + eName + ">";
+			return;
+		}
+	if(m_oAktTag != null)
+	{
+		if(	m_aoPermissionTag.size() != 0
+			&&
+			!eName.equals("tr")
+			&&
+			!eName.equals("td")
+			&&
+			m_aoPermissionTag.get(0) == m_oAktTag	)
+		{
+			m_aoPermission.remove(0);
+			m_aoPermissionTag.remove(0);
+		}
+		
+		if(	eName.equals("layout")
+			||
+			eName.equals("head")
+			||
+			eName.equals("title")
+			||
+			eName.equals("body")
+			||
+			eName.equals("table")
+			||
+			eName.equals("input")
+			||
+			eName.equals("select")
+			||
+			eName.equals("option")
+			||
+			eName.equals("br")			)
 	    {    		
 	    	if(	!m_oAktTag.tagName.equals(eName) &&
 	    		(	eName.equals("select") &&
@@ -591,20 +614,15 @@ public class XMLSaxParser extends DefaultHandler
 	    	}
 	    	if(eName.equals("head"))
 	    		m_bFinishedHead= true;
+	    	else if(eName.equals("title"))
+	    		m_bTitleDef= false;
 	    	else if(eName.equals("body"))
 	    		m_bFinishedBody= true;
 	    	else if(eName.equals("layout"))
 	    		m_bFinishedLayout= true;
-	    	/*else if(m_bBody
-	    			&&
-	    			(	eName.equals("input") ||
-	    				eName.equals("select")	)	)
-	    	{
-	    		((Component)m_oAktTag).askPermissions();
-	    	}*/
 	    	m_oAktTag= m_oAktTag.getParentTag();
 	    }
-    }
+	}
   }
 
   /**
@@ -633,10 +651,14 @@ public class XMLSaxParser extends DefaultHandler
     	s= before.replaceAll("  ", " ");
     }while(before != s);
 
-    if( textBuffer == null )
-      textBuffer = new StringBuffer( s );
-    else
-      textBuffer.append( s );
+    if(!m_bTitleDef)
+    {
+	    if( textBuffer == null )
+	      textBuffer = new StringBuffer( s );
+	    else
+	      textBuffer.append( s );
+    }else
+    	((Title)m_oAktTag).name+= s;
   }
 
   
