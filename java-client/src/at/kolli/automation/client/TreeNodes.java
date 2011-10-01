@@ -402,8 +402,13 @@ public class TreeNodes
 		TreeNodes oRv= null;
 
 		if(!token.hasMoreElements())
-			return null;
-		name= token.nextToken();
+		{
+			if(m_sTitleName.equals(""))
+				name= "";
+			else
+				return null;
+		}else
+			name= token.nextToken();
 		if(!m_sTitleName.equals(name))
 			return null;
 		if(	m_mMetaBlock != null &&
@@ -580,6 +585,7 @@ public class TreeNodes
 	private void init(final short pos, final Composite subComposite, ArrayList<String> folder, String parentFolder) 
 	throws IllegalAccessException, IOException
 	{ 
+		boolean bNoSides= false;
 		short ipos= 0;
 		String name;
 		String aktName= "";
@@ -591,6 +597,12 @@ public class TreeNodes
 		m_sParentFolder= parentFolder;
 		m_oSubComposite= subComposite;
 		m_aSubnodes= new ArrayList<TreeNodes>();
+		if(folder.isEmpty())
+		{// when TreeNodes started with no content of files in folder
+		 // client get no sides from server, so create null page
+			folder.add("dummyName");
+			bNoSides= true;
+		}
 		for(String f : folder)
 		{
 			StringTokenizer token= new StringTokenizer(f, "/");
@@ -599,8 +611,11 @@ public class TreeNodes
 			name= token.nextToken();
 			if(m_sName.isEmpty())
 			{
-				m_sName= name;
-				m_sTitleName= name;
+				if(!bNoSides)
+				{
+					m_sName= name;
+					m_sTitleName= name;
+				}
 				DisplayAdapter.syncExec(new Runnable() {
 				
 					public void run() {
@@ -620,56 +635,59 @@ public class TreeNodes
 					dispose();
 					throw new IllegalAccessException("no side access");
 				}
-				if(HtmTags.notree)
+				if(!bNoSides)
 				{
-					if(m_oPopupComposite != null)
+					if(HtmTags.notree)
 					{
-						final TreeNodes tnode= this;
+						if(m_oPopupComposite != null)
+						{
+							final TreeNodes tnode= this;
+							DisplayAdapter.syncExec(new Runnable() {
+							
+								public void run() 
+								{
+									PopupMenu.init(m_oPopupComposite, tnode);
+								}
+							
+							});
+						}
+					}else
+					{
 						DisplayAdapter.syncExec(new Runnable() {
 						
-							public void run() 
-							{
-								PopupMenu.init(m_oPopupComposite, tnode);
+							public void run() {
+	
+								boolean inner= false;
+								TreeItem[] items;
+								
+								if(m_oParent != null)
+									items= m_oParent.getItems();
+								else
+									items= m_oParentNode.getTreeItem().getItems();
+	
+								for(short c= pos; c < items.length; c++)
+								{
+									if(items[c].getText().equals(m_sTitleName))
+									{
+										inner= true;
+										m_oItem= items[c];
+										break;
+									}else
+										items[c].dispose();
+								}
+								if(!inner)
+								{
+									if(m_oParent != null)
+										m_oItem= new TreeItem(m_oParent, SWT.NULL);
+									else
+										m_oItem= new TreeItem(m_oParentNode.getTreeItem(), SWT.NULL);
+									m_oItem.setText(m_sTitleName);
+								} 
+						
 							}
 						
 						});
 					}
-				}else
-				{
-					DisplayAdapter.syncExec(new Runnable() {
-					
-						public void run() {
-
-							boolean inner= false;
-							TreeItem[] items;
-							
-							if(m_oParent != null)
-								items= m_oParent.getItems();
-							else
-								items= m_oParentNode.getTreeItem().getItems();
-
-							for(short c= pos; c < items.length; c++)
-							{
-								if(items[c].getText().equals(m_sTitleName))
-								{
-									inner= true;
-									m_oItem= items[c];
-									break;
-								}else
-									items[c].dispose();
-							}
-							if(!inner)
-							{
-								if(m_oParent != null)
-									m_oItem= new TreeItem(m_oParent, SWT.NULL);
-								else
-									m_oItem= new TreeItem(m_oParentNode.getTreeItem(), SWT.NULL);
-								m_oItem.setText(m_sTitleName);
-							} 
-					
-						}
-					
-					});
 				}
 				dialog.setSelection(dialog.getSelection() + DialogThread.m_nProgressSteps);
 				//oScComp.setContent(m_oContent);
@@ -780,6 +798,7 @@ public class TreeNodes
 	 */
 	private boolean createPage() throws IOException
 	{
+		boolean exists= false;
 		String permGroup;
 		InputStream emptyStream= null;
 		Layout layout= null;
@@ -787,7 +806,7 @@ public class TreeNodes
 		Title title;
 		String fileName= m_sParentFolder+"/"+m_sName;
 		String osFileName;
-		File file;
+		File file= null;
 		SAXParserFactory factory= null;
 		XMLSaxParser handler= null;
 		final GridLayout grid= new GridLayout();
@@ -796,83 +815,100 @@ public class TreeNodes
 		Date serverDate;
 		Date fileDate;
 		
-		if(fileName.startsWith("/"))
-			fileName= fileName.substring(1);
-		if(File.separator.equals("/"))
-			osFileName= fileName;
-		else
-			osFileName= fileName.replace("/", File.separator);
-		file= new File(m_sLayoutPath + File.separator + osFileName+"." + m_sLayoutStyle );
-		
-		if(HtmTags.debug)
-			System.out.println("read file: '" + file + "'");
-		
-		boolean exists= false;
-		serverDate= m_hmDirectory.get(fileName + "." + m_sLayoutStyle);
-		if(serverDate == null)
-		{
-			String emptyFile;
-			// if found an locally layout file but the date for server do not exist
-			// this case can be when searching an layout for an sub-directory
-			// but on server is no extra file for this directory
-			// now create an own empty one
-			emptyFile=	"<layout>";
-			emptyFile+=	"</layout>";
-			//emptySource= new InputSource(emptyFile);
-			emptyStream= new ByteArrayInputStream(emptyFile.getBytes());
-			if(HtmTags.debug)
-				System.out.println("no file is available, create an empty file with no body");
+		if(m_sName.equals(""))
+		{// when TreeNodes started with no content of files (m_sName is "")
+		 // client get no sides from server, so create null page
+			String noFiles;
+			String msg= "ERROR: get no files with extension ." + m_sLayoutStyle + " from server";
 			
-		}else if(file.isFile())
+			noFiles=  "<layout>";
+			noFiles+=   "<body>";
+			noFiles+=     msg;; 
+			noFiles+=   "</body>";
+			noFiles+= "</layout>";
+			emptyStream= new ByteArrayInputStream(noFiles.getBytes());
+			if(HtmTags.debug)
+				System.out.println(msg);
+			
+		}else
 		{
-			fileDate= new Date(file.lastModified());
-			if(fileDate.after(serverDate))
-			{
-				exists= true;
-				if(!file.canRead())
-				{
-					System.out.println("cannot read file "+fileName);
-					exists= false;
-					
-				}else if(HtmTags.debug)
-					System.out.println("take local stored file");
-			}
-		}
-		if( emptyStream == null &&
-			!exists					)
-		{
-			FileOutputStream output;
-			ArrayList<String> xmlFile;
-			File path= file.getParentFile();
+			if(fileName.startsWith("/"))
+				fileName= fileName.substring(1);
+			if(File.separator.equals("/"))
+				osFileName= fileName;
+			else
+				osFileName= fileName.replace("/", File.separator);
+			file= new File(m_sLayoutPath + File.separator + osFileName+"." + m_sLayoutStyle );
 			
 			if(HtmTags.debug)
-				System.out.println("take file from server");
-			xmlFile= client.getContent(fileName + "." + m_sLayoutStyle, /*bthrow*/true);
-			if(xmlFile == null)
+				System.out.println("read file: '" + file + "'");
+			
+			serverDate= m_hmDirectory.get(fileName + "." + m_sLayoutStyle);
+			if(serverDate == null)
 			{
+				String emptyFile;
+				// if found an locally layout file but the date for server do not exist
+				// this case can be when searching an layout for an sub-directory
+				// but on server is no extra file for this directory
+				// now create an own empty one
+				emptyFile=	"<layout>";
+				emptyFile+=	"</layout>";
+				//emptySource= new InputSource(emptyFile);
+				emptyStream= new ByteArrayInputStream(emptyFile.getBytes());
 				if(HtmTags.debug)
-				{
-					System.out.println("cannot read file '" + fileName + "." + m_sLayoutStyle + "' from server");
-					System.out.println(client.getErrorMessage());
-				}
-				return false;
-			}
-			
-			if(!path.isDirectory())
+					System.out.println("no file is available, create an empty file with no body");
+				
+			}else if(file.isFile())
 			{
-				path.mkdirs();
-			}
-			try{
-				output= new FileOutputStream(file);
-				for(String row : xmlFile)
+				fileDate= new Date(file.lastModified());
+				if(fileDate.after(serverDate))
 				{
-					row+= "\n";
-					output.write(row.getBytes());
+					exists= true;
+					if(!file.canRead())
+					{
+						System.out.println("cannot read file "+fileName);
+						exists= false;
+						
+					}else if(HtmTags.debug)
+						System.out.println("take local stored file");
 				}
-				output.close();
-			}catch(IOException ex)
+			}
+			if( emptyStream == null &&
+				!exists					)
 			{
-				System.out.println(ex);
+				FileOutputStream output;
+				ArrayList<String> xmlFile;
+				File path= file.getParentFile();
+				
+				if(HtmTags.debug)
+					System.out.println("take file from server");
+				xmlFile= client.getContent(fileName + "." + m_sLayoutStyle, /*bthrow*/true);
+				if(xmlFile == null)
+				{
+					if(HtmTags.debug)
+					{
+						System.out.println("cannot read file '" + fileName + "." + m_sLayoutStyle + "' from server");
+						System.out.println(client.getErrorMessage());
+					}
+					return false;
+				}
+				
+				if(!path.isDirectory())
+				{
+					path.mkdirs();
+				}
+				try{
+					output= new FileOutputStream(file);
+					for(String row : xmlFile)
+					{
+						row+= "\n";
+						output.write(row.getBytes());
+					}
+					output.close();
+				}catch(IOException ex)
+				{
+					System.out.println(ex);
+				}
 			}
 		}
 		DisplayAdapter.syncExec(new Runnable() {

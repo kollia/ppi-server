@@ -48,6 +48,7 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Menu;
@@ -916,9 +917,18 @@ public class LayoutLoader extends Thread
 					{
 						int sashHeight[]= { 200, 800 };
 						Rectangle size, pop;
+						Control[] controls;
 						
 						m_oPopupComposite.pack(true);
-						pop= m_oPopupComposite.getChildren()[0].getBounds();
+						controls= m_oPopupComposite.getChildren();
+						if(	controls != null &&
+							controls.length > 0	)
+						{
+							pop= m_oPopupComposite.getChildren()[0].getBounds();
+						}else
+						{
+							pop= m_oPopupComposite.getBounds();
+						}
 						size= m_shellForm.getBounds();
 						sashHeight[0]= pop.height + 10;
 						sashHeight[1]= size.height - pop.height - 10;
@@ -941,9 +951,18 @@ public class LayoutLoader extends Thread
 
 							int sashHeight[]= { 200, 800 };
 							Rectangle size, pop;
+							Control[] controls;
 							
 							m_oPopupComposite.pack(true);
-							pop= m_oPopupComposite.getChildren()[0].getBounds();
+							controls= m_oPopupComposite.getChildren();
+							if(	controls != null &&
+								controls.length > 0	)
+							{
+								pop= m_oPopupComposite.getChildren()[0].getBounds();
+							}else
+							{
+								pop= m_oPopupComposite.getBounds();
+							}
 							size= m_shellForm.getBounds();
 							sashHeight[0]= pop.height + 10;
 							sashHeight[1]= size.height - pop.height - 10;
