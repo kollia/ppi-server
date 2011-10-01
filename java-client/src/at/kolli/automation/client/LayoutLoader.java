@@ -903,6 +903,16 @@ public class LayoutLoader extends Thread
 			return;
 		}
 		m_aTreeNodes= nodes;
+		// sending first to server that all pages not visible,
+		// because it can be the case, when the client will be killed
+		// or crashes an it was not on the first page
+		// the server sinking he is always on this page
+		// and by new starting the client want to display the first page
+		// after them, two pages are set and the client get signal
+		// that the first and the other is active
+		// and maybe he switching always from the first to the second
+		for (TreeNodes node : m_aTreeNodes)
+			node.sendNotVisible();
 
 		if(	m_nWidth != 0
 			&&

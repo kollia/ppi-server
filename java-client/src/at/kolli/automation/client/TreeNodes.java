@@ -403,8 +403,8 @@ public class TreeNodes
 
 		if(!token.hasMoreElements())
 		{
-			if(m_sTitleName.equals(""))
-				name= "";
+			if(m_sTitleName.equals("")) // this case should only be when client
+				name= "";				// get no sides from server
 			else
 				return null;
 		}else
@@ -460,7 +460,30 @@ public class TreeNodes
 		}
 		return null;
 	}
-	
+	/**
+	 * sending to all sides set on server that side is not visible
+	 */
+	public void sendNotVisible()
+	{
+		MsgClientConnector client= MsgClientConnector.instance();
+
+		try{
+			if(m_mMetaBlock != null)
+			{
+				String result;
+				
+				result= m_mMetaBlock.get("pageset");						
+				if(	result != null &&
+					!result.equals("")	)
+				{
+					client.setValue(result, 0, /*throw*/false);
+				}
+			}
+		}catch(IOException ex)
+		{}
+		for(TreeNodes node : m_aSubnodes)
+			node.sendNotVisible();
+	}
 	/**
 	 * set this node and all child nodes to invisible
 	 * 
