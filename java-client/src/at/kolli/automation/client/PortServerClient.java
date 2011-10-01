@@ -92,57 +92,65 @@ public class PortServerClient
 		{
 			if(arg.substring(0, 1).equals("-"))
 			{
-				for(int c= 1; c < arg.length(); ++c)
+				if(arg.equals("--false"))
 				{
-					String s= arg.substring(c, c+1);
-					
-					if(s.equals("?"))
+					HtmTags.showFalse= true;
+				}else
+				{
+					for(int c= 1; c < arg.length(); ++c)
 					{
-						System.out.println();
-						System.out.println("syntax java -jar ppi-client [options]");
-						System.out.println();
-						System.out.println("       options:");
-						System.out.println("           -?             -  show this help");
-						System.out.println("           -f             -  full screen for main window");
-						System.out.println("           -m             -  show no normaly menu in menubar (refresh/change user/exit)");
-						System.out.println("           -t             -  displays no tree for sides, but in the menu-bar");
-						System.out.println("           -w             -  main window without title-bar");
-						System.out.println("           -d             -  show debug information and content of layout files");
-						System.out.println("           -u <user>      -  starting binding to server with the given user name");
-						System.out.println("           -p             -  password will be asking after command on shell");
-						System.out.println("           -s <style>     -  fetch all layout files from server with this extension");
-						System.out.println("                             default is desktop");
-						System.out.println();
-						System.out.println("       example:");
-						System.out.println("          java -jar ppi-client -fmtwups <user> touchscreen");
-						System.out.println("                     displays the main window as full screen with no tree and title");
-						System.out.println("                     Fetch all layout files with extension touchscreen and start the client");
-						System.out.println("                     with an user and the password will be asked on command line.");
-						System.out.println("                     and also in the server client folder the touchscreen layout files are given.");
-						System.out.println();
-						System.out.println("            also the same command would be -fmtw -u <user> -p -s touchscreen");
-						System.exit(0);
+						String s= arg.substring(c, c+1);
 						
-					}else if(s.equals("d"))
-						HtmTags.debug= true;
-					else if(s.equals("f"))
-						HtmTags.fullscreen= true;
-					else if(s.equals("m"))
-						HtmTags.nomenu= true;
-					else if(s.equals("t"))
-						HtmTags.notree= true;
-					else if(s.equals("w"))
-						HtmTags.notitle= true;
-					else if(s.equals("u"))
-						param.addLast("u");
-					else if(s.equals("p"))
-						shellpwd= true;
-					else if(s.equals("s"))
-						param.addLast("s");
-					else 
-					{
-						System.out.println("undefined param char '" + s + "`");
-						error= true;
+						if(s.equals("?"))
+						{
+							System.out.println();
+							System.out.println("syntax java -jar ppi-client [options]");
+							System.out.println();
+							System.out.println("       options:");
+							System.out.println("           -?             -  show this help");
+							System.out.println("           -f             -  full screen for main window");
+							System.out.println("           -m             -  show no normaly menu in menubar (refresh/change user/exit)");
+							System.out.println("           -t             -  displays no tree for sides, but in the menu-bar");
+							System.out.println("           -w             -  main window without title-bar");
+							System.out.println("           -d             -  show debug information and content of layout files");
+							System.out.println("           -u <user>      -  starting binding to server with the given user name");
+							System.out.println("           -p             -  password will be asking after command on shell");
+							System.out.println("           -s <style>     -  fetch all layout files from server with this extension");
+							System.out.println("                             default is desktop");
+							System.out.println("           --false        -  show also pages from server which are defined");
+							System.out.println("                             with meta tag display as false");
+							System.out.println();
+							System.out.println("       example:");
+							System.out.println("          java -jar ppi-client -fmtwups <user> touchscreen");
+							System.out.println("                     displays the main window as full screen with no tree and title");
+							System.out.println("                     Fetch all layout files with extension touchscreen and start the client");
+							System.out.println("                     with an user and the password will be asked on command line.");
+							System.out.println("                     and also in the server client folder the touchscreen layout files are given.");
+							System.out.println();
+							System.out.println("            also the same command would be -fmtw -u <user> -p -s touchscreen");
+							System.exit(0);
+							
+						}else if(s.equals("d"))
+							HtmTags.debug= true;
+						else if(s.equals("f"))
+							HtmTags.fullscreen= true;
+						else if(s.equals("m"))
+							HtmTags.nomenu= true;
+						else if(s.equals("t"))
+							HtmTags.notree= true;
+						else if(s.equals("w"))
+							HtmTags.notitle= true;
+						else if(s.equals("u"))
+							param.addLast("u");
+						else if(s.equals("p"))
+							shellpwd= true;
+						else if(s.equals("s"))
+							param.addLast("s");
+						else 
+						{
+							System.out.println("undefined param char '" + s + "`");
+							error= true;
+						}
 					}
 				}
 			}else if(param.size() != 0)
