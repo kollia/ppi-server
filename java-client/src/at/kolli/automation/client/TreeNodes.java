@@ -974,8 +974,11 @@ public class TreeNodes
 		    bodyList= layout.getBody();
 	      } catch( Throwable t ) 
 	      {
-	    	  if(!t.getMessage().equals("no side access"))
+	    	  if( t.getMessage() == null ||
+	    		  !t.getMessage().equals("no side access")	)
+	    	  {
 	    		  t.printStackTrace();
+	    	  }
 	        if(m_mMetaBlock == null)
 	        	m_mMetaBlock= new HashMap<String, String>();
 	        if(layout == null)
