@@ -22,6 +22,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
@@ -341,6 +342,14 @@ public class XMLSaxParser extends DefaultHandler
 		    	m_oAktTag= tag;
 		    	//if(m_sBuffer != null)
 		    	//	m_sBuffer.append("\n");
+		    }else if(eName.equals("hr"))
+		    {
+		    	Label hr= new Label();
+		    	
+		    	hr.separator= SWT.SEPARATOR | SWT.HORIZONTAL;
+		    	m_oAktTag.insert(hr);
+		    	m_oAktTag= hr;
+		    	
 		    }else
 		    {
 		    	System.out.println("");
@@ -409,6 +418,36 @@ public class XMLSaxParser extends DefaultHandler
 						echoString("\nfind unknown attribute " + aName + " in tag <" + eName + ">\n");
 				}
 	        	
+	    	}else if(m_oAktTag instanceof Label)
+	    	{
+	    		if(aName.equals("align"))
+	    		{
+	    			String typ= attrs.getValue(i);
+	    			
+	    			if(typ.equals("left"))
+	    				((Label)m_oAktTag).separator|= SWT.LEFT;
+	    			else if(typ.equals("center"))
+	    				((Label)m_oAktTag).separator|= SWT.CENTER;
+	    			else if(typ.equals("right"))
+	    				((Label)m_oAktTag).separator|= SWT.RIGHT;
+	    			else if(HtmTags.debug)
+						echoString("\nfind unknown content '" + typ + "' of attribute " + aName + " in tag <" + eName + ">\n");
+	    			
+	    		}else if(aName.equals("width"))
+	    		{
+	    			Integer value;
+
+	        		try{
+	        			value= Integer.valueOf(attrs.getValue(i));
+	        		}catch(NumberFormatException ex)
+	        		{
+	        			value= new Integer(-1);
+	        		}
+	        		((Label)m_oAktTag).width= value;
+	        		
+	    		}else if(HtmTags.debug)
+					echoString("\nfind unknown attribute " + aName + " in tag <" + eName + ">\n");
+	    		
 	    	}else if(m_oAktTag instanceof Component)
 	        {
 	        	Component component= (Component)m_oAktTag;
@@ -621,7 +660,8 @@ public class XMLSaxParser extends DefaultHandler
 			||
 			eName.equals("option")
 			||
-			eName.equals("br")			)
+			eName.equals("br") ||
+			eName.equals("hr")		)
 	    {    		
 	    	if(	!m_oAktTag.tagName.equals(eName) &&
 	    		(	eName.equals("select") &&
@@ -629,7 +669,7 @@ public class XMLSaxParser extends DefaultHandler
 	    	{
 	    		if(HtmTags.debug)
 	    			System.out.println();
-	    		System.out.println("can not display correct folder");
+	    		System.out.println("\ncan not display correct folder");
 	    		System.out.println("ERROR after end-tag </ " + eName + ">");
 	    		throw new SAXException( "source layout error after end-tag " + eName);
 	    	}

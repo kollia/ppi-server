@@ -34,6 +34,14 @@ public class Label extends HtmTags
 	 * the text which should displayed
 	 */
 	private String m_sText= "";
+	/**
+	 * whether label should be an separator 
+	 */
+	public int separator= SWT.NONE;
+	/**
+	 * with of separator
+	 */
+	public int width= -1;
 	
 	/**
 	 * creating instance of class to inherit text
@@ -105,10 +113,19 @@ public class Label extends HtmTags
 	public void execute(Composite composite)
 	{
 		GridData data= new GridData();
-		org.eclipse.swt.widgets.Label label= new org.eclipse.swt.widgets.Label(composite, SWT.SHADOW_IN);
+		org.eclipse.swt.widgets.Label label= new org.eclipse.swt.widgets.Label(composite, separator);
 		
-		label.setText(m_sText);
-		data.horizontalAlignment= GridData.BEGINNING;
+		label.setText(m_sText);		
+		if(separator != SWT.NONE)
+		{
+			if(width == -1)
+			{
+				data.grabExcessHorizontalSpace= true;
+				data.horizontalAlignment= GridData.FILL;
+			}else
+				data.widthHint= width;				
+		}else
+			data.horizontalAlignment= GridData.BEGINNING;
 		label.setLayoutData(data);
 	}
 
