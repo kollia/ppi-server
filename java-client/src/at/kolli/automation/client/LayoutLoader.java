@@ -37,6 +37,8 @@ import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.custom.StackLayout;
+import org.eclipse.swt.events.ControlEvent;
+import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.TreeAdapter;
@@ -923,6 +925,37 @@ public class LayoutLoader extends Thread
 						m_shellForm.setWeights(sashHeight);
 						//m_shellForm.pack();
 					}
+				}
+			});
+		}
+		if(HtmTags.notree)
+		{
+			DisplayAdapter.syncExec(new Runnable() {
+				
+				public void run() 
+				{
+					m_oTopLevelShell.addControlListener(new ControlListener() {
+						
+						@Override
+						public void controlResized(ControlEvent arg0) {
+
+							int sashHeight[]= { 200, 800 };
+							Rectangle size, pop;
+							
+							m_oPopupComposite.pack(true);
+							pop= m_oPopupComposite.getChildren()[0].getBounds();
+							size= m_shellForm.getBounds();
+							sashHeight[0]= pop.height + 10;
+							sashHeight[1]= size.height - pop.height - 10;
+							m_shellForm.setWeights(sashHeight);
+						}
+						
+						@Override
+						public void controlMoved(ControlEvent arg0) {
+						
+							// nothing to do					
+						}
+					});
 				}
 			});
 		}
