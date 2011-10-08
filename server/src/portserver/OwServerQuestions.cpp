@@ -41,6 +41,7 @@ int OwServerQuestions::execute()
 	string question, command;
 
 	question= getQuestion(m_sAnswer);
+	m_sAnswer= "";
 	err= error(question);
 	if(err != 0)
 	{
@@ -88,6 +89,36 @@ int OwServerQuestions::execute()
 		answer << bRv;
 		answer << value;
 		m_sAnswer= answer.str();
+
+	}else if(command == "command_exec")
+	{
+		vector<string>::size_type size= m_vAnswer.size();
+		bool more;
+		int nRv;
+		string command;
+		ostringstream morecontent;
+		ostringstream errorlevel;
+
+		++m_nPos;
+		if(size <= m_nPos)
+		{
+			m_vAnswer.clear();
+			stream >> command;
+			nRv= m_oServer->command_exec(command, m_vAnswer, more);
+			morecontent << "MORECONTENT ";
+			morecontent << boolalpha << more;
+			m_vAnswer.push_back(morecontent.str());
+			errorlevel << "ERRORLEVEL ";
+			errorlevel << nRv;
+			m_vAnswer.push_back(errorlevel.str());
+			m_vAnswer.push_back("done");
+			m_nPos= 0;
+			//for(vector<string>::iterator it= m_vAnswer.begin(); it != m_vAnswer.end(); ++it)
+			//	cout << "want send >> " << *it << endl;
+			m_sAnswer= m_vAnswer[m_nPos];
+		}else
+			m_sAnswer= m_vAnswer[m_nPos];
+		//cout << "do send >> " << m_sAnswer << endl;
 
 	}else if(command == "exist")
 	{

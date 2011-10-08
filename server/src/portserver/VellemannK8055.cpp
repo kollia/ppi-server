@@ -404,6 +404,40 @@ namespace ports
 		return 0;
 	}
 
+	int VellemannK8055::command_exec(const string& command, vector<string>& result, bool& more)
+	{
+		string pin;
+
+		more= false;
+		result.clear();
+		if(command != "")
+			return -1;
+		result.push_back("01");
+		result.push_back("02");
+		result.push_back("03");
+		result.push_back("04");
+		result.push_back("05");
+		result.push_back("06");
+		result.push_back("07");
+		result.push_back("08");
+		result.push_back("PWM1");
+		result.push_back("PWM2");
+		result.push_back("debounce1");
+		result.push_back("debounce2");
+		result.push_back("reset1");
+		result.push_back("reset2");
+		result.push_back("I1");
+		result.push_back("I2");
+		result.push_back("I3");
+		result.push_back("I4");
+		result.push_back("I5");
+		result.push_back("A1");
+		result.push_back("A2");
+		result.push_back("counter1");
+		result.push_back("counter2");
+		return 0;
+	}
+
 	void VellemannK8055::range(const string id, double& min, double& max, bool &bfloat)
 	{
 		string pin(id.substr(2));

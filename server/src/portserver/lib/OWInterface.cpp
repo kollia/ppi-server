@@ -192,6 +192,78 @@ bool OWInterface::read(const string& id, double* value)
 	return bRv;
 }
 
+int OWInterface::command_exec(const bool wait, const string& command, vector<string>& result, bool& more)
+{
+	int nRv= -1;
+	string error;
+	vector<string>::size_type nSize;
+	OMethodStringStream method("command_exec");
+
+	method << command;
+	result= sendMethod(m_stoClient, method, "done", wait);
+	nSize= result.size();
+	if(	nSize == 1 &&
+		result[0] == "done"	&&
+		wait == false			)
+	{
+		result.clear();
+		more= false;
+		return 0;
+
+	}
+	if(	nSize > 0 &&
+		result[nSize-1] == "done"	)
+	{
+		result.pop_back();
+		--nSize;
+	}
+	if(	nSize == 1 &&
+		(	result[nSize-1].substr(0, 7) == "WARNING" ||
+			result[nSize-1].substr(0, 5) == "ERROR"		)	)
+	{
+		istringstream res(result[nSize-1]);
+
+		res >> error;
+		res >> nRv;
+		if(error == "ERROR")
+			nRv+= -1;
+		more= false;
+		return nRv;
+
+	}else if(nSize < 2)
+	{
+		string err;
+
+		err= "getting undefined result from SHELL reader " + m_stoClient + "\n";
+		err+= "by sending command '" + method.str() + "\n";
+		err+= "--------\n";
+		for(vector<string>::iterator o= result.begin(); o != result.end(); ++o)
+			err+= *o + "\n";
+		err+= "--------\n";
+		LOG(LOG_ERROR, err);
+		result.clear();
+		more= false;
+		return -1;
+	}
+
+	istringstream morecontent(result[nSize-2]);
+	istringstream errorlevel(result[nSize-1]);
+
+	morecontent >> error;// not used as error, variable should be MORECONTENT
+	if(error == "MORECONTENT")
+	{
+		morecontent >> boolalpha >> more;
+		result.pop_back();
+	}
+	errorlevel >> error;// not used as error, variable should be ERRORLEVEL
+	if(error == "ERRORLEVEL")
+	{
+		errorlevel >> nRv;
+		result.pop_back();
+	}
+	return nRv;
+}
+
 void OWInterface::range(const string& pin, double& min, double& max, bool& bfloat)
 {
 	string res;

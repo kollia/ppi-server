@@ -1079,6 +1079,11 @@ namespace server
 		return bCorrect;
 	}
 
+	int OWServer::command_exec(const string& command, vector<string>& result, bool& more)
+	{
+		return m_poChipAccess->command_exec(command, result, more);
+	}
+
 	void OWServer::ending()
 	{
 		m_poChipAccess->disconnect();

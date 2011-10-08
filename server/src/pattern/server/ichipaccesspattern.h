@@ -206,6 +206,18 @@ namespace design_pattern_world
 		 */
 		virtual short read(const string id, double &value)=0;
 		/**
+		 * primary command for chip access library.<br />
+		 * If command is an null terminated string, this method should give back
+		 * an result of all usable chip ID's.<br />
+		 * For all other usable commands, please read the documentation of the library
+		 *
+		 * @param command specific command for library
+		 * @param result output result of command
+		 * @param more whether method has more result content for the next time
+		 * @return returning error level of command, or 0 when it was done right
+		 */
+		virtual int command_exec(const string& command, vector<string>& result, bool& more)= 0;
+		/**
 		 * set min and max parameter to the range which can be set for the pin.<br />
 		 * If the pin is set from 0 to 1 for writing, in the config file can be set begin while and end.
 		 * Otherwise the range is only for calibrate the max and min value if set from client outher range.

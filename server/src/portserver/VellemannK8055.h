@@ -186,6 +186,15 @@ namespace ports
 			 */
 			virtual short read(const string id, double &value);
 			/**
+			 * show all usable chip ID's
+			 *
+			 * @param command this command string can be only an null string
+			 * @param result output result of command
+			 * @param more whether method has more result content for the next time
+			 * @return returning error level of command, or 0 when it was done right
+			 */
+			virtual int command_exec(const string& command, vector<string>& result, bool& more);
+			/**
 			 * this method is an dummy, because no kernelmode in <code>useChip()</code> be set.
 			 *
 			 * @return only an null string ("")
