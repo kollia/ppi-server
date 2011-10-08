@@ -139,6 +139,10 @@ namespace util
 			command+= "true ";
 		else
 			command+= "false ";
+		if(done != "")
+			command+= "true " + done + " ";
+		else
+			command+= "false ";
 		command+= method.str();
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			bool boutput= true;

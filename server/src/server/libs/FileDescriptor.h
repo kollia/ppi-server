@@ -253,19 +253,22 @@ namespace server
 			/**
 			 * method ask for string from other client
 			 *
+			 * @param doWait whether sending client wait for answer
+			 * @param endString if sending client wait for an anser array, this is the last string for ending
 			 * @param wait whether method should wait if no string was sending (default: true)
 			 * @return string from other client
 			 */
-			virtual string getOtherClientString(const bool wait= true);
+			virtual string getOtherClientString(bool& doWait, string& endString, const bool wait= true);
 			/**
 			 * send string to other client with defined definition name
 			 *
 			 * @param definition defined name from other client
 			 * @param str string which should be sending
 			 * @param wait whether method should wait for an answer
+			 * @param endString string for ending by read an array
 			 * @return answer from other client
 			 */
-			virtual string sendToOtherClient(const string& definition, const string& str, const bool& wait);
+			virtual string sendToOtherClient(const string& definition, const string& str, const bool& wait, const string& endString);
 			/**
 			 * send an answer of getting string with <code>getOtherClientString()</code>
 			 *
@@ -330,9 +333,10 @@ namespace server
 			 *
 			 * @param str string which should send to client
 			 * @param wait whether method should wait for an answer
+			 * @param endString if sending client want an array, this is the last string for ending
 			 * @return answer from client
 			 */
-			virtual string sendString(const string& str, const bool& wait);
+			virtual string sendString(const string& str, const bool& wait, const string& endString);
 
 			/**
 			 * mutex lock handle for changing or reading connection ID
@@ -436,6 +440,20 @@ namespace server
 			 * string sending from an other client
 			 */
 			string m_sSendString;
+			/**
+			 * Whether sending client wait for answer
+			 */
+			bool m_bWait;
+			/**
+			 * whether sending client want an array.<br />
+			 * By this case, variable is an string for ending
+			 */
+			string m_sEndingString;
+			/**
+			 * whether sending hearing client get an array, but sending
+			 * client do not wait.
+			 */
+			queue<string> m_qsEndingStrings;
 			/**
 			 * string sending container from an other client,
 			 * where the other clients do not wait for answer

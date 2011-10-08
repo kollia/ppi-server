@@ -296,7 +296,7 @@ namespace server
 		return m_nPort;
 	}
 
-	string FileDescriptor::sendToOtherClient(const string& definition, const string& str, const bool& wait)
+	string FileDescriptor::sendToOtherClient(const string& definition, const string& str, const bool& wait, const string& endString)
 	{
 		string answer;
 		IServerCommunicationStarterPattern* starter;
@@ -338,12 +338,12 @@ namespace server
 			}
 		}
 		//std::cout << "sendToOtherClient found other client " << std::endl;
-		answer= client->sendString(str, wait);
+		answer= client->sendString(str, wait, endString);
 		LOCK(m_THREADSAVEMETHODS);
 		return answer;
 	}
 
-	string FileDescriptor::sendString(const string& str, const bool& wait)
+	string FileDescriptor::sendString(const string& str, const bool& wait, const string& endString)
 	{
 		string answer;
 
@@ -355,6 +355,8 @@ namespace server
 			  // an other client wait for answer
 				CONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING);
 			}
+			m_bWait= wait;
+			m_sEndingString= endString;
 			m_sSendString= str;
 			AROUSE(m_GETSTRINGCONDITION);
 			do{
@@ -370,19 +372,23 @@ namespace server
 			AROUSE(m_SENDSTRINGCONDITION);
 		}else
 		{
+			m_qsEndingStrings.push(endString);
 			m_qsSendStrings.push(str);
 			AROUSE(m_GETSTRINGCONDITION);
+			answer= endString;
 		}
 
 		UNLOCK(m_SENDSTRING);
 		return answer;
 	}
 
-	string FileDescriptor::getOtherClientString(const bool wait/*= true*/)
+	string FileDescriptor::getOtherClientString(bool& doWait, string& endString, const bool wait/*= true*/)
 	{
 		const unsigned short nDo= 5;
 		static unsigned short count= 0;
+		bool waitWait;
 		string str;
+		string waitEnding;
 		string waitStr;
 
 		LOCK(m_SENDSTRING);
@@ -403,22 +409,30 @@ namespace server
 		}
 		if(	m_sSendString == ""
 			||
-			count > nDo			)	// if count greater then nDo
-									// client which wait for answer
-									// was nDo multiplied preferred
-		{							// so send the next time an string from the queue
+			count > nDo			)	// when sending client always trigger SendString's
+									// but there are also strings in the SendString queue
+		{							// send some times also strings from there
 			waitStr= m_sSendString;
+			waitWait= m_bWait;
+			waitEnding= m_sEndingString;
 			if(m_qsSendStrings.size())
 			{
 				m_sSendString= m_qsSendStrings.front();
 				m_qsSendStrings.pop();
+				m_bWait= false; // from the queue only no waiting strings
+				m_sEndingString= m_qsEndingStrings.front();
+				m_qsEndingStrings.pop();
 			}else
 				m_sSendString= "";
 			count= 0;
 		}else
 			++count;
 		str= m_sSendString;
+		doWait= m_bWait;
+		endString= m_sEndingString;
 		m_sSendString= waitStr;
+		m_bWait= doWait;
+		m_sEndingString= waitEnding;
 		UNLOCK(m_SENDSTRING);
 		return str;
 	}

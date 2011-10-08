@@ -314,7 +314,7 @@ namespace server
 
 		}else if(	input == "init"
 					||
-					input == "ppi-internet-server true init"	)
+					input == "ppi-internet-server true false init"	)
 		{
 			descriptor << "done";
 			descriptor.endl();
@@ -330,7 +330,7 @@ namespace server
 
 		}else if(	input == "GETMINMAXERRORNUMS"
 					||
-					input == "ppi-internet-server true getMinMaxErrorNums"	)
+					input == "ppi-internet-server true false getMinMaxErrorNums"	)
 		{
 			ostringstream output;
 
@@ -346,7 +346,7 @@ namespace server
 
 		}else if(	input.substr(0, 15) == "GETERRORSTRING "
 					||
-					input.substr(0, 40) == "ppi-internet-server true getErrorString "	)
+					input.substr(0, 40) == "ppi-internet-server true false getErrorString "	)
 		{
 			istringstream in(input);
 			string strings;

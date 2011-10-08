@@ -52,9 +52,10 @@ namespace design_pattern_world {
 			 *
 			 * @param str string which shold send to client
 			 * @param wait whether method should wait for an answer
+			 * @param endString if sending client want an array, this is the last string for ending
 			 * @return answer from client
 			 */
-			virtual string sendString(const string& str, const bool& wait)= 0;
+			virtual string sendString(const string& str, const bool& wait, const string& endString)= 0;
 			/**
 			 * dummy destructor of pattern
 			 */

@@ -162,11 +162,11 @@ namespace server
 			command << folder;
 			if(subroutine != "")
 				command << subroutine;
-			descriptor.sendToOtherClient("ProcessChecker", command.str(), false);
+			descriptor.sendToOtherClient("ProcessChecker", command.str(), false, "");
 
 		}else if(method == "clearFolderDebug")
 		{
-			descriptor.sendToOtherClient("ProcessChecker", "clearFolderDebug", false);
+			descriptor.sendToOtherClient("ProcessChecker", "clearFolderDebug", false, "");
 
 		}else if(method == "getActEntry")
 		{
@@ -390,7 +390,7 @@ namespace server
 			unsigned short owServer;
 
 			object >> owServer;
-			res= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true);
+			res= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true, "");
 
 			istringstream smax(res);
 
@@ -422,7 +422,7 @@ namespace server
 				(*send) << "getStatusInfo";
 				if(param != "")
 					(*send) << " \"" << param << "\"";
-				msg= descriptor.sendToOtherClient("ProcessChecker", send->str(), true);
+				msg= descriptor.sendToOtherClient("ProcessChecker", send->str(), true, "");
 				if(msg != "done")
 				{
 					if(ExternClientInputTemplate::error(msg))
@@ -460,7 +460,7 @@ namespace server
 					break;
 				++step;
 			case 3: // check how much one wire reader does exist
-				msg= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true);
+				msg= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true, "");
 				piOWReader= new istringstream(msg);
 				*piOWReader >> nMaxOWReader;
 				delete piOWReader;
@@ -475,7 +475,7 @@ namespace server
 						(*send) << " \"" << param << "\"";
 					poOWReader= auto_ptr<ostringstream>(new ostringstream);
 					(*poOWReader) << "OwServerQuestion-" << nOWReader;
-					msg= descriptor.sendToOtherClient(poOWReader->str(), send->str(), true);
+					msg= descriptor.sendToOtherClient(poOWReader->str(), send->str(), true, "");
 					if(ExternClientInputTemplate::error(msg))
 						msg= "no communication to  " + poOWReader->str() + " " + msg;
 					if(msg != "done")
@@ -510,7 +510,7 @@ namespace server
 
 			object >> ow;
 			def << "OwServerQuestion-" << ow;
-			res= descriptor.sendToOtherClient(def.str(), command, true);
+			res= descriptor.sendToOtherClient(def.str(), command, true, "");
 			descriptor << res;
 
 		}else if(method == "setOWDebug")
@@ -562,7 +562,7 @@ namespace server
 
 				server << "OwServerQuestion-" << serverID;
 				command << "setDebug " << set;
-				res= descriptor.sendToOtherClient(server.str(), command.str(), false);
+				res= descriptor.sendToOtherClient(server.str(), command.str(), false, "");
 				descriptor << res;
 			}else
 				descriptor << "done";
@@ -593,7 +593,7 @@ namespace server
 					ostringstream server;
 
 					server << "OwServerQuestion-" << it->first;
-					descriptor.sendToOtherClient(server.str(), "setDebug false", false);
+					descriptor.sendToOtherClient(server.str(), "setDebug false", false, "");
 					if(connectionID > 0)
 						break;
 				}
@@ -635,7 +635,7 @@ namespace server
 					command << value;
 					command << device;
 					command << onServer+" "+chip;
-					descriptor.sendToOtherClient("ProcessChecker", command.str(), false);
+					descriptor.sendToOtherClient("ProcessChecker", command.str(), false, "");
 				}
 			}
 			descriptor << "done";
@@ -651,7 +651,7 @@ namespace server
 				ostringstream server;
 
 				server << "OwServerQuestion-" << n;
-				descriptor.sendToOtherClient(server.str(), "checkUnused", true);
+				descriptor.sendToOtherClient(server.str(), "checkUnused", true, "");
 			}
 			descriptor << "done";
 
@@ -669,7 +669,7 @@ namespace server
 				ostringstream server;
 
 				server << "OwServerQuestion-" << n;
-				descriptor.sendToOtherClient(server.str(), command.str(), true);
+				descriptor.sendToOtherClient(server.str(), command.str(), true, "");
 			}
 			descriptor << "done";
 
@@ -748,7 +748,7 @@ namespace server
 					owclient << "OwServerQuestion-";
 					owclient << client;
 					glob::stopMessage("ServerDbTransaction::transfer(): send stop message to owreader process " + owclient.str());
-					descriptor.sendToOtherClient(owclient.str(), "stop-owclient", false);
+					descriptor.sendToOtherClient(owclient.str(), "stop-owclient", false, "");
 					usleep(500000);
 					client= getOwClientCount();
 					client-= minus;
@@ -763,11 +763,11 @@ namespace server
 				glob::stopMessage("ServerDbTransaction::transfer(): send stop message to main process ProcessChecker");
 				++stopdb;
 			case 3:
-				sRv= descriptor.sendToOtherClient("ProcessChecker", "stop-all", true);
+				sRv= descriptor.sendToOtherClient("ProcessChecker", "stop-all", true, "");
 				if(sRv == "done")
 				{
 					++stopdb;
-					descriptor.sendToOtherClient("ProcessChecker", "OK", false);
+					descriptor.sendToOtherClient("ProcessChecker", "OK", false, "");
 					sRv= "stop measure threads";
 				}
 				break;

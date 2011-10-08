@@ -129,10 +129,11 @@ namespace server
 		 *
 		 * @param str string which shold send to client
 		 * @param wait whether method should wait for an answer
+		 * @param endString if sending client want an array, this is the last string for ending
 		 * @return answer from client
 		 */
-		virtual string sendString(const string& str, const bool& wait)
-		{ return m_hFileAccess->sendString(str, wait); };
+		virtual string sendString(const string& str, const bool& wait, const string& endString)
+		{ return m_hFileAccess->sendString(str, wait, endString); };
 		/**
 		 * destroy instance of communication thread
 		 */

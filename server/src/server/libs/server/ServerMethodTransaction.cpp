@@ -55,6 +55,12 @@ namespace server
 		descriptor.setBoolean("asker", true);
 		descriptor.setBoolean("access", false);
 		descriptor.setBoolean("own", false);
+		// other client wait for answer
+		descriptor.setBoolean("clientwait", false);
+		// whether own client should send an array, this is the ending string
+		descriptor.setString("endstring", "");
+		// last question when own client send an answer array
+		descriptor.setString("lastquestion", "");
 		return true;
 	}
 
@@ -62,10 +68,11 @@ namespace server
 	{
 		bool bRun= true;
 		bool bwait= true;
-		int pos;
+		string::size_type pos;
 		string input, wasinput;
 		string process;
 		string client;
+		string endString;
 		IServerPattern* server= NULL;
 
 		descriptor >> input;
@@ -94,7 +101,7 @@ namespace server
 				cerr << msg.str();
 #endif // ALLOCATEONMETHODSERVER
 			descriptor.setBoolean("access", false);
-			input=descriptor.sendToOtherClient(client, "init", true);
+			input= descriptor.sendToOtherClient(client, "init", true, "");
 			connectionEnding(ID, process, client);
 			dissolveConnection(descriptor);
 			return false;
@@ -106,7 +113,8 @@ namespace server
 		if(descriptor.getBoolean("asker"))
 		{
 			pos= input.find(' ', 0);
-			if(pos > 0)
+			bwait= false;
+			if(pos != string::npos)
 			{
 				client= input.substr(0, pos);
 				input= input.substr(pos + 1);
@@ -119,6 +127,22 @@ namespace server
 					bwait= false;
 					input= input.substr(6);
 				}
+				if(input.substr(0, 4) == "true")
+				{
+					input= input.substr(5);
+					pos= input.find(' ', 0);
+					if(pos > 0)
+					{
+						endString= input.substr(0, pos);
+						input= input.substr(pos + 1);
+					}
+
+				}else if(input.substr(0, 5) == "false")
+				{
+					input= input.substr(6);
+				}
+
+			// DEBUG OUTPUT
 			/*	cout << "from client " << descriptor.getString("client");
 				cout << " in process " << descriptor.getString("process");
 				cout << " toProcess: " << process;
@@ -269,8 +293,35 @@ namespace server
 				cout << " give Answer '" << input << "'" << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-			descriptor.sendAnswer(input);
-			input= descriptor.getOtherClientString(true);
+			bwait= descriptor.getBoolean("clientwait");
+			endString= descriptor.getString("endstring");
+			if(bwait)
+				descriptor.sendAnswer(input);
+			if(	endString != "" &&
+				endString == input	)
+			{
+				bwait= false;
+				endString= "";
+				descriptor.setBoolean("clientwait", false);
+				descriptor.setString("endstring", "");
+				descriptor.setString("lastquestion", "");
+			}
+			if(	endString == ""	||
+				bwait				)
+			{// asking only for new question when last asking for no array
+			 // or other client waiting for answer from this array question
+				input= descriptor.getOtherClientString(bwait, endString, /*wait now*/true);
+				descriptor.setBoolean("clientwait", bwait);
+				descriptor.setString("endstring", endString);
+				pos= input.find(' ', 0);
+				if(pos == string::npos)
+					descriptor.setString("lastquestion", input);
+				else
+					descriptor.setString("lastquestion", input.substr(0, pos));
+			}else
+			{
+				input= descriptor.getString("lastquestion");
+			}
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			m_boutput= true;
 #ifndef __FOLLOW_TOPROCESS
@@ -309,7 +360,7 @@ namespace server
 			descriptor << input;
 			descriptor.flush();
 		}else if(client == descriptor.getServerObject()->getName())
-		{
+		{// question is sending to own object depend from this class
 			IMethodStringStream method(input);
 
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
@@ -365,7 +416,7 @@ namespace server
 				cout << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-			input= descriptor.sendToOtherClient(client, input, bwait);
+			input= descriptor.sendToOtherClient(client, input, bwait, endString);
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 #ifndef __FOLLOW_FROMPROCESS
 #ifndef __FOLLOW_FROMCLIENT
