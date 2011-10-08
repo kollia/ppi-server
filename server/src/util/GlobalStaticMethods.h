@@ -17,7 +17,10 @@
 #ifndef GLOBALSTATICMETHODS_H_
 #define GLOBALSTATICMETHODS_H_
 
+#include <unistd.h>
+
 #include <string>
+#include <map>
 
 #include "debug.h"
 
@@ -83,6 +86,14 @@ public:
 	 * @return whether the name was changed
 	 */
 	static bool replaceName(string& name, const string& type= "");
+	/**
+	 * read for given user ID from passwd
+	 *
+	 * @param passwd file with path where finding entrys
+	 * @param users map of users as key, by returning procedure the value should has user uid
+	 * @return whether procedure found all users
+	 */
+	static bool readPasswd(const string& passwd, map<string, uid_t>& users);
 
 private:
 	/**

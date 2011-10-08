@@ -19,11 +19,16 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include <string>
+#include <vector>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
 #include "GlobalStaticMethods.h"
@@ -233,6 +238,9 @@ bool GlobalStaticMethods::replaceName(string& name, const string& type)
 		fault= true;
 	if(isdigit(name[0]))
 		name= "_" + name;
+	p= name.find("."); // reserved character maybe used in the feature
+	if(p != string::npos)
+		fault= true;
 	if(fault)
 	{
 		if(type != "")
@@ -251,6 +259,7 @@ bool GlobalStaticMethods::replaceName(string& name, const string& type)
 		replace_all(name, "&", "_AND_");
 		replace_all(name, "|", "_OR_");
 		replace_all(name, "?", "_QMARK_");
+		replace_all(name, ".", "_DOT_");
 		if(type != "")
 		{
 			cout << "              actual " << type << " is now '" << name << "'" << endl;
@@ -261,3 +270,71 @@ bool GlobalStaticMethods::replaceName(string& name, const string& type)
 	return fault;
 }
 
+bool GlobalStaticMethods::readPasswd(const string& passwd, map<string, uid_t>& users)
+{
+	bool ball;
+	const uid_t nouid(100000);
+	ifstream file(passwd.c_str());
+	string line;
+	string buffer;
+	string user;
+	string::size_type nLen;
+
+	for(map<string, uid_t>::iterator it= users.begin(); it != users.end(); ++it)
+		it->second= nouid;
+	if(!file.is_open())
+	{
+		string err;
+
+		err=  "### ERROR: cannot read '/etc/passwd'\n";
+		err+= "    ERRNO: " + *strerror(errno);
+		cerr << err << endl;
+		LOG(LOG_ALERT, err);
+		return false;
+	}
+	while(!file.eof())
+	{
+		getline(file, line);
+
+		ball= true;
+		for(map<string, uid_t>::iterator it= users.begin(); it != users.end(); ++it)
+		{
+			if(it->second == nouid)
+			{
+				user= it->first;
+				nLen= user.length();
+				if(line.substr(0, nLen) == user)
+				{
+					vector<string> vec;
+
+					split(vec, line, is_any_of(":"));
+					if(vec.size() > 1)
+						it->second= atoi(vec[2].c_str());
+					else
+						ball= false;
+				}else
+					ball= false;
+			}
+		}
+		if(ball == true)
+			break;
+	}
+	if(ball == false)
+	{
+		string err;
+
+		err=  "### ERROR: cannot find user in passwd\n";
+		err+= "           (";
+		for(map<string, uid_t>::iterator it= users.begin(); it != users.end(); ++it)
+		{
+			if(it->second == nouid)
+				err+= "'" + it->first + "', ";
+		}
+		err= err.substr(0, err.length()-2);
+		err+= ")";
+		LOG(LOG_ERROR, err);
+		cerr << err << endl;
+		return false;
+	}
+	return true;
+}
