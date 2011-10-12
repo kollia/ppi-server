@@ -101,6 +101,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	string prop;
 	auto_ptr<ProcessStarter> process, logprocess;
 	vector<string>::size_type readercount;
+	set<string> shellstarter;
 
 	// starting time
 	struct tm ttime;
@@ -146,20 +147,18 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			&&
 			property != "false"	)	)
 	{
-		cerr << "###          parameter databaseserver not be set, so start server" << endl;
+		cerr << "###          parameter databaseserver not be set correctly, so start server" << endl;
 		bDb= true;
 	}else if(property == "true")
 		bDb= true;
 	else
 		bDb= false;
-	property= m_oServerFileCasher.getValue("portserver", /*warning*/true);
-	if(	property == ""
-		||
-		(	property != "true"
-			&&
-			property != "false"	)	)
+	property= m_oServerFileCasher.getValue("owreaders", /*warning*/true);
+	if(	property == "" ||
+		(	property != "true" &&
+			property != "false"		)	)
 	{
-		cerr << "###          parameter portserver not be set, so start server" << endl;
+		cerr << "###          parameter owreaders not be set correctly, so start server" << endl;
 		bPorts= true;
 	}else if(property == "true")
 		bPorts= true;
@@ -172,7 +171,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			&&
 			property != "false"	)	)
 	{
-		cerr << "###          parameter internetserver not be set, so start server" << endl;
+		cerr << "###          parameter internetserver not be set correctly, so start server" << endl;
 		bInternet= true;
 	}else if(property == "true")
 		bInternet= true;
@@ -212,21 +211,25 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 
 	if(commands->hasOption("configure"))
-		cout << "  create folder lists ..." << endl;
-	createFolderLists();
+		cout << "   create folder lists ..." << endl;
+	createFolderLists(shellstarter);
 
 	//*********************************************************************************
 	//* calculate how much communication threads should be running
 	bool bPort= false;
 	bool bMPort= false;
+	bool blirc= false;
 	bool bowfs= false;
 	bool bvk8055= false;
-	bool blirc= false;
 	unsigned short nOWReaderCount;
 	unsigned short nOWReader(0);
 	const IPropertyPattern* pProp;
 
-	//* count in nOWReader how much one wire reader (OWServer) should running
+	// count of all OWReaders should starting in an own user account of system
+	// which are get some commands from subroutine with type SHELL and defined runuser
+	nOWReader= static_cast<unsigned short>(shellstarter.size());
+
+	// count in nOWReader how much one wire reader (OWServer) should running
 	if(m_vOWReaderNeed.find("OWFS") != m_vOWReaderNeed.end())
 	{
 		pProp= m_oServerFileCasher.getSection("owreader", "OWFS");
@@ -378,6 +381,55 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	int nServerID= 1;
 	string owreader("OwServerQuestion-");
 
+	/***************************************************
+	 * starting owreader for shell commands
+	 * in other user account of system
+	 */
+	for(set<string>::iterator it= shellstarter.begin(); it != shellstarter.end(); ++it)
+	{
+		ostringstream oServerID;
+
+		cout << "### starting OWServer " << endl;
+		oServerID << nServerID;
+		process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", owreader + oServerID.str(),
+																new SocketClientConnection(	SOCK_STREAM,
+																							commhost,
+																							commport,
+																							10			)	));
+
+		if(bPorts)
+		{
+			ostringstream oDbConnectors;
+
+			oDbConnectors << nDbConnectors;
+			err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
+												"SHELL", it->c_str(), NULL);
+		}else
+			err= process->check();
+		if(err > 0)
+		{
+			string msg;
+
+			msg=  "### WARNING: cannot start one wire reader\n";
+			msg+= "             " + process->strerror(err) + "\n";
+			msg+= "             so ppi-server cannot start any shell commands in system user account of '" + *it + "'";
+			cerr << endl << msg << endl;
+			LOG(LOG_ALERT, msg);
+		}else
+		{// create reading interface to one wire reader
+			OWInterface::getServer(	"ppi-server",
+									new SocketClientConnection(	SOCK_STREAM,
+																commhost,
+																commport,
+																5			),
+									nServerID									);
+			++nServerID;
+		}
+	}
+
+	/***************************************************
+	 * starting owreaders for external COM/LPT ports
+	 */
 	if(ports.size() > 0)
 	{
 		string sPorts;
@@ -481,6 +533,9 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	}
 
+	/***************************************************
+	 * starting owreader for lirc receiver or transmitter
+	 */
 	if(blirc)
 	{
 		ostringstream oServerID;
@@ -529,6 +584,9 @@ bool Starter::execute(const IOptionStructPattern* commands)
 #endif // _EXTERNVENDORLIBRARYS
 
 #ifdef _K8055LIBRARY
+	/***************************************************
+	 * starting owreader for vellemann K8055 board
+	 */
 	if(bvk8055)
 	{
 		bool bError;
@@ -617,6 +675,9 @@ bool Starter::execute(const IOptionStructPattern* commands)
 #endif //_K8055LIBRARY
 
 #ifdef _OWFSLIBRARY
+	/***************************************************
+	 * starting owreader for maxim/dallas semiconductors
+	 */
 	if(bowfs)
 	{
 		vector<string> adapters;
@@ -883,7 +944,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	return true;
 }
 
-void Starter::createFolderLists()
+void Starter::createFolderLists(set<string>& shellstarter)
 {
 	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
 	//DbInterface* db= DbInterface::instance();
@@ -921,9 +982,13 @@ void Starter::createFolderLists()
 
 			}else if(aktualFolder->subroutines[n].type == "SHELL")
 			{
+				string user;
 				auto_ptr<Shell> obj= auto_ptr<Shell>(new Shell(	aktualFolder->name,
 																aktualFolder->subroutines[n].name	));
 				aktualFolder->subroutines[n].portClass= obj;
+				user= aktualFolder->subroutines[n].property->getValue("runuser", /*warning*/false);
+				if(user != "")
+					shellstarter.insert(user);
 
 			}else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
 			{
@@ -1158,55 +1223,20 @@ Starter::~Starter()
 
 void Starter::readPasswd()
 {
+	map<string, uid_t> users;
 	string defaultUser(m_oServerFileCasher.needValue("defaultuser"));
-	string loguser(m_oServerFileCasher.getValue("loguser", /*warning*/false));
+	string passwd(m_oServerFileCasher.needValue("passwd"));
 	size_t defaultLen= defaultUser.length();
-	size_t logLen= loguser.length();
-	ifstream file("/etc/passwd");
-	string line;
-	string buffer;
 
 	if(defaultLen == 0)
 	{
 		cout << "### ERROR: no default user (defaultuser) in server.conf be set" << endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
-	if(!file.is_open())
-	{
-		cout << "### ERROR: cannot read '/etc/passwd'" << endl;
-		cout << "           application must be started as root" << endl;
-		exit(1);
-	}
-	m_tDefaultUser= 0;
-	m_tLogUser= 0;
-	while(!file.eof())
-	{
-		getline(file, line);
-
-		if(line.substr(0, defaultLen) == defaultUser)
-		{
-			vector<string> vec(ConfigPropertyCasher::split(line, ":"));
-
-			m_tDefaultUser= atoi(vec[2].c_str());
-		}
-		if(	logLen > 0
-			&&
-			line.substr(0, logLen) == loguser	)
-		{
-			vector<string> vec(ConfigPropertyCasher::split(line, ":"));
-
-			m_tLogUser= atoi(vec[2].c_str());
-		}
-	}
-	if(!m_tDefaultUser)
-	{
-		cout << "### ERROR: cannot find default user " << defaultUser << endl;
-		exit(1);
-	}
-	if(!m_tLogUser)
-	{
-		m_tLogUser= m_tDefaultUser;
-	}
+	users[defaultUser]= 0;
+	if(!glob::readPasswd(passwd, users))
+		exit(EXIT_FAILURE);
+	m_tDefaultUser= users[defaultUser];
 }
 
 inline vector<pair<string, PortTypes> >::iterator Starter::find(vector<pair<string, PortTypes> >& vec, string port)

@@ -209,7 +209,10 @@ namespace design_pattern_world
 		 * primary command for chip access library.<br />
 		 * If command is an null terminated string, this method should give back
 		 * an result of all usable chip ID's.<br />
-		 * For all other usable commands, please read the documentation of the library
+		 * For all other usable commands, please read the documentation of the library.<br />
+		 * This method comming thread save from the owserver object. This means only one thread
+		 * can attach this method. When this method is blocking the thread, all subroutines are blocking
+		 * which want to call this method (also from other folder's)
 		 *
 		 * @param command specific command for library
 		 * @param result output result of command

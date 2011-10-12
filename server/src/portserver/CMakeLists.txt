@@ -4,9 +4,10 @@ include_directories(${CMAKE_SOURCE_DIR}/lib)
 set(portserverSrcs  owserver.cpp
                     OwServerQuestions.cpp
                     KernelModule.cpp
+                    ShellWriter.cpp
+            		ExternPorts.cpp
             	    maximchipaccess.cpp
             		VellemannK8055.cpp
-            		ExternPorts.cpp
             		irsend.cpp
             		LircClient.cpp
                     owreadermain.cpp        )

@@ -57,6 +57,7 @@ namespace server
 		m_PRIORITY1CHIP= getMutex("PRIORITY1CHIP");
 		m_CACHEWRITEENTRYS= getMutex("CACHEWRITEENTRYS");
 		m_DEBUGINFO= getMutex("DEBUGINFO");
+		m_EXECUTEMUTEX= getMutex("EXECUTEMUTEX");
 		m_pKernelModule= auto_ptr<KernelModule>(new KernelModule(type, accessPattern, m_READCACHE, m_PRIORITYCACHECOND));
 	}
 
@@ -1081,7 +1082,12 @@ namespace server
 
 	int OWServer::command_exec(const string& command, vector<string>& result, bool& more)
 	{
-		return m_poChipAccess->command_exec(command, result, more);
+		int nRv;
+
+		LOCK(m_EXECUTEMUTEX);
+		nRv= m_poChipAccess->command_exec(command, result, more);
+		UNLOCK(m_EXECUTEMUTEX);
+		return nRv;
 	}
 
 	void OWServer::ending()
@@ -1103,6 +1109,7 @@ namespace server
 		DESTROYMUTEX(m_PRIORITY1CHIP);
 		DESTROYMUTEX(m_CACHEWRITEENTRYS);
 		DESTROYCOND(m_PRIORITYCACHECOND);
+		DESTROYMUTEX(m_EXECUTEMUTEX);
 	}
 
 }

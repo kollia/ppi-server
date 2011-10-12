@@ -39,6 +39,7 @@
 
 #include "owserver.h"
 #include "OwServerQuestions.h"
+#include "ShellWriter.h"
 #include "ExternPorts.h"
 #include "LircClient.h"
 #include "maximchipaccess.h"
@@ -60,10 +61,9 @@ int main(int argc, char* argv[])
 	unsigned short nServerID;
 	unsigned short commport;
 	int nLogAllSec, err;
-	uid_t defaultuserID;
 	ostringstream usestring;
 	string commhost, property, servertype, questionservername("OwServerQuestion-");
-	string workdir, sConfPath, fileName, defaultuser;
+	string workdir, sConfPath, fileName, defaultuser, shelluser;
 	vector<int> vLength;
 	//vector<string> vParams;
 	vector<string> vDescript;
@@ -75,6 +75,7 @@ int main(int argc, char* argv[])
 	DbInterface *db;
 	IChipAccessPattern* accessPort;
 	auto_ptr<OwServerQuestions> pQuestions;
+	map<string, uid_t> users;
 
 	glob::processName("ppi-owreader");
 	glob::setSignals("ppi-owreader");
@@ -106,10 +107,9 @@ int main(int argc, char* argv[])
 	if(defaultuser == "")
 	{
 		cerr << "### WARNING: defaultuser is not defined" << endl;
-		cerr << "             so process run under 'nobody'" << endl;
+		cerr << "             so processing run under 'nobody'" << endl;
 		defaultuser= "nobody";
 	}
-	defaultuserID= URL::getUserID(defaultuser);
 	commhost= oServerProperties.getValue("communicationhost", /*warning*/false);
 	if(commhost == "")
 		commhost= "127.0.0.1";
@@ -154,11 +154,29 @@ int main(int argc, char* argv[])
 		oServerID >> nServerID;
 		if(nServerID > 0)
 		{
-			if(	strncmp(argv[2], "PORT", vLength[2]) == 0
-				||
-				strncmp(argv[2], "MPORT", vLength[2]) == 0
-				||
-				strncmp(argv[2], "RWPORT", vLength[2]) == 0 )
+			if(strncmp(argv[2], "SHELL", vLength[3]) == 0)
+			{
+				if(argc != 4)
+				{
+					string msg;
+
+					msg=  "### ERROR: cannot start owreader for ShellWriter\n";
+					msg+= "           need 3 parameter, <ID> <type> and <user>\n";
+					msg+= "           do not start server!";
+					LOG(LOG_ALERT, msg);
+					cerr << msg << endl;
+					exit(EXIT_FAILURE);
+				}
+				servertype= "SHELL";
+				accessPort= new ShellWriter(nServerID, argv[3]);
+				shelluser= argv[3];
+				bConf= true;
+
+			}else if(	strncmp(argv[2], "PORT", vLength[2]) == 0
+						||
+						strncmp(argv[2], "MPORT", vLength[2]) == 0
+						||
+						strncmp(argv[2], "RWPORT", vLength[2]) == 0 )
 			{
 				int needArgc= 4;
 				PortTypes type;
@@ -314,20 +332,63 @@ int main(int argc, char* argv[])
 																								commport,
 																								10			),
 																	owserver.get()								));
-	pProp= oServerProperties.getSection("owreader", servertype);
-	if(pProp == NULL)
+	if(servertype != "SHELL")
 	{
-		string msg("spezification of external port reading " + servertype + " has no entry inside server.conf");
+		pProp= oServerProperties.getSection("owreader", servertype);
+		if(pProp == NULL)
+		{
+			string msg("spezification of external port reading " + servertype + " has no entry inside server.conf");
 
-		LOG(LOG_ERROR, msg);
-		cerr << "### ERROR: " << msg << endl;
+			LOG(LOG_ERROR, msg);
+			cerr << "### ERROR: " << msg << endl;
+		}
+		// copy all properties with value in new Properties object
+		// because start method of Thread object allow no const object
+		while((property= pProp->nextProp()) != "")
+		{
+			value= pProp->getValue(property);
+			newProp.setDefault(property, value);
+		}
 	}
-	// copy all properties with value in new Properties object
-	// because start method of Thread object allow no const object
-	while((property= pProp->nextProp()) != "")
+	newProp.setDefault("confpath", sConfPath, /*overwrite*/false);
+
+	users[defaultuser]= 0;
+	if(servertype == "SHELL")
+		users[shelluser]= 0;
+	if(	!glob::readPasswd(oServerProperties.getValue("passwd"), users) ||
+		servertype != "SHELL"												)
 	{
-		value= pProp->getValue(property);
-		newProp.setDefault(property, value);
+		if(setuid(users[defaultuser]) != 0)
+		{
+			string err;
+
+			err=  "### ERROR: cannot set process to default user " + defaultuser + "\n";
+			err+= "    ERRNO: " + *strerror(errno);
+			LOG(LOG_ALERT, err);
+			cerr << err << endl;
+			exit(EXIT_FAILURE);
+		}
+	}else
+	{
+		if(setuid(users[shelluser]) != 0)
+		{
+			string err;
+
+			err=  "### ERROR: cannot set process to user " + shelluser + " so set to default user " + defaultuser + "\n";
+			err+= "    ERRNO: " + *strerror(errno);
+			LOG(LOG_ERROR, err);
+			cerr << err << endl;
+			if(setuid(users[defaultuser]) != 0)
+			{
+				string err;
+
+				err=  "### ERROR: cannot set process to default user " + defaultuser + "\n";
+				err+= "    ERRNO: " + *strerror(errno);
+				LOG(LOG_ALERT, err);
+				cerr << err << endl;
+				exit(EXIT_FAILURE);
+			}
+		}
 	}
 	if(owserver->start(&newProp) != 0)
 		return EXIT_FAILURE;

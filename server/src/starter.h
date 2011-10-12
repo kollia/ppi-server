@@ -86,8 +86,10 @@ class Starter
 
 		/**
 		 * create defined folder list beginning by measure.conf
+		 *
+		 * @param shellstarter list of system user which should starting an command inside specific user account on system
 		 */
-		void createFolderLists();
+		void createFolderLists(set<string>& shellstarter);
 		/**
 		 * configure all subroutine classes which are created in method <code>createFolderLists()</code>
 		 *

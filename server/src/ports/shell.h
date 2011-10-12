@@ -19,6 +19,9 @@
 
 #include "switch.h"
 
+#include "../portserver/lib/OWInterface.h"
+
+#include "../util/CommandExec.h"
 #include "../util/properties/configpropertycasher.h"
 
 using namespace util;
@@ -54,6 +57,10 @@ protected:
 
 private:
 	/**
+	 * mutex lock to execute <code>command_exec()</code>
+	 */
+	pthread_mutex_t* m_EXECUTEMUTEX;
+	/**
 	 * begin command when set
 	 */
 	string m_sBeginCom;
@@ -74,14 +81,39 @@ private:
 	 */
 	bool m_bWait;
 	/**
+	 * whether command is blocking the hole process
+	 */
+	bool m_bBlock;
+	/**
+	 * whether subroutine get from triggered command later more result
+	 */
+	bool m_bMore;
+	/**
 	 * whether commands should be sending to an client with X-Server access
+	 * content of variable is environment variable DISPLAY ('0', '0.0', '0.1', '1', ... )
 	 */
 	string m_sGUI;
+	/**
+	 * whether shell command should start in an other system account
+	 * content of variable is exist account name
+	 */
+	string m_sUserAccount;
+	/**
+	 * server which read and write on one wire device
+	 */
+	OWI m_pOWServer;
+	/**
+	 * all running shell threads
+	 */
+	vector<SHAREDPTR::shared_ptr<CommandExec> > m_vCommandThreads;
 
 	/**
 	 * execute shell command on system or send command to client with X-Server
+	 *
+	 * @param action type of action (begincommand, whilecommand or endcommand)
+	 * @param command shell command to execute
 	 */
-	int system(const char *command);
+	int system(const string& action, string command);
 };
 
 #endif /*SHELL_H_*/

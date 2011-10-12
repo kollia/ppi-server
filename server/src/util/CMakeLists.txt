@@ -6,6 +6,7 @@ set(utilSrcs	GlobalStaticMethods.cpp
         		URL.cpp
         		ParamCommand.cpp
         		MainParams.cpp
+        		CommandExec.cpp
         		usermanagement.cpp
 	       		XMLStartEndTagReader.cpp	)
 #        		thread/StatusLogRoutine.cpp

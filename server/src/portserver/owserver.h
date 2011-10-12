@@ -294,6 +294,10 @@ namespace server
 		 */
 		pthread_mutex_t* m_DEBUGINFO;
 		/**
+		 * mutex lock to execute <code>command_exec()</code>
+		 */
+		pthread_mutex_t* m_EXECUTEMUTEX;
+		/**
 		 * whether an connection is made correctly
 		 */
 		bool m_bConnected;
