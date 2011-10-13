@@ -25,8 +25,6 @@
 
 #include "../util/debug.h"
 
-#include "../util/properties/configpropertycasher.h"
-
 #include "Client.h"
 
 using namespace std;

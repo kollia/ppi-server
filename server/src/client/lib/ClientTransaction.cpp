@@ -30,8 +30,6 @@
 #include "../../util/XMLStartEndTagReader.h"
 #include "../../util/structures.h"
 
-#include "../../util/properties/configpropertycasher.h"
-
 #include "ClientTransaction.h"
 
 using namespace std;

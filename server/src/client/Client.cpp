@@ -73,6 +73,8 @@ bool Client::execute(const string& workdir, vector<string> options, string comma
 	}
 	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
 	fileName= URL::addPath(confpath, "server.conf");
+	m_oServerFileCasher.setDelimiter("owreader", "[", "]");
+	m_oServerFileCasher.modifier("owreader");
 	if(!m_oServerFileCasher.readFile(fileName))
 	{
 		cout << "### ERROR: cannot read '" << fileName << "'" << endl;

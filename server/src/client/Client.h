@@ -28,12 +28,10 @@
 #include "../util/smart_ptr.h"
 #include "../util/structures.h"
 
-#include "../util/properties/configpropertycasher.h"
+#include "../util/properties/interlacedproperties.h"
 
 using namespace std;
 using namespace util;
-
-//extern server::ServerThread* gInternetServer;
 
 class Client
 {
@@ -43,7 +41,7 @@ class Client
 		/*
 		 * casher of defined variables in file server.conf
 		 */
-		Properties m_oServerFileCasher;
+		InterlacedProperties m_oServerFileCasher;
 
 	protected:
 	public:
