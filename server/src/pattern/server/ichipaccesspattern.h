@@ -195,9 +195,9 @@ namespace design_pattern_world
 		 * If some of the reading id's defined in method <code>useChip()</code> are defined with the flag kernelmode
 		 * but not all, the variables set in method <code>kernelmodule()</code> and will be read her should be thread save.
 		 *
-		 * @param id unique pin-id geted from useChip
+		 * @param id unique pin-id get from useChip
 		 * @param value Result of reading
-		 * @return 	-1 if an error occured,
+		 * @return 	-1 if an error occurred,
 		 * 			 0 if reading was correctly and the pin is finished (go to the next),
 		 * 			 1 reading was also correctly but the next time should make the same pin (value is not the last state),
 		 * 			 2 when an entry was made but reading prime in an next time on an other pin (pin is finished -> go to the next)
@@ -210,7 +210,7 @@ namespace design_pattern_world
 		 * If command is an null terminated string, this method should give back
 		 * an result of all usable chip ID's.<br />
 		 * For all other usable commands, please read the documentation of the library.<br />
-		 * This method comming thread save from the owserver object. This means only one thread
+		 * This method coming thread save from the owserver object. This means only one thread
 		 * can attach this method. When this method is blocking the thread, all subroutines are blocking
 		 * which want to call this method (also from other folder's)
 		 *
