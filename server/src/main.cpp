@@ -29,112 +29,17 @@
 
 #include "portserver/LircClient.h"
 
-#if 0
-// only for simple server client communication
-#include "server/libs/client/SocketClientConnection.h"
-#include "server/libs/server/TcpServerConnection.h"
-#include "util/smart_ptr.h"
-// for testing on streams
-#include "util/IParameterStringStream.h"
-#endif
-
 #include "starter.h"
 
 using namespace std;
 using namespace util;
 using namespace ports;
 
+// only used method for some debugging tests
+void tests(const string& workdir, int argc, char* argv[]);
+
 int main(int argc, char* argv[])
 {
-// simple server client communication
-#if 0
-	string command;
-	string value;
-    SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
-
-    if (argc == 2)
-    {
-    	command= argv[1];
-    	if(command == "client")
-    	{
-    		server::SocketClientConnection client(	SOCK_STREAM,
-													"127.0.0.1",
-													20000,
-													10			);
-
-    		//connection.newTranfer(new ClientTransaction());
-    		if(!client.init())
-    		{
-    			descriptor= client.getDescriptor();
-    			cout << "client send: \"Hallo Du!\"" << endl;
-    			(*descriptor) << "Hallo Du!\nWie geht es Dir\nden";
-    			(*descriptor) << " heute?";
-    			descriptor->endl();
-    			descriptor->flush();
-    			(*descriptor) >> value;
-    			cout << value << endl;
-    			return EXIT_SUCCESS;
-    		}
-    		return EXIT_FAILURE;
-
-    	}else if(command == "server")
-    	{
-    		server::TcpServerConnection connection(	"127.0.0.1",
-													20000,
-													10,
-													NULL	);
-
-    		if(!connection.init())
-    		{
-    			if(!connection.accept())
-    			{
-    				descriptor= connection.getDescriptor();
-    				while(!descriptor->eof())
-    				{
-    					(*descriptor) >> value;
-    					cout << "Server get message " << value << endl;
-    				}
-    				(*descriptor) << "Server got message";
-    				descriptor->endl();
-    				descriptor->unlock();
-    				descriptor->closeConnection();
-    				return EXIT_SUCCESS;
-    			}
-    		}
-    		return EXIT_FAILURE;
-    	}
-    }
-
-    fprintf(stderr,"usage %s [server|client]\n", argv[0]);
-    return EXIT_FAILURE;
-#endif
-#if 0
-	IParameterStringStream reader("truego");
-	bool val;
-
-	reader >> val;
-	cout << "value is " << val << endl;
-	if(reader.fail())
-		cout << "an error is occured" << endl;
-	if(reader.empty())
-		cout << "reading of string is finished" << endl;
-#endif
-#if 0
-	bool newer= false;
-	time_t t;
-	time(&t);
-	Calendar::calcDate(newer, t, 1, 'h');
-	Calendar::calcDate(newer, t, 3, 'h');
-	Calendar::calcDate(newer, t, 1, 'D');
-	Calendar::calcDate(newer, t, 5, 'D');
-	Calendar::calcDate(newer, t, 1, 'W');
-	Calendar::calcDate(newer, t, 4, 'W');
-	Calendar::calcDate(newer, t, 1, 'M');
-	Calendar::calcDate(newer, t, 4, 'M');
-	Calendar::calcDate(newer, t, 1, 'Y');
-	Calendar::calcDate(newer, t, 2, 'Y');
-#endif
-
 	bool result;
 	string command;
 	Starter server;
@@ -160,6 +65,9 @@ int main(int argc, char* argv[])
 	commands= params.getCommands();
 	command= commands->command();
 	server.setWorkingDirectory(params.getPath());
+
+	// method has only content by debugging when need
+	tests(params.getPath(), argc, argv);
 
 	try
 	{
@@ -250,4 +158,146 @@ int main(int argc, char* argv[])
 		}
 	}
 	return EXIT_FAILURE;
+}
+
+
+
+#if 0
+// some includes needed for tests method
+#include "util/URL.h"
+// only for simple server client communication
+#include "server/libs/client/SocketClientConnection.h"
+#include "server/libs/server/TcpServerConnection.h"
+#include "util/smart_ptr.h"
+// for testing on streams
+#include "util/properties/interlacedproperties.h"
+#endif
+
+void tests(const string& workdir, int argc, char* argv[])
+{
+#if 0
+	// define configure path
+	string sConfPath;
+
+	sConfPath= URL::addPath(workdir, PPICONFIGPATH, /*always*/false);
+#endif
+
+#if 0
+	// check working of InterlacedProperties
+	typedef vector<IInterlacedPropertyPattern*>::iterator secIt;
+	string fileName;
+	InterlacedActionProperties mainprop(/*check after*/true);
+	vector<IInterlacedPropertyPattern*> folderSections;
+	vector<IInterlacedPropertyPattern*> subSections;
+
+	fileName= URL::addPath(sConfPath, "measure.conf");
+	mainprop.action("action");
+	mainprop.modifier("folder");
+	mainprop.setMsgParameter("folder");
+	mainprop.modifier("name");
+	mainprop.setMsgParameter("name", "subroutine");
+	mainprop.valueLocalization("\"", "\"", /*remove*/true);
+	mainprop.readFile(fileName);
+	folderSections= mainprop.getSections();
+	for(secIt fit= folderSections.begin(); fit != folderSections.end(); ++fit)
+	{
+		cout << (*fit)->getMsgHead(false) << endl;
+		subSections= (*fit)->getSections();
+		for(secIt sit= subSections.begin(); sit != subSections.end(); ++sit)
+		{
+			cout << (*sit)->getMsgHead(false) << endl;
+		}
+	}
+	exit(EXIT_SUCCESS);
+#endif
+
+	// simple server client communication
+	#if 0
+		string command;
+		string value;
+	    SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
+
+	    if (argc == 2)
+	    {
+	    	command= argv[1];
+	    	if(command == "client")
+	    	{
+	    		server::SocketClientConnection client(	SOCK_STREAM,
+														"127.0.0.1",
+														20000,
+														10			);
+
+	    		//connection.newTranfer(new ClientTransaction());
+	    		if(!client.init())
+	    		{
+	    			descriptor= client.getDescriptor();
+	    			cout << "client send: \"Hallo Du!\"" << endl;
+	    			(*descriptor) << "Hallo Du!\nWie geht es Dir\nden";
+	    			(*descriptor) << " heute?";
+	    			descriptor->endl();
+	    			descriptor->flush();
+	    			(*descriptor) >> value;
+	    			cout << value << endl;
+	    			return EXIT_SUCCESS;
+	    		}
+	    		return EXIT_FAILURE;
+
+	    	}else if(command == "server")
+	    	{
+	    		server::TcpServerConnection connection(	"127.0.0.1",
+														20000,
+														10,
+														NULL	);
+
+	    		if(!connection.init())
+	    		{
+	    			if(!connection.accept())
+	    			{
+	    				descriptor= connection.getDescriptor();
+	    				while(!descriptor->eof())
+	    				{
+	    					(*descriptor) >> value;
+	    					cout << "Server get message " << value << endl;
+	    				}
+	    				(*descriptor) << "Server got message";
+	    				descriptor->endl();
+	    				descriptor->unlock();
+	    				descriptor->closeConnection();
+	    				return EXIT_SUCCESS;
+	    			}
+	    		}
+	    		return EXIT_FAILURE;
+	    	}
+	    }
+
+	    fprintf(stderr,"usage %s [server|client]\n", argv[0]);
+	    return EXIT_FAILURE;
+	#endif
+	#if 0
+		IParameterStringStream reader("truego");
+		bool val;
+
+		reader >> val;
+		cout << "value is " << val << endl;
+		if(reader.fail())
+			cout << "an error is occured" << endl;
+		if(reader.empty())
+			cout << "reading of string is finished" << endl;
+	#endif
+	#if 0
+		bool newer= false;
+		time_t t;
+		time(&t);
+		Calendar::calcDate(newer, t, 1, 'h');
+		Calendar::calcDate(newer, t, 3, 'h');
+		Calendar::calcDate(newer, t, 1, 'D');
+		Calendar::calcDate(newer, t, 5, 'D');
+		Calendar::calcDate(newer, t, 1, 'W');
+		Calendar::calcDate(newer, t, 4, 'W');
+		Calendar::calcDate(newer, t, 1, 'M');
+		Calendar::calcDate(newer, t, 4, 'M');
+		Calendar::calcDate(newer, t, 1, 'Y');
+		Calendar::calcDate(newer, t, 2, 'Y');
+	#endif
+
 }
