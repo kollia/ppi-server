@@ -117,9 +117,14 @@ namespace util {
 		for(map<string, string>::const_iterator o= m_mErrorParams.begin(); o != m_mErrorParams.end(); ++o)
 		{
 			obj->setMsgParameter(o->first, o->second);
-			value= getValue(o->first, false);
-			if(value != "")
-				obj->setDefault(o->first, value);
+			// check first whether modifier was always set before
+			value= obj->getValue(o->first, false);
+			if(value == "")
+			{
+				value= getValue(o->first, false);
+				if(value != "")
+					obj->setDefault(o->first, value);
+			}
 		}
 		obj->allowLaterModifier(!m_bRegOrder);
 		Properties::addDefinitions(obj);
