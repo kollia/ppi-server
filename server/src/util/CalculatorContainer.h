@@ -262,6 +262,13 @@ protected:
 	 */
 	virtual bool variable(const string& var, double& dResult);
 	/**
+	 * return all defined child containers
+	 *
+	 * @return child containers
+	 */
+	vector<CalculatorContainer*> getChilds()
+				{ return m_voContainers; };
+	/**
 	 * search for all variables in any container
 	 */
 	virtual void findVariables();
