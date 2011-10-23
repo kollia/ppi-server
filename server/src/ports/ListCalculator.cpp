@@ -138,7 +138,8 @@ IListObjectPattern* ListCalculator::getSubroutine(const string& var, bool own)
 	{
 		for(vector<sub>::iterator it= pFolder->subroutines.begin(); it != pFolder->subroutines.end(); ++it)
 		{
-			if(	it->bCorrect &&
+			if(	(	it->bCorrect ||
+					!isRendered()	) &&
 				it->name == sSubroutine	)
 			{
 				return it->portClass.get();
@@ -172,8 +173,6 @@ bool ListCalculator::variable(const string& var, double& dResult)
 	map<string, double>::iterator foundSub;
 	map<string, IListObjectPattern*>::iterator found;
 
-	if(!isRendered())
-		return true;
 	if(m_msSubVars.size())
 	{
 		v= var;
