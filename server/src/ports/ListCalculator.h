@@ -108,7 +108,15 @@ public:
 	 * @param var name of variable
 	 * @param val value of variable
 	 */
-	void setSubVar(string var, const double val);
+	void setSubVar(string var, const double val)
+	{ setSubVar(var, &val); };
+	/**
+	 * set value for Variable which should not read from other list object
+	 *
+	 * @param var name of variable
+	 * @param val value of variable
+	 */
+	void setSubVar(string var, const double* val);
 	/**
 	 * clear all setting variables which set with setSubVar()
 	 */

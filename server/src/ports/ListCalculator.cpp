@@ -221,14 +221,25 @@ void ListCalculator::activateObserver(IMeasurePattern* observer)
 	}
 }
 
-void ListCalculator::setSubVar(string var, const double val)
+void ListCalculator::setSubVar(string var, const double* val)
 {
 	vector<string> spl;
+	ListCalculator* container;
+	vector<CalculatorContainer*> childs;
 
 	split(spl, var, is_any_of(":"));
 	if(spl.size() == 1)
 		var= m_sFolder+":"+var;
-	m_msSubVars[var]= val;
+	if(val)
+		m_msSubVars[var]= *val;
+	else
+		m_msSubVars.erase(var);
+	childs= getChilds();
+	for(vector<CalculatorContainer*>::iterator it= childs.begin(); it != childs.end(); ++it)
+	{
+		container= dynamic_cast<ListCalculator*>(*it);
+		container->setSubVar(var, val);
+	}
 }
 
 void ListCalculator::removeObserver(IMeasurePattern* observer)
