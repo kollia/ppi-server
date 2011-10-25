@@ -1094,11 +1094,14 @@ void Starter::configurePortObjects(bool bShowConf)
 	sMeasureFile= URL::addPath(m_sConfPath, "measure.conf");
 	while(aktualFolder != NULL)
 	{
-		bool correctFolder= false;
+		bool correctFolder= true;
 		int nMuch= aktualFolder->subroutines.size();
 
 		if(bShowConf)
+		{
+			TERMINALEND;
 			cout << " configure folder: '" << aktualFolder->name << "'" << endl;
+		}
 		for(int n= 0; n<nMuch; n++)
 		{
 			//cout << "    subroutine: " << aktualFolder->subroutines[n].name;
@@ -1119,15 +1122,17 @@ void Starter::configurePortObjects(bool bShowConf)
 			pobj= dynamic_cast<portBase*>(obj.get());
 			if(pobj)
 			{
+				//tout << pobj->getFolderName() << ":" << pobj->getSubroutineName() << endl;
 				if(pobj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
-				{
-					correctFolder= true;
 					aktualFolder->subroutines[n].bCorrect= true;
-				}
+				else
+					correctFolder= false;
+				//tout << "-----------" << endl;
 			}else
 			{
 				string alert("inside folder ");
 
+				correctFolder= false;
 				alert+= aktualFolder->name + " witch subroutine ";
 				alert+= aktualFolder->subroutines[n].name;
 				alert+= " from type " + aktualFolder->subroutines[n].type + "\n";
@@ -1207,12 +1212,13 @@ void Starter::configurePortObjects(bool bShowConf)
 												// and subroutine should starting
 			{
 				if(!aktualFolder->subroutines[n].bCorrect)
-					cerr << "             SUBROUTINE do not running inside folder" << endl << endl;
+					tout << "             SUBROUTINE do not running inside folder" << endl << endl;
 			}
 		}
 		aktualFolder->bCorrect= correctFolder;
 		aktualFolder= aktualFolder->next;
 	}
+	TERMINALEND;
 	if(bShowConf)
 		cout << endl << endl;
 }
