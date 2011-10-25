@@ -77,10 +77,10 @@ namespace ports
 
 					msg << properties->getMsgHead(/*error*/true);
 					msg << (n+1) << ". set parameter '"  << sSet;
-					msg << "' can only be an single [folder:]<sburoutine>.";
-					msg << " Do not set any value in this subroutine.";
+					msg << "' can only be an single [folder:]<sburoutine>.\n";
+					msg << "           Do not set any value in this subroutine.";
 					LOG(LOG_ERROR, msg.str());
-					tout << msg << endl;
+					tout << msg.str() << endl;
 
 				}else
 					m_vsSet.push_back(sSet);
