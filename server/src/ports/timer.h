@@ -32,20 +32,35 @@
 class timer : public switchClass
 {
 public:
+	/**
+	 * constructor of object
+	 *
+	 * @param folderName name of folder
+	 * @param subroutineName name of subroutine
+	 */
 	timer(string folderName, string subroutineName)
 	: switchClass("TIMER", folderName, subroutineName),
 	  m_bHasLinks(false),
+	  m_bReadTime(false),
 	  m_bTime(false),
 	  m_bMeasure(false),
 	  m_bSeconds(true),
 	  m_omtime(folderName, subroutineName, "mtime", false, false),
+	  m_oDirect(folderName, subroutineName, "direction", false, false),
 	  m_tmSec(0),
 	  m_tmMicroseconds(0),
 	  m_oSetNull(folderName, subroutineName, "setnull", false, true),
 	  m_dSwitch(0),
 	  m_dTimeBefore(0),
-	  m_oEnd(folderName, subroutineName, "end", false, true)
+	  m_nDirection(-2)
 	  { };
+	/**
+	 * configuration of object
+	 *
+	 * @param properties object of properties contains all subroutine parameters from measure.conf
+	 * @param pStartFolder full list of folder and subroutines
+	 * @return whether configuration was right done
+	 */
 	virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 	/**
 	 * measure new value for subroutine
@@ -54,6 +69,14 @@ public:
 	 * @return return measured value
 	 */
 	virtual double measure(const double actValue);
+	/**
+	 * get value from subroutine
+	 *
+	 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
+	 * 				This time only defined for external reading over OwPort's.
+	 * @return current value
+	 */
+	virtual double getValue(const string& who);
 	/**
 	 * set subroutine for output doing actions
 	 *
@@ -80,6 +103,10 @@ protected:
 	 */
 	bool m_bHasLinks;
 	/**
+	 * whether should read only actual time
+	 */
+	bool m_bReadTime;
+	/**
 	 * whether subroutine measure time (true)
 	 * or makes an count down (false)
 	 */
@@ -98,6 +125,12 @@ protected:
 	 */
 	ListCalculator m_omtime;
 	/**
+	 * in which direction the count down should running.<br />
+	 * By result of 0 or lower running near to 0.<br />
+	 * By result of 1 or higher the other direction to full count.
+	 */
+	ListCalculator m_oDirect;
+	/**
 	 * seconds to refresh when m_smtime not be set
 	 */
 	time_t m_tmSec;
@@ -110,6 +143,10 @@ protected:
 	 * otherwise start the hole folder again on this time
 	 */
 	timeval m_tmStart;
+	/**
+	 * when m_bTime not set, ending the time measure on this time
+	 */
+	timeval m_tmStop;
 	/**
 	 * string of options whether set value to 0
 	 */
@@ -140,9 +177,79 @@ private:
 	 */
 	double m_dTimeBefore;
 	/**
-	 * calculation for end string
+	 * witch direction be set or none.<br />
+	 * <table>
+	 *   <tr>
+	 *     <td align="center">
+	 *       -2
+	 *     </td>
+	 *     <td>
+	 *       -
+	 *     </td>
+	 *     <td>
+	 *       no direction be set
+	 *     </td>
+	 *   </tr>
+	 *   <tr>
+	 *     <td align="center">
+	 *       -1
+	 *     </td>
+	 *     <td>
+	 *       -
+	 *     </td>
+	 *     <td>
+	 *       direction be set but unknown
+	 *     </td>
+	 *   </tr>
+	 *   <tr>
+	 *     <td align="center">
+	 *       0
+	 *     </td>
+	 *     <td>
+	 *       -
+	 *     </td>
+	 *     <td>
+	 *       direction should be measured down to 0
+	 *     </td>
+	 *   </tr>
+	 *   <tr>
+	 *     <td align="center">
+	 *       1
+	 *     </td>
+	 *     <td>
+	 *       -
+	 *     </td>
+	 *     <td>
+	 *       direction should be measured up to defined time
+	 *     </td>
+	 *   </tr>
+	 * </table>
 	 */
-	ListCalculator m_oEnd;
+	short m_nDirection;
+	/**
+	 * by measuring with direction
+	 * this is the value by starting measuring
+	 */
+	double m_dStartValue;
+
+	/**
+	 * calculate next needed time
+	 *
+	 * @param start whether method should define stopping time
+	 * @param debug whether subroutine should write out debug strings
+	 * @param actTime should be actual value when parameter start is true and come back with new ending time,
+	 *                otherwise when parameter start is false it should be actual calculated time and come unchanged back
+	 * @return calculated new value
+	 */
+	double calcNextTime(const bool& start, const bool& debug, timeval* actTime);
+	/**
+	 * calculating how long time should running for count down or time measure
+	 *
+	 * @param debug whether subroutine should write out debug strings
+	 * @param actValue actual value of subroutine
+	 * @param next give back calculated time to stopping
+	 */
+	double calcStartTime(const bool& debug, const double actValue, timeval* next);
 };
 
 #endif /*TIMER_H_*/

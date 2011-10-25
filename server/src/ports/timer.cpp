@@ -49,23 +49,6 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		cout << stopfolder << ":" << getSubroutineName() << endl;
 	}*/
 	m_bSeconds= true;
-	prop= properties->getValue("end", /*warning*/false);
-	if(prop != "")
-	{
-		vector<string> vars;
-		vector<string>::iterator found;
-
-		m_oEnd.init(pStartFolder, prop);
-		vars= m_oEnd.getVariables();
-		found= find(vars.begin(), vars.end(), getSubroutineName());
-		if(found == vars.end())
-		{
-			found= find(vars.begin(), vars.end(), getFolderName()+":"+getSubroutineName());
-			if(found == vars.end())
-				m_oEnd.clear();
-		}
-	}
-	m_bTime= properties->haveAction("measure");
 	bsec= properties->haveAction("sec");
 	bmicro= properties->haveAction("micro");
 	if(bsec && bmicro)
@@ -77,30 +60,41 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		bOk= false;
 	}else if(bmicro)
 		m_bSeconds= false;
-	if(!m_bTime)
-	{ // make count down of time
-		m_bTime= false;
+	//if(!m_bTime)
+	{ // check whether should do count down of time
+		m_bTime= true;
 		smtime= properties->getValue("mtime", /*warning*/false);
-		m_omtime.init(pStartFolder, smtime);
 		if(smtime == "")
 		{
 			if(m_bSeconds)
 			{
 				prop= "day";
 				days= properties->getInt(prop, /*warning*/false);
+				if(prop != "#ERROR")
+					m_bTime= false;
 				prop= "hour";
 				hour= properties->getInt(prop, /*warning*/false);
+				if(prop != "#ERROR")
+					m_bTime= false;
 			}
 			prop= "min";
 			min= properties->getInt(prop, /*warning*/false);
+			if(prop != "#ERROR")
+				m_bTime= false;
 			prop= "sec";
 			sec= static_cast<time_t>(properties->getInt(prop, /*warning*/false));
+			if(prop != "#ERROR")
+				m_bTime= false;
 			if(!m_bSeconds)
 			{
 				prop= "millisec";
 				milli= properties->getInt(prop, /*warning*/false);
+				if(prop != "#ERROR")
+					m_bTime= false;
 				prop= "microsec";
 				sec= static_cast<suseconds_t>(properties->getInt(prop, /*warning*/false));
+				if(prop != "#ERROR")
+					m_bTime= false;
 			}
 			sec+= (static_cast<time_t>(min) * 60);
 			sec+= (static_cast<time_t>(hour) * 60);
@@ -108,13 +102,32 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 			m_tmSec= sec;
 			micro+= (static_cast<suseconds_t>(milli) * 1000);
 			m_tmMicroseconds= micro;
+		}else
+		{
+			m_bTime= false;
+			m_omtime.init(pStartFolder, smtime);
 		}
-	}else
-	{ // measure time
-		m_bTime= true;
-		sSetNull= properties->getValue("setnull", /*warning*/false);
-		m_oSetNull.init(pStartFolder, sSetNull);
+		if(m_bTime)
+		{ // measure time
+			if(m_bSeconds)
+				m_bReadTime= properties->haveAction("time");
+			if(!m_bReadTime)
+			{
+				sSetNull= properties->getValue("setnull", /*warning*/false);
+				m_oSetNull.init(pStartFolder, sSetNull);
+			}
+		}else
+		{
+			smtime= properties->getValue("direction", /*warning*/false);
+			if(smtime != "")
+			{
+				m_oDirect.init(pStartFolder, smtime);
+				m_nDirection= -1;
+			}else
+				m_nDirection= -2;
+		}
 	}
+
 
 	if(properties->getPropertyCount("link"))
 		m_bHasLinks= true;
@@ -122,31 +135,12 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		bOk= false;
 	if(!switchClass::init(properties, pStartFolder))
 		bOk= false;
-	if(	!m_bTime &&
-		m_omtime.isEmpty() &&
-		m_tmSec == 0 &&
-		m_tmMicroseconds == 0	)
-	{
-		prop= properties->getMsgHead(/*ERROR*/true);
-		prop+= "TIMER subroutine set for count down and ";
-		if(!m_bSeconds)
-			prop+= "micro";
-		prop+= "seconds, but no time (";
-		if(m_bSeconds)
-			prop+= "day/hour/";
-		prop+= "min/sec";
-		if(!m_bSeconds)
-			prop+= "/millisec/microsec";
-		prop+= " or mtime) be set";
-		LOG(LOG_ERROR, prop);
-		cerr << prop << endl;
-		bOk= false;
-	}
 	prop= "default";
 	dDefault= properties->getDouble(prop, /*warning*/false);
-	if(prop != "default")
+	if(prop == "#ERROR")
 	{// no default be set in configuration files for subroutine
-		if(!m_bTime)
+		if(	!m_bTime &&
+			m_oDirect.isEmpty()	)
 		{
 			setValue(-1, "i:"+getFolderName()+":"+getSubroutineName());
 			m_dTimeBefore= -1;
@@ -179,14 +173,21 @@ double timer::measure(const double actValue)
 	double need, nBeginTime(0);
 	switchClass::setting set;
 
+	if(debug)
+		tout << "begin measuring of type TIMER" << endl;
+	if(	!m_bMeasure ||
+		m_bTime			)
+	{
+		m_dSwitch= switchClass::measure(m_dSwitch, set);
+	}
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "TRANSMIT_SONY" &&
-		getSubroutineName() == "new_activate")
+	/*if(!m_oDirect.isEmpty())
+	//if(	getFolderName() == "TRANSMIT_SONY" &&
+	//	getSubroutineName() == "new_activate")
 	{
 		cout << __FILE__ << __LINE__ << endl;
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 	}*/
-	m_dSwitch= switchClass::measure(m_dSwitch, set);
 	if(m_dSwitch > 0)
 		bswitch= true;
 	else
@@ -206,214 +207,181 @@ double timer::measure(const double actValue)
 			if(debug)
 				cerr << msg << endl;
 			if(m_bTime)
-				need= 0;
-			else
+			{
+				if(m_nDirection > -2)
+					need= actValue;
+				else
+					need= 0;
+			}else
 				need= -1;
 		}else
 		{
 			if(!m_bTime)
-			{ // measure count down
-				bool bneed= true;
+			{ // measure count down or time
 				timeval next;
 
-				if(	m_bMeasure == false ||
-					set == switchClass::BEGIN ||
-					m_bHasLinks					)
-				{
-					if(!m_omtime.isEmpty())
-					{ // calculate seconds (m_tmSec) and microseconds (m_tmMicroseconds) from other subroutine
-						if(m_omtime.calculate(need))
-						{
-							if(need > 0)
-								bneed= true;
-							if(!bneed)
-							{
-								if(debug)
-									tout << "no next measure time be set, make no count down" << endl;
-								need= -1;
-							}else
-							{
-								m_tmSec= static_cast<time_t>(need);
-								need-= static_cast<double>(m_tmSec);
-								need*= (1000 * 1000);
-								m_tmMicroseconds= static_cast<suseconds_t>(need);
-								m_bSeconds= m_tmMicroseconds == 0 ? true : false;
-								next.tv_sec= m_tmSec;
-								next.tv_usec= m_tmMicroseconds;
-								nBeginTime= calcResult(next, m_bSeconds);
-							}
-						}else
-						{
-							string msg("cannot read time in subroutine ");
+				if(m_bMeasure == false)
+				{// BEGIN to measure
 
-							msg+= getFolderName() + ":" + getSubroutineName();
-							msg+= " from given mtime parameter " + m_omtime.getStatement();
-							TIMELOG(LOG_WARNING, "mtimemeasure", msg);
-							if(debug)
-								cerr << msg << endl;
-							m_tmSec= 0;
-							m_tmMicroseconds= 0;
-							need= -1;
-							bneed= false;
-						}
-					}else
+					if(!m_oDirect.isEmpty())
+						m_nDirection= -1; // no direction (-2) was set in init() method
+					if(debug)
 					{
-						next.tv_sec= m_tmSec;
-						next.tv_usec= m_tmMicroseconds;
-						nBeginTime= calcResult(next, m_bSeconds);
-						bneed= true;
+						tout << "BEGIN time measuring ";
+						if(m_nDirection == -2)
+							tout << "for count down" << endl;
+						else
+							tout << "to specific time" << endl;
 					}
-				}
-				if(	m_bMeasure == false ||
-					set == switchClass::BEGIN	)
-				{ // starting first count down
 					m_tmStart= tv;
-					if(bneed)
+					m_dStartValue= actValue;
+					need= calcStartTime(debug, actValue, &next);
+					if(need == -1)
 					{
-						timeradd(&m_tmStart, &next, &m_tmStart);
-						need= nBeginTime;
-						getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
+						if(m_nDirection > -2)
+							need= actValue;
+						m_bMeasure= false;
+					}else
 						m_bMeasure= true;
-						if(debug)
-						{
-							char stime[18];
 
-							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
-							tout << "folder should start again in " << need << " seconds by (" << stime << " ";
-							tout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
-						}
-					}
-
-				}else if( timercmp(&tv, &m_tmStart, >=) )
+				}else if( timercmp(&m_tmStop, &tv, <) )
 				{ // reaching end of count down
 				  // now polling ending, or begin with new time
+					double direct;
+					timeval was;
+
 					if(debug)
 					{
 						char stime[18];
-						timeval was;
 
-						was.tv_sec= m_tmSec;
-						was.tv_usec= m_tmMicroseconds;
-						need= calcResult(was, m_bSeconds);
+						tout << "reach END of time measuring" << endl;
 						tout << "folder was refreshed because time of " << need;
 						tout << " seconds was reached" << endl;
-						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
+						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStop.tv_sec));
 						tout << "refresh time (" << stime << " ";
-						tout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
+						tout << MeasureThread::getUsecString(m_tmStop.tv_usec) << ")" << endl;
 						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
 						tout << " actual time (" << stime << " ";
 						tout << MeasureThread::getUsecString(tv.tv_usec) << ")" << endl;
+						tout << "look whether should polling time again" << endl;
 					}
-					if(bswitch && !m_oEnd.isEmpty())
+					if(m_nDirection == -1)
 					{
-						m_oEnd.setSubVar(getSubroutineName(), 0);
-						m_oEnd.calculate(m_dSwitch);
-						if(	m_dSwitch < 0 ||
-							m_dSwitch > 0	)
-						{// if end parameter with own subroutine as 0 is true,
-						 // do not begin count down again
-							bswitch= false;
-							set= switchClass::END;
-							if(debug)
-								tout << "end of count down is reached, stop polling" << endl;
-						}
+						m_oDirect.calculate(direct);
+						if(direct < 1)
+							m_nDirection= 0;
+						else
+							m_nDirection= 1;
 					}
+					if(m_nDirection == 0)
+						need= 0;
+					else
+						need= calcNextTime(/*start*/false, debug, &tv);
+					m_dSwitch= switchClass::measure(m_dSwitch, set, &need);
+					if(m_dSwitch > 0)
+						bswitch= true;
+					else
+						bswitch= false;
 					if(bswitch)
-					{ // begin count down again when begin or while is true
-						bool bneed= true;
+					{// if end parameter with own subroutine as 0 is true,
+					 // do not begin count down again
+						if(debug)
+						{
+							tout << "end of ";
+							if(m_nDirection > -2)
+								tout << "time ";
+							else
+								tout << "count down ";
+							tout << "is reached, polling again" << endl;
+						}
+
 						timeval next;
 
-						if(!m_omtime.isEmpty())
-						{ // calculate seconds (m_tmSec) and microseconds (m_tmMicroseconds) from other subroutine
-							double res;
-
-							if(m_omtime.calculate(res))
-							{
-								need= res;
-								if(need < 0 || need > 0)
-									bneed= true;
-								if(!bneed)
-								{
-									if(debug)
-										tout << "no next measure time be set, make no count down" << endl;
-									need= -1;
-								}else
-								{
-									m_tmSec= static_cast<time_t>(res);
-									res-= static_cast<double>(m_tmSec);
-									res*= (1000 * 1000);
-									m_tmMicroseconds= static_cast<suseconds_t>(res);
-									m_bSeconds= m_tmMicroseconds == 0 ? true : false;
-								}
-							}else
-							{
-								string msg("cannot read time in subroutine ");
-
-								msg+= getFolderName() + ":" + getSubroutineName();
-								msg+= " from given mtime parameter " + m_omtime.getStatement();
-								TIMELOG(LOG_WARNING, "mtimemeasure", msg);
-								if(debug)
-									cerr << msg << endl;
-								m_tmSec= 0;
-								m_tmMicroseconds= 0;
-								need= -1;
-								bneed= false;
-							}
-						}
-						if(bneed)
+						if( m_nDirection == 0 ||
+							m_nDirection == -2	)
 						{
-							next.tv_sec= m_tmSec;
-							next.tv_usec= m_tmMicroseconds;
-							timeradd(&m_tmStart, &next, &m_tmStart);
-							if(debug)
-							{
-								char stime[18];
-
-								strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
-								tout << "refresh again for polling count down in " << need;
-								tout << " seconds by (" << stime << " ";
-								tout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
-							}
-							getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
-							need= 0;
+							was.tv_sec= m_tmSec;
+							was.tv_usec= m_tmMicroseconds;
+							need= calcResult(was, m_bSeconds);
 						}else
+							need= 0;
+						m_tmStart= tv;
+						m_dStartValue= need;
+						need= calcStartTime(debug, need, &next);
+						if(need == -1)
+						{
+							if(m_nDirection > -2)
+								need= actValue;
 							m_bMeasure= false;
+							bEndCount= true;
+						}else
+							m_bMeasure= true;
+						if(m_nDirection == -2)
+						{// toDo: after checking behavior with transmitter, remove this if-sentence
+							need= 0;
+						}
+
 					}else
 					{
 						m_bMeasure= false;
 						bEndCount= true;
-						need= 0;
+						if(m_nDirection == -2)
+							need= 0;
 					}
 
 				}else
 				{ // count down is running
-					timeval newtime;
+					if(debug)
+					{
+						timeval newtime;
 
-					if(set != switchClass::END)
+						timersub(&m_tmStop, &tv, &newtime);
+						tout << "WHILE: measuring of time to specific end time is running" << endl;
+						tout << "routine should stop at " << m_tmStop.tv_sec << " seconds" << endl;
+						tout << "actualy we have " << tv.tv_sec << " seconds" << endl;
+						tout << "this means time stopping in " << newtime.tv_sec << " seconds" << endl;
+						tout << endl;
+					}
+					need= calcNextTime(/*start*/false, debug, &tv);
+					if(debug)
 					{
-						timersub(&m_tmStart, &tv, &newtime);
-						need= calcResult(newtime, m_bSeconds);
-					}else
+						tout << "check whether ";
+						if(m_nDirection > -2)
+							tout << "time run ";
+						else
+							tout << "count down ";
+						tout << "should during on" << endl;
+					}
+					m_dSwitch= switchClass::measure(m_dSwitch, set, &need);
+					if(m_dSwitch > 0)
+						bswitch= true;
+					else
+						bswitch= false;
+					if(!bswitch)
 					{
-						need= 0;
+						if(m_nDirection == -2)
+							need= 0;
 						m_bMeasure= false;
 					}
+
 					if(debug)
 					{
 						char stime[18];
 
-						if(set != switchClass::END)
+						if(bswitch)
 						{
 							tout << "folder should start again in " << need << " seconds" << endl;
-							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStart.tv_sec));
+							strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStop.tv_sec));
 							tout << "    by time (" << stime << " ";
-							tout << MeasureThread::getUsecString(m_tmStart.tv_usec) << ")" << endl;
+							tout << MeasureThread::getUsecString(m_tmStop.tv_usec) << ")" << endl;
 						}else
 						{
-							timersub(&m_tmStart, &tv, &newtime);
-							need= calcResult(newtime, m_bSeconds);
-							tout << "subroutine of timer stops " << need << " seconds before" << endl;
-							need= 0;
+							double nTime;
+							timeval newtime;
+
+							timersub(&m_tmStop, &tv, &newtime);
+							nTime= calcResult(newtime, m_bSeconds);
+							tout << "subroutine of timer stops " << nTime << " seconds before" << endl;
 						}
 						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
 						tout << "actual time (" << stime << " ";
@@ -468,7 +436,11 @@ double timer::measure(const double actValue)
 		// or some measuring was done
 		bswitch= true;
 	}else
+	{
+		if(debug)
+			tout << "no measuring should be done" << endl;
 		need= actValue;
+	}
 
 	if(	m_bTime &&
 		!m_oSetNull.isEmpty()	)
@@ -485,6 +457,7 @@ double timer::measure(const double actValue)
 		}
 	}
 	if(	!m_bTime &&
+		m_nDirection == -2 &&
 		!m_bMeasure &&
 		!bEndCount &&
 		!(m_dTimeBefore > 0 || m_dTimeBefore < 0) &&
@@ -502,10 +475,294 @@ double timer::measure(const double actValue)
 
 		}else if(debug)
 				tout << "result of time is " << dec << need << " seconds" << endl;
+	}else if(debug)
+		tout << "result of time is " << dec << need << " seconds" << endl;
+	if(debug)
+	{
+		tout << "--- end ---" << endl;
+		tout << endl;
 	}
-
 	m_dTimeBefore= need;
 	return need;
+}
+
+double timer::calcStartTime(const bool& debug, const double actValue, timeval* next)
+{
+	bool bneed;
+	double calc, need;
+
+	if(debug)
+	{
+		tout << "calculate how long ";
+		if(m_nDirection > -2)
+			tout << "time ";
+		else
+			tout << "count down ";
+		tout << "should running" << endl;
+	}
+	//var next is for starting defined as actual value
+	next->tv_sec= static_cast<time_t>(actValue);
+	calc= actValue - static_cast<double>(next->tv_sec);
+	calc*= (1000 * 1000);
+	next->tv_usec= static_cast<suseconds_t>(calc);
+	if(!m_omtime.isEmpty())
+	{ // calculate seconds (m_tmSec) and microseconds (m_tmMicroseconds) from other subroutine
+		if(m_omtime.calculate(need))
+		{
+			if(need > 0)
+				bneed= true;
+			if(!bneed)
+			{
+				if(debug)
+					tout << "no next measure time be set, make no count down" << endl;
+				need= -1;
+			}else
+			{
+				double calc;
+
+				// define first m_tmSec and m_tmMicroseconds from parameter mtime
+				m_tmSec= static_cast<time_t>(need);
+				calc= need - static_cast<double>(m_tmSec);
+				calc*= (1000 * 1000);
+				m_tmMicroseconds= static_cast<suseconds_t>(calc);
+				//var next is for starting defined as actual value
+				need= calcNextTime(/*start*/true, debug, next);
+			}
+		}else
+		{
+			string msg("cannot read time in subroutine ");
+
+			msg+= getFolderName() + ":" + getSubroutineName();
+			msg+= " from given mtime parameter " + m_omtime.getStatement();
+			TIMELOG(LOG_WARNING, "mtimemeasure", msg);
+			if(debug)
+				tout << msg << endl;
+			m_tmSec= 0;
+			m_tmMicroseconds= 0;
+			need= -1;
+		}
+	}else
+	{
+		// m_tmSec and m_tmMicroseconds was set in method init()
+		//var next is for starting defined as actual value
+		need= calcNextTime(/*start*/true, debug, next);
+		bneed= true;
+	}
+	if(bneed)
+	{
+		calc= calcResult(*next, m_bSeconds);
+		if(calc > 0)
+		{
+			//m_tmSec= next->tv_sec;
+			//m_tmMicroseconds= next->tv_usec;
+			timeradd(&m_tmStart, next, &m_tmStop);
+			getRunningThread()->nextActivateTime(getFolderName(), m_tmStop);
+			m_bMeasure= true;
+			if(debug)
+			{
+				char stime[18];
+
+				calc= calcResult(*next, m_bSeconds);
+				strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStop.tv_sec));
+				tout << "folder should start again in " << calc << " seconds by (" << stime << " ";
+				tout << MeasureThread::getUsecString(m_tmStop.tv_usec) << ")" << endl;
+			}
+		}else
+		{
+			if(calc < 0)
+			{
+				ostringstream err;
+
+				err << "calculated minus time (" << calc << ") to refresh folder by ";
+				err << getFolderName() << ":" << getSubroutineName();
+				TIMELOG(LOG_ALERT, getSubroutineName(), err.str());
+				if(debug)
+					tout << "###ERROR: " << err.str() << endl;
+			}else if(debug)
+				tout << "do not refresh folder, because calculated time was 0" << endl;
+		}
+	}
+	return need;
+}
+
+double timer::calcNextTime(const bool& start, const bool& debug, timeval* actTime)
+{
+	double newTime, direct;
+	timeval endTime;
+	//time_t actSec, nextSec;
+	//suseconds_t actMicrosec, nextMicrosec;
+
+	if(debug)
+	{
+		tout << "-- calculating next time";
+		if(start)
+			tout << " for begin measuring";
+		tout << endl;
+	}
+	if(m_nDirection == -1)
+	{// direction is defined but unknown
+		m_oDirect.calculate(direct);
+		if(direct > 0)
+			m_nDirection= 1;
+		else
+			m_nDirection= 0;
+	}
+	if(start)
+	{
+		if(m_nDirection == -2)
+		{// starting for count down
+			actTime->tv_sec= m_tmSec;
+			actTime->tv_usec= m_tmMicroseconds;
+			newTime= calcResult(*actTime, m_bSeconds);
+
+		}else
+		{
+			endTime.tv_sec= m_tmSec;
+			endTime.tv_usec= m_tmMicroseconds;
+			if(timercmp(actTime, &endTime, >))
+			{
+				actTime->tv_sec= m_tmSec;
+				actTime->tv_usec= m_tmMicroseconds;
+			}
+			newTime= calcResult(*actTime, m_bSeconds);
+			if(newTime < 0)
+			{
+				newTime= 0;
+				actTime->tv_sec= 0;
+				actTime->tv_usec= 0;
+			}
+			if(m_nDirection == 1)
+			{// direction is defined to calculating to full time
+				timersub(&endTime, actTime, actTime);
+			}// else
+			 // direction is defined to calculating to 0 or count down
+			 // actTime has the right values
+		}
+		if(debug)
+		{
+			tout << "end time should be in " << calcResult(*actTime, m_bSeconds) << " seconds"<< endl;
+			tout << "measured actual time is " << newTime << " seconds" << endl;
+		}
+		return newTime;
+	}
+	endTime.tv_sec= m_tmSec;
+	endTime.tv_usec= m_tmMicroseconds;
+	if(m_nDirection == 1)
+	{//measure up to full time
+		timersub(actTime, &m_tmStart, &endTime);
+
+	}else
+	{// direction is defined to calculating to 0 or make count down
+		timersub(&m_tmStop, actTime, &endTime);
+	}
+	newTime= calcResult(endTime, m_bSeconds);
+	if(debug)
+		tout << "measured actual time is " << newTime << endl;
+	if(m_nDirection == 1)
+		newTime+= m_dStartValue;
+	return newTime;
+
+#if 0
+	if(direction > -2)
+	{
+		actSec= static_cast<time_t>(actValue);
+		newTime= actValue;
+		newTime-= static_cast<double>(actSec);
+		newTime*= (1000 * 1000);
+		actMicrosec= static_cast<suseconds_t>(newTime);
+		if(debug)
+			tout << "     splitted in " << actSec << " " << actMicrosec << endl;
+	}
+	if(debug)
+		tout << "    new need value is " << need << endl;
+	nextSec= static_cast<time_t>(need);
+	need-= static_cast<double>(nextSec);
+	need*= (1000 * 1000);
+	nextMicrosec= static_cast<suseconds_t>(need);
+	if(debug)
+		tout << "     splitted in " << nextSec << " " << nextMicrosec << endl;
+	if(	m_bSeconds &&
+		nextMicrosec > 0	)
+	{
+		string msg("parameter mtime has microseconds, but subroutine ");
+
+		msg+= getSubroutineName() + " defined in folder " + getFolderName();
+		msg+= " has no action micro. Do not measure now in microseconds.";
+		nextMicrosec= 0;
+		actMicrosec= 0;
+		TIMELOG(LOG_WARNING, getSubroutineName()+":"+getFolderName(), msg);
+		if(debug)
+			tout << "### WARNING: " << msg << endl;
+	}
+	//m_bSeconds= m_tmMicroseconds == 0 ? true : false;
+	endTime.tv_sec= nextSec;
+	endTime.tv_usec= nextMicrosec;
+	if(debug)
+		tout << "     set to struct " << endTime.tv_sec << " " << endTime.tv_usec << endl;
+	if(direction > -2)
+	{
+		double direct;
+		timeval minus;
+
+		minus.tv_sec= actSec;
+		minus.tv_usec= actMicrosec;
+		if(debug)
+			tout << "    minus actual is " << minus.tv_sec << " " << minus.tv_usec << endl;
+		timersub(&endTime, &minus, &minus);
+		if(debug)
+			tout << "    next - minus is " << minus.tv_sec << " " << minus.tv_usec << endl;
+
+		if(debug)
+			tout << "time should running ";
+		if(direction > 0)
+		{// count up to mtime
+			endTime.tv_sec= minus.tv_sec;
+			endTime.tv_usec= minus.tv_usec;
+			if(debug)
+				tout << "    next is now " << endTime.tv_sec << " " << endTime.tv_usec << endl;
+			if(debug)
+				tout << "up ";
+			//m_tmSec= actSec;
+			//m_tmMicroseconds= actMicrosec;
+
+		}else
+		{// count down to 0
+			timersub(&endTime, &minus, &endTime);
+			if(debug)
+				tout << "down ";
+			//m_tmSec-= actSec;
+			//m_tmMicroseconds-= actMicrosec;
+		}
+	}else if(debug)
+		tout << "count down should running ";
+	if(debug)
+	{
+		tout << "for " << endTime.tv_sec;
+		tout << "." << MeasureThread::getUsecString(endTime.tv_usec);
+		tout << " seconds" << endl;
+	}
+	//next.tv_sec= m_tmSec;
+	//next.tv_usec= m_tmMicroseconds;
+	if(debug)
+		tout << "-------------------------------------------------------" << endl;
+	return endTime;
+#endif
+}
+
+double timer::getValue(const string& who)
+{
+	long nval;
+	double val(switchClass::getValue(who));
+
+	// secure method to calculate only with seconds
+	// or microseconds and no more decimal places behind
+	if(!m_bSeconds)
+		val*= (1000 * 1000);
+	nval= static_cast<long>(val);
+	val= static_cast<double>(nval);
+	if(!m_bSeconds)
+		val/= (1000 * 1000);
+	return val;
 }
 
 #if 0
@@ -529,25 +786,29 @@ void timer::setDebug(bool bDebug)
 {
 	m_omtime.doOutput(bDebug);
 	m_oSetNull.doOutput(bDebug);
-	m_oEnd.doOutput(bDebug);
+	m_oDirect.doOutput(bDebug);
 	switchClass::setDebug(bDebug);
 }
 
 double timer::calcResult(timeval tv, bool secondcalc)
 {
+	long val;
 	double dRv;
 
 	if(!secondcalc)
 	{
-		if(tv.tv_sec > (60 * 60)) // minutes
-		{
-			tv.tv_sec= 60 * 60;
-			tv.tv_usec= 0;
-		}
 		dRv= static_cast<double>(tv.tv_usec) / (1000 * 1000);
 		dRv+= static_cast<double>(tv.tv_sec);
 	}else
 		dRv= static_cast<double>(tv.tv_sec);
+	// secure method to calculate only with seconds
+	// or microseconds and no more decimal places behind
+	if(!secondcalc)
+		dRv*= (1000 * 1000);
+	val= static_cast<long>(dRv);
+	dRv= static_cast<double>(val);
+	if(!secondcalc)
+		dRv/= (1000 * 1000);
 	return dRv;
 }
 

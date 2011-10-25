@@ -1,0 +1,29 @@
+<layout>
+	<head>
+		<title>
+		  basic Subroutines
+		</title>
+	</head>
+	<body>
+		folder time_routines
+		<br />
+		subroutines from type TIMER
+		<br />
+		counter
+		<input type="text" value="s" format="#1.2" result="time_routines:again"/>
+		<br />
+		<input type="text" value="seconds" format="#1.2" result="time_routines:measure_time"/>
+		<input type="togglebutton" value="measure time" result="time_routines:press_measure_time" />
+		<br />
+		<input type="text" value="seconds" format="#1." result="time_routines:countdown" />
+		<input type="togglebutton" value="count down" result="time_routines:press_countdown" />
+		<input type="checkbox" result="time_routines:check_again_countdown" />
+		begin again when finished
+		<br />
+		<input type="togglebutton" value="down" result="time_routines:press_down" />
+		<input type="text" value="seconds" format="#1.2" result="time_routines:counter" />
+		<input type="togglebutton" value="up" result="time_routines:press_up" />
+		<input type="checkbox" result="time_routines:check_again_counter" />
+		begin again when finished up or down
+	</body>
+</layout> 
