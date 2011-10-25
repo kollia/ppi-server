@@ -101,12 +101,14 @@ double switchClass::measure(const double actValue)
 	return measure(actValue, set);
 }
 
-double switchClass::measure(const double actValue, setting& set)
+double switchClass::measure(const double actValue, setting& set, const double* newValue/*= NULL*/)
 {
 	bool debug(isDebug());
 	bool bSwitched(false);
 	bool bOutside(false);
 	double dResult(actValue);
+	const double* nullValue= NULL;
+	string subroutine(getSubroutineName());
 
 	//Debug info to stop by right subroutine
 	/*if(	getFolderName() == "TRANSMIT_SONY" &&
@@ -147,6 +149,8 @@ double switchClass::measure(const double actValue, setting& set)
 		{// if m_bSwitched is false
 		 // and an begin result is set
 		 // look for beginning
+			if(newValue)
+				m_oBegin.setSubVar(subroutine, newValue);
 			if(!m_oBegin.calculate(dResult))
 			{
 				string msg("           could not resolve parameter 'begin= ");
@@ -163,6 +167,8 @@ double switchClass::measure(const double actValue, setting& set)
 				bSwitched= true;
 				set= BEGIN;
 			}
+			if(newValue)
+				m_oBegin.setSubVar(subroutine, nullValue);
 		}
 		if(	set == NONE &&
 			bSwitched &&
@@ -172,6 +178,8 @@ double switchClass::measure(const double actValue, setting& set)
 		 // look for ending
 		 // only in the session when m_bSwitched
 		 // not set from outside
+			if(newValue)
+				m_oEnd.setSubVar(subroutine, newValue);
 			if(!m_oEnd.calculate(dResult))
 			{
 				string msg("           could not resolve parameter 'end= ");
@@ -188,12 +196,16 @@ double switchClass::measure(const double actValue, setting& set)
 				bSwitched= false;
 				set= END;
 			}
+			if(newValue)
+				m_oEnd.setSubVar(subroutine, nullValue);
 		}
 		if(	set == NONE &&
 			!m_oWhile.isEmpty() &&
 			(	bSwitched ||
 				m_oBegin.isEmpty()	)	)
 		{
+			if(newValue)
+				m_oWhile.setSubVar(subroutine, newValue);
 			if(!m_oWhile.calculate(dResult))
 			{
 				string msg("           could not resolve parameter 'while= ");
@@ -211,6 +223,8 @@ double switchClass::measure(const double actValue, setting& set)
 			}else
 				bSwitched= false;
 			set= WHILE;
+			if(newValue)
+				m_oWhile.setSubVar(subroutine, nullValue);
 		}
 	}
 

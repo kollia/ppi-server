@@ -86,9 +86,10 @@ public:
 		 *
 		 * @param actValue current value
 		 * @param set whether value set from begin <code>switchClass::BEGIN</code>, while <code>switchClass::WHILE</code>, end <code>switchClass::END</code> or from none <code>switchClass::NONE</code>
+		 * @param newValue new value when changed and is not the same than content inside
 		 * @return return measured value
 		 */
-		double measure(const double actValue, setting& set);
+		double measure(const double actValue, setting& set, const double* newValue= NULL);
 		/**
 		 * destructor
 		 */
