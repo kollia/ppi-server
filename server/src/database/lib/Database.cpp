@@ -1513,6 +1513,7 @@ namespace ppi_database
 	{
 		SHAREDPTR::shared_ptr<otime_t> act;
 		time_t acttime, nextThin;
+		Calendar::time_e unit(Calendar::seconds);
 
 		act= older;
 		if(act.get())
@@ -1520,9 +1521,24 @@ namespace ppi_database
 			if(act->older)
 				act= act->older;
 			time(&acttime);
-			nextThin= Calendar::calcDate(/*newer*/true, fromtime, act->more, act->unit);
+			if(act->unit == 'h')
+				unit= Calendar::hours;
+			else if(act->unit == 'D')
+				unit= Calendar::days;
+			else if(act->unit == 'M')
+				unit= Calendar::months;
+			else if(act->unit == 'Y')
+				unit= Calendar::years;
+			else
+			{
+				string msg(&act->unit);
+
+				msg= "undefined time unit '" + msg + "' for calendar";
+				TIMELOG(LOG_ALERT, "time_units", msg);
+			}
+			nextThin= Calendar::calcDate(/*newer*/true, fromtime, act->more, unit);
 			if(nextThin <= acttime)
-				nextThin= Calendar::calcDate(/*newer*/true, fromtime, (act->more + 1), act->unit);
+				nextThin= Calendar::calcDate(/*newer*/true, fromtime, (act->more + 1), unit);
 			if(nextThin > acttime)
 			{
 				acttime= m_mOldest[m_sThinFile];

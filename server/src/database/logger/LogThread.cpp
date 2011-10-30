@@ -387,7 +387,7 @@ int LogThread::execute()
 		string file;
 
 		time(&tm);
-		older= Calendar::calcDate(/*newer*/false, tm, m_nDeleteDays, 'D');
+		older= Calendar::calcDate(/*newer*/false, tm, m_nDeleteDays, Calendar::days);
 		files= URL::readDirectory(m_sLogFilePath, m_sLogFilePrefix, ".log");
 		for(map<string, string>::iterator it= files.begin(); it != files.end(); ++it)
 		{
@@ -425,7 +425,7 @@ int LogThread::execute()
 			}
 		}
 		time(&tm);
-		m_nNextDeleteTime= Calendar::calcDate(/*newer*/true, tm, m_nDeleteDays, 'D');
+		m_nNextDeleteTime= Calendar::calcDate(/*newer*/true, tm, m_nDeleteDays, Calendar::days);
 	}
 	return 0;
 }

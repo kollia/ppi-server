@@ -1070,7 +1070,24 @@ namespace ports
 			parento= wr;
 			while(wr->older.get() != NULL)
 			{
-				if(Calendar::calcDate(/*newer*/false, thistime, wr->more, wr->unit) < acttime)
+				Calendar::time_e unit(Calendar::seconds);
+
+				if(wr->unit == 'h')
+					unit= Calendar::hours;
+				else if(wr->unit == 'D')
+					unit= Calendar::days;
+				else if(wr->unit == 'M')
+					unit= Calendar::months;
+				else if(wr->unit == 'Y')
+					unit= Calendar::years;
+				else
+				{
+					string msg(&wr->unit);
+
+					msg= "undefined time unit '" + msg + "' for calendar";
+					TIMELOG(LOG_ALERT, "time_units", msg);
+				}
+				if(Calendar::calcDate(/*newer*/false, thistime, wr->more, unit) < acttime)
 					break;
 				parento= wr;
 				wr= wr->older;
@@ -1182,6 +1199,8 @@ namespace ports
 					||
 					wr->highest->nextwrite < acttime	)
 				{
+					Calendar::time_e unit(Calendar::seconds);
+
 					if(wr->highest->bValue)
 					{
 						tRv.action= "highest";
@@ -1191,7 +1210,23 @@ namespace ports
 						tRv.highest.lowtime= wr->highest->lowtime;
 					}else
 						tRv.action= "no";
-					wr->highest->nextwrite= Calendar::calcDate(/*newer*/true, acttime, wr->highest->between, wr->highest->t);
+
+					if(wr->highest->t == 'h')
+						unit= Calendar::hours;
+					else if(wr->highest->t == 'D')
+						unit= Calendar::days;
+					else if(wr->highest->t == 'M')
+						unit= Calendar::months;
+					else if(wr->highest->t == 'Y')
+						unit= Calendar::years;
+					else
+					{
+						string msg(&wr->highest->t);
+
+						msg= "undefined highest t time unit '" + msg + "' for calendar";
+						TIMELOG(LOG_ALERT, "highest_t_time_units", msg);
+					}
+					wr->highest->nextwrite= Calendar::calcDate(/*newer*/true, acttime, wr->highest->between, unit);
 					wr->highest->bValue= true;
 					wr->highest->highest= value;
 					wr->highest->hightime= acttime;
