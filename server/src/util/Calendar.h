@@ -33,7 +33,20 @@ namespace util {
 	{
 	public:
 		/**
-		 * calcuĺating the next time in seconds always on begin for the next hour, day, week, month or year
+		 * structure of time inits
+		 */
+		enum time_e
+		{
+			seconds= 0,
+			minutes,
+			hours,
+			days,
+			weeks,
+			months,
+			years
+		};
+		/**
+		 * Calculating the next time in seconds always on begin for the next hour, day, week, month or year
 		 *
 		 * @param newer whether should be the time in the feature (true), or past (false)
 		 * @param acttime actual time
@@ -41,7 +54,59 @@ namespace util {
 		 * @param spez specification whether variable more is for hour, day, week, ...
 		 * @return seconds for the next calculated time
 		 */
-		static time_t calcDate(const bool newer, const time_t acttime, const int more, const char spez);
+		static time_t calcDate(const bool newer, const time_t acttime, const int more, const time_e& spez, struct tm* ttime= NULL);
+		/**
+		 * return time in seconds since epoch for setting date
+		 *
+		 */
+		static time_t setDate(const int year, const int month, const int day, const int hour= 0, const int min= 0, const int sec= 0);
+		/**
+		 * add to actual time <code>from</code> one second
+		 *
+		 * @param from time from calculate next second
+		 */
+		static time_t nextSecond(time_t from)
+		{ return from + 1; };
+		/**
+		 * add to actual time <code>from</code> seconds to the next minute
+		 *
+		 * @param from time from calculate next second
+		 * @param ttime structor of local time. If not be set, method calculate self from from parameter
+		 */
+		static time_t nextMinute(time_t from, struct tm* ttime= NULL)
+		{ return calcDate(/*newer*/true, from, 1, minutes, ttime); };
+		/**
+		 * add to actual time <code>from</code> seconds to the next hour
+		 *
+		 * @param from time from calculate next second
+		 * @param ttime structor of local time. If not be set, method calculate self from from parameter
+		 */
+		static time_t nextHour(time_t from, struct tm* ttime= NULL)
+		{ return calcDate(/*newer*/true, from, 1, hours, ttime); };
+		/**
+		 * add to actual time <code>from</code> seconds to the next day
+		 *
+		 * @param from time from calculate next second
+		 * @param ttime structor of local time. If not be set, method calculate self from from parameter
+		 */
+		static time_t nextDay(time_t from, struct tm* ttime= NULL)
+		{ return calcDate(/*newer*/true, from, 1, days, ttime); };
+		/**
+		 * add to actual time <code>from</code> seconds to the next Month
+		 *
+		 * @param from time from calculate next second
+		 * @param ttime structor of local time. If not be set, method calculate self from from parameter
+		 */
+		static time_t nextMonth(time_t from, struct tm* ttime= NULL)
+		{ return calcDate(/*newer*/true, from, 1, months, ttime); };
+		/**
+		 * add to actual time <code>from</code> seconds to the next Year
+		 *
+		 * @param from time from calculate next second
+		 * @param ttime structor of local time. If not be set, method calculate self from from parameter
+		 */
+		static time_t nextYear(time_t from, struct tm* ttime= NULL)
+		{ return calcDate(/*newer*/true, from, 1, years, ttime); };
 	};
 
 }
