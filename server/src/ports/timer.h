@@ -29,6 +29,17 @@
 #include "ListCalculator.h"
 #include "switch.h"
 
+enum which_time
+{
+	notype= 0,
+	seconds,
+	minutes,
+	hours,
+	days,
+	months,
+	years
+};
+
 class timer : public switchClass
 {
 public:
@@ -43,9 +54,20 @@ public:
 	  m_bHasLinks(false),
 	  m_bReadTime(false),
 	  m_bTime(false),
+	  m_bSwitchbyTime(false),
+	  m_bActivate(false),
+	  m_bTimeMeasure(false),
 	  m_bMeasure(false),
 	  m_bSeconds(true),
 	  m_omtime(folderName, subroutineName, "mtime", false, false),
+	  m_oMicroseconds(folderName, subroutineName, "microsec", false, false),
+	  m_oMilliseconds(folderName, subroutineName, "millisec", false, false),
+	  m_oSeconds(folderName, subroutineName, "sec", false, false),
+	  m_oMinutes(folderName, subroutineName, "min", false, false),
+	  m_oHours(folderName, subroutineName, "hour", false, false),
+	  m_oDays(folderName, subroutineName, "day", false, false),
+	  m_oMonths(folderName, subroutineName, "month", false, false),
+	  m_oYears(folderName, subroutineName, "year", false, false),
 	  m_oDirect(folderName, subroutineName, "direction", false, false),
 	  m_tmSec(0),
 	  m_tmMicroseconds(0),
@@ -107,10 +129,26 @@ protected:
 	 */
 	bool m_bReadTime;
 	/**
+	 * whether action time be set
+	 */
+	bool m_bTime;
+	/**
+	 * whether should calculate times only when switch is true
+	 */
+	bool m_bSwitchbyTime;
+	/**
+	 * whether time should activated at an fix time
+	 */
+	bool m_bActivate;
+	/**
+	 * for m_bTime which type of time be shown in result
+	 */
+	which_time m_eWhich;
+	/**
 	 * whether subroutine measure time (true)
 	 * or makes an count down (false)
 	 */
-	bool m_bTime;
+	bool m_bTimeMeasure;
 	/**
 	 * whether measure actually the time
 	 */
@@ -124,6 +162,38 @@ protected:
 	 * defined-value where get the time for count down
 	 */
 	ListCalculator m_omtime;
+	/**
+	 * defined-value for microseconds
+	 */
+	ListCalculator m_oMicroseconds;
+	/**
+	 * defined-value for milliseconds
+	 */
+	ListCalculator m_oMilliseconds;
+	/**
+	 * defined-value for seconds
+	 */
+	ListCalculator m_oSeconds;
+	/**
+	 * defined-value for minutes
+	 */
+	ListCalculator m_oMinutes;
+	/**
+	 * defined-value for hours
+	 */
+	ListCalculator m_oHours;
+	/**
+	 * defined-value for days
+	 */
+	ListCalculator m_oDays;
+	/**
+	 * defined-value for months
+	 */
+	ListCalculator m_oMonths;
+	/**
+	 * defined-value for years
+	 */
+	ListCalculator m_oYears;
 	/**
 	 * in which direction the count down should running.<br />
 	 * By result of 0 or lower running near to 0.<br />
@@ -139,12 +209,12 @@ protected:
 	 */
 	suseconds_t m_tmMicroseconds;
 	/**
-	 * start on this time the measuring when m_bTime set to measure,
+	 * start on this time the measuring when m_bTimeMeasure set to measure,
 	 * otherwise start the hole folder again on this time
 	 */
 	timeval m_tmStart;
 	/**
-	 * when m_bTime not set, ending the time measure on this time
+	 * when m_bTimeMeasure not set, ending the time measure on this time
 	 */
 	timeval m_tmStop;
 	/**
