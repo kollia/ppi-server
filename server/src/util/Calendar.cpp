@@ -187,18 +187,39 @@ namespace util {
 
 	time_t Calendar::setDate(const int year, const int month, const int day, const int hour/*= 0*/, const int min/*= 0*/, const int sec/*= 0*/)
 	{
-		struct tm time;
+		time_t acttime;
+		struct tm ttime;
 
-		time.tm_year= year - 1900;
-		time.tm_mon= month -1;
-		time.tm_mday= day;
-		time.tm_yday= -1;
-		time.tm_wday= -1;
-		time.tm_hour= hour;
-		time.tm_min= min;
-		time.tm_sec= sec;
-		time.tm_isdst= -1;
-		return mktime(&time);
+		if(	year < 1900 ||
+			month < 1 ||
+			day < 1 ||
+			hour < 0 ||
+			min < 0 ||
+			sec < 0		)
+		{
+			time(&acttime);
+			if(localtime_r(&acttime, &ttime) == NULL)
+			{
+				TIMELOG(LOG_ERROR, "localtime_setDate", "cannot create correct localtime");
+				return -1;
+			}
+		}
+		if(year > 1899)
+			ttime.tm_year= year - 1900;
+		if(month > 0)
+			ttime.tm_mon= month -1;
+		if(day > 0)
+			ttime.tm_mday= day;
+		ttime.tm_yday= -1;
+		ttime.tm_wday= -1;
+		if(hour >= 0)
+			ttime.tm_hour= hour;
+		if(min >= 0)
+			ttime.tm_min= min;
+		if(sec >= 0)
+			ttime.tm_sec= sec;
+		ttime.tm_isdst= -1;
+		return mktime(&ttime);
 	}
 
 }

@@ -56,8 +56,16 @@ namespace util {
 		 */
 		static time_t calcDate(const bool newer, const time_t acttime, const int more, const time_e& spez, struct tm* ttime= NULL);
 		/**
-		 * return time in seconds since epoch for setting date
+		 * return time in seconds since epoch for setting date.<br />
+		 * When any parameter has an negative value, it will be take the actual date
 		 *
+		 * @param year set time to this year
+		 * @param month set time to this month
+		 * @param day set time to this day
+		 * @param hour set time to this hour
+		 * @param min set time to this minute
+		 * @param sec set time to this second
+		 * @return time in seconds since epoch
 		 */
 		static time_t setDate(const int year, const int month, const int day, const int hour= 0, const int min= 0, const int sec= 0);
 		/**
