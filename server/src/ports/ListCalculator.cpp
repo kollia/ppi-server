@@ -224,7 +224,7 @@ void ListCalculator::setSubVar(string var, const double* val)
 {
 	vector<string> spl;
 	ListCalculator* container;
-	vector<CalculatorContainer*> childs;
+	vector<ICalculatorPattern*> childs;
 
 	split(spl, var, is_any_of(":"));
 	if(spl.size() == 1)
@@ -234,7 +234,7 @@ void ListCalculator::setSubVar(string var, const double* val)
 	else
 		m_msSubVars.erase(var);
 	childs= getChilds();
-	for(vector<CalculatorContainer*>::iterator it= childs.begin(); it != childs.end(); ++it)
+	for(vector<ICalculatorPattern*>::iterator it= childs.begin(); it != childs.end(); ++it)
 	{
 		container= dynamic_cast<ListCalculator*>(*it);
 		container->setSubVar(var, val);
