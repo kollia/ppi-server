@@ -42,9 +42,29 @@ namespace design_pattern_world
 		 */
 		virtual string getStatement() const= 0;
 		/**
+		 * return all defined child containers
+		 *
+		 * @return child containers
+		 */
+		virtual const vector<ICalculatorPattern*> getChilds() const= 0;
+		/**
+		 * return all variables which are defined inside the calculation string
+		 *
+		 * @return all variables
+		 */
+		virtual vector<string> getVariables() const= 0;
+		/**
 		 * whether object has no statement to calculate
 		 */
 		virtual bool isEmpty() const= 0;
+		/**
+		 * whether rendering was correct
+		 */
+		virtual bool isCorrect() const= 0;
+		/**
+		 * whether calculation string has only fix numbers
+		 */
+		virtual bool onlyNumbers() const= 0;
 		/**
 		 * render string for faster calculation
 		 *

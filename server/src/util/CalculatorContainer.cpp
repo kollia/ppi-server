@@ -263,7 +263,7 @@ bool CalculatorContainer::render()
 			m_vndoing.push_back(3); // new container
 			m_voContainers.push_back(newObject());
 			bNewCont= true;
-			lastCont= m_voContainers.back();
+			lastCont= dynamic_cast<CalculatorContainer*>(m_voContainers.back());
 			lastCont->m_bBool= m_bBool;
 			lastCont->m_bOutput= m_bOutput;
 			lastCont->m_bIfAllow= m_bIfAllow;
@@ -459,7 +459,7 @@ void CalculatorContainer::findVariables()
 	if(!m_bCorrect)
 		return;
 	m_vsAllVariables= m_vsVariables;
-	for(vector<CalculatorContainer*>::iterator it= m_voContainers.begin(); it != m_voContainers.end(); ++it)
+	for(vector<ICalculatorPattern*>::iterator it= m_voContainers.begin(); it != m_voContainers.end(); ++it)
 	{
 		variables= (*it)->getVariables();
 		m_vsAllVariables.insert(m_vsAllVariables.end(), variables.begin(), variables.end());
@@ -592,7 +592,8 @@ bool CalculatorContainer::calculateI(double& dResult)
 	string comp;
 	vector<double>::iterator itValue;
 	vector<string>::iterator itVariable;
-	vector<CalculatorContainer*>::iterator itContainer;
+	vector<ICalculatorPattern*>::iterator itContainer;
+	CalculatorContainer* itContainerContent;
 	vector<string>::iterator itOperator;
 
 	if(m_poIf)
@@ -636,6 +637,10 @@ bool CalculatorContainer::calculateI(double& dResult)
 	itValue= m_vdValues.begin();
 	itVariable= m_vsVariables.begin();
 	itContainer= m_voContainers.begin();
+	if(m_voContainers.size())
+		itContainerContent= dynamic_cast<CalculatorContainer*>(*itContainer);
+	else
+		itContainerContent= NULL;
 	itOperator= m_vcOperators.begin();
 	for(vector<short>::iterator doing= m_vndoing.begin(); doing != m_vndoing.end(); ++doing)
 	{
@@ -672,14 +677,18 @@ bool CalculatorContainer::calculateI(double& dResult)
 			if(m_bOutput)
 			{
 				outputF(false, __FILE__, __LINE__, "(");
-				(*itContainer)->m_nSpaces= m_nSpaces + 1;
+				itContainerContent->m_nSpaces= m_nSpaces + 1;
 			}
-			correct= (*itContainer)->calculateI(m_dValue);
+			correct= itContainerContent->calculateI(m_dValue);
 			if(m_bOutput)
 				outputF(false, __FILE__, __LINE__, ") ");
 			if(!correct)
 				m_dValue= 0;
 			++itContainer;
+			if(itContainer != m_voContainers.end())
+				itContainerContent= dynamic_cast<CalculatorContainer*>(*itContainer);
+			else
+				itContainerContent= NULL;
 			break;
 		}
 		if(itOperator != m_vcOperators.end())
@@ -814,8 +823,8 @@ void CalculatorContainer::doOutput(const bool write/*= true*/)
 		m_poThen->doOutput(write);
 	if(m_poElse)
 		m_poElse->doOutput(write);
-	for(vector<CalculatorContainer*>::iterator it= m_voContainers.begin(); it != m_voContainers.end(); ++it)
-		(*it)->doOutput(write);
+	for(vector<ICalculatorPattern*>::iterator it= m_voContainers.begin(); it != m_voContainers.end(); ++it)
+		dynamic_cast<CalculatorContainer*>(*it)->doOutput(write);
 }
 
 double CalculatorContainer::compare(const double value1, const string& op, const double value2)
@@ -910,6 +919,24 @@ void CalculatorContainer::output(bool bError, const string& file, const int line
 	}
 }
 
+bool CalculatorContainer::onlyNumbers() const
+{
+	if(	isRendered() &&
+		!isEmpty() &&
+		isCorrect() &&
+		m_vdValues.size() > 0 &&
+		m_vsVariables.size() == 0	)
+	{
+		for(vector<ICalculatorPattern*>::const_iterator it= m_voContainers.begin(); it != m_voContainers.end(); ++it)
+		{
+			if(!(*it)->onlyNumbers())
+				return false;
+		}
+		return true;
+	}
+	return false;
+}
+
 void CalculatorContainer::clear()
 {
 	m_sStatement= "";
@@ -939,9 +966,9 @@ void CalculatorContainer::clear()
 	m_vsVariables.clear();
 	m_vsAllVariables.clear();
 	m_vcOperators.clear();
-	for(vector<CalculatorContainer*>::iterator it= m_voContainers.begin(); it != m_voContainers.end(); ++it)
+	for(vector<ICalculatorPattern*>::iterator it= m_voContainers.begin(); it != m_voContainers.end(); ++it)
 	{
-		removeObject(*it);
+		removeObject(dynamic_cast<CalculatorContainer*>(*it));
 		delete *it;
 	}
 	m_voContainers.clear();

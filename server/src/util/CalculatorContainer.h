@@ -84,6 +84,10 @@ public:
 	virtual bool isCorrect() const
 	{ return m_bCorrect; };
 	/**
+	 * whether calculation string has only fix numbers
+	 */
+	virtual bool onlyNumbers() const;
+	/**
 	 * render string for faster calculation
 	 *
 	 * @return whether rendering was correct
@@ -164,7 +168,7 @@ public:
 	 *
 	 * @return all variables
 	 */
-	virtual vector<string> getVariables()
+	virtual vector<string> getVariables() const
 			{ return m_vsAllVariables; };
 	/**
 	 * compare value1 with value2
@@ -266,7 +270,7 @@ protected:
 	 *
 	 * @return child containers
 	 */
-	vector<CalculatorContainer*> getChilds()
+	virtual const vector<ICalculatorPattern*> getChilds() const
 				{ return m_voContainers; };
 	/**
 	 * search for all variables in any container
@@ -419,7 +423,7 @@ private:
 	/**
 	 * vector of all container
 	 */
-	vector<CalculatorContainer*> m_voContainers;
+	vector<ICalculatorPattern*> m_voContainers;
 	/**
 	 * vector of all operators
 	 */
