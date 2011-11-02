@@ -163,6 +163,8 @@ public class MsgClientConnector extends ClientConnector
 	public synchronized void openNewConnection(String user, String password) throws IOException
 	{
 		boolean bExcept= false;
+		int nMax= 0;
+		int nSelected;
 		String sRv= "NONE";
 		DialogThread dialog= null;
 
@@ -191,8 +193,7 @@ public class MsgClientConnector extends ClientConnector
 				}		
 			}catch(IOException ex)
 			{
-				int nMax;
-				int nSelected;
+				long aktSec;
 				
 				bExcept= true;
 				generateServerError(ex.getMessage());
@@ -205,10 +206,18 @@ public class MsgClientConnector extends ClientConnector
 					System.out.println(" -> found no Server on given port");
 					System.out.println();
 				}
-				nMax= dialog.getMaximum();
-				dialog.setSelection(0);
+				if(nMax == 0)
+				{
+					nMax= dialog.getMaximum();
+					dialog.setSelection(0);
+				}
+				aktSec= System.currentTimeMillis();
 				do{					
-					nSelected= dialog.getSelection() + 1;
+					nSelected= dialog.getSelection();
+					if(nSelected < nMax)
+						++nSelected;
+					else
+						nSelected= 0;
 					dialog.setSelection(nSelected);
 					try{
 						Thread.sleep(10);
@@ -217,7 +226,7 @@ public class MsgClientConnector extends ClientConnector
 					{
 						break;
 					}
-				}while(nSelected <= nMax);
+				}while((aktSec + 3000) > System.currentTimeMillis());
 			}
 		}while(bExcept);
 	}
