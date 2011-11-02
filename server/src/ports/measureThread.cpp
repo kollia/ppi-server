@@ -235,11 +235,11 @@ string MeasureThread::getUsecString(const suseconds_t usec)
 int MeasureThread::execute()
 {
 	bool debug(isDebug());
-	string folder(getThreadName());
+	string folder;
 	static timeval start_tv;
-	timeval end_tv, cond;
+	timeval end_tv, diff_tv, cond;
 	timespec waittm;
-	vector<timeval>::iterator akttime;
+	vector<timeval>::iterator akttime, lasttime;
 
 	//Debug info to stop by right folder
 	/*if(folder == "Hauppauge_KEY_6")
@@ -249,24 +249,43 @@ int MeasureThread::execute()
 	}*/
 	timerclear(&cond);
 	measure();
+
+	if(gettimeofday(&end_tv, NULL))
+	{
+		string err("ERROR: cannot calculate ending time of hole folder list from '");
+
+		err+= getThreadName();
+		if(debug)
+		{
+			tout << "--------------------------------------------------------------------" << endl;
+			tout << err << endl;
+		}
+		TIMELOG(LOG_ERROR, "ending_time", err);
+		end_tv.tv_sec= 0;
+		end_tv.tv_usec= 0;
+	}
 	if(debug)
 	{
+		char stime[18];
+		struct tm ttime;
+
 		folder= getThreadName();
 		tout << "--------------------------------------------------------------------" << endl;
-		if(gettimeofday(&end_tv, NULL))
-			tout << " ERROR: cannot calculate time of ending" << endl;
-		else
+		tout << " folder '" << folder << "' STOP (";
+		if(localtime_r(&end_tv.tv_sec, &ttime) != NULL)
 		{
-			char stime[18];
+			strftime(stime, 16, "%Y%m%d:%H%M%S", &ttime);
+			tout << stime << " ";
+		}else
+			tout << " cannot create localtime_r from seconds ";
+		tout << getUsecString(end_tv.tv_usec) << ")";
 
-			strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&end_tv.tv_sec));
-			tout << " folder '" << folder << "' STOP (" << stime << " ";
-			tout << getUsecString(end_tv.tv_usec) << ")";
-
-			timersub(&end_tv, &start_tv, &end_tv);
-			tout << "  running time (" << end_tv.tv_sec << ".";
-			tout << getUsecString(end_tv.tv_usec) << ")" << endl;
-		}
+		if(end_tv.tv_sec != 0)
+			timersub(&end_tv, &start_tv, &diff_tv);
+		else
+			diff_tv= end_tv;
+		tout << "  running time (" << diff_tv.tv_sec << ".";
+		tout << getUsecString(diff_tv.tv_usec) << ")" << endl;
 		tout << "--------------------------------------------------------------------" << endl;
 		TERMINALEND;
 	}
@@ -277,15 +296,42 @@ int MeasureThread::execute()
 		TERMINALEND;
 		if(!m_vtmNextTime.empty())
 		{
+			bool fold(false);
+
 			sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
-			akttime= m_vtmNextTime.begin();
-			waittm.tv_sec= akttime->tv_sec;
-			waittm.tv_nsec= akttime->tv_usec * 1000;
-			if(TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm) == ETIMEDOUT)
-			{
-				if(debug)
-					cond= *akttime;
+			do{	// remove all older times than actual from NextTime vector
+				// and make no condition when any older found
+				akttime= m_vtmNextTime.begin();
+				if(timercmp(&end_tv, &*akttime, <))
+					break;
+				fold= true;
+				//cout << "found an older time and erase them" << endl;
 				m_vtmNextTime.erase(akttime);
+			}while(1);
+			do{ // search for same times
+				// and erase one of them
+				lasttime= akttime;
+				++akttime;
+				if(	akttime == m_vtmNextTime.end() ||
+					timercmp(&*akttime, &*lasttime, !=)	)
+				{
+					akttime= lasttime;
+					break;
+				}
+				//cout << "found two same times and erase one of them" << endl;
+				m_vtmNextTime.erase(lasttime);
+				akttime= m_vtmNextTime.begin();
+			}while(1);
+			if(fold == false)
+			{// no older times be found
+				waittm.tv_sec= akttime->tv_sec;
+				waittm.tv_nsec= akttime->tv_usec * 1000;
+				if(TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm) == ETIMEDOUT)
+				{
+					if(debug)
+						cond= *akttime;
+					m_vtmNextTime.erase(akttime);
+				}
 			}
 		}else
 		{
@@ -322,14 +368,25 @@ int MeasureThread::execute()
 		else
 		{
 			char stime[18];
+			struct tm ttime;
 
-			strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&start_tv.tv_sec));
-			tout << " folder '" << folder << "' START (" << stime << " ";
+			tout << " folder '" << folder << "' START (";
+			if(localtime_r(&start_tv.tv_sec, &ttime) != NULL)
+			{
+				strftime(stime, 16, "%Y%m%d:%H%M%S", &ttime);
+				tout << stime << " ";
+			}else
+				tout << " cannot create localtime_r from seconds ";
 			tout << getUsecString(start_tv.tv_usec) << ")" << endl;
 			if(timerisset(&cond))
 			{
-				strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&cond.tv_sec));
-				tout << "      awaked from setting time " << stime << " ";
+				tout << "      awaked from setting time ";
+				if(localtime_r(&cond.tv_sec, &ttime) != NULL)
+				{
+					strftime(stime, 16, "%Y%m%d:%H%M%S", &ttime);
+					tout << stime << " ";
+				}else
+					tout << " cannot create localtime_r from seconds ";
 				tout << getUsecString(cond.tv_usec) << ")" << endl;
 			}
 			for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
