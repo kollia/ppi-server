@@ -383,6 +383,49 @@ public class TreeNodes
 		return m_sTitleName;
 	}
 	/**
+	 * get first active side on server when side has meta-tag pageset
+	 * and result path is active
+	 * 
+	 * @param folder actually folder path
+	 * @return first founded side
+	 */
+	public String getFirstActiveSidePath(String folder)
+	{
+		String sRv= "";
+		String result;
+		
+		result= m_mMetaBlock.get("pageset");						
+		if(	result != null &&
+			!result.equals("")	)
+		{
+			MsgClientConnector client= MsgClientConnector.instance();
+			
+			try{
+				if(client.getValue(result, /*throw*/true) > 0)
+				{
+					if(!folder.equals(""))
+						folder+= ":";
+					sRv= folder + getName();
+				}
+			}catch(IOException ex)
+			{
+				return "";
+			}
+		}
+		if(sRv.equals(""))
+		{
+			if(!folder.equals(""))
+				folder+= ":";
+			for(TreeNodes node : m_aSubnodes)
+			{
+				sRv= node.getFirstActiveSidePath(folder + getName());
+				if(!sRv.equals(""))
+					break;
+			}
+		}
+		return sRv;
+	}
+	/**
 	 * set the composite from this node visible in the StackLayout
 	 * only if the given folder is the same as the own.
 	 * Otherwise pass to the child nodes

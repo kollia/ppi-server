@@ -903,16 +903,6 @@ public class LayoutLoader extends Thread
 			return;
 		}
 		m_aTreeNodes= nodes;
-		// sending first to server that all pages not visible,
-		// because it can be the case, when the client will be killed
-		// or crashes an it was not on the first page
-		// the server sinking he is always on this page
-		// and by new starting the client want to display the first page
-		// after them, two pages are set and the client get signal
-		// that the first and the other is active
-		// and maybe he switching always from the first to the second
-		for (TreeNodes node : m_aTreeNodes)
-			node.sendNotVisible();
 
 		if(	m_nWidth != 0
 			&&
@@ -993,9 +983,42 @@ public class LayoutLoader extends Thread
 		if(!checker.isAlive())
 			checker.start();
 		
-		m_oAktTreeNode= null;
+		String firstActiveSide= "";
+		String actFolderBefore;
+		
+		for(TreeNodes current : m_aTreeNodes)
+		{
+			firstActiveSide= current.getFirstActiveSidePath("");
+			if(!firstActiveSide.equals(""))
+				break;
+		}
+		// sending first to server that all pages not visible,
+		// because it can be the case, when the client will be killed
+		// or crashes an it was not on the first page
+		// the server sinking he is always on this page
+		// and by new starting the client want to display the first page
+		// after them, two pages are set and the client get signal
+		// that the first and the other is active
+		// and maybe he switching always from the first to the second
+		for (TreeNodes node : m_aTreeNodes)
+			node.sendNotVisible();
+
+		if(!firstActiveSide.equals(""))
+		{
+			actFolderBefore= m_sAktFolder;
+			m_sAktFolder= firstActiveSide;
+			if(setActSideVisible(/*inform server by no body*/false))
+				return;
+			m_sAktFolder= actFolderBefore;
+		}
+		if(m_oAktTreeNode != null)
+		{
+			m_oAktTreeNode= null;
+			if(setActSideVisible(/*inform server*/true))
+				return;
+		}
+		
 		setFirstSide(m_aTreeNodes, "");
-		//}
 /*		if(!setActSideVisible(/*inform server/true))
 		{
 			m_sAktFolder= nodes.get(0).getName();
