@@ -466,7 +466,9 @@ public class XMLSaxParser extends DefaultHandler
 	        		component.name= attrs.getValue(i);
 	        	else if(aName.equals("value"))
 	        	{
-	        		component.value= attrs.getValue(i);
+	        		if(!component.value.equals(""))
+	        			component.value+= " ";
+	        		component.value+= attrs.getValue(i);
 	        		
 	        	}else if(aName.equals("width"))
 	        		component.width= Integer.parseInt(attrs.getValue(i));
@@ -489,8 +491,12 @@ public class XMLSaxParser extends DefaultHandler
 	        	else if(aName.equals("scroll"))
 	        		component.rollbarfield= Integer.parseInt(attrs.getValue(i));
 	        	else if(aName.equals("format"))
-	        		component.format= attrs.getValue(i);
-	        	else
+	        	{
+	        		if(!component.value.equals(""))
+	        			component.value= attrs.getValue(i) + " " + component.value;
+	        		else
+	        			component.value= attrs.getValue(i);
+	        	}else
 				{
 					if(HtmTags.debug)
 						echoString("\nfind unknown attribute " + aName + " in tag <" + eName + ">\n");

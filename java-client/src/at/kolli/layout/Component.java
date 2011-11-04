@@ -117,7 +117,12 @@ public class Component extends HtmTags
 	 * type button or togglebutton the name inside the button
 	 * type text the suffix behind the number
 	 */
-	public String value;
+	public String value= "";
+	/**
+	 * value attribute of component before number.<br />
+	 * only for type text
+	 */
+	public String bvalue= "";
 	/**
 	 * width attribute of component.<br />
 	 * the width of the components beside the types check and radio
@@ -166,7 +171,7 @@ public class Component extends HtmTags
 	 * representing the digits before decimal point and maby followd with an point
 	 * for any decimal places or with an number how much decimal places should be showen
 	 */
-	public String format= "#1";
+	public String format= "#1.";
 	/**
 	 * how much digits after decimal point the component with type SPINNER have
 	 */
@@ -185,7 +190,7 @@ public class Component extends HtmTags
 	/**
 	 * digits behind decimal point. Calculated from format attribute.
 	 */
-	private int m_numBehind= 0;
+	private int m_numBehind= -1;
 	/**
 	 * variable is true if the result attribute on server is not reachable,
 	 * incorrect or not set.
@@ -388,44 +393,78 @@ public class Component extends HtmTags
 			
 		}else if(this.type.equals("text"))
 		{
+			boolean bread= false;
 			int style= readonly ? SWT.SINGLE | SWT.READ_ONLY : SWT.SINGLE;
 			Text text= new Text(composite, style);
 			GridData data= new GridData();
 			Double akt= client.getValue(this.result, /*bthrow*/true);
-			RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+(\\.([0-9])*)?([ +-/]|\\*|\\(|\\)|$)");
+			//RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+(\\.([0-9])*)?([ +-/]|\\*|\\(|\\)|$)");
+			//RE floatStr= new RE("(.*)(\\*)(#([0-9])+(.[0-9]*)?)?(.*)");
+			//RE floatStr= new RE("(.*)((#[0-9]+)(.[0-9]*)?)?(.*)");
+			RE floatStr= new RE("([\\\\]*)#([0-9]+)(.([0-9]*))?");
 			
 			// calculating the digits before decimal point
 			// and after. save in m_numBefore and m_numBehind
-			if(floatStr.match(this.format))
-			{
-				String v, b;
-				
-				try{
-					v= floatStr.getParen(2);
-					if(	v != null &&
-						v.length() > 0	)
-					{
-						m_numBefore= Integer.parseInt(v);
-					}
-					b= floatStr.getParen(3);
-					v= floatStr.getParen(4);
-					if(	v != null &&
-						v.length() > 0	)
-					{
-						m_numBehind= Integer.parseInt(v);
-						
-					}else if(	b != null &&
-								b.equals(".")	)
-					{
-						m_numBehind= -1;
-					}
-					
-				}catch(NumberFormatException ex)
+			do{
+				if(floatStr.match(this.value))
 				{
-					// do nothing,
-					// take defaultvalue from member
-				}
-			}
+					String v, b;
+					
+					bread= false;
+					this.bvalue+= this.value.substring(0, floatStr.getParenStart(0));
+					this.format= floatStr.getParen(0);
+					if(floatStr.getParen(1) != null)
+					{
+						if(floatStr.getParenLength(1) % 2 != 0)
+						{// no right number holder, take the next one
+							this.bvalue+= floatStr.getParen(1).substring(0, floatStr.getParenLength(1)-1);
+							this.bvalue+= this.format.substring(floatStr.getParenLength(1));
+							this.value= this.value.substring(this.bvalue.length()+1);
+							bread= true;
+							continue;
+						}
+						this.bvalue+= floatStr.getParen(1);
+						this.format= this.format.substring(floatStr.getParenLength(1));
+					}
+					this.value= this.value.substring(floatStr.getParenEnd(0));
+					try{
+						v= floatStr.getParen(2);
+						if(	v != null &&
+							v.length() > 0	)
+						{
+							m_numBefore= Integer.parseInt(v);
+						}
+						b= floatStr.getParen(3);
+						v= floatStr.getParen(4);
+						if(	v != null &&
+							v.length() > 0	)
+						{
+							m_numBehind= Integer.parseInt(v);
+							
+						}else if(	b != null &&
+									b.equals(".")	)
+						{
+							m_numBehind= -1;
+						}else
+							m_numBehind= 0;
+						if(	b != null &&
+							b.length() > 0 &&
+							!b.substring(0, 1).equals(".")	)
+						{
+							this.value= b + this.value;
+						}
+						
+					}catch(NumberFormatException ex)
+					{
+						// do nothing,
+						// take defaultvalue from member
+						bread= true;
+					}
+				}else
+					this.value= " " + this.value;
+			}while(bread);
+			this.bvalue= this.bvalue.replaceAll("\\\\\\\\", "\\\\");
+			this.value= this.value.replaceAll("\\\\\\\\", "\\\\");
 
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
@@ -1282,7 +1321,7 @@ public class Component extends HtmTags
 				}
 			}
 		}
-		return Rv+= " " + this.value;
+		return this.bvalue + Rv + this.value;
 	}
 	
 	/**
