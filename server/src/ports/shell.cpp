@@ -282,7 +282,8 @@ int Shell::system(const string& action, string command)
 			}
 		}while(bchangedVec);
 		if(	m_bWait == false ||
-			m_bBlock == true 	)
+			m_bBlock == true ||
+			thread->running()	)
 		{// give CommandExec inside queue and delete object by next pass
 		 // when he was stopping between
 			if(action != "read")
@@ -312,4 +313,5 @@ int Shell::system(const string& action, string command)
 
 Shell::~Shell()
 {
+	DESTROYMUTEX(m_EXECUTEMUTEX);
 }

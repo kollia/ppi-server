@@ -31,7 +31,9 @@ class Shell : public switchClass
 {
 public:
 	Shell(string folderName, string subroutineName)
-	: switchClass(folderName, subroutineName) { };
+	: switchClass(folderName, subroutineName),
+	  m_EXECUTEMUTEX(Thread::getMutex("EXECUTEMUTEX"))
+	{ };
 	virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 	/**
 	 * measure new value for subroutine

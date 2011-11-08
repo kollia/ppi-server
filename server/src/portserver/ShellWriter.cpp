@@ -214,7 +214,8 @@ namespace ports
 			}
 		}while(bchangedVec);
 		if(	wait == false ||
-			block == true 	)
+			block == true ||
+			thread->running()	)
 		{// give CommandExec inside queue and delete object by next pass
 		 // when he was stopping between
 			if(binsert == false)
