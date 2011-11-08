@@ -106,7 +106,6 @@ int Thread::start(void *args, bool bHold)
 		return 0;
 	}else
 	{
-		detach();
 		if(m_bWaitInit)
 		{
 			LOCK(m_STARTSTOPTHREAD);
@@ -126,8 +125,9 @@ int Thread::start(void *args, bool bHold)
 				}
 				CONDITION(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD);
 			}
+			UNLOCK(m_STARTSTOPTHREAD);
 		}
-		UNLOCK(m_STARTSTOPTHREAD);
+		detach();
 #ifdef DEBUG
 		cout << endl;
 #endif
