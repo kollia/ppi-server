@@ -20,6 +20,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
 #include <string>
 #include <vector>
@@ -160,13 +162,15 @@ void GlobalStaticMethods::printSigError(const string& cpSigValue, const string& 
 void GlobalStaticMethods::signalconverting(int nSignal)
 {
 	string msg;
+	int exit= EXIT_FAILURE;
+	pid_t threadid= (pid_t)syscall(SYS_gettid);
 	//LogHolderPattern *log= LogHolderPattern::instance();
 
 	switch(nSignal)
 	{
 		case SIGINT:
-			cout << "SIGINT: \"" << m_sProcessName << "\"" << " terminated by user" << endl;
-			exit(0);
+			cout << "SIGINT: \"" << m_sProcessName << "\":" << getpid() << ":" << threadid << " terminated by user" << endl;
+			pthread_exit(0);
 			break;
 
 // 2010/08/18 ppi@magnificat.at:	remove getStatusInfo for signal SIGHUP
@@ -179,12 +183,12 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 			break;*/
 
 		case SIGSEGV:
-			cout << "SIGSEGV: \"" << m_sProcessName << "\" close from system" << endl;
-			exit(EXIT_FAILURE);
+			cout << "SIGSEGV: \"" << m_sProcessName << "\":" << getpid() << ":" << threadid << " close from system" << endl;
+			pthread_exit(&exit);
 			break;
 		// definition of all other signals
 		default:
-			cout << "system sending signal (" << nSignal << ") to process " << m_sProcessName << endl;
+			cout << "system sending signal (" << nSignal << ") to process " << m_sProcessName << "\":" << getpid() << ":" << threadid <<  endl;
 			break;
 	}
 }
