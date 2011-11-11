@@ -95,6 +95,38 @@ namespace util {
 			 */
 			virtual void setDefaultActionName(const string& name);
 			/**
+			 * set action parameter.<br />
+			 * Add action only when allowed.
+			 *
+			 * @param name action which should be set
+			 */
+			virtual bool setAction(const string& name)
+			{ return setAction(m_sDefault, name); };
+			/**
+			 * set action parameter.<br />
+			 * Add action only when allowed.
+			 *
+			 * @param action name of action
+			 * @param name action which should be set
+			 * @return whether action was allowed to set
+			 */
+			virtual bool setAction(const string& action, const string& name);
+			/**
+			 * delete action parameter
+			 *
+			 * @param name action which should be set
+			 */
+			virtual void delAction(const string& name)
+			{ delAction(m_sDefault, name); };
+			/**
+			 * delete action parameter
+			 *
+			 * @param action name of action
+			 * @param name action which should be set
+			 * @return whether action was allowed to set
+			 */
+			virtual void delAction(const string& action, const string& name);
+			/**
 			 * question to have defined an string for default action in configuration file
 			 *
 			 * @param defined whether string is defined in action
@@ -113,11 +145,31 @@ namespace util {
 			/**
 			 * to set in casher witch action be allowed
 			 *
+			 * @param defined defined action witch is allowed
+			 * @return whether defined is allowed for this action
+			 */
+			virtual bool allowedAction(const string& defined) const
+			{ return allowedAction(m_sDefault, defined); };
+			/**
+			 * to set in casher witch action be allowed
+			 *
 			 * @param action for witch action
 			 * @param defined defined action witch is allowed
 			 * @return whether defined is allowed for this action
 			 */
 			virtual bool allowedAction(const string& action, const string& defined) const;
+			/**
+			 * if this method be set, the parameter is not allowed.<br />
+			 * When the parameter will be fetched in an base class,
+			 * it get's the second parameter as default value
+			 *
+			 * @param defined the definition in action which should not be allowed
+			 * @param set this parameter can be set if an base class ask for this action to see true or false (default false)
+			 *
+			 * @return whether the action be set (not the defined action)
+			 */
+			virtual bool notAllowedAction(const string& defined, const bool set= false)
+			{ return notAllowedAction(m_sDefault, defined, set); };
 			/**
 			 * if this method be set, the parameter is not allowed.<br />
 			 * When the parameter will be fetched in an base class,

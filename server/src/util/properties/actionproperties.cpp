@@ -154,6 +154,38 @@ namespace util {
 		return false;
 	}
 
+	bool ActionProperties::setAction(const string& action, const string& name)
+	{
+		map<string, vector<string> >::iterator mit;
+		vector<string>::iterator vit;
+
+		if(!allowedAction(action, name))
+			return false;
+		mit= m_mvActions.find(action);
+		if(mit != m_mvActions.end())
+		{
+			vit= find(mit->second.begin(), mit->second.end(), name);
+			if(vit != mit->second.end())
+				return true;
+		}
+		m_mvActions[action].push_back(name);
+		return true;
+	}
+
+	void ActionProperties::delAction(const string& action, const string& name)
+	{
+		map<string, vector<string> >::iterator mit;
+		vector<string>::iterator vit;
+
+		mit= m_mvActions.find(action);
+		if(mit != m_mvActions.end())
+		{
+			vit= find(mit->second.begin(), mit->second.end(), name);
+			if(vit != mit->second.end())
+				mit->second.erase(vit);
+		}
+	}
+
 	bool ActionProperties::allowedAction(const string& action, const string& defined) const
 	{
 		map<string, map<string, bool> >::const_iterator nallowAction;

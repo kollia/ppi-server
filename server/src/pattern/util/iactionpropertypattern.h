@@ -67,6 +67,46 @@ namespace design_pattern_world
 			 */
 			virtual bool haveAction(const string& action, const string& defined) const= 0;
 			/**
+			 * set action parameter.<br />
+			 * Add action only when allowed.
+			 *
+			 * @param name action which should be set
+			 * @return whether action was allowed to set
+			 */
+			virtual bool setAction(const string& name)= 0;
+			/**
+			 * set action parameter.<br />
+			 * Add action only when allowed.
+			 *
+			 * @param action name of action
+			 * @param name action which should be set
+			 * @return whether action was allowed to set
+			 */
+			virtual bool setAction(const string& action, const string& name)= 0;
+			/**
+			 * delete action parameter
+			 *
+			 * @param name action which should be set
+			 */
+			virtual void delAction(const string& name)= 0;
+			/**
+			 * delete action parameter
+			 *
+			 * @param action name of action
+			 * @param name action which should be set
+			 */
+			virtual void delAction(const string& action, const string& name)= 0;
+			/**
+			 * if this method be set, the parameter is not allowed.<br />
+			 * When the parameter will be fetched in an base class,
+			 * it get's the second parameter as default value
+			 *
+			 * @param defined the definition in action which should not be allowed
+			 * @param set this parameter can be set if an base class ask for this action to see true or false
+			 * @return whether the action be set (not the defined action)
+			 */
+			virtual bool notAllowedAction(const string& defined, const bool set= false)= 0;
+			/**
 			 * if this method be set, the parameter is not allowed.<br />
 			 * When the parameter will be fetched in an base class,
 			 * it get's the second parameter as default value
@@ -76,7 +116,7 @@ namespace design_pattern_world
 			 * @param set this parameter can be set if an base class ask for this action to see true or false
 			 * @return whether the action be set (not the defined action)
 			 */
-			virtual bool notAllowedAction(const string& action, const string& defined, const bool set)= 0;
+			virtual bool notAllowedAction(const string& action, const string& defined, const bool set= false)= 0;
 			/**
 			 * virtual destructor of pattern
 			 */
