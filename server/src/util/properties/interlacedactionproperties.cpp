@@ -96,12 +96,15 @@ namespace util {
 
 	IInterlacedPropertyPattern* InterlacedActionProperties::newObject(const string modifier, const string value, const unsigned short level)
 	{
-		IInterlacedActionPropertyPattern *prop;
+		InterlacedActionProperties *prop;
 		map<string, vector<string> >::iterator it;
 
 		prop= new InterlacedActionProperties(modifier, value, level, m_bByCheck); // maintained outside of method
+		prop->m_sDefault= m_sDefault;
 		for(map<string, vector<string> >::iterator o= m_mvActions.begin(); o != m_mvActions.end(); ++o)
-			prop->action(o->first);
+			prop->m_mvActions[o->first]= vector<string>();
+		prop->m_mvAllowed= m_mvAllowed;
+		prop->m_mmNotAllowed= m_mmNotAllowed;
 		addDefinitions(prop);
 		return prop;
 	}
