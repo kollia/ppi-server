@@ -1094,7 +1094,7 @@ void Starter::configurePortObjects(bool bShowConf)
 	sMeasureFile= URL::addPath(m_sConfPath, "measure.conf");
 	while(aktualFolder != NULL)
 	{
-		bool correctFolder= true;
+		bool correctFolder= false;
 		int nMuch= aktualFolder->subroutines.size();
 
 		if(bShowConf)
@@ -1124,9 +1124,10 @@ void Starter::configurePortObjects(bool bShowConf)
 			{
 				//tout << pobj->getFolderName() << ":" << pobj->getSubroutineName() << endl;
 				if(pobj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
+				{
 					aktualFolder->subroutines[n].bCorrect= true;
-				else
-					correctFolder= false;
+					correctFolder= true;
+				}
 				//tout << "-----------" << endl;
 			}else
 			{
