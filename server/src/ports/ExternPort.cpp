@@ -60,8 +60,11 @@ namespace ports
 
 			if(range(bfloat, &min, &max))
 			{
-				if(!bfloat && !properties->haveAction("int"))
-					properties->setDefaultActionName("int");
+				if(!bfloat)
+				{
+					properties->notAllowedAction("float");
+					properties->setAction("int");
+				}
 				prop= "min";
 				val= properties->getDouble(prop, /*warning*/false);
 				if(prop == "#ERROR")
@@ -80,21 +83,40 @@ namespace ports
 		}
 		if(!m_bRead)
 		{
+			if(!switchClass::init(properties, pStartFolder))
+				bRv= false;
 			prop= properties->getValue("value", /*warning*/false);
 			if(prop != "")
 			{
 				m_oValue.init(pStartFolder, prop);
 			}
-		}
-		if(!switchClass::init(properties, pStartFolder))
-			bRv= false;
 
-		db= DbInterface::instance();
-		db->useChip(getFolderName(), getSubroutineName(), m_sServer, m_sChipID);
+			m_bDoSwitch= true;
+			prop= properties->getValue("begin", /*warning*/false);
+			if(prop == "")
+			{
+				prop= properties->getValue("while", /*warning*/false);
+				if(prop == "")
+				{
+					prop= properties->getValue("end", /*warning*/false);
+					if(prop == "")
+						m_bDoSwitch= false;
+				}
+			}
+		}else
+		{
+			if(!portBase::init(properties, pStartFolder))
+				bRv= false;
+		}
+		if(bRv)
+		{
+			db= DbInterface::instance();
+			db->useChip(getFolderName(), getSubroutineName(), m_sServer, m_sChipID);
+		}
 
 		m_sErrorHead= properties->getMsgHead(/*error message*/true);
 		m_sWarningHead= properties->getMsgHead(/*error message*/false);
-		m_sMsgHead= properties->getMsgHead();// without error identif
+		m_sMsgHead= properties->getMsgHead();// without error identification
 
 		return bRv;
 	}
@@ -177,10 +199,17 @@ namespace ports
 	double ExternPort::measure(const double actValue)
 	{
 		bool access, debug, bsetNewValue(false);
-		double value(0);
+		double value(0), newValue;
 		string addinfo;
 
 		debug= isDebug();
+		//Debug info to stop by right subroutine
+		/*if(	getFolderName() == "writeVellemann0" &&
+			getSubroutineName() == "digital01"	)
+		{
+			cout << __FILE__ << __LINE__ << endl;
+			cout << getFolderName() << ":" << getSubroutineName() << endl;
+		}*/
 		if(!m_pOWServer)
 		{
 			if(!allocateServer())
@@ -237,14 +266,14 @@ namespace ports
 				tout << endl;
 			}
 
-			m_bWrite= switchClass::measure(m_bWrite);
-			if(	m_bWrite ||
-				m_oValue.isEmpty()	)
+			newValue= switchClass::measure(actValue);
+			if(	!m_bDoSwitch ||
+				newValue != 0		)
 			{
 				if(!m_oValue.isEmpty())
 					m_oValue.calculate(value);
 				else
-					value= m_bWrite ? 1 : 0;
+					value= newValue ? 1 : 0;
 				access= write(m_sChipID, value, addinfo);
 				setDeviceAccess(access);
 				m_dLastWValue= value;
@@ -258,7 +287,8 @@ namespace ports
 					access= hasDeviceAccess();
 				if(access)
 				{
-					if(m_bWrite)
+					if(	!m_bDoSwitch ||
+						newValue != 0	)
 					{
 						tout << "write on unique id '" << m_sChipID;
 						tout << "' to output " << value;

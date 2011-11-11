@@ -55,7 +55,7 @@ namespace ports
 		m_bDisplayNotFound(false),
 		m_oValue(folder, subroutine, "value", true, false),
 		m_dLastWValue(0),
-		m_bWrite(false)
+		m_bDoSwitch(false)
 		{ };
 		/**
 		 * initialing object of ExternPort
@@ -174,9 +174,9 @@ namespace ports
 		 */
 		double m_dLastWValue;
 		/**
-		 * whether write last passing any value
+		 * whether is set an begin, while or end property
 		 */
-		bool m_bWrite;
+		bool m_bDoSwitch;
 		/**
 		 * ID of dallas chip for this subroutine
 		 * without family code two digits
