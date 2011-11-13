@@ -218,7 +218,43 @@ namespace ppi_database
 		{// create an new database file
 			createNewDbFile(/*check whether*/false);
 		}
-		LOG(LOG_INFO, "reading of database file " + m_sDbFile + " is finished");
+		line= "reading of database file " + m_sDbFile + " is finished";
+		LOG(LOG_INFO, line);
+
+//	for debugging write out current content of database before ending
+#if 0
+		LOCK(m_DBCURRENTENTRY);
+		cout << endl;
+		cout << line << endl;
+		cout << "found follow content:" << endl;
+		cout << endl;
+		for(map<string, map<string, map<string, db_t> > >::iterator fit= m_mCurrent.begin(); fit != m_mCurrent.end(); ++fit)
+		{
+			if(fit->first == "writeVellemann0")
+			{
+				for(map<string, map<string, db_t> >::iterator sit= fit->second.begin(); sit != fit->second.end(); ++sit)
+				{
+					for(map<string, db_t>::iterator iit= sit->second.begin(); iit != sit->second.end(); ++iit)
+					{
+						cout << "for folder:'" << fit->first << "' subroutine:'" << sit->first << "' and identifier:'" << iit->first << "' found:" << endl;
+						cout << "              folder:     " << iit->second.folder << endl;
+						cout << "              subroutine: " << iit->second.subroutine << endl;
+						cout << "              identifier: " << iit->second.identif << endl;
+						cout << "              access:     " << boolalpha << iit->second.device << endl;
+						cout << "              value:      ";
+						for(vector<double>::iterator vit= iit->second.values.begin(); vit != iit->second.values.end(); ++vit)
+						{
+							if(vit != iit->second.values.begin())
+								cout << "                          ";
+							cout << *vit << endl;
+						}
+						cout << "          write only new: " << boolalpha << iit->second.bNew << endl;
+					}
+				}
+			}
+		}
+		UNLOCK(m_DBCURRENTENTRY);
+#endif
 		return true;
 	}
 
@@ -439,6 +475,16 @@ namespace ppi_database
 		map<string, map<string, db_t> > fEntrys;
 		map<string, db_t> sEntrys;
 
+#if 0
+#define write_out_found_written_content
+		if(	entry.folder == "writeVellemann0" &&
+			entry.subroutine == "digital07"		)
+		{
+			cout << endl;
+			cout << "read " << entry.folder << ":" << entry.subroutine << " with value "
+							<< entry.values[0] << " and access " << boolalpha << entry.device << endl;
+		}
+#endif
 		LOCK(m_DBCURRENTENTRY);
 		fEntrys= m_mCurrent[entry.folder];
 		// check for folder exist
@@ -450,6 +496,7 @@ namespace ppi_database
 			isEntry[entry.identif]= entry;
 			ifEntry[entry.subroutine]= isEntry;
 			m_mCurrent[entry.folder]= ifEntry;
+			write_debug_output(entry, NULL, "first insert of folder");
 			UNLOCK(m_DBCURRENTENTRY);
 			return true;
 		}else
@@ -462,6 +509,7 @@ namespace ppi_database
 
 				isEntry[entry.identif]= entry;
 				m_mCurrent[entry.folder][entry.subroutine]= isEntry;
+				write_debug_output(entry, NULL, "first insert of subroutine in folder " + entry.folder);
 				UNLOCK(m_DBCURRENTENTRY);
 				return true;
 			}else
@@ -473,6 +521,7 @@ namespace ppi_database
 				// check for identif specification exist
 				if(tvalue.folder == "")
 				{
+					write_debug_output(entry, &tvalue, "first insert of new identifier " + entry.identif);
 					m_mCurrent[entry.folder][entry.subroutine][entry.identif]= entry;
 					UNLOCK(m_DBCURRENTENTRY);
 					return true;
@@ -482,40 +531,11 @@ namespace ppi_database
 					vector<double>::size_type tcount= tvalue.values.size();
 					vector<double>::size_type ecount= entry.values.size();
 
-		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		// output on command line to set new value as actual
-#if 0
-				if(	(	entry.folder == "SONY_CMT_MINUS_CP100_KEY_CHANNELUP" ||
-						entry.folder == "SONY_CMT_MINUS_CP100_KEY_CHANNELDOWN"	) &&
-					entry.subroutine == "actual_step"									)
-				{
-					ostringstream out;
-
-					out << "DB >> write new " << entry.identif << " in ";
-					out << entry.folder << ":" << entry.subroutine << endl;
-					out << "      old value was " << boolalpha << tvalue.device;
-					if(tvalue.device)
-					{
-						out << " and had content ";
-						for(vector<double>::iterator it= tvalue.values.begin(); it != tvalue.values.end(); ++it)
-							out << "[" << dec << *it << "] ";
-					}
-					out << endl;
-					out << "      new value is " << boolalpha << entry.device;
-					if(entry.device)
-					{
-						out << " and has content ";
-						for(vector<double>::const_iterator it= entry.values.begin(); it != entry.values.end(); ++it)
-							out << "[" << dec << *it << "] ";
-					}
-					out << endl;
-					cout << out.str();
-				}
-#endif
 					if(entry.identif == "access")
 					{
 						if(tvalue.device != entry.device)
 						{
+							write_debug_output(entry, &tvalue, "write access identifier");
 							m_mCurrent[tvalue.folder][tvalue.subroutine][tvalue.identif].device= entry.device;
 							UNLOCK(m_DBCURRENTENTRY);
 							return true;
@@ -544,21 +564,65 @@ namespace ppi_database
 					if(changed)
 					{
 						m_mCurrent[tvalue.folder][tvalue.subroutine][tvalue.identif].values= entry.values;
-#if 0
-						cout << "--  insert " << tvalue.folder << ":" << tvalue.subroutine << " with identifier '" << tvalue.identif << "'";
-						cout << " with values ";
-						for(vector<double>::const_iterator it= entry.values.begin(); it != entry.values.end(); ++it)
-							cout << dec << *it << "  ";
-						cout << endl;
-#endif
+						write_debug_output(entry, &tvalue, "insert databes entry");
 						UNLOCK(m_DBCURRENTENTRY);
 						return true;
 					}
 				}
 			}
 		}
+		write_debug_output(entry, NULL, "do not write any content -----------------------------------------");
 		UNLOCK(m_DBCURRENTENTRY);
 		return false;
+	}
+
+	void Database::write_debug_output(const db_t& entry, const db_t* oldentry, const string& message)
+	{
+		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// output on command line to set new value as actual
+#ifdef write_out_found_written_content
+
+		if(	entry.folder == "writeVellemann0" &&
+			entry.subroutine == "digital07"		)
+		{
+			ostringstream out;
+
+			if(message != "")
+				out << message << ":" << endl;
+			out << "              folder:     " << entry.folder << endl;
+			out << "              subroutine: " << entry.subroutine << endl;
+			out << "              identifier: " << entry.identif << endl;
+			out << "              access:     " << boolalpha << entry.device << endl;
+			out << "              value:      ";
+			for(vector<double>::const_iterator vit= entry.values.begin(); vit != entry.values.end(); ++vit)
+			{
+				if(vit != entry.values.begin())
+					out << "                          ";
+				out << *vit << endl;
+			}
+			out << "          write only new: " << boolalpha << entry.bNew << endl;
+			if(oldentry)
+			{
+				out << "      old value was " << boolalpha << oldentry->device;
+				if(oldentry->device)
+				{
+					out << " and had content ";
+					for(vector<double>::const_iterator it= oldentry->values.begin(); it != oldentry->values.end(); ++it)
+						out << "[" << dec << *it << "] ";
+				}
+				out << endl;
+			}
+			out << "      new value is " << boolalpha << entry.device;
+			if(entry.device)
+			{
+				out << " and has content ";
+				for(vector<double>::const_iterator it= entry.values.begin(); it != entry.values.end(); ++it)
+					out << "[" << dec << *it << "] ";
+			}
+			out << endl;
+			cout << out.str();
+		}
+#endif
 	}
 
 	vector<string> Database::getChangedEntrys(unsigned long connection)
@@ -1178,12 +1242,17 @@ namespace ppi_database
 		dbfile << entry.folder << "|" << entry.subroutine << "|";
 		dbfile << entry.identif;
 		dbfile << "|";
-		if(entry.device)
+		if(entry.identif == "access")
+		{
+			if(entry.device)
+				dbfile << "true";
+			else
+				dbfile << "NaN";
+		}else
 		{
 			for(vector<double>::const_iterator valIt= entry.values.begin(); valIt != entry.values.end(); ++valIt)
 				dbfile << dec << *valIt << "|";
-		}else
-			dbfile << "NaN";
+		}
 		dbfile << endl;
 	}
 
@@ -1581,7 +1650,7 @@ namespace ppi_database
 		newEntry.bNew= bNew;
 		if(identif == "access")
 			newEntry.device= (bool)values.back();
-		else // if identif not 'access' device should be trou
+		else // if identif not 'access' device should be true
 		{	 // because it will be checked in method setActEntry()
 			 // whether device in memory is true and an new value
 			newEntry.device= true;
@@ -1662,7 +1731,10 @@ namespace ppi_database
 					UNLOCK(m_CHANGINGPOOL);
 					found= find(m_vtDbValues.begin(), m_vtDbValues.end(), &entry);
 					if(found != m_vtDbValues.end())
+					{
+						//cout << "write this " << entry.folder << ":" << entry.subroutine << " into database" << endl;
 						writeDb(*i);
+					}
 				}
 			}
 			if(bWait)

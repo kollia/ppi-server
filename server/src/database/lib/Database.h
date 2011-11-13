@@ -381,6 +381,15 @@ namespace ppi_database
 		 */
 		void writeDb(db_t entry, ofstream* dbfile= NULL);
 		/**
+		 * write debug output for reading entrys from database.<br />
+		 * output only writing when set if directive on beginning of setActualValue method to 1
+		 *
+		 * @param entry database entry
+		 * @param oldentry database entry from before
+		 * @param message output message what will do
+		 */
+		void write_debug_output(const db_t& entry, const db_t* oldentry, const string& message);
+		/**
 		 * write entry direct into database
 		 *
 		 * @param entry db_t structure of chip
