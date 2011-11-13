@@ -79,18 +79,21 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	string prop("default");
 	DbInterface *db= DbInterface::instance();
 
-	dDef= properties->getDouble(prop, /*wrning*/false);
+	m_dValue= 0;
 	m_sPermission= properties->getValue("perm", /*warning*/false);
 	m_bWriteDb= properties->haveAction("db");
 	if(m_bWriteDb)
+	{
 		db->writeIntoDb(m_sFolder, m_sSubroutine);
-
-	ddv= db->getActEntry(exist, m_sFolder, m_sSubroutine, "value");
+		ddv= db->getActEntry(exist, m_sFolder, m_sSubroutine, "value");
+	}else
+		exist= false;
 	if(!exist)
 	{// write always the first value into db
 	 // if it was not in database
 	 // because the user which hearing for this subroutine
 	 // gets otherwise an error
+		dDef= properties->getDouble(prop, /*warning*/false);
 		if(prop != "#ERROR")
 			m_dValue= dDef;
 		db->fillValue(m_sFolder, m_sSubroutine, "value", m_dValue);
