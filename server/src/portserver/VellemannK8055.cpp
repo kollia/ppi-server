@@ -291,32 +291,31 @@ namespace ports
 
 	short VellemannK8055::write(const string id, const double value, const string& addinfo)
 	{
+		int res;
 		string pin(id.substr(2));
 
 		//cout << "write on pin " << pin << " value " << value << endl;
 		if(pin == "PWM1")
 		{
 			m_nAnalogOutputC1= (int)value;
-			OutputAnalogChannel(1, m_nAnalogOutputC1);
+			res= OutputAnalogChannel(1, m_nAnalogOutputC1);
 
 		}else if(pin == "PWM2")
 		{
 			m_nAnalogOutputC2= (int)value;
-			OutputAnalogChannel(2, m_nAnalogOutputC2);
+			res= OutputAnalogChannel(2, m_nAnalogOutputC2);
 
 		}else if(pin.substr(0, 5) == "reset")
 		{
 			long n= atoi(pin.substr(5, 1).c_str());
 
-			//m_bReset[(int)n]= true;
-			ResetCounter(n);
+			res= ResetCounter(n);
 
 		}else if(pin.substr(0, 8) == "debounce")
 		{
-			long n= atoi(pin.substr(5, 1).c_str());
+			long n= atoi(pin.substr(8, 1).c_str());
 
-			//m_nDebounce[(int)n]= (long)value;
-			SetCounterDebounceTime(n, (long)value);
+			res= SetCounterDebounceTime(n, (long)value);
 
 		}else
 		{
@@ -346,46 +345,73 @@ namespace ports
 			}
 			//cout << "write output to " << m_nDigitalOutput << endl;
 			//portBase::printBin(&m_nDigitalOutput, 0);
-			WriteAllDigital((long)m_nDigitalOutput);
+			res= WriteAllDigital((long)m_nDigitalOutput);
 		}
+		if(res < 0)
+			return -1;
 		return 0;
 	}
 
 	short VellemannK8055::read(const string id, double &value)
 	{
+		short nRv(0);
 		string spin(id.substr(2));
 
-		m_ndRead|= ReadAllDigital();
 		if(spin.substr(0, 7) == "counter")
 		{
 			long n= atoi(spin.substr(7, 1).c_str());
 
-			value= (double)ReadCounter(n);
+			if(n > 0 && n <= 2)
+			{
+				value= (double)ReadCounter(n);
+			}else
+			{
+				value= 0;
+				nRv= -1;
+			}
 
 		}else if(spin.substr(0, 1) == "I")
 		{
 			long count= 0;
 			long oldcount= 0;
 			int pin= atoi(&spin[1]);
-			int res= ReadDigitalChannel(pin);
+			int res;
 			int set= 0x01;
 			int nvalue= (int)value;
 
-			if(	pin > 0 && pin <= 2)
+			if(pin > 0 && pin <= 5)
 			{
-				count= ReadCounter(pin);
-				oldcount= m_mnCount[pin];
-				m_mnCount[pin]= count;
-			}
-			set<<= (pin-1);
-			if(	res || m_ndRead & set || count != oldcount)
-			{
-				nvalue= res ? 0x03 : 0x02;
-				set= ~set;
-				m_ndRead&= set;
+				m_ndRead|= ReadAllDigital();
+				res= ReadDigitalChannel(pin);
+				if(pin > 0 && pin <= 2)
+				{
+					count= ReadCounter(pin);
+					oldcount= m_mnCount[pin];
+					m_mnCount[pin]= count;
+				}else
+				{
+					count= 0;
+					oldcount= 0;
+				}
+				set<<= (pin-1);
+				if(	res || m_ndRead & set || count != oldcount)
+				{
+					nvalue= res ? 0x03 : 0x02;
+					set= ~set;
+					m_ndRead&= set;
+				}else
+					nvalue&= 0x02;
+				value= (double)nvalue;
+				if(value < 0)
+				{
+					value= 0;
+					nRv= -1;
+				}
 			}else
-				nvalue&= 0x02;
-			value= (double)nvalue;
+			{
+				value= 0;
+				nRv= -1;
+			}
 
 			//cout << " direkt pin " << id;
 			//cout << " is act " << res << " and set to " << dec << value << endl;
@@ -396,12 +422,25 @@ namespace ports
 			//cout << "pin " << id << endl;
 			if(spin.substr(1, 1) == "1")
 				channel= 1;
-			else
+			else if(spin.substr(1, 1) == "2")
 				channel= 2;
-			value= (double)ReadAnalogChannel(channel);
+			else
+			{
+				value= 0;
+				nRv= -1;
+			}
+			if(nRv == 0)
+			{
+				value= (double)ReadAnalogChannel(channel);
+				if(value < 0)
+				{
+					value= 0;
+					nRv= -1;
+				}
+			}
 			//cout << "value is " << dec << value << endl;
 		}
-		return 0;
+		return nRv;
 	}
 
 	int VellemannK8055::command_exec(const string& command, vector<string>& result, bool& more)
@@ -446,7 +485,8 @@ namespace ports
 		min= 0;
 		if(pin.substr(0, 7) == "counter")
 		{
-			max= LONG_MAX;
+			min= 0;
+			max= -1;
 			return;
 		}
 		if(	pin.substr(0, 1) == "A"
