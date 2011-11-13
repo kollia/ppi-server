@@ -36,6 +36,7 @@ namespace ports
 	bool ExternPort::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		bool bRv= true;
+		bool bDb;
 		DbInterface *db;
 		string prop;
 
@@ -48,6 +49,12 @@ namespace ports
 		m_sChipID= properties->needValue("ID");
 		if(m_sChipID == "")
 			bRv= false;
+		// check before writing in allocateServer() first device access
+		// whether should writing into database
+		db= DbInterface::instance();
+		bDb= properties->haveAction("db");
+		if(bDb)
+			db->writeIntoDb(getFolderName(), getSubroutineName());
 		if(!allocateServer())
 			bRv= false;
 
@@ -110,7 +117,6 @@ namespace ports
 		}
 		if(bRv)
 		{
-			db= DbInterface::instance();
 			db->useChip(getFolderName(), getSubroutineName(), m_sServer, m_sChipID);
 		}
 
@@ -199,13 +205,13 @@ namespace ports
 	double ExternPort::measure(const double actValue)
 	{
 		bool access, debug, bsetNewValue(false);
-		double value(0), newValue;
+		double value(0);
 		string addinfo;
 
 		debug= isDebug();
 		//Debug info to stop by right subroutine
-		/*if(	getFolderName() == "writeVellemann0" &&
-			getSubroutineName() == "digital01"	)
+		/*if(	getFolderName() == "readVellemann0" &&
+			getSubroutineName() == "counter1"	)
 		{
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
@@ -229,10 +235,15 @@ namespace ports
 		}
 		if(m_bRead)
 		{
-			// nothing to do!
-			// value before set from owreader (OWServer)
-			value= actValue;
-			read(value);
+			// nothing to do by running thread, only by first!
+			// because value before set from owreader (OWServer)
+			if(m_bFirstRead)
+			{
+				m_pOWServer->read(m_sChipID, &value);
+				m_bFirstRead= false;
+			}else
+				value= actValue;
+			read(&value);
 			if(debug)
 			{
 				tout << "read from chip " << m_sChipID;
@@ -266,17 +277,18 @@ namespace ports
 				tout << endl;
 			}
 
-			newValue= switchClass::measure(actValue);
+			if(!m_bDoSwitch)
+				m_dLastWValue= actValue;
+			m_dLastWValue= switchClass::measure(m_dLastWValue);
 			if(	!m_bDoSwitch ||
-				newValue != 0		)
+				m_dLastWValue != 0	)
 			{
 				if(!m_oValue.isEmpty())
 					m_oValue.calculate(value);
 				else
-					value= newValue ? 1 : 0;
+					value= m_dLastWValue ? 1 : 0;
 				access= write(m_sChipID, value, addinfo);
 				setDeviceAccess(access);
-				m_dLastWValue= value;
 				bsetNewValue= true;
 			}else
 				value= actValue;
@@ -288,7 +300,7 @@ namespace ports
 				if(access)
 				{
 					if(	!m_bDoSwitch ||
-						newValue != 0	)
+						m_dLastWValue != 0	)
 					{
 						tout << "write on unique id '" << m_sChipID;
 						tout << "' to output " << value;
@@ -298,7 +310,7 @@ namespace ports
 						tout << " do not write on '" << m_sChipID << "'";
 					tout << endl;
 				}else
-					tout << "unique id '" << m_sChipID << "' do not reach correctly device for writing" << endl;
+					tout << "unique id '" << m_sChipID << "' by the last pass, do not reach correctly device for writing" << endl;
 			}
 		}
 

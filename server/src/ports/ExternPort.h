@@ -55,7 +55,8 @@ namespace ports
 		m_bDisplayNotFound(false),
 		m_oValue(folder, subroutine, "value", true, false),
 		m_dLastWValue(0),
-		m_bDoSwitch(false)
+		m_bDoSwitch(false),
+		m_bFirstRead(true)
 		{ };
 		/**
 		 * initialing object of ExternPort
@@ -104,7 +105,7 @@ namespace ports
 		 *
 		 * @param value actual value set from portserver
 		 */
-		virtual void read(const double value)
+		virtual void read(double* value)
 		{};
 		/**
 		 * overwrite portBase class to define access from outside,
@@ -177,6 +178,12 @@ namespace ports
 		 * whether is set an begin, while or end property
 		 */
 		bool m_bDoSwitch;
+		/**
+		 * whether measure method running first time.<br />
+		 * this is necessary by reading subroutines to read first
+		 * state of pin
+		 */
+		bool m_bFirstRead;
 		/**
 		 * ID of dallas chip for this subroutine
 		 * without family code two digits
