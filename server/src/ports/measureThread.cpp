@@ -163,6 +163,7 @@ int MeasureThread::init(void *arg)
 	int nMuch;
 	SHAREDPTR::shared_ptr<IListObjectPattern> port;
 	MeasureArgArray tArg= *((MeasureArgArray*)arg);
+	vector<string>::iterator found;
 
 	m_pvlPorts= tArg.ports;
 	m_pvtSubroutines= tArg.subroutines;
@@ -179,7 +180,10 @@ int MeasureThread::init(void *arg)
 			port->setRunningThread(this);
 		}
 	}
-
+	for(vector<string>::iterator it= tArg.debugSubroutines.begin(); it != tArg.debugSubroutines.end(); ++it)
+	{
+		setDebug(true, *it);
+	}
 	return 0;
 }
 

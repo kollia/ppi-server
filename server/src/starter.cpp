@@ -814,6 +814,15 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			}
 			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name));
 			args.subroutines= &aktFolder->subroutines;
+			// set debug output for defined folder
+			// or specific subroutine also by starting
+#if 0
+			if(aktFolder->name == "readVellemann0")
+			{
+				args.debugSubroutines.push_back("counter1");
+			}else
+				args.debugSubroutines.clear();
+#endif
 			pCurrentMeasure->pMeasure->start(&args);
 		}
 		aktFolder= aktFolder->next;

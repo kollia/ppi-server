@@ -34,8 +34,10 @@ struct MeasureArgArray
 {
 	vector<pair<string, PortTypes> > ports;
 	vector<sub> *subroutines;
-	//set<unsigned long> afterContact;
-	//set<portBase::Pins> tAfterContactPins;
+	/**
+	 * all subroutines for debugging from begin
+	 */
+	vector<string> debugSubroutines;
 };
 
 class MeasureThread : 	public Thread,
