@@ -486,8 +486,8 @@ namespace server
 						chipTypeIt->second->device= false;
 					if(bDebug)
 						devIt->ok= false;
-					if(endWork == -1)
-						break;// try again the next time
+					//if(endWork == -1)
+					//	break;// try again the next time
 					// -2 - kill from queue
 				}else
 				{
@@ -957,19 +957,6 @@ namespace server
 		if(chipIt == m_mtConductors.end())
 			return false;
 		chip= chipIt->second;
-		if(!chip->device)
-			return false;
-		/*if(!chip->writecache)
-		{// cache writing every time if chip-type-id in the vector of m_vChipTypeIDs
-			LOCK(m_CACHEWRITEENTRYS);
-			inIt= find(m_vChipTypeIDs.begin(), m_vChipTypeIDs.end(), chip->wcacheID);
-			if(inIt != m_vChipTypeIDs.end())
-			{
-				write= true;
-				m_vChipTypeIDs.erase(inIt);
-			}
-			UNLOCK(m_CACHEWRITEENTRYS);
-		}*/
 
 		// 2010/08/03 ppi@magnificat.at
 		//				write always to server
@@ -1025,6 +1012,8 @@ namespace server
 			AROUSE(m_PRIORITYCACHECOND);
 			UNLOCK(m_PRIORITYCACHE);
 		}
+		if(!chip->device)
+			return false;
 		return true;
 	}
 
