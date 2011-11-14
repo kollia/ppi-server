@@ -94,6 +94,14 @@ set(PPIPROCESSUTIL_LIB_SOVERSION "1")
 set(PPICPPCLIENT_LIB_VERSION "0.1")
 set(PPICPPCLIENT_LIB_SOVERSION "0")
 
+set(PPI_LIBPORTSACCESS_VERSION "1.0")
+set(PPI_LIBPORTSACCESS_SOVERSION "1")
+set(PPI_LIBOWFSACCESS_VERSION "1.0")
+set(PPI_LIBOWFSACCESS_SOVERSION "1")
+set(PPI_LIBLIRCACCESS_VERSION "1.0")
+set(PPI_LIBLIRCACCESS_SOVERSION "1")
+set(PPI_LIBVK8055ACCESS_VERSION "1.0")
+set(PPI_LIBVK8055ACCESS_SOVERSION "1")
 
 
 
@@ -191,6 +199,7 @@ add_subdirectory( src/ports/subroutines ) # ppiportssubroutine need: ---
 add_subdirectory( src/util/stream ) # ppistreamutil need: ---
 add_subdirectory( src/util/properties ) # ppipropertyutil need: ppistreamutil ppipattern
 add_subdirectory( src/util ) # ppiutil need: ppipropertyutil ppistreamutil ppipattern
+add_subdirectory( src/portserver/libs/chipaccess ) # need: ppiutil
 add_subdirectory( src/util/thread ) # ppithreadutil need: rt ppiutil ppipattern
 add_subdirectory( src/server/libs ) # ppiserverlib need: ppithreadutil
 add_subdirectory( src/server/libs/client ) # ppiserverlibclient need: ppiserverlib
