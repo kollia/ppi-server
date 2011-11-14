@@ -36,7 +36,6 @@
 
 using namespace std;
 using namespace util;
-using namespace ports;
 
 extern server::ServerThread* gInternetServer;
 

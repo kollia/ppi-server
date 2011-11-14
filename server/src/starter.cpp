@@ -46,9 +46,6 @@
 #include "database/lib/DbInterface.h"
 
 #include "portserver/owserver.h"
-#include "portserver/ExternPorts.h"
-#include "portserver/maximchipaccess.h"
-#include "portserver/VellemannK8055.h"
 
 #include "ports/portbaseclass.h"
 #include "ports/measureThread.h"

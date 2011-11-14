@@ -27,13 +27,10 @@
 #include "util/debug.h"
 #include "util/thread/Terminal.h"
 
-#include "portserver/LircClient.h"
-
 #include "starter.h"
 
 using namespace std;
 using namespace util;
-using namespace ports;
 
 // only used method for some debugging tests
 void tests(const string& workdir, int argc, char* argv[]);
