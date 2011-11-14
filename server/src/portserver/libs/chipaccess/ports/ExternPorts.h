@@ -17,15 +17,15 @@
 #ifndef EXTERNPORTS_H_
 #define EXTERNPORTS_H_
 
-#include "../util/debug.h"
-#include "../util/structures.h"
-
 #include <utility>
 #include <string>
 #include <map>
 
-#include "../pattern/util/ipropertypattern.h"
-#include "../pattern/server/ichipaccesspattern.h"
+#include "../../../../pattern/util/ipropertypattern.h"
+#include "../../../../pattern/server/ichipaccesspattern.h"
+
+#include "../../../../util/debug.h"
+#include "../../../../util/structures.h"
 
 //* Variablenbelegung
 #define ITIMERTYPE ITIMER_REAL

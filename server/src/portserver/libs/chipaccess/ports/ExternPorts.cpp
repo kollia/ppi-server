@@ -28,9 +28,9 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-#include "../pattern/util/LogHolderPattern.h"
+#include "../../../../pattern/util/LogHolderPattern.h"
 
-#include "../util/thread/Thread.h"
+#include "../../../../util/thread/Thread.h"
 
 #include "ExternPorts.h"
 

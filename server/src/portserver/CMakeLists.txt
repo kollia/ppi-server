@@ -5,11 +5,11 @@ set(portserverSrcs  owserver.cpp
                     OwServerQuestions.cpp
                     KernelModule.cpp
                     ShellWriter.cpp
-            		ExternPorts.cpp
-            	    maximchipaccess.cpp
-            		VellemannK8055.cpp
-            		irsend.cpp
-            		LircClient.cpp
+            		libs/chipaccess/ports/ExternPorts.cpp
+            	    libs/chipaccess/maxim/maximchipaccess.cpp
+            		libs/chipaccess/vellemann/VellemannK8055.cpp
+            		libs/chipaccess/lirc/irsend.cpp
+            		libs/chipaccess/lirc/LircClient.cpp
                     owreadermain.cpp        )
         		
 add_executable(ppi-owreader ${portserverSrcs})

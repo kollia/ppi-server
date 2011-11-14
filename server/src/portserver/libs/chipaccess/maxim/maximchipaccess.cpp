@@ -30,13 +30,13 @@
 #include <algorithm>
 
 
-#include "../util/URL.h"
+#include "../../../../util/URL.h"
 
-#include "../util/properties/configpropertycasher.h"
+#include "../../../../util/properties/configpropertycasher.h"
 
-#include "../database/lib/DbInterface.h"
+#include "../../../../database/lib/DbInterface.h"
 
-#include "../pattern/util/LogHolderPattern.h"
+#include "../../../../pattern/util/LogHolderPattern.h"
 
 using namespace util;
 using namespace std;

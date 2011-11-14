@@ -37,13 +37,15 @@
 #include "../server/libs/client/SocketClientConnection.h"
 #include "../server/libs/server/TcpServerConnection.h"
 
+#include "libs/chipaccess/ports/ExternPorts.h"
+#include "libs/chipaccess/lirc/LircClient.h"
+#include "libs/chipaccess/maxim/maximchipaccess.h"
+#include "libs/chipaccess/vellemann/VellemannK8055.h"
+
+
 #include "owserver.h"
 #include "OwServerQuestions.h"
 #include "ShellWriter.h"
-#include "ExternPorts.h"
-#include "LircClient.h"
-#include "maximchipaccess.h"
-#include "VellemannK8055.h"
 
 using namespace std;
 using namespace boost;

@@ -17,14 +17,15 @@
 #ifndef VELLEMANNK8055_H_
 #define VELLEMANNK8055_H_
 
-#include "../util/debug.h"
 #ifdef _K8055LIBRARY
 
 #include <string>
 #include <map>
 
-#include "../pattern/util/ipropertypattern.h"
-#include "../pattern/server/ichipaccesspattern.h"
+#include "../../../../pattern/util/ipropertypattern.h"
+#include "../../../../pattern/server/ichipaccesspattern.h"
+
+#include "../../../../util/debug.h"
 
 using namespace design_pattern_world;
 

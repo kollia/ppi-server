@@ -17,16 +17,16 @@
 #ifndef MAXIMCHIPACCESS_H_
 #define MAXIMCHIPACCESS_H_
 
-#include "../util/debug.h"
 #ifdef _OWFSLIBRARY
 
 #include <string>
 
-#include "../util/thread/Thread.h"
-#include "../util/smart_ptr.h"
+#include "../../../../util/debug.h"
+#include "../../../../util/smart_ptr.h"
+#include "../../../../util/thread/Thread.h"
 
-#include "../pattern/server/ichipaccesspattern.h"
-#include "../pattern/util/iactionpropertymsgpattern.h"
+#include "../../../../pattern/server/ichipaccesspattern.h"
+#include "../../../../pattern/util/iactionpropertymsgpattern.h"
 
 using namespace std;
 using namespace design_pattern_world;

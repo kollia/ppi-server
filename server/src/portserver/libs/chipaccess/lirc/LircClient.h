@@ -17,14 +17,13 @@
 #ifndef LIRCCLIENT_H_
 #define LIRCCLIENT_H_
 
-#include "../util/debug.h"
+#include <lirc/lirc_client.h>
 
-#include "lirc/lirc_client.h"
+#include "../../../../pattern/util/ipropertypattern.h"
+#include "../../../../pattern/server/ichipaccesspattern.h"
 
-#include "../pattern/util/ipropertypattern.h"
-#include "../pattern/server/ichipaccesspattern.h"
-
-#include "../util/thread/Thread.h"
+#include "../../../../util/debug.h"
+#include "../../../../util/thread/Thread.h"
 
 namespace ports
 {

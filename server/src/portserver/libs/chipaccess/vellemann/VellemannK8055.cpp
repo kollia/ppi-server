@@ -31,9 +31,9 @@ extern "C" {
 #include <k8055.h>
 }
 
-#include "../pattern/util/LogHolderPattern.h"
+#include "../../../../pattern/util/LogHolderPattern.h"
 
-#include "../util/thread/Thread.h"
+#include "../../../../util/thread/Thread.h"
 
 
 using namespace std;
