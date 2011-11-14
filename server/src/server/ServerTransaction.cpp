@@ -36,8 +36,6 @@
 
 #include "../util/structures.h"
 
-#include "../portserver/lib/OWInterface.h"
-
 #include "../util/GlobalStaticMethods.h"
 #include "../util/XMLStartEndTagReader.h"
 #include "../util/usermanagement.h"

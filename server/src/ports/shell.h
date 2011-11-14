@@ -19,7 +19,7 @@
 
 #include "switch.h"
 
-#include "../portserver/lib/OWInterface.h"
+#include "../portserver/libs/interface/OWInterface.h"
 
 #include "../util/CommandExec.h"
 #include "../util/properties/configpropertycasher.h"

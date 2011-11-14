@@ -29,8 +29,6 @@
 
 #include "../pattern/util/LogHolderPattern.h"
 
-//#include "../database/logger/lib/PPILogInterface.h"
-
 #include "../util/GlobalStaticMethods.h"
 #include "../util/URL.h"
 #include "../util/usermanagement.h"
@@ -38,8 +36,6 @@
 #include "../util/properties/interlacedproperties.h"
 
 #include "../database/lib/NeedDbChanges.h"
-
-#include "../portserver/lib/OWInterface.h"
 
 #include "libs/client/SocketClientConnection.h"
 #include "libs/server/TcpServerConnection.h"
