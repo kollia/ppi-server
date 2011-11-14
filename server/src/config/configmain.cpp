@@ -30,6 +30,7 @@
 #include "../pattern/util/LogHolderPattern.h"
 
 #include "LircSupport.h"
+#include "OwfsSupport.h"
 
 using namespace std;
 using namespace util;
@@ -49,7 +50,7 @@ int main(int argc, char* argv[])
 
 	glob::processName("ppi-mconfig");
 
-	params.setDescription("create measure file for 'measure.conf' and also some layout files\n"
+	params.setDescription("create measure file or examples for 'measure.conf' and also some layout files\n"
 							"specific for defined command.");
 	params.version(PPI_MAJOR_RELEASE, PPI_MINOR_RELEASE, PPI_SUBVERSION, PPI_PATCH_LEVEL,
 										/*no build*/0, PPI_REVISION_NUMBER, DISTRIBUTION_RELEASE);
@@ -60,8 +61,9 @@ int main(int argc, char* argv[])
 
 	command= params.command("LIRC", "create configuration for receiver and transmitter if set to fill in 'measure.conf'\n"
 									"and also corresponding layout files to copy into ppi-server client directory\n"
-									"when the LIRC command be set without any options all remotes defined in lircd.conf will be created for transmit and receive");
-	command->option("file", "f", true, "lirc configuration file with remote codes (default: -f '/etc/lirc/lircd.conf')");
+									"when the LIRC command be set without any options all remotes defined in lircd.conf\n"
+									"will be created for transmit and receive");
+	command->option("file", "f", true, "lirc configuration file with remote codes (default: '/etc/lirc/lircd.conf')");
 	command->option("show", "s", "show all defined remotes with defined alias to generate in an other step with --remote");
 	command->option("predefined", "d", "show all namespaces for defined codes in lircd.conf has predefined defaults");
 	command->option("vertical", "v", true, "vectical default rows for transmitter layout file (default:3)");
@@ -81,6 +83,19 @@ int main(int argc, char* argv[])
 	command->option("configreadperm", "P", true, "to read configuration (default from access.conf 'lconfread')");
 	command->option("configchangeperm", "C", true, "to read configuration (default from access.conf 'lconfchange')");
 
+
+#ifdef _OWFSLIBRARY
+	command= params.command("OWFS", "creating example config file for all maxim/dallas chips\n"
+									"use this first to know which chip ID's can be used\n"
+									"and which pin's an chip has\n"
+									"( do not change this file !!!\n"
+									"  because for the next call of ppi-mconfig with OWFS command\n"
+									"  the application know which chips are configured\n"
+									"  and do not ask again for the configured chips before        )");
+	command->option("file", "f", true,	"file in which should writing example\n"
+										"(default is 'maxim_examples.conf' inside current directory)");
+#endif //_OWFSLIBRARY
+
 	bOk= params.execute(/*stop by error*/false);
 	commands= params.getCommands();
 
@@ -92,8 +107,10 @@ int main(int argc, char* argv[])
 		else
 			LogHolderPattern::init(LOG_WARNING);
 
-	if(	bOk == false ||
-		commands->hasOption("learn")					)
+	commandname= commands->command();
+	if(	commandname == "LIRC" &&
+		(	bOk == false ||
+			commands->hasOption("learn")	)	)
 	{
 		bool blfound(false);
 		vector<pair<pair<string, string>, string> >* errors;
@@ -114,7 +131,9 @@ int main(int argc, char* argv[])
 		}
 		if(params.error())
 			return EXIT_FAILURE;
-	}
+	}else if(params.error())
+		return EXIT_FAILURE;
+
 	if(params.hasOption("help"))
 	{
 		params.usage();
@@ -126,7 +145,6 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 	workdir= params.getPath();
-	commandname= commands->command();
 
 	sConfPath= URL::addPath(workdir, sConfPath, /*always*/false);
 	fileName= URL::addPath(sConfPath, "server.conf");
@@ -145,36 +163,17 @@ int main(int argc, char* argv[])
 		lirc.setLearnNames(names);
 		return lirc.execute(commands);
 	}
+#ifdef _OWFSLIBRARY
+	else if(commandname == "OWFS")
+	{
+		OwfsSupport owfs(workdir);
+
+		return owfs.execute(commands);
+	}
+#endif /* _OWFSLIBRARY */
 	cout << "no correct command be set" << endl;
 	cout << "  type -? for help" << endl;
 	return EXIT_FAILURE;
 }
 
-void ussage(const bool full)
-{
-	if(!full)
-	{
-		cout << "no correct command be set" << endl;
-		cout << "type -? for help" << endl;
-		return;
-	}
-	cout << endl;
-	cout << "syntax:  ppi-mconfig [options] <commands> [spez. options for command]" << endl;
-	cout << endl;
-	cout << "       options:" << endl;
-	cout << "            -?  --help         - show this help" << endl;
-	cout << endl;
-	cout << "       commands:" << endl;
-	cout << "            LIRC               - configuration for receiver and or transmitter" << endl;
-	cout << endl;
-	cout << "       spez. options for LIRC:" << endl;
-	cout << "            -f  --file             - " << endl;
-	cout << "            -l  --learn            - " << endl;
-	cout << "                                     " << endl;
-	cout << "            -r  --receiver         - create folder:subroutine *.conf file for only receiving (default)" << endl;
-	cout << "            -p  --readpermission   - permission to read receiving value (default from access.conf 'read'" << endl;
-	cout << "            -t  --transmitter      - create *.conf and *.desktop files for receiving and transmitting" << endl;
-	cout << "            -w  --writepermission  - permission to send code (default from access.conf 'change'" << endl;
-	cout << "            -v  --vertical         - vectical rows for layout file" << endl;
-	cout << endl;
-}
+

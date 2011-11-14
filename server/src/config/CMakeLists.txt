@@ -1,9 +1,10 @@
 
 set(configSrcs	configmain.cpp
-				LircSupport.cpp		)
+				LircSupport.cpp
+				OwfsSupport.cpp		)
         	
 add_executable(ppi-mconfig ${configSrcs})
-target_link_libraries(ppi-mconfig ppiportssubroutine ppiutil ppipropertyutil ppidb)
+target_link_libraries(ppi-mconfig ppiportssubroutine ppiutil ppipropertyutil ppidb ${OWFS_LIBRARIES})
 install(TARGETS ppi-mconfig DESTINATION bin)
 
 
