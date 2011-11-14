@@ -21,11 +21,11 @@
 #include <vector>
 #include <string>
 
-#include "../../server/libs/client/ProcessInterfaceTemplate.h"
-#include "../../util/smart_ptr.h"
+#include "../../../server/libs/client/ProcessInterfaceTemplate.h"
+#include "../../../util/smart_ptr.h"
 
-#include "../../pattern/server/IClientConnectArtPattern.h"
-#include "../../pattern/util/iactionpropertypattern.h"
+#include "../../../pattern/server/IClientConnectArtPattern.h"
+#include "../../../pattern/util/iactionpropertypattern.h"
 
 namespace server {
 

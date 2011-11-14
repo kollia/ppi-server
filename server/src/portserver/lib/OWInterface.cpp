@@ -15,9 +15,9 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "../../pattern/util/LogHolderPattern.h"
+#include "../../../pattern/util/LogHolderPattern.h"
 
-#include "../../util/stream/IParameterStringStream.h"
+#include "../../../util/stream/IParameterStringStream.h"
 
 #include "OWInterface.h"
 
