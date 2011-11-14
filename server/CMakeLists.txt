@@ -198,7 +198,7 @@ add_subdirectory( src/util/process ) # ppiprocessutil need: ppistreamutil ppithr
 add_subdirectory( src/database/logger/lib ) # ppilogger need: ppithreadutil ppistreamutil ppiserverlibclient
 add_subdirectory( src/server/libs/server ) # ppiserverlibserver need: ppiprocessutil ppiserverlib ppiserverlibclient ppipattern
 add_subdirectory( src/database/lib ) # ppidb need: ppithreadutil ppistreamutil ppiserverlibclient ppipattern
-add_subdirectory( src/portserver/lib ) # ppiow need: ppistreamutil ppiserverlibclient ppipattern
+add_subdirectory( src/portserver/libs/interface ) # ppiow need: ppistreamutil ppiserverlibclient ppipattern
 #add_subdirectory( src/ports ) # ppiports need: ppiutil ppithreadutil ppiserverlibclient ppidb ppiow ppipattern
 add_subdirectory( src/client/lib ) # ppicppclient need: ppiutil ppistreamutil ppithreadutil ppiserverlibclient
 
