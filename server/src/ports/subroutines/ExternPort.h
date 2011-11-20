@@ -1,5 +1,5 @@
 /**
- *   This file 'Lirc.cpp' is part of ppi-server.
+ *   This file 'ExternPort.h' is part of ppi-server.
  *   Created on: 28.01.2011
  *
  *   ppi-server is free software: you can redistribute it and/or modify
@@ -16,41 +16,28 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-#include <sstream>
+#ifndef subEXTERNPORT_H_
+#define subEXTERNPORT_H_
 
-#include "Lirc.h"
-
+#include "Subroutine.h"
 
 namespace subroutines
 {
 
-	Lirc::Lirc(ofstream& out, const string& name)
-	:	ExternPort(out, "LIRC", name)
+	class ExternPort : public Subroutine
 	{
-	}
-
-	void Lirc::premote(const string& content, const string& desc)
-	{
-		writeParam("ID", content, desc);
-	}
-
-	void Lirc::pcode(const string& content, const string& desc)
-	{
-		writeParam("pin", content, desc);
-	}
-
-	void Lirc::pcount(const double& content, const string& desc)
-	{
-		ostringstream ocont;
-
-		ocont << content;
-		pcount(ocont.str(), desc);
-	}
-
-	void Lirc::pcount(const string& content, const string& desc)
-	{
-		writeParam("count", content, desc);
-	}
+	public:
+		ExternPort(ofstream& out, const string& type, const string& name);
+		virtual void pid(const string& content, const string& desc= "");
+		virtual void ppin(const string& content, const string& desc= "");
+		virtual void ppriority(const string& content, const string& desc= "");
+		using Subroutine::pvalue;
+		using Subroutine::pbegin;
+		using Subroutine::pwhile;
+		using Subroutine::pend;
+		using Subroutine::action;
+	};
 
 }
+
+#endif /* subEXTERNPORT_H_ */

@@ -82,6 +82,15 @@ namespace subroutines
 		return pRv;
 	}
 
+	ExternPort* Folder::getExternPort(const string& type, const string& name)
+	{
+		ExternPort* pRv= new ExternPort(m_oOutput, type, name);
+
+		if(!m_bWritten) flush();
+		m_vpObjs.push_back(pRv);
+		return pRv;
+	}
+
 	Lirc* Folder::getLirc(const string& name)
 	{
 		Lirc* pRv= new Lirc(m_oOutput, name);

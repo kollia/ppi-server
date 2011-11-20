@@ -25,6 +25,7 @@
 #include "Timer.h"
 #include "Shell.h"
 #include "Debug.h"
+#include "ExternPort.h"
 #include "Lirc.h"
 
 namespace subroutines
@@ -95,6 +96,14 @@ namespace subroutines
 		 * @return subroutine
 		 */
 		Debug* getDebug(const string& name);
+		/**
+		 * create LIRC subroutine
+		 *
+		 * @param type type of external port
+		 * @param name name of subroutine
+		 * @return subroutine
+		 */
+		ExternPort* getExternPort(const string& type, const string& name);
 		/**
 		 * create LIRC subroutine
 		 *

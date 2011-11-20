@@ -1,5 +1,5 @@
 /**
- *   This file 'Lirc.cpp' is part of ppi-server.
+ *   This file 'ExternPort.cpp' is part of ppi-server.
  *   Created on: 28.01.2011
  *
  *   ppi-server is free software: you can redistribute it and/or modify
@@ -19,38 +19,30 @@
 #include <iostream>
 #include <sstream>
 
-#include "Lirc.h"
+#include "ExternPort.h"
 
 
 namespace subroutines
 {
 
-	Lirc::Lirc(ofstream& out, const string& name)
-	:	ExternPort(out, "LIRC", name)
+	ExternPort::ExternPort(ofstream& out, const string& type, const string& name)
+	:	Subroutine(out, name, type)
 	{
 	}
 
-	void Lirc::premote(const string& content, const string& desc)
+	void ExternPort::pid(const string& content, const string& desc)
 	{
 		writeParam("ID", content, desc);
 	}
 
-	void Lirc::pcode(const string& content, const string& desc)
+	void ExternPort::ppin(const string& content, const string& desc)
 	{
 		writeParam("pin", content, desc);
 	}
 
-	void Lirc::pcount(const double& content, const string& desc)
+	void ExternPort::ppriority(const string& content, const string& desc)
 	{
-		ostringstream ocont;
-
-		ocont << content;
-		pcount(ocont.str(), desc);
-	}
-
-	void Lirc::pcount(const string& content, const string& desc)
-	{
-		writeParam("count", content, desc);
+		writeParam("priority", content, desc);
 	}
 
 }

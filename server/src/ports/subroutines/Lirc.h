@@ -19,12 +19,12 @@
 #ifndef LIRC_H_
 #define LIRC_H_
 
-#include "Subroutine.h"
+#include "ExternPort.h"
 
 namespace subroutines
 {
 
-	class Lirc : public Subroutine
+	class Lirc : public ExternPort
 	{
 	public:
 		Lirc(ofstream& out, const string& name);
@@ -32,12 +32,10 @@ namespace subroutines
 		virtual void pcode(const string& content, const string& desc= "");
 		virtual void pcount(const double& content, const string& desc= "");
 		virtual void pcount(const string& content, const string& desc= "");
-		virtual void ppriority(const string& content, const string& desc= "");
-		using Subroutine::pvalue;
-		using Subroutine::pbegin;
-		using Subroutine::pwhile;
-		using Subroutine::pend;
-		using Subroutine::action;
+
+	private:
+		using ExternPort::pid;
+		using ExternPort::ppin;
 	};
 
 }

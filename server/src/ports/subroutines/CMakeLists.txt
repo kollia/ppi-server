@@ -6,8 +6,9 @@ set(utilSrcs	Subroutine.cpp
 				Timer.cpp
 				Shell.cpp
 				Debug.cpp
+				ExternPort.cpp
 				Lirc.cpp
-				Folder.cpp	)
+				Folder.cpp		)
 
 add_library(ppiportssubroutine ${libraries} ${utilSrcs})
 set_target_properties(ppiportssubroutine PROPERTIES VERSION ${PPISUBROUTINES_LIB_VERSION} SOVERSION ${PPISUBROUTINES_LIB_SOVERSION})
