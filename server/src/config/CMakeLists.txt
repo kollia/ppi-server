@@ -4,7 +4,7 @@ set(configSrcs	configmain.cpp
 				OwfsSupport.cpp		)
         	
 add_executable(ppi-mconfig ${configSrcs})
-target_link_libraries(ppi-mconfig ppiportssubroutine ppiutil ppipropertyutil ppidb ${OWFS_LIBRARIES})
+target_link_libraries(ppi-mconfig ppiportssubroutine ppiutil ppipropertyutil ppidb ppiowfsaccess)
 install(TARGETS ppi-mconfig DESTINATION bin)
 
 

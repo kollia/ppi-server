@@ -15,10 +15,10 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "maximchipaccess.h"
 #ifdef _OWFSLIBRARY
 
 #include <errno.h>
+#include <stdio.h>
 #include <owcapi.h>
 #include <time.h>
 #include <sys/time.h>
@@ -34,9 +34,11 @@
 
 #include "../../../../util/properties/configpropertycasher.h"
 
+#include "../../../../pattern/util/LogHolderPattern.h"
+
 #include "../../../../database/lib/DbInterface.h"
 
-#include "../../../../pattern/util/LogHolderPattern.h"
+#include "maximchipaccess.h"
 
 using namespace util;
 using namespace std;
@@ -44,6 +46,25 @@ using namespace ppi_database;
 
 namespace ports
 {
+	IChipAccessPattern* OWFSFactory(const string& need, const unsigned short actID,
+									size_t& count, const IPropertyPattern* properties)
+	{
+		if(need == "needprocesses")
+		{
+			count= properties->getPropertyCount("maximinit");
+			return NULL;
+		}
+		if(need == "chipobject")
+		{
+			string init(properties->getValue("maximinit", count-1));
+			vector<string> adapters;
+			MaximChipAccess* object;
+
+			object= new MaximChipAccess(init, &adapters);
+			return object;
+		}
+		return NULL;
+	}
 
 	short MaximChipAccess::m_nInterface= -1;
 	vector<string> MaximChipAccess::m_vsIncorrect;
@@ -620,16 +641,15 @@ namespace ports
 		if(res < 0)
 		{
 			char cerrno[20];
-			string msg("### ERROR: by reading file ");
+			string msg("### WARNING: searched ID:'");
 
 			sprintf(cerrno, "%d", errno);
-			msg+= path + " from one wire file system\n";
-			msg+= "    ERRNO(";
+			msg+= ID + " is no chip type\n";
+			msg+= "             ERRNO(";
 			msg+= cerrno;
 			msg+= "): ";
 			msg+= strerror(errno);
-			cerr << msg << endl;
-			LOG(LOG_ERROR, msg);
+			TIMELOG(LOG_DEBUG, "chipType"+ID, msg);
 			if(size > 0)
 				free(buf);
 			return "";
@@ -786,6 +806,78 @@ namespace ports
 		cout << msg << endl;
 #endif
 		return true;
+	}
+
+	int MaximChipAccess::command_exec(const string& command, vector<string>& result, bool& more)
+	{
+		int res;
+		char* buf;
+		size_t s;
+		string msg;
+		string read;
+		string sresult;
+		string chippath;
+		string action;
+		istringstream ocommand(command);
+
+		result.clear();
+		ocommand >> action;
+		if(action == "--write")
+		{// test writing on pin
+			ocommand >> chippath;
+			if(OW_put(chippath.c_str(), "0", 1) < 0)
+				return -1;
+			return 0;
+
+		}else if(action == "--read")
+		{
+			ocommand >> chippath;
+			if(ocommand.fail())
+			{
+				msg= "cannot read from given command '" + command + "'";
+				msg+= " inside command_exec()";
+				LOG(LOG_ERROR, msg);
+				return -1;
+			}
+		}else
+		{
+			chippath= command;
+			action= "";// reading directory
+		}
+
+		read= "/" + chippath;
+		res= OW_get(read.c_str(), &buf, &s);
+		if(res < 0)
+		{
+			char cerrno[20];
+
+			sprintf(cerrno, "%d", errno);
+			msg= "### ERROR: fault reading directorys from one wire file system";
+			if(command != "")
+				msg+= "for chip ID " + read;
+			msg+="\n";
+			msg+= "    ERRNO(";
+			msg+= cerrno;
+			msg+= "): ";
+			msg+= strerror(errno);
+			if(action == "--read")
+				LOG(LOG_INFO, msg);
+			else
+				LOG(LOG_ERROR, msg);
+			if(s > 0)
+				free(buf);
+			return -1;
+		}
+		sresult= buf;
+		free(buf);
+		if(action == "")
+			result= ConfigPropertyCasher::split(sresult, ",");
+		else
+		{// action == "--read"
+			if(sresult != "")
+				result.push_back(sresult);
+		}
+		return 0;
 	}
 
 	short MaximChipAccess::write(const string id, const double value, const string& addinfo)

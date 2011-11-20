@@ -33,6 +33,17 @@ using namespace design_pattern_world;
 
 namespace ports
 {
+	/**
+	 * factory to get chip access or subroutine object
+	 *
+	 * @param need which object (for 'needprocesses', 'chipobject' or 'subroutine') will be needed
+	 * @param actID ID for chip access object
+	 * @param count number of needed chip access object by 'chipobject' or give back number of needed processes by 'needprocesses'
+	 * @param properties defined properties inside server.conf specific for OWFS
+	 * @return needed object
+	 */
+	IChipAccessPattern* OWFSFactory(const string& need, const unsigned short actID,
+										size_t& count, const IPropertyPattern* properties);
 
 	/**
 	 * connection class to external chips
@@ -209,13 +220,12 @@ namespace ports
 		/**
 		 * show all usable chip ID's
 		 *
-		 * @param command this command string can be only an null string
+		 * @param command command string to execute
 		 * @param result output result of command
 		 * @param more whether method has more result content for the next time
 		 * @return returning error level of command, or 0 when it was done right
 		 */
-		virtual int command_exec(const string& command, vector<string>& result, bool& more)
-		{ more= false; return -1; };
+		virtual int command_exec(const string& command, vector<string>& result, bool& more);
 		/**
 		 * this method is an dummy, because no kernelmode in <code>useChip()</code> be set.
 		 *

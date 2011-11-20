@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 	string workdir, commandname;
 	string sConfPath(PPICONFIGPATH), fileName;
 	vector<string> names;
-	Properties oServerProperties;
+	InterlacedProperties oServerProperties;
 	MainParams params(argc, argv, /*read path for parent dirs*/1);
 	ParamCommand* command;
 	const ICommandStructPattern* commands;
@@ -148,6 +148,8 @@ int main(int argc, char* argv[])
 
 	sConfPath= URL::addPath(workdir, sConfPath, /*always*/false);
 	fileName= URL::addPath(sConfPath, "server.conf");
+	oServerProperties.setDelimiter("owreader", "[", "]");
+	oServerProperties.modifier("owreader");
 	if(!oServerProperties.readFile(fileName))
 	{
 		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
@@ -168,7 +170,7 @@ int main(int argc, char* argv[])
 	{
 		OwfsSupport owfs(workdir);
 
-		return owfs.execute(commands);
+		return owfs.execute(commands, &oServerProperties);
 	}
 #endif /* _OWFSLIBRARY */
 	cout << "no correct command be set" << endl;
