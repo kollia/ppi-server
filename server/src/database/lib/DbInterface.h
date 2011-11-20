@@ -475,9 +475,4 @@ namespace ppi_database
 
 }
 
-#undef LOG
-#define LOG(type, message) ppi_database::DbInterface::instance()->log(__FILE__, __LINE__, type, message)
-#undef TIMELOG
-#define TIMELOG(type, identif, message) ppi_database::DbInterface::instance()->log(__FILE__, __LINE__, type, message, identif)
-
 #endif /*DBINTERFACE_H_*/

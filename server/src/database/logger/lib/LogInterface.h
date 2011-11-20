@@ -219,11 +219,4 @@ namespace logger
 	}; // class LogInterface
 } // namespace logger
 
-#ifndef LOG
-#define LOG(type, message) logger::LogInterface::instance()->log(__FILE__, __LINE__, type, message)
-#endif // LOG
-#ifndef TIMELOG
-#define TIMELOG(type, identif, message) logger::LogInterface::instance()->log(__FILE__, __LINE__, type, message, identif)
-#endif // TIMELOG
-
 #endif /*LOGINTERFACE_H_*/

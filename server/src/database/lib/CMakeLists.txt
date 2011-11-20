@@ -12,6 +12,6 @@ set(DbInterfaceLibSrcs	DbInterface.cpp
                         NeedDbChanges.cpp	)
    
 add_library(ppidbinterface ${libraries} ${DbInterfaceLibSrcs})
-target_link_libraries(ppidbinterface ppithreadutil ppistreamutil ppiserverlibclient)
+target_link_libraries(ppidbinterface ppithreadutil ppistreamutil ppiserverlibclient ppilogger ppipattern)
 set_target_properties(ppidbinterface PROPERTIES VERSION ${PPIDBINTERFACE_LIB_VERSION} SOVERSION ${PPIDBINTERFACE_LIB_SOVERSION})
 install(TARGETS ppidbinterface DESTINATION lib)        		
