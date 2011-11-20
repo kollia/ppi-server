@@ -18,16 +18,16 @@
 #include <errno.h>
 #include <vector>
 
-#include "ExternPort.h"
-#include "valueholder.h"
-#include "measureThread.h"
-#include "timer.h"
+#include "../pattern/util/LogHolderPattern.h"
 
 #include "../util/thread/Terminal.h"
 
 #include "../database/lib/DbInterface.h"
 
-#include "../pattern/util/LogHolderPattern.h"
+#include "ExternPort.h"
+#include "valueholder.h"
+#include "measureThread.h"
+#include "timer.h"
 
 using namespace ppi_database;
 
