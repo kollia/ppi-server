@@ -83,9 +83,10 @@ public:
 	 *
 	 * @param name string to replace
 	 * @param type how the string name calls for write out on command line.<br/>if no type given, method do not display anything
+	 * @param change whether should change string and write description for problem or not
 	 * @return whether the name was changed
 	 */
-	static bool replaceName(string& name, const string& type= "");
+	static bool replaceName(string& name, const string& type= "", bool change= true);
 	/**
 	 * read for given user ID from passwd
 	 *

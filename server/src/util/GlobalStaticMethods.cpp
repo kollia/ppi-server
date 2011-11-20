@@ -193,7 +193,7 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 	}
 }
 
-bool GlobalStaticMethods::replaceName(string& name, const string& type)
+bool GlobalStaticMethods::replaceName(string& name, const string& type, bool change/*= true*/)
 {
 	bool fault= false;
 	string::size_type p;
@@ -241,14 +241,20 @@ bool GlobalStaticMethods::replaceName(string& name, const string& type)
 	if(p != string::npos)
 		fault= true;
 	if(isdigit(name[0]))
-		name= "_" + name;
+		fault= true;
 	p= name.find("."); // reserved character maybe used in the feature
 	if(p != string::npos)
 		fault= true;
 	if(fault)
 	{
 		if(type != "")
-			cout << "### WARNGING: in " << type << " '" << name << "' do not use + - / * < > = ( ) ! : & | ?" << endl;
+			cout << "### WARNGING: in " << type << " '" << name << "' do not use + - / * . < > = ( ) ! : & | ?"
+							" or an number on beginning" << endl;
+
+		if(!change)
+			return fault;
+		if(isdigit(name[0]))
+			name= "_" + name;
 		replace_all(name, "+", "_PLUS_");
 		replace_all(name, "-", "_MINUS_");
 		replace_all(name, "/", "_THRU_");
