@@ -1856,7 +1856,6 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 
 	pValue= folder->getValue("lirc_step");
 	pValue->description("minimal count of units to make one step on case");
-	pValue->pmin(1);
 	pValue->action("int | db");
 	pValue->pperm(writeperm);
 	pValue->pmin(1);
@@ -2231,7 +2230,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pTimer= folder->getTimer("pressed");
 			pTimer->description("calculating length of pressed client button");
 			pTimer->pwhile("button");
-			pTimer->action("micro | measure");
+			pTimer->action("micro");
 			folder->description("--------------------------  end of read sending from client  ------------------------------------");
 			folder->description("#################################################################################################");
 			folder->description();
@@ -2463,7 +2462,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pTimer->pwhile("transmit_action=3 & button");
 			createSubroutineLink(file, pTimer->getName(), remote, remit->second, "group");
 			pTimer->pdefault(0.3);
-			pTimer->action("db | measure | micro");
+			pTimer->action("db | micro");
 			pTimer->pperm(writeperm);
 			pTimer->description();
 
@@ -2472,7 +2471,7 @@ bool LircSupport::createRemoteConfFile(const string& remote, const remotecodes_t
 			pTimer->pwhile("transmit_action=4 & button");
 			createSubroutineLink(file, pTimer->getName(), remote, remit->second, "group");
 			pTimer->pdefault(2.5);
-			pTimer->action("db | measure | micro");
+			pTimer->action("db | micro");
 			pTimer->pperm(writeperm);
 			pTimer->description();
 
