@@ -58,6 +58,13 @@ using namespace server;
 
 int main(int argc, char* argv[])
 {
+#if 0
+	// display only process with parameters for debugging
+	cout << "start ";
+	for(int n= 0; n < argc; ++n)
+		cout << argv[n] << " ";
+	cout << endl;
+#endif
 	bool bConf= false;
 	bool bfreeze= false;
 	unsigned short nServerID;
@@ -242,7 +249,8 @@ int main(int argc, char* argv[])
 				vector<string>::iterator first;
 
 				servertype= "OWFS";
-				split(adapters, argv[3], is_any_of(":"));
+				if(argc >= 4)
+					split(adapters, argv[3], is_any_of(":"));
 				if(adapters.size() > 0)
 				{
 					first= adapters.begin();
@@ -325,6 +333,10 @@ int main(int argc, char* argv[])
 	if(strncmp(argv[2], "maxim", vLength[2]) != 0)
 		output << endl;
 	cout << output.str();
+
+	if(owserver->start(&newProp) != 0)
+		return EXIT_FAILURE;
+
 	LOG(LOG_INFO, "starting owreader object for extern interfaces\n\n" + output.str());
 
 	questionservername+= argv[1];
@@ -360,6 +372,15 @@ int main(int argc, char* argv[])
 	if(	!glob::readPasswd(oServerProperties.getValue("passwd"), users) ||
 		servertype != "SHELL"												)
 	{
+		if(servertype == "SHELL")
+		{
+			string msg;
+
+			msg=  "### WARNING: do not found user id for user " + shelluser + " inside passwd\n";
+			msg+= "             so set process to default user " + defaultuser;
+			LOG(LOG_WARNING, msg);
+			cout << msg << endl;
+		}
 		if(setuid(users[defaultuser]) != 0)
 		{
 			string err;
@@ -382,8 +403,6 @@ int main(int argc, char* argv[])
 			cerr << err << endl;
 			if(setuid(users[defaultuser]) != 0)
 			{
-				string err;
-
 				err=  "### ERROR: cannot set process to default user " + defaultuser + "\n";
 				err+= "    ERRNO: " + *strerror(errno);
 				LOG(LOG_ALERT, err);
@@ -392,8 +411,6 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
-	if(owserver->start(&newProp) != 0)
-		return EXIT_FAILURE;
 
 	err= pQuestions->run();
 	owserver->stop();
