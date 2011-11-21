@@ -102,6 +102,7 @@ namespace ppi_database
 		string dbfile;
 		string line;
 		time_t tmDb;
+		tm l;
 		db_t entry;
 		bool bNew= false;
 		off_t size;
@@ -113,7 +114,9 @@ namespace ppi_database
 		{
 			m_sDbFile= "entrys_";
 			time(&tmDb);
-			strftime(stime, 15, "%Y%m%d%H%M%S", localtime(&tmDb));
+			if(localtime_r(&tmDb, &l) == NULL)
+				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+			strftime(stime, 15, "%Y%m%d%H%M%S", &l);
 			m_sDbFile+= stime;
 			m_sDbFile+= ".dat";
 			bNew= true;
@@ -363,6 +366,7 @@ namespace ppi_database
 		struct stat fileStat;
 		ofstream dbFile;
 		time_t tmDb;
+		tm l;
 
 		if(bCheck)
 		{
@@ -386,8 +390,9 @@ namespace ppi_database
 
 		m_sDbFile= URL::addPath(m_sWorkDir, "entrys_");
 		time(&tmDb);
-		strftime(stime, 15, "%Y%m%d%H%M%S", localtime(&tmDb));
-		//strftime(stime, 9, "%Y%m%d%H%M%S", gmtime(&m_tmDb));
+		if(localtime_r(&tmDb, &l) == NULL)
+			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+		strftime(stime, 15, "%Y%m%d%H%M%S", &l);
 		m_sDbFile+= stime;
 		m_sDbFile+= ".dat";
 
@@ -436,7 +441,8 @@ namespace ppi_database
 				entry.tm= 0;
 			else
 				entry.tm= mktime(&entryTime);
-			entryTime= *localtime(&entry.tm);
+			if(localtime_r(&entry.tm, &entryTime) == NULL)
+				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
 			entry.folder= columns[2];
 			entry.subroutine= columns[3];
 			entry.identif= columns[4];
@@ -1235,9 +1241,12 @@ namespace ppi_database
 	void Database::writeEntry(const db_t& entry, ofstream &dbfile)
 	{
 		char stime[18];
+		tm l;
 
 		dbfile << m_sMeasureName << "|";
-		strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&entry.tm));
+		if(localtime_r(&entry.tm, &l) == NULL)
+			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+		strftime(stime, 16, "%Y%m%d:%H%M%S", &l);
 		dbfile << stime << "|";
 		dbfile << entry.folder << "|" << entry.subroutine << "|";
 		dbfile << entry.identif;

@@ -133,7 +133,11 @@ namespace util {
 		nRv= mktime(actStruct);
 #if 0
 		char stime[18];
-		strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&acttime));
+		tm l;
+
+		if(localtime_r(&acttime, &l) == NULL)
+			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+		strftime(stime, 16, "%Y%m%d:%H%M%S", &l);
 		std::cout << "actual time: " << stime << std::endl;
 		std::cout << "next time ";
 		if(newer)
@@ -166,8 +170,10 @@ namespace util {
 			break;
 		}
 		std::cout << " is" << std::endl;
-		strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&nRv));
-		std::cout << "             " << stime << " >> " << asctime(localtime(&nRv));
+		if(localtime_r(&nRv, &l) == NULL)
+			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+		strftime(stime, 16, "%Y%m%d:%H%M%S", &l);
+		std::cout << "             " << stime << " >> " << asctime(&l);
 		std::cout << "change to values:" << std::endl;
 		std::cout << "year        :" << actStruct->tm_year << std::endl;
 		std::cout << "month       :" << actStruct->tm_mon << std::endl;

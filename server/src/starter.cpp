@@ -265,15 +265,23 @@ bool Starter::execute(const IOptionStructPattern* commands)
 				//struct lirc_config *ptLircConfig;
 
 				blirc= true;
+				++nOWReader;
 				/*if(lirc_readconfig(NULL, &ptLircConfig, NULL) == 0)
 				{
 					blirc= true;
 					lirc_freeconfig(ptLircConfig);
 				}*/
 				lirc_deinit();
+			}else
+			{
+				string msg1("could not connect to lirc socket! Connection refused.\n");
+				string msg2("Maybe lircd do not running, or process has been terminated because no receiver was plugged in.\n");
+				string msg3("so do not start owreader for LIRC process");
+				LOG(LOG_ERROR, msg1+msg2+msg3);
+				cout << "### ERROR: " << msg1;
+				cout << "           " << msg2;
+				cout << "           " << msg3 << endl;
 			}
-			if(blirc)
-				++nOWReader;
 		}
 	}
 	for(vector<pair<string, PortTypes> >::iterator it= ports.begin(); it != ports.end(); ++it)
@@ -912,7 +920,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		acttime.tv_sec-= 1;
 		acttime.tv_usec+= 1000000;
 	}
-	ttime= *localtime(&acttime.tv_sec);
+	if(localtime_r(&acttime.tv_sec, &ttime) == NULL)
+		TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
 	acttime.tv_usec-= startingtime.tv_usec;
 	if(ttime.tm_min)
 	{

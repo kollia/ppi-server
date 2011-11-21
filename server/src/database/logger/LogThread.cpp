@@ -318,7 +318,7 @@ int LogThread::execute()
 				if(bWrite)
 				{
 					char datetime[30];
-					tm *tmnow;
+					tm tmnow;
 
 					logfile << "*****************************************************************************************" << endl;
 					logfile << "*  ";
@@ -359,10 +359,13 @@ int LogThread::execute()
 							break;
 					}
 					sThreadName= getThreadName((*pvLogVector)[n].thread);
-					tmnow= localtime(&(*pvLogVector)[n].tmnow);
-					sprintf(datetime, "  %02d.%02d.%2d %02d:%02d:%02d", 	tmnow->tm_mday, tmnow->tm_mon,
-																			tmnow->tm_year, tmnow->tm_hour,
-																			tmnow->tm_min, tmnow->tm_sec	);
+					if(localtime_r(&(*pvLogVector)[n].tmnow, &tmnow) != NULL)
+					{
+						sprintf(datetime, "  %02d.%02d.%2d %02d:%02d:%02d", 	tmnow.tm_mday, tmnow.tm_mon,
+																				tmnow.tm_year, tmnow.tm_hour,
+																				tmnow.tm_min, tmnow.tm_sec	);
+					}else
+						strcpy(datetime, "no correct time creation");
 					logfile << " level for thread " << sThreadName << " ID:" << dec << (*pvLogVector)[n].tid;
 					logfile << " on process ID:" << dec << (*pvLogVector)[n].pid;
 					logfile << datetime << endl;

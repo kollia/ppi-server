@@ -376,8 +376,18 @@ double timer::measure(const double actValue)
 			}
 			if(debug)
 			{
-				tout << "              actual time is " << asctime(localtime(&tv.tv_sec));
-				tout << "folder was set to refresh at " << asctime(localtime(&m_tmStop.tv_sec));
+				tm l;
+
+				if(localtime_r(&tv.tv_sec, &l) == NULL)
+				{
+					TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+				}
+				tout << "              actual time is " << asctime(&l);
+				if(localtime_r(&m_tmStop.tv_sec, &l) == NULL)
+				{
+					TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+				}
+				tout << "folder was set to refresh at " << asctime(&l);
 			}
 			return static_cast<double>(actTime);
 		}
@@ -461,8 +471,18 @@ double timer::measure(const double actValue)
 		}
 		if(debug)
 		{
-			tout << "               actual time is " << asctime(localtime(&tv.tv_sec));
-			tout << "folder should be refreshed at " << asctime(localtime(&m_tmStop.tv_sec));
+			tm l;
+
+			if(localtime_r(&tv.tv_sec, &l) == NULL)
+			{
+				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+			}
+			tout << "               actual time is " << asctime(&l);
+			if(localtime_r(&m_tmStop.tv_sec, &l) == NULL)
+			{
+				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+			}
+			tout << "folder should be refreshed at " << asctime(&l);
 		}
 		getRunningThread()->nextActivateTime(getFolderName(), m_tmStop);
 		return static_cast<double>(actTime);
@@ -510,14 +530,19 @@ double timer::measure(const double actValue)
 				if(debug)
 				{
 					char stime[18];
+					tm l;
 
 					tout << "reach END of time measuring" << endl;
 					tout << "folder was refreshed because time of " << need;
 					tout << " seconds was reached" << endl;
-					strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStop.tv_sec));
+					if(localtime_r(&m_tmStop.tv_sec, &l) == NULL)
+						TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+					strftime(stime, 16, "%Y%m%d:%H%M%S", &l);
 					tout << "refresh time (" << stime << " ";
 					tout << MeasureThread::getUsecString(m_tmStop.tv_usec) << ")" << endl;
-					strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
+					if(localtime_r(&tv.tv_sec, &l) == NULL)
+						TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+					strftime(stime, 16, "%Y%m%d:%H%M%S", &l);
 					tout << " actual time (" << stime << " ";
 					tout << MeasureThread::getUsecString(tv.tv_usec) << ")" << endl;
 					tout << "look whether should polling time again" << endl;
@@ -625,11 +650,14 @@ double timer::measure(const double actValue)
 				if(debug)
 				{
 					char stime[18];
+					tm l;
 
 					if(bswitch)
 					{
 						tout << "folder should start again in " << need << " seconds" << endl;
-						strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStop.tv_sec));
+						if(localtime_r(&m_tmStop.tv_sec, &l) == NULL)
+							TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+						strftime(stime, 16, "%Y%m%d:%H%M%S", &l);
 						tout << "    by time (" << stime << " ";
 						tout << MeasureThread::getUsecString(m_tmStop.tv_usec) << ")" << endl;
 					}else
@@ -641,7 +669,9 @@ double timer::measure(const double actValue)
 						nTime= calcResult(newtime, m_bSeconds);
 						tout << "subroutine of timer stops " << nTime << " seconds before" << endl;
 					}
-					strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&tv.tv_sec));
+					if(localtime_r(&tv.tv_sec, &l) == NULL)
+						TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+					strftime(stime, 16, "%Y%m%d:%H%M%S", &l);
 					tout << "actual time (" << stime << " ";
 					tout << MeasureThread::getUsecString(tv.tv_usec) << ")" << endl;
 				}
@@ -881,9 +911,12 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 			if(debug)
 			{
 				char stime[18];
+				tm l;
 
 				calc= calcResult(*next, m_bSeconds);
-				strftime(stime, 16, "%Y%m%d:%H%M%S", localtime(&m_tmStop.tv_sec));
+				if(localtime_r(&m_tmStop.tv_sec, &l) == NULL)
+					TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+				strftime(stime, 16, "%Y%m%d:%H%M%S", &l);
 				tout << "folder should start again in " << calc << " seconds by (" << stime << " ";
 				tout << MeasureThread::getUsecString(m_tmStop.tv_usec) << ")" << endl;
 			}

@@ -415,7 +415,7 @@ namespace server
 
 		if(!m_bAllInitial)
 		{
-			usleep(1000);
+			usleep(500000);
 			return 0;
 		}
 		if(!m_bConnected)
@@ -993,12 +993,16 @@ namespace server
 				TIMELOG(LOG_WARNING, "gettimeofday", msg);
 			}else
 			{
+				tm l;
+
 				ovalue << value;
 				msg= "order on " + id;
 				msg+= " to write value ";
 				msg+= ovalue.str() + "\n";
 				msg+= "\n";
-				strftime(stlbuf, 15, "%H:%M:%S", localtime(&stltv.tv_sec));
+				if(localtime_r(&stltv.tv_sec, &l) == NULL)
+					TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+				strftime(stlbuf, 15, "%H:%M:%S", &l);
 				msg+= stlbuf;
 				msg+= " mikrosec:";
 				snprintf(stlbuf, 15, "%ld", stltv.tv_usec);

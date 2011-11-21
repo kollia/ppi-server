@@ -952,6 +952,7 @@ namespace ports
 			timeval stltv;
 			string msg;
 			char stlbuf[20];
+			tm l;
 
 			if(gettimeofday(&stltv, NULL))
 			{
@@ -965,7 +966,9 @@ namespace ports
 				msg= "write on " + path;
 				msg+= " value ";
 				msg+= inval + "\n";
-				strftime(stlbuf, 15, "%H:%M:%S", localtime(&stltv.tv_sec));
+				if(localtime_r(&stltv.tv_sec, &l) == NULL)
+					TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+				strftime(stlbuf, 15, "%H:%M:%S", &l);
 				msg+= stlbuf;
 				msg+= " mikrosec:";
 				snprintf(stlbuf, 15, "%ld", stltv.tv_usec);
@@ -988,7 +991,9 @@ namespace ports
 			{
 				msg= "writing finished on " + path;
 				msg+= "\n";
-				strftime(stlbuf, 15, "%H:%M:%S", localtime(&stltv.tv_sec));
+				if(localtime_r(&stltv.tv_sec, &l) == NULL)
+					TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+				strftime(stlbuf, 15, "%H:%M:%S", &l);
 				msg+= stlbuf;
 				msg+= " mikrosec:";
 				snprintf(stlbuf, 15, "%ld", stltv.tv_usec);

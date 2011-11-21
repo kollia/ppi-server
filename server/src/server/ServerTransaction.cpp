@@ -1289,11 +1289,12 @@ namespace server
 					//cout << "read stat from " << file << endl;
 					if(stat(&file[0], &fileStat) == 0)
 					{
-						struct tm *tm;
+						struct tm l;
 						char ctime[21];
 
-						tm= localtime(&fileStat.st_mtime);
-						strftime(ctime, 20, "%x %X", tm);
+						if(localtime_r(&fileStat.st_mtime, &l) == NULL)
+							TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+						strftime(ctime, 20, "%x %X", &l);
 						//ctime= asctime(tm);
 						folder+= ctime;
 						//strftime(sTime, 20, , "fileStat->st_ctim;

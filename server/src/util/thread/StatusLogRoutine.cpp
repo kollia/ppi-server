@@ -111,7 +111,7 @@ string StatusLogRoutine::getStatusInfo(string params)
 	pid_t nshowthread= 0;
 	time_t act;
 	char stime[20];
-	struct tm* tm_time;
+	struct tm tm_time;
 	string line, oRv;
 	string param, sshowthread;
 	istringstream iparams(params);
@@ -158,8 +158,9 @@ string StatusLogRoutine::getStatusInfo(string params)
 		it= m_mStatus.find(nshowthread);
 		if(it != m_mStatus.end())
 		{
-			tm_time= localtime(&it->second.time);
-			strftime(stime, sizeof(stime), "%H:%M:%S %d.%m.%Y", tm_time);
+			if(localtime_r(&it->second.time, &tm_time) == NULL)
+				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+			strftime(stime, sizeof(stime), "%H:%M:%S %d.%m.%Y", &tm_time);
 			oRv= it->second.thread->getStatusInfo(params, it->second, (act - it->second.time), stime);
 			oRv+= "\n";
 		}else
@@ -171,8 +172,9 @@ string StatusLogRoutine::getStatusInfo(string params)
 	{
 		for(it= m_mStatus.begin(); it != m_mStatus.end(); ++it)
 		{
-			tm_time= localtime(&it->second.time);
-			strftime(stime, sizeof(stime), "%H:%M:%S %d.%m.%Y", tm_time);
+			if(localtime_r(&it->second.time, &tm_time) == NULL)
+				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+			strftime(stime, sizeof(stime), "%H:%M:%S %d.%m.%Y", &tm_time);
 			if(it->second.thread)
 				line= it->second.thread->getStatusInfo(params, it->second, (act - it->second.time), stime);
 			else
