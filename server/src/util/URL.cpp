@@ -113,6 +113,7 @@ namespace util {
 		return files;
 	}
 
+#if 0
 	uid_t URL::getUserID(const string& user)
 	{
 		uid_t nID;
@@ -137,6 +138,7 @@ namespace util {
 		}
 		return nID;
 	}
+#endif
 
 	string URL::getPath(const string& filestring)
 	{

@@ -66,7 +66,7 @@ namespace util
 			 * @param user name of user
 			 * @return user id if found, elsewhere -1
 			 */
-			static uid_t getUserID(const string& user);
+			//static uid_t getUserID(const string& user);
 			/**
 			 * extract path from given path with file
 			 *

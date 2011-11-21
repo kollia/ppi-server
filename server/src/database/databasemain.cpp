@@ -91,6 +91,7 @@ int main(int argc, char* argv[])
 	CommunicationThreadStarter* starter;
 	LogThread logObj(/*check*/true, /*asServer*/true);
 	ServerDbTransaction* pDbTransaction;
+	map<string, uid_t> users;
 
 	glob::processName("ppi-db-server");
 	glob::setSignals("ppi-db-server");
@@ -139,8 +140,31 @@ int main(int argc, char* argv[])
 		cerr << "             so process run under 'nobody'" << endl;
 		defaultuser= "nobody";
 	}
-	defaultuserID= URL::getUserID(defaultuser);
-	setuid(defaultuserID);
+	users[defaultuser]= 0;
+	if(!glob::readPasswd(oServerProperties.getValue("passwd"), users))
+	{
+		string msg;
+
+		defaultuserID= 0;
+		msg=  "### WARNING: do not found default user " + defaultuser + " inside passwd\n";
+		msg+= "             so internet server running as root";
+		LOG(LOG_ALERT, msg);
+		cerr << msg << endl;
+	}else
+	{
+		if(setuid(users[defaultuser]) != 0)
+		{
+			string err;
+
+			defaultuserID= 0;
+			err=   "### ERROR: cannot set process to default user " + defaultuser + "\n";
+			err+=  "    ERRNO: " + *strerror(errno);
+			err+= "\n          so internet server running as root";
+			LOG(LOG_ALERT, err);
+			cerr << err << endl;
+		}else
+			defaultuserID= users[defaultuser];
+	}
 
 	commhost= oServerProperties.getValue("communicationhost", /*warning*/false);
 	if(commhost == "")

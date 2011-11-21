@@ -68,6 +68,7 @@ int main(int argc, char* argv[])
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
 	InterlacedProperties oServerProperties;
+	map<string, uid_t> users;
 
 	glob::processName("ppi-internet-server");
 	glob::setSignals("ppi-internet-server");
@@ -104,7 +105,31 @@ int main(int argc, char* argv[])
 		defaultuser= "nobody";
 	}
 
-	defaultuserID= URL::getUserID(defaultuser);
+	users[defaultuser]= 0;
+	if(!glob::readPasswd(oServerProperties.getValue("passwd"), users))
+	{
+		string msg;
+
+		defaultuserID= 0;
+		msg=  "### WARNING: do not found default user " + defaultuser + " inside passwd\n";
+		msg+= "             so internet server running as root";
+		LOG(LOG_ALERT, msg);
+		cerr << msg << endl;
+	}else
+	{
+		if(setuid(users[defaultuser]) != 0)
+		{
+			string err;
+
+			defaultuserID= 0;
+			err=   "### ERROR: cannot set process to default user " + defaultuser + "\n";
+			err+=  "    ERRNO: " + *strerror(errno);
+			err+= "\n          so internet server running as root";
+			LOG(LOG_ALERT, err);
+			cerr << err << endl;
+		}else
+			defaultuserID= users[defaultuser];
+	}
 	commhost= oServerProperties.getValue("communicationhost", /*warning*/false);
 	if(commhost == "")
 		commhost= "127.0.0.1";
