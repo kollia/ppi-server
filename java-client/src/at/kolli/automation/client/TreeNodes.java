@@ -636,6 +636,8 @@ public class TreeNodes
 			return false;
 		if(nLastPos == 0)
 			return true;
+		if(m_oParentNode == null)
+			return false;
 		sides[nLastPos]= "";
 		return m_oParentNode.isCorrectTitleSequence(sides);
 	}
