@@ -31,6 +31,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.jface.dialogs.DialogSettings;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -152,6 +154,10 @@ public class LayoutLoader extends Thread
 	 * whether main window is initialized
 	 */
 	private boolean m_bInitialized= false;
+	/**
+	 * lock object for sides
+	 */
+	public static final Lock sideLock= new ReentrantLock();
 	/**
 	 * array of all root nodes
 	 */
@@ -491,12 +497,15 @@ public class LayoutLoader extends Thread
 	public boolean setActSideVisible(boolean inform)
 	{
 		TreeNodes newNode;
-		TreeNodes oldNode= m_oAktTreeNode;
+		TreeNodes oldNode;
 		WidgetChecker checker= WidgetChecker.instance();
 		
+		sideLock.lock();
+		oldNode= m_oAktTreeNode;
 		if(	m_oAktTreeNode != null &&
 			m_oAktTreeNode.isCorrectTitleSequence(m_sAktFolder)	)
 		{
+			sideLock.unlock();
 			return true;
 		}
 		for(TreeNodes node : m_aTreeNodes)
@@ -558,10 +567,12 @@ public class LayoutLoader extends Thread
 					}, "LayoutLoader::setActiveSideVisible() addListeners()");					
 				}
 				checker.setTreeNode(m_oAktTreeNode);
+				sideLock.unlock();
 				return true;
 			}
 		}
 		m_oAktTreeNode= oldNode;
+		sideLock.unlock();
 		return false;
 	}
 	

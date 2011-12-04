@@ -177,10 +177,12 @@ public class WidgetChecker extends Thread
 						loader.setActSideVisible(/*inform server by no body*/false);
 					}else
 					{// fill values into actual side
+						LayoutLoader.sideLock.lock();
 						synchronized(m_AktTreeNode)
 						{
 							m_AktTreeNode.listenClient(client, cont);
 						}
+						LayoutLoader.sideLock.unlock();
 					}
 				}
 				if(cont == null)
