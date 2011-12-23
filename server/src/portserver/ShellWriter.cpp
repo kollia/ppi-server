@@ -50,7 +50,10 @@ namespace ports
 	{
 		m_sConfPath= properties->getValue("confpath");
 		m_oMeasure.modifier("folder");
+		m_oMeasure.setMsgParameter("folder");
 		m_oMeasure.modifier("name");
+		m_oMeasure.setMsgParameter("name", "subroutine");
+		m_oMeasure.valueLocalization("\"", "\"", /*remove*/true);
 		if(!m_oMeasure.readFile(URL::addPath(m_sConfPath, "measure.conf")))
 		{
 			string err("cannot read measure.conf for SHELL owreader and account ");
