@@ -42,8 +42,9 @@ namespace ports
 	bool LircClient::init(const IPropertyPattern* properties)
 	{
 		m_sLircSocket= properties->getValue("socket", /*warning*/false);
+
 		if(m_sLircSocket == "")
-			m_sLircSocket= "/var/run/lircd";
+			m_sLircSocket= "/dev/lircd";
 		return connect();
 	}
 
