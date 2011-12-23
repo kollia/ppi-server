@@ -116,20 +116,7 @@ int main(int argc, char* argv[])
 		LOG(LOG_ALERT, msg);
 		cerr << msg << endl;
 	}else
-	{
-		if(setuid(users[defaultuser]) != 0)
-		{
-			string err;
-
-			defaultuserID= 0;
-			err=   "### ERROR: cannot set process to default user " + defaultuser + "\n";
-			err+=  "    ERRNO: " + *strerror(errno);
-			err+= "\n          so internet server running as root";
-			LOG(LOG_ALERT, err);
-			cerr << err << endl;
-		}else
-			defaultuserID= users[defaultuser];
-	}
+		defaultuserID= users[defaultuser];
 	commhost= oServerProperties.getValue("communicationhost", /*warning*/false);
 	if(commhost == "")
 		commhost= "127.0.0.1";
@@ -194,7 +181,7 @@ int main(int argc, char* argv[])
 									new TcpServerConnection(	host,
 																port,
 																5,
-																new ServerTransaction()	),
+																new ServerTransaction(defaultuserID)	),
 									new SocketClientConnection(	SOCK_STREAM,
 																commhost,
 																commport,

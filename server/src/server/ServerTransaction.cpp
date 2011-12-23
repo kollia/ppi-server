@@ -67,8 +67,9 @@ using namespace boost;
 
 namespace server
 {
-	ServerTransaction::ServerTransaction()
-	:	m_bStopServer(false),
+	ServerTransaction::ServerTransaction(const uid_t uid)
+	:	m_uid(uid),
+	 	m_bStopServer(false),
 	 	m_fProtocol(0)
 	{
 		m_SERVERISSTOPPINGMUTEX= Thread::getMutex("SERVERISSTOPPINGMUTEX");
@@ -314,6 +315,19 @@ namespace server
 					||
 					input == "ppi-internet-server true false init"	)
 		{
+			if(m_uid != 0)
+			{
+				if(setuid(m_uid) != 0)
+				{
+					string err;
+
+					err=   "### ERROR: cannot set process to default user\n";
+					err+=  "    ERRNO: " + *::strerror(errno);
+					err+= "\n          so internet server running as root";
+					LOG(LOG_ALERT, err);
+					cerr << err << endl;
+				}
+			}
 			descriptor << "done";
 			descriptor.endl();
 			descriptor.flush();

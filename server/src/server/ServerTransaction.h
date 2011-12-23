@@ -36,8 +36,10 @@ namespace server
 		public:
 			/**
 			 * constructor to create ServerTransaction object
+			 *
+			 * @param uid default uid to transfer process after reading all access parameters
 			 */
-			ServerTransaction();
+			ServerTransaction(const uid_t uid);
 			/**
 			 * initial all values for transaction
 			 *
@@ -270,6 +272,10 @@ namespace server
 			virtual ~ServerTransaction();
 
 		private:
+			/**
+			 * uid in which process should running
+			 */
+			const uid_t m_uid;
 			/**
 			 * whether server will be stopping, do not connect again hearing port
 			 */
