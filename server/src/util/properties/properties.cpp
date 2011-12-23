@@ -214,12 +214,13 @@ namespace util {
 						}
 					}else
 					{
-						string msg("### WARNING: cannot read line: '");
+						ostringstream msg;
 
-						msg+= line + "'\n             in configuration file ";
-						msg+= filename;
-						cerr << msg << endl;
-						LOG(LOG_WARNING, msg);
+						msg << "### WARNING: cannot read line: '";
+						msg << line + "'\n             in configuration file ";
+						msg << filename << " on row " << param.line;
+						cerr << msg.str() << endl;
+						LOG(LOG_WARNING, msg.str());
 					}
 					param.bcontinue= false;
 					param.correct= false;
