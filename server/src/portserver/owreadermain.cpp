@@ -334,18 +334,6 @@ int main(int argc, char* argv[])
 		output << endl;
 	cout << output.str();
 
-	if(owserver->start(&newProp) != 0)
-		return EXIT_FAILURE;
-
-	LOG(LOG_INFO, "starting owreader object for extern interfaces\n\n" + output.str());
-
-	questionservername+= argv[1];
-	pQuestions= auto_ptr<OwServerQuestions>(new OwServerQuestions(	"ppi-owreader", questionservername,
-																	new SocketClientConnection(	SOCK_STREAM,
-																								commhost,
-																								commport,
-																								10			),
-																	owserver.get()								));
 	if(servertype != "SHELL")
 	{
 		pProp= oServerProperties.getSection("owreader", servertype);
@@ -365,6 +353,18 @@ int main(int argc, char* argv[])
 		}
 	}
 	newProp.setDefault("confpath", sConfPath, /*overwrite*/false);
+	if(owserver->start(&newProp) != 0)
+		return EXIT_FAILURE;
+
+	LOG(LOG_INFO, "starting owreader object for extern interfaces\n\n" + output.str());
+
+	questionservername+= argv[1];
+	pQuestions= auto_ptr<OwServerQuestions>(new OwServerQuestions(	"ppi-owreader", questionservername,
+																	new SocketClientConnection(	SOCK_STREAM,
+																								commhost,
+																								commport,
+																								10			),
+																	owserver.get()								));
 
 	users[defaultuser]= 0;
 	if(servertype == "SHELL")
