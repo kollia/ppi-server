@@ -52,7 +52,22 @@ namespace server
 			 * <table>
 			 *   <tr>
 			 *     <th colspan="3">
-			 *       ERROR protokol sending to client:
+			 *       WARNING protocol sending to client:
+			 *     </th>
+			 *   </tr>
+			 *   <tr>
+			 *     <td width="30">
+			 *     </td>
+			 *     <td align="right">
+			 *       001
+			 *     </td>
+			 *     <td>
+			 *       server is busy by starting
+			 *     </td>
+			 *   </tr>
+			 *   <tr>
+			 *     <th colspan="3">
+			 *       ERROR protocol sending to client:
 			 *     </th>
 			 *   </tr>
 			 *   <tr>
@@ -236,6 +251,8 @@ namespace server
 			 *       no communication thread is free for answer<br /Y
 			 *       (this case can behavior when the mincommunicationthreads parameter be 0)
 			 *     </td>
+			 *   </tr>
+			 *   <tr>
 			 *     <td width="30">
 			 *     </td>
 			 *     <td align="right">
@@ -243,6 +260,16 @@ namespace server
 			 *     </td>
 			 *     <td>
 			 *       server will be stopping from administrator
+			 *     </td>
+			 *   </tr>
+			 *   <tr>
+			 *     <td width="30">
+			 *     </td>
+			 *     <td align="right">
+			 *       020
+			 *     </td>
+			 *     <td>
+			 *       cannot load UserManagement correctly
 			 *     </td>
 			 *   </tr>
 			 * </table>
@@ -277,6 +304,10 @@ namespace server
 			 */
 			const uid_t m_uid;
 			/**
+			 * whether server has loaded all content and waiting for client transactions
+			 */
+			bool m_bFinished;
+			/**
 			 * whether server will be stopping, do not connect again hearing port
 			 */
 			bool m_bStopServer;
@@ -285,6 +316,10 @@ namespace server
 			 * Latest version number be defined in file util/debug.h under PPI_SERVER_PROTOCOL
 			 */
 			float m_fProtocol;
+			/**
+			 * mutex lock whether server is finished by loading
+			 */
+			pthread_mutex_t* m_FINISHEDSERVERMUTEX;
 			/**
 			 * mutex lock for StopServer variable
 			 */

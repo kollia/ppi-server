@@ -43,8 +43,8 @@ namespace user
 	UserManagement* UserManagement::_instance= NULL;
 
 	UserManagement::UserManagement()
+	: m_pInitial(NULL)
 	{
-
 	}
 
 	bool UserManagement::initial(const string& accessfile, const string& measurefile)
@@ -52,10 +52,9 @@ namespace user
 		if(!_instance)
 		{
 			_instance= new UserManagement();
-			if(_instance->init(accessfile, measurefile))
-				return true;
-			delete _instance;
-			_instance= NULL;
+			_instance->m_pInitial= new UserManagementInitialization(accessfile, measurefile, _instance);
+			_instance->m_pInitial->initialStarting();
+			return true;
 		}
 		return false;
 	}
@@ -64,6 +63,16 @@ namespace user
 	{
 		delete _instance;
 		_instance= NULL;
+	}
+
+	short UserManagement::finished()
+	{
+		short nRv;
+
+		nRv= m_pInitial->finished();
+		if(nRv < 0)
+			nRv= -1;
+		return nRv;
 	}
 
 	bool UserManagement::init(const string& accessfile, const string& measurefile)

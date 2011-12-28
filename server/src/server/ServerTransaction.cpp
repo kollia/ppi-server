@@ -69,9 +69,11 @@ namespace server
 {
 	ServerTransaction::ServerTransaction(const uid_t uid)
 	:	m_uid(uid),
+	 	m_bFinished(false),
 	 	m_bStopServer(false),
 	 	m_fProtocol(0)
 	{
+		m_FINISHEDSERVERMUTEX= Thread::getMutex("FINISHEDSERVERMUTEX");
 		m_SERVERISSTOPPINGMUTEX= Thread::getMutex("SERVERISSTOPPINGMUTEX");
 	}
 
@@ -315,24 +317,11 @@ namespace server
 					||
 					input == "ppi-internet-server true false init"	)
 		{
-			if(m_uid != 0)
-			{
-				if(setuid(m_uid) != 0)
-				{
-					string err;
-
-					err=   "### ERROR: cannot set process to default user\n";
-					err+=  "    ERRNO: " + *::strerror(errno);
-					err+= "\n          so internet server running as root";
-					LOG(LOG_ALERT, err);
-					cerr << err << endl;
-				}
-			}
 			descriptor << "done";
 			descriptor.endl();
 			descriptor.flush();
 #ifdef SERVERDEBUG
-			cout << "send: done" << endl;
+				cout << "send: done" << endl;
 #endif
 			omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
 			if(username != "")
@@ -378,9 +367,68 @@ namespace server
 			cout << "send: " << strerror(errnr);
 #endif
 
-		}else if(	!descriptor.getBoolean("access") ||
-					(	input.length() > 6 &&
-						input.substr(0, 6) == "CHANGE"	)	)
+		}
+
+// *************************************************************************************************
+// *** checking whether hole ppi-server
+// *** is finished by loading all content
+// ***
+		LOCK(m_FINISHEDSERVERMUTEX);
+		if(!m_bFinished)
+		{
+			short res;
+			IUserManagementPattern* user;
+
+			user= UserManagement::instance();
+			res= user->finished();
+			if(res == 0)// server loading
+			{
+#ifdef SERVERDEBUG
+			cout << "server not finished by loading user-management" << endl;
+			//cout << "send: WARNING 001 - UserManagement isn't finished by loading" << endl;
+			cout << "ending connection" << endl;
+#endif // SERVERDEBUG
+				descriptor << "WARNING 001";
+				descriptor.endl();
+				descriptor.flush();
+				UNLOCK(m_FINISHEDSERVERMUTEX);
+				return false;
+			}else if(res == 1)// loding is finished
+			{
+				if(m_uid != 0)
+				{
+					if(setuid(m_uid) != 0)
+					{
+						string err;
+
+						err=   "### ERROR: cannot set process to default user\n";
+						err+=  "    ERRNO: " + *::strerror(errno);
+						err+= "\n          so internet server running as root";
+						LOG(LOG_ALERT, err);
+						cerr << err << endl;
+					}
+				}
+				m_bFinished= true;
+			}else
+			{// error occurred by loading UserManagement
+				descriptor << "ERROR 020";
+				descriptor.endl();
+				descriptor.flush();
+#ifdef SERVERDEBUG
+				cout << "send: ERROR 020 - ";
+				cout << "Usermanagement cannot be loading correctly" << endl;
+#endif
+				UNLOCK(m_FINISHEDSERVERMUTEX);
+				return false;
+			}
+		}
+		UNLOCK(m_FINISHEDSERVERMUTEX);
+// *** end of checking
+// *************************************************************************************************
+
+		if(	!descriptor.getBoolean("access") ||
+			(	input.length() > 6 &&
+				input.substr(0, 6) == "CHANGE"	)	)
 		{
 			bool ok(false);
 			string spinput;
@@ -1158,6 +1206,9 @@ namespace server
 
 		switch(error)
 		{
+		case -1:
+			str= "server is busy by starting";
+			break;
 		case 0:
 			str= "no error occurred";
 			break;
@@ -1217,6 +1268,12 @@ namespace server
 			str= "no communication thread is free for answer "
 					"(this case can behavior when the mincommunicationthreads parameter be 0)";
 			break;
+		case 19:
+			str= "server will be stopping from administrator";
+			break;
+		case 20:
+			str= "cannot load UserManagement correctly";
+			break;
 		default:
 			if(error > 0)
 				str= "Undefined transaction error";
@@ -1231,7 +1288,7 @@ namespace server
 	{
 		if(byerror)
 			return 20;
-		return 0;
+		return 1;
 	}
 
 	bool ServerTransaction::getDirectory(string filter, string verz, vector<string> &list)

@@ -882,6 +882,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	{
 		string msg;
 
+		cout << "ERROR(" << err << ")" << endl;
 		msg=  "### WARNING: cannot start internet server for communication\n";
 		msg+= "             " + process->strerror(err) + "\n";
 		msg+= "             so no communication from outside (any client) is available";
