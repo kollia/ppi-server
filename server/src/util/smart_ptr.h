@@ -19,6 +19,13 @@
 #ifndef SMART_PTR_H_
 #define SMART_PTR_H_
 
+//****************************************
+// std::auto_ptr<>()        - basic
+// std::tr1::shared_ptr<>() - RCSP
+//
+// boost::scoped_array<>() - multi
+// boost::shared_array<>() - RCSP
+//****************************************
 // include for std::auto_ptr
 #include <memory>
 
