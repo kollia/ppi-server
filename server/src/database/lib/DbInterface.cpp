@@ -117,6 +117,28 @@ namespace ppi_database
 		return false;
 	}
 
+	string DbInterface::allOwreadersInitialed()
+	{
+		int err;
+		string res;
+		OMethodStringStream initialed("allOwreadersInitialed");
+
+		res= ExternClientInputTemplate::sendMethod("ppi-db-server", initialed, true);
+		err= error(res);
+		if(err != 0)
+		{
+			res= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, res);
+				cerr << res << endl;
+				return "done";
+			}else
+				LOG(LOG_WARNING, res);
+		}
+		return res;
+	}
+
 	void DbInterface::writeIntoDb(const string folder, const string subroutine)
 	{
 		int err;

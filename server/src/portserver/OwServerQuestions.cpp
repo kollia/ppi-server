@@ -273,6 +273,23 @@ int OwServerQuestions::execute()
 	{
 		m_sAnswer= "done";
 
+	}else if(command == "finishedInitial")
+	{
+		static bool first(true);
+
+		if(	!m_oServer->running() ||
+			!m_oServer->initialed()	)
+		{
+			if(	m_oServer->stopping() &&
+				first == false			) 	// when error in initialization known by first call
+			{								// send back as first answer name of server
+				m_sAnswer= "false";
+			}else
+				m_sAnswer= m_oServer->getServerName();
+		}else
+			m_sAnswer= "done";
+		first= false;
+
 	}else if(command == "getMinMaxErrorNums")
 	{
 		int nums;

@@ -753,8 +753,48 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// check whether database loading is finished
+	string aktReader, res;
+	bool fault= false;
 
 	db= DbInterface::instance();
+	res= db->allOwreadersInitialed();
+	if(res != "done")
+	{
+		aktReader= res;
+		cout << "### some owreader instances are bussy by initialing:" << endl;
+		cout << "    " << res << " ." << flush;
+		do{
+			sleep(1);
+			res= db->allOwreadersInitialed();
+			if(res != "done")
+			{
+				if(res != aktReader)
+				{
+					if(res != "false")
+					{
+						if(fault == false)
+							cout << " OK";
+						fault= false;
+						cout << endl << "    " << res << " ." << flush;
+						aktReader= res;
+					}else
+					{
+						fault= true;
+						cout << " ### WARNING!! ow reader isn't initialed correctly (and do not running)" << flush;
+					}
+				}else
+				{
+					cout << "." << flush;
+					fault= false;
+				}
+			}
+
+		}while(res != "done");
+		if(fault == false)
+			cout << " OK";
+		cout << endl << endl;
+	}
+
 	if(!db->isDbLoaded())
 	{
 		cout << "### database is busy" << endl;

@@ -75,13 +75,6 @@ namespace server
 			descriptor.lock();
 			descriptor << "changed";
 
-		}else if(method == "isDbLoaded")
-		{
-			dbTh= DatabaseThread::instance();
-			if(dbTh->isDbLoaded())
-				descriptor << "1";
-			else
-				descriptor << "0";
 		}else if(method == "writeIntoDb")
 		{
 			string folder, subroutine;
@@ -706,6 +699,56 @@ namespace server
 			object >> id;
 			m_pLogObject->getThreadName(id);
 			descriptor << name;
+
+		}else if(method == "isDbLoaded")
+		{
+			dbTh= DatabaseThread::instance();
+			if(dbTh->isDbLoaded())
+				descriptor << "1";
+			else
+				descriptor << "0";
+		}else if(method == "allOwreadersInitialed")
+		{
+			static unsigned short existClients(0);
+			static unsigned short actClient(0);
+			string res;
+
+			if(existClients == 0)
+			{
+				existClients= getOwClientCount();
+				actClient= 1;
+
+			}else if(actClient > existClients)
+			{// last owreader was fault initialed
+			 // so call ending of initialization
+				descriptor << "done";
+				existClients= 0;
+			}
+			if(existClients > 0)
+			{
+				do{
+					ostringstream owclient;
+					owclient << "OwServerQuestion-";
+					owclient << actClient;
+					res= descriptor.sendToOtherClient(owclient.str(), "finishedInitial", true, "");
+					if(	res == "done" ||
+						res == "false"	)
+					{
+						if(res == "false")
+							descriptor << "false";
+						++actClient;
+					}else
+						descriptor << res;
+
+				}while(	res == "done" &&
+						actClient <= existClients	);
+				if(	actClient > existClients &&
+					res != "false"				)
+				{
+					descriptor << "done";
+					existClients= 0;
+				}
+			}
 
 		}else if(method == "stop-all")
 		{

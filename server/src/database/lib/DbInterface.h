@@ -146,9 +146,17 @@ namespace ppi_database
 		/**
 		 * method to ask database whether database file is loaded
 		 *
-		 * @return wheter file is loaded
+		 * @return whether file is loaded
 		 */
 		bool isDbLoaded();
+		/**
+		 * method to ask whether all owreader interface are finished
+		 * by initialization
+		 *
+		 * @return string of &quote:done&quote: when all owreader initialed, name of owreader which is busy by initialing
+		 * 			or string of &quote:false&quote: when owreader cannot initialed correctly
+		 */
+		string allOwreadersInitialed();
 		/**
 		 * function set, whether need value in database,
 		 * or will be only set to inform clients for changes
