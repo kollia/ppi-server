@@ -434,8 +434,19 @@ namespace ports
 				value= (double)ReadAnalogChannel(channel);
 				if(value < 0)
 				{
-					value= 0;
-					nRv= -1;
+					if(connect())
+					{
+						ostringstream id;
+
+						id << m_nID;
+						LOG(LOG_INFO, "reconnect successfully vellemann port "+ id.str() + " by reading analog channels");
+						value= (double)ReadAnalogChannel(channel);
+					}
+					if(value < 0)
+					{
+						value= 0;
+						nRv= -1;
+					}
 				}
 			}
 			//cout << "value is " << dec << value << endl;
