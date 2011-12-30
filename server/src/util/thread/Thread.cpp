@@ -55,6 +55,7 @@ Thread::Thread(string threadName, useconds_t defaultSleep, bool waitInit)
 	m_nThreadId= 0;
 	m_nPosixThreadID= 0;
 	m_bRun= false;
+	m_bInitialed= false;
 	m_bStop= false;
 	m_nEndValue= 0;
 	m_sThreadName= threadName;
@@ -157,18 +158,16 @@ void Thread::run()
 	setThreadLogName(thname);
 	try{
 
-		if(!m_bWaitInit)
-		{
-			LOCK(m_RUNTHREAD);
-			m_bRun= true;
-			UNLOCK(m_RUNTHREAD);
-		}
+		LOCK(m_RUNTHREAD);
+		m_bRun= true;
+		m_bInitialed= false;
+		UNLOCK(m_RUNTHREAD);
 		LOCK(m_STARTSTOPTHREAD);
 		err= init(m_pArgs);
 		if(err == 0)
 		{
 			LOCK(m_RUNTHREAD);
-			m_bRun= true;
+			m_bInitialed= true;
 			UNLOCK(m_RUNTHREAD);
 		}else
 		{
@@ -182,6 +181,7 @@ void Thread::run()
 			UNLOCK(m_STOPTHREAD);
 			LOCK(m_RUNTHREAD);
 			m_bRun= false;
+			m_bInitialed= false;
 			UNLOCK(m_RUNTHREAD);
 		}
 		AROUSE(m_STARTSTOPTHREADCOND);
@@ -1194,6 +1194,17 @@ int Thread::running()
 
 	LOCK(m_RUNTHREAD);
 	if(m_bRun)
+		nRv= 1;
+	UNLOCK(m_RUNTHREAD);
+	return nRv;
+}
+
+int Thread::initialed()
+{
+	int nRv= 0;
+
+	LOCK(m_RUNTHREAD);
+	if(m_bInitialed)
 		nRv= 1;
 	UNLOCK(m_RUNTHREAD);
 	return nRv;

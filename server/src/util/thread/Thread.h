@@ -110,6 +110,12 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		int stopping();
 		/**
+		 * method to ask whether thread was initialed
+		 *
+		 * @return true if thread finisdhed by initialing
+		 */
+		int initialed();
+		/**
 		 * external query whether the thread is running
 		 *
 		 * @return true if thread is running
@@ -344,6 +350,10 @@ class Thread :	public virtual IThreadPattern,
 		 * flag to should stopping thread
 		 */
 		bool m_bStop;
+		/**
+		 * flag set when thread has been initialed
+		 */
+		bool m_bInitialed;
 		/**
 		 * flag set while running thread
 		 */
