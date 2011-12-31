@@ -37,6 +37,7 @@
 
 #include "../pattern/util/LogHolderPattern.h"
 
+#include "thread/Thread.h"
 
 string GlobalStaticMethods::m_sProcessName("unknown process");
 
@@ -49,7 +50,7 @@ void GlobalStaticMethods::stopMessage(const string& message, bool all/*= false*/
 
 	if(	all ||
 		_APPLICATIONSTOPMESSAGES == m_sProcessName ||
-		_APPLICATIONSTOPMESSAGES == ""					)
+		_APPLICATIONSTOPMESSAGES == string("")			)
 	{
 		msg << "[" << m_sProcessName << "(" << Thread::gettid() << ")] " << message << endl;
 		cout << msg.str();
@@ -63,7 +64,7 @@ void GlobalStaticMethods::threadStopMessage(const string& message)
 	ostringstream msg;
 
 	if(	_APPLICATIONSTOPMESSAGES == m_sProcessName ||
-		_APPLICATIONSTOPMESSAGES == ""					)
+		_APPLICATIONSTOPMESSAGES == string("")			)
 	{
 		msg << "[" << m_sProcessName << "(" << Thread::gettid() << ")] " << message << endl;
 		cout << msg.str();
