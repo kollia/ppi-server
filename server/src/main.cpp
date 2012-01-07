@@ -49,6 +49,8 @@ int main(int argc, char* argv[])
 							"(can be set by longer starting time to know what server is doing)");
 	params.option("firstvalue", "f", "show after configure folder all first values of defined ports from owreader");
 	params.option("folderstart", "F", "show all folder on command line which are starting");
+	params.option("debug", "d", "show logging messages, deep defined inside server.conf, on screen\n"
+									"(only useable for stop command)");
 	params.version(PPI_MAJOR_RELEASE, PPI_MINOR_RELEASE, PPI_SUBVERSION, PPI_PATCH_LEVEL,
 										/*no build*/0, PPI_REVISION_NUMBER, DISTRIBUTION_RELEASE);
 	params.help("help", "?");
@@ -81,6 +83,12 @@ int main(int argc, char* argv[])
 
 		if(command == "start")
 		{
+			if(params.hasOption("debug"))
+			{
+				cerr << "debug option only allowed by stopping command" << endl;
+				cerr << "   for more description read help manual (ppi-server --help)" << endl << endl;
+				return EXIT_FAILURE;
+			}
 			pthread_mutex_init(&g_READMUTEX, NULL);
 			result= server.execute(&params);
 			cout << "### ppi-server was stopped ";
@@ -103,13 +111,17 @@ int main(int argc, char* argv[])
 			vector<string>::size_type nCount;
 
 			nCount= params.optioncount();
-			if(nCount > 0)
+			if(	nCount == 0 ||
+				(	nCount == 1 &&
+					params.hasOption("debug")	)	)
 			{
-				cout << "no options for stopping ppi-server allowed" << endl;
-				cout << "   for more description read help manual (./ppi-server --help)" << endl << endl;
+				result= server.stop(params.hasOption("debug"));
+			}else
+			{
+				cout << "by stopping ppi-server only debug option be allowed" << endl;
+				cout << "   for more description read help manual (ppi-server --help)" << endl << endl;
 				return EXIT_FAILURE;
 			}
-			result= server.stop(false);
 
 		}else if(command == "restart")
 		{

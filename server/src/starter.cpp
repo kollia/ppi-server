@@ -910,8 +910,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 																						host,
 																						port,
 																						10			)	));
-	if(commands->hasOption("configure"))
-		cout << "  ... read configuration files" << endl;
 	process->openendSendConnection("GET wait", "ending");
 
 	if(bInternet)
@@ -922,7 +920,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	{
 		string msg;
 
-		cout << "ERROR(" << err << ")" << endl;
+		//cout << "ERROR(" << err << ")" << endl;
 		msg=  "### WARNING: cannot start internet server for communication\n";
 		msg+= "             " + process->strerror(err) + "\n";
 		msg+= "             so no communication from outside (any client) is available";
@@ -2200,7 +2198,7 @@ bool Starter::status()
 	return true;
 }
 
-bool Starter::stop(bool configure)
+bool Starter::stop(bool debug)
 {
 	char	buf[64];
 	string  sendbuf;
@@ -2209,6 +2207,7 @@ bool Starter::stop(bool configure)
 	FILE 	*fp;
 	int clientsocket;
 	unsigned short nPort;
+	short nUserManagement;
 	string result;
 	string fileName;
 	string confpath, logpath, sLogLevel, property, username;
@@ -2227,6 +2226,24 @@ bool Starter::stop(bool configure)
 		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
 		exit(1);
 	}
+	if(debug)
+	{
+		result= m_oServerFileCasher.getValue("log", /*warning*/false);
+		if(	result == "DEBUG")
+			LogHolderPattern::init(LOG_DEBUG);
+		else if(result == "INFO")
+			LogHolderPattern::init(LOG_INFO);
+		else if(result == "WARNING")
+			LogHolderPattern::init(LOG_WARNING);
+		else if(result == "ERROR")
+			LogHolderPattern::init(LOG_ERROR);
+		else if(result == "ALERT")
+			LogHolderPattern::init(LOG_ALERT);
+		else
+			LogHolderPattern::init(LOG_DEBUG);
+	}else
+		LogHolderPattern::init(LOG_WARNING);
+	
 
 	if(user == NULL)
 	{
@@ -2235,7 +2252,6 @@ bool Starter::stop(bool configure)
 			return false;
 		user= UserManagement::instance();
 	}
-
 	property= "port";
 	nPort= m_oServerFileCasher.needUShort(property);
 	if(property == "#ERROR")
@@ -2262,10 +2278,26 @@ bool Starter::stop(bool configure)
 		return false;
 	}
 
+	nUserManagement= user->finished();
+	if(nUserManagement != 1)
+	{
+		LOG(LOG_INFO, "initialing UserManagement");
+		while(nUserManagement == 0)
+		{
+			usleep(500);
+			nUserManagement= user->finished();
+		}
+		if(nUserManagement < 0)
+		{
+			LOG(LOG_ERROR, "initialing of user management came up with several errors");
+			exit(EXIT_FAILURE);
+		}
+	}
 	username= user->getRootUser();
 	if(!user->canLoginFirst(username))
 	{
 		username= user->getNoRootUser();
+		LOG(LOG_DEBUG, "first login as user '" + username + "'");
 		sendbuf= "U:";
 		sendbuf+= username + ":";
 		sendbuf+= user->getPassword(username);
@@ -2285,6 +2317,7 @@ bool Starter::stop(bool configure)
 		username= user->getRootUser();
 	}else
 		sendbuf= "U:";
+	LOG(LOG_DEBUG, "login as user '" + username + "'");
 	sendbuf+= username + ":";
 	sendbuf+= user->getPassword(username);
 	sendbuf+= "\n";
