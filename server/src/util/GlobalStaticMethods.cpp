@@ -163,7 +163,7 @@ void GlobalStaticMethods::printSigError(const string& cpSigValue, const string& 
 void GlobalStaticMethods::signalconverting(int nSignal)
 {
 	string msg;
-	int exit= EXIT_FAILURE;
+	int nexit= EXIT_FAILURE;
 	pid_t threadid= (pid_t)syscall(SYS_gettid);
 	//LogHolderPattern *log= LogHolderPattern::instance();
 
@@ -171,7 +171,7 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 	{
 		case SIGINT:
 			cout << "SIGINT: \"" << m_sProcessName << "\":" << getpid() << ":" << threadid << " terminated by user" << endl;
-			pthread_exit(0);
+			exit(EXIT_FAILURE);
 			break;
 
 // 2010/08/18 ppi@magnificat.at:	remove getStatusInfo for signal SIGHUP
@@ -185,7 +185,7 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 
 		case SIGSEGV:
 			cout << "SIGSEGV: \"" << m_sProcessName << "\":" << getpid() << ":" << threadid << " close from system" << endl;
-			pthread_exit(&exit);
+			pthread_exit(&nexit);
 			break;
 		// definition of all other signals
 		default:
