@@ -1,10 +1,17 @@
 
-set(configSrcs	configmain.cpp
-				LircSupport.cpp
-				OwfsSupport.cpp		)
-        	
+set(configSrcs	configmain.cpp)
+ 
+if(USE_LircClient)
+	set(configSrcs ${configSrcs} LircSupport.cpp)
+	#set(extern_libraries ${extern_libraries} ppilircaccess)
+endif(USE_LircClient)
+if(USE_OWFS)
+	set(configSrcs ${configSrcs} OwfsSupport.cpp)
+	#set(extern_libraries ${extern_libraries} ppiowfsaccess)
+endif(USE_OWFS)  
+          	
 add_executable(ppi-mconfig ${configSrcs})
-target_link_libraries(ppi-mconfig ppiportssubroutine ppiutil ppipropertyutil ppidb ppiowfsaccess)
+target_link_libraries(ppi-mconfig ppiportssubroutine ppiutil ppipropertyutil ppidb ${extern_libraries})
 install(TARGETS ppi-mconfig DESTINATION bin)
 
 

@@ -2,5 +2,9 @@
 
 add_subdirectory( ports )
 add_subdirectory( vellemann )
-add_subdirectory( maxim )
-add_subdirectory( lirc )
+if(USE_OWFS)
+	add_subdirectory( maxim )
+endif(USE_OWFS)
+if(USE_LircClient)
+	add_subdirectory( lirc )
+endif(USE_LircClient)
