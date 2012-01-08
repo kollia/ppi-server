@@ -255,132 +255,31 @@ namespace server
 		cout << "get: " << input << endl;
 #endif // SERVERDEBUG
 
-		// --------------------------------------------------
-		// first all server transaction which do not need an loggin
-		if(input.substr(0, 6) == "status")
-		{
-			DbInterface* db= DbInterface::instance();
-			vector<string> status;
-			string param;
-
-			if(input.length() > 6)
-				param= ConfigPropertyCasher::trim(input.substr(6));
-			if(param == "")
-				param= "text";
-			sendmsg= Thread::getStatusInfo(param);
-			status= db->getStatusInfo(param);
-			for(vector<string>::iterator it= status.begin(); it != status.end(); ++it)
-			{
-				if(*it != "done")
-				{
-#ifdef SERVERDEBUG
-					cout << "send: " << *it;
-#endif
-
-					if(it->substr(0, 11) == "with client")
-						descriptor << "         ";
-					descriptor << *it;
-					if(	*it == "" ||
-						it->substr(it->length()-1, 1) != "\n"	)
-					{
-						descriptor.endl();
-					}
-				}
-			}
-#ifdef SERVERDEBUG
-			cout << "send: " << sendmsg;
-#endif
-			descriptor << sendmsg;
-#ifdef SERVERDEBUG
-			cout << "send: done" << endl;
-#endif
-			descriptor << "done\n";
-
-		}else if(input == "ending")
-		{
-			DbInterface* db= DbInterface::instance();
-
-			m_fProtocol= 0;
-			db->clearOWDebug(descriptor.getClientID());
-			db->needSubroutines(descriptor.getClientID(), "stopclient");
-			omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
-			if(username != "")
-				omsg << "with user '" << username << "' ";
-			omsg << "and ID:" << descriptor.getClientID() << " stopping connection to server";
-			LOG(LOG_SERVERINFO, omsg.str());
-#ifdef SERVERDEBUG
-			cout << "client stop connection" << endl;
-#endif
-			return false;
-
-		}else if(	input == "init"
-					||
-					input == "ppi-internet-server true false init"	)
-		{
-			descriptor << "done";
-			descriptor.endl();
-			descriptor.flush();
-#ifdef SERVERDEBUG
-				cout << "send: done" << endl;
-#endif
-			omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
-			if(username != "")
-				omsg << "with user '" << username << "' ";
-			omsg << "and ID:" << descriptor.getClientID() << " asking only for initialization";
-			LOG(LOG_SERVERINFO, omsg.str());
-
-		}else if(	input == "GETMINMAXERRORNUMS"
-					||
-					input == "ppi-internet-server true false getMinMaxErrorNums"	)
-		{
-			ostringstream output;
-
-			output << getMaxErrorNums(false) * -1;
-			output << " ";
-			output << getMaxErrorNums(true);
-			descriptor << output.str();
-			descriptor.endl();
-			descriptor.flush();
-#ifdef SERVERDEBUG
-			cout << "send: " << output.str() << endl;
-#endif
-
-		}else if(	input.substr(0, 15) == "GETERRORSTRING "
-					||
-					input.substr(0, 40) == "ppi-internet-server true false getErrorString "	)
-		{
-			istringstream in(input);
-			string strings;
-			int errnr;
-
-			in >> strings;
-			if(strings == "ppi-internet-server")
-			{
-				in >> strings;// = 'true'
-				in >> strings;// = 'getErrorString'
-			}
-			in >> errnr;
-			descriptor << strerror(errnr);
-			descriptor.endl();
-			descriptor.flush();
-#ifdef SERVERDEBUG
-			cout << "send: " << strerror(errnr);
-#endif
-
-		}
-
 // *************************************************************************************************
 // *** checking whether hole ppi-server
 // *** is finished by loading all content
 // ***
 		LOCK(m_FINISHEDSERVERMUTEX);
-		if(!m_bFinished)
+		if(	input.substr(0, 3) != "GET" &&
+			!m_bFinished					)
 		{
 			short res;
 			IUserManagementPattern* user;
 
 			user= UserManagement::instance();
 			res= user->finished();
+			if(	res == 0 &&
+				m_fProtocol <= 1.0	)
+			{
+#ifdef SERVERDEBUG
+				cout << "server not finished by loading user-management" << endl;
+				cout << " waiting until finished" << endl;
+#endif // SERVERDEBUG
+				do{
+					usleep(500);
+					res= user->finished();
+				}while(res == 0);
+			}
 			if(res == 0)// server loading
 			{
 #ifdef SERVERDEBUG
@@ -425,6 +324,124 @@ namespace server
 		UNLOCK(m_FINISHEDSERVERMUTEX);
 // *** end of checking
 // *************************************************************************************************
+
+		// --------------------------------------------------
+		// first all server transaction which do not need an loggin
+		if(input.substr(0, 6) == "status")
+		{
+			DbInterface* db= DbInterface::instance();
+			vector<string> status;
+			string param;
+
+			if(input.length() > 6)
+				param= ConfigPropertyCasher::trim(input.substr(6));
+			if(param == "")
+				param= "text";
+			sendmsg= Thread::getStatusInfo(param);
+			status= db->getStatusInfo(param);
+			for(vector<string>::iterator it= status.begin(); it != status.end(); ++it)
+			{
+				if(*it != "done")
+				{
+#ifdef SERVERDEBUG
+					cout << "send: " << *it;
+#endif
+
+					if(it->substr(0, 11) == "with client")
+						descriptor << "         ";
+					descriptor << *it;
+					if(	*it == "" ||
+						it->substr(it->length()-1, 1) != "\n"	)
+					{
+						descriptor.endl();
+					}
+				}
+			}
+#ifdef SERVERDEBUG
+			cout << "send: " << sendmsg;
+#endif
+			descriptor << sendmsg;
+#ifdef SERVERDEBUG
+			cout << "send: done" << endl;
+#endif
+			descriptor << "done\n";
+			return true;
+
+		}else if(input == "ending")
+		{
+			DbInterface* db= DbInterface::instance();
+
+			m_fProtocol= 0;
+			db->clearOWDebug(descriptor.getClientID());
+			db->needSubroutines(descriptor.getClientID(), "stopclient");
+			omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
+			if(username != "")
+				omsg << "with user '" << username << "' ";
+			omsg << "and ID:" << descriptor.getClientID() << " stopping connection to server";
+			LOG(LOG_SERVERINFO, omsg.str());
+#ifdef SERVERDEBUG
+			cout << "client stop connection" << endl;
+#endif
+			return false;
+
+		}else if(	input == "init"
+					||
+					input == "ppi-internet-server true false init"	)
+		{
+			descriptor << "done";
+			descriptor.endl();
+			descriptor.flush();
+#ifdef SERVERDEBUG
+				cout << "send: done" << endl;
+#endif
+			omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
+			if(username != "")
+				omsg << "with user '" << username << "' ";
+			omsg << "and ID:" << descriptor.getClientID() << " asking only for initialization";
+			LOG(LOG_SERVERINFO, omsg.str());
+			return true;
+
+		}else if(	input == "GETMINMAXERRORNUMS"
+					||
+					input == "ppi-internet-server true false getMinMaxErrorNums"	)
+		{
+			ostringstream output;
+
+			output << getMaxErrorNums(false) * -1;
+			output << " ";
+			output << getMaxErrorNums(true);
+			descriptor << output.str();
+			descriptor.endl();
+			descriptor.flush();
+#ifdef SERVERDEBUG
+			cout << "send: " << output.str() << endl;
+#endif
+			return true;
+
+		}else if(	input.substr(0, 15) == "GETERRORSTRING "
+					||
+					input.substr(0, 40) == "ppi-internet-server true false getErrorString "	)
+		{
+			istringstream in(input);
+			string strings;
+			int errnr;
+
+			in >> strings;
+			if(strings == "ppi-internet-server")
+			{
+				in >> strings;// = 'true'
+				in >> strings;// = 'getErrorString'
+			}
+			in >> errnr;
+			descriptor << strerror(errnr);
+			descriptor.endl();
+			descriptor.flush();
+#ifdef SERVERDEBUG
+			cout << "send: " << strerror(errnr);
+#endif
+			return true;
+
+		}
 
 		if(	!descriptor.getBoolean("access") ||
 			(	input.length() > 6 &&
