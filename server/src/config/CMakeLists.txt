@@ -7,7 +7,7 @@ if(USE_LircClient)
 endif(USE_LircClient)
 if(USE_OWFS)
 	set(configSrcs ${configSrcs} OwfsSupport.cpp)
-	#set(extern_libraries ${extern_libraries} ppiowfsaccess)
+	set(extern_libraries ${extern_libraries} ppiowfsaccess)
 endif(USE_OWFS)  
           	
 add_executable(ppi-mconfig ${configSrcs})
