@@ -850,7 +850,7 @@ public class Component extends HtmTags
 					}
 				}
 			
-			});
+			}, "setDeviceAccess");
 			return true;
 		}
 		return false;
@@ -1522,7 +1522,7 @@ public class Component extends HtmTags
 			||
 			this.type.equals("togglebutton")	)
 		{
-			DisplayAdapter.syncExec(new Runnable()
+			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
@@ -1539,7 +1539,7 @@ public class Component extends HtmTags
 		{
 			final double nValue= Double.parseDouble(this.value);
 			
-			DisplayAdapter.syncExec(new Runnable()
+			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
@@ -1555,7 +1555,7 @@ public class Component extends HtmTags
 		//}else if(this.type.equals("text"))
 		}else if(m_oComponent instanceof Text)
 		{
-			DisplayAdapter.syncExec(new Runnable()
+			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
@@ -1570,7 +1570,7 @@ public class Component extends HtmTags
 			
 		}else if(this.type.equals("slider"))
 		{
-			DisplayAdapter.syncExec(new Runnable()
+			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
@@ -1584,7 +1584,7 @@ public class Component extends HtmTags
 			
 		}else if(this.type.equals("scale"))
 		{
-			DisplayAdapter.syncExec(new Runnable()
+			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
@@ -1597,7 +1597,7 @@ public class Component extends HtmTags
 			});
 		}else if(m_oComponent instanceof Combo)
 		{
-			DisplayAdapter.syncExec(new Runnable()
+			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
@@ -1620,7 +1620,7 @@ public class Component extends HtmTags
 			});
 		}else if(m_oComponent instanceof List)
 		{
-			DisplayAdapter.syncExec(new Runnable()
+			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
@@ -1633,7 +1633,7 @@ public class Component extends HtmTags
 			});
 		}else if(m_oComponent instanceof Spinner)
 		{
-			DisplayAdapter.syncExec(new Runnable()
+			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
