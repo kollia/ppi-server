@@ -44,6 +44,19 @@ public abstract class HtmTags
 	 */
 	public static boolean debug= false;
 	/**
+	 * boolean value to show behavior of locking 
+	 * by setting new sides.<br />
+	 * this flag is only changeable here
+	 */
+	public static boolean lockDebug= true;
+	/**
+	 * boolean value to show locking behavior
+	 * by SWT disply synchronization.<br />
+	 * this flag is only changeable here
+	 * and will be shown when also debug flag be set
+	 */
+	public static boolean syncSWTExec= true;
+	/**
 	 * show also sides defined with meta tag display false
 	 */
 	public static boolean showFalse= false;

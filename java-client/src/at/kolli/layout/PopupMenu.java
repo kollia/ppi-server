@@ -16,7 +16,6 @@
  */
 package at.kolli.layout;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -34,7 +33,6 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Shell;
 
 import at.kolli.automation.client.LayoutLoader;
-import at.kolli.automation.client.MsgClientConnector;
 import at.kolli.automation.client.TreeNodes;
 import at.kolli.dialogs.DisplayAdapter;
 
@@ -126,13 +124,35 @@ public class PopupMenu
 			public void mouseDown(MouseEvent event)
 			{
 				LayoutLoader loader;
+				Thread t= null;
 				
+				if(	HtmTags.debug &&
+					HtmTags.lockDebug	)
+				{
+					t= Thread.currentThread();
+					System.out.println(t.getName()+" show pop-up menue of " + entry);
+				}
 				_instance.show(entry, false);
+				if(	HtmTags.debug &&
+					HtmTags.lockDebug	)
+				{
+					System.out.println(t.getName()+" want to setActiveSideVisible of " + entry);
+				}
 				synchronized (TreeNodes.m_DISPLAYLOCK)
 				{
 					loader= LayoutLoader.instance();
 					loader.m_sAktFolder= entry;
-					loader.setActSideVisible(/*inform server by no body*/true); 
+					if(	HtmTags.debug &&
+						HtmTags.lockDebug	)
+					{
+						System.out.println(t.getName()+" setActiveSideVisible of " + entry);
+					}
+					loader.setActSideVisible(/*inform server by no body*/true);
+					if(	HtmTags.debug &&
+						HtmTags.lockDebug	)
+					{
+						System.out.println(t.getName()+" hase setActiveSideVisible of " + entry);
+					}
 				}
 			}
 		});
@@ -141,17 +161,29 @@ public class PopupMenu
 			public void mouseDown(MouseEvent event)
 			{
 				LayoutLoader loader;
+				Thread t= null;
 				
+				if(HtmTags.lockDebug)
+				{
+					t= Thread.currentThread();
+					System.out.println(t.getName()+" show pop-up menue of " + entry);
+				}
 				_instance.show(entry, false);
+				if(HtmTags.lockDebug)
+					System.out.println(t.getName()+" want to setActiveSideVisible of " + entry);
 				synchronized (TreeNodes.m_DISPLAYLOCK)
 				{
 					loader= LayoutLoader.instance();
 					loader.m_sAktFolder= entry;
+					if(HtmTags.lockDebug)
+						System.out.println(t.getName()+" setActiveSideVisible of " + entry);
 					loader.setActSideVisible(/*inform server by no body*/true);
+					if(HtmTags.lockDebug)
+						System.out.println(t.getName()+" hase setActiveSideVisible of " + entry);
 				}
 			}
 		});
-		text.addMouseMoveListener(new MouseMoveListener()
+		/*text.addMouseMoveListener(new MouseMoveListener()
 		{
 			public void  mouseMove(MouseEvent ev)
 			{
@@ -164,7 +196,7 @@ public class PopupMenu
 			{
 				_instance.show(entry, true);
 			}
-		});
+		});*/
 		_instance.m_mRootEntrys.put(entry, popup);
 		_instance.m_mRootNodes.put(entry, node);
 	}
@@ -288,7 +320,13 @@ public class PopupMenu
 					public void mouseDown(MouseEvent event)
 					{
 						LayoutLoader loader;
+						Thread t= null;
 						
+						if(HtmTags.lockDebug)
+						{
+							t= Thread.currentThread();
+							System.out.println(t.getName()+" want to setActiveSideVisible of " + entry);
+						}
 						loader= LayoutLoader.instance();
 						loader.m_sAktFolder= entry;
 						synchronized (TreeNodes.m_DISPLAYLOCK)
@@ -304,7 +342,13 @@ public class PopupMenu
 					public void mouseDown(MouseEvent event)
 					{
 						LayoutLoader loader;
+						Thread t= null;
 						
+						if(HtmTags.lockDebug)
+						{
+							t= Thread.currentThread();
+							System.out.println(t.getName()+" want to setActiveSideVisible of " + entry);
+						}
 						loader= LayoutLoader.instance();
 						loader.m_sAktFolder= entry;
 						synchronized (TreeNodes.m_DISPLAYLOCK)
@@ -319,16 +363,16 @@ public class PopupMenu
 				{
 					public void  mouseMove(MouseEvent ev)
 					{
-						//_instance.show(entry, true);
+						_instance.show(entry, true);
 					}
 				});
 				comp.addMouseMoveListener(new MouseMoveListener()
 				{
 					public void  mouseMove(MouseEvent ev)
 					{
-						//_instance.show(entry, true);
+						_instance.show(entry, true);
 					}
-				});*/
+				})*/;
 			}
 
 			int height= 0;

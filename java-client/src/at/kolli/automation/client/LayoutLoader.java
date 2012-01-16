@@ -499,12 +499,29 @@ public class LayoutLoader extends Thread
 		TreeNodes newNode;
 		TreeNodes oldNode;
 		WidgetChecker checker= WidgetChecker.instance();
+		Thread t= null;
 		
+		if(	HtmTags.debug &&
+			HtmTags.lockDebug	)
+		{
+			t= Thread.currentThread();
+			System.out.println(t.getName()+" want to lock sideLock for setActiveSideVisible");
+		}
 		sideLock.lock();
+		if(	HtmTags.debug &&
+				HtmTags.lockDebug)
+		{
+			System.out.println(t.getName()+" lock sideLock for setActiveSideVisible");
+		}
 		oldNode= m_oAktTreeNode;
 		if(	m_oAktTreeNode != null &&
 			m_oAktTreeNode.isCorrectTitleSequence(m_sAktFolder)	)
 		{
+			if(	HtmTags.debug &&
+				HtmTags.lockDebug	)
+			{
+				System.out.println(t.getName()+" unlock sideLock for setActiveSideVisible");
+			}
 			sideLock.unlock();
 			return true;
 		}
@@ -567,11 +584,21 @@ public class LayoutLoader extends Thread
 					}, "LayoutLoader::setActiveSideVisible() addListeners()");					
 				}
 				checker.setTreeNode(m_oAktTreeNode);
+				if(	HtmTags.debug &&
+					HtmTags.lockDebug	)
+				{
+					System.out.println(t.getName()+" unlock sideLock for setActiveSideVisible");
+				}
 				sideLock.unlock();
 				return true;
 			}
 		}
 		m_oAktTreeNode= oldNode;
+		if(	HtmTags.debug &&
+			HtmTags.lockDebug	)
+		{
+			System.out.println(t.getName()+" unlock sideLock for setActiveSideVisible");
+		}
 		sideLock.unlock();
 		return false;
 	}
