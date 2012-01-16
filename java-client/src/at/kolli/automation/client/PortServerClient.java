@@ -284,8 +284,10 @@ public class PortServerClient
 		{
 			System.out.println("found operating system '" + os + "'");
 			System.out.println("with follow set path's:");
-			System.out.println("    ALLUSER: 	'" + allUser + "'");
-			System.out.println("    HOME:       '" + homeEnv + "'");
+			System.out.println("    ALLUSER: '" + allUser + "'");
+			System.out.println("    HOME:    '" + homeEnv + "'");
+			System.out.println("    Host:     " + host);
+			System.out.println("    port:     " + port);
 		}
 		if(bError)
 		{
