@@ -277,7 +277,20 @@ public class Component extends HtmTags
 		boolean readonly= false;
 		MsgClientConnector client= MsgClientConnector.instance();
 
-		//System.out.println(type + " " + result);
+		if(HtmTags.debug)
+		{
+			System.out.println("execute component '" + type + "'");
+			if(!value.equals(""))
+			{
+				System.out.println("    with value '" +value + "'");
+				System.out.print("    and ");
+			}else
+				System.out.print("    with ");
+			if(result.equals(""))
+				System.out.println("no result");
+			else
+				System.out.println("result '" + result + "'");
+		}
 		askPermission();
 		if(	actLayout.compareTo(layout.disabled) == 0 ||
 			!m_bDeviceAccess								)
@@ -306,8 +319,10 @@ public class Component extends HtmTags
 			int type= 0;
 			Button button;
 			GridData data= null;
-			Double akt= client.getValue(this.result, /*bthrow*/true);
-
+			Double akt= null;
+			
+			if(!result.equals(""))
+				client.getValue(this.result, /*bthrow*/true);
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -397,12 +412,14 @@ public class Component extends HtmTags
 			int style= readonly ? SWT.SINGLE | SWT.READ_ONLY : SWT.SINGLE;
 			Text text= new Text(composite, style);
 			GridData data= new GridData();
-			Double akt= client.getValue(this.result, /*bthrow*/true);
 			//RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+(\\.([0-9])*)?([ +-/]|\\*|\\(|\\)|$)");
 			//RE floatStr= new RE("(.*)(\\*)(#([0-9])+(.[0-9]*)?)?(.*)");
 			//RE floatStr= new RE("(.*)((#[0-9]+)(.[0-9]*)?)?(.*)");
 			RE floatStr= new RE("([\\\\]*)#([0-9]+)(.([0-9]*))?");
+			Double akt= null;
 			
+			if(!result.equals(""))
+				client.getValue(this.result, /*bthrow*/true);
 			// calculating the digits before decimal point
 			// and after. save in m_numBefore and m_numBehind
 			do{
@@ -501,9 +518,11 @@ public class Component extends HtmTags
 			final Slider slider;
 			GridData data= new GridData();
 			int style= SWT.HORIZONTAL;
-			Double akt= client.getValue(this.result, /*bthrow*/true);
 			int value= this.min;
-
+			Double akt= null;
+			
+			if(!result.equals(""))
+				client.getValue(this.result, /*bthrow*/true);
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -567,9 +586,11 @@ public class Component extends HtmTags
 			Scale scale;
 			GridData data= new GridData();
 			int style= SWT.HORIZONTAL;
-			Double akt= client.getValue(this.result, /*bthrow*/true);
 			int value= this.min;
-
+			Double akt= null;
+			
+			if(!result.equals(""))
+				client.getValue(this.result, /*bthrow*/true);
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -636,9 +657,11 @@ public class Component extends HtmTags
 		{
 			Combo combo= new Combo(composite, SWT.READ_ONLY | SWT.DROP_DOWN);
 			GridData data= null;
-			Double akt= client.getValue(this.result, /*bthrow*/true);
 			double value= -1;
+			Double akt= null;
 			
+			if(!result.equals(""))
+				client.getValue(this.result, /*bthrow*/true);			
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -710,10 +733,12 @@ public class Component extends HtmTags
 		{
 			List list= new List(composite, m_lContent.size() > this.size ? SWT.SINGLE | SWT.V_SCROLL : SWT.SINGLE);
 			GridData data= new GridData();
-			Double akt= client.getValue(this.result, /*bthrow*/true);
 			int item= 0;
 			double value= -1;
-
+			Double akt= null;
+			
+			if(!result.equals(""))
+				client.getValue(this.result, /*bthrow*/true);
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -775,8 +800,10 @@ public class Component extends HtmTags
 			int style= readonly ? SWT.READ_ONLY  : SWT.NONE;			
 			final Spinner spinner= new Spinner(composite, style);
 			GridData data= new GridData();
-			Double akt= client.getValue(this.result, /*bthrow*/true);
-
+			Double akt= null;
+			
+			if(!result.equals(""))
+				client.getValue(this.result, /*bthrow*/true);
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -911,6 +938,11 @@ public class Component extends HtmTags
 		Double res;
 		MsgClientConnector client;
 		
+		if(result.equals(""))
+		{
+			setPermission(permission.None);
+			return;
+		}
 		client= MsgClientConnector.instance();
 		res= client.getValue(result, /*bthrow*/true);
 		if(!client.hasError())
