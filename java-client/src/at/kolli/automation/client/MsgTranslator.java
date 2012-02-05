@@ -259,6 +259,8 @@ public class MsgTranslator {
 		
 		for(String value : values)
 		{
+			if(value.equals(""))
+				value= "<UNKNOWN>";
 			if(bfirst)
 				sRv+= value;
 			if(!token.hasMoreTokens())
