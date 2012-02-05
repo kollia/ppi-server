@@ -441,6 +441,8 @@ public class DialogThread // extends Thread
 				//@Override
 				public void run()
 				{
+					if(HtmTags.debug)
+						System.out.println("dialog progress bar be set to " + m_nSelected + "%");
 					m_oDialog.setSelection(m_nSelected);
 				}				
 			});
@@ -466,7 +468,6 @@ public class DialogThread // extends Thread
 				//@Override
 				public void run()
 				{
-					//System.out.println(m_oDialog.toString());
 					m_nSelected= m_oDialog.getSelection();
 				}				
 			});
@@ -488,7 +489,7 @@ public class DialogThread // extends Thread
 		{
 			if(!m_bOpen)
 				return 0;
-			DisplayAdapter.asyncExec(new Runnable()
+			DisplayAdapter.syncExec(new Runnable()
 			{				
 				//@Override
 				public void run()
