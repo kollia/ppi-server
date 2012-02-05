@@ -22,7 +22,18 @@ import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.browser.LocationEvent;
+import org.eclipse.swt.browser.LocationListener;
+import org.eclipse.swt.browser.ProgressEvent;
+import org.eclipse.swt.browser.ProgressListener;
+import org.eclipse.swt.browser.StatusTextEvent;
+import org.eclipse.swt.browser.StatusTextListener;
 import org.eclipse.swt.custom.StackLayout;
+import org.eclipse.swt.events.FocusEvent;
+import org.eclipse.swt.events.FocusListener;
+import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.MouseListener;
+import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
@@ -44,6 +55,7 @@ import org.apache.regexp.RE;
 import at.kolli.automation.client.MsgClientConnector;
 import at.kolli.automation.client.NodeContainer;
 import at.kolli.dialogs.DisplayAdapter;
+import at.kolli.layout.IComponentListener;
 
 /**
  * class representing all components which can displayed into the body-tag
@@ -53,7 +65,7 @@ import at.kolli.dialogs.DisplayAdapter;
  * @version 1.00.00, 08.12.2007
  * @since JDK 1.6
  */
-public class Component extends HtmTags 
+public class Component  extends HtmTags implements IComponentListener 
 {
 	/**
 	 * enum type of layouts<br /
@@ -118,6 +130,26 @@ public class Component extends HtmTags
 	 * type text the suffix behind the number
 	 */
 	public String value= "";
+	/**
+	 * when component is from type text
+	 * variable is an valid text object
+	 */
+	private Text m_oText= null;
+	/**
+	 * whether text widget has the focus.<br />
+	 * This will be set to true when mouse listener get up
+	 * and to false when focus listener lost the focus
+	 */
+	private boolean m_bTextFocus= false;
+	/**
+	 * whether last url in browser was an about:blank
+	 */
+	private boolean m_bWasBlank= false;
+	/**
+	 * when component is from type button
+	 * variable as an valid button object
+	 */
+	private Button m_oButton= null;
 	/**
 	 * value attribute of component before number.<br />
 	 * only for type text
@@ -205,6 +237,14 @@ public class Component extends HtmTags
 	 */
 	private double m_nAktValue= 0;
 	/**
+	 * whether result of component is an soft button
+	 */
+	private boolean m_nSoftButton= false;
+	/**
+	 * other tag component combine with soft button
+	 */
+	private HtmTags m_oSoftButtonTag= null;
+	/**
 	 * component as SWT widget
 	 */
 	private Control m_oComponent= null;
@@ -234,6 +274,32 @@ public class Component extends HtmTags
 	 * SelectionListener for components
 	 */
 	private SelectionListener m_eSelectionListener= null;
+	/**
+	 * LocationListener for external browser widget
+	 */
+	private LocationListener m_eLocationListener= null;
+	/**
+	 * whether button is active.<br />
+	 * This variable will be used for soft buttons back and forward 
+	 */
+	private boolean m_bActiveButton= false;
+	/**
+	 * FocusListener for text widget when as soft button defined
+	 */
+	private FocusListener m_eFocusListener= null;
+	/**
+	 * MouseListener for text widget when soft button is an browser_url
+	 */
+	private MouseListener m_eMouseListener= null;
+	/**
+	 * StatusTextListener for text widget when soft button is an browser_status
+	 */
+	private StatusTextListener m_eStatusListener= null;
+	/**
+	 * ProgressListener for button-tag with type checkbox, radio or togglebutton
+	 * when soft button is an browser_load
+	 */
+	private ProgressListener m_eProgressListener= null;
 	
 	/**
 	 * create instance of all components whitch can display in the window
@@ -266,12 +332,13 @@ public class Component extends HtmTags
 	 * execute method to create the composite for display
 	 * 
 	 * @param composite parent composite
+	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite) throws IOException
+	public void execute(Composite composite, HashMap<String, HtmTags> classes) throws IOException
 	{
 		boolean disabled= false;
 		boolean readonly= false;
@@ -291,7 +358,8 @@ public class Component extends HtmTags
 			else
 				System.out.println("result '" + result + "'");
 		}
-		askPermission();
+		if(!isSoftButton(classes))
+			askPermission();
 		if(	actLayout.compareTo(layout.disabled) == 0 ||
 			!m_bDeviceAccess								)
 		{
@@ -317,15 +385,17 @@ public class Component extends HtmTags
 			this.type.equals("downbutton")	)
 		{
 			int type= 0;
-			Button button;
 			GridData data= null;
 			Double akt= null;
 			
-			if(!result.equals(""))
-				client.getValue(this.result, /*bthrow*/true);
-			if(	!client.getErrorCode().equals("ERROR 016")
-				&&
-				akt == null									)
+			if(	!getPermission().equals(permission.None) &&
+				!m_nSoftButton								)
+			{
+				akt= client.getValue(this.result, /*bthrow*/true);
+			}
+			if(	!client.getErrorCode().equals("ERROR 016") &&
+				akt == null &&
+				m_nSoftButton == false							)
 			{
 				if(HtmTags.debug)
 				{	
@@ -376,8 +446,8 @@ public class Component extends HtmTags
 			}
 			
 			disabled= disabled || readonly ? true : false;				
-			button= new Button(composite, type);
-			button.setEnabled(!disabled);
+			m_oButton= new Button(composite, type);
+			m_oButton.setEnabled(!disabled);
 			if(width != -1)
 			{
 				data= new GridData();
@@ -390,27 +460,27 @@ public class Component extends HtmTags
 				data.heightHint= height;
 			}
 			if(data != null)
-				button.setLayoutData(data);
-			m_oComponent= button;
+				m_oButton.setLayoutData(data);
+			m_oComponent= m_oButton;
 			if(	type == SWT.PUSH
 				||
 				type == SWT.TOGGLE	)
 			{
-				button.setText(this.value);
+				m_oButton.setText(this.value);
 			}//else
 				//button.setText(this.text);
 			if(type == SWT.RADIO
 				&&
 				this.value.equals("0") 	)
 			{
-				button.setSelection(true);
+				m_oButton.setSelection(true);
 			}
 			
 		}else if(this.type.equals("text"))
 		{
 			boolean bread= false;
 			int style= readonly ? SWT.SINGLE | SWT.READ_ONLY : SWT.SINGLE;
-			Text text= new Text(composite, style);
+			m_oText= new Text(composite, style);
 			GridData data= new GridData();
 			//RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+(\\.([0-9])*)?([ +-/]|\\*|\\(|\\)|$)");
 			//RE floatStr= new RE("(.*)(\\*)(#([0-9])+(.[0-9]*)?)?(.*)");
@@ -418,100 +488,108 @@ public class Component extends HtmTags
 			RE floatStr= new RE("([\\\\]*)#([0-9]+)(.([0-9]*))?");
 			Double akt= null;
 			
-			if(!result.equals(""))
-				client.getValue(this.result, /*bthrow*/true);
-			// calculating the digits before decimal point
-			// and after. save in m_numBefore and m_numBehind
-			do{
-				if(floatStr.match(this.value))
-				{
-					String v, b;
-					
-					bread= false;
-					this.bvalue+= this.value.substring(0, floatStr.getParenStart(0));
-					this.format= floatStr.getParen(0);
-					if(floatStr.getParen(1) != null)
+			if(	!getPermission().equals(permission.None) &&
+				!m_nSoftButton								)
+			{
+				akt= client.getValue(this.result, /*bthrow*/true);
+			}
+			if(!m_nSoftButton)
+			{
+				// calculating the digits before decimal point
+				// and after. save in m_numBefore and m_numBehind
+				do{
+					if(floatStr.match(this.value))
 					{
-						if(floatStr.getParenLength(1) % 2 != 0)
-						{// no right number holder, take the next one
-							this.bvalue+= floatStr.getParen(1).substring(0, floatStr.getParenLength(1)-1);
-							this.bvalue+= this.format.substring(floatStr.getParenLength(1));
-							this.value= this.value.substring(this.bvalue.length()+1);
-							bread= true;
-							continue;
-						}
-						this.bvalue+= floatStr.getParen(1);
-						this.format= this.format.substring(floatStr.getParenLength(1));
-					}
-					this.value= this.value.substring(floatStr.getParenEnd(0));
-					try{
-						v= floatStr.getParen(2);
-						if(	v != null &&
-							v.length() > 0	)
+						String v, b;
+						
+						bread= false;
+						this.bvalue+= this.value.substring(0, floatStr.getParenStart(0));
+						this.format= floatStr.getParen(0);
+						if(floatStr.getParen(1) != null)
 						{
-							m_numBefore= Integer.parseInt(v);
+							if(floatStr.getParenLength(1) % 2 != 0)
+							{// no right number holder, take the next one
+								this.bvalue+= floatStr.getParen(1).substring(0, floatStr.getParenLength(1)-1);
+								this.bvalue+= this.format.substring(floatStr.getParenLength(1));
+								this.value= this.value.substring(this.bvalue.length()+1);
+								bread= true;
+								continue;
+							}
+							this.bvalue+= floatStr.getParen(1);
+							this.format= this.format.substring(floatStr.getParenLength(1));
 						}
-						b= floatStr.getParen(3);
-						v= floatStr.getParen(4);
-						if(	v != null &&
-							v.length() > 0	)
-						{
-							m_numBehind= Integer.parseInt(v);
+						this.value= this.value.substring(floatStr.getParenEnd(0));
+						try{
+							v= floatStr.getParen(2);
+							if(	v != null &&
+								v.length() > 0	)
+							{
+								m_numBefore= Integer.parseInt(v);
+							}
+							b= floatStr.getParen(3);
+							v= floatStr.getParen(4);
+							if(	v != null &&
+								v.length() > 0	)
+							{
+								m_numBehind= Integer.parseInt(v);
+								
+							}else if(	b != null &&
+										b.equals(".")	)
+							{
+								m_numBehind= -1;
+							}else
+								m_numBehind= 0;
+							if(	b != null &&
+								b.length() > 0 &&
+								!b.substring(0, 1).equals(".")	)
+							{
+								this.value= b + this.value;
+							}
 							
-						}else if(	b != null &&
-									b.equals(".")	)
+						}catch(NumberFormatException ex)
 						{
-							m_numBehind= -1;
-						}else
-							m_numBehind= 0;
-						if(	b != null &&
-							b.length() > 0 &&
-							!b.substring(0, 1).equals(".")	)
-						{
-							this.value= b + this.value;
+							// do nothing,
+							// take defaultvalue from member
+							bread= true;
 						}
 						
-					}catch(NumberFormatException ex)
-					{
-						// do nothing,
-						// take defaultvalue from member
-						bread= true;
-					}
-				}else
-					this.value= " " + this.value;
-			}while(bread);
-			this.bvalue= this.bvalue.replaceAll("\\\\\\\\", "\\\\");
-			this.value= this.value.replaceAll("\\\\\\\\", "\\\\");
+					}else
+						this.value= " " + this.value;
+				}while(bread);
+				this.bvalue= this.bvalue.replaceAll("\\\\\\\\", "\\\\");
+				this.value= this.value.replaceAll("\\\\\\\\", "\\\\");
 
-			if(	!client.getErrorCode().equals("ERROR 016")
-				&&
-				akt == null									)
-			{
-				if(HtmTags.debug)
+				if(	!client.getErrorCode().equals("ERROR 016") &&
+					akt == null										)
 				{
-					String message= "";
-					
-					if(!this.result.equals(""))
-						message= "cannot reach subroutine '" + this.result + "' from ";
-					message+= "component input text";
-					if(!this.name.equals(""))
-						message+= " with name " + this.name + " ";
-					if(this.result.equals(""))
-						message+= " have no result attribute";
-					System.out.println(message);
-					System.out.println(client.getErrorMessage());
+					if(HtmTags.debug)
+					{
+						String message= "";
+						
+						if(!this.result.equals(""))
+							message= "cannot reach subroutine '" + this.result + "' from ";
+						message+= "component input text";
+						if(!this.name.equals(""))
+							message+= " with name " + this.name + " ";
+						if(this.result.equals(""))
+							message+= " have no result attribute";
+						System.out.println(message);
+						System.out.println(client.getErrorMessage());
+					}
+					m_bCorrectName= false;
 				}
-				m_bCorrectName= false;
 			}
+
 			if(width == -1)
 				width= 100;
 			if(height != -1)
 				data.heightHint= height;
-			m_oComponent= text;
+			m_oComponent= m_oText;
 			data.widthHint= width;
-			text.setLayoutData(data);
-			text.setText(calculateInputValue(akt));
-			text.setEnabled(!disabled);
+			m_oText.setLayoutData(data);
+			if(akt != null)
+				m_oText.setText(calculateInputValue(akt));
+			m_oText.setEnabled(!disabled);
 			
 		}else if(this.type.equals("slider"))
 		{
@@ -521,8 +599,11 @@ public class Component extends HtmTags
 			int value= this.min;
 			Double akt= null;
 			
-			if(!result.equals(""))
-				client.getValue(this.result, /*bthrow*/true);
+			if(	!getPermission().equals(permission.None) &&
+				!m_nSoftButton								)
+			{
+				akt= client.getValue(this.result, /*bthrow*/true);
+			}
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -589,8 +670,11 @@ public class Component extends HtmTags
 			int value= this.min;
 			Double akt= null;
 			
-			if(!result.equals(""))
-				client.getValue(this.result, /*bthrow*/true);
+			if(	!getPermission().equals(permission.None) &&
+				!m_nSoftButton								)
+			{
+				akt= client.getValue(this.result, /*bthrow*/true);
+			}
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -660,8 +744,11 @@ public class Component extends HtmTags
 			double value= -1;
 			Double akt= null;
 			
-			if(!result.equals(""))
-				client.getValue(this.result, /*bthrow*/true);			
+			if(	!getPermission().equals(permission.None) &&
+				!m_nSoftButton								)
+			{
+				akt= client.getValue(this.result, /*bthrow*/true);
+			}
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -737,8 +824,11 @@ public class Component extends HtmTags
 			double value= -1;
 			Double akt= null;
 			
-			if(!result.equals(""))
-				client.getValue(this.result, /*bthrow*/true);
+			if(	!getPermission().equals(permission.None) &&
+				!m_nSoftButton								)
+			{
+				akt= client.getValue(this.result, /*bthrow*/true);
+			}
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -802,8 +892,11 @@ public class Component extends HtmTags
 			GridData data= new GridData();
 			Double akt= null;
 			
-			if(!result.equals(""))
-				client.getValue(this.result, /*bthrow*/true);
+			if(	!getPermission().equals(permission.None) &&
+				!m_nSoftButton								)
+			{
+				akt= client.getValue(this.result, /*bthrow*/true);
+			}
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
 				akt == null									)
@@ -964,6 +1057,168 @@ public class Component extends HtmTags
 	}
 	
 	/**
+	 * whether result is an soft button
+	 * 
+	 * @param classes all class definition for any tags
+	 * @return whether result is an soft button
+	 */
+	private boolean isSoftButton(HashMap<String, HtmTags> classes)
+	{
+		String sBrowserClass= "";
+		
+		m_nSoftButton= false;
+		if(	result.length() > 15 &&
+			(	result.substring(0, 15).equals("::browser_home@") ||
+				result.substring(0, 15).equals("::browser_stop@") ||
+				result.substring(0, 15).equals("::browser_back@") ||
+				result.substring(0, 15).equals("::browser_info@") ||
+				result.substring(0, 15).equals("::browser_load@")	)	)
+		{
+			sBrowserClass= result.substring(15);
+			result= result.substring(2, 14);
+			
+		}else if(	result.length() > 18 &&
+					(	result.substring(0, 18).equals("::browser_refresh@") ||
+						result.substring(0, 18).equals("::browser_forward@")	)	)
+		{
+			sBrowserClass= result.substring(18);
+			result= result.substring(2, 17);
+			
+		}else if(	result.length() > 14 &&
+					result.substring(0, 14).equals("::browser_url@"))
+		{
+			String[] resUrl;
+			
+			sBrowserClass= result.substring(14);
+			result= result.substring(2, 13);
+			resUrl= sBrowserClass.split("@");	
+			if(resUrl.length == 2)
+			{
+				sBrowserClass= resUrl[0];
+				result+= "@" + resUrl[1];
+			}
+			
+		}else if(	result.length() > 2 &&
+					result.substring(0, 2).equals("::")	)
+		{
+			System.out.println("### ERROR: unknown soft button '" + result + "' be set");
+			result= "";
+		}
+		if(!sBrowserClass.equals(""))
+		{
+			if(	(	type.equals("text") &&
+					(	result.equals("browser_url") ||
+						result.equals("browser_info")	)	) ||
+				(	result.equals("browser_load") &&
+					(	type.equals("checkbox") ||
+						type.equals("radio") ||
+						type.equals("togglebutton")	)	) ||
+				(	!result.equals("browser_url") &&	// there is also allowed
+					!result.equals("browser_info") &&	// an URL with new address
+					!result.equals("browser_load") &&
+					(	type.equals("button") ||		
+						type.equals("upbutton") ||
+						type.equals("leftbutton") ||
+						type.equals("rightbutton") ||
+						type.equals("downbutton")		)	)	)
+			{
+				m_oSoftButtonTag= null;
+				m_oSoftButtonTag= classes.get(sBrowserClass);
+				if(m_oSoftButtonTag != null)
+				{
+					if(	result.equals("browser_info") ||
+						result.equals("browser_load")	)
+						setPermission(permission.readable);
+					else
+						setPermission(permission.writeable);
+					m_nSoftButton= true;
+					
+				}else
+				{
+					System.out.println("### ERROR: cannot find td-tag with class \"" + sBrowserClass + "\"");
+					System.out.println("           so do not define button as soft button");
+					result= "";
+				}
+			}else
+			{
+				System.out.print("### ERROR: an soft button like '" + result + "@" + sBrowserClass + " can only be defined in ");
+				if(	result.equals("browser_url") ||
+					result.equals("browser_info")	)
+				{
+					System.out.println("an text input-tag");
+					
+				}else if(result.equals("browser_load"))
+					System.out.println("an button-tag with type togglebutton, checkbox or radio");
+				else
+					System.out.println("any button-tag (button, upbutton, ...) but no togglebutton");
+				result= "";
+			}
+		}
+		return m_nSoftButton;
+	}
+	
+	/**
+	 * make result for defined soft button
+	 */
+	private void doSoftButton()
+	{
+		if(result.equals("browser_home"))
+		{
+			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+			
+			tdTag.getBrowser().setUrl(tdTag.href);
+			
+		}else if(result.equals("browser_refresh"))
+		{
+			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+			
+			tdTag.getBrowser().refresh();
+			
+		}else if(result.equals("browser_stop"))
+		{
+			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+			
+			tdTag.getBrowser().stop();
+			
+		}else if(result.equals("browser_forward"))
+		{
+			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+
+			m_bActiveButton= true;
+			tdTag.getBrowser().forward();
+			
+		}else if(result.equals("browser_back"))
+		{
+			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+
+			m_bActiveButton= true;
+			tdTag.getBrowser().back();
+			
+		}else if(result.equals("browser_url"))
+		{
+			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+			
+			value= m_oText.getText();
+			if(value.equals(""))
+			{
+				if(tdTag.m_sActRef.equals(""))
+					value= tdTag.href;
+				else
+					value= tdTag.m_sActRef;		
+			}
+			tdTag.getBrowser().setUrl(value);
+			
+		}else if(	result.length() > 12 &&
+					result.substring(0, 12).equals("browser_url@"))
+		{
+			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+			
+			tdTag.getBrowser().setUrl(result.substring(12));	
+			
+		}
+	}
+	
+	/**
 	 * add listeners if the component have an correct result attribute.<br />
 	 * This method is to listen on activity if the component is in an {@link Composite}
 	 * witch is be on the top of the {@link StackLayout}
@@ -974,25 +1229,36 @@ public class Component extends HtmTags
 	 */
 	public void addListeners() throws IOException
 	{
+		boolean bAlsoOK= false;
 		final String result= this.result;
 		final MsgClientConnector client= MsgClientConnector.instance();
 
 		//System.out.println(type + " " + result);
-		if(	m_bCorrectName
-			&&
-			getPermission().compareTo(permission.readable) >= 0
-			&&
-			client.haveSecondConnection()						)
+		if(	m_bCorrectName &&
+			!result.equals("") &&
+			!m_nSoftButton &&
+			getPermission().compareTo(permission.readable) >= 0 &&
+			client.haveSecondConnection()							)
 		{
 			client.hear(result, /*bthrow*/true);
 		}
-		if(	!m_bCorrectName
-			||
-			(	!getPermission().equals(permission.writeable)
-				&&
-				!this.type.equals("combo")					)	)
+		if(	this.type.equals("combo") ||
+			(	getPermission().equals(permission.readable) &&
+				(	this.type.equals("text") &&
+					result.equals("browser_info")	) ||
+				(	result.equals("browser_load") &&
+					(	this.type.equals("checkbox") ||
+						this.type.equals("radio") ||
+						this.type.equals("togglebutton")	)	)	)	)
 		{// if Component has no permission but type is an combo
 		 // set listener to return back to the old value
+			bAlsoOK= true;
+		}
+		
+		if(	!m_bCorrectName ||
+			(	!getPermission().equals(permission.writeable) &&
+				!bAlsoOK										)	)
+		{
 			return;
 		}
 		
@@ -1003,41 +1269,65 @@ public class Component extends HtmTags
 			||
 			this.type.equals("togglebutton")	)
 		{
-			String sValue= "0";
-			if(this.type.equals("radio"))
-				sValue= this.value;
-			final String gType= this.type;
-			final short gValue= Short.parseShort(sValue);
-			
-			((Button)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter()
+			if(m_nSoftButton)
 			{
-				public void widgetSelected(SelectionEvent ev)
+				ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+				
+				tdTag.getBrowser().addProgressListener(m_eProgressListener= new ProgressListener()
 				{
-					short nValue;
-					Button button= (Button)m_oComponent;
-					boolean bSet= button.getSelection();
-					
-					if(gType.equals("radio"))
-						nValue= gValue;
-					else
+					@Override
+					public void changed(ProgressEvent arg0)
 					{
-						if(bSet)
-							nValue= 1;
-						else
-							nValue= 0;
+						if (arg0.total == arg0.current) return;
+						((Button)m_oComponent).setSelection(true);
 					}
-					try{
-						client.setValue(result, nValue, /*bthrow*/false);
-					}catch(IOException ex)
-					{}
-			    	if(	HtmTags.debug &&
-			    		client.hasError()	)
-			    	{
-			    		System.out.println("ERROR: by setValue() inside SelectionListener");
-			    		System.out.println("       " + client.getErrorMessage());
-			    	}
-				}
-			});
+					
+					@Override
+					public void completed(ProgressEvent arg0)
+					{
+						((Button)m_oComponent).setSelection(false);
+					}
+					
+				});
+				
+			}else
+			{
+				String sValue= "0";
+				if(this.type.equals("radio"))
+					sValue= this.value;
+				final String gType= this.type;
+				final short gValue= Short.parseShort(sValue);
+				
+				((Button)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter()
+				{
+					public void widgetSelected(SelectionEvent ev)
+					{
+						short nValue;
+						Button button= (Button)m_oComponent;
+						boolean bSet= button.getSelection();
+						
+						if(gType.equals("radio"))
+							nValue= gValue;
+						else
+						{
+							if(bSet)
+								nValue= 1;
+							else
+								nValue= 0;
+						}
+						try{
+							client.setValue(result, nValue, /*bthrow*/false);
+						}catch(IOException ex)
+						{}
+				    	if(	HtmTags.debug &&
+				    		client.hasError()	)
+				    	{
+				    		System.out.println("ERROR: by setValue() inside SelectionListener");
+				    		System.out.println("       " + client.getErrorMessage());
+				    	}
+					}
+				});
+			}
 			
 		}else if(	this.type.equals("button")
 					||
@@ -1053,34 +1343,127 @@ public class Component extends HtmTags
 			{
 			    public void handleEvent(final Event event)
 			    {
-			    	try{
-			    		client.setValue(result, 1, /*bthrow*/false);
-					}catch(IOException ex)
-					{}
-			    	if(	HtmTags.debug &&
-			    		client.hasError()	)
-			    	{
-			    		System.out.println("ERROR: by setValue() inside Listener");
-			    		System.out.println("       " + client.getErrorMessage());
-			    	}
+			    	if(!m_nSoftButton)
+				    {
+				    	try{
+				    		client.setValue(result, 1, /*bthrow*/false);
+						}catch(IOException ex)
+						{}
+				    	if(	HtmTags.debug &&
+				    		client.hasError()	)
+				    	{
+				    		System.out.println("ERROR: by setValue() inside Listener");
+				    		System.out.println("       " + client.getErrorMessage());
+				    	}
+				    }else
+				    	doSoftButton();
 			    }
 			});
 			m_oComponent.addListener(SWT.MouseUp, m_eListener2= new Listener()
 			{
 			    public void handleEvent(final Event event)
 			    {
-			    	try{
-			    		client.setValue(result, 0, /*bthrow*/false);
-					}catch(IOException ex)
-					{}
-			    	if(	HtmTags.debug &&
-			    		client.hasError()	)
+			    	if(!m_nSoftButton)
 			    	{
-			    		System.out.println("ERROR: by setValue() inside Listener");
-			    		System.out.println("       " + client.getErrorMessage());
+				    	try{
+				    		client.setValue(result, 0, /*bthrow*/false);
+						}catch(IOException ex)
+						{}
+				    	if(	HtmTags.debug &&
+				    		client.hasError()	)
+				    	{
+				    		System.out.println("ERROR: by setValue() inside Listener");
+				    		System.out.println("       " + client.getErrorMessage());
+				    	}
 			    	}
 			    }
 			}); 
+			if(	m_nSoftButton &&
+				(	result.equals("browser_forward") ||
+					result.equals("browser_back")		)	)
+			{
+				final ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+				
+				//doSoftButton();
+				tdTag.getBrowser().addLocationListener(m_eLocationListener= new LocationListener() {
+					
+					@Override
+					public void changing(LocationEvent arg0) {					
+						// nothing to do
+					}
+					
+					@Override
+					public void changed(LocationEvent arg0) 
+					{
+						String url;
+
+						url= tdTag.getBrowser().getUrl();
+						if(HtmTags.debug)
+							System.out.println("change browser to '" + url + "' actualice " + result);
+						if(result.equals("browser_forward"))
+						{
+							if(m_bActiveButton)
+							{
+								if(HtmTags.debug)
+									System.out.println("browser will be set to new url '" + url +"'");
+								if(	tdTag.getBrowser().isForwardEnabled() &&
+									(	url.equals("") ||
+										url.equals("about:blank") ||
+										(	m_bWasBlank &&
+											url.equals(tdTag.m_sActRef)	)	)	)
+								{
+									if(	url.equals("") ||
+										url.equals("about:blank")	)
+									{
+										m_bWasBlank= true;
+									}else
+										m_bWasBlank= false;
+									tdTag.getBrowser().forward();
+								}else
+								{
+									tdTag.m_sActRef= url;
+									m_bWasBlank= false;
+									m_bActiveButton= false;
+								}
+							}
+							if(tdTag.getBrowser().isForwardEnabled())
+								m_oButton.setEnabled(true);
+							else
+								m_oButton.setEnabled(false);
+						}else
+						{
+							if(m_bActiveButton)
+							{
+								if(HtmTags.debug)
+									System.out.println("browser will be set to new url '" + url +"'");
+								if(	tdTag.getBrowser().isBackEnabled() &&
+									(	url.equals("") ||
+										url.equals("about:blank") ||
+										(	m_bWasBlank &&
+											url.equals(tdTag.m_sActRef)	)	)	)
+								{
+									if(	url.equals("") ||
+										url.equals("about:blank")	)
+									{
+										m_bWasBlank= true;
+									}else
+										m_bWasBlank= false;
+									tdTag.getBrowser().back();
+								}else
+								{
+									tdTag.m_sActRef= url;
+									m_bWasBlank= false;
+									m_bActiveButton= false;
+								}
+							}
+							if(tdTag.getBrowser().isBackEnabled())
+								m_oButton.setEnabled(true);
+							else
+								m_oButton.setEnabled(false);
+						}
+					}
+				});
+			}
 			
 		}else if(this.type.equals("text"))
 		{
@@ -1093,6 +1476,62 @@ public class Component extends HtmTags
 			
 			final RE pattern= new RE(patternString);
 			
+			if(m_nSoftButton)
+			{
+				if(result.equals("browser_info"))
+				{
+					ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+					
+					tdTag.getBrowser().addStatusTextListener(m_eStatusListener= new StatusTextListener() {
+						
+						@Override
+						public void changed(StatusTextEvent arg0) 
+						{
+							((Text)m_oComponent).setText(arg0.text);
+						}
+					});
+					
+				}else
+				{
+					((Text)m_oComponent).addMouseListener(m_eMouseListener= new MouseListener() {
+						
+						@Override
+						public void mouseUp(MouseEvent arg0)
+						{
+							if(m_bTextFocus == false)
+							{
+								((Text)m_oComponent).selectAll();
+								m_bTextFocus= true;
+							}
+						}
+						
+						@Override
+						public void mouseDown(MouseEvent arg0) {
+							// nothing to do					
+						}
+						
+						@Override
+						public void mouseDoubleClick(MouseEvent arg0) {
+							// nothing to do					
+						}
+					});
+					((Text)m_oComponent).addFocusListener(m_eFocusListener= new FocusListener() {
+						
+						@Override
+						public void focusLost(FocusEvent arg0) 
+						{
+							m_bTextFocus= false;
+						}
+						
+						@Override
+						public void focusGained(FocusEvent arg0)
+						{
+							// nothing to do
+							
+						}
+					});
+				}
+			}
 			((Text)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter()
 			{
 				@Override
@@ -1101,25 +1540,36 @@ public class Component extends HtmTags
 					String string= ((Text)m_oComponent).getText();
 					double value;
 					
-					if(pattern.match(string))
+					if(!m_nSoftButton)
 					{
-						if(HtmTags.debug)
-							System.out.println("user change text field " + name + " to " + string);
-						string= pattern.getParen(0);
-						if(!string.equals(""))
+						if(pattern.match(string))
 						{
 							if(HtmTags.debug)
-								System.out.println(" generate to number '" + string + "'");
-							try{
-								value= Double.parseDouble(string);
-								
-							}catch(NumberFormatException ex)
+								System.out.println("user change text field " + name + " to " + string);
+							string= pattern.getParen(0);
+							if(!string.equals(""))
+							{
+								if(HtmTags.debug)
+									System.out.println(" generate to number '" + string + "'");
+								try{
+									value= Double.parseDouble(string);
+									
+								}catch(NumberFormatException ex)
+								{
+									if(HtmTags.debug)
+									{
+										System.out.println("NumberFormatException for textfield " + name);
+										System.out.println(" cannot convert value " + string);
+										System.out.println();
+									}
+									value= 0;
+								}
+							}else
 							{
 								if(HtmTags.debug)
 								{
-									System.out.println("NumberFormatException for textfield " + name);
-									System.out.println(" cannot convert value " + string);
-									System.out.println();
+									System.out.println("found no correct value for new string '" + string + "'");
+									System.out.println("set value to 0");
 								}
 								value= 0;
 							}
@@ -1132,28 +1582,41 @@ public class Component extends HtmTags
 							}
 							value= 0;
 						}
+						try{
+							client.setValue(result, value, /*bthrow*/false);
+						}catch(IOException ex)
+						{}
+				    	if(	HtmTags.debug &&
+				    		client.hasError()	)
+				    	{
+				    		System.out.println("ERROR: by setValue() inside SelectionListener");
+				    		System.out.println("       " + client.getErrorMessage());
+				    	}
 					}else
-					{
-						if(HtmTags.debug)
-						{
-							System.out.println("found no correct value for new string '" + string + "'");
-							System.out.println("set value to 0");
-						}
-						value= 0;
-					}
-					try{
-						client.setValue(result, value, /*bthrow*/false);
-					}catch(IOException ex)
-					{}
-			    	if(	HtmTags.debug &&
-			    		client.hasError()	)
-			    	{
-			    		System.out.println("ERROR: by setValue() inside SelectionListener");
-			    		System.out.println("       " + client.getErrorMessage());
-			    	}
+						doSoftButton();
 				}
 			
 			});
+			if(m_nSoftButton)
+			{
+				final ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+				
+				doSoftButton();
+				tdTag.getBrowser().addLocationListener(m_eLocationListener= new LocationListener() {
+					
+					@Override
+					public void changing(LocationEvent arg0)
+					{
+						// nothing to do					
+					}
+					
+					@Override
+					public void changed(LocationEvent arg0) 
+					{
+						m_oText.setText(tdTag.getBrowser().getUrl());	
+					}
+				});
+			}
 			
 		}else if(this.type.equals("slider"))
 		{
@@ -1367,16 +1830,8 @@ public class Component extends HtmTags
 	 */
 	public void removeListeners()
 	{
-		if(	!m_bCorrectName
-			||
-			!haveListener
-			||
-			(	!getPermission().equals(permission.writeable)
-				&&
-				!this.type.equals("combo")					)	)
-		{
+		if(haveListener == false)
 			return;
-		}
 		
 		haveListener= false;
 		if(	this.type.equals("checkbox")
@@ -1385,8 +1840,17 @@ public class Component extends HtmTags
 			||
 			this.type.equals("togglebutton")	)
 		{
-			((Button)m_oComponent).removeSelectionListener(m_eSelectionListener);
-			m_eSelectionListener= null;
+			if(m_nSoftButton)
+			{
+				ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+				
+				tdTag.getBrowser().removeProgressListener(m_eProgressListener);
+				
+			}else
+			{
+				((Button)m_oComponent).removeSelectionListener(m_eSelectionListener);
+				m_eSelectionListener= null;
+			}
 			
 		}else if(	this.type.equals("button")
 					||
@@ -1404,9 +1868,21 @@ public class Component extends HtmTags
 			m_eListener2= null;
 			
 		}else if(this.type.equals("text"))
-		{
+		{	
 			((Text)m_oComponent).removeSelectionListener(m_eSelectionListener);
-			//((Text)m_oComponent).removeVerifyListener(m_eVerifyListener);
+			if(m_nSoftButton)
+			{
+				ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+				
+				if(m_eStatusListener != null)
+					tdTag.getBrowser().removeStatusTextListener(m_eStatusListener);
+				else
+				{
+					tdTag.getBrowser().removeLocationListener(m_eLocationListener);
+					m_oComponent.removeFocusListener(m_eFocusListener);
+					m_oComponent.removeMouseListener(m_eMouseListener);
+				}
+			}
 			
 		}else if(this.type.equals("slider"))
 		{

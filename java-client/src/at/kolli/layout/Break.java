@@ -16,6 +16,8 @@
  */
 package at.kolli.layout;
 
+import java.util.HashMap;
+
 import org.eclipse.swt.widgets.Composite;
 
 /**
@@ -45,12 +47,13 @@ public class Break extends HtmTags
 	 * into the displaying window. But this class have nothing to display, so method has nothing to do.
 	 * 
 	 * @param composite parent {@link Composite}
+	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 08.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite)
+	public void execute(Composite composite, HashMap<String, HtmTags> classes)
 	{
 		// nothing to do in an br tag
 

@@ -18,6 +18,7 @@ package at.kolli.layout;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.eclipse.swt.widgets.Composite;
 
@@ -47,15 +48,16 @@ public abstract class HtmTags
 	 * boolean value to show behavior of locking 
 	 * by setting new sides.<br />
 	 * this flag is only changeable here
+	 * and will be shown when also debug flag be set
 	 */
-	public static boolean lockDebug= true;
+	public static boolean lockDebug= false;
 	/**
 	 * boolean value to show locking behavior
 	 * by SWT disply synchronization.<br />
 	 * this flag is only changeable here
 	 * and will be shown when also debug flag be set
 	 */
-	public static boolean syncSWTExec= true;
+	public static boolean syncSWTExec= false;
 	/**
 	 * show also sides defined with meta tag display false
 	 */
@@ -153,11 +155,12 @@ public abstract class HtmTags
 	 * to create the component to display
 	 * 
 	 * @param composite parent composite
+	 * @param classes all class definition for any tags
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public abstract void execute(Composite composite) throws IOException;
+	public abstract void execute(Composite composite, HashMap<String, HtmTags> classes) throws IOException;
 
 	/**
 	 * returning the parent tag

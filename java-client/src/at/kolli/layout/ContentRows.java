@@ -19,6 +19,7 @@ package at.kolli.layout;
 import java.io.IOException;
 import java.security.acl.Group;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.eclipse.swt.widgets.Composite;
 
@@ -240,26 +241,28 @@ public class ContentRows extends HtmTags
 	 * on screen (in window)
 	 * 
 	 * @param composite parent {@link Composite}
+	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 06.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite) throws IOException
+	public void execute(Composite composite, HashMap<String, HtmTags> classes) throws IOException
 	{
-		execute(composite, null);
+		execute(composite, classes, null);
 	}
 	
 	/**
 	 * method to generate the widget in the display window
 	 * 
 	 * @param composite parent {@link Composite}
+	 * @param classes all class definition for any tags
 	 * @param isAlsoNextColumn ArrayList to see how much rows the field in the row before needed
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 07.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite, ArrayList<Integer> isAlsoNextColumn) throws IOException
+	public void execute(Composite composite, HashMap<String, HtmTags> classes, ArrayList<Integer> isAlsoNextColumn) throws IOException
 	{
 		int column= 0;
 		int maxColumns= isAlsoNextColumn.size();
@@ -287,7 +290,7 @@ public class ContentRows extends HtmTags
 			
 			isAlsoNextColumn.set(column, fromTop + ((ContentFields)tag).rowspan -1);
 			column+= ((ContentFields)tag).colspan;
-			tag.execute(composite);
+			tag.execute(composite, classes);
 		}
 		while(column < maxColumns)
 		{
@@ -312,7 +315,7 @@ public class ContentRows extends HtmTags
 			{
 				insert(field);
 				field.setBorder(m_bBorder);
-				field.execute(composite);
+				field.execute(composite, classes);
 				++column;
 			}
 		}

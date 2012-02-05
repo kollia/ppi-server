@@ -104,7 +104,7 @@ public class XMLSaxParser extends DefaultHandler
 	  /**
 	   * all components for faster access
 	   */
-	  private ArrayList<Component> m_aoComponents= new ArrayList<Component>();
+	  private ArrayList<IComponentListener> m_aoComponents= new ArrayList<IComponentListener>();
 	  /**
 	   * ArrayList with permission<br>
 	   * used as last in first out (LIFO) Collection
@@ -119,6 +119,10 @@ public class XMLSaxParser extends DefaultHandler
 	   * comprised all meta data from header
 	   */
 	  private HashMap<String, String> m_mMetaBox= new HashMap<String, String>();
+	  /**
+	   * all definitions of body tags or td tags from table
+	   */
+	  private HashMap<String, HtmTags> m_mClasses= new HashMap<String, HtmTags>();
 
 	  /**
 	   * constructor to create instance of XMLSaxParser
@@ -389,7 +393,11 @@ public class XMLSaxParser extends DefaultHandler
 	        }else if(m_oAktTag instanceof Body)
 	        {
 	        	if(aName.equals("href"))
+	        	{
 	        		((Body)m_oAktTag).href= attrs.getValue(i);
+	        		m_aoComponents.add((Body)m_oAktTag);
+	        	}else if(aName.equals("class"))
+	        		m_mClasses.put(attrs.getValue(i), m_oAktTag);
 	        	else
 				{
 					if(HtmTags.debug)
@@ -588,7 +596,17 @@ public class XMLSaxParser extends DefaultHandler
 		        		tr.permgroup= attrs.getValue(i);
 		        	else
 		        		table.permgroup= attrs.getValue(i);		        	
-		        }else
+		        }else if(	aName.equals("href") &&
+		        			td != null				)
+	        	{
+		        	td.href= attrs.getValue(i);
+		        	m_aoComponents.add(td);
+		        	
+	        	}else if(	aName.equals("class") &&
+	        				td != null				)
+	        	{
+	        		m_mClasses.put(attrs.getValue(i), td);
+	        	}else
 				{
 					if(HtmTags.debug)
 						echoString("\nfind unknown attribute " + aName + " inside tag <table>\n");
@@ -600,6 +618,17 @@ public class XMLSaxParser extends DefaultHandler
 	    	echoString( ">" );
 	    td= null;
 	    tr= null;
+	}
+	
+	/**
+	 * Return HashMap with all defined tags
+	 * which has an class definition
+	 * 
+	 * @return class names with tags
+	 */
+	public HashMap<String, HtmTags> getClassDefinitions()
+	{
+		return m_mClasses;
 	}
 
 	
@@ -828,7 +857,7 @@ public class XMLSaxParser extends DefaultHandler
    * @version 1.00.00, 04.12.2007
    * @since JDK 1.6
    */
-  public ArrayList<Component> getComponents()
+  public ArrayList<IComponentListener> getComponents()
   {
 	  return m_aoComponents;
   }

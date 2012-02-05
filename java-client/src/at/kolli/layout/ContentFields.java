@@ -18,9 +18,12 @@ package at.kolli.layout;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
+import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -28,6 +31,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 
 import at.kolli.automation.client.MsgClientConnector;
+import at.kolli.automation.client.NodeContainer;
 
 /**
  * class representing an field (column) in an table for layout on display
@@ -37,7 +41,7 @@ import at.kolli.automation.client.MsgClientConnector;
  * @version 1.00.00, 08.12.2007
  * @since JDK 1.6
  */
-public class ContentFields extends HtmTags
+public class ContentFields extends HtmTags implements IComponentListener
 {
 	/**
 	 * {@link Composite} for display the inherited widgets
@@ -84,9 +88,19 @@ public class ContentFields extends HtmTags
 	private boolean m_bBorder= false;
 	/**
 	 * if this variable filled,
-	 * this field or body as internet browser
+	 * this field or body is an internet browser
 	 */
 	public String href= "";
+	/**
+	 * variable be filled with the actual internet address
+	 * when side with browser will be leave.<br />
+	 * This will be only done when an soft button be defined.
+	 */
+	public String m_sActRef= "";
+	/**
+	 * browser object for href
+	 */
+	private Browser m_oBrowser= null;
 	
 	/**
 	 * create instance of td-tag
@@ -171,12 +185,13 @@ public class ContentFields extends HtmTags
 	 * method to generate the widget in the display window
 	 * 
 	 * @param composite parent {@link Composite}
+	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 08.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite) throws IOException
+	public void execute(Composite composite, HashMap<String, HtmTags> classes) throws IOException
 	{
 		int count;
 		ArrayList<Integer > lenList= new ArrayList<Integer>();
@@ -202,16 +217,17 @@ public class ContentFields extends HtmTags
 		}else
 			mainCp= new Composite(composite, SWT.NONE);
 		
-		if(href != "")
+		if(	this instanceof Body &&
+			href != ""				)
 		{
-			Browser browser= new Browser(mainCp, SWT.NONE);
-			
+			m_oBrowser= new Browser(mainCp, SWT.NONE);			
 			composite.setLayout(new FillLayout());
 			mainCp.setLayout(new FillLayout());
-			browser.setUrl(href);
+			this.composite= mainCp;
 			return;
 		}
-		if(m_lContent.size() == 0)
+		if(	m_lContent.size() == 0 &&
+			href == "")
 		{// no content exist
 			return;
 		}
@@ -233,15 +249,19 @@ public class ContentFields extends HtmTags
 		rowLayout.marginTop= 0;
 		rowLayout.marginBottom= 0;
 		count= 0;
-		for(HtmTags ntag : m_lContent)
+		if(href.equals(""))
 		{
-			if(ntag instanceof Break)
+			for(HtmTags ntag : m_lContent)
 			{
-				lenList.add(count);
-				count= 0;
-			}else
-				++count;
-		}
+				if(ntag instanceof Break)
+				{
+					lenList.add(count);
+					count= 0;
+				}else
+					++count;
+			}
+		}else
+			++count;
 		lenList.add(count);
 		rowLayout.numColumns= lenList.get(0);
 		count= 1; //<- for next list index
@@ -275,36 +295,160 @@ public class ContentFields extends HtmTags
 		mainCp.setLayoutData(mainData);
 		fieldCp.setLayoutData(fieldData);
 		rowCp.setLayoutData(rowData);
-
-		for(HtmTags tag : m_lContent)
+		
+		if(!href.equals(""))
 		{
-			if(tag instanceof Break)
+			final int minus= 10;
+			Composite gridCompo= new Group(rowCp, SWT.SHADOW_ETCHED_IN);//new Composite(rowCp, SWT.NONE);
+			GridLayout gridLayout= new GridLayout();
+			//Composite browseCompo= new Composite(gridCompo, SWT.NONE); 
+			GridData data= null;
+
+			m_oBrowser= new Browser(gridCompo, SWT.NONE);
+			if(	width != -1 &&
+				width > minus	)
 			{
-				rowCp= new Composite(fieldCp, SWT.NONE);
-				//rowCp= new Group(fieldCp, SWT.SHADOW_NONE);
-				rowLayout= new GridLayout();
-				rowData= new GridData();
-				
-				rowData.horizontalAlignment= align;
-				rowData.grabExcessHorizontalSpace= true;
-				rowLayout.marginTop= 0;
-				rowLayout.marginBottom= 0;
-				rowLayout.marginHeight= 0;
-				rowLayout.marginWidth= 0;
-				rowLayout.numColumns= lenList.get(count);
-				++count; //<- for next list index
-				rowCp.setLayout(rowLayout);
-				rowCp.setLayoutData(rowData);
-			}else
-			{
-				Composite gridCompo= new Composite(rowCp, SWT.NONE);
-				GridLayout gridLayout= new GridLayout();
-				
-				gridLayout.marginWidth= 1;
-				gridLayout.marginHeight= 0;
-				gridCompo.setLayout(gridLayout);
-				tag.execute(gridCompo);
+				data= new GridData();
+				data.widthHint= width - minus;
 			}
+			if(	height != -1 &&
+				height > minus	)
+			{
+				if(data == null)
+					data= new GridData();
+				data.heightHint= height - minus;
+			}
+			if(data != null)
+				gridCompo.setLayoutData(data);
+			gridLayout.marginWidth= 1;
+			gridLayout.marginHeight= 0;
+			gridCompo.setLayout(new FillLayout());
+			this.composite= gridCompo;
+			//tag.execute(gridCompo);
+			
+			//composite.setLayout(new FillLayout());
+			//browser.setLayout(new FillLayout());
+			return;
+		}else
+		{
+			for(HtmTags tag : m_lContent)
+			{
+				if(tag instanceof Break)
+				{
+					rowCp= new Composite(fieldCp, SWT.NONE);
+					//rowCp= new Group(fieldCp, SWT.SHADOW_NONE);
+					rowLayout= new GridLayout();
+					rowData= new GridData();
+					
+					rowData.horizontalAlignment= align;
+					rowData.grabExcessHorizontalSpace= true;
+					rowLayout.marginTop= 0;
+					rowLayout.marginBottom= 0;
+					rowLayout.marginHeight= 0;
+					rowLayout.marginWidth= 0;
+					rowLayout.numColumns= lenList.get(count);
+					++count; //<- for next list index
+					rowCp.setLayout(rowLayout);
+					rowCp.setLayoutData(rowData);
+				}else
+				{
+					Composite gridCompo= new Composite(rowCp, SWT.NONE);
+					GridLayout gridLayout= new GridLayout();
+					
+					gridLayout.marginWidth= 1;
+					gridLayout.marginHeight= 0;
+					gridCompo.setLayout(gridLayout);
+					tag.execute(gridCompo, classes);
+				}
+			}
+		}
+	}
+
+	/**
+	 * method listen on server whether value of component is changed
+	 * 
+	 * @param results map of result attributes with actual values
+	 * @param cont container with new value on which result of folder and subroutine
+	 * @author Alexander Kolli
+	 * @version 1.00.00, 09.12.2007
+	 * @since JDK 1.6
+	 */
+	public void serverListener(final Map<String, Double> results, NodeContainer cont) throws IOException
+	{
+		// nothing to do
+	}
+
+	/**
+	 * get exist browser object
+	 * 
+	 * @return browser object
+	 */
+	public Browser getBrowser()
+	{
+		return m_oBrowser;
+	}
+	
+	/**
+	 * add listeners if the component have an correct result attribute.<br />
+	 * This method is to listen on activity if the component is in an {@link Composite}
+	 * witch is be on the top of the {@link StackLayout}
+	 * 
+	 * @author Alexander Kolli
+	 * @version 1.00.00, 09.12.2007
+	 * @since JDK 1.6
+	 */
+	public void addListeners() throws IOException
+	{
+		if(!href.equals(""))
+		{
+			Browser browser= getBrowser();
+			String resource= browser.getUrl();
+			
+			if(HtmTags.debug)
+				System.out.println("current resource of browser is '" + resource + "'");
+			if(	resource.equals("") ||
+				resource.equals("about:blank")	)
+			{
+				String value;
+				
+				if(m_sActRef.equals(""))
+				{
+					value= href;
+					
+				}else
+					value= m_sActRef;	
+				if(HtmTags.debug)
+					System.out.println("set resource to '" + value + "'");
+				browser.setUrl(value);
+				
+			}
+		}
+	}
+
+	/**
+	 * remove listeners if the component have an correct result attribute.<br />
+	 * This method is to remove all listeners which set bevore with addListeners()
+	 * if the component is in an {@link Composite} witch is not on the top of the {@link StackLayout}
+	 * 
+	 * @author Alexander Kolli
+	 * @version 1.00.00, 09.12.2007
+	 * @since JDK 1.6
+	 */
+	public void removeListeners()
+	{
+		if(!href.equals(""))
+		{
+			String value;
+			
+			value= m_oBrowser.getUrl();
+			System.out.println("set browser to blank screen");
+			m_oBrowser.setUrl("about:blank");
+			if(	!value.equals("") &&
+				!value.equals("about:blank")	)
+			{
+				m_sActRef= value;
+			}
+			System.gc();
 		}
 	}
 }

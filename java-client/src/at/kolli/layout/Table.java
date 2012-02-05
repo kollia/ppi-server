@@ -18,6 +18,7 @@ package at.kolli.layout;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -200,12 +201,13 @@ public class Table extends HtmTags
 	 * execute method to create the composite for display
 	 * 
 	 * @param composite parent composite
+	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite) throws IOException
+	public void execute(Composite composite, HashMap<String, HtmTags> classes) throws IOException
 	{
 		int columns= 1;
 		int heighest= -1;
@@ -272,7 +274,7 @@ public class Table extends HtmTags
 		{
 			ContentRows row= (ContentRows)tag;
 			
-			row.execute(m_oComposite, isAlsoNext);
+			row.execute(m_oComposite, classes, isAlsoNext);
 		}
 	}
 	

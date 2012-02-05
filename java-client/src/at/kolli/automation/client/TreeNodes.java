@@ -50,6 +50,7 @@ import at.kolli.layout.Break;
 import at.kolli.layout.Component;
 import at.kolli.layout.Head;
 import at.kolli.layout.HtmTags;
+import at.kolli.layout.IComponentListener;
 import at.kolli.layout.Layout;
 import at.kolli.layout.PopupMenu;
 import at.kolli.layout.Title;
@@ -129,7 +130,7 @@ public class TreeNodes
 	/**
 	 * holder from all components to get an faster access for actions
 	 */
-	private ArrayList<Component> m_aoButtons;
+	private ArrayList<IComponentListener> m_aoButtons;
 	/**
 	 * comprised all meta data witch are defined in the header of the side
 	 */
@@ -851,6 +852,7 @@ public class TreeNodes
 				@Override
 				public void run() {
 					// define minimal shown size
+					System.out.println("define minimal scroll size");
 					m_oScrolledComposite.setMinSize(m_oComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT, true));
 					//System.out.println(m_sName + ": " + m_oComposite.getSize());
 				}
@@ -1098,13 +1100,16 @@ public class TreeNodes
 			    m_oBodyTag= bodyList.get(0);
 			    if(m_oBodyTag != null)
 			    {
+					final HashMap<String, HtmTags> oClasses;
+					
 			    	m_runnable_ex= null;
+	    		    oClasses= handler.getClassDefinitions();
 			    	DisplayAdapter.syncExec(new Runnable() {
 					
 						public void run() {
 							
 							try{
-								m_oBodyTag.execute(m_oComposite);
+								m_oBodyTag.execute(m_oComposite, oClasses);
 							}catch(IOException ex)
 							{
 								m_runnable_ex= ex;
@@ -1152,7 +1157,7 @@ public class TreeNodes
 	 * 
 	 * @return array of components
 	 */
-	public ArrayList<Component> getComponents()
+	public ArrayList<IComponentListener> getComponents()
 	{
 		return m_aoButtons;
 	}
@@ -1170,7 +1175,7 @@ public class TreeNodes
 			{
 				Map<String, Double> results= new HashMap<String, Double>();
 				
-				for(Component component : m_aoButtons)
+				for(IComponentListener component : m_aoButtons)
 					component.serverListener(results, cont);
 			}
 			return;

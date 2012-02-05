@@ -66,6 +66,7 @@ import at.kolli.dialogs.DisplayAdapter;
 import at.kolli.dialogs.DialogThread.states;
 import at.kolli.layout.Component;
 import at.kolli.layout.HtmTags;
+import at.kolli.layout.IComponentListener;
 import at.kolli.layout.PopupMenu;
 import at.kolli.layout.WidgetChecker;
 
@@ -173,7 +174,7 @@ public class LayoutLoader extends Thread
 	/**
 	 * all components from the visible node
 	 */
-	private ArrayList<Component> m_aoComponents= null;
+	private ArrayList<IComponentListener> m_aoComponents= null;
 	/**
 	 * width of main-window if saved on hard disk
 	 */
@@ -452,8 +453,10 @@ public class LayoutLoader extends Thread
 				{
 					System.out.println("-----------------------------------------------");
 					System.out.println(client.getErrorMessage());
+					ex.printStackTrace();
 					System.out.println("-----------------------------------------------");
-				}	
+				}
+				client.closeConnection();
 				setState(BROKEN);
 				type= WAIT;
 			}	
@@ -538,13 +541,15 @@ public class LayoutLoader extends Thread
 					&&
 					m_aoComponents.size() > 0	)
 				{
+					//final ArrayList<IComponentListener> oldComponents= m_aoComponents;
+					
 					if(HtmTags.debug)
-						System.out.println("remove listeners from side " + m_sAktFolder);
+						System.out.println("remove listeners from side " + node.getName());
 					DisplayAdapter.syncExec(new Runnable() {
 						
 						public void run() {
 							
-							for(final Component component : m_aoComponents)
+							for(final IComponentListener component : m_aoComponents)
 							{
 								component.removeListeners();
 							}
@@ -565,7 +570,7 @@ public class LayoutLoader extends Thread
 						
 						public void run() {
 							
-							for(final Component component : m_aoComponents)
+							for(final IComponentListener component : m_aoComponents)
 							{
 								try{
 									component.addListeners();
@@ -915,10 +920,11 @@ public class LayoutLoader extends Thread
 					
 					public void run() {
 						
-						for(final Component component : m_aoComponents)
+						for(final IComponentListener component : m_aoComponents)
 						{
 							component.removeListeners();
 						}
+						m_aoComponents= null;
 					}
 					
 				});

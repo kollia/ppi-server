@@ -16,6 +16,8 @@
  */
 package at.kolli.layout;
 
+import java.util.HashMap;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
@@ -105,12 +107,13 @@ public class Label extends HtmTags
 	 * on screen (in window)
 	 * 
 	 * @param composite parent {@link Composite}
+	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 06.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite)
+	public void execute(Composite composite, HashMap<String, HtmTags> classes)
 	{
 		GridData data= new GridData();
 		org.eclipse.swt.widgets.Label label= new org.eclipse.swt.widgets.Label(composite, separator);
