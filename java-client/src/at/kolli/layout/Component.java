@@ -1051,6 +1051,7 @@ public class Component  extends HtmTags implements IComponentListener
 		}else
 		{
 			setPermission(permission.None);
+			System.out.println(client.getErrorMessage());
 			if(client.getErrorCode().equals("ERROR 016"))
 				m_bDeviceAccess= false;
 		}
