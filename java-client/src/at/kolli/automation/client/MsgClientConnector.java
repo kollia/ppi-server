@@ -300,8 +300,8 @@ public class MsgClientConnector extends ClientConnector
 		if(!error.match(res))
 		{
 			m_sErrorCode= res;
-			if(	m_sErrorCode == "UNKNOWNHOSTEXCEPTION" ||
-				m_sErrorCode == "UNDEFINEDSERVER"			)
+			if(	m_sErrorCode.equals("UNKNOWNHOSTEXCEPTION") ||
+				m_sErrorCode.equals("UNDEFINEDSERVER")			)
 			{
 				m_sErrorMsg= m_oTrans.translate(m_sErrorCode, m_sHost, Long.toString(m_nPort));
 			}else
@@ -310,22 +310,22 @@ public class MsgClientConnector extends ClientConnector
 		}
 		number= error.getParen(1);
 		m_sErrorCode= "PORTSERVERERROR" + number;
-		if(	number == "001" ||
-			number == "002"		)
+		if(	number.equals("001") ||
+			number.equals("002")	)
 		{
 			m_sErrorMsg= m_oTrans.translate(m_sErrorCode);
 			
-		}else if(number == "003")
+		}else if(number.equals("003"))
 			m_sErrorMsg= m_oTrans.translate(m_sErrorCode, error.getParen(2));
-		else if(number == "004")
+		else if(number.equals("004"))
 			m_sErrorMsg= m_oTrans.translate(m_sErrorCode, folder);
-		else if(number == "005")
+		else if(number.equals("005"))
 			m_sErrorMsg= m_oTrans.translate(m_sErrorCode, subroutine, folder);
-		else if(number == "006")
+		else if(number.equals("006"))
 			m_sErrorMsg= m_oTrans.translate(m_sErrorCode, subroutine);
-		else if(	number == "011" ||
-					number == "012" ||
-					number == "015"		)
+		else if(	number.equals("011") ||
+					number.equals("012") ||
+					number.equals("015")	)
 		{
 			m_sErrorMsg= m_oTrans.translate(m_sErrorCode, m_sCurUser);
 			if(number != "012")
