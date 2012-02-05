@@ -1115,7 +1115,6 @@ public class Component  extends HtmTags implements IComponentListener
 						type.equals("togglebutton")	)	) ||
 				(	!result.equals("browser_url") &&	// there is also allowed
 					!result.equals("browser_info") &&	// an URL with new address
-					!result.equals("browser_load") &&
 					(	type.equals("button") ||		
 						type.equals("upbutton") ||
 						type.equals("leftbutton") ||
