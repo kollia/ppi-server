@@ -178,6 +178,10 @@ public class MsgClientConnector extends ClientConnector
 			m_sCurUser= user;
 			m_sCurPassword= password;
 		}
+		dialog= DialogThread.instance();		
+		nMax= dialog.getMaximum();
+		dialog.setSelection(0);
+		nSelected= 0;
 		do{
 			try{
 				bExcept= false;
@@ -196,8 +200,7 @@ public class MsgClientConnector extends ClientConnector
 				long aktSec;
 				
 				bExcept= true;
-				generateServerError(ex.getMessage());
-				dialog= DialogThread.instance();				
+				generateServerError(ex.getMessage());		
 				dialog.show(m_oTrans.translate("dialogConnectionTitle"), m_sErrorMsg);
 				if(HtmTags.debug)
 				{
@@ -206,21 +209,17 @@ public class MsgClientConnector extends ClientConnector
 					System.out.println(" -> found no Server on given port");
 					System.out.println();
 				}
-				if(nMax == 0)
-				{
-					nMax= dialog.getMaximum();
-					dialog.setSelection(0);
-				}
 				aktSec= System.currentTimeMillis();
-				do{					
-					nSelected= dialog.getSelection();
+				do{	
 					if(nSelected < nMax)
 						++nSelected;
 					else
 						nSelected= 0;
 					dialog.setSelection(nSelected);
+					if(HtmTags.debug)
+						System.out.println("Wait for connection per " + nSelected + " %");
 					try{
-						Thread.sleep(10);
+						Thread.sleep(100);
 						
 					}catch(InterruptedException interupt)
 					{

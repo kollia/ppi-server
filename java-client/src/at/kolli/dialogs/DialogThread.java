@@ -436,7 +436,7 @@ public class DialogThread // extends Thread
 
 			if(!m_bOpen)
 				return;
-			DisplayAdapter.syncExec(new Runnable()
+			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run()
