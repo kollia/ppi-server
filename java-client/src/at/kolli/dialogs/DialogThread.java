@@ -251,7 +251,10 @@ public class DialogThread // extends Thread
 				final short ltype= layoutType;
 
 				m_bOpen= true;
-				m_eState= states.RUN;
+				synchronized (m_eState)
+				{
+					m_eState= states.RUN;
+				}
 				m_oDialog= new ConnectionDialog(m_oShell);
 				if(m_bProgress)
 					m_oDialog.needProgressBar();
@@ -267,12 +270,20 @@ public class DialogThread // extends Thread
 						m_oDialog.setTitle(m_sTitle);
 						m_oDialog.setMessage(m_sMessage);
 						result= m_oDialog.open();
-						if(result == Dialog.OK)
-							m_eState= states.OK;
-						else if(result == Dialog.CANCEL)
-							m_eState= states.CANCEL;
-						else
-							m_eState= states.ERROR;
+						Thread t= Thread.currentThread();
+						System.out.println("dialog box ending");
+						System.out.println(t.getName()+" want to lock state variable");
+						synchronized (m_eState) 
+						{						
+							System.out.println(t.getName()+" lock state variable");
+							if(result == Dialog.OK)
+								m_eState= states.OK;
+							else if(result == Dialog.CANCEL)
+								m_eState= states.CANCEL;
+							else
+								m_eState= states.ERROR;	
+							System.out.println(t.getName()+" give state lock free");
+						}
 						m_oDialog.close();			
 					}
 				}, "DialogThread::produceDialog() create dialog");
@@ -336,7 +347,13 @@ public class DialogThread // extends Thread
 	 */
 	public states dialogState()
 	{ 
-		return m_eState;
+		states eRv= states.NONE;
+		
+		synchronized (m_eState)
+		{
+			eRv= m_eState;
+		}
+		return eRv;
 	}
 	
 	/**
@@ -352,19 +369,6 @@ public class DialogThread // extends Thread
 		return m_bRunning;
 	}
 	
-	/**
-	 * thread of object should be ending
-	 * 
-	 * @author Alexander Kolli
-	 * @version 1.00.00, 04.12.2007
-	 * @since JDK 1.6
-	 */
-	/*public void stopping()
-	{
-		m_bStop= true;
-		//this.interrupt();
-	}*/
-
 	/**
 	 * show message in dialog thread
 	 * and start to display if not done before
@@ -441,9 +445,15 @@ public class DialogThread // extends Thread
 				//@Override
 				public void run()
 				{
-					if(HtmTags.debug)
-						System.out.println("dialog progress bar be set to " + m_nSelected + "%");
-					m_oDialog.setSelection(m_nSelected);
+					synchronized (m_eState)
+					{
+						if(m_eState.equals(states.RUN))
+						{
+							if(HtmTags.debug)
+								System.out.println("dialog progress bar be set to " + m_nSelected + "%");
+							m_oDialog.setSelection(m_nSelected);
+						}
+					}
 				}				
 			});
 		}
@@ -459,20 +469,35 @@ public class DialogThread // extends Thread
 	 */
 	public int getSelection()
 	{
+		int nRv;
+		
 		synchronized(m_nSelected)
 		{
-			if(!m_bOpen)
-				return 0;
-			DisplayAdapter.syncExec(new Runnable()
-			{				
-				//@Override
-				public void run()
-				{
-					m_nSelected= m_oDialog.getSelection();
-				}				
-			});
-			return m_nSelected;
+			nRv= m_nSelected;
 		}
+/*			Thread t= Thread.currentThread();
+			
+			if(dialogState().equals(DialogThread.states.CANCEL))
+				return 0;
+			System.out.println(t.getName()+" want to lock state variable to get progressBar.selection");
+			synchronized (m_eState)
+			{					
+				System.out.println(t.getName()+" lock state variable");
+				if(m_eState != states.RUN)
+					return 0;
+				m_nSelected= 0;
+				DisplayAdapter.syncExec(new Runnable()
+				{				
+					//@Override
+					public void run()
+					{
+						m_nSelected= m_oDialog.getSelection();
+					}				
+				});
+				System.out.println(t.getName()+" give state lock free");
+			}*/
+		return nRv; //m_nSelected;
+	//	}
 	}
 	
 	/**

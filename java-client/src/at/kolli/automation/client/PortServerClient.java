@@ -411,6 +411,15 @@ public class PortServerClient
 		if(dialog.produceDialog(LayoutLoader.CREATE).equals(DialogThread.states.CANCEL))
 		{
 			loader.stopThread();
+			while(loader.isAlive())
+			{
+				try{
+					Thread.sleep(100);
+				}catch(InterruptedException ex)
+				{
+					ex.printStackTrace();
+				}
+			}
 			return;
 		}
 		toplevelShell.addDisposeListener(new DisposeListener() {
@@ -444,6 +453,8 @@ public class PortServerClient
 		{
 			if(!display.readAndDispatch())
 				display.sleep();
+			if(!loader.isAlive())
+				toplevelShell.dispose();
 		}
 
 		

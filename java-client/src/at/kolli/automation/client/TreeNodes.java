@@ -685,6 +685,8 @@ public class TreeNodes
 					m_sName= name;
 					m_sTitleName= name;
 				}
+				if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+					throw new IllegalAccessException("### loading dialog closed");
 				DisplayAdapter.syncExec(new Runnable() {
 				
 					public void run() {
@@ -701,8 +703,15 @@ public class TreeNodes
 				
 				if(!createPage())
 				{
-					dispose();
-					throw new IllegalAccessException("no side access");
+					String msg;
+					
+					if(dialog.isOpen())
+					{
+						dispose();
+						msg= "no side access";
+					}else
+						msg= "### loading dialog closed";
+					throw new IllegalAccessException(msg);
 				}
 				if(!bNoSides)
 				{
@@ -711,6 +720,8 @@ public class TreeNodes
 						if(m_oPopupComposite != null)
 						{
 							final TreeNodes tnode= this;
+							if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+								throw new IllegalAccessException("### loading dialog closed");
 							DisplayAdapter.syncExec(new Runnable() {
 							
 								public void run() 
@@ -722,6 +733,8 @@ public class TreeNodes
 						}
 					}else
 					{
+						if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+							throw new IllegalAccessException("### loading dialog closed");
 						DisplayAdapter.syncExec(new Runnable() {
 						
 							public void run() {
@@ -758,6 +771,9 @@ public class TreeNodes
 						});
 					}
 				}
+
+				if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+					throw new IllegalAccessException("### loading dialog closed");
 				dialog.setSelection(dialog.getSelection() + DialogThread.m_nProgressSteps);
 				//oScComp.setContent(m_oContent);
 				//m_oContent.setSize(m_oContent.computeSize(SWT.DEFAULT, SWT.DEFAULT));
@@ -847,6 +863,8 @@ public class TreeNodes
 		
 		if(m_oScrolledComposite != null)
 		{
+			if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+				throw new IllegalAccessException("### loading dialog closed");
 			DisplayAdapter.syncExec(new Runnable() {
 				
 				@Override
@@ -884,6 +902,7 @@ public class TreeNodes
 		ArrayList<Body> bodyList= null;
 		Date serverDate;
 		Date fileDate;
+		DialogThread dialog;
 		
 		if(m_sName.equals(""))
 		{// when TreeNodes started with no content of files (m_sName is "")
@@ -981,6 +1000,9 @@ public class TreeNodes
 				}
 			}
 		}
+		dialog= DialogThread.instance();
+		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+			return false;
 		DisplayAdapter.syncExec(new Runnable() {
 		
 			public void run() {
@@ -1067,7 +1089,9 @@ public class TreeNodes
 	      if(permGroup != null)
 	      {
 	    	  permission perm;
-	    	  
+
+	    	  if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+	    		  return false;
 	    	  perm= client.permission(permGroup, /*bthrow*/true);	    		  
 	    	  if(	perm == null ||
 	    			perm == permission.None	)
@@ -1104,6 +1128,8 @@ public class TreeNodes
 					
 			    	m_runnable_ex= null;
 	    		    oClasses= handler.getClassDefinitions();
+	    			if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+	    				return false;
 			    	DisplayAdapter.syncExec(new Runnable() {
 					
 						public void run() {

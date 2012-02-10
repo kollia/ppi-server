@@ -103,7 +103,7 @@ public class LayoutLoader extends Thread
 	/**
 	 * type of layout creation<br />
 	 * CREATE for first beginning<br />
-	 * UPDATE for refresh content with allocate new user
+	 * UPDATE for refresh content with allocate new user<br />
 	 * REFRESH only for refresh content
 	 */
 	private Short type= 0;
@@ -372,6 +372,11 @@ public class LayoutLoader extends Thread
 							client.openNewConnection(TreeNodes.m_sUser, TreeNodes.m_sPwd);
 						}else
 							client.changeUser(TreeNodes.m_sUser, TreeNodes.m_sPwd, /*bthrow*/true);
+						if(!dialog.isOpen())
+							stopThread();
+						if(stopping())
+							break;
+						type= getType();
 						if(client.hasError())
 						{
 							Toolkit oKit= Toolkit.getDefaultToolkit();
@@ -436,6 +441,8 @@ public class LayoutLoader extends Thread
 					TreeNodes.m_hmDirectory= folder;
 					dialog.show(trans.translate("dialogLoadContent"));
 					initializeMainWidget(TreeNodes.m_hmDirectory);
+					if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+						return;
 					if(dialog.dialogState().equals(states.RUN))
 					{
 						//System.out.println("Close Dialog Box");
@@ -883,6 +890,8 @@ public class LayoutLoader extends Thread
 		if(!m_bInitialized)
 		{// when no tree nodes exists
 		 // initialization of main window cannot be done
+			if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+				return;
 			DisplayAdapter.syncExec(new Runnable() {
 			
 				public void run() 
@@ -896,6 +905,8 @@ public class LayoutLoader extends Thread
 		{
 			if(HtmTags.notree)
 			{// remove old, and create new pop-up bar
+				if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+					return;
 				DisplayAdapter.syncExec(new Runnable() {
 					
 					public void run() {
@@ -916,6 +927,8 @@ public class LayoutLoader extends Thread
 			}
 			if(m_aoComponents != null)
 			{
+				if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+					return;
 				DisplayAdapter.syncExec(new Runnable() {
 					
 					public void run() {
@@ -931,6 +944,8 @@ public class LayoutLoader extends Thread
 			}
 		}
 		nodes= creatingWidgets(m_oTree, m_oMainComposite, folderSet);
+		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+			return;
 		if(m_aTreeNodes != null)
 		{// dispose all old sides
 			for (TreeNodes node : m_aTreeNodes) {
@@ -938,20 +953,14 @@ public class LayoutLoader extends Thread
 				node.dispose();
 			}
 		}
-		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
-		{
-			for (TreeNodes node : nodes) {
-				
-				node.dispose();
-			}
-			return;
-		}
 		m_aTreeNodes= nodes;
 
 		if(	m_nWidth != 0
 			&&
 			m_nHeight != 0	)
 		{
+			if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+				return;
 			DisplayAdapter.syncExec(new Runnable() {
 			
 				public void run() 
@@ -1166,8 +1175,8 @@ public class LayoutLoader extends Thread
 						{
 							if(HtmTags.debug)
 								System.out.println("user has no access to side!");
-							access= false;
 						}
+						access= false;
 					}
 					if(access)
 					{

@@ -166,7 +166,7 @@ public class MsgClientConnector extends ClientConnector
 		int nMax= 0;
 		int nSelected;
 		String sRv= "NONE";
-		DialogThread dialog= null;
+		DialogThread dialog;
 
 		if(	m_sRegUser != null &&
 			!m_sRegUser.equals("")	)
@@ -227,7 +227,8 @@ public class MsgClientConnector extends ClientConnector
 					}
 				}while((aktSec + 3000) > System.currentTimeMillis());
 			}
-		}while(bExcept);
+		}while(	bExcept &&
+				dialog.isOpen()	);
 	}
 
 	/**
