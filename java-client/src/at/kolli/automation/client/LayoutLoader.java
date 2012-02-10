@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -64,7 +65,6 @@ import org.apache.regexp.RE;
 import at.kolli.dialogs.DialogThread;
 import at.kolli.dialogs.DisplayAdapter;
 import at.kolli.dialogs.DialogThread.states;
-import at.kolli.layout.Component;
 import at.kolli.layout.HtmTags;
 import at.kolli.layout.IComponentListener;
 import at.kolli.layout.PopupMenu;
@@ -115,6 +115,14 @@ public class LayoutLoader extends Thread
 	 * instance of LayoutLoader
 	 */
 	private static LayoutLoader _instance= null;
+	/**
+	 * lock object to create conditions
+	 */
+	private final Lock stateLock= new ReentrantLock();
+	/**
+	 * condition to wait if more threads want to open the dialog box
+	 */
+	private final Condition newStateCondition= stateLock.newCondition();
 	/**
 	 * stack layout of main widget on the right side
 	 */
@@ -245,6 +253,9 @@ public class LayoutLoader extends Thread
 		synchronized (m_bStop) {
 			
 			m_bStop= true;
+			stateLock.lock();
+			newStateCondition.signalAll();
+			stateLock.unlock();
 		}
 	}
 	
@@ -273,10 +284,9 @@ public class LayoutLoader extends Thread
 	{
 		short type;
 
-		synchronized (this.type) {
-			
-			type= this.type;
-		}
+		stateLock.lock();
+		type= this.type;
+		stateLock.unlock();
 		return type;
 	}
 	/**
@@ -312,12 +322,24 @@ public class LayoutLoader extends Thread
 			try{
 				while(getType() == 0)
 				{
+					stateLock.lock();	
 					try{
-						sleep(100);
+						// wait until no new content should be loading
+							newStateCondition.await();
 					}catch(InterruptedException ex)
+					{	
+						System.out.println("newStateCodition get's InterruptedException, so wait for 100 milliseconds");
+						try{
+							sleep(100);
+						}catch(InterruptedException iex)
+						{
+							System.out.println("cannot sleep 10 milliseconds for wating on LayoutLoader-thread");
+							iex.printStackTrace();
+						}
+					}
+					finally
 					{
-						System.out.println("cannot sleep 10 milliseconds for wating on LayoutLoader-thread");
-						ex.printStackTrace();
+						stateLock.unlock();
 					}
 					if(stopping())
 						return;
@@ -1107,11 +1129,10 @@ public class LayoutLoader extends Thread
 	 */
 	public void setState(short type)
 	{
-		synchronized (this.type) {
-		
-			this.type= type;
-			//this.type.notify();
-		}
+		stateLock.lock();
+		this.type= type;
+		newStateCondition.signalAll();
+		stateLock.unlock();
 	}
 	
 	/**
