@@ -50,6 +50,10 @@ public class PopupMenu
 	 */
 	private static PopupMenu _instance= null;
 	/**
+	 * calculated rectangle of popup-menu after the first display
+	 */
+	private Rectangle m_nPopup= null;
+	/**
 	 * shell of current popup menu
 	 */
 	private Shell m_popupShell= null;
@@ -258,7 +262,7 @@ public class PopupMenu
 		Point abs;
 		Group popup;
 		Rectangle	rect,
-					popup_rect;
+					popup_rect= new Rectangle(0, 0, 120, 100);
 		TreeNodes node;
 		RowLayout l;
 		ArrayList<TreeNodes> nodes;
@@ -277,7 +281,7 @@ public class PopupMenu
 			popup= m_mRootEntrys.get(menu_entry);
 			rect= popup.getBounds();
 			m_popupShell= new Shell(m_oTopLevelShell, SWT.NO_TRIM);
-			popup_rect= m_popupShell.getClientArea();
+			//popup_rect= m_popupShell.getClientArea();
 			abs= LayoutLoader.getAbsoluteUseFieldPoint();
 			popup_rect.x= m_oMenu.getBounds().x + abs.x + rect.x;
 			popup_rect.y= abs.y + rect.y + rect.height;
@@ -305,7 +309,7 @@ public class PopupMenu
 				int space= 20;
 				
 				entry= m_sMenu + ":" + subnode.getName();
-				text.setText(subnode.getName());
+				text.setText(subnode.getName().trim());
 				if(popupspace != null)
 					space= Integer.parseInt(popupspace);
 				layout.type= SWT.VERTICAL;
@@ -333,6 +337,7 @@ public class PopupMenu
 						{
 							loader.setActSideVisible(/*inform server by no body*/true);
 						}
+						m_nPopup= m_popupShell.getBounds();
 						destroy();
 						m_sMenu= "";
 					}
@@ -355,36 +360,26 @@ public class PopupMenu
 						{
 							loader.setActSideVisible(/*inform server by no body*/true);
 						}
+						m_nPopup= m_popupShell.getBounds();
 						destroy();
 						m_sMenu= "";
 					}
 				});
-				/*text.addMouseMoveListener(new MouseMoveListener()
-				{
-					public void  mouseMove(MouseEvent ev)
-					{
-						_instance.show(entry, true);
-					}
-				});
-				comp.addMouseMoveListener(new MouseMoveListener()
-				{
-					public void  mouseMove(MouseEvent ev)
-					{
-						_instance.show(entry, true);
-					}
-				})*/;
 			}
-
 			int height= 0;
 			int width= 0;
-			
+
+			//popup_rect.height= 20;
+			//popup_rect.width= 20;
+			if(m_nPopup != null)
+				popup_rect= m_nPopup;
 			m_popupShell.setBounds(popup_rect);
-			//m_popupShell.setEnabled(false);
+			m_popupShell.setEnabled(false);
 			m_popupShell.setVisible(false);
 			m_popupShell.open();
-			popup_rect.height= 0;
-			popup_rect.width= 0;
-			for (Composite composite : comps) 
+			//popup_rect.height= 0;
+			//popup_rect.width= 0;
+/*			for (Composite composite : comps) 
 			{
 				rect= composite.getBounds();
 				if(	height == 0
@@ -397,9 +392,10 @@ public class PopupMenu
 				popup_rect.height+= rect.height + height;
 				if(rect.width > popup_rect.width)
 					popup_rect.width= rect.width + rect.x + 4;
-			}
-			m_popupShell.setBounds(popup_rect);
-			//m_popupShell.setEnabled(true);
+			}*/
+			m_popupShell.pack();
+			//m_popupShell.setBounds(popup_rect);
+			m_popupShell.setEnabled(true);
 			m_popupShell.setVisible(true);
 			
 		}else if(	!m_sMenu.equals("")
