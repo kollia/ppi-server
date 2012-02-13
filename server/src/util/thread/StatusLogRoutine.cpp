@@ -51,10 +51,15 @@ StatusLogRoutine::StatusLogRoutine()
 void StatusLogRoutine::positionA(const string file, const int line, const string identif, const string* info2, const int* ninfo2)
 {
 	pid_t tid= Thread::gettid();
+	map<pid_t, pos_t>::iterator t;
 
-	//cout << "want to lock from " << file << " line:" << line << endl;
 	LOCK(m_POSITIONSTATUS);
-	//cout << "be locked from " << file << " line:" << line << endl;
+	t= m_mStatus.find(tid);
+	if(t == m_mStatus.end())
+	{
+		UNLOCK(m_POSITIONSTATUS);
+		return;
+	}
 	m_mStatus[tid].tid= tid;
 	m_mStatus[tid].file= file;
 	m_mStatus[tid].line= line;
@@ -93,8 +98,15 @@ void StatusLogRoutine::statusattrib(IStatusLogPattern* thread, string* info1, in
 {
 	pos_t pos;
 	pid_t tid= Thread::gettid();
+	map<pid_t, pos_t>::iterator t;
 
 	LOCK(m_POSITIONSTATUS);
+	t= m_mStatus.find(tid);
+	if(t == m_mStatus.end())
+	{
+		UNLOCK(m_POSITIONSTATUS);
+		return;
+	}
 	pos= m_mStatus[tid];
 	if(info1 != NULL)
 		pos.info1= *info1;
@@ -271,16 +283,10 @@ string StatusLogRoutine::getStatus(string params, pos_t& pos, time_t elapsed, st
 void StatusLogRoutine::removestatus(pid_t threadid)
 {
 	map<pid_t, pos_t>::iterator del;
-	map<pid_t, pos_t>::size_type n;
 
 	LOCK(m_POSITIONSTATUS);
 	del= m_mStatus.find(threadid);
-	if(del != m_mStatus.end())
-	{
-		n= m_mStatus.size();
-		m_mStatus.erase(del);
-		n= m_mStatus.size();
-	}else
+	if(del == m_mStatus.end())
 	{
 		ostringstream msg;
 
@@ -290,7 +296,8 @@ void StatusLogRoutine::removestatus(pid_t threadid)
 		LOG(LOG_ERROR, msg.str());
 		msg << endl;
 		cerr << msg.str();
-	}
+	}else
+		m_mStatus.erase(del);
 	UNLOCK(m_POSITIONSTATUS);
 }
 
