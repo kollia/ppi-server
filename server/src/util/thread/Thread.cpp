@@ -268,14 +268,14 @@ pthread_mutex_t* Thread::getMutex(string name)
 	{
 		char msg[40];
 
-		sprintf(msg, "ERROR:: cannot lock mutex -> error:%d", result);
+		sprintf(msg, "ERROR:: cannot create lock mutex -> error:%d", result);
 		LOG(LOG_ALERT, msg);
 	}else
 	{
 		int error= pthread_mutex_lock(&g_READMUTEX);
 		if(error != 0)
 		{
-			LOG(LOG_ERROR, "error by mutex lock " + getMutexName(mutex));
+			LOG(LOG_ERROR, "error by global mutex lock, locking by " + getMutexName(mutex));
 		}
 
 		tName.name= name;
@@ -285,7 +285,7 @@ pthread_mutex_t* Thread::getMutex(string name)
 		error= pthread_mutex_unlock(&g_READMUTEX);
 		if(error != 0)
 		{
-			LOG(LOG_ERROR, "error by mutex unlock " + getMutexName(mutex));
+			LOG(LOG_ERROR, "error by global mutex unlock, by locking for " + getMutexName(mutex));
 		}
 	}
 	return mutex;
@@ -728,6 +728,7 @@ void Thread::destroyMutex(string file, int line, pthread_mutex_t* mutex)
 		LOG(LOG_ERROR, "error by mutex unlock READMUTEX by destroy");
 	}
 	pthread_mutex_destroy(mutex);
+	delete mutex;
 }
 
 void Thread::applicationStops()
@@ -810,6 +811,7 @@ void Thread::destroyCondition(string file, int line, pthread_cond_t *cond)
 		LOG(LOG_ERROR, "error by mutex unlock READMUTEX by destroy condition");
 	}
 	pthread_cond_destroy(cond);
+	delete cond;
 }
 
 void Thread::destroyAllConditions()
