@@ -71,7 +71,6 @@ Thread::Thread(string threadName, useconds_t defaultSleep, bool waitInit)
 int Thread::start(void *args, bool bHold)
 {
 	int nRv= 0;
-	void *Rv;
 	string threadName(getThreadName());
 	pthread_attr_t attr;
 
@@ -98,7 +97,7 @@ int Thread::start(void *args, bool bHold)
 	if(bHold)
 	{
 		POSS("###Thread_join", getThreadName());
-		nRv= pthread_join(m_nPosixThreadID, &Rv);
+		nRv= pthread_join(m_nPosixThreadID, NULL);
 		if(nRv != 0)
 		{
 			LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
@@ -117,7 +116,7 @@ int Thread::start(void *args, bool bHold)
 #endif
 				if(stopping())
 				{// an error is occured in init methode
-					nRv= pthread_join(m_nPosixThreadID, &Rv);
+					nRv= pthread_join(m_nPosixThreadID, NULL);
 					if(nRv != 0)
 					{
 						LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
