@@ -394,6 +394,7 @@ public class TreeNodes
 	{
 		String sRv= "";
 		String result;
+		Double res;
 		
 		result= m_mMetaBlock.get("pageset");						
 		if(	result != null &&
@@ -402,7 +403,9 @@ public class TreeNodes
 			MsgClientConnector client= MsgClientConnector.instance();
 			
 			try{
-				if(client.getValue(result, /*throw*/true) > 0)
+				res= client.getValue(result, /*throw*/true);
+				if(	res != null &&
+					res > 0)
 				{
 					if(!folder.equals(""))
 						folder+= ":";
