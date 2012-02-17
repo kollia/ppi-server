@@ -64,6 +64,10 @@ public class MsgTranslator {
 	 * string of exception if the file can not read
 	 */
 	private String m_sError= "NONE";
+	/**
+	 * error pool for error dialog list
+	 */
+	private ArrayList<String> m_asErrorPool= new ArrayList<String>(); 
 	
 	/**
 	 * constructor to create the translate object
@@ -277,6 +281,41 @@ public class MsgTranslator {
 			sRv+= token.nextToken();
 		}
 		return sRv;
+	}
+	
+
+	/**
+	 * translate the given code into default language,
+	 * write error or warning message into the error pool
+	 * and also on command line
+	 * 
+	 * @param codeStr code which should be translate
+	 * @param values values which should appear in the translated string
+	 * @return the translated string
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 17.02.2012
+	 * @since JDK 1.6
+	 */
+	public String errorPool(String codeStr, String... values)
+	{
+		String msg;
+		
+		msg= translate(codeStr, values);
+		m_asErrorPool.add(msg);
+		System.out.println(msg);
+		return msg;
+	}
+	
+	/**
+	 * clear current error pool
+	 * 
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 17.02.2012
+	 * @since JDK 1.6
+	 */
+	public void clearErrorPool()
+	{
+		m_asErrorPool.clear();
 	}
 	
 	/**

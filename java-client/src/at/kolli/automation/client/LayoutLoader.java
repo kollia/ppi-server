@@ -357,6 +357,7 @@ public class LayoutLoader extends Thread
 					if(stopping())
 						return;
 				}
+				MsgTranslator.instance().clearErrorPool();
 				type= getType();
 				if(type == 0)
 					continue;
