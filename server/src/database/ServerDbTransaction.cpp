@@ -718,7 +718,8 @@ namespace server
 				existClients= getOwClientCount();
 				actClient= 1;
 
-			}else if(actClient > existClients)
+			}
+			if(actClient > existClients)
 			{// last owreader was fault initialed
 			 // so call ending of initialization
 				descriptor << "done";
