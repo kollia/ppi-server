@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Class-Path: lib/org.eclipse.core.runtime.jar lib/org.eclipse.core.commands.jar lib/org.eclipse.equinox.common.jar lib/org.eclipse.swt.jar lib/org.eclipse.jface.jar lib/org.eclipse.osgi.jar lib/org.eclipse.swt.native.jar lib/org.apache.regexp.jar
+Main-Class: at.kolli.automation.client.PortServerClient
