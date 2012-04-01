@@ -104,6 +104,7 @@ double switchClass::measure(const double actValue)
 double switchClass::measure(const double actValue, setting& set, const double* newValue/*= NULL*/)
 {
 	bool debug(isDebug());
+	bool bbinary(binary());
 	bool bSwitched(false);
 	bool bOutside(false);
 	double dResult(actValue);
@@ -118,10 +119,20 @@ double switchClass::measure(const double actValue, setting& set, const double* n
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 	}*/
 	set= NONE;
-	if(	(actValue > 0 || actValue < 0)	)
-		bSwitched= true;
-	else
-		bSwitched= false;
+	if(bbinary)
+	{
+		if(static_cast<short>(actValue) & 0b01)
+			bSwitched= true;
+		else
+			bSwitched= false;
+
+	}else
+	{
+		if(	(actValue > 0 || actValue < 0)	)
+			bSwitched= true;
+		else
+			bSwitched= false;
+	}
 
 	if(	bSwitched &&
 		!m_bLastValue	)
@@ -228,18 +239,36 @@ double switchClass::measure(const double actValue, setting& set, const double* n
 		}
 	}
 
-	if(bSwitched)
-		dResult= 1;
-	else
-		dResult= 0;
+	if(bbinary)
+	{
+		if(bSwitched)
+			dResult= 0b11;
+		else
+			dResult= static_cast<double>(static_cast<short>(actValue) & 0b10);
+	}else
+	{
+		if(bSwitched)
+			dResult= 1;
+		else
+			dResult= 0;
+	}
 	if(getLinkedValue("SWITCH", dResult))
 	{
-		if(	dResult > 0 ||
-			dResult < 0		)
+		if(bbinary)
 		{
-			bSwitched= true;
+			if(static_cast<short>(dResult) & 0b01)
+				bSwitched= true;
+			else
+				bSwitched= false;
 		}else
-			bSwitched= false;
+		{
+			if(	dResult > 0 ||
+				dResult < 0		)
+			{
+				bSwitched= true;
+			}else
+				bSwitched= false;
+		}
 		bOutside= true;
 		set= NONE;
 	}
@@ -267,6 +296,12 @@ double switchClass::measure(const double actValue, setting& set, const double* n
 		tout << ")" << endl;
 	}
 	m_bLastValue= bSwitched;
+	if(bbinary)
+	{
+		if(bSwitched)
+			return 0b11;
+		return static_cast<double>(static_cast<short>(actValue) & 0b10);
+	}
 	if(bSwitched)
 		return 1;
 	return 0;

@@ -114,6 +114,7 @@ namespace ports
 		}
 		prop= "default";
 		dDefault= properties->getDouble(prop, /*warning*/false);
+		properties->notAllowedAction("binary");
 		if(	!switchClass::init(properties, pStartFolder) ||
 			nFrom == 0 ||
 			nSet == 0										)

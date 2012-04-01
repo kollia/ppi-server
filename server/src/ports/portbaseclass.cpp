@@ -82,6 +82,7 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	m_dValue= 0;
 	m_sPermission= properties->getValue("perm", /*warning*/false);
 	m_bWriteDb= properties->haveAction("db");
+	m_bSwitch= properties->haveAction("binary");
 	dDef= properties->getDouble(prop, /*warning*/false);
 	if(prop != "#ERROR")
 		m_dValue= dDef;
@@ -99,10 +100,33 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 		db->fillValue(m_sFolder, m_sSubroutine, "value", m_dValue);
 	}else
 		m_dValue= ddv;
-
+	m_sErrorHead= properties->getMsgHead(/*error message*/true);
+	m_sWarningHead= properties->getMsgHead(/*error message*/false);
+	m_sMsgHead= properties->getMsgHead();// without error identification
 	defineRange();
 	registerSubroutine();
 	return true;
+}
+
+string portBase::getSubroutineMsgHead(bool *error/*= NULL*/)
+{
+	if(error == NULL)
+		return m_sMsgHead;
+	if(*error)
+		return m_sErrorHead;
+	return m_sWarningHead;
+}
+
+string portBase::getSubroutineMsgHead(bool error)
+{
+	bool *perror;
+	string sRv;
+
+	perror= new bool;
+	*perror= error;
+	sRv= getSubroutineMsgHead(perror);
+	delete perror;
+	return sRv;
 }
 
 void portBase::defineRange()
@@ -118,25 +142,43 @@ void portBase::defineRange()
 	if(m_bDefined)
 	{
 		m_bFloat= bFloat;
-		if(	!bFloat
-			&&
-			pmin
-			&&
-			*pmin == 0
-			&&
-			pmax
-			&&
-			*pmax == 1	)
+		if(	m_bSwitch &&
+			!bFloat &&
+			pmin &&
+			*pmin == 0 &&
+			pmax &&
+			*pmax == 1		)
 		{
-			m_bSwitch= true;
-			m_dMin= 0x00;
-			m_dMax= 0x03;
+			m_dMin= 0b00;
+			m_dMax= 0b10;
 		}else
 		{
-			if(pmin && pmax)
-			{
+			if(pmin)
 				m_dMin= *pmin;
+			else
+				m_dMin= 0;
+			if(pmax)
 				m_dMax= *pmax;
+			else
+				m_dMax= m_dMin >= 0 ? -1 : m_dMin -1;
+			if(	m_bSwitch &&
+				(	m_bFloat ||
+					m_dMin != 0 ||
+					m_dMax != 1		)	)
+			{
+				string msg;
+
+				msg=  getSubroutineMsgHead(/*error message*/false);
+				msg+= "cannot define as binary when subroutine";
+				if(bFloat)
+					msg+= " defined as float";
+				if(m_dMin != 0)
+					msg+= ", minimal value not 0";
+				if(m_dMax != 1)
+					msg+= " and maximal not 1";
+				LOG(LOG_WARNING, msg);
+				cerr << msg << endl;
+				m_bSwitch= false;
 			}
 		}
 	}
@@ -245,35 +287,99 @@ bool portBase::hasDeviceAccess() const
 	return bDevice;
 }
 
+string portBase::switchBinStr(double value)
+{
+	string sRv("");
+
+	if(((int)value & 0b10))
+		sRv+= "1";
+	else
+		sRv+= "0";
+	if(((int)value & 0b01))
+		sRv+= "1";
+	else
+		sRv+= "0";
+	return sRv;
+}
+
 void portBase::setValue(double value, const string& from)
 {
-	double dbvalue= value;
-	double oldMember= m_dValue;
+#define __moreOutput
+	double invalue(value);
+	double dbvalue(value);
+	double oldMember(m_dValue);
 	DbInterface* db;
 
+	LOCK(m_VALUELOCK);
 	if(!m_bDefined)// if device not found by starting in init method
 		defineRange(); // try again, maybe device was found meantime
 	if(m_bDefined)
 	{
-		//cout << "value:" << dec << value << endl;
-		//cout << "min:" << dec << m_dMin << endl;
-		//cout << "max:" << dec << m_dMax << endl;
+#ifdef __moreOutput
+		cout << "-------------------------------------------------------------------" << endl;
+		cout << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
+		if(m_bSwitch)
+			cout << " defined for binary switch";
+		cout << endl;
+		cout << "        set new value from '" << from << "'" << endl;
+		cout << "            Incoming value:" << dec << value;
+		if(m_bSwitch)
+			cout << " binary " << switchBinStr(value);
+		cout << endl;
+		cout << "value before in subroutine:" << dec << m_dValue;
+		if(m_bSwitch)
+			cout << " binary " << switchBinStr(m_dValue);
+		cout << endl;
+		cout << "                 min range:" << dec << m_dMin;
+		if(m_bSwitch)
+			cout << " binary 00";
+		cout << endl;
+		cout << "                 max range:" << dec << m_dMax;
+		if(m_bSwitch)
+			cout << " binary 11";
+		cout << endl;
+#endif // __moreOutput
 		if(m_bSwitch)
 		{
-			dbvalue= ((int)value & 0x01) ? 1 : 0;
-			oldMember= ((int)m_dValue & 0x01) ? 1 : 0;
-		}
-		if(m_dMin < m_dMax)
+			short svalue(static_cast<short>(value));
+
+	//		if(from.substr(0, 1) == "e")
+	//			value= value != 0 ? 0b11 : 0b00;
+			if(svalue & 0b01)
+				svalue= 0b11;
+			else if(svalue == 0b10) // only when svalue is 2 and not 6, 14, ...
+				svalue= 0b10;
+			else
+				svalue= static_cast<short>(m_dValue) & 0b10;
+			value= static_cast<double>(svalue);
+			dbvalue= svalue & 0b01 ? 1 : 0;
+			oldMember= ((int)m_dValue & 0b01) ? 1 : 0;
+
+		}else
 		{
-			if(value < m_dMin)
-				value= m_dMin;
-			if(value > m_dMax)
-				value= m_dMax;
-		}
-		if(!m_bFloat)
-			value= (double)((long)value);
-		if(!m_bSwitch)
+			if(m_dMin < m_dMax)
+			{
+				if(value < m_dMin)
+					value= m_dMin;
+				if(value > m_dMax)
+					value= m_dMax;
+			}
+			if(!m_bFloat)
+				value= (double)((long)value);
 			dbvalue= value;
+			oldMember= m_dValue;
+		}
+#ifdef __moreOutput
+		cout << "          old member value:" << dec << oldMember;
+		if(m_bSwitch)
+			cout << " binary " << switchBinStr(oldMember);
+		cout << endl;
+		cout << "         new defined value:" << dec << value;
+		if(m_bSwitch)
+			cout << " binary " << switchBinStr(value);
+		cout << endl;
+		cout << "       new defined dbvalue:" << dec << dbvalue << endl;
+#endif // __moreOutput
 	}
 	if(value != m_dValue)
 	{
@@ -282,9 +388,12 @@ void portBase::setValue(double value, const string& from)
 		ostringstream output;
 		vector<string> spl;
 
-		LOCK(m_VALUELOCK);
 		m_dValue= value;
-		UNLOCK(m_VALUELOCK);
+		if(m_bSwitch)
+		{
+			for(map<string, short>::iterator it= m_mdValue.begin(); it != m_mdValue.end(); ++it)
+				it->second= static_cast<short>(value);
+		}
 
 		split(spl, from, is_any_of(":"));
 		LOCK(m_OBSERVERLOCK);
@@ -349,18 +458,77 @@ void portBase::setValue(double value, const string& from)
 		UNLOCK(m_OBSERVERLOCK);
 		if(dbvalue != oldMember)
 		{
+#ifdef __moreOutput
+		cout << "            fill new value:" << dec << dbvalue << " into database" << endl;
+#endif // __moreOutput
 			db= DbInterface::instance();
 			db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
 		}
+
+	}else if(invalue != value)
+	{
+		// make correction of value in database
+		// because client which set wrong value
+		// should now that value was wrong
+#ifdef __moreOutput
+		cout << "             correct value:" << dec << dbvalue << " inside database to inform all clients" << endl;
+#endif // __moreOutput
+		db= DbInterface::instance();
+		db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
 	}
+#ifdef __moreOutput
+	cout << "       last state of value:" << dec << m_dValue;
+	if(m_bSwitch)
+		cout << " binary " << switchBinStr(m_dValue);
+	cout << endl;
+	cout << "-------------------------------------------------------------------" << endl;
+#endif // __moreOutput
+	UNLOCK(m_VALUELOCK);
 }
 
 double portBase::getValue(const string& who)
 {
+	short nValue;
 	double dValue;
+	map<string, short>::iterator found;
 
 	LOCK(m_VALUELOCK);
-	dValue= m_dValue;
+#ifdef __moreOutput
+		cout << "-------------------------------------------------------------------" << endl;
+		cout << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
+		if(m_bSwitch)
+			cout << " defined for binary switch";
+		cout << endl;
+		cout << "        will be ask from '" << who << "'" << endl;
+#endif // __moreOutput
+	if(m_bSwitch)
+	{
+		nValue= static_cast<short>(m_dValue);
+		found= m_mdValue.find(who);
+		if(found == m_mdValue.end())
+		{
+			m_mdValue[who]= nValue;
+			dValue= m_dValue;
+
+		}else
+		{
+			if(nValue & 0b01)
+				dValue= m_dValue;
+			else
+			{
+				dValue= static_cast<double>(found->second);
+				found->second&= 0b01;
+			}
+		}
+	}else
+		dValue= m_dValue;
+#ifdef __moreOutput
+	cout << " return value " << dValue;
+	if(m_bSwitch)
+		cout << " binary " << switchBinStr(dValue);
+	cout << endl;
+	cout << "-------------------------------------------------------------------" << endl;
+#endif // __moreOutput
 	UNLOCK(m_VALUELOCK);
 	return dValue;
 }

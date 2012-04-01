@@ -78,6 +78,7 @@ namespace ports
 				bWarning= true;
 		}
 		sWhile= properties->getValue("while", bWarning);
+		properties->notAllowedAction("binary");
 		if(!m_oWhile.init(pStartFolder, sWhile))
 			bOk= false;
 		if(!initLinks("VALUE", properties, pStartFolder))

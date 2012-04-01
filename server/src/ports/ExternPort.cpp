@@ -119,11 +119,6 @@ namespace ports
 		{
 			db->useChip(getFolderName(), getSubroutineName(), m_sServer, m_sChipID);
 		}
-
-		m_sErrorHead= properties->getMsgHead(/*error message*/true);
-		m_sWarningHead= properties->getMsgHead(/*error message*/false);
-		m_sMsgHead= properties->getMsgHead();// without error identification
-
 		return bRv;
 	}
 

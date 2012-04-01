@@ -32,6 +32,7 @@ namespace ports
 
 		mvalue= properties->needValue("mvalue");
 		begin= properties->needValue("begin");
+		properties->notAllowedAction("binary");
 		if(!portBase::init(properties, pStartFolder))
 			return false;
 		if(	begin == ""

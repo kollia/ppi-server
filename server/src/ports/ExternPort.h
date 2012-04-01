@@ -198,18 +198,6 @@ namespace ports
 		 */
 		string m_sChipType;
 		/**
-		 * header text for display error message on screen or log-file
-		 */
-		string m_sErrorHead;
-		/**
-		 * header text for display warning message on screen or log-file
-		 */
-		string m_sWarningHead;
-		/**
-		 * header text for display message on screen or log-file
-		 */
-		string m_sMsgHead;
-		/**
 		 * whether pin on chip is to read
 		 */
 		bool m_bRead;

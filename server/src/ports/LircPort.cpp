@@ -37,6 +37,7 @@ namespace ports
 			if(scount != "")
 				bOk= m_oCount.init(pStartFolder, scount);
 		}
+		properties->notAllowedAction("binary");
 		bOk= bOk & ExternPort::init(properties, pStartFolder);
 #ifdef DEBUG_ACTIVATEDLIRCOUTPUT
 		timerclear(&m_tTime);

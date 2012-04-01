@@ -32,6 +32,7 @@ namespace ports
 		//start= (double)properties.getInt(prop, /*warning*/false);
 		setnull= properties->getValue("setnull", /*warning*/false);
 		m_oSetNull.init(pStartFolder, setnull);
+		properties->notAllowedAction("binary");
 		if(portBase::init(properties, pStartFolder))
 			return false;
 		return true;

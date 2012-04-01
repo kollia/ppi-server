@@ -82,6 +82,7 @@ bool TimeMeasure::init(IActionPropertyPattern* properties, const SHAREDPTR::shar
 	return true;
 #endif
 
+	properties->notAllowedAction("binary");
 	if(!portBase::init(properties, pStartFolder))
 		return false;
 	return false;

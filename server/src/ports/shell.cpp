@@ -36,6 +36,7 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 
 	properties->notAllowedParameter("default");
 	properties->notAllowedParameter("perm");
+	properties->notAllowedAction("binary");
 	if(!switchClass::init(properties, pStartFolder))
 		bRv= false;
 	m_bLastValue= 0;

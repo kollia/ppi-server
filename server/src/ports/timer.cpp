@@ -215,6 +215,7 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		m_bHasLinks= true;
 	if(!initLinks("TIMER", properties, pStartFolder))
 		bOk= false;
+	properties->notAllowedAction("binary");
 	if(!switchClass::init(properties, pStartFolder))
 		bOk= false;
 	prop= "default";

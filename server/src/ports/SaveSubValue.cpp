@@ -67,6 +67,7 @@ namespace ports
 		}
 		properties->notAllowedParameter("while");
 		properties->readLine("end= true");
+		properties->notAllowedAction("binary");
 		if(!switchClass::init(properties, pStartFolder))
 			return false;
 		return true;

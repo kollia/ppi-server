@@ -149,6 +149,11 @@ namespace ports
 			 */
 			double m_dValue;
 			/**
+			 * all clients with values to know whether
+			 * switch subroutine was active between the last request
+			 */
+			map<string, short> m_mdValue;
+			/**
 			 * type of this measure object
 			 */
 			string m_sType;
@@ -161,8 +166,8 @@ namespace ports
 			 */
 			string m_sSubroutine;
 			/**
-			 * contain groups whitch have read or write permission,
-			 * seperatly with colons, in this subroutine
+			 * contain groups which have read or write permission,
+			 * Separately with colons, in this subroutine
 			 */
 			string m_sPermission;
 			/**
@@ -170,13 +175,17 @@ namespace ports
 			 */
 			map<IMeasurePattern*, vector<string> > m_mvObservers;
 			/**
-			 * can set this subroutine to get contact
-			 * also when the contact was given before
-			 * running the measure function
+			 * header text for display error message on screen or log-file
 			 */
-			//bool m_bCanAfterContact;
-			//set<Pins> m_vAfterContactPins;
-			//map<unsigned long, unsigned> m_vAfterContactPorts;
+			string m_sErrorHead;
+			/**
+			 * header text for display warning message on screen or log-file
+			 */
+			string m_sWarningHead;
+			/**
+			 * header text for display message on screen or log-file
+			 */
+			string m_sMsgHead;
 			/**
 			 * mutex lock for value
 			 */
@@ -207,6 +216,13 @@ namespace ports
 			 * @return own object
 			 */
 			portBase& operator=(const portBase& x);
+			/**
+			 * create binary string of two numbers for debug output
+			 *
+			 * @param value double value to convert
+			 * @return binary string
+			 */
+			string switchBinStr(double value);
 
 
 		public:
@@ -227,6 +243,13 @@ namespace ports
 			 * @return whether initalization was ok
 			 */
 			virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+			/**
+			 * whether subroutine is defined as binary
+			 *
+			 * @return whether subroutine is binary defined
+			 */
+			bool binary()
+			{ return m_bSwitch; };
 			/**
 			 * check whether subroutine need an external owreader server
 			 *
@@ -430,6 +453,16 @@ namespace ports
 			 * @return true when the value is from an other subroutine, else false
 			 */
 			bool getLinkedValue(const string& type, double& val, const double& maxCountDownValue= 0);
+			/**
+			 * return message header with folder and subroutine name
+			 * and also error or warning type when parameter be set
+			 */
+			string getSubroutineMsgHead(bool *error= NULL);
+			/**
+			 * return message header with folder and subroutine name
+			 * and also error or warning type
+			 */
+			string getSubroutineMsgHead(bool error);
 
 		private:
 			IMeasurePattern* m_poMeasurePattern;

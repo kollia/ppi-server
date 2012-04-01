@@ -67,6 +67,7 @@ bool Output::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_pt
 		calc= m_voVal.back();
 		calc->init(pStartFolder, svalue);
 	}
+	properties->notAllowedAction("binary");
 	bSwitch= switchClass::init(properties, pStartFolder);
 	if(!bSet)
 	{

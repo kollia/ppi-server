@@ -74,6 +74,7 @@ namespace ports
 				LOG(LOG_INFO, warningOut);
 				tout << warningOut << endl;
 			}
+			properties->notAllowedAction("binary");
 			return TimeMeasure::init(properties, pStartFolder);
 		}
 		if(sOut != "")
@@ -119,6 +120,7 @@ namespace ports
 			tout << warningOut << endl;
 		}
 		sMValue= properties->needValue("mvalue");
+		properties->notAllowedAction("binary");
 		if(portBase::init(properties, pStartFolder))
 			return false;
 		if(sMValue == "")
