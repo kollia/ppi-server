@@ -935,7 +935,16 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// set process id to default user
 
-	setuid(m_tDefaultUser);
+	if(setuid(m_tDefaultUser) != 0)
+	{
+		string err;
+
+		err= "main application ppi-server has no privileges to get other userid!\n";
+		err= "ERRNO: " + string(strerror(errno)) + "\n";
+		err+= "       so hole application running as root!!";
+		LOG(LOG_ALERT, err);
+		cerr << err << endl;
+	}
 	// ------------------------------------------------------------------------------------------------------------
 
 	// start ProcessChecker
