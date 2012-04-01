@@ -304,7 +304,7 @@ string portBase::switchBinStr(double value)
 
 void portBase::setValue(double value, const string& from)
 {
-#define __moreOutput
+//#define __moreOutput
 	double invalue(value);
 	double dbvalue(value);
 	double oldMember(m_dValue);
@@ -330,14 +330,11 @@ void portBase::setValue(double value, const string& from)
 		if(m_bSwitch)
 			cout << " binary " << switchBinStr(m_dValue);
 		cout << endl;
-		cout << "                 min range:" << dec << m_dMin;
-		if(m_bSwitch)
-			cout << " binary 00";
-		cout << endl;
-		cout << "                 max range:" << dec << m_dMax;
-		if(m_bSwitch)
-			cout << " binary 11";
-		cout << endl;
+		if(!m_bSwitch)
+		{
+			cout << "                 min range:" << dec << m_dMin << endl;
+			cout << "                 max range:" << dec << m_dMax << endl;
+		}
 #endif // __moreOutput
 		if(m_bSwitch)
 		{
