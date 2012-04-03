@@ -33,7 +33,6 @@ import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
-import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
@@ -190,13 +189,13 @@ public class Component  extends HtmTags implements IComponentListener
 	 * value for get higher or lower by pressing the arrow keys
 	 * only for component slider
 	 */
-	public int arrowkey= 50;
+	public int arrowkey= 1;
 	/**
 	 * scroll attribute of component.<br />
 	 * higher or lower value by clicking into the scroll bar
 	 * for components slider and scale
 	 */
-	public int rollbarfield= 200;
+	public int rollbarfield= 1;
 	/**
 	 * format attribute of component.<br />
 	 * format of displayed number beginning with '#' than a number whitch
@@ -633,18 +632,17 @@ public class Component  extends HtmTags implements IComponentListener
 					d= akt;				
 				value= (int)d;
 			}
-			if(	width != -1
-				||
+
+			if(	width != -1 ||
 				height != -1	)
 			{
-				if(	width == -1
-					||
-					width < height	)
-				{
-					style= SWT.VERTICAL;
-					data.heightHint= height;
-				}else
+				if(width != -1)
 					data.widthHint= width;
+				if(height != -1)
+					data.heightHint= height;
+				if(width < height)
+					style= SWT.VERTICAL;
+					
 			}else
 				data.widthHint= 100;
 			
@@ -652,7 +650,12 @@ public class Component  extends HtmTags implements IComponentListener
 			slider= new Slider(composite, style);
 			slider.setLayoutData(data);
 			slider.setMinimum(min);
-			slider.setMaximum(max);
+			slider.setSize(width, height);
+			min= slider.getMinimum();
+			// toDo:	search reason why maximum need 
+			//			10 values more than minimum
+			slider.setMaximum(max+10);
+			max= slider.getMaximum();
 			// Pfeiltaste
 			slider.setIncrement(arrowkey);
 			// klick auf Schieberegler
@@ -662,7 +665,7 @@ public class Component  extends HtmTags implements IComponentListener
 			slider.setEnabled(!disabled);
 			m_oComponent= slider;
 			
-		}else if(this.type.equals("scale"))
+		}else if(this.type.equals("range"))
 		{
 			Scale scale;
 			GridData data= new GridData();
@@ -685,7 +688,7 @@ public class Component  extends HtmTags implements IComponentListener
 					
 					if(!this.result.equals(""))
 						message= "cannot reach subroutine '" + this.result + "' from ";
-					message+= "component scale";
+					message+= "component range";
 					if(!this.name.equals(""))
 						message+= " with name " + this.name + " ";
 					if(this.result.equals(""))
@@ -705,18 +708,16 @@ public class Component  extends HtmTags implements IComponentListener
 					value= 0;
 			}
 			
-			if(	width != -1
-				||
+			if(	width != -1 ||
 				height != -1	)
 			{
-				if(	width == -1
-					||
-					width < height	)
-				{
-					style= SWT.VERTICAL;
-					data.heightHint= height;
-				}else
+				if(width != -1)
 					data.widthHint= width;
+				if(height != -1)
+					data.heightHint= height;
+				if(width < height)
+					style= SWT.VERTICAL;
+					
 			}else
 				data.widthHint= 100;
 
@@ -725,6 +726,7 @@ public class Component  extends HtmTags implements IComponentListener
 			scale.setLayoutData(data);
 			scale.setMinimum(min);
 			scale.setMaximum(max);
+			scale.setSize(width, height);
 			// Pfeiltaste
 			scale.setIncrement(arrowkey);
 			// klick auf Schieberegler
@@ -799,7 +801,7 @@ public class Component  extends HtmTags implements IComponentListener
 							value= option.value;
 						else
 							++value;
-						addComboEntrys(entry, option.value);
+						addComboEntrys(entry, value);
 						combo.add(entry);
 						if(	(	akt == null &&
 								bfirst == true	) ||
@@ -883,6 +885,8 @@ public class Component  extends HtmTags implements IComponentListener
 						++item;
 					}
 				}
+				this.min= 0;
+				this.max= item - 1;
 			}
 			
 		}else if(this.type.equals("spinner"))
@@ -1642,7 +1646,7 @@ public class Component  extends HtmTags implements IComponentListener
 			
 			});
 			
-		}else if(this.type.equals("scale"))
+		}else if(this.type.equals("range"))
 		{
 			((Scale)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter()
 			{			
@@ -1888,7 +1892,7 @@ public class Component  extends HtmTags implements IComponentListener
 		{
 			((Slider)m_oComponent).removeSelectionListener(m_eSelectionListener);
 			
-		}else if(this.type.equals("scale"))
+		}else if(this.type.equals("range"))
 		{
 			((Scale)m_oComponent).removeSelectionListener(m_eSelectionListener);
 			
@@ -2090,7 +2094,7 @@ public class Component  extends HtmTags implements IComponentListener
 			
 			});
 			
-		}else if(this.type.equals("scale"))
+		}else if(this.type.equals("range"))
 		{
 			DisplayAdapter.asyncExec(new Runnable()
 			{				
@@ -2110,6 +2114,7 @@ public class Component  extends HtmTags implements IComponentListener
 				//@Override
 				public void run() 
 				{
+					boolean bfound= false;
 					Set<String> entrys;
 					Combo combo= (Combo)m_oComponent;
 					
@@ -2119,23 +2124,37 @@ public class Component  extends HtmTags implements IComponentListener
 						Double akt= m_asComboValueEntrys.get(entry);
 						if(akt.equals(m_nAktValue))
 						{
+							bfound= true;
 							combo.setText(entry);
 							break;
 						}
 					}
+					if(!bfound)
+						combo.deselectAll();
 				}
 			
 			});
 		}else if(m_oComponent instanceof List)
 		{
+			final int min= this.min;
+			final int max= this.max;
+			
 			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
 				{
+					int value;
 					List list= (List)m_oComponent;
 					
-					list.select((int)m_nAktValue);
+					value= (int)m_nAktValue;
+					if(	value < min ||
+						value > max		)
+					{
+						list.deselectAll();
+						
+					}else
+						list.select(value);
 				}
 			
 			});
