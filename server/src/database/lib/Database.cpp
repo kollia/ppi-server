@@ -679,11 +679,10 @@ namespace ppi_database
 							else
 								actvalue= newvalue > 0 || newvalue < 0 ? 0 : 1;
 
-							if(	i->device != iEntrys->second.device
-								||
-								newvalue < actvalue
-								||
-								newvalue > actvalue	)
+							if(	i->device != iEntrys->second.device ||
+								newvalue < actvalue ||
+								newvalue > actvalue	||
+								iEntrys->second.bNew					)
 							{
 								ostringstream entry;
 

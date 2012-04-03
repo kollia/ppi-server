@@ -471,7 +471,7 @@ void portBase::setValue(double value, const string& from)
 		cout << "             correct value:" << dec << dbvalue << " inside database to inform all clients" << endl;
 #endif // __moreOutput
 		db= DbInterface::instance();
-		db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
+		db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*write also old value*/false);
 	}
 #ifdef __moreOutput
 	cout << "       last state of value:" << dec << m_dValue;

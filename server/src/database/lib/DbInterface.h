@@ -188,8 +188,9 @@ namespace ppi_database
 		 * fill double values into database
 		 *
 		 * @param folder folder name from the running thread
-		 * @param subroutine mame of the subroutine in the folder
-		 * @param values vector of value whitch should write into database
+		 * @param subroutine name of the subroutine in the folder
+		 * @param identif identification of which value be set
+		 * @param values vector of value which should write into database
 		 * @param bNew whether database should write only new values default= true
 		 */
 		void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= true);
