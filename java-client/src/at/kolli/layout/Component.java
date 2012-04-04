@@ -386,6 +386,7 @@ public class Component  extends HtmTags implements IComponentListener
 			int type= 0;
 			GridData data= null;
 			Double akt= null;
+			String firstButtonValue= "";
 			
 			if(	!getPermission().equals(permission.None) &&
 				!m_nSoftButton								)
@@ -443,10 +444,69 @@ public class Component  extends HtmTags implements IComponentListener
 				new Composite(composite, SWT.NONE);
 				return;
 			}
+			if(	(	type == SWT.PUSH ||
+					type == SWT.TOGGLE	) &&
+				!m_lContent.isEmpty()			)
+			{
+				double item= -1;
+				
+				for(HtmTags tag : m_lContent)
+				{
+					if(tag instanceof Option)
+					{
+						Option option= (Option)tag;
+						String entry= option.getOptionString();
+						
+						if(option.value != null)
+							item= option.value;
+						else
+							++item;
+						addComboEntrys(entry, item);
+						if(	(	akt == null &&
+								firstButtonValue.equals("")	) ||
+							(	akt != null &&
+								akt.equals(m_asComboValueEntrys.get(entry))	)
+																)
+						{
+							firstButtonValue= entry;
+						}
+					}
+				}
+			}
 			
 			disabled= disabled || readonly ? true : false;				
 			m_oButton= new Button(composite, type);
 			m_oButton.setEnabled(!disabled);
+			if(!m_asComboNameEntrys.isEmpty())
+			{
+				if(width == -1)
+				{
+					int maxLen= 0;
+					
+					for (String key : m_asComboValueEntrys.keySet())
+					{
+						int len= key.length();
+						
+						if(len > maxLen)
+							maxLen= len;
+					}
+					maxLen-= firstButtonValue.length();
+					if(maxLen > 0)
+					{
+						StringBuffer newValue= new StringBuffer();
+						
+						for(int i= 0; i < maxLen; ++i)
+							newValue.append(" ");
+						newValue.append(firstButtonValue);
+						for(int i= 0; i < maxLen; ++i)
+							newValue.append(" ");
+						this.value= newValue.toString();
+						
+					}else
+						this.value= firstButtonValue;
+				}else
+					this.value= firstButtonValue;
+			}
 			if(width != -1)
 			{
 				data= new GridData();
@@ -461,8 +521,7 @@ public class Component  extends HtmTags implements IComponentListener
 			if(data != null)
 				m_oButton.setLayoutData(data);
 			m_oComponent= m_oButton;
-			if(	type == SWT.PUSH
-				||
+			if(	type == SWT.PUSH ||
 				type == SWT.TOGGLE	)
 			{
 				m_oButton.setText(this.value);
@@ -2030,8 +2089,8 @@ public class Component  extends HtmTags implements IComponentListener
 				return;
 		}
 		
-		if(	this.type.equals("checkbox")
-			||
+		if(	this.type.equals("checkbox") ||
+			this.type.equals("button") ||
 			this.type.equals("togglebutton")	)
 		{
 			DisplayAdapter.asyncExec(new Runnable()
@@ -2039,10 +2098,19 @@ public class Component  extends HtmTags implements IComponentListener
 				//@Override
 				public void run() 
 				{
+					String text;
 					Button button= (Button)m_oComponent;
 					boolean bSet= m_nAktValue == 0 ? false : true;
 					
-					button.setSelection(bSet);
+					if(!type.equals("button"))
+						button.setSelection(bSet);
+					if(!m_asComboNameEntrys.isEmpty())
+					{
+						text= m_asComboNameEntrys.get(m_nAktValue);
+						if(text == null)
+							text= "";
+						button.setText(text);
+					}
 				}
 			
 			});
