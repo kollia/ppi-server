@@ -1068,6 +1068,20 @@ public class TreeNodes
 		    bodyList= layout.getBody();
 	      } catch( Throwable t ) 
 	      {
+	    	  m_mMetaBlock= handler.getMetaBlock();
+				if(	m_mMetaBlock != null &&
+				    	!HtmTags.showFalse		)
+				{
+					String display= m_mMetaBlock.get("display");
+					
+					if(	display != null &&
+						display.equals("false")	)
+				    {
+				    	if(HtmTags.debug)
+				    		System.out.println("page is set to display false, do not show this page inside navigation bar");
+				    	return false;
+				    }
+				}
 	    	  if( t.getMessage() == null ||
 	    		  !t.getMessage().equals("no side access")	)
 	    	  {
