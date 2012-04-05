@@ -356,7 +356,7 @@ public class Component  extends HtmTags implements IComponentListener
 				System.out.println("no result");
 			else
 				System.out.println("result '" + result + "'");
-		}
+		}		
 		if(!isSoftButton(classes))
 			askPermission();
 		if(	actLayout.compareTo(layout.disabled) == 0 ||
@@ -1073,6 +1073,7 @@ public class Component  extends HtmTags implements IComponentListener
 				actLayout= normal;
 			else
 				actLayout= layout.readonly;
+			break;
 			
 		case None:
 		default:
