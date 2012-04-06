@@ -434,14 +434,18 @@ public class XMLSaxParser extends DefaultHandler
 	    if( attrs != null )
 	    {
 	    	String metaName= "";
+	    	String attribval;
 	    	
 	      for( int i=0; i<attrs.getLength(); i++ )
 	      {
 	        String aName = attrs.getLocalName( i ); // Attr name
 	        
-	        if( "".equals( aName ) )  aName = attrs.getQName( i );
+	        if( "".equals( aName ) )
+	        	aName = attrs.getQName( i );
+	        aName= aName.toLowerCase();
+	        attribval= attrs.getValue(i);
 	        if(HtmTags.debug)
-	        	echoString( " " + aName + "=\"" + attrs.getValue( i ) + "\"" );
+	        	echoString( " " + aName + "=\"" + attribval + "\"" );
 	        if(	m_bHead == true
 				&&
 				m_bFinishedHead == false	)
@@ -449,9 +453,9 @@ public class XMLSaxParser extends DefaultHandler
 	        	if(eName.equals("meta"))
 	        	{
 	        		if(aName.equals("name"))
-	        			metaName= attrs.getValue(i);
+	        			metaName= attribval;
 	        		else if(aName.equals("content"))
-	        			m_mMetaBox.put(metaName, attrs.getValue(i));
+	        			m_mMetaBox.put(metaName, attribval);
 	        	}
 	        }else if(m_oAktTag instanceof Body)
 	        {
@@ -495,7 +499,7 @@ public class XMLSaxParser extends DefaultHandler
 	    	{
 	    		if(aName.equals("align"))
 	    		{
-	    			String typ= attrs.getValue(i);
+	    			String typ= attribval;
 	    			
 	    			if(typ.equals("left"))
 	    				((Label)m_oAktTag).separator|= SWT.LEFT;
@@ -527,13 +531,28 @@ public class XMLSaxParser extends DefaultHandler
 	        	
 	        	if(aName.equals("type"))
 	        	{
-	        		String type= attrs.getValue(i);
+	        		String type= attribval;
 	        		
 	        		if(type.equals("spinner"))
 	        		{
 	        			component.arrowkey= 1;
 	        			
-	        		}   			
+	        		}
+	        		if(	!type.equals("button") &&
+	        			!type.equals("leftbutton") &&
+	        			!type.equals("rightbutton") &&
+	        			!type.equals("upbutton") &&
+	        			!type.equals("downbutton") &&
+	        			!type.equals("togglebutton") &&
+	        			!type.equals("checkbox") &&
+	        			!type.equals("radio") &&
+	        			!type.equals("text") &&
+	        			!type.equals("spinner") &&
+	        			!type.equals("slider") &&
+	        			!type.equals("range")			)
+	        		{
+	        			type= "text";
+	        		}
 	        		component.type= type;
 	        	}else if(aName.equals("name"))
 	        		component.name= attrs.getValue(i);
@@ -542,6 +561,13 @@ public class XMLSaxParser extends DefaultHandler
 	        		if(!component.value.equals(""))
 	        			component.value+= " ";
 	        		component.value+= attrs.getValue(i);
+	        		
+	        	}else if(aName.equals("format"))
+	        	{
+	        		if(!component.value.equals(""))
+	        			component.value= attrs.getValue(i) + " " + component.value;
+	        		else
+	        			component.value= attrs.getValue(i);
 	        		
 	        	}else if(aName.equals("width"))
 	        		component.width= Integer.parseInt(attrs.getValue(i));
@@ -561,15 +587,9 @@ public class XMLSaxParser extends DefaultHandler
 	        		component.max= Integer.parseInt(attrs.getValue(i));
 	        	else if(aName.equals("arrow"))
 	        		component.arrowkey= Integer.parseInt(attrs.getValue(i));
-	        	else if(aName.equals("scroll"))
+	        	else if(aName.equals("step"))
 	        		component.rollbarfield= Integer.parseInt(attrs.getValue(i));
-	        	else if(aName.equals("format"))
-	        	{
-	        		if(!component.value.equals(""))
-	        			component.value= attrs.getValue(i) + " " + component.value;
-	        		else
-	        			component.value= attrs.getValue(i);
-	        	}else
+	        	else
 				{
 					if(HtmTags.debug)
 						echoString("\nfind unknown attribute " + aName + " in tag <" + eName + ">\n");
@@ -614,7 +634,7 @@ public class XMLSaxParser extends DefaultHandler
 		    	}else if(aName.equals("align"))
 		    	{
 		    		int type= GridData.BEGINNING;
-		    		String value= attrs.getValue(i);
+		    		String value= attribval;
 		    		
 		    		if(value.equals("left"))
 		    			type= GridData.BEGINNING;
@@ -632,7 +652,7 @@ public class XMLSaxParser extends DefaultHandler
 		    	}else if(aName.equals("valign"))
 		    	{
 		    		int type= GridData.BEGINNING;
-		    		String value= attrs.getValue(i);
+		    		String value= attribval;
 		    		
 		    		if(value.equals("top"))
 		    			type= GridData.BEGINNING;
