@@ -1061,12 +1061,17 @@ public class FontObject
 			}
 		}else
 		{
-			color= color.toUpperCase();
+			color= color.trim().toUpperCase();
 			if(	color.length() > 4 &&
 				color.substring(0, 4).equals("DARK")	)
 			{
-				color= "DARK " + color.substring(4).trim();
-			}
+				String c= color.substring(4).trim();
+				if(c.equals("GREY"))
+					c= "GRAY";
+				color= "DARK " + c;
+				
+			}else if(color.equals("GREY"))
+				color= "GRAY";
 			if(color.equals("BLACK"))
 				oRv= display.getSystemColor(SWT.COLOR_BLACK);
 			else if(color.equals("BLUE"))
