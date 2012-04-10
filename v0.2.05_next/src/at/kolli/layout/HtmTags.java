@@ -120,12 +120,12 @@ public abstract class HtmTags
 	 * representing the horizontal align.<br />
 	 * constant value from GridData BEGINNING, CENTER or ENDING
 	 */
-	public int align= GridData.BEGINNING;
+	public int align= -1;
 	/**
 	 * representing the vertical align.<br />
 	 * constant value from GridData BEGINNING, CENTER or ENDING
 	 */
-	public int valign= GridData.CENTER;
+	public int valign= -1;
 	/**
 	 * all rows of component-list which can also inherit one ore more components
 	 */

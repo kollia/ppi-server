@@ -134,13 +134,17 @@ public class Label extends HtmTags
 				fieldData.horizontalAlignment= GridData.FILL;				
 				data.grabExcessHorizontalSpace= true;
 				data.horizontalAlignment= GridData.FILL;
+				//data.grabExcessVerticalSpace= true;
+				//data.verticalAlignment= GridData.FILL;
 			}else
 				data.widthHint= width;				
 		}else
 		{
 			data.grabExcessHorizontalSpace= true;
 			data.horizontalAlignment= align;//GridData.BEGINNING;
-			data.verticalAlignment= valign;
+			//data.verticalAlignment= valign;
+			data.verticalAlignment= GridData.CENTER;
+			data.grabExcessVerticalSpace= true;
 		}
 		label.setLayoutData(data);
 	}

@@ -221,6 +221,10 @@ public class ContentFields extends HtmTags implements IComponentListener
 		FontObject legendFont;
 		BooleanHolder bHolder= new BooleanHolder();
 
+		if(align == -1)
+			align= GridData.BEGINNING;
+		if(valign == -1)
+			valign= GridData.CENTER;
 		askPermission();
 		if(getPermission().compareTo(permission.readable) == -1)
 			return;
@@ -275,33 +279,24 @@ public class ContentFields extends HtmTags implements IComponentListener
 		rowCp= new Composite(mainCp, SWT.NONE);
 		newFont.setDevice(rowCp);
 		fieldCp= new Composite(rowCp, SWT.NONE);
+		//bHolder.value= true;
+		//FontObject fieldFont= font.defineNewColorObj(fieldCp, "black", colors.BACKGROUND, bHolder, layoutName);
 		newFont.setDevice(fieldCp);
+		//fieldFont.setDevice(fieldCp);
 		
-		
-		mainLayout.numColumns= 1;
-		if(this instanceof Body)
-		{
-			mainLayout.marginWidth= 0;
-			mainLayout.marginHeight= 0;
-			mainLayout.marginLeft= 0;
-			mainLayout.marginRight= 0;
-			mainLayout.marginTop= 0;
-			mainLayout.marginBottom= 0;
-			mainLayout.horizontalSpacing= 0;
-			mainLayout.verticalSpacing= 0;
-			
-		}else
-		{
-			mainLayout.marginWidth= 0;
-			mainLayout.marginHeight= 0;
-			mainLayout.marginLeft= cellpadding;
-			mainLayout.marginRight= cellpadding;
-			mainLayout.marginTop= cellpadding;
-			mainLayout.marginBottom= cellpadding;
-			mainLayout.horizontalSpacing= cellpadding;
-			mainLayout.verticalSpacing= cellpadding;
-		}
 
+		if(this instanceof Body)
+			cellpadding= 0;
+		mainLayout.numColumns= 1;
+		mainLayout.marginWidth= 0;
+		mainLayout.marginHeight= 0;
+		mainLayout.marginLeft= cellpadding;
+		mainLayout.marginRight= cellpadding;
+		mainLayout.marginTop= cellpadding;
+		mainLayout.marginBottom= cellpadding;
+		mainLayout.horizontalSpacing= cellpadding;
+		mainLayout.verticalSpacing= cellpadding;
+		
 		rowLayout.marginHeight= 0;
 		rowLayout.marginWidth= 0;
 		rowLayout.marginLeft= 0;
@@ -313,16 +308,16 @@ public class ContentFields extends HtmTags implements IComponentListener
 		
 		fieldLayout.marginHeight= 0;
 		fieldLayout.marginWidth= 0;
-		fieldLayout.marginLeft= 0;
-		fieldLayout.marginRight= 0;
-		fieldLayout.marginTop= 0;
-		fieldLayout.marginBottom= 0;
+		fieldLayout.marginLeft= 1;
+		fieldLayout.marginRight= 1;
+		fieldLayout.marginTop= 1;
+		fieldLayout.marginBottom= 1;
 		fieldLayout.horizontalSpacing= 0;
 		fieldLayout.verticalSpacing= 0;
 		count= 0;
 		if(href.equals(""))
 		{
-			// count how much entrys of text
+			// count how much entries of text
 			// the field has
 			int o= 0;
 			HtmTags ntag;
@@ -388,15 +383,15 @@ public class ContentFields extends HtmTags implements IComponentListener
 				mainData.heightHint= this.height;
 		}
 
-		rowData.horizontalAlignment= align;
-		rowData.grabExcessHorizontalSpace= true;
-		rowData.grabExcessVerticalSpace= true;
-		//rowData.verticalAlignment= GridData.FILL;
 		rowData.horizontalAlignment= GridData.FILL;
+		rowData.grabExcessHorizontalSpace= true;
+		rowData.verticalAlignment= valign;
+		rowData.grabExcessVerticalSpace= true;
 
 		fieldData.horizontalAlignment= align;
 		fieldData.grabExcessHorizontalSpace= true;
-		//fieldData.horizontalAlignment= GridData.FILL;
+		//fieldData.verticalAlignment= GridData.END;
+		//fieldData.grabExcessVerticalSpace= true;
 		
 		
 		mainCp.setLayoutData(mainData);
@@ -444,14 +439,15 @@ public class ContentFields extends HtmTags implements IComponentListener
 					fieldData= new GridData();
 					
 					newFont.setDevice(fieldCp);
+					//fieldFont.setDevice(fieldCp);
 					fieldData.horizontalAlignment= align;
 					fieldData.grabExcessHorizontalSpace= true;
 					fieldLayout.marginHeight= 0;
 					fieldLayout.marginWidth= 0;
-					fieldLayout.marginLeft= 0;
-					fieldLayout.marginRight= 0;
-					fieldLayout.marginTop= 0;
-					fieldLayout.marginBottom= 0;
+					fieldLayout.marginLeft= 1;
+					fieldLayout.marginRight= 1;
+					fieldLayout.marginTop= 1;
+					fieldLayout.marginBottom= 1;
 					fieldLayout.horizontalSpacing= 0;
 					fieldLayout.verticalSpacing= 0;
 					fieldLayout.numColumns= lenList.getFirst();
@@ -460,8 +456,6 @@ public class ContentFields extends HtmTags implements IComponentListener
 					fieldCp.setLayoutData(fieldData);
 				}else
 				{
-					tag.align= align;
-					tag.valign= valign;
 					if(tag instanceof Style)
 						fieldCp= ((Style)tag).execute(rowCp, fieldCp, newFont, classes, lenList);
 					else

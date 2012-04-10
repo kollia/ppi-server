@@ -339,6 +339,8 @@ public class Table extends HtmTags
 				bHolder.value= true;
 				newFont= font.defineNewColorObj(m_oComposite, "WIDGET", colors.BACKGROUND, bHolder, layoutName);
 				newFont.setDevice(m_oComposite);
+				if(bHolder.value)
+					newFont.dispose();
 				layout.numColumns= 1;
 				layout.marginWidth= m_nBorder;
 				layout.marginHeight= m_nBorder;
@@ -360,6 +362,8 @@ public class Table extends HtmTags
 			bHolder.value= true;
 			structureFont= font.defineNewColorObj(m_oComposite, HtmTags.tablestructure, colors.BACKGROUND, bHolder, layoutName);
 			structureFont.setDevice(m_oComposite);
+			if(bHolder.value)
+				newFont.dispose();
 			
 		}else
 			newFont.setDevice(m_oComposite);
@@ -380,6 +384,8 @@ public class Table extends HtmTags
 			
 			row.execute(m_oComposite, newFont, classes);
 		}
+		if(bHolder.value)
+			newFont.dispose();
 	}
 	
 	/**
