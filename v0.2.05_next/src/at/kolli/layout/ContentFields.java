@@ -206,6 +206,10 @@ public class ContentFields extends HtmTags implements IComponentListener
 		 * whether last tag was an break tag
 		 */
 		BooleanHolder bBrLast= new BooleanHolder();
+		/**
+		 * whether font for mainCp was set for legend
+		 */
+		boolean bSetFontMain= false;
 		int count;
 		LinkedList<Integer > lenList= new LinkedList<Integer>();
 		Composite mainCp;
@@ -228,7 +232,7 @@ public class ContentFields extends HtmTags implements IComponentListener
 		askPermission();
 		if(getPermission().compareTo(permission.readable) == -1)
 			return;
-		bHolder.value= true;
+		
 		if(	this instanceof FieldSet ||
 			(	m_nBorder == 1 && 
 				(	m_lContent.size() > 0 ||
@@ -246,16 +250,19 @@ public class ContentFields extends HtmTags implements IComponentListener
 			m_lContent.get(0) instanceof Legend	)
 		{
 			Legend legend= (Legend)m_lContent.get(0);
-			
+		
+			bHolder.value= true;
 			legendFont= legend.getFontObject(mainCp, font, bHolder);
 			((Group)mainCp).setText(legend.getText());
 			legendFont.setDevice(mainCp);
-			
-		}else
-		{
-			newFont= font.defineNewColorObj(mainCp, bgcolor, colors.BACKGROUND, bHolder, layoutName);
-			newFont.setDevice(mainCp);
+			if(bHolder.value)
+				legendFont.dispose();
+			bSetFontMain= true;
 		}
+
+		bHolder.value= true;
+		newFont= font.defineNewColorObj(mainCp, bgcolor, colors.BACKGROUND, bHolder, layoutName);
+		
 		if(this instanceof Body)
 		{	
 			if(!href.equals(""))
@@ -277,12 +284,12 @@ public class ContentFields extends HtmTags implements IComponentListener
 			m_lContent.add(label);
 		}
 		rowCp= new Composite(mainCp, SWT.NONE);
-		newFont.setDevice(rowCp);
 		fieldCp= new Composite(rowCp, SWT.NONE);
-		//bHolder.value= true;
-		//FontObject fieldFont= font.defineNewColorObj(fieldCp, "black", colors.BACKGROUND, bHolder, layoutName);
+		
+		if(!bSetFontMain)
+			newFont.setDevice(mainCp);
+		newFont.setDevice(rowCp);
 		newFont.setDevice(fieldCp);
-		//fieldFont.setDevice(fieldCp);
 		
 
 		if(this instanceof Body)
@@ -308,10 +315,10 @@ public class ContentFields extends HtmTags implements IComponentListener
 		
 		fieldLayout.marginHeight= 0;
 		fieldLayout.marginWidth= 0;
-		fieldLayout.marginLeft= 1;
-		fieldLayout.marginRight= 1;
-		fieldLayout.marginTop= 1;
-		fieldLayout.marginBottom= 1;
+		fieldLayout.marginLeft= 0;
+		fieldLayout.marginRight= 0;
+		fieldLayout.marginTop= 0;
+		fieldLayout.marginBottom= 0;
 		fieldLayout.horizontalSpacing= 0;
 		fieldLayout.verticalSpacing= 0;
 		count= 0;
@@ -427,6 +434,8 @@ public class ContentFields extends HtmTags implements IComponentListener
 			gridLayout.marginHeight= 0;
 			gridCompo.setLayout(new FillLayout());
 			this.composite= gridCompo;
+			if(bHolder.value)
+				newFont.dispose();
 			return;
 		}else
 		{	
@@ -463,6 +472,10 @@ public class ContentFields extends HtmTags implements IComponentListener
 				}
 			}
 		}
+		if(this instanceof Body)
+			cellpadding= 0;
+		if(bHolder.value)
+			newFont.dispose();			
 	}
 
 

@@ -82,6 +82,12 @@ public abstract class HtmTags
 	 */
 	public static boolean syncSWTExec= false;
 	/**
+	 * whether creating and dispose
+	 * of color and font objects
+	 * should be shown on shell output
+	 */
+	public static boolean showFontCreation= false;
+	/**
 	 * boolean value to see dispatch 
 	 * synchronization of shell.<br />
 	 * this flag can be set by starting

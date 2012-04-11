@@ -336,11 +336,7 @@ public class Table extends HtmTags
 			m_oComposite= new Composite(composite, SWT.NONE);
 			if(m_nBorder > 1)
 			{
-				bHolder.value= true;
-				newFont= font.defineNewColorObj(m_oComposite, "WIDGET", colors.BACKGROUND, bHolder, layoutName);
-				newFont.setDevice(m_oComposite);
-				if(bHolder.value)
-					newFont.dispose();
+				font.setDevice(m_oComposite, colors.TEXT_INACTIVE);
 				layout.numColumns= 1;
 				layout.marginWidth= m_nBorder;
 				layout.marginHeight= m_nBorder;
@@ -359,11 +355,13 @@ public class Table extends HtmTags
 		newFont= font.defineNewColorObj(m_oComposite, bgcolor, colors.BACKGROUND, bHolder, layoutName);
 		if(!HtmTags.tablestructure.equals(""))
 		{
-			bHolder.value= true;
-			structureFont= font.defineNewColorObj(m_oComposite, HtmTags.tablestructure, colors.BACKGROUND, bHolder, layoutName);
+			BooleanHolder bStruct= new BooleanHolder();
+			
+			bStruct.value= true;
+			structureFont= font.defineNewColorObj(m_oComposite, HtmTags.tablestructure, colors.BACKGROUND, bStruct, layoutName);
 			structureFont.setDevice(m_oComposite);
-			if(bHolder.value)
-				newFont.dispose();
+			if(bStruct.value)
+				structureFont.dispose();
 			
 		}else
 			newFont.setDevice(m_oComposite);

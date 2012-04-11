@@ -211,7 +211,7 @@ public class Style extends HtmTags
 			tag= m_lContent.get(o);
 			if(tag instanceof Label)
 			{
-				System.out.println("count: " + ((Label)tag).m_sText);
+				//System.out.println("count: " + ((Label)tag).m_sText);
 				++val;
 				lastWasBreake.value= false;
 				
@@ -244,8 +244,7 @@ public class Style extends HtmTags
 			}
 			++o;
 		}
-		//if(!val.equals(0))
-			lRv.addLast(val);
+		lRv.addLast(val);
 		return lRv;
 	}
 	/**

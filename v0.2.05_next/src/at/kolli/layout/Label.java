@@ -120,9 +120,8 @@ public class Label extends HtmTags
 		GridData data= new GridData();
 		org.eclipse.swt.widgets.Label label= new org.eclipse.swt.widgets.Label(composite, separator);
 
-		System.out.println("wirte: " + m_sText);
+		//System.out.println("wirte: " + m_sText);
 		font.setDevice(label);
-		label.setText(m_sText);
 		if(separator != SWT.NONE)
 		{
 			if(width == -1)
@@ -140,6 +139,7 @@ public class Label extends HtmTags
 				data.widthHint= width;				
 		}else
 		{
+			label.setText(m_sText);
 			data.grabExcessHorizontalSpace= true;
 			data.horizontalAlignment= align;//GridData.BEGINNING;
 			//data.verticalAlignment= valign;

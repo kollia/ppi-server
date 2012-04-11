@@ -66,7 +66,10 @@ import at.kolli.automation.client.MsgTranslator;
  */
 public class FontObject
 {
-
+	/**
+	 * counter of creating font or color objects
+	 */
+	public static int createdObjs= 0;
 	/**
 	 * all defined colors inside object
 	 * 
@@ -701,7 +704,7 @@ public class FontObject
 			boolean italic, boolean underline, BooleanHolder newObj)
 	{
 		FontObject newObject;
-		
+
 		if(	font.equals("") &&
 			(	size == 0 ||
 				size == getSize()	) &&
@@ -769,12 +772,19 @@ public class FontObject
 			m_oCurrentFont != null		)
 		{
 			m_oCurrentFont.dispose();
+			--createdObjs;
+			if(HtmTags.showFontCreation)
+				System.out.println("dispose Font " + createdObjs);
 		}
 		m_sCurrentFontName= font;
 		m_nCurrentFontSize= size;
 		m_nCurrentFontStyle= style;
 		m_oCurrentFont= new Font(display, font, size, style);
 		m_bNewFontDefined= true;
+		
+		++createdObjs;
+		if(HtmTags.showFontCreation)
+			System.out.println("create new Font " + createdObjs);
 		
 /*		final Font fObj= m_oCurrentFont;
 		composite.addDisposeListener(new DisposeListener()
@@ -793,6 +803,16 @@ public class FontObject
 	 */
 	public void setDevice(Control component)
 	{
+		setDevice(component, colors.BACKGROUND);
+	}
+	/**
+	 * set font and color inside composite
+	 * 
+	 * @param component widget to set font and or color object
+	 * @param asBackground use color type as background only when component is an composite
+	 */
+	public void setDevice(Control component, colors asBackground)
+	{
 		Display display= component.getDisplay();
 		Color background, foreground, maincolor;
 
@@ -806,7 +826,7 @@ public class FontObject
 		{
 			if(m_oCurrentFont != null)
 				component.setFont(m_oCurrentFont);
-			background= m_lColors.get(colors.BACKGROUND.ordinal());
+			background= m_lColors.get(asBackground.ordinal());
 			component.setBackground(background);
 			
 		}else if(component instanceof Label)
@@ -1057,7 +1077,12 @@ public class FontObject
 			{
 				oRv= new Color(display, red, green, blue);
 				if(oRv != null)
+				{
 					created.value= true;
+					++createdObjs;
+					if(HtmTags.showFontCreation)
+						System.out.println("create new Color " + createdObjs);
+				}
 			}
 		}else
 		{
@@ -1140,10 +1165,18 @@ public class FontObject
 	public void dispose()
 	{
 		if(m_bNewFontDefined)
+		{
 			m_oCurrentFont.dispose();
+			--createdObjs;
+			if(HtmTags.showFontCreation)
+				System.out.println("dispose Font " + createdObjs);
+		}
 		for (Color obj : m_aDefinedColors)
 		{
 			obj.dispose();
+			--createdObjs;
+			if(HtmTags.showFontCreation)
+				System.out.println("dispose Color " + createdObjs);
 		}
 	}
 
