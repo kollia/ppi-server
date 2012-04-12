@@ -289,6 +289,8 @@ public class ConnectionDialog extends TitleAreaDialog
 			}
 		});
 		m_bVerified= false;
+		TreeNodes.m_sPwd= "";
+		m_sPwd= "";
 		while(!bVerified)
 		{
 			synchronized (TreeNodes.m_sUser)
