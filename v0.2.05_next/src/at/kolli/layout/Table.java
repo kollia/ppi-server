@@ -271,7 +271,7 @@ public class Table extends HtmTags
 	{
 		int columns= 1;
 		int rownr= 1;
-		ArrayList<Integer> maxwidth= new ArrayList<Integer>();
+		//ArrayList<Integer> maxwidth= new ArrayList<Integer>();
 		GridLayout layout= new GridLayout();
 		ArrayList<Integer> rowspanColumns= new ArrayList<Integer>();
 		FontObject newFont, structureFont;
@@ -299,32 +299,8 @@ public class Table extends HtmTags
 		for(HtmTags tag : m_lContent)
 		{
 			ContentRows row= (ContentRows)tag;
-			int hig= row.getHighestField();
-			if(hig > -1)
-				row.setHighestField(hig);
 			row.fillMaxColumns(rownr, rowspanColumns);
 			++rownr;
-		}
-		// calculate the maximum width for each column
-		for(HtmTags tag : m_lContent)
-		{
-			ArrayList<Integer> mwidth;
-			
-			ContentRows row= (ContentRows)tag;
-			mwidth= row.getMaxWidth();
-			for(int i= 0; i < mwidth.size(); ++i)
-			{			
-				if(i >= maxwidth.size())
-					maxwidth.add(mwidth.get(i));
-				else if(maxwidth.get(i) < mwidth.get(i))
-					maxwidth.set(i, mwidth.get(i));
-			}
-		}
-		// set the maximum width in each column
-		for(HtmTags tag : m_lContent)
-		{
-			ContentRows row= (ContentRows)tag;
-			row.setMaxWidth(maxwidth);
 		}
 		
 		if(m_nBorder == 1)

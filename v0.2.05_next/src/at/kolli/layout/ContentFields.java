@@ -472,8 +472,6 @@ public class ContentFields extends HtmTags implements IComponentListener
 				}
 			}
 		}
-		if(this instanceof Body)
-			cellpadding= 0;
 		if(bHolder.value)
 			newFont.dispose();			
 	}
