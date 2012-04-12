@@ -407,6 +407,7 @@ public class LayoutLoader extends Thread
 							oKit.beep();
 							error= client.getErrorCode();
 							dialog.show(client.getErrorMessage());
+							client.closeConnection();
 							
 						}else
 							bConnected= true;
