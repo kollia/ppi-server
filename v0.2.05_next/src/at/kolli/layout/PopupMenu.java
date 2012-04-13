@@ -24,7 +24,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.RowLayout;
@@ -35,6 +34,7 @@ import org.eclipse.swt.widgets.Shell;
 import at.kolli.automation.client.LayoutLoader;
 import at.kolli.automation.client.TreeNodes;
 import at.kolli.dialogs.DisplayAdapter;
+import at.kolli.layout.FontObject.colors;
 
 /**
  * singelton pattern for popup menu if the parameter -t for no tree be set
@@ -66,11 +66,11 @@ public class PopupMenu
 	 */
 	private Composite m_oMenu;
 	/**
-	 * root nodes from all readed trees
+	 * root nodes from all read trees
 	 */
 	private Hashtable<String, TreeNodes> m_mRootNodes= new Hashtable<String, TreeNodes>();
 	/**
-	 * all main entrys in the menu with defined group composite
+	 * all main entries in the menu with defined group composite
 	 */
 	private Hashtable<String, Group> m_mRootEntrys= new Hashtable<String, Group>();
 	/**
@@ -106,23 +106,54 @@ public class PopupMenu
 		final String entry;
 		String spacing= metablock.get("popupspace");
 		int space;
-		
-		entry= node.getName();
+		FontObject font= new FontObject();
+		int popupsize= 0;
+		boolean bold= false;
+		boolean italic= false;
+		String looks, ssize;
+
 		if(_instance == null)
 		{
 			_instance= new PopupMenu(menubar);
 		}
 
+		entry= node.getName();
+		ssize= metablock.get("popupfontsize");
+		if(ssize != null)
+			popupsize= Integer.parseInt(ssize);
+		looks= metablock.get("popuplooks");
+		if(looks != null)
+		{
+			String[] split;
+			
+			split= looks.split("|");
+			for(int i= 0; i < split.length; ++i)
+			{
+				split[i]= split[i].toLowerCase();
+				if(split[i].equals("bold"))
+					bold= true;
+				else if(split[i].equals("italic"))
+					italic= true;
+			}
+		}
+		font.defineColor(popup, metablock.get("popupcolor"), colors.WIDGET, entry + " popup");
+		font.defineColor(popup, metablock.get("popupfontcolor"), colors.TEXT, entry + " popup");
+		font.defineFont(popup, metablock.get("popupfont"), popupsize, bold, italic, /*underline*/false);
 		text.setText(entry);
 		if(spacing != null)
 			space= Integer.parseInt(spacing);
 		else
 			space= 15;
+		layout.marginWidth= 0;
+		layout.marginHeight= 0;
 		layout.marginTop= space;
 		layout.marginRight= space + (space /2);
 		layout.marginBottom= space;
 		layout.marginLeft= space + (space /2);
 		popup.setLayout(layout);
+		font.setDevice(popup);
+		font.setDevice(text);
+		font.dispose();
 		text.addMouseListener(new MouseAdapter() 
 		{
 			public void mouseDown(MouseEvent event)
@@ -284,6 +315,13 @@ public class PopupMenu
 			l= new RowLayout();
 			l.type= SWT.VERTICAL;
 			l.pack= false;
+			l.marginBottom= 0;
+			l.marginHeight= 0;
+			l.marginLeft= 0;
+			l.marginRight= 0;
+			l.marginTop= 0;
+			l.marginWidth= 0;
+			l.spacing= 0;
 			m_popupShell.setLayout(l);
 			node= m_mRootNodes.get(menu_entry);
 			nodes= node.getChilds();
@@ -303,8 +341,34 @@ public class PopupMenu
 				String popupspace= metablock.get("popupspace");
 				final String entry;
 				int space= 20;
+				FontObject font= new FontObject();
+				int popupsize= 0;
+				boolean bold= false;
+				boolean italic= false;
+				String looks, ssize;
 				
 				entry= m_sMenu + ":" + subnode.getName();
+				ssize= metablock.get("popupfontsize");
+				if(ssize != null)
+					popupsize= Integer.parseInt(ssize);
+				looks= metablock.get("popuplooks");
+				if(looks != null)
+				{
+					String[] split;
+					
+					split= looks.split("|");
+					for(int i= 0; i < split.length; ++i)
+					{
+						split[i]= split[i].toLowerCase();
+						if(split[i].equals("bold"))
+							bold= true;
+						else if(split[i].equals("italic"))
+							italic= true;
+					}
+				}
+				font.defineColor(popup, metablock.get("popupcolor"), colors.WIDGET, entry + " popup");
+				font.defineColor(popup, metablock.get("popupfontcolor"), colors.TEXT, entry + " popup");
+				font.defineFont(popup, metablock.get("popupfont"), popupsize, bold, italic, /*underline*/false);
 				text.setText(subnode.getName().trim());
 				if(popupspace != null)
 					space= Integer.parseInt(popupspace);
@@ -314,6 +378,8 @@ public class PopupMenu
 				layout.marginBottom= space;
 				layout.marginLeft= space;
 				comp.setLayout(layout);
+				font.setDevice(comp);
+				font.setDevice(text);
 				comps.add(comp);
 				text.addMouseListener(new MouseAdapter() 
 				{
@@ -362,35 +428,14 @@ public class PopupMenu
 					}
 				});
 			}
-			int height= 0;
-			int width= 0;
-
-			//popup_rect.height= 20;
-			//popup_rect.width= 20;
+			
 			if(m_nPopup != null)
 				popup_rect= m_nPopup;
 			m_popupShell.setBounds(popup_rect);
 			m_popupShell.setEnabled(false);
 			m_popupShell.setVisible(false);
 			m_popupShell.open();
-			//popup_rect.height= 0;
-			//popup_rect.width= 0;
-/*			for (Composite composite : comps) 
-			{
-				rect= composite.getBounds();
-				if(	height == 0
-					&&
-					width == 0	)
-				{
-					height= rect.y * 2;
-					width= rect.x;
-				}
-				popup_rect.height+= rect.height + height;
-				if(rect.width > popup_rect.width)
-					popup_rect.width= rect.width + rect.x + 4;
-			}*/
 			m_popupShell.pack();
-			//m_popupShell.setBounds(popup_rect);
 			m_popupShell.setEnabled(true);
 			m_popupShell.setVisible(true);
 			
