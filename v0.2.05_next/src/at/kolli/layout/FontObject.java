@@ -633,7 +633,8 @@ public class FontObject
 	{
 		FontObject newObject;
 
-		if(color.equals(""))
+		if(	color == null ||
+			color.equals("")	)
 		{
 			newObj.value= false;
 			return this;
@@ -661,6 +662,11 @@ public class FontObject
 		
 		if(!bInit)
 			init(display);
+		if(	color == null ||
+			color.equals("")	)
+		{
+			return;
+		}
 		colorObj= getColor(display, color, created, fileName);
 		m_lColors.set(type.ordinal(), colorObj);
 		m_lsColors.set(type.ordinal(), color);
@@ -732,7 +738,7 @@ public class FontObject
 	 * @param italic whether font should be displayed as italic
 	 * qparam underline whether font should be underlined
 	 */
-	private void defineFont(Composite composite, String font, int size, boolean bold, boolean italic, boolean underline)
+	public void defineFont(Composite composite, String font, int size, boolean bold, boolean italic, boolean underline)
 	{
 		int style= SWT.NONE;
 		Display display= composite.getDisplay();
@@ -750,6 +756,13 @@ public class FontObject
 		style= bold   ? style | SWT.BOLD   : style;
 		style= italic ? style | SWT.ITALIC : style;
 		underlined= underline;
+		if(	font == null ||
+			font.trim().equals("")	)
+		{
+			font= fontData[0].name;
+		}
+		if(size == 0)
+			size= fontData[0].getHeight();
 		if(	fontData[0].name.equals(font.trim()) &&
 			fontData[0].style == style &&
 			m_nSystemFontSize == size				)
@@ -757,10 +770,6 @@ public class FontObject
 			m_oCurrentFont= null;
 			return;
 		}
-		if(size == 0)
-			size= fontData[0].getHeight();
-		if(font.equals(""))
-			font= fontData[0].getName();
 		if(	m_oCurrentFont != null &&
 			m_sCurrentFontName.equals(font) &&
 			m_nCurrentFontSize == size &&
@@ -1052,14 +1061,18 @@ public class FontObject
 	 */
 	public Color getColor(Display display, String color, BooleanHolder created, String file)
 	{
-		String orgStr;
+		String orgStr= "";
 		Color oRv= null;
 
 		if(!bInit)
 			init(display);
 		created.value= false;
-		orgStr= color;
-		color= color.trim();
+		if(color != null)
+		{
+			orgStr= color;
+			color= color.trim();
+		}else
+			color= "";
 		if(	color.length() == 7 &&
 			color.substring(0, 1).equals("#")	)
 		{
