@@ -103,15 +103,31 @@ public class FontObject
 	 * all equivalent SWT color to FontObject colors
 	 */
 	private static int[] colorIds = new int[] {
-		SWT.COLOR_WIDGET_FOREGROUND, SWT.COLOR_TITLE_INACTIVE_FOREGROUND, SWT.COLOR_WIDGET_BACKGROUND,		
-		SWT.COLOR_LIST_SELECTION_TEXT, SWT.COLOR_LIST_SELECTION, SWT.COLOR_LIST_BACKGROUND,		
-		SWT.COLOR_WIDGET_LIGHT_SHADOW, SWT.COLOR_WIDGET_BORDER, SWT.COLOR_WIDGET_HIGHLIGHT_SHADOW,
-		SWT.COLOR_WIDGET_HIGHLIGHT_SHADOW, SWT.COLOR_TITLE_BACKGROUND_GRADIENT, SWT.COLOR_TITLE_BACKGROUND_GRADIENT,
-		SWT.COLOR_WIDGET_DARK_SHADOW, SWT.NONE, SWT.NONE,
-		SWT.COLOR_WIDGET_NORMAL_SHADOW, SWT.NONE, SWT.NONE,
-		SWT.COLOR_TITLE_BACKGROUND,
+		SWT.COLOR_WIDGET_FOREGROUND, // TEXT
+		SWT.COLOR_TITLE_INACTIVE_FOREGROUND, // TEXT_INACTIVE 
+		SWT.COLOR_WIDGET_BACKGROUND, //	BACKGROUND
 		
-// all other not needed SWT colors
+		SWT.COLOR_LIST_SELECTION_TEXT, // LIST_SELECTED_TEXT
+		SWT.COLOR_LIST_SELECTION, // LIST_SELECTED_ARRAY
+		SWT.COLOR_LIST_BACKGROUND, // LIST_BACKGROUND
+		
+		SWT.COLOR_WIDGET_BACKGROUND, // WIDGET
+		SWT.COLOR_WIDGET_BORDER, // WIDGET_BORDER
+		SWT.COLOR_WIDGET_HIGHLIGHT_SHADOW, // WIDGET_BORDER_SHADOW
+		SWT.COLOR_WIDGET_BACKGROUND, // WIDGET_HOVER
+		SWT.COLOR_TITLE_BACKGROUND_GRADIENT, // WIDGET_BORDER_HOVER
+		SWT.COLOR_TITLE_BACKGROUND_GRADIENT, // WIDGET_BORDER_SHADOW_HOVER
+		SWT.COLOR_WIDGET_NORMAL_SHADOW, // WIDGET_PRESSED
+		SWT.COLOR_WIDGET_BACKGROUND, // WIDGET_BORDER_PRESSED
+		SWT.COLOR_WIDGET_HIGHLIGHT_SHADOW, // WIDGET_BORDER_SHADOW_PRESSED
+		SWT.COLOR_WIDGET_BACKGROUND, // WIDGET_INACTIVE
+		SWT.COLOR_WIDGET_BACKGROUND, // WIDGET_BORDER_INACTIVE
+		SWT.COLOR_WIDGET_HIGHLIGHT_SHADOW, // WIDGET_BORDER_SHADOW_INACTIVE
+		SWT.COLOR_TITLE_BACKGROUND, // WIDGET_FOCUS
+		
+// all other unused SWT colors
+		SWT.COLOR_WIDGET_DARK_SHADOW,
+		SWT.COLOR_WIDGET_LIGHT_SHADOW,
 		SWT.COLOR_INFO_BACKGROUND, SWT.COLOR_INFO_FOREGROUND,
 		SWT.COLOR_LIST_FOREGROUND,		 
 		SWT.COLOR_TITLE_FOREGROUND,
@@ -489,8 +505,17 @@ public class FontObject
 		defColor= colors.values();
 		for (int i = 0; i < colors.values().length; i++)
 		{
-			m_lsColors.addLast(defColor[i].name());
-			m_lColors.addLast(display.getSystemColor(colorIds[i]));
+			String defColorName= defColor[i].name();
+			
+			m_lsColors.addLast(defColorName);
+			if(	i == colors.BACKGROUND.ordinal() ||
+				i == colors.WIDGET.ordinal() ||
+					(	defColorName.length() > 13 && // define for WIDGET_BORDER, but no longer (WIDGET_BORDER_SHADOW, ...) 
+						defColorName.substring(0, 13).equals("WIDGET_BORDER")	)	)
+			{
+				m_lColors.addLast(null);
+			}else
+				m_lColors.addLast(display.getSystemColor(colorIds[i]));
 		}
 		m_lColors.set(colors.BACKGROUND.ordinal(), HtmTags.systemColor);
 		if(m_aSystemFont == null)
@@ -851,7 +876,9 @@ public class FontObject
 		{
 			int style= ((Button)component).getStyle();
 
-			background= m_lColors.get(colors.BACKGROUND.ordinal());
+			background= m_lColors.get(colors.WIDGET.ordinal());
+			if(background == null)
+				background= m_lColors.get(colors.BACKGROUND.ordinal());
 			component.setBackground(background);
 			
 			if(	(style & SWT.CHECK) == 0 &&
@@ -1017,6 +1044,7 @@ public class FontObject
 			if(m_oCurrentFont != null)
 				component.setFont(m_oCurrentFont);
 			foreground= m_lColors.get(colors.TEXT.ordinal());
+			component.setForeground(foreground);
 			background= m_lColors.get(colors.LIST_BACKGROUND.ordinal());
 			component.setBackground(background);
 			//((Text)component).set
@@ -1148,13 +1176,7 @@ public class FontObject
 				
 				try{
 					colorID= colors.valueOf(color);
-					if(colorIds[colorID.ordinal()] == SWT.NONE)
-					{
-						if(color.substring(0, 20) == "WIDGET_BORDER_SHADOW")
-							colorID= colors.valueOf("WIDGET_BORDER_SHADOW");
-						else
-							colorID= colors.valueOf("WIDGET_BORDER");
-					}
+					
 				}catch(IllegalArgumentException ex)
 				{
 					MsgTranslator.instance().errorPool("FAULT_system_color", orgStr, file);
