@@ -24,15 +24,16 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.widgets.Display;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import org.apache.regexp.RE;
+
+import at.kolli.automation.client.MsgTranslator;
+import at.kolli.layout.FontObject.colors;
 
 /**
  * XML parser class
@@ -61,10 +62,6 @@ public class XMLSaxParser extends DefaultHandler
 	 * whether title will be actually defined
 	 */
 	private boolean m_bTitleDef= false;
-	/**
-	 * whether legend for fieldset will be actually defined
-	 */
-	private FieldSet m_oFieldSet= null;
 	/**
 	 * whether the reading of head is finished
 	 */
@@ -722,7 +719,22 @@ public class XMLSaxParser extends DefaultHandler
 	        		
 	        	}else if(aName.equals("color"))
 	        		((Style)m_oAktTag).color= attrs.getValue(i);
-	        	else if(aName.equals("style"))
+	        	else if(aName.equals("type"))
+	        	{
+	        		colors colorID;
+	        		String color= attrs.getValue(i);
+	        			        		
+					try{
+						
+						colorID= colors.valueOf(color);
+		        		((Style)m_oAktTag).colortype= colorID;
+						
+					}catch(IllegalArgumentException ex)
+					{
+						MsgTranslator.instance().errorPool("FAULT_font_color_type", color, getActFolder());
+					}
+	        		
+	        	}else if(aName.equals("style"))
 	        	{
 	        		int style= SWT.None;
 	        		String text;	        		
@@ -927,8 +939,6 @@ public class XMLSaxParser extends DefaultHandler
 	    		m_bFinishedHead= true;
 	    	else if(eName.equals("title"))
 	    		m_bTitleDef= false;
-	    	else if(eName.equals("legend"))
-	    		m_oFieldSet= null;
 	    	else if(eName.equals("body"))
 	    		m_bFinishedBody= true;
 	    	else if(eName.equals("layout"))

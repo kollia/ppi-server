@@ -65,6 +65,10 @@ public class Style extends HtmTags
 	 */
 	public String color= "";
 	/**
+	 * which type of color should be defined
+	 */
+	public colors colortype= colors.TEXT;
+	/**
 	 * whether tag is defined inside
 	 * an legend tag
 	 */
@@ -125,7 +129,7 @@ public class Style extends HtmTags
 			
 		}else if(shouldCreate)
 			bCreated.value= true;	
-		newFont= newFont.defineNewColorObj(composite, color, FontObject.colors.TEXT, bCreated, layoutName);
+		newFont= newFont.defineNewColorObj(composite, color, colortype, bCreated, layoutName);
 		if(	bCreated.value == false &&
 			isCreated == true			)
 		{
