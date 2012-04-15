@@ -28,29 +28,19 @@ import org.eclipse.swt.browser.ProgressEvent;
 import org.eclipse.swt.browser.ProgressListener;
 import org.eclipse.swt.browser.StatusTextEvent;
 import org.eclipse.swt.browser.StatusTextListener;
-import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
-import org.eclipse.swt.events.PaintEvent;
-import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.graphics.FontData;
-import org.eclipse.swt.graphics.GC;
-import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.graphics.Region;
 import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
@@ -552,7 +542,7 @@ public class Component  extends HtmTags implements IComponentListener
 		{
 			boolean bread= false;
 			int style= readonly ? SWT.SINGLE | SWT.READ_ONLY : SWT.SINGLE;
-			style= disabled ? style : style | SWT.BORDER;
+			style= !disabled && !readonly ? style | SWT.BORDER : style;
 			m_oText= new Text(composite, style);
 			//RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+(\\.([0-9])*)?([ +-/]|\\*|\\(|\\)|$)");
 			//RE floatStr= new RE("(.*)(\\*)(#([0-9])+(.[0-9]*)?)?(.*)");
@@ -888,11 +878,15 @@ public class Component  extends HtmTags implements IComponentListener
 					&&
 					this.size > 1				)
 		{
-			List list= new List(composite, m_lContent.size() > this.size ? SWT.SINGLE | SWT.V_SCROLL : SWT.SINGLE | SWT.BORDER);
+			int style;
+			List list;
 			int item= 0;
 			double value= -1;
 			Double akt= null;
 			
+			style= m_lContent.size() > this.size ? SWT.SINGLE | SWT.V_SCROLL : SWT.SINGLE;
+			style= !readonly && !disabled ? style | SWT.BORDER : style;
+			list= new List(composite, style);
 			font.setDevice(list);
 			if(	!getPermission().equals(permission.None) &&
 				!m_nSoftButton								)
@@ -955,7 +949,8 @@ public class Component  extends HtmTags implements IComponentListener
 			
 		}else if(this.type.equals("spinner"))
 		{
-			int style= readonly ? SWT.READ_ONLY  : SWT.NONE;			
+			int style= readonly ? SWT.READ_ONLY  : SWT.NONE;
+			style= !readonly && !disabled ? style | SWT.BORDER : style;
 			Spinner spinner= new Spinner(composite, style);
 			Double akt= null;
 			
