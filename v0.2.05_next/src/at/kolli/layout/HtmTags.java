@@ -102,6 +102,14 @@ public abstract class HtmTags
 	 */
 	public static String tablestructure= "";
 	/**
+	 * padding border around body of layout
+	 */
+	public static int mainPadding= 10;
+	/**
+	 * padding border around popup main buttons
+	 */
+	public static int popupPadding= 3;
+	/**
 	 * show also sides defined with meta tag display false
 	 */
 	public static boolean showFalse= false;

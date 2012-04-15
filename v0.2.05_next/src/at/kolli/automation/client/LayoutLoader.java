@@ -802,8 +802,14 @@ public class LayoutLoader extends Thread
 			m_oPopupIn.setBackground(HtmTags.systemColor);
 			m_oPopupComposite.setBackground(HtmTags.systemColor);
 			m_oMainComposite.setBackground(HtmTags.systemColor);
-			fill.marginHeight= 3;
-			fill.marginWidth= 3;
+			fill.marginHeight= 0;
+			fill.marginWidth= 0;
+			popupLayout.marginHeight= HtmTags.popupPadding;
+			popupLayout.marginWidth= HtmTags.popupPadding;
+			popupLayout.marginBottom= 0;
+			popupLayout.marginTop= 0;
+			popupLayout.marginLeft= 0;
+			popupLayout.marginRight= 0;
 			mainComposite.setLayout(mainLayout);
 			m_oPopupIn.setLayout(fill);
 			m_oPopupComposite.setLayout(popupLayout);
@@ -819,8 +825,8 @@ public class LayoutLoader extends Thread
 
 			treeComposite.setBackground(HtmTags.systemColor);
 			m_oMainComposite.setBackground(HtmTags.systemColor);
-			mainLayout.marginHeight= 10;
-			mainLayout.marginWidth= 10;
+			mainLayout.marginHeight= 0;
+			mainLayout.marginWidth= 0;
 			mainComposite.setLayout(mainLayout);
 
 			check= login.get("sashwidth");
@@ -841,8 +847,8 @@ public class LayoutLoader extends Thread
 			treeComposite.setVisible(true);
 		}
 		
-		m_StackLayout.marginHeight= 10;
-		m_StackLayout.marginWidth= 10;
+		m_StackLayout.marginHeight= HtmTags.mainPadding;
+		m_StackLayout.marginWidth= HtmTags.mainPadding;
 		m_oMainComposite.setLayout(m_StackLayout);
 
 		m_oTopLevelShell.setLayout(new FillLayout());
@@ -1010,8 +1016,8 @@ public class LayoutLoader extends Thread
 							pop= m_oPopupComposite.getBounds();
 						}
 						size= m_shellForm.getBounds();
-						sashHeight[0]= pop.height + 10;
-						sashHeight[1]= size.height - pop.height - 10;
+						sashHeight[0]= pop.height + HtmTags.popupPadding * 2;
+						sashHeight[1]= size.height - pop.height - HtmTags.mainPadding;
 						m_shellForm.setWeights(sashHeight);
 						//m_shellForm.pack();
 					}
@@ -1044,8 +1050,8 @@ public class LayoutLoader extends Thread
 								pop= m_oPopupComposite.getBounds();
 							}
 							size= m_shellForm.getBounds();
-							sashHeight[0]= pop.height + 10;
-							sashHeight[1]= size.height - pop.height - 10;
+							sashHeight[0]= pop.height + HtmTags.popupPadding * 2;
+							sashHeight[1]= size.height - pop.height - HtmTags.mainPadding;
 							m_shellForm.setWeights(sashHeight);
 						}
 						

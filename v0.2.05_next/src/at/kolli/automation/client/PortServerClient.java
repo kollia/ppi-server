@@ -90,9 +90,8 @@ public class PortServerClient
 		LinkedList<String> param= new LinkedList<String>();
 		String host;
 		String inifile= "client.ini";
-		int port= 20004;
-		String lang;
-		String maincolor;
+		int port= 20004, nPadding, nPopup;
+		String lang, maincolor, mainpadding, popuppadding;
 		
 		HtmTags.debug= false;
 		TreeNodes.m_sLayoutStyle= "desktop";
@@ -282,6 +281,46 @@ public class PortServerClient
 			maincolor= prop.getProperty("maincolor");
 			host= prop.getProperty("host");
 			sPort= prop.getProperty("port");
+			mainpadding= prop.getProperty("padding");
+			if(mainpadding != null)
+			{
+				boolean bfault= false;
+				
+				nPadding= 10;
+				try{
+					nPadding= Integer.parseInt(mainpadding);
+					if(nPadding < 0)
+						bfault= true;
+						
+				}catch(NumberFormatException ex)
+				{
+					bfault= true;
+				}
+				if(bfault)
+					System.out.println("ERROR: padding is set to fault content '" + mainpadding + "' take default 10");
+				else
+					HtmTags.mainPadding= nPadding;
+			}
+			popuppadding= prop.getProperty("popuppadding");
+			if(popuppadding != null)
+			{
+				boolean bfault= false;
+				
+				nPopup= 3;
+				try{
+					nPopup= Integer.parseInt(popuppadding);
+					if(nPopup < 0)
+						bfault= true;
+				}catch(NumberFormatException ex)
+				{
+					bfault= true;
+				}
+				if(bfault)
+					System.out.println("ERROR: popuppadding is set to fault content '" + popuppadding + "' take default 3");
+				else
+					HtmTags.popupPadding= nPopup;
+				
+			}
 			file.close();
 			
 			if(host == null)
@@ -294,7 +333,15 @@ public class PortServerClient
 				System.out.println("ERROR: no port defined in client.ini");
 				bStop= true;
 			}else
-				port= Integer.parseInt(sPort);
+			{
+				try{
+					port= Integer.parseInt(sPort);
+				}catch(NumberFormatException ex)
+				{
+					System.out.println("ERROR: no right port defined in client.ini");
+					bStop= true;
+				}
+			}
 			
 			if(lang == null)
 			{
@@ -347,7 +394,7 @@ public class PortServerClient
 		{
 			System.out.println("found operating system '" + os + "'");
 			System.out.println("with follow set path's:");
-			System.out.println("    ALLUSER: '" + allUser + "'");
+			//System.out.println("    ALLUSER: '" + allUser + "'");
 			System.out.println("    HOME:    '" + homeEnv + "'");
 			System.out.println("    Host:     " + host);
 			System.out.println("    port:     " + port);
