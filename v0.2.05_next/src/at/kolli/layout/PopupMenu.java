@@ -136,7 +136,7 @@ public class PopupMenu
 					italic= true;
 			}
 		}
-		font.defineColor(popup, metablock.get("popupcolor"), colors.WIDGET, entry + " popup");
+		font.defineColor(popup, metablock.get("popupcolor"), colors.BACKGROUND, entry + " popup");
 		font.defineColor(popup, metablock.get("popupfontcolor"), colors.TEXT, entry + " popup");
 		font.defineFont(popup, metablock.get("popupfont"), popupsize, bold, italic, /*underline*/false);
 		text.setText(entry);
