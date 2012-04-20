@@ -251,11 +251,12 @@ public class Table extends HtmTags
 			}
 		}
 		// set the maximum width in each column
-		for(HtmTags tag : m_lContent)
-		{
-			ContentRows row= (ContentRows)tag;
-			row.setMaxWidth(maxwidth);
-		}
+		// this routine was deleted in version 0.2.05 before 
+//		for(HtmTags tag : m_lContent)
+//		{
+//			ContentRows row= (ContentRows)tag;
+//			row.setMaxWidth(maxwidth);
+//		}
 				
 		for(int o= 0; o<columns; ++o)
 			isAlsoNext.add(0);
