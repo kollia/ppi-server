@@ -341,7 +341,7 @@ public class Table extends HtmTags
 			
 		}else
 			newFont.setDevice(m_oComposite);
-		
+
 		layout.numColumns= columns;
 		layout.marginLeft= cellspacing;
 		layout.marginRight= cellspacing;
