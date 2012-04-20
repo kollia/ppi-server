@@ -17,6 +17,7 @@
 package at.kolli.layout;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -110,6 +111,7 @@ public class Component  extends HtmTags implements IComponentListener
 	private layout normal= layout.normal;
 	/**
 	 * disabled or read only attribute of component.<br />
+	 * is only set when component type is no TEXT
 	 */
 	private layout actLayout= layout.normal;
 	/**
@@ -149,11 +151,6 @@ public class Component  extends HtmTags implements IComponentListener
 	 * variable as an valid button object
 	 */
 	private Button m_oButton= null;
-	/**
-	 * value attribute of component before number.<br />
-	 * only for type text
-	 */
-	public String bvalue= "";
 	/**
 	 * width attribute of component.<br />
 	 * the width of the components beside the types check and radio
@@ -211,24 +208,73 @@ public class Component  extends HtmTags implements IComponentListener
 	 * result attribute of component.<br />
 	 * describing the position in the measure folders
 	 * the subroutines only can be from type SWITCH for boolean or VALUE for numbers
-	 * exp. 'folder:folder:subroutine'
+	 * exp. 'folder:subroutine'.
 	 */
 	public String result= "";
 	/**
-	 * digits before decimal point. Calculated from format attribute.
+	 * structure of result string
+	 * 
+	 * @author Alexander Kolli
+	 *
 	 */
-	private int m_numBefore= 1;
+	private class textFormat
+	{
+		/**
+		 * result attribute for specific result 
+		 */
+		public String resultStr= "";
+		/**
+		 * result value for actual result string
+		 */
+		public Double result= null;
+		/**
+		 * disabled or read only attribute of component.
+		 */
+		private layout actLayout= layout.normal;
+		/**
+		 * whether result string is an correct folder:subroutine name
+		 */
+		public boolean correctResultString= true;
+		/**
+		 * whether server has correct access to device for this component
+		 */
+		public boolean deviceAccess= true;
+		/**
+		 * error code when result string not reachable
+		 */
+		public String errorCode= "";
+		/**
+		 * error message when result string not reachable
+		 */
+		public String errorMessage= "";
+		/**
+		 * value attribute of component before number.<br />
+		 * only for type text
+		 */
+		public String beforeValue= "";
+		/**
+		 * digits before decimal point. Calculated from format attribute.
+		 */
+		public int numBefore= 1;
+		/**
+		 * digits behind decimal point. Calculated from format attribute.
+		 */
+		public int numBehind= -1;
+	}
 	/**
-	 * digits behind decimal point. Calculated from format attribute.
+	 * result attribute of component with type TEXT.<br />
+	 * can have more then one results.
 	 */
-	private int m_numBehind= -1;
+	private ArrayList<textFormat> m_aResult;
 	/**
 	 * variable is true if the result attribute on server is not reachable,
-	 * incorrect or not set.
+	 * incorrect or not set.<br />
+	 * is only set when component type is no TEXT
 	 */
 	private boolean m_bCorrectName= true;
 	/**
-	 * whether server has correct access to device for this component
+	 * whether server has correct access to device for this component.<br />
+	 * is only set when component type is no TEXT
 	 */
 	private boolean m_bDeviceAccess= true;
 	/**
@@ -356,16 +402,19 @@ public class Component  extends HtmTags implements IComponentListener
 				System.out.println("no result");
 			else
 				System.out.println("result '" + result + "'");
-		}		
-		if(!isSoftButton(classes))
-			askPermission();
-		if(	actLayout.compareTo(layout.disabled) == 0 ||
-			!m_bDeviceAccess								)
-		{
-			disabled= true;
 		}
-		if(actLayout.compareTo(layout.readonly) == 0)
-			readonly= true;
+		if(!this.type.equals("text"))
+		{// by type TEXT, it will be ask later in the specific if sentence
+			if(!isSoftButton(classes))
+				askPermission(null);
+			if(	actLayout.compareTo(layout.disabled) == 0 ||
+				!m_bDeviceAccess								)
+			{
+				disabled= true;
+			}
+			if(actLayout.compareTo(layout.readonly) == 0)
+				readonly= true;
+		}
 		
 		if(	this.type.equals("checkbox")
 			||
@@ -544,36 +593,98 @@ public class Component  extends HtmTags implements IComponentListener
 			//RE floatStr= new RE("(.*)(\\*)(#([0-9])+(.[0-9]*)?)?(.*)");
 			//RE floatStr= new RE("(.*)((#[0-9]+)(.[0-9]*)?)?(.*)");
 			RE floatStr= new RE("([\\\\]*)#([0-9]+)(.([0-9]*))?");
-			Double akt= null;
+			textFormat formatObj;
+			String[] spl;
 			
+			m_aResult= new ArrayList<Component.textFormat>();
+			spl= this.result.split(",");
+			for (String res : spl)
+			{
+				formatObj= new textFormat();
+				formatObj.resultStr= res.trim();
+				m_aResult.add(formatObj);
+			}
+			if(!isSoftButton(classes))
+			{
+				permission highPerm, perm;
+				
+				highPerm= permission.None;
+				for (textFormat obj : m_aResult)
+				{
+					perm= askPermission(obj);
+					if(highPerm == permission.None)
+						highPerm= perm;
+					else
+					{
+						if(	highPerm == permission.readable &&
+							perm == permission.writeable		)
+						{
+							highPerm= permission.writeable;
+						}
+					}
+				}
+				setPermission(highPerm, null);
+			}
+			if(	actLayout.compareTo(layout.disabled) == 0 ||
+				!m_bDeviceAccess								)
+			{
+				disabled= true;
+			}
+			if(actLayout.compareTo(layout.readonly) == 0)
+				readonly= true;
 			if(	!getPermission().equals(permission.None) &&
 				!m_nSoftButton								)
 			{
-				akt= client.getValue(this.result, /*bthrow*/true);
+				for (textFormat obj : m_aResult)
+				{
+					obj.result= client.getValue(obj.resultStr, /*throw*/true);
+					if(client.hasError())
+					{
+						obj.errorCode= client.getErrorCode();
+						obj.errorMessage= client.getErrorMessage();
+					}
+				}
 			}
 			if(!m_nSoftButton)
 			{
+				int count= 0;
 				// calculating the digits before decimal point
 				// and after. save in m_numBefore and m_numBehind
 				do{
 					if(floatStr.match(this.value))
 					{
-						String v, b;
+						String v, b;						
 						
-						bread= false;
-						this.bvalue+= this.value.substring(0, floatStr.getParenStart(0));
+						bread= true;
+						if((count+1) > m_aResult.size())
+						{
+							formatObj= new textFormat();
+							formatObj.correctResultString= false;
+							m_aResult.add(formatObj);
+							
+						}else
+							formatObj= m_aResult.get(count);
+						formatObj.beforeValue+= this.value.substring(0, floatStr.getParenStart(0));
+						if(	count > 0 &&
+							formatObj.beforeValue.substring(0, 1).equals("\\")	)
+						{
+							if(formatObj.beforeValue.length() > 1)
+								formatObj.beforeValue= formatObj.beforeValue.substring(1);
+							else
+								formatObj.beforeValue= "";
+						}
 						this.format= floatStr.getParen(0);
 						if(floatStr.getParen(1) != null)
 						{
 							if(floatStr.getParenLength(1) % 2 != 0)
 							{// no right number holder, take the next one
-								this.bvalue+= floatStr.getParen(1).substring(0, floatStr.getParenLength(1)-1);
-								this.bvalue+= this.format.substring(floatStr.getParenLength(1));
-								this.value= this.value.substring(this.bvalue.length()+1);
+								formatObj.beforeValue+= floatStr.getParen(1).substring(0, floatStr.getParenLength(1)-1);
+								formatObj.beforeValue+= this.format.substring(floatStr.getParenLength(1));
+								this.value= this.value.substring(formatObj.beforeValue.length()+1);
 								bread= true;
 								continue;
 							}
-							this.bvalue+= floatStr.getParen(1);
+							formatObj.beforeValue+= floatStr.getParen(1);
 							this.format= this.format.substring(floatStr.getParenLength(1));
 						}
 						this.value= this.value.substring(floatStr.getParenEnd(0));
@@ -582,21 +693,21 @@ public class Component  extends HtmTags implements IComponentListener
 							if(	v != null &&
 								v.length() > 0	)
 							{
-								m_numBefore= Integer.parseInt(v);
+								formatObj.numBefore= Integer.parseInt(v);
 							}
 							b= floatStr.getParen(3);
 							v= floatStr.getParen(4);
 							if(	v != null &&
 								v.length() > 0	)
 							{
-								m_numBehind= Integer.parseInt(v);
+								formatObj.numBehind= Integer.parseInt(v);
 								
 							}else if(	b != null &&
 										b.equals(".")	)
 							{
-								m_numBehind= -1;
+								formatObj.numBehind= -1;
 							}else
-								m_numBehind= 0;
+								formatObj.numBehind= 0;
 							if(	b != null &&
 								b.length() > 0 &&
 								!b.substring(0, 1).equals(".")	)
@@ -607,35 +718,39 @@ public class Component  extends HtmTags implements IComponentListener
 						}catch(NumberFormatException ex)
 						{
 							// do nothing,
-							// take defaultvalue from member
+							// take default value from member
 							bread= true;
 						}
+						if(	!formatObj.errorCode.equals("ERROR 016") &&
+							formatObj.result == null										)
+						{
+							if(HtmTags.debug)
+							{
+								String message= "";
+								
+								if(!this.result.equals(""))
+									message= "cannot reach subroutine '" + formatObj.resultStr + "' from ";
+								message+= "component input text";
+								if(!this.name.equals(""))
+									message+= " with name " + this.name + " ";
+								if(this.result.equals(""))
+									message+= " have no result attribute";
+								System.out.println(message);
+								System.out.println(formatObj.errorMessage);
+							}
+							formatObj.correctResultString= false;
+						}
+						formatObj.beforeValue= formatObj.beforeValue.replaceAll("\\\\\\\\", "\\\\");
+						++count;
 						
 					}else
+					{
 						this.value= " " + this.value;
+						bread= false;
+					}
 				}while(bread);
-				this.bvalue= this.bvalue.replaceAll("\\\\\\\\", "\\\\");
 				this.value= this.value.replaceAll("\\\\\\\\", "\\\\");
 
-				if(	!client.getErrorCode().equals("ERROR 016") &&
-					akt == null										)
-				{
-					if(HtmTags.debug)
-					{
-						String message= "";
-						
-						if(!this.result.equals(""))
-							message= "cannot reach subroutine '" + this.result + "' from ";
-						message+= "component input text";
-						if(!this.name.equals(""))
-							message+= " with name " + this.name + " ";
-						if(this.result.equals(""))
-							message+= " have no result attribute";
-						System.out.println(message);
-						System.out.println(client.getErrorMessage());
-					}
-					m_bCorrectName= false;
-				}
 			}
 
 			if(width == -1)
@@ -645,8 +760,7 @@ public class Component  extends HtmTags implements IComponentListener
 			m_oComponent= m_oText;
 			data.widthHint= width;
 			m_oText.setLayoutData(data);
-			if(akt != null)
-				m_oText.setText(calculateInputValue(akt));
+			m_oText.setText(calculateInputValue());
 			m_oText.setEnabled(!disabled);
 			
 		}else if(this.type.equals("slider"))
@@ -1029,7 +1143,12 @@ public class Component  extends HtmTags implements IComponentListener
 						&&
 						!enable						)
 					{
-						((Text)m_oComponent).setText(calculateInputValue(0.0));
+						for (textFormat obj : m_aResult)
+						{
+							if(obj.result != null)
+								obj.result= 0.0;
+						}
+						((Text)m_oComponent).setText(calculateInputValue());
 					}
 				}
 			
@@ -1052,32 +1171,56 @@ public class Component  extends HtmTags implements IComponentListener
 	/**
 	 * setter routine to set actual permission inside of an tag
 	 * 
+	 * @param formatObj set permission into textFormat object when parameter not null, otherwise to member variables of Component object
+	 * @return actual permission
+	 * 
 	 * @param perm permission to set
 	 */
-	protected void setPermission(permission perm)
+	protected void setPermission(permission perm, textFormat formatObj)
 	{
-		super.setPermission(perm);
+		if(formatObj == null)
+			super.setPermission(perm);
 		switch (perm)
 		{
 		case writeable:			
 			if(	normal == layout.readonly ||
 				normal == layout.disabled	)
 			{
-				actLayout= normal;
+				if(formatObj == null)
+					actLayout= normal;
+				else
+					formatObj.actLayout= normal;
 			}else
-				actLayout= layout.normal;
+			{
+				if(formatObj == null)
+					actLayout= layout.normal;
+				else
+					formatObj.actLayout= layout.normal;
+			}
 			break;
 			
 		case readable:
 			if(normal == layout.disabled)
-				actLayout= normal;
-			else
-				actLayout= layout.readonly;
+			{
+				if(formatObj == null)
+					actLayout= normal;
+				else
+					formatObj.actLayout= normal;
+			}else
+			{
+				if(formatObj == null)
+					actLayout= layout.readonly;
+				else
+					formatObj.actLayout= layout.readonly;
+			}
 			break;
 			
 		case None:
 		default:
-			actLayout= layout.disabled;
+			if(formatObj == null)
+				actLayout= layout.disabled;
+			else
+				formatObj.actLayout= layout.disabled;
 			break;
 		}
 	}
@@ -1085,21 +1228,33 @@ public class Component  extends HtmTags implements IComponentListener
 	/**
 	 * check permission on server for this component
 	 * 
+	 * @param formatObj set permission into textFormat object when parameter not null, otherwise to member variables of Component object
+	 * @return actual permission
+	 * 
 	 * @throws IOException
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public void askPermission() throws IOException
+	public permission askPermission(textFormat formatObj) throws IOException
 	{
 		Double res;
+		String result;
+		permission eRv;
 		MsgClientConnector client;
 		
-		if(result.equals(""))
+		if(	(	formatObj != null &&
+				formatObj.resultStr.equals("") ) ||
+			(	formatObj == null &&
+				this.result.equals("")	)			)
 		{
-			setPermission(permission.None);
-			return;
+			setPermission(permission.None, formatObj);
+			return permission.None;
 		}
+		if(formatObj != null)
+			result= formatObj.resultStr;
+		else
+			result= this.result;
 		client= MsgClientConnector.instance();
 		res= client.getValue(result, /*bthrow*/true);
 		if(!client.hasError())
@@ -1107,18 +1262,29 @@ public class Component  extends HtmTags implements IComponentListener
 			if(	normal == layout.readonly ||
 				!client.setValue(result, res, /*bthrow*/true)	)
 			{
-				setPermission(permission.readable);
+				eRv= permission.readable;
+				setPermission(eRv, formatObj);
 				
 			}else
-				setPermission(permission.writeable);
+			{
+				eRv= permission.writeable;
+				setPermission(eRv, formatObj);
+			}
 				
 		}else
-		{
-			setPermission(permission.None);
+		{	
+			eRv= permission.None;
+			setPermission(eRv, formatObj);
 			System.out.println(client.getErrorMessage());
 			if(client.getErrorCode().equals("ERROR 016"))
-				m_bDeviceAccess= false;
+			{
+				if(formatObj != null)
+					formatObj.deviceAccess= false;
+				else
+					m_bDeviceAccess= false;
+			}
 		}
+		return eRv;
 	}
 	
 	/**
@@ -1304,7 +1470,15 @@ public class Component  extends HtmTags implements IComponentListener
 			getPermission().compareTo(permission.readable) >= 0 &&
 			client.haveSecondConnection()							)
 		{
-			client.hear(result, /*bthrow*/true);
+			if(type.equals("text"))
+			{
+				for (textFormat obj : m_aResult)
+				{
+					if(!obj.resultStr.equals(""))
+						client.hear(obj.resultStr, /*throw*/true);
+				}
+			}else
+				client.hear(result, /*bthrow*/true);
 		}
 		if(	this.type.equals("combo") ||
 			(	getPermission().equals(permission.readable) &&
@@ -1827,60 +2001,71 @@ public class Component  extends HtmTags implements IComponentListener
 	/**
 	 * calculate the string value for an component with type text
 	 * 
-	 * @param value the value from server which should displayed
 	 * @return value as string with observance the format attribute and add the suffix (attribute value)
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 09.12.2007
 	 * @since JDK 1.6
 	 */
-	protected String calculateInputValue(Double value)
+	protected String calculateInputValue()
 	{
 		boolean bInt= false;
-		String stringValue= "" + value;
+		String stringValue;
 		int strPos= 0;
-		char stringChars[]= stringValue.toCharArray();
-		String Rv= "";
-		
+		char stringChars[];
+		String Rv;
+		String result= "";
+
 		if(!m_bDeviceAccess)
 			return "ERROR";
-		else if(getPermission().equals(permission.None))
-			return " --- ";
-		while((	stringChars.length > strPos
-				&&
-				stringChars[strPos] != '.'	))
+		for (textFormat obj : m_aResult)
 		{
-			Rv+= stringChars[strPos];
-			++strPos;
-		}
-		Double sh= new Double(stringValue.substring(0, strPos));
-		if(value.equals(sh))
-			bInt= true;
-		for(int c= strPos; c<m_numBefore; ++c)
-			Rv= "0" + Rv;
-		if(	m_numBehind > 0 ||
-			m_numBehind == -1	)
-		{
-			int behind= m_numBehind;
-
-			if(	m_numBehind >0 ||
-				!bInt				)
+			if(getPermission().equals(permission.None))
+				return " --- ";
+			Rv= "";
+			bInt= false;
+			if(obj.result != null)
+				stringValue= "" + obj.result;
+			else
+				stringValue= "";
+			stringChars= stringValue.toCharArray();
+			strPos= 0;
+			while(	stringChars.length > strPos &&
+					stringChars[strPos] != '.'		)
 			{
+				Rv+= stringChars[strPos];
 				++strPos;
-				if(m_numBehind == -1)
-					behind= stringValue.length() - strPos;
-				Rv+= ".";
-				for(int c= 0; c<behind; ++c)
+			}
+			Double sh= new Double(stringValue.substring(0, strPos));
+			if(obj.result.equals(sh))
+				bInt= true;
+			for(int c= strPos; c<obj.numBefore; ++c)
+				Rv= "0" + Rv;
+			if(	obj.numBehind > 0 ||
+				obj.numBehind == -1	)
+			{
+				int behind= obj.numBehind;
+	
+				if(	obj.numBehind >0 ||
+					!bInt				)
 				{
-					if(stringChars.length > strPos)
+					++strPos;
+					if(obj.numBehind == -1)
+						behind= stringValue.length() - strPos;
+					Rv+= ".";
+					for(int c= 0; c<behind; ++c)
 					{
-						Rv+= stringChars[strPos];
-						++strPos;
-					}else
-						Rv+= "0";
+						if(stringChars.length > strPos)
+						{
+							Rv+= stringChars[strPos];
+							++strPos;
+						}else
+							Rv+= "0";
+					}
 				}
 			}
+			result+= obj.beforeValue + Rv;
 		}
-		return this.bvalue + Rv + this.value;
+		return result + this.value;
 	}
 	
 	/**
@@ -2048,6 +2233,7 @@ public class Component  extends HtmTags implements IComponentListener
 	public void serverListener(final Map<String, Double> results, NodeContainer cont) throws IOException
 	{
 		boolean bValue= false;
+		textFormat formatObj= null;
 
 		if(	!m_bCorrectName
 			||
@@ -2059,11 +2245,38 @@ public class Component  extends HtmTags implements IComponentListener
 			&&
 			cont.hasValue()	)
 		{
-			if(!(cont.getFolderName() + ":" + cont.getSubroutineName()).equals(this.result))
-				return;
+			if(this.type.equals("text"))
+			{
+				String folder= cont.getFolderName() + ":" + cont.getSubroutineName();
+				
+				if(folder.equals("time_routines:minutes"))
+					System.out.print("");
+				for (textFormat obj : m_aResult)
+				{
+					if(obj.resultStr.equals(folder))
+					{
+						formatObj= obj;
+						break;
+					}
+				}
+				if(formatObj == null)
+					return;
+				
+			}else
+			{
+				if(!(cont.getFolderName() + ":" + cont.getSubroutineName()).equals(this.result))
+					return;
+			}
 			if(cont.hasDoubleValue())
 			{
 				m_nAktValue= cont.getDValue();
+				if(formatObj != null)
+				{
+					formatObj.result= m_nAktValue;
+					formatObj.errorCode= "";
+					formatObj.errorMessage= "";
+					formatObj.correctResultString= true;
+				}
 				bValue= true;
 				
 			}else if(cont.hasStringValue())
@@ -2101,7 +2314,7 @@ public class Component  extends HtmTags implements IComponentListener
 				{
 					String text;
 					Button button= (Button)m_oComponent;
-					boolean bSet= m_nAktValue == 0 ? false : true;
+					boolean bSet= m_nAktValue > 0 ? true : false;
 					
 					if(!type.equals("button"))
 						button.setSelection(bSet);
@@ -2144,7 +2357,7 @@ public class Component  extends HtmTags implements IComponentListener
 					//String string= new String(m_nAktValue + " " + suffix);
 					Text text= (Text)m_oComponent;
 					
-					text.setText(calculateInputValue(m_nAktValue));
+					text.setText(calculateInputValue());
 				}
 			
 			});
