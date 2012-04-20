@@ -20,7 +20,13 @@
 package at.kolli.layout;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.PaintEvent;
+import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.graphics.Region;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Display;
@@ -89,13 +95,50 @@ public class DetectSystemSettingChange {
       SWT.COLOR_WIDGET_DARK_SHADOW, SWT.COLOR_WIDGET_FOREGROUND, SWT.COLOR_WIDGET_HIGHLIGHT_SHADOW,
       SWT.COLOR_WIDGET_LIGHT_SHADOW, SWT.COLOR_WIDGET_NORMAL_SHADOW, };
 
-  static String[] colorNames = new String[] { "BACKGROUND",
-      "FOREGROUND", "LIST_BACKGROUND", "LIST_FOREGROUND",
-      "LIST_SELECTION", "LIST_SELECTION_TEXT", "TITLE_BACKGROUND",
-      "TITLE_BACKGROUND_GRADIENT", "TITLE_FOREGROUND",
-      "TITLE_INACTIVE_BACKGROUND", "TITLE_INACTIVE_BACKGROUND_GRADIENT",
-      "TITLE_INACTIVE_FOREGROUND", "WIDGET_BACKGROUND",
-      "WIDGET_BORDER", "WIDGET_DARK_SHADOW", "WIDGET_FOREGROUND",
-      "WIDGET_HIGHLIGHT_SHADOW", "WIDGET_LIGHT_SHADOW",
-      "WIDGET_NORMAL_SHADOW", };
+  static String[] colorNames = new String[] { "COLOR_INFO_BACKGROUND", "COLOR_INFO_FOREGROUND",
+      "COLOR_LIST_BACKGROUND", "COLOR_LIST_FOREGROUND", "COLOR_LIST_SELECTION",
+      "COLOR_LIST_SELECTION_TEXT", "COLOR_TITLE_BACKGROUND",
+      "COLOR_TITLE_BACKGROUND_GRADIENT", "COLOR_TITLE_FOREGROUND",
+      "COLOR_TITLE_INACTIVE_BACKGROUND", "COLOR_TITLE_INACTIVE_BACKGROUND_GRADIENT",
+      "COLOR_TITLE_INACTIVE_FOREGROUND", "COLOR_WIDGET_BACKGROUND", "COLOR_WIDGET_BORDER",
+      "COLOR_WIDGET_DARK_SHADOW", "COLOR_WIDGET_FOREGROUND", "COLOR_WIDGET_HIGHLIGHT_SHADOW",
+      "COLOR_WIDGET_LIGHT_SHADOW", "COLOR_WIDGET_NORMAL_SHADOW", };
+ 
+
+  public static void NonRectangularTransparency() {
+	  
+      Display display = new Display();
+      final Image image = display.getSystemImage(SWT.ICON_WARNING);
+      // Shell must be created with style SWT.NO_TRIM
+      final Shell shell = new Shell(display, SWT.NO_TRIM | SWT.ON_TOP);
+      shell.setBackground(display.getSystemColor(SWT.COLOR_RED));
+      // define a region
+      Region region = new Region();
+      Rectangle pixel = new Rectangle(0, 0, 1, 1);
+      for (int y = 0; y < 200; y += 2) {
+        for (int x = 0; x < 200; x += 2) {
+          pixel.x = x;
+          pixel.y = y;
+          region.add(pixel);
+        }
+      }
+      // define the shape of the shell using setRegion
+      shell.setRegion(region);
+      Rectangle size = region.getBounds();
+      shell.setSize(size.width, size.height);
+      shell.addPaintListener(new PaintListener() {
+        public void paintControl(PaintEvent e) {
+          Rectangle bounds = image.getBounds();
+          Point size = shell.getSize();
+          e.gc.drawImage(image, 0, 0, bounds.width, bounds.height, 10, 10, size.x - 20, size.y - 20);
+        }
+      });
+      shell.open();
+      while (!shell.isDisposed()) {
+        if (!display.readAndDispatch())
+          display.sleep();
+      }
+      region.dispose();
+      display.dispose();
+  }
 }
