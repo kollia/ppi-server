@@ -121,15 +121,15 @@ public class PopupMenu
 		ssize= metablock.get("popupfontsize");
 		if(ssize != null)
 			popupsize= Integer.parseInt(ssize);
-		looks= metablock.get("popuplooks");
+		looks= metablock.get("popupstyle");
 		if(looks != null)
 		{
 			String[] split;
 			
-			split= looks.split("|");
+			split= looks.split(",");
 			for(int i= 0; i < split.length; ++i)
 			{
-				split[i]= split[i].toLowerCase();
+				split[i]= split[i].trim().toLowerCase();
 				if(split[i].equals("bold"))
 					bold= true;
 				else if(split[i].equals("italic"))
@@ -351,15 +351,15 @@ public class PopupMenu
 				ssize= metablock.get("popupfontsize");
 				if(ssize != null)
 					popupsize= Integer.parseInt(ssize);
-				looks= metablock.get("popuplooks");
+				looks= metablock.get("popupstyle");
 				if(looks != null)
 				{
 					String[] split;
 					
-					split= looks.split("|");
+					split= looks.split(",");
 					for(int i= 0; i < split.length; ++i)
 					{
-						split[i]= split[i].toLowerCase();
+						split[i]= split[i].trim().toLowerCase();
 						if(split[i].equals("bold"))
 							bold= true;
 						else if(split[i].equals("italic"))
@@ -380,6 +380,7 @@ public class PopupMenu
 				comp.setLayout(layout);
 				font.setDevice(comp);
 				font.setDevice(text);
+				font.dispose();
 				comps.add(comp);
 				text.addMouseListener(new MouseAdapter() 
 				{
