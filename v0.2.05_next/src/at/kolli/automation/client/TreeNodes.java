@@ -1049,6 +1049,7 @@ public class TreeNodes
 	        else
 	        	saxParser.parse(emptyStream, handler);
 	        m_mMetaBlock= handler.getMetaBlock();
+	        dialog.setSelection(dialog.getSelection() + DialogThread.m_nProgressSteps);
 	        if(	m_mMetaBlock != null &&
 	        	!HtmTags.showFalse		)
 	        {
@@ -1068,6 +1069,7 @@ public class TreeNodes
 		    bodyList= layout.getBody();
 	      } catch( Throwable t ) 
 	      {
+	    	  dialog.setSelection(dialog.getSelection() + DialogThread.m_nProgressSteps);
 	    	  m_mMetaBlock= handler.getMetaBlock();
 				if(	m_mMetaBlock != null &&
 				    	!HtmTags.showFalse		)

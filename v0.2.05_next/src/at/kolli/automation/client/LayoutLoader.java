@@ -1171,7 +1171,7 @@ public class LayoutLoader extends Thread
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 			return oRetTrees;
 		if(folderSet.size() > 0)
-			DialogThread.m_nProgressSteps= nMax / folderSet.size();
+			DialogThread.m_nProgressSteps= nMax / folderSet.size() / 2;
 		else
 			DialogThread.m_nProgressSteps= nMax;
 		dialog.setSelection(0);
