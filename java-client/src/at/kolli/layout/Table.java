@@ -222,11 +222,18 @@ public class Table extends HtmTags
 		for(HtmTags tag : m_lContent)
 		{
 			ContentRows row= (ContentRows)tag;
-			int c= row.getMaxColumns();
 			
-			if(c > columns)
-				columns= c;
+			row.getMaxColumns(isAlsoNext);			
+			for(int ch= 0; ch < isAlsoNext.size(); ++ch)
+			{
+				int akt= isAlsoNext.get(ch);
+				
+				if(akt > 0)
+					isAlsoNext.set(ch, akt - 1);
+			}
 		}
+		for(int i= 0; i < isAlsoNext.size(); ++i)
+			isAlsoNext.set(i, 0);
 		// calculate the highest height per column
 		for(HtmTags tag : m_lContent)
 		{
@@ -257,10 +264,8 @@ public class Table extends HtmTags
 //			ContentRows row= (ContentRows)tag;
 //			row.setMaxWidth(maxwidth);
 //		}
-				
-		for(int o= 0; o<columns; ++o)
-			isAlsoNext.add(0);
-		layout.numColumns= columns;
+		
+		layout.numColumns= isAlsoNext.size();
 		layout.marginWidth= cellspacing;
 		layout.marginHeight= cellspacing;
 		layout.horizontalSpacing= cellspacing;
