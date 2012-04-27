@@ -1090,6 +1090,7 @@ public class TreeNodes
 	    		    }
 	        	}else
 	        	{
+	        		bodyList= new ArrayList<Body>();
 	        		layout= new Layout();
 	        			body= new Body();
 	        			layout.insert(body);
