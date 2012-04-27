@@ -269,9 +269,7 @@ public class Table extends HtmTags
 	 */
 	public void execute(Composite composite, FontObject font, HashMap<String, HtmTags> classes) throws IOException
 	{
-		int columns= 1;
 		int rownr= 1;
-		//ArrayList<Integer> maxwidth= new ArrayList<Integer>();
 		GridLayout layout= new GridLayout();
 		ArrayList<Integer> rowspanColumns= new ArrayList<Integer>();
 		FontObject newFont, structureFont;
@@ -284,16 +282,18 @@ public class Table extends HtmTags
 		for(HtmTags tag : m_lContent)
 		{
 			ContentRows row= (ContentRows)tag;
-			int c= row.getMaxColumns();
 			
-			if(c > columns)
-				columns= c;
-		}		
-		// define for each columns
-		// whether it gets an rowspan 
-		// from one of the last row
-		for(int o= 0; o<columns; ++o)
-			rowspanColumns.add(0);
+			row.getMaxColumns(rowspanColumns);			
+			for(int ch= 0; ch < rowspanColumns.size(); ++ch)
+			{
+				int akt= rowspanColumns.get(ch);
+				
+				if(akt > 0)
+					rowspanColumns.set(ch, akt - 1);
+			}
+		}
+		for(int i= 0; i < rowspanColumns.size(); ++i)
+			rowspanColumns.set(i, 0);
 		// calculate the highest height per column
 		// and fill also the the lost columns per row
 		for(HtmTags tag : m_lContent)
@@ -342,7 +342,7 @@ public class Table extends HtmTags
 		}else
 			newFont.setDevice(m_oComposite);
 
-		layout.numColumns= columns;
+		layout.numColumns= rowspanColumns.size();
 		layout.marginLeft= cellspacing;
 		layout.marginRight= cellspacing;
 		layout.marginTop= cellspacing;

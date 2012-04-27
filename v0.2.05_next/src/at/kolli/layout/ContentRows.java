@@ -21,6 +21,7 @@ import java.security.acl.Group;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.xml.sax.SAXException;
 
@@ -123,15 +124,31 @@ public class ContentRows extends HtmTags
 	 * @version 1.00.00, 06.12.2007
 	 * @since JDK 1.6
 	 */
-	public int getMaxColumns()
+	public int getMaxColumns(ArrayList<Integer> rowSpanColumns)
 	{
 		int columns= 0;
+		int aktRowSpan;
 		
 		for(HtmTags tag : m_lContent)
 		{
 			ContentFields field= (ContentFields)tag;
-			
-			columns+= field.colspan;
+
+			while(rowSpanColumns.size() >= columns+1)
+			{
+				aktRowSpan= rowSpanColumns.get(columns);
+				if(aktRowSpan > 0)
+					++columns;
+				else
+					break;
+			}
+			for(int i= 0; i < field.colspan; ++i)
+			{
+				if(columns+1 > rowSpanColumns.size())	
+					rowSpanColumns.add(field.rowspan);
+				else
+					rowSpanColumns.set(columns, field.rowspan);
+				++columns;
+			}
 		}
 		return columns;
 	}
