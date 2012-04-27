@@ -760,7 +760,8 @@ public class Component  extends HtmTags implements IComponentListener
 			m_oComponent= m_oText;
 			data.widthHint= width;
 			m_oText.setLayoutData(data);
-			m_oText.setText(calculateInputValue());
+			if(!m_nSoftButton)
+				m_oText.setText(calculateInputValue());
 			m_oText.setEnabled(!disabled);
 			
 		}else if(this.type.equals("slider"))
