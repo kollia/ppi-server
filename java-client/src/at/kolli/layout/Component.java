@@ -260,6 +260,10 @@ public class Component  extends HtmTags implements IComponentListener
 		 * digits behind decimal point. Calculated from format attribute.
 		 */
 		public int numBehind= -1;
+		/**
+		 * RE pattern in first textFormat entry to read changes from user
+		 */
+		public RE changePattern= null;
 	}
 	/**
 	 * result attribute of component with type TEXT.<br />
@@ -595,6 +599,8 @@ public class Component  extends HtmTags implements IComponentListener
 			RE floatStr= new RE("([\\\\]*)#([0-9]+)(.([0-9]*))?");
 			textFormat formatObj;
 			String[] spl;
+			String sNumberStr= "([^0-9]*)([0-9]*";
+			String sBehindStr= "(\\.[0-9]+)?";
 			
 			m_aResult= new ArrayList<Component.textFormat>();
 			spl= this.result.split(",");
@@ -653,7 +659,8 @@ public class Component  extends HtmTags implements IComponentListener
 				do{
 					if(floatStr.match(this.value))
 					{
-						String v, b;						
+						String v, b;
+						String sPattern;
 						
 						bread= true;
 						if((count+1) > m_aResult.size())
@@ -665,6 +672,7 @@ public class Component  extends HtmTags implements IComponentListener
 						}else
 							formatObj= m_aResult.get(count);
 						formatObj.beforeValue+= this.value.substring(0, floatStr.getParenStart(0));
+						sPattern= sNumberStr;
 						if(	count > 0 &&
 							formatObj.beforeValue.substring(0, 1).equals("\\")	)
 						{
@@ -701,11 +709,13 @@ public class Component  extends HtmTags implements IComponentListener
 								v.length() > 0	)
 							{
 								formatObj.numBehind= Integer.parseInt(v);
+								sPattern+= sBehindStr;
 								
 							}else if(	b != null &&
 										b.equals(".")	)
 							{
 								formatObj.numBehind= -1;
+								sPattern+= sBehindStr;
 							}else
 								formatObj.numBehind= 0;
 							if(	b != null &&
@@ -740,7 +750,9 @@ public class Component  extends HtmTags implements IComponentListener
 							}
 							formatObj.correctResultString= false;
 						}
+						sPattern+= ")";
 						formatObj.beforeValue= formatObj.beforeValue.replaceAll("\\\\\\\\", "\\\\");
+						formatObj.changePattern= new RE(sPattern);
 						++count;
 						
 					}else
@@ -1706,15 +1718,6 @@ public class Component  extends HtmTags implements IComponentListener
 			
 		}else if(this.type.equals("text"))
 		{
-			RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+\\.([0-9])*([ +-/]|\\*|\\(|\\)|$)");
-			String patternString= "[0-9]*";
-			
-			if(floatStr.match(this.format))
-				patternString+= "(\\.[0-9]+)?";
-			//patternString+= ").*";
-			
-			final RE pattern= new RE(patternString);
-			
 			if(m_nSoftButton)
 			{
 				if(result.equals("browser_info"))
@@ -1777,29 +1780,49 @@ public class Component  extends HtmTags implements IComponentListener
 				public void widgetDefaultSelected(SelectionEvent ev)
 				{
 					String string= ((Text)m_oComponent).getText();
+					String strRes= string;
 					double value;
 					
 					if(!m_nSoftButton)
 					{
-						if(pattern.match(string))
+						for (textFormat formatObj : m_aResult)
 						{
-							if(HtmTags.debug)
-								System.out.println("user change text field " + name + " to " + string);
-							string= pattern.getParen(0);
-							if(!string.equals(""))
+							strRes= string;
+							if(formatObj.changePattern.match(string))
 							{
 								if(HtmTags.debug)
-									System.out.println(" generate to number '" + string + "'");
-								try{
-									value= Double.parseDouble(string);
-									
-								}catch(NumberFormatException ex)
+									System.out.println("user change text field " + name + " to " + string);
+								strRes= formatObj.changePattern.getParen(2);
+								string= string.substring(formatObj.changePattern.getParenEnd(2));
+								if(!strRes.equals(""))
+								{
+									if(HtmTags.debug)
+										System.out.println(" generate to number '" + strRes + "'");
+									try{
+										value= Double.parseDouble(strRes);
+										strRes= formatObj.changePattern.getParen(1);
+										if(	strRes.length() > 0 &&
+											strRes.substring(strRes.length()-1).equals("-")	)
+										{
+											value*= -1;
+										}
+										
+									}catch(NumberFormatException ex)
+									{
+										if(HtmTags.debug)
+										{
+											System.out.println("NumberFormatException for textfield " + name);
+											System.out.println(" cannot convert value " + strRes);
+											System.out.println();
+										}
+										value= 0;
+									}
+								}else
 								{
 									if(HtmTags.debug)
 									{
-										System.out.println("NumberFormatException for textfield " + name);
-										System.out.println(" cannot convert value " + string);
-										System.out.println();
+										System.out.println("found no correct value for new string '" + strRes + "'");
+										System.out.println("set value to 0");
 									}
 									value= 0;
 								}
@@ -1807,30 +1830,22 @@ public class Component  extends HtmTags implements IComponentListener
 							{
 								if(HtmTags.debug)
 								{
-									System.out.println("found no correct value for new string '" + string + "'");
+									System.out.println("found no correct value for new string '" + strRes + "'");
 									System.out.println("set value to 0");
 								}
 								value= 0;
 							}
-						}else
-						{
-							if(HtmTags.debug)
-							{
-								System.out.println("found no correct value for new string '" + string + "'");
-								System.out.println("set value to 0");
-							}
-							value= 0;
+							try{
+								client.setValue(formatObj.resultStr, value, /*bthrow*/false);
+							}catch(IOException ex)
+							{}
+					    	if(	HtmTags.debug &&
+					    		client.hasError()	)
+					    	{
+					    		System.out.println("ERROR: by setValue() inside SelectionListener");
+					    		System.out.println("       " + client.getErrorMessage());
+					    	}
 						}
-						try{
-							client.setValue(result, value, /*bthrow*/false);
-						}catch(IOException ex)
-						{}
-				    	if(	HtmTags.debug &&
-				    		client.hasError()	)
-				    	{
-				    		System.out.println("ERROR: by setValue() inside SelectionListener");
-				    		System.out.println("       " + client.getErrorMessage());
-				    	}
 					}else
 						doSoftButton();
 				}
