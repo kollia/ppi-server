@@ -181,9 +181,9 @@ namespace ppi_database
 		 * @param subroutine name of the subroutine in the folder
 		 * @param identif identification of which value be set
 		 * @param value value which should write into database
-		 * @param bNew whether database should write only new values default= true
+		 * @param bNew whether database should actualize value for client default= false
 		 */
-		void fillValue(string folder, string subroutine, string identif, double value, bool bNew= true);
+		void fillValue(string folder, string subroutine, string identif, double value, bool bNew= false);
 		/**
 		 * fill double values into database
 		 *
@@ -191,9 +191,9 @@ namespace ppi_database
 		 * @param subroutine name of the subroutine in the folder
 		 * @param identif identification of which value be set
 		 * @param values vector of value which should write into database
-		 * @param bNew whether database should write only new values default= true
+		 * @param bNew whether database should actualize value for client default= false
 		 */
-		void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= true);
+		void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= false);
 		/**
 		 * ask whether entry of folder:subroutine exist
 		 *

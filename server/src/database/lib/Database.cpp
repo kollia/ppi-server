@@ -433,7 +433,7 @@ namespace ppi_database
 		columns= ConfigPropertyCasher::split(line, "|");
 		count= columns.size();
 
-		entry.bNew= true;
+		entry.bNew= false;
 		entry.device= true;
 		if(count > 0)
 		{
@@ -1638,7 +1638,7 @@ namespace ppi_database
 		m_vtDbValues.push_back(entry);
 	}
 
-	void Database::fillValue(string folder, string subroutine, string identif, double value, bool bNew/*=true*/)
+	void Database::fillValue(string folder, string subroutine, string identif, double value, bool bNew/*=false*/)
 	{
 		vector<double> values;
 
@@ -1646,7 +1646,7 @@ namespace ppi_database
 		fillValue(folder, subroutine, identif, values, bNew);
 	}
 
-	void Database::fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew/*=true*/)
+	void Database::fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew/*=false*/)
 	{
 		db_t newEntry;
 

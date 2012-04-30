@@ -191,18 +191,18 @@ namespace ppi_database
 		 * fill double value into database
 		 *
 		 * @param value value whitch should write into database
-		 * @param bNew whether database should write only new values default= true
+		 * @param bNew whether database should actualize value for client default= false
 		 */
-		void fillValue(string folder, string subroutine, string identif, double value, bool bNew= true);
+		void fillValue(string folder, string subroutine, string identif, double value, bool bNew= false);
 		/**
 		 * fill double values into database
 		 *
 		 * @param folder folder name from the running thread
 		 * @param subroutine name of the subroutine in the folder
 		 * @param values vector of value which should write into database
-		 * @param bNew whether database should write only new values default= true
+		 * @param bNew whether database should actualize value for client default= false
 		 */
-		virtual void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= true);
+		virtual void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= false);
 		/**
 		 * method to running thread .<br />
 		 * This method starting again when method stop() wasn't call.
