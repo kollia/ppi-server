@@ -152,8 +152,11 @@ unsigned short MeasureThread::getActCount(const string& subroutine)
 		return ++m_nActCount;
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
-		if(it->portClass->getSubroutineName() == subroutine)
+		if(	it->bCorrect &&
+			it->portClass->getSubroutineName() == subroutine	)
+		{
 			return it->portClass->getActCount();
+		}
 	}
 	return 0;
 }

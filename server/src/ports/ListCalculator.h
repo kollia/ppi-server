@@ -88,6 +88,13 @@ public:
 	 * @param var variable of subroutine with folder
 	 * @param own whether should also get portBase Class from own folder
 	 */
+	sub* getSubroutinePointer(const string& var, bool own);
+	/**
+	 * subroutine object of given folder:subroutine
+	 *
+	 * @param var variable of subroutine with folder
+	 * @param own whether should also get portBase Class from own folder
+	 */
 	IListObjectPattern* getSubroutine(const string& var, bool own);
 	/**
 	 * activate information for given measure thread (observer)
@@ -141,9 +148,9 @@ protected:
 	 */
 	SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
 	/**
-	 * variables witch are used in calculation
+	 * variables which are used in calculation
 	 */
-	map<string, IListObjectPattern*> m_msoVars;
+	map<string, sub* > m_msoVars;
 	/**
 	 * variables which should not read from other list object
 	 */

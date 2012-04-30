@@ -107,6 +107,16 @@ void ListCalculator::output(bool bError, const string& file, const int line, con
 
 IListObjectPattern* ListCalculator::getSubroutine(const string& var, bool own)
 {
+	sub* oRv;
+
+	oRv= getSubroutinePointer(var, own);
+	if(oRv != NULL)
+		return oRv->portClass.get();
+	return NULL;
+}
+
+sub* ListCalculator::getSubroutinePointer(const string& var, bool own)
+{
 	string sFolder, sSubroutine, msg;
 	vector<string> spl;
 	SHAREDPTR::shared_ptr<measurefolder_t> pFolder= m_pStartFolder;
@@ -142,7 +152,7 @@ IListObjectPattern* ListCalculator::getSubroutine(const string& var, bool own)
 					!isRendered()	) &&
 				it->name == sSubroutine	)
 			{
-				return it->portClass.get();
+				return &(*it);
 			}
 		}
 	}
@@ -167,11 +177,11 @@ IListObjectPattern* ListCalculator::getSubroutine(const string& var, bool own)
 
 bool ListCalculator::variable(const string& var, double& dResult)
 {
-	IListObjectPattern* oSub;
+	sub* oSub;
 	string v;
 	vector<string> spl;
 	map<string, double>::iterator foundSub;
-	map<string, IListObjectPattern*>::iterator found;
+	map<string, sub*>::iterator found;
 
 	if(m_msSubVars.size())
 	{
@@ -189,18 +199,22 @@ bool ListCalculator::variable(const string& var, double& dResult)
 	found= m_msoVars.find(var);
 	if(found == m_msoVars.end())
 	{
-		oSub= getSubroutine(var, /*own folder*/true);
+		if(m_sFolder == "switch_test_begin_end" &&
+			var == "step")
+			cout << "debug stop" << endl;
+		oSub= getSubroutinePointer(var, /*own folder*/true);
 		if(oSub)
 		{
 			m_msoVars[var]= oSub;
-			dResult= oSub->getValue("i:"+m_sFolder);
+			dResult= oSub->portClass->getValue("i:"+m_sFolder);
 			return true;
 		}
-	}else
+	}else if(found->second->bCorrect)
 	{
-		dResult= found->second->getValue("i:"+m_sFolder);
+		dResult= found->second->portClass->getValue("i:"+m_sFolder);
 		return true;
 	}
+	dResult= 0;
 	return false;
 }
 
