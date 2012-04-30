@@ -96,8 +96,12 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	{// write always the first value into db
 	 // if it was not in database
 	 // because the user which hearing for this subroutine
-	 // gets otherwise an error
+	 // gets otherwise an error.
+	 // also when no permission be set and db not need for user
+	 // because otherwise root can not set subroutine with no db and no permission
+	 // set to DEBUG
 		db->fillValue(m_sFolder, m_sSubroutine, "value", m_dValue);
+
 	}else
 		m_dValue= ddv;
 	m_sErrorHead= properties->getMsgHead(/*error message*/true);
@@ -453,7 +457,9 @@ void portBase::setValue(double value, const string& from)
 				TERMINALEND;
 		}
 		UNLOCK(m_OBSERVERLOCK);
-		if(dbvalue != oldMember)
+		if(	dbvalue != oldMember &&
+			(	m_bWriteDb ||
+				m_sPermission != ""	)	)
 		{
 #ifdef __moreOutput
 		cout << "            fill new value:" << dec << dbvalue << " into database" << endl;
@@ -462,7 +468,9 @@ void portBase::setValue(double value, const string& from)
 			db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
 		}
 
-	}else if(invalue != value)
+	}else if(	invalue != value &&
+				(	m_bWriteDb ||
+					m_sPermission != ""	)	)
 	{
 		// make correction of value in database
 		// because client which set wrong value
@@ -471,7 +479,7 @@ void portBase::setValue(double value, const string& from)
 		cout << "             correct value:" << dec << dbvalue << " inside database to inform all clients" << endl;
 #endif // __moreOutput
 		db= DbInterface::instance();
-		db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*write also old value*/false);
+		db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*update to old value*/true);
 	}
 #ifdef __moreOutput
 	cout << "       last state of value:" << dec << m_dValue;
