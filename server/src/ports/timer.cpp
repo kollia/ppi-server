@@ -38,13 +38,11 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	string prop, smtime, sSetNull;
 
 	//Debug info to stop by right subroutine
-	/*string stopfolder("TRANSMIT_SONY");
-	string stopsub("after");
-	if(	getFolderName() == stopfolder &&
-		getSubroutineName() == stopsub	)
+	/*if(	getFolderName() == "Raff1_Zeit" &&
+		getSubroutineName() == "schliessen"					)
 	{
+		cout << getFolderName() << ":" << getSubroutineName() << endl;
 		cout << __FILE__ << __LINE__ << endl;
-		cout << stopfolder << ":" << getSubroutineName() << endl;
 	}*/
 	m_bSeconds= true;
 	m_bTimeMeasure= false;
@@ -257,6 +255,13 @@ double timer::measure(const double actValue)
 	timeval tv;
 	switchClass::setting set;
 
+	//Debug info to stop by right subroutine
+	/*if(	getFolderName() == "Raff1_Zeit" &&
+		getSubroutineName() == "schliessen"					)
+	{
+		cout << getFolderName() << ":" << getSubroutineName() << endl;
+		cout << __FILE__ << __LINE__ << endl;
+	}*/
 	if(	!m_bTime ||
 		m_bSwitchbyTime ||
 		m_bTimeMeasure ||
@@ -264,14 +269,6 @@ double timer::measure(const double actValue)
 	{
 		m_dSwitch= switchClass::measure(m_dSwitch, set);
 	}
-	//Debug info to stop by right subroutine
-	/*if(!m_oDirect.isEmpty())
-	//if(	getFolderName() == "TRANSMIT_SONY" &&
-	//	getSubroutineName() == "new_activate")
-	{
-		cout << __FILE__ << __LINE__ << endl;
-		cout << getFolderName() << ":" << getSubroutineName() << endl;
-	}*/
 	if(m_dSwitch > 0)
 		bswitch= true;
 	else
@@ -319,7 +316,7 @@ double timer::measure(const double actValue)
 			{
 				tout << "subroutine is defined to measure time of date" << endl;
 			}else
-				tout << "subroutine is this time iside begin/while/end not defined for measure" << endl;
+				tout << "subroutine is this time inside begin/while/end not defined for measure" << endl;
 		}
 		if(	m_bSwitchbyTime &&
 			!bswitch			)
@@ -493,9 +490,27 @@ double timer::measure(const double actValue)
 	{
 		if(!m_bTimeMeasure)
 		{ // measure count down or time
+			bool bNewDirection= false;
 			timeval next;
 
+			if(m_nDirection > -2)
+			{
+				double direct;
+				short oldDirection= m_nDirection;
+
+				m_oDirect.calculate(direct);
+				if(direct > 0)
+					m_nDirection= 1;
+				else
+					m_nDirection= 0;
+				if(	m_nDirection != oldDirection &&
+					oldDirection > -1				)
+				{
+					bNewDirection= true;
+				}
+			}
 			if(	m_bMeasure == false ||
+				bNewDirection ||
 				(	bswitch &&
 					set == BEGIN	)	)
 			{// BEGIN to measure
@@ -505,10 +520,20 @@ double timer::measure(const double actValue)
 				if(debug)
 				{
 					tout << "BEGIN time measuring ";
-					if(m_nDirection == -2)
+					if(m_nDirection > -2)
+					{
+						tout << "to specific time";
+						if(	bswitch &&
+							set == BEGIN	)
+						{
+							tout << " because new begin was calculated";
+
+						}else if(bNewDirection)
+							tout << " because direction of count was changed";
+						tout << endl;
+					}else
 						tout << "for count down" << endl;
-					else
-						tout << "to specific time" << endl;
+
 				}
 				next= tv;
 				m_tmStart= tv;
@@ -626,6 +651,8 @@ double timer::measure(const double actValue)
 					tout << "this means time stopping in " << newtime.tv_sec << " seconds" << endl;
 					tout << endl;
 				}
+				if(m_nDirection != -2)
+					m_nDirection= -1;
 				need= calcNextTime(/*start*/false, debug, &tv);
 				if(debug)
 				{
@@ -1012,7 +1039,7 @@ double timer::calcNextTime(const bool& start, const bool& debug, timeval* actTim
 	newTime= calcResult(endTime, m_bSeconds);
 	if(debug)
 		tout << "measured actual time is " << newTime << endl;
-	if(m_nDirection == 1)
+	if(	m_nDirection == 1)
 		newTime+= m_dStartValue;
 	return newTime;
 
