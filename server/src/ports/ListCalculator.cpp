@@ -199,9 +199,6 @@ bool ListCalculator::variable(const string& var, double& dResult)
 	found= m_msoVars.find(var);
 	if(found == m_msoVars.end())
 	{
-		if(m_sFolder == "switch_test_begin_end" &&
-			var == "step")
-			cout << "debug stop" << endl;
 		oSub= getSubroutinePointer(var, /*own folder*/true);
 		if(oSub)
 		{
