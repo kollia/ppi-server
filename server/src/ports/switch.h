@@ -63,7 +63,17 @@ public:
 		 * @param pStartFolder reference to all folder
 		 * @return whether initialization was OK
 		 */
-		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+			{ return init(properties, pStartFolder, false); };
+		/**
+		 * initialing object of switchClass
+		 *
+		 * @param properties the properties in file measure.conf
+		 * @param pStartFolder reference to all folder
+		 * @param bAlwaysBegin whether begin parameter should be always measured before while and end
+		 * @return whether initialization was OK
+		 */
+		bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const bool bAlwaysBegin);
 		/**
 		 * this method will be called from any measure thread to set as observer
 		 * for starting own folder to get value from foreign folder
@@ -166,6 +176,11 @@ public:
 		 * and wether the subroutine was defined before as second
 		 */
 		map<string, bool> m_msbSValue;
+		/**
+		 * whether parameter begin should always be measured
+		 * before while and end
+		 */
+		bool m_bAlwaysBegin;
 		/**
 		 * begin calculation string
 		 */

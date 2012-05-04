@@ -44,6 +44,7 @@ switchClass::switchClass(string folderName, string subroutineName)
   m_bSwitch(true),
   m_bLastValue(false),
   m_bCurrent(false),
+  m_bAlwaysBegin(false),
   m_oBegin(folderName, subroutineName, "begin", false, true),
   m_oWhile(folderName, subroutineName, "while", false, true),
   m_oEnd(folderName, subroutineName, "end", false, true)
@@ -55,6 +56,7 @@ switchClass::switchClass(string type, string folderName, string subroutineName)
 : portBase(type, folderName, subroutineName),
   m_bLastValue(false),
   m_bCurrent(false),
+  m_bAlwaysBegin(false),
   m_oBegin(folderName, subroutineName, "begin", false, true),
   m_oWhile(folderName, subroutineName, "while", false, true),
   m_oEnd(folderName, subroutineName, "end", false, true)
@@ -64,26 +66,35 @@ switchClass::switchClass(string type, string folderName, string subroutineName)
 	m_VALUELOCK= Thread::getMutex("VALUELOCK");
 }
 
-bool switchClass::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+bool switchClass::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, const bool bAlwaysBegin)
 {
 	bool bOk= true;
-	string on, sWhile, off, prop("default"), type;
-	string sFolder= getFolderName();
+	string on, sWhile, off;
 
-	//m_pStartFolder= pStartFolder;
+	//Debug info to stop by right subroutine
+	/*if(	getFolderName() == "switch_test_begin_end" &&
+		getSubroutineName() == "begin_param"					)
+	{
+		cout << getFolderName() << ":" << getSubroutineName() << endl;
+		cout << __FILE__ << __LINE__ << endl;
+	}*/
+	m_bAlwaysBegin= bAlwaysBegin;
 	on= properties->getValue("begin", /*warning*/false);
 	sWhile= properties->getValue("while", /*warning*/false);
 	off= properties->getValue("end", /*warning*/false);
-	m_oBegin.init(pStartFolder, on);
-	m_oWhile.init(pStartFolder, sWhile);
-	m_oEnd.init(pStartFolder, off);
+	if(!m_oBegin.init(pStartFolder, on))
+		bOk= false;
+	if(!m_oWhile.init(pStartFolder, sWhile))
+		bOk= false;
+	if(!m_oEnd.init(pStartFolder, off))
+		bOk= false;
 	if(m_bSwitch)
 		m_bCurrent= properties->haveAction("current");
 	if(!initLinks("SWITCH", properties, pStartFolder))
 		bOk= false;
 	if(!portBase::init(properties, pStartFolder))
 		bOk= false;
-	return true;
+	return bOk;
 }
 
 void switchClass::setObserver(IMeasurePattern* observer)
@@ -112,11 +123,11 @@ double switchClass::measure(const double actValue, setting& set, const double* n
 	string subroutine(getSubroutineName());
 
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "TRANSMIT_SONY" &&
-		getSubroutineName() == "receive"					)
+	/*if(	getFolderName() == "switch_test_begin_end" &&
+		getSubroutineName() == "test_begin_end"					)
 	{
-		cout << __FILE__ << __LINE__ << endl;
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
+		cout << __FILE__ << __LINE__ << endl;
 	}*/
 	set= NONE;
 	if(bbinary)
@@ -156,7 +167,9 @@ double switchClass::measure(const double actValue, setting& set, const double* n
 
 	if(!bOutside)
 	{
-		if(!m_oBegin.isEmpty())
+		if(	!m_oBegin.isEmpty() &&
+			(	!m_bLastValue ||
+				m_bAlwaysBegin	)	)
 		{// if m_bSwitched is false
 		 // and an begin result is set
 		 // look for beginning
