@@ -1,5 +1,0 @@
-<layout>
-  <body>
-
-    <input type="text" value="sec" format="#2." result="Hauppauge__choice:after" />
-  </body>
