@@ -34,7 +34,7 @@ if(	CMAKE_BUILD_TYPE STREQUAL "Debug"	OR
 	CMAKE_ECLIPSE_EXECUTABLE			OR
 	CMAKE_KDEVELOP3_EXECUTABLE				)
 		
-	add_definitions("-Wall -Wclobbered -Wempty-body -Wignored-qualifiers -Wmissing-field-initializers -Wsign-compare -Wtype-limits -Winit-self -Wnon-virtual-dtor -Wsign-promo -Wno-long-long")
+	add_definitions("-Wall -Wclobbered -Wempty-body -Wignored-qualifiers -Wmissing-field-initializers -Wsign-compare -Wtype-limits -Winit-self -Wnon-virtual-dtor -Wsign-promo -Wno-long-long -fPIC")
 	# for warning optins see http://gcc.gnu.org/onlinedocs/gcc-4.5.0/gcc/Warning-Options.html#Warning-Options
 	#add_definitions("-pedantic-errors -Wall -Wextra -ansi -Winit-self -Woverloaded-virtual -Wnon-virtual-dtor -Wsign-promo -Wno-long-long")
 	message(STATUS "DEBUG flags   '${CMAKE_CXX_FLAGS_DEBUG}'")
@@ -45,6 +45,7 @@ else(	CMAKE_BUILD_TYPE STREQUAL "Debug"	OR
 		CMAKE_ECLIPSE_EXECUTABLE				OR
 		CMAKE_KDEVELOP3_EXECUTABLE					)
 	
+	add_definitions("-fPIC")
 	message(STATUS "RELEASE flags '${CMAKE_CXX_FLAGS_RELEASE}'")	
 	message(STATUS "set build type with no warnings")
 		
