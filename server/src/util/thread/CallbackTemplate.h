@@ -47,9 +47,10 @@ public:
 	/**
 	 * for asking whether callback routine is finished
 	 *
+	 * @param bWait whether method should wait for ending (default: false)
 	 * @return 1 when callback is finished correctly, 0 when callback running, -1 when callback ending with warnings and -2 ending with errors
 	 */
-	short finished();
+	short finished(bool bWait= false);
 	/**
 	 * dummy destructor
 	 */

@@ -31,12 +31,18 @@ int CallbackTemplate::execute()
 	return static_cast<int>(m_nReturnCode);
 }
 
-short CallbackTemplate::finished()
+short CallbackTemplate::finished(bool bWait/*= false*/)
 {
-	if( running() ||
-		!stopping()	)
-	{
-		return 0;
-	}
+	do{
+		if( running() ||
+			!stopping()	)
+		{
+			if(bWait)
+				usleep(50);
+			else
+				return 0;
+		}else
+			break;
+	}while(bWait);
 	return m_nReturnCode;
 }
