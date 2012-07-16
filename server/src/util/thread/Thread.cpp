@@ -63,7 +63,6 @@ Thread::Thread(string threadName, useconds_t defaultSleep, bool waitInit)
 	m_bWaitInit= waitInit;
 	m_RUNTHREAD= getMutex("RUNTHREAD");
 	m_THREADNAME= getMutex("THREADNAME");
-	m_STOPTHREAD= getMutex("STOPTHREAD");
 	m_STARTSTOPTHREAD= getMutex("STARTSTOPTHREAD");
 	m_STARTSTOPTHREADCOND= getCondition("STARTSTOPTHREADCOND");
 }
@@ -83,9 +82,9 @@ int Thread::start(void *args, bool bHold)
 
 	m_bHold= bHold;
 	m_pArgs= args;
-	LOCK(m_STOPTHREAD);
+	LOCK(m_STARTSTOPTHREAD);
 	m_bStop= false;
-	UNLOCK(m_STOPTHREAD);
+	UNLOCK(m_STARTSTOPTHREAD);
 	pthread_attr_init(&attr);
 	nRv= pthread_create (&m_nPosixThreadID, &attr, Thread::EntryPoint, this);
 
@@ -109,25 +108,23 @@ int Thread::start(void *args, bool bHold)
 		if(m_bWaitInit)
 		{
 			LOCK(m_STARTSTOPTHREAD);
-			while(!running() && !stopping())
+			while(!running() && !m_bStop)
 			{
-#ifdef DEBUG
-				cout << "." << flush;
-#endif
-				if(stopping())
+				if(m_bStop)
 				{// an error is occured in init methode
 					nRv= pthread_join(m_nPosixThreadID, NULL);
 					if(nRv != 0)
 					{
 						LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
 					}
+					UNLOCK(m_STARTSTOPTHREAD);
 					return 4;
 				}
 				CONDITION(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD);
 			}
 			UNLOCK(m_STARTSTOPTHREAD);
 		}
-		detach();
+		//detach();
 #ifdef DEBUG
 		cout << endl;
 #endif
@@ -175,9 +172,7 @@ void Thread::run()
 			error+= thname;
 			error+= " cannot inital correcty";
 			LOG(LOG_ERROR, error);
-			LOCK(m_STOPTHREAD);
 			m_bStop= true;
-			UNLOCK(m_STOPTHREAD);
 			LOCK(m_RUNTHREAD);
 			m_bRun= false;
 			m_bInitialed= false;
@@ -239,6 +234,7 @@ pthread_mutex_t* Thread::getMutex(string name)
 	int result;
 	pthread_mutex_t *mutex= new pthread_mutex_t;
 	mutexnames_t tName;
+	static map<pthread_mutex_t*, mutexnames_t> mMutexBuffer;
 
 #ifdef MUTEXLOCKDEBUG
 	bool bSet= false;
@@ -279,7 +275,22 @@ pthread_mutex_t* Thread::getMutex(string name)
 
 		tName.name= name;
 		tName.threadid= 0;
-		g_mMutex[mutex]= tName;
+		if(name != "POSITIONSTATUS")
+		{
+			if(mMutexBuffer.size() > 0)
+			{// first mutex creation of global mutex POSITIONSTATUS makes error
+			 // since gcc (Ubuntu/Linaro 4.6.3-1ubuntu5) 4.6.3
+			 //       g++ (Ubuntu/Linaro 4.6.3-1ubuntu5) 4.6.3
+			 // so write mutex for first time in an buffer
+			 // (gcc (Debian 4.4.5-8) 4.4.5 made no problem's)
+				for(map<pthread_mutex_t*, mutexnames_t>::iterator it= mMutexBuffer.begin(); it != mMutexBuffer.end(); ++it)
+					g_mMutex[it->first]= it->second;
+				mMutexBuffer.clear();
+			}
+			g_mMutex[mutex]= tName;
+
+		}else
+			mMutexBuffer[mutex]= tName;
 
 		error= pthread_mutex_unlock(&g_READMUTEX);
 		if(error != 0)
@@ -421,6 +432,7 @@ int Thread::mutex_lock(string file, int line, pthread_mutex_t *mutex)
 	string mutexname(getMutexName(mutex));
 	ostringstream before, behind;
 	vector<string> split;
+	pid_t lastlockID;
 	typedef map<pthread_mutex_t*, mutexnames_t>::iterator iter;
 	iter i;
 
@@ -447,6 +459,25 @@ int Thread::mutex_lock(string file, int line, pthread_mutex_t *mutex)
 			}
 		}
 	}
+	pthread_mutex_lock(&g_READMUTEX);
+	i= g_mMutex.find(mutex);
+	if(i != g_mMutex.end())
+	{
+		lastlockID= i->second.threadid;
+		if(lastlockID == gettid())
+		{
+			ostringstream msg;
+
+			msg << "[";
+			msg.fill(' ');
+			msg.width(5);
+			msg << dec << gettid() << "] ";
+			msg << "WARNING: thread lock's mutex " << mutexname << " again, on file:" << file << " line:" << line << endl;
+			cout << msg.str();
+		}
+	}else
+		lastlockID= 0;
+	pthread_mutex_unlock(&g_READMUTEX);
 	if(bSet)
 	{
 		before << "[";
@@ -454,6 +485,13 @@ int Thread::mutex_lock(string file, int line, pthread_mutex_t *mutex)
 		before.width(5);
 		before << dec << gettid() << "] ";
 		before << "want to lock mutex " << mutexname << " on file:" << file << " line:" << line << endl;
+		if(lastlockID != 0)
+		{
+			before.fill(' ');
+			before.width(8);
+			before << " ";
+			before << "but mutex was locked from thread " << lastlockID << endl;
+		}
 		cout << before.str();
 	}
 	if(mutexname != "POSITIONSTATUS")
@@ -603,6 +641,7 @@ int Thread::mutex_unlock(string file, int line, pthread_mutex_t *mutex)
 	vector<string> split;
 	typedef map<pthread_mutex_t*, mutexnames_t>::iterator iter;
 	iter i;
+	pid_t tid= gettid();
 
 	split= ConfigPropertyCasher::split(MUTEXLOCKDEBUG, " ");
 	if(	split.size() == 0
@@ -630,7 +669,23 @@ int Thread::mutex_unlock(string file, int line, pthread_mutex_t *mutex)
 	pthread_mutex_lock(&g_READMUTEX);
 	i= g_mMutex.find(mutex);
 	if(i != g_mMutex.end())
+	{
+		if(i->second.threadid != gettid())
+		{
+			before << "[";
+			before.fill(' ');
+			before.width(5);
+			before << dec << tid << "] ";
+			before << "WARNING: thread " << tid << " want to unlock mutex " << mutexname;
+			if(i->second.threadid == 0)
+				before << " witch isn't locked from any thread" << endl;
+			else
+				before << " witch is locked from other thread " << i->second.threadid << endl;
+			before <<"        on file:" << file << " line:" << line << endl;
+			cout << before.str();
+		}
 		i->second.threadid= 0;
+	}
 	pthread_mutex_unlock(&g_READMUTEX);
 	if(bSet)
 	{
@@ -638,7 +693,7 @@ int Thread::mutex_unlock(string file, int line, pthread_mutex_t *mutex)
 		before.fill(' ');
 		before.width(5);
 		before << dec << gettid() << "] ";
-		before << "unlock mutex " << getMutexName(mutex) << " on file:" << file << " line:" << line << endl;
+		before << "unlock mutex " << mutexname << " on file:" << file << " line:" << line << endl;
 		cout << before.str();
 	}
 #endif
@@ -702,7 +757,7 @@ void Thread::destroyMutex(string file, int line, pthread_mutex_t* mutex)
 			}
 		}
 	if(bSet)
-		cout << "destroy mutex " << getMutexName(mutex) << " on thread (" << dec << gettid() << ")" << endl;
+		cout << "destroy mutex " << mutexname << " on thread (" << dec << gettid() << ")" << endl;
 #endif
 
 	int error;
@@ -1136,15 +1191,16 @@ int Thread::stop(const bool *bWait)
 //	LogInterface* log= LogInterface::instance();
 
 	LOCK(m_STARTSTOPTHREAD);
-	LOCK(m_STOPTHREAD);
 	m_bStop= true;
-	UNLOCK(m_STOPTHREAD);
 	if(	bWait
 		&&
 		*bWait	)
 	{
 		if(!running())
+		{
+			UNLOCK(m_STARTSTOPTHREAD);
 			return 5;
+		}
 //		if(!log->ownThread(getThreadName(), pthread_self()))
 //		{
 			nRv= CONDITION(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD);
@@ -1182,10 +1238,10 @@ int Thread::stopping()
 {
 	int nRv= 0;
 
-	LOCK(m_STOPTHREAD);
+	LOCK(m_STARTSTOPTHREAD);
 	if(m_bStop)
 		nRv= 1;
-	UNLOCK(m_STOPTHREAD);
+	UNLOCK(m_STARTSTOPTHREAD);
 	return nRv;
 }
 
@@ -1213,9 +1269,10 @@ int Thread::initialed()
 
 Thread::~Thread()
 {
+	stop(true);
+	pthread_join(m_nPosixThreadID, NULL);
 	DESTROYMUTEX(m_RUNTHREAD);
 	DESTROYMUTEX(m_THREADNAME);
-	DESTROYMUTEX(m_STOPTHREAD);
 	DESTROYMUTEX(m_STARTSTOPTHREAD);
 	DESTROYCOND(m_STARTSTOPTHREADCOND);
 }

@@ -381,10 +381,6 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		string m_sThreadName;
 		/**
-		 * whether thread is initialiced for stopping
-		 */
-		pthread_mutex_t* m_STOPTHREAD;
-		/**
 		 * whether thread is running
 		 */
 		pthread_mutex_t* m_RUNTHREAD;
