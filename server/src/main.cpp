@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
 	params.option("firstvalue", "f", "show after configure folder all first values of defined ports from owreader");
 	params.option("folderstart", "F", "show all folder on command line which are starting");
 	params.option("debug", "d", "show logging messages, deep defined inside server.conf, on screen\n"
-									"(only useable for stop command)");
+									"(only usable for stop command)");
 	params.version(PPI_MAJOR_RELEASE, PPI_MINOR_RELEASE, PPI_SUBVERSION, PPI_PATCH_LEVEL,
 										/*no build*/0, PPI_REVISION_NUMBER, DISTRIBUTION_RELEASE);
 	params.help("help", "?");
@@ -170,8 +170,21 @@ int main(int argc, char* argv[])
 }
 
 
+//#define __CHECK_THREAD_CREATION
+//#define __CHECK_WORKING_INTERLACEDPROPERTIES
+//#define __SIMPLE_SERVER_CLIENT_CONNECTION
 
-#if 0
+#ifdef __CHECK_THREAD_CREATION
+#define __MAKE_TESTS
+#endif // __CHECK_THREAD_CREATION
+#ifdef __CHECK_WORKING_INTERLACEDPROPERTIES
+#define __MAKE_TESTS
+#endif //__CHECK_WORKING_INTERLACEDPROPERTIES
+#ifdef __SIMPLE_SERVER_CLIENT_CONNECTION
+#define __MAKE_TESTS
+#endif // __SIMPLE_SERVER_CLIENT_CONNECTION
+
+#ifdef __MAKE_TESTS
 // some includes needed for tests method
 #include "util/URL.h"
 // only for simple server client communication
@@ -180,18 +193,60 @@ int main(int argc, char* argv[])
 #include "util/smart_ptr.h"
 // for testing on streams
 #include "util/properties/interlacedproperties.h"
-#endif
+// for check thread creation
+#include "util/thread/CallbackTemplate.h"
+#endif // __MAKE_TESTS
+
+#ifdef __CHECK_THREAD_CREATION
+	class TestCallback : public CallbackTemplate
+	{
+	protected:
+		static int m_count;
+		/**
+		 * abstract method running in thread.<br />
+		 * This method starting again when method ending with return 0
+		 * and stopping by all other values.<br />
+		 * By calling external method finished()
+		 * method gives back the return code.<br />
+		 * In the most case the should be 1 for finished correctly, -1 finished with warnings
+		 * or -2 with errors.
+		 *
+		 * @return defined error code from extended class
+		 */
+		virtual short runnable()
+		{
+			++m_count;
+			cout << "running thread " << m_count << endl;
+			return 1;
+		};
+	};
+	int TestCallback::m_count= 0;
+#endif //__CHECK_THREAD_CREATION
 
 void tests(const string& workdir, int argc, char* argv[])
 {
-#if 0
+#ifdef __MAKE_TESTS
 	// define configure path
 	string sConfPath;
 
 	sConfPath= URL::addPath(workdir, PPICONFIGPATH, /*always*/false);
-#endif
+#endif // __MAKE_TESTS
 
-#if 0
+#ifdef __CHECK_THREAD_CREATION
+	// check thread creation
+	CallbackTemplate *callback;
+
+	while(1)
+	{
+		callback= new TestCallback();
+		callback->initialStarting();
+		cout << "thread finish with " << callback->finished(true) << endl;
+		//usleep(500);
+		delete callback;
+	}
+#endif //__CHECK_THREAD_CREATION
+
+#ifdef __CHECK_WORKING_INTERLACEDPROPERTIES
 	// check working of InterlacedProperties
 	typedef vector<IInterlacedPropertyPattern*>::iterator secIt;
 	string fileName;
@@ -218,10 +273,10 @@ void tests(const string& workdir, int argc, char* argv[])
 		}
 	}
 	exit(EXIT_SUCCESS);
-#endif
+#endif //__CHECK_WORKING_INTERLACEDPROPERTIES
 
 	// simple server client communication
-	#if 0
+#ifdef __SIMPLE_SERVER_CLIENT_CONNECTION
 		string command;
 		string value;
 	    SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
@@ -281,7 +336,8 @@ void tests(const string& workdir, int argc, char* argv[])
 
 	    fprintf(stderr,"usage %s [server|client]\n", argv[0]);
 	    return EXIT_FAILURE;
-	#endif
+#endif //__SIMPLE_SERVER_CLIENT_CONNECTION
+
 	#if 0
 		IParameterStringStream reader("truego");
 		bool val;
@@ -293,6 +349,7 @@ void tests(const string& workdir, int argc, char* argv[])
 		if(reader.empty())
 			cout << "reading of string is finished" << endl;
 	#endif
+
 	#if 0
 		bool newer= false;
 		time_t t;
