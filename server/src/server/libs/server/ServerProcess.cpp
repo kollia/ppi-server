@@ -156,12 +156,21 @@ namespace server
 			}
 			allowed= false;
 		}else
+		{
 			ret= m_pConnect->accept();
+			allowed= connectionsAllowed();
+		}
 
-		if(allowed && connectionsAllowed() && !stopping() && ret <= 0)
+		if(allowed && !stopping() && ret <= 0)
 		{
 			fp= m_pConnect->getDescriptor();
 			m_pStarterPool->setNewClient(fp);
+
+		}else if(!allowed)
+		{
+			glob::stopMessage("server allow no new access!");
+			m_pConnect->close();
+			ret= 0;
 
 		}else if(	ret &&
 					stopping()	)
@@ -200,7 +209,7 @@ namespace server
 		allowNewConnections(false);
 		m_pStarterPool->stop(false);
 		nRv= Process::stop(false);
-		close();
+		//close();
 		AROUSE(m_NOCONWAITCONDITION);
 		if(	running() &&
 			m_pConnect && m_pConnect->socketWait())
