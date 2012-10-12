@@ -859,12 +859,15 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			}
 			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name));
 			args.subroutines= &aktFolder->subroutines;
+
+#if 0
 			// set debug output for defined folder
 			// or specific subroutine also by starting
-#if 0
-			if(aktFolder->name == "readVellemann0")
+			if(aktFolder->name == "global_settings")
 			{
-				args.debugSubroutines.push_back("counter1");
+				args.debugSubroutines.clear();
+				args.debugSubroutines.push_back("recalibrate0");
+				args.debugSubroutines.push_back("isFirst");
 			}else
 				args.debugSubroutines.clear();
 #endif
@@ -1190,7 +1193,8 @@ void Starter::configurePortObjects(bool bShowConf)
 				{
 					aktualFolder->subroutines[n].bCorrect= true;
 					correctFolder= true;
-				}
+				}else
+					aktualFolder->subroutines[n].bCorrect= false;
 				//tout << "-----------" << endl;
 			}else
 			{
@@ -1270,7 +1274,8 @@ void Starter::configurePortObjects(bool bShowConf)
 
 			if(aktualFolder->subroutines[n].property)
 				aktualFolder->subroutines[n].property->checkProperties();
-			if(	(	obj->needServer() &&		// if subroutine need an external Server
+			if(	obj == NULL ||
+				(	obj->needServer() &&		// if subroutine need an external Server
 					obj->hasServer()	) ||	// but has actually no access to them
 				!obj->needServer()			)	// subroutine check all seconds for access
 												// and subroutine should starting
@@ -1475,7 +1480,8 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 							subdir->property= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
 							subdir->property->readLine(sFID.str());
 							subdir->name= value;
-							subdir->bCorrect= false;
+							subdir->bCorrect= true;	// set first subroutine to correct,
+													// because later by wrong initial will be set to false
 							/************************************************************\
 							 * define values for subroutine witch should be obsolete
 							\************************************************************/
