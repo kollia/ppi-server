@@ -19,7 +19,6 @@
 #ifdef _OWFSLIBRARY
 
 #include <stdlib.h>
-#include <curses.h>
 
 #include <iostream>
 #include <fstream>
