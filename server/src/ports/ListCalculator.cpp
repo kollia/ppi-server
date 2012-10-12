@@ -203,8 +203,11 @@ bool ListCalculator::variable(const string& var, double& dResult)
 		if(oSub)
 		{
 			m_msoVars[var]= oSub;
-			dResult= oSub->portClass->getValue("i:"+m_sFolder);
-			return true;
+			if(oSub->bCorrect)
+			{
+				dResult= oSub->portClass->getValue("i:"+m_sFolder);
+				return true;
+			}
 		}
 	}else if(found->second->bCorrect)
 	{
