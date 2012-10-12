@@ -19,6 +19,8 @@
 #ifndef PARAMCOMMAND_H_
 #define PARAMCOMMAND_H_
 
+#include <string.h>
+
 #include <string>
 #include <vector>
 #include <map>
@@ -225,7 +227,7 @@ namespace util
 		 * name of command.<br />
 		 * can not begin with minus '-'
 		 */
-		string name;
+		std::string name;
 		/**
 		 * map of all options behind this command
 		 */
