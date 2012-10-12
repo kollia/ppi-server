@@ -113,7 +113,7 @@ class MeasureThread : 	public Thread,
 		 * @param time next beginning run time
 		 */
 		void nextActivateTime(const string& folder, const timeval& time)
-		{ m_vtmNextTime.push_back(time); };
+		{ LOCK(m_ACTIVATETIME);m_vtmNextTime.push_back(time);UNLOCK(m_ACTIVATETIME); };
 		/**
 		 * get string with starting zeros from microseconds
 		 *
@@ -178,6 +178,13 @@ class MeasureThread : 	public Thread,
 		 * mutex by any changing of value
 		 */
 		pthread_mutex_t *m_VALUE;
+		/**
+		 * mutex for fill or erase new activate time
+		 */
+		pthread_mutex_t *m_ACTIVATETIME;
+		/**
+		 * mutex by setting debug output
+		 */
 		pthread_mutex_t *m_DEBUGLOCK;
 		/**
 		 * condition for wait for new changing of any subroutine

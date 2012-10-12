@@ -45,6 +45,7 @@ Thread(threadname, /*defaultSleep*/0)
 #endif // DEBUG
 	m_DEBUGLOCK= Thread::getMutex("DEBUGLOCK");
 	m_VALUE= Thread::getMutex("VALUE");
+	m_ACTIVATETIME= Thread::getMutex("ACTIVATETIME");
 	m_VALUECONDITION= Thread::getCondition("VALUECONDITION");
 	m_bDebug= false;
 	m_nActCount= 0;
@@ -301,20 +302,23 @@ int MeasureThread::execute()
 	if(m_vFolder.empty())
 	{
 		TERMINALEND;
+		LOCK(m_ACTIVATETIME);
 		if(!m_vtmNextTime.empty())
 		{
 			bool fold(false);
 
 			sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
-			do{	// remove all older times than actual from NextTime vector
-				// and make no condition when any older found
-				akttime= m_vtmNextTime.begin();
+			akttime= m_vtmNextTime.begin();
+			while(akttime != m_vtmNextTime.end())
+			{// remove all older times than actual from NextTime vector
+			 // and make no condition when any older found
 				if(timercmp(&end_tv, &*akttime, <))
 					break;
 				fold= true;
-				//cout << "found an older time and erase them" << endl;
+				//cout << __FILE__ << " " << __LINE__ << endl;
+				//cout << "remove older time" << endl;
 				m_vtmNextTime.erase(akttime);
-			}while(1);
+			}
 			do{ // search for same times
 				// and erase one of them
 				lasttime= akttime;
@@ -325,23 +329,38 @@ int MeasureThread::execute()
 					akttime= lasttime;
 					break;
 				}
+				//cout << __FILE__ << " " << __LINE__ << endl;
 				//cout << "found two same times and erase one of them" << endl;
-				m_vtmNextTime.erase(lasttime);
+				if(lasttime != m_vtmNextTime.end())
+					m_vtmNextTime.erase(lasttime);
 				akttime= m_vtmNextTime.begin();
-			}while(1);
-			if(fold == false)
+			}while(akttime != m_vtmNextTime.end());
+			//cout << __FILE__ << " " << __LINE__ << endl;
+			//cout << "akttime:  " << end_tv.tv_sec << " " << end_tv.tv_usec << endl;
+			//cout << "polltime: " << akttime->tv_sec << " " << akttime->tv_usec << endl;
+			UNLOCK(m_ACTIVATETIME);
+			if(	akttime != m_vtmNextTime.end() &&
+				fold == false						)
 			{// no older times be found
 				waittm.tv_sec= akttime->tv_sec;
 				waittm.tv_nsec= akttime->tv_usec * 1000;
+				//cout << __FILE__ << " " << __LINE__ << endl;
+				//cout << "make condition to time" << endl;
 				if(TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm) == ETIMEDOUT)
 				{
 					if(debug)
 						cond= *akttime;
+					LOCK(m_ACTIVATETIME);
 					m_vtmNextTime.erase(akttime);
+					UNLOCK(m_ACTIVATETIME);
 				}
-			}
+			}// else found only old times
+			//  and make now an new pass of older
+			//cout << __FILE__ << " " << __LINE__ << endl;
+			//cout << "make new pass of older time" << endl;
 		}else
 		{
+			UNLOCK(m_ACTIVATETIME);
 			CONDITION(m_VALUECONDITION, m_VALUE);
 			static pid_t pid(0);
 
@@ -518,4 +537,9 @@ MeasureThread::~MeasureThread()
 #ifdef DEBUG
 	cout << "destructure of measureThread for folder "<< getThreadName() << endl;
 #endif // DEBUG
+
+	DESTROYMUTEX(m_DEBUGLOCK);
+	DESTROYMUTEX(m_VALUE);
+	DESTROYMUTEX(m_ACTIVATETIME);
+	DESTROYCOND(m_VALUECONDITION);
 }
