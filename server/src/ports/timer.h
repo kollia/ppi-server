@@ -52,11 +52,8 @@ public:
 	timer(string folderName, string subroutineName)
 	: switchClass("TIMER", folderName, subroutineName),
 	  m_bHasLinks(false),
-	  m_bReadTime(false),
-	  m_bTime(false),
+	  m_nCaseNr(0),
 	  m_bSwitchbyTime(false),
-	  m_bActivate(false),
-	  m_bTimeMeasure(false),
 	  m_bMeasure(false),
 	  m_bSeconds(true),
 	  m_omtime(folderName, subroutineName, "mtime", false, false),
@@ -73,6 +70,7 @@ public:
 	  m_tmMicroseconds(0),
 	  m_oSetNull(folderName, subroutineName, "setnull", false, true),
 	  m_dSwitch(0),
+	  m_bPoll(false),
 	  m_dTimeBefore(0),
 	  m_nDirection(-2)
 	  { };
@@ -125,30 +123,48 @@ protected:
 	 */
 	bool m_bHasLinks;
 	/**
-	 * whether should read only actual time
+	 * which case of subroutine for type TIMER be used.
+	 *
+	 *        0  -  no case be set at the beginning
+	 *   case 1  -  Beside begin/while/end and only one action property seconds, minutes, hours, days, months or years be set.
+	 *              The folder will be polling all seconds, minutes, hours, ... in the case of begin while end
+	 *              when this parameters be set, otherwise all the time.
+	 *              When no action property of seconds, minutes, ... be set but action property time, the folder polling all seconds
+	 *              and the actual subroutine value will be filled with all seconds after 01.01.1970
+	 *   case 2  -  Beside parameter begin/while/end and action property activate
+	 *              also the parameters year, month, day, hour, min and or sec,
+	 *              or alone parameter mtime be set
+	 *              The time will be count down, after parameter begin while end, from the setting date in seconds
+	 *              to time 0. This meaning, when setting time is reached subroutine has value 0.
+	 *              With ending of while parameter or reached end parameter before and value was 0
+	 *              own value be set to -1. This is also set when no time measure was running
+	 *   case 3  -  Beside parameters begin/while/end also parameters of day, hour, min, sec, millisec, microsec
+	 *              or alone parameter mtime be set. Differ with action property sec and micro between seconds and microseconds
+	 *              count the setting time down to 0 inside the case of begin, while, end.
+	 *              previously when a situation arise that parameter while ending or end is achieved (only when set),
+     *              the count down to 0 is also reached.
+     *              The next pass of this subroutine when 0 was reached before, the value is -1
+     *              value -1 is also the case when no count down running.
+     *              When the count down finished with 0, but inside while/end the routine found no ending
+     *              and action poll be set, the subroutine begins again to run with full time.
+	 *   case 4  -  Beside begin/while/end also the parameters from case 2 and action property direction be set.
+	 *              Count also the time like case 2, but when stopping the subroutine hold the actual value
+     *              this case is given when the property direction be set with 0 (count down to 0)
+     *              or width 1 (count up to full setting time)
+	 *   case 5  -  Only the active parameters of begin/while/end be set.
+	 *              Time will be measured inside this active time
+	 *              and can be differ between seconds (default or be set with action property 'sec')
+	 *              or microseconds (action property have to be 'micro')
 	 */
-	bool m_bReadTime;
-	/**
-	 * whether action time be set
-	 */
-	bool m_bTime;
+	unsigned short m_nCaseNr;
 	/**
 	 * whether should calculate times only when switch is true
 	 */
 	bool m_bSwitchbyTime;
 	/**
-	 * whether time should activated at an fix time
-	 */
-	bool m_bActivate;
-	/**
 	 * for m_bTime which type of time be shown in result
 	 */
 	which_time m_eWhich;
-	/**
-	 * whether subroutine measure time (true)
-	 * or makes an count down (false)
-	 */
-	bool m_bTimeMeasure;
 	/**
 	 * whether measure actually the time
 	 */
@@ -242,6 +258,11 @@ private:
 	 * 0 is false and 1 is true
 	 */
 	double m_dSwitch;
+	/**
+	 * whether measure of time or count down
+	 * should begin again
+	 */
+	bool m_bPoll;
 	/**
 	 * Time measured by last pass
 	 */

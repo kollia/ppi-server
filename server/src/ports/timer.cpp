@@ -33,202 +33,242 @@ using namespace util;
 
 bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
-	bool bsec, bmicro, bOk= true;
+	bool bBegin, bWhile, bEnd, bOk= true, bAlwaysBegin= false, bTimeMeasure= false;
 	double dDefault;
 	string prop, smtime, sSetNull;
 
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "Raff1_Zeit" &&
-		getSubroutineName() == "schliessen"					)
+	/*if(	getFolderName() == "switch_test_begin_end" &&
+		getSubroutineName() == "poll"					)
 	{
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 		cout << __FILE__ << __LINE__ << endl;
 	}*/
+	m_nCaseNr= 0;
 	m_bSeconds= true;
-	m_bTimeMeasure= false;
+	m_tmSec= 0;
+	m_tmMicroseconds= 0;
 	m_tmStart.tv_sec= 0;
 	m_tmStart.tv_usec= 0;
 	m_tmStop.tv_sec= 0;
 	m_tmStop.tv_usec= 0;
-	m_bTime= properties->haveAction("time");
-	if(!m_bTime)
-	{
-		if(properties->haveAction("seconds"))
-		{
-			m_eWhich= seconds;
-			m_bTime= true;
 
-		}else if(properties->haveAction("minutes"))
-		{
-			m_eWhich= minutes;
-			m_bTime= true;
-
-		}else if(properties->haveAction("hours"))
-		{
-			m_eWhich= hours;
-			m_bTime= true;
-
-		}else if(properties->haveAction("days"))
-		{
-			m_eWhich= days;
-			m_bTime= true;
-
-		}else if(properties->haveAction("months"))
-		{
-			m_eWhich= months;
-			m_bTime= true;
-
-		}else if(properties->haveAction("years"))
-		{
-			m_eWhich= years;
-			m_bTime= true;
-		}else
-		{
-			m_eWhich= notype;
-			m_bTime= false;
-			m_bActivate= properties->haveAction("activate");
-		}
-	}else
-	{
+	// -----------------------------------------------------------------------
+	// case 1: folder should polling all seconds, minutes, hours, ...
+	if(properties->haveAction("seconds"))
+		m_eWhich= seconds;
+	else if(properties->haveAction("minutes"))
+		m_eWhich= minutes;
+	else if(properties->haveAction("hours"))
+		m_eWhich= hours;
+	else if(properties->haveAction("days"))
+		m_eWhich= days;
+	else if(properties->haveAction("months"))
+		m_eWhich= months;
+	else if(properties->haveAction("years"))
+		m_eWhich= years;
+	else
 		m_eWhich= notype;
-		m_bTime= true;
-	}
-	if(!m_bTime)
+
+	if(	properties->haveAction("time") ||
+		m_eWhich != notype					)
 	{
-		m_bTimeMeasure= true;
-		bsec= properties->haveAction("sec");
-		bmicro= properties->haveAction("micro");
-		if(bsec && bmicro)
-		{
-			prop= properties->getMsgHead(/*ERROR*/true);
-			prop+= "action sec and micro can not be set both";
-			LOG(LOG_ERROR, prop);
-			cerr << prop << endl;
-			bOk= false;
-		}else if(bmicro)
-			m_bSeconds= false;
+		m_nCaseNr= 1;
 	}
 
-	// check whether should do count down of time
-	if(m_bTime)
-	{
-		if(properties->getValue("begin", /*warning*/false) != "")
-			m_bSwitchbyTime= true;
-		else if(properties->getValue("while", /*warning*/false) != "")
-			m_bSwitchbyTime= true;
-		else if(properties->getValue("end", /*warning*/false) != "")
-		{
-			string msg(properties->getMsgHead(/*error*/false));
 
-			msg+= "no begin or while property be set, so do not wait for beginning and measure all the time";
-			LOG(LOG_WARNING, msg);
-			tout << msg << endl;
-		}
-	}
-	smtime= properties->getValue("mtime", /*warning*/false);
-	m_tmSec= 0;
-	if(smtime == "")
+	if(m_nCaseNr == 0)
 	{
-		if(m_bSeconds)
+		// -----------------------------------------------------------------------
+		// case 2: time count down to setting date time
+		if(properties->haveAction("activate"))
 		{
+			m_nCaseNr= 2;
 			m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
 			if(!m_oYears.isEmpty())
-			{
 				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-				m_bTimeMeasure= false;
-			}
 			m_oMonths.init(pStartFolder, properties->getValue("month", /*warning*/false));
 			if(!m_oMonths.isEmpty())
-			{
 				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-				m_bTimeMeasure= false;
-			}
-		}
-		m_oDays.init(pStartFolder, properties->getValue("day", /*warning*/false));
-		if(!m_oDays.isEmpty())
-		{
-			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-			m_bTimeMeasure= false;
-		}
-		m_oHours.init(pStartFolder, properties->getValue("hour", /*warning*/false));
-		if(!m_oHours.isEmpty())
-		{
-			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-			m_bTimeMeasure= false;
-		}
-		m_oMinutes.init(pStartFolder, properties->getValue("min", /*warning*/false));
-		if(!m_oMinutes.isEmpty())
-		{
-			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-			m_bTimeMeasure= false;
-		}
-		m_oSeconds.init(pStartFolder, properties->getValue("sec", /*warning*/false));
-		if(!m_oSeconds.isEmpty())
-		{
-			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-			m_bTimeMeasure= false;
-		}
-		if(!m_bSeconds)
-		{
-			m_oMilliseconds.init(pStartFolder, properties->getValue("millisec", /*warning*/false));
-			if(!m_oMilliseconds.isEmpty())
-			{
+			m_oDays.init(pStartFolder, properties->getValue("day", /*warning*/false));
+			if(!m_oDays.isEmpty())
 				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-				m_bTimeMeasure= false;
-			}
-			m_oMicroseconds.init(pStartFolder, properties->getValue("microsec", /*warning*/false));
-			if(!m_oMicroseconds.isEmpty())
-			{
+			m_oHours.init(pStartFolder, properties->getValue("hour", /*warning*/false));
+			if(!m_oHours.isEmpty())
 				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-				m_bTimeMeasure= false;
-			}
+			m_oMinutes.init(pStartFolder, properties->getValue("min", /*warning*/false));
+			if(!m_oMinutes.isEmpty())
+				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+			m_oSeconds.init(pStartFolder, properties->getValue("sec", /*warning*/false));
+			if(!m_oSeconds.isEmpty())
+				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
 		}
-	}else
-	{
-		m_bTimeMeasure= false;
-		m_omtime.init(pStartFolder, smtime);
 	}
-	if(m_bTimeMeasure)
-	{ // measure time
-		if(m_bSeconds)
-			m_bReadTime= properties->haveAction("time");
-		if(!m_bReadTime)
+	if(m_nCaseNr == 0)
+	{
+		bTimeMeasure= true;// will be the case of 5
+		m_bSeconds= true;//default
+		if(!properties->haveAction("sec"))
+			if(properties->haveAction("micro"))
+				m_bSeconds= false;
+
+		// -----------------------------------------------------------------------
+		// case 3 or 4: count the time down to 0, or up to full time
+		// case 5: measure time inside case of begin/while/end
+		smtime= properties->getValue("mtime", /*warning*/false);
+		m_omtime.init(pStartFolder, smtime);
+		if(m_omtime.isEmpty())
 		{
+			if(m_bSeconds)
+			{
+				m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
+				if(!m_oYears.isEmpty())
+				{
+					m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+					bTimeMeasure= false;
+				}
+				m_oMonths.init(pStartFolder, properties->getValue("month", /*warning*/false));
+				if(!m_oMonths.isEmpty())
+				{
+					m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+					bTimeMeasure= false;
+				}
+			}
+			m_oDays.init(pStartFolder, properties->getValue("day", /*warning*/false));
+			if(!m_oDays.isEmpty())
+			{
+				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+				bTimeMeasure= false;
+			}
+			m_oHours.init(pStartFolder, properties->getValue("hour", /*warning*/false));
+			if(!m_oHours.isEmpty())
+			{
+				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+				bTimeMeasure= false;
+			}
+			m_oMinutes.init(pStartFolder, properties->getValue("min", /*warning*/false));
+			if(!m_oMinutes.isEmpty())
+			{
+				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+				bTimeMeasure= false;
+			}
+			m_oSeconds.init(pStartFolder, properties->getValue("sec", /*warning*/false));
+			if(!m_oSeconds.isEmpty())
+			{
+				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+				bTimeMeasure= false;
+			}
+			if(!m_bSeconds)
+			{
+				m_oMilliseconds.init(pStartFolder, properties->getValue("millisec", /*warning*/false));
+				if(!m_oMilliseconds.isEmpty())
+				{
+					m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+					bTimeMeasure= false;
+				}
+				m_oMicroseconds.init(pStartFolder, properties->getValue("microsec", /*warning*/false));
+				if(!m_oMicroseconds.isEmpty())
+				{
+					m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+					bTimeMeasure= false;
+				}
+			}
+		}else
+			bTimeMeasure= false;
+
+		if(!bTimeMeasure)
+		{
+			m_bPoll= properties->haveAction("poll");
+			smtime= properties->getValue("direction", /*warning*/false);
+			m_oDirect.init(pStartFolder, smtime);
+			if(m_oDirect.isEmpty())
+			{
+				// -----------------------------------------------------------------------
+				// case 3: count the time down to 0
+				m_nCaseNr= 3;
+				m_nDirection= -2;
+				bAlwaysBegin= properties->haveAction("alwaysbegin");
+
+			}else
+			{
+				// -----------------------------------------------------------------------
+				// case 4: count the time down to 0, or up to full time
+				m_nCaseNr= 4;
+				m_nDirection= -1;
+			}
+		}else
+		{
+			// -----------------------------------------------------------------------
+			// case 5: measure time inside case of begin/while/end
+			m_nCaseNr= 5;
 			sSetNull= properties->getValue("setnull", /*warning*/false);
 			m_oSetNull.init(pStartFolder, sSetNull);
 		}
-	}else
-	{
-		smtime= properties->getValue("direction", /*warning*/false);
-		if(smtime != "")
-		{
-			m_oDirect.init(pStartFolder, smtime);
-			m_nDirection= -1;
-		}else
-			m_nDirection= -2;
 	}
 
+	// check whether has begin, while or end parameters
+	bBegin= false;
+	bWhile= false;
+	bEnd= false;
+	if(properties->getValue("begin", /*warning*/false) != "")
+	{
+		bBegin= true;
+		m_bSwitchbyTime= true;
+	}
+	if(properties->getValue("while", /*warning*/false) != "")
+	{
+		bWhile= true;
+		m_bSwitchbyTime= true;
+	}
+	if(properties->getValue("end", /*warning*/false) != "")
+	{
+		bEnd= true;
+		m_bSwitchbyTime= true;
+	}
+	if(	(bBegin && bEnd) ||
+		bWhile				)
+	{
+		properties->notAllowedAction("binary");
+		if(!switchClass::init(properties, pStartFolder, bAlwaysBegin))
+			bOk= false;
+
+		prop= "default";
+		dDefault= properties->getDouble(prop, /*warning*/false);
+		if(prop == "#ERROR")
+		{// no default be set in configuration files for subroutine
+			if(	m_nCaseNr != 5 && // do not measure time inside case of begin/while/end
+				m_oDirect.isEmpty()	)
+			{
+				setValue(-1, "i:"+getFolderName()+":"+getSubroutineName());
+				m_dTimeBefore= -1;
+
+			}//else default value is 0
+		}else
+			m_dTimeBefore= dDefault;
+
+	}else
+	{
+		if(!portBase::init(properties, pStartFolder))
+			bOk= false;
+		if(	m_nCaseNr == 3 ||
+			m_nCaseNr == 4 ||
+			m_nCaseNr == 5		)
+		{
+			string msg(properties->getMsgHead(/*error*/true));
+
+			msg+= "no right case of begin, while, end parameters be set, so do not start subroutine";
+			LOG(LOG_ERROR, msg);
+			tout << msg << endl;
+			bOk= false;
+		}
+	}
 
 	if(properties->getPropertyCount("link"))
+	{
 		m_bHasLinks= true;
-	if(!initLinks("TIMER", properties, pStartFolder))
-		bOk= false;
-	properties->notAllowedAction("binary");
-	if(!switchClass::init(properties, pStartFolder))
-		bOk= false;
-	prop= "default";
-	dDefault= properties->getDouble(prop, /*warning*/false);
-	if(prop == "#ERROR")
-	{// no default be set in configuration files for subroutine
-		if(	!m_bTimeMeasure &&
-			m_oDirect.isEmpty()	)
-		{
-			setValue(-1, "i:"+getFolderName()+":"+getSubroutineName());
-			m_dTimeBefore= -1;
-
-		}//else default value is 0
-	}else
-		m_dTimeBefore= dDefault;
+		if(!initLinks("TIMER", properties, pStartFolder))
+			bOk= false;
+	}
 	return bOk;
 }
 
@@ -238,7 +278,8 @@ bool timer::range(bool& bfloat, double* min, double* max)
 		bfloat= false;
 	else
 		bfloat= true;
-	if(m_bTimeMeasure)
+	if(	m_nCaseNr == 1 || // folder should polling all seconds, minutes, hours, ...
+		m_nCaseNr == 5	) // measure time inside case of begin/while/end
 		*min= 0;
 	else
 		*min= -1;
@@ -256,29 +297,39 @@ double timer::measure(const double actValue)
 	switchClass::setting set;
 
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "Raff1_Zeit" &&
-		getSubroutineName() == "schliessen"					)
+	/*if(	getFolderName() == "switch_test_begin_end" &&
+		getSubroutineName() == "poll"					)
 	{
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 		cout << __FILE__ << __LINE__ << endl;
 	}*/
-	if(	!m_bTime ||
+/*	if(	!m_bTime ||
 		m_bSwitchbyTime ||
 		m_bTimeMeasure ||
-		!m_bMeasure			)
+		!m_bMeasure			)*/
+	if(	m_bSwitchbyTime ) // &&
+//		m_dSwitch <= 0		)
 	{
 		m_dSwitch= switchClass::measure(m_dSwitch, set);
+
+	}else if(debug)
+	{
+		tout << "WHILE parameter from measured before is ";
+		if(m_dSwitch > 0)
+			tout << "true" << endl;
+		else
+			tout << "false" << endl;
 	}
 	if(m_dSwitch > 0)
 		bswitch= true;
 	else
 		bswitch= false;
-	if(	bswitch ||
+/*	if(	bswitch ||
 		m_bMeasure ||
 		m_bTimeMeasure ||
-		(	m_bTime &&
+		(	m_nCaseNr == 1 &&
 			m_omtime.isEmpty()	)	)
-	{
+	{*/
 		if(gettimeofday(&tv, NULL))
 		{
 			string msg("ERROR: cannot get time of day,\n");
@@ -288,20 +339,17 @@ double timer::measure(const double actValue)
 			TIMELOG(LOG_ALERT, "gettimeofday", msg);
 			if(debug)
 				tout << msg << endl;
-			if(m_bTimeMeasure)
-			{
-				if(m_nDirection > -2)
-					need= actValue;
-				else
-					need= 0;
-			}else
+			if(m_nCaseNr == 5) // measure time inside case of begin/while/end
+				need= 0;
+			else
 				need= -1;
 			return need;
 		}
-	}
-	if(m_bTime)
+//	}
+	if(	m_nCaseNr == 1 || // folder should polling all seconds, minutes, hours, ...
+		m_nCaseNr == 2	) // time count down to setting date time
 	{
-		time_t actTime;
+		time_t actTime, thisTime;
 		tm local;
 
 		if(!m_omtime.isEmpty())
@@ -434,37 +482,42 @@ double timer::measure(const double actValue)
 		case minutes:
 			if(debug)
 				tout << "minutes" << endl;
+			thisTime= local.tm_min;
 			if(m_tmSec == 0)
 				m_tmStop.tv_sec= Calendar::nextMinute(actTime, &local);
-			actTime= local.tm_min;
+			actTime= thisTime;
 			break;
 		case hours:
 			if(debug)
 				tout << "hours" << endl;
+			thisTime= local.tm_hour;
 			if(m_tmSec == 0)
 				m_tmStop.tv_sec= Calendar::nextHour(actTime, &local);
-			actTime= local.tm_hour;
+			actTime= thisTime;
 			break;
 		case days:
 			if(debug)
 				tout << "days" << endl;
+			thisTime= local.tm_mday;
 			if(m_tmSec == 0)
 				m_tmStop.tv_sec= Calendar::nextDay(actTime, &local);
-			actTime= local.tm_mday;
+			actTime= thisTime;
 			break;
 		case months:
 			if(debug)
 				tout << "months" << endl;
+			thisTime= local.tm_mon + 1;
 			if(m_tmSec == 0)
 				m_tmStop.tv_sec= Calendar::nextMonth(actTime, &local);
-			actTime= local.tm_mon + 1;
+			actTime= thisTime;
 			break;
 		case years:
 			if(debug)
 				tout << "years" << endl;
+			thisTime= local.tm_year + 1900;
 			if(m_tmSec == 0)
 				m_tmStop.tv_sec= Calendar::nextYear(actTime, &local);
-			actTime= local.tm_year + 1900;
+			actTime= thisTime;
 			break;
 		}
 		if(debug)
@@ -485,15 +538,20 @@ double timer::measure(const double actValue)
 		getRunningThread()->nextActivateTime(getFolderName(), m_tmStop);
 		return static_cast<double>(actTime);
 	}
+	// case 3: count the time down to 0
+	// case 4: count the time down to 0, or up to full time
+	// case 5: measure time inside case of begin/while/end
 	if(	bswitch ||
 		m_bMeasure	)
 	{
-		if(!m_bTimeMeasure)
-		{ // measure count down or time
+		if(m_nCaseNr != 5) // do not measure time inside case of begin/while/end
+		{ // case 3: count the time down to 0
+		  // case 4: count the time down to 0, or up to full time
 			bool bNewDirection= false;
 			timeval next;
 
-			if(m_nDirection > -2)
+			if(	bswitch &&
+				m_nCaseNr == 4	) // count the time down to 0, or up to full time
 			{
 				double direct;
 				short oldDirection= m_nDirection;
@@ -510,13 +568,14 @@ double timer::measure(const double actValue)
 				}
 			}
 			if(	m_bMeasure == false ||
-				bNewDirection ||
+				(	bNewDirection &&
+					bswitch			) ||
 				(	bswitch &&
-					set == BEGIN	)	)
+					set == BEGIN		)	)
 			{// BEGIN to measure
 
-				if(!m_oDirect.isEmpty())
-					m_nDirection= -1; // no direction (-2) was set in init() method
+				//if(!m_oDirect.isEmpty())
+				//	m_nDirection= -1; // no direction (-2) was set in init() method
 				if(debug)
 				{
 					tout << "BEGIN time measuring ";
@@ -549,8 +608,8 @@ double timer::measure(const double actValue)
 
 			}else if( timercmp(&m_tmStop, &tv, <) )
 			{ // reaching end of count down
-			  // now polling ending, or begin with new time
-				double direct;
+			  // now end polling, or begin with new time
+				//double direct;
 				timeval was;
 
 				if(debug)
@@ -558,8 +617,10 @@ double timer::measure(const double actValue)
 					char stime[18];
 					tm l;
 
+					was.tv_sec= m_tmSec;
+					was.tv_usec= m_tmMicroseconds;
 					tout << "reach END of time measuring" << endl;
-					tout << "folder was refreshed because time of " << need;
+					tout << "folder was refreshed because time of " << calcResult(was, m_bSeconds);
 					tout << " seconds was reached" << endl;
 					if(localtime_r(&m_tmStop.tv_sec, &l) == NULL)
 						TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
@@ -573,68 +634,79 @@ double timer::measure(const double actValue)
 					tout << MeasureThread::getUsecString(tv.tv_usec) << ")" << endl;
 					tout << "look whether should polling time again" << endl;
 				}
-				if(m_nDirection == -1)
+/*				if(m_nDirection == -1)
 				{
 					m_oDirect.calculate(direct);
 					if(direct < 1)
 						m_nDirection= 0;
 					else
 						m_nDirection= 1;
-				}
-				if(m_nDirection == 0)
-					need= 0;
-				else
-					need= calcNextTime(/*start*/false, debug, &tv);
-				m_dSwitch= switchClass::measure(m_dSwitch, set, &need);
-				if(m_dSwitch > 0)
-					bswitch= true;
-				else
-					bswitch= false;
-				if(bswitch)
-				{// if end parameter with own subroutine as 0 is true,
-				 // do not begin count down again
-					if(debug)
+				}*/
+				if(m_bPoll)
+				{
+					if(m_nDirection == 0)
+						need= 0;
+					else
+						need= calcNextTime(/*start*/false, debug, &tv);
+					m_dSwitch= switchClass::measure(m_dSwitch, set, &need);
+					if(m_dSwitch > 0)
+						bswitch= true;
+					else
+						bswitch= false;
+					if(bswitch)
+					{// if end parameter with own subroutine as 0 is true,
+					 // do not begin count down again
+						if(debug)
+						{
+							tout << "end of ";
+							if(m_nDirection > -2)
+								tout << "time ";
+							else
+								tout << "count down ";
+							tout << "is reached, polling again" << endl;
+						}
+
+						timeval next;
+
+						if( m_nDirection == 0 ||
+							m_nDirection == -2	)
+						{
+							was.tv_sec= m_tmSec;
+							was.tv_usec= m_tmMicroseconds;
+							need= calcResult(was, m_bSeconds);
+						}else
+							need= 0;
+						next= tv;
+						m_tmStart= tv;
+						m_dStartValue= need;
+						need= calcStartTime(debug, need, &next);
+						if(need == -1)
+						{
+							if(m_nDirection > -2)
+								need= actValue;
+							m_bMeasure= false;
+							bEndCount= true;
+						}else
+							m_bMeasure= true;
+
+					}else
 					{
-						tout << "end of ";
-						if(m_nDirection > -2)
-							tout << "time ";
-						else
-							tout << "count down ";
-						tout << "is reached, polling again" << endl;
+						m_bMeasure= false;
+						bEndCount= true;
+						if(m_nDirection == -2)
+							need= 0;
 					}
-
-					timeval next;
-
-					if( m_nDirection == 0 ||
-						m_nDirection == -2	)
+				}else
+				{
+					m_dSwitch= 0;
+					m_bMeasure= false;
+					bEndCount= true;
+					if(m_nDirection == 1)
 					{
 						was.tv_sec= m_tmSec;
 						was.tv_usec= m_tmMicroseconds;
 						need= calcResult(was, m_bSeconds);
 					}else
-						need= 0;
-					next= tv;
-					m_tmStart= tv;
-					m_dStartValue= need;
-					need= calcStartTime(debug, need, &next);
-					if(need == -1)
-					{
-						if(m_nDirection > -2)
-							need= actValue;
-						m_bMeasure= false;
-						bEndCount= true;
-					}else
-						m_bMeasure= true;
-					if(m_nDirection == -2)
-					{// toDo: after checking behavior with transmitter, remove this if-sentence
-						need= 0;
-					}
-
-				}else
-				{
-					m_bMeasure= false;
-					bEndCount= true;
-					if(m_nDirection == -2)
 						need= 0;
 				}
 
@@ -651,8 +723,8 @@ double timer::measure(const double actValue)
 					tout << "this means time stopping in " << newtime.tv_sec << " seconds" << endl;
 					tout << endl;
 				}
-				if(m_nDirection != -2)
-					m_nDirection= -1;
+				//if(m_nDirection != -2)
+				//	m_nDirection= -1;
 				need= calcNextTime(/*start*/false, debug, &tv);
 				if(debug)
 				{
@@ -705,7 +777,7 @@ double timer::measure(const double actValue)
 				}
 			}
 		}else
-		{ // measure time up
+		{ // m_nCaseNr is 5: measure time inside case of begin/while/end
 			if(m_bMeasure == false)
 			{ // begin measuring
 				m_tmStart= tv;
@@ -730,7 +802,8 @@ double timer::measure(const double actValue)
 
 				timersub(&tv, &m_tmStart, &tv);
 				need= calcResult(tv, m_bSeconds);
-				if(bswitch)
+				m_dSwitch= switchClass::measure(m_dSwitch, set, &need);
+				if(m_dSwitch > 0)
 				{ // while measure
 					if(debug)
 						tout << "actually measured time is ";
@@ -761,7 +834,7 @@ double timer::measure(const double actValue)
 		need= actValue;
 	}
 
-	if(	m_bTimeMeasure &&
+	if(	m_nCaseNr == 5 && // measure time inside case of begin/while/end
 		!m_oSetNull.isEmpty()	)
 	{
 		double res;
@@ -775,8 +848,8 @@ double timer::measure(const double actValue)
 			}
 		}
 	}
-	if(	!m_bTimeMeasure &&
-		m_nDirection == -2 &&
+	if(	m_nCaseNr != 5 && // do not measure time inside case of begin/while/end
+		m_nCaseNr != 4 && // do not count the time down to 0, or up to full time
 		!m_bMeasure &&
 		!bEndCount &&
 		!(m_dTimeBefore > 0 || m_dTimeBefore < 0) &&
@@ -815,7 +888,7 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 		tout << "should running" << endl;
 	}
 	//var next is for starting defined as actual value
-	if(!m_bActivate)
+	if(m_nCaseNr != 2)
 	{
 		next->tv_sec= static_cast<time_t>(actValue);
 		calc= actValue - static_cast<double>(next->tv_sec);
@@ -878,7 +951,7 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 		if(!m_oSeconds.isEmpty())
 		{
 			m_oSeconds.calculate(res);
-			if(m_bActivate)
+			if(m_nCaseNr == 2)
 				nSeconds= static_cast<int>(res);
 			else
 				m_tmSec+= static_cast<time_t>(res);
@@ -886,7 +959,7 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 		if(!m_oMinutes.isEmpty())
 		{
 			m_oMinutes.calculate(res);
-			if(m_bActivate)
+			if(m_nCaseNr == 2)
 				nMinutes= static_cast<int>(res);
 			else
 				m_tmSec+= static_cast<time_t>(res) * 60;
@@ -894,7 +967,7 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 		if(!m_oHours.isEmpty())
 		{
 			m_oHours.calculate(res);
-			if(m_bActivate)
+			if(m_nCaseNr == 2)
 				nHours= static_cast<int>(res);
 			else
 				m_tmSec+= static_cast<time_t>(res) * 60 * 60;
@@ -902,12 +975,12 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 		if(!m_oDays.isEmpty())
 		{
 			m_oDays.calculate(res);
-			if(m_bActivate)
+			if(m_nCaseNr == 2)
 				nDays= static_cast<int>(res);
 			else
 				m_tmSec+= static_cast<time_t>(res) * 24 * 60 * 60;
 		}
-		if(m_bActivate)
+		if(m_nCaseNr == 2)
 		{
 			if(!m_oMonths.isEmpty())
 			{
@@ -961,6 +1034,8 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 					tout << "###ERROR: " << err.str() << endl;
 			}else if(debug)
 				tout << "do not refresh folder, because calculated time was 0" << endl;
+			m_dSwitch= 0;
+			m_bMeasure= false;
 		}
 	}
 	return need;
@@ -968,7 +1043,7 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 
 double timer::calcNextTime(const bool& start, const bool& debug, timeval* actTime)
 {
-	double newTime, direct;
+	double newTime;//, direct;
 	timeval endTime;
 	//time_t actSec, nextSec;
 	//suseconds_t actMicrosec, nextMicrosec;
@@ -980,14 +1055,14 @@ double timer::calcNextTime(const bool& start, const bool& debug, timeval* actTim
 			tout << " for begin measuring";
 		tout << endl;
 	}
-	if(m_nDirection == -1)
+/*	if(m_nDirection == -1)
 	{// direction is defined but unknown
 		m_oDirect.calculate(direct);
 		if(direct > 0)
 			m_nDirection= 1;
 		else
 			m_nDirection= 0;
-	}
+	}*/
 	if(start)
 	{
 		if(m_nDirection == -2)
