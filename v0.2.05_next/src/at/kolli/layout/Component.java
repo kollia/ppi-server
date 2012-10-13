@@ -53,6 +53,7 @@ import org.eclipse.swt.widgets.Text;
 import org.apache.regexp.RE;
 
 import at.kolli.automation.client.MsgClientConnector;
+import at.kolli.automation.client.MsgTranslator;
 import at.kolli.automation.client.NodeContainer;
 import at.kolli.dialogs.DisplayAdapter;
 import at.kolli.layout.IComponentListener;
@@ -173,14 +174,24 @@ public class Component  extends HtmTags implements IComponentListener
 	public int size= 1;
 	/**
 	 * min attribute of component.<br />
-	 * minimal-value for component slider and scale
+	 * minimal-value for component slider and range
 	 */
 	public int min= 0;
 	/**
+	 * min attribute of component.<br />
+	 * minimal-value for component slider and range
+	 */
+	public String m_smin= "";
+	/**
 	 * max attribute of component.<br />
-	 * maximal-value for component slider and scale
+	 * maximal-value for component slider and range
 	 */
 	public int max= 1500000;
+	/**
+	 * max attribute of component.<br />
+	 * maximal-value for component slider and range
+	 */
+	public String m_smax= "";
 	/**
 	 * arrow attribute of component.<br />
 	 * value for get higher or lower by pressing the arrow keys
@@ -448,6 +459,13 @@ public class Component  extends HtmTags implements IComponentListener
 			Double akt= null;
 			String firstButtonValue= "";
 			
+			if(	this.value.equals("") &&
+				(	this.type.equals("checkbox") ||
+					this.type.equals("radio")		)	)
+			{// when no value for checkbox or radio button be set
+			 // set 1 as default
+				this.value= "1";
+			}
 			if(	!getPermission().equals(permission.None) &&
 				!m_nSoftButton								)
 			{
@@ -580,11 +598,23 @@ public class Component  extends HtmTags implements IComponentListener
 			{
 				m_oButton.setText(this.value);
 			}
-			if(type == SWT.RADIO
-				&&
-				this.value.equals("0") 	)
+			if(type == SWT.RADIO)
 			{
-				m_oButton.setSelection(true);
+				try{
+					if(akt != null && akt == Double.parseDouble(this.value.trim()))
+						m_oButton.setSelection(true);
+					else
+						m_oButton.setSelection(false);
+				}catch(NumberFormatException ex)
+				{
+					m_oButton.setSelection(false);
+				}
+			}else
+			{
+				if(akt != null && akt > 0)
+					m_oButton.setSelection(true);
+				else
+					m_oButton.setSelection(false);
 			}
 			// define font object after setText for PUSH and TOGGLE button
 			// because when color changes font object delete text and paint
@@ -838,9 +868,49 @@ public class Component  extends HtmTags implements IComponentListener
 			disabled= disabled || readonly ? true : false;
 			slider= new Slider(composite, style);
 			slider.setLayoutData(data);
-			slider.setMinimum(min);
 			slider.setSize(width, height);
+			if(!m_smin.equals(""))
+			{
+				akt= client.getValue(m_smin, /*bthrow*/false);
+				if(akt != null)
+				{
+					min= akt.intValue();
+					
+				}else if(HtmTags.debug)
+				{
+					String message= "";
+					
+					if(!this.result.equals(""))
+						message= "cannot reach subroutine '" + this.result + "' from ";
+					message+= "component slider";
+					if(!this.name.equals(""))
+						message+= " with min value " + this.m_smin + " ";
+					System.out.println(message);
+					System.out.println(client.getErrorMessage());
+				}
+			}
+			slider.setMinimum(min);
 			min= slider.getMinimum();
+			if(!m_smax.equals(""))
+			{
+				akt= client.getValue(m_smax, /*bthrow*/false);
+				if(akt != null)
+				{
+					max= akt.intValue();
+					
+				}else if(HtmTags.debug)
+				{
+					String message= "";
+					
+					if(!this.result.equals(""))
+						message= "cannot reach subroutine '" + this.result + "' from ";
+					message+= "component slider";
+					if(!this.name.equals(""))
+						message+= " with max value " + this.m_smin + " ";
+					System.out.println(message);
+					System.out.println(client.getErrorMessage());
+				}
+			}
 			// toDo:	search reason why maximum need 
 			//			10 values more than minimum
 			slider.setMaximum(max+10);
@@ -854,6 +924,7 @@ public class Component  extends HtmTags implements IComponentListener
 			slider.setSelection(value);
 			slider.setEnabled(!disabled);
 			m_oComponent= slider;
+			slider.setMaximum(max);
 			
 		}else if(this.type.equals("range"))
 		{
@@ -914,7 +985,47 @@ public class Component  extends HtmTags implements IComponentListener
 			disabled= disabled || readonly ? true : false;
 			scale= new Scale(composite, style);
 			scale.setLayoutData(data);
+			if(!m_smin.equals(""))
+			{
+				akt= client.getValue(m_smin, /*bthrow*/false);
+				if(akt != null)
+				{
+					min= akt.intValue();
+					
+				}else if(HtmTags.debug)
+				{
+					String message= "";
+					
+					if(!this.result.equals(""))
+						message= "cannot reach subroutine '" + this.result + "' from ";
+					message+= "component range";
+					if(!this.name.equals(""))
+						message+= " with min value " + this.m_smin + " ";
+					System.out.println(message);
+					System.out.println(client.getErrorMessage());
+				}
+			}
 			scale.setMinimum(min);
+			if(!m_smax.equals(""))
+			{
+				akt= client.getValue(m_smax, /*bthrow*/false);
+				if(akt != null)
+				{
+					max= akt.intValue();
+					
+				}else if(HtmTags.debug)
+				{
+					String message= "";
+					
+					if(!this.result.equals(""))
+						message= "cannot reach subroutine '" + this.result + "' from ";
+					message+= "component range";
+					if(!this.name.equals(""))
+						message+= " with max value " + this.m_smin + " ";
+					System.out.println(message);
+					System.out.println(client.getErrorMessage());
+				}
+			}
 			scale.setMaximum(max);
 			scale.setSize(width, height);
 			// Pfeiltaste
@@ -922,10 +1033,15 @@ public class Component  extends HtmTags implements IComponentListener
 			// klick auf Schieberegler
 			scale.setPageIncrement(rollbarfield);
 			// Aktuaelle Position
-			scale.setSelection(value);
-			scale.setEnabled(!disabled);			
+			scale.setEnabled(!disabled);
+
+			if(value != 0) // do not set 0 for selection, because in this case
+				scale.setSelection(value); // scale will be set to full range
+			value= scale.getMinimum();
+			value= scale.getMaximum();
+			value= scale.getSelection();
 			m_oComponent= scale;
-			m_nAktValue= (int)min;
+			m_nAktValue= value;
 			
 		}else if(	this.type.equals("combo")
 					&&
@@ -2254,6 +2370,7 @@ public class Component  extends HtmTags implements IComponentListener
 	{
 		boolean bValue= false;
 		textFormat formatObj= null;
+		String foldersub= cont.getFolderName() + ":" + cont.getSubroutineName();
 
 		if(	!m_bCorrectName
 			||
@@ -2266,14 +2383,10 @@ public class Component  extends HtmTags implements IComponentListener
 			cont.hasValue()	)
 		{
 			if(this.type.equals("text"))
-			{
-				String folder= cont.getFolderName() + ":" + cont.getSubroutineName();
-				
-				if(folder.equals("time_routines:minutes"))
-					System.out.print("");
+			{	
 				for (textFormat obj : m_aResult)
 				{
-					if(obj.resultStr.equals(folder))
+					if(obj.resultStr.equals(foldersub))
 					{
 						formatObj= obj;
 						break;
@@ -2284,8 +2397,21 @@ public class Component  extends HtmTags implements IComponentListener
 				
 			}else
 			{
-				if(!(cont.getFolderName() + ":" + cont.getSubroutineName()).equals(this.result))
-					return;
+				if(!foldersub.equals(this.result))
+				{
+					if(	this.type.equals("slider") ||
+						this.type.equals("range")		)
+					{
+						if(	(	m_smin.equals("") ||
+								!foldersub.equals(m_smin)	) &&
+							(	m_smax.equals("") ||
+								!foldersub.equals(m_smax)	)	)
+						{
+							return;
+						}
+					}else
+						return;
+				}
 			}
 			if(cont.hasDoubleValue())
 			{
@@ -2351,7 +2477,28 @@ public class Component  extends HtmTags implements IComponentListener
 			
 		}else if(this.type.equals("radio"))
 		{
-			final double nValue= Double.parseDouble(this.value);
+			Double nValue= null;
+			final double fnValue;
+			
+			try{
+				nValue= Double.parseDouble(this.value);
+				
+			}catch(NumberFormatException ex)
+			{
+				MsgTranslator msg= MsgTranslator.instance();
+				
+				msg.errorPool("FAULT_double_value", "radio button", this.value);
+				ex.printStackTrace();
+				
+			}
+			finally
+			{
+				if(nValue == null)
+				{
+					nValue= 1D;
+				}
+			}
+			fnValue= nValue;
 			
 			DisplayAdapter.asyncExec(new Runnable()
 			{				
@@ -2359,7 +2506,7 @@ public class Component  extends HtmTags implements IComponentListener
 				public void run() 
 				{
 					Button button= (Button)m_oComponent;
-					boolean bSet= m_nAktValue == nValue ? true : false;
+					boolean bSet= m_nAktValue == fnValue ? true : false;
 					
 					button.setSelection(bSet);
 				}
@@ -2384,20 +2531,60 @@ public class Component  extends HtmTags implements IComponentListener
 			
 		}else if(this.type.equals("slider"))
 		{
+			final short nCurType;
+
+			if(	!m_smin.equals("") &&
+				foldersub.equals(m_smin)	)
+			{
+				nCurType= 1;
+				
+			}else if(	!m_smax.equals("") &&
+						foldersub.equals(m_smax)	)
+			{
+				nCurType= 2;
+				
+			}else
+				nCurType= 0;
 			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
 				{
 					Slider slider= (Slider)m_oComponent;
-					
-					slider.setSelection((int)m_nAktValue);
+
+					switch(nCurType)
+					{
+					case 0:
+						slider.setSelection((int)m_nAktValue);
+						break;
+						
+					case 1:
+						slider.setMinimum((int)m_nAktValue);
+						break;
+						
+					case 2:
+						slider.setMaximum((int)m_nAktValue);
+					}
 				}
 			
 			}, this.type.toString());
 			
 		}else if(this.type.equals("range"))
 		{
+			final short nCurType;
+
+			if(	!m_smin.equals("") &&
+				foldersub.equals(m_smin)	)
+			{
+				nCurType= 1;
+				
+			}else if(	!m_smax.equals("") &&
+						foldersub.equals(m_smax)	)
+			{
+				nCurType= 2;
+				
+			}else
+				nCurType= 0;
 			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
@@ -2405,7 +2592,19 @@ public class Component  extends HtmTags implements IComponentListener
 				{
 					Scale scale= (Scale)m_oComponent;
 					
-					scale.setSelection((int)m_nAktValue);
+					switch(nCurType)
+					{
+					case 0:
+						scale.setSelection((int)m_nAktValue);
+						break;
+						
+					case 1:
+						scale.setMinimum((int)m_nAktValue);
+						break;
+						
+					case 2:
+						scale.setMaximum((int)m_nAktValue);
+					}
 				}
 			
 			}, this.type.toString());

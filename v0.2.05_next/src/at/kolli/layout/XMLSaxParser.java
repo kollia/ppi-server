@@ -579,10 +579,36 @@ public class XMLSaxParser extends DefaultHandler
 	        	else if(aName.equals("result"))
 	        		component.result= attrs.getValue(i);
 	        	else if(aName.equals("min"))
-	        		component.min= Integer.parseInt(attrs.getValue(i));
-	        	else if(aName.equals("max"))
-	        		component.max= Integer.parseInt(attrs.getValue(i));
-	        	else if(aName.equals("arrow"))
+	        	{
+	        		if(	component.type.equals("slider") ||
+	        			component.type.equals("range")		)
+	        		{
+	        			try{
+	        				component.min= Integer.parseInt(attrs.getValue(i));
+	        				
+	        			}catch(NumberFormatException ex)
+	        			{
+	        				component.m_smin= attrs.getValue(i);
+	        			}
+	        		}else
+	        			component.min= Integer.parseInt(attrs.getValue(i));
+	        		
+	        	}else if(aName.equals("max"))
+	        	{
+	        		if(	component.type.equals("slider") ||
+	        			component.type.equals("range")		)
+	        		{
+	        			try{
+	        				component.max= Integer.parseInt(attrs.getValue(i));
+	        				
+	        			}catch(NumberFormatException ex)
+	        			{
+	        				component.m_smax= attrs.getValue(i);
+	        			}
+	        		}else
+	        			component.max= Integer.parseInt(attrs.getValue(i));
+	        		
+	        	}else if(aName.equals("arrow"))
 	        		component.arrowkey= Integer.parseInt(attrs.getValue(i));
 	        	else if(aName.equals("step"))
 	        		component.rollbarfield= Integer.parseInt(attrs.getValue(i));
