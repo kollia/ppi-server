@@ -48,13 +48,14 @@ public class Layout extends HtmTags
 	 * into the displaying window. But this class have nothing to display, so methode has nothing to do.
 	 * 
 	 * @param composite parent {@link Composite}
+	 * @param font object of defined font and colors
 	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 08.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite, HashMap<String, HtmTags> classes)
+	public void execute(Composite composite, FontObject font, HashMap<String, HtmTags> classes)
 	{
 		// this tag do not display anything
 	}

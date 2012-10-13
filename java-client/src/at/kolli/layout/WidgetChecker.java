@@ -133,6 +133,8 @@ public class WidgetChecker extends Thread
 				{
 					String res= client.hearing(/*bthrow*/false);
 					
+					if(HtmTags.debug)
+						System.out.println("get source: '" + res + "'");
 					if(	!cont.read("%f:%s=%d", res)
 						&&
 						!cont.read("%f:%s %c", res))
@@ -168,8 +170,7 @@ public class WidgetChecker extends Thread
 				}
 				Thread t= null;
 
-				if(	HtmTags.debug &&
-					HtmTags.lockDebug		)
+				if(	HtmTags.lockDebug		)
 				{
 					t= Thread.currentThread();
 					System.out.println(t.getName()+" want to synchronisize DISPLAYLOCK");
@@ -178,8 +179,7 @@ public class WidgetChecker extends Thread
 				{
 					String node;
 
-					if(	HtmTags.debug &&
-						HtmTags.lockDebug	)
+					if(	HtmTags.lockDebug	)
 					{
 						System.out.println(t.getName()+" synchronisize DISPLAYLOCK");
 					}
@@ -187,43 +187,37 @@ public class WidgetChecker extends Thread
 					if(!node.equals(""))
 					{// set new side active
 						loader.m_sAktFolder= node;
-						if(	HtmTags.debug &&
-							HtmTags.lockDebug	)
+						if(	HtmTags.lockDebug	)
 						{
 							System.out.println(t.getName()+" should set new side "+node+" active");
 						}
 						loader.setActSideVisible(/*inform server by no body*/false);
 					}else
 					{// fill values into actual side
-						if(	HtmTags.debug &&
-							HtmTags.lockDebug	)
+						if(	HtmTags.lockDebug	)
 						{
 							System.out.println(t.getName()+" want to lock sideLock for WidgetChecker");
 						}
 						LayoutLoader.sideLock.lock();
-						if(	HtmTags.debug &&
-							HtmTags.lockDebug	)
+						if(	HtmTags.lockDebug	)
 						{
 							System.out.println(t.getName()+" lock sideLock for WidgetChecker");
 						}
 						//synchronized(TreeNodes.m_DISPLAYLOCK) //(m_AktTreeNode)
 						{
-							if(	HtmTags.debug &&
-								HtmTags.lockDebug	)
+							if(	HtmTags.lockDebug	)
 							{
 								System.out.println(t.getName()+" actualize content of side");
 							}
 							m_AktTreeNode.listenClient(client, cont);
 						}
-						if(	HtmTags.debug &&
-							HtmTags.lockDebug	)
+						if(	HtmTags.lockDebug	)
 						{
 							System.out.println(t.getName()+" unlock sideLock for WidgetChecker");
 						}
 						LayoutLoader.sideLock.unlock();
 					}
-					if(	HtmTags.debug &&
-						HtmTags.lockDebug	)
+					if(	HtmTags.lockDebug	)
 					{
 						System.out.println(t.getName()+" leave synchronisize DISPLAYLOCK");
 					}

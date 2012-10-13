@@ -53,6 +53,7 @@ import org.eclipse.swt.widgets.Text;
 import org.apache.regexp.RE;
 
 import at.kolli.automation.client.MsgClientConnector;
+import at.kolli.automation.client.MsgTranslator;
 import at.kolli.automation.client.NodeContainer;
 import at.kolli.dialogs.DisplayAdapter;
 import at.kolli.layout.IComponentListener;
@@ -173,14 +174,24 @@ public class Component  extends HtmTags implements IComponentListener
 	public int size= 1;
 	/**
 	 * min attribute of component.<br />
-	 * minimal-value for component slider and scale
+	 * minimal-value for component slider and range
 	 */
 	public int min= 0;
 	/**
+	 * min attribute of component.<br />
+	 * minimal-value for component slider and range
+	 */
+	public String m_smin= "";
+	/**
 	 * max attribute of component.<br />
-	 * maximal-value for component slider and scale
+	 * maximal-value for component slider and range
 	 */
 	public int max= 1500000;
+	/**
+	 * max attribute of component.<br />
+	 * maximal-value for component slider and range
+	 */
+	public String m_smax= "";
 	/**
 	 * arrow attribute of component.<br />
 	 * value for get higher or lower by pressing the arrow keys
@@ -381,18 +392,26 @@ public class Component  extends HtmTags implements IComponentListener
 	 * execute method to create the composite for display
 	 * 
 	 * @param composite parent composite
+	 * @param font object of defined font and colors
 	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite, HashMap<String, HtmTags> classes) throws IOException
+	public void execute(Composite composite, FontObject font, HashMap<String, HtmTags> classes) throws IOException
 	{
 		boolean disabled= false;
 		boolean readonly= false;
 		MsgClientConnector client= MsgClientConnector.instance();
+		//Composite widgetCompo= new Composite(composite, SWT.NONE);
+		//GridLayout gridLayout= new GridLayout();
+		GridData gridData= new GridData();
 
+		gridData.horizontalAlignment= align;
+		gridData.verticalAlignment= valign;
+		//widgetCompo.setLayoutData(gridData);
+		//gridData= new GridData();
 		if(HtmTags.debug)
 		{
 			System.out.println("execute component '" + type + "'");
@@ -419,7 +438,7 @@ public class Component  extends HtmTags implements IComponentListener
 			if(actLayout.compareTo(layout.readonly) == 0)
 				readonly= true;
 		}
-		
+
 		if(	this.type.equals("checkbox")
 			||
 			this.type.equals("radio")
@@ -437,10 +456,16 @@ public class Component  extends HtmTags implements IComponentListener
 			this.type.equals("downbutton")	)
 		{
 			int type= 0;
-			GridData data= null;
 			Double akt= null;
 			String firstButtonValue= "";
 			
+			if(	this.value.equals("") &&
+				(	this.type.equals("checkbox") ||
+					this.type.equals("radio")		)	)
+			{// when no value for checkbox or radio button be set
+			 // set 1 as default
+				this.value= "1";
+			}
 			if(	!getPermission().equals(permission.None) &&
 				!m_nSoftButton								)
 			{
@@ -494,7 +519,8 @@ public class Component  extends HtmTags implements IComponentListener
 			}else
 			{
 				System.out.println("no defined input widget for type "+this.type);
-				new Composite(composite, SWT.NONE);
+				Composite cp= new Composite(composite, SWT.NONE);
+				font.setDevice(cp);
 				return;
 			}
 			if(	(	type == SWT.PUSH ||
@@ -527,7 +553,8 @@ public class Component  extends HtmTags implements IComponentListener
 				}
 			}
 			
-			disabled= disabled || readonly ? true : false;				
+			disabled= disabled || readonly ? true : false;
+			
 			m_oButton= new Button(composite, type);
 			m_oButton.setEnabled(!disabled);
 			if(!m_asComboNameEntrys.isEmpty())
@@ -561,41 +588,43 @@ public class Component  extends HtmTags implements IComponentListener
 					this.value= firstButtonValue;
 			}
 			if(width != -1)
-			{
-				data= new GridData();
-				data.widthHint= width;
-			}
+				gridData.widthHint= width;
 			if(height != -1)
-			{
-				if(data == null)
-					data= new GridData();
-				data.heightHint= height;
-			}
-			if(data != null)
-				m_oButton.setLayoutData(data);
+				gridData.heightHint= height;
+			m_oButton.setLayoutData(gridData);
 			m_oComponent= m_oButton;
 			if(	type == SWT.PUSH ||
 				type == SWT.TOGGLE	)
 			{
 				m_oButton.setText(this.value);
-			}//else
-				//button.setText(this.text);
-			if(type == SWT.RADIO
-				&&
-				this.value.equals("0") 	)
-			{
-				m_oButton.setSelection(true);
 			}
+			if(type == SWT.RADIO)
+			{
+				try{
+					if(akt != null && akt == Double.parseDouble(this.value.trim()))
+						m_oButton.setSelection(true);
+					else
+						m_oButton.setSelection(false);
+				}catch(NumberFormatException ex)
+				{
+					m_oButton.setSelection(false);
+				}
+			}else
+			{
+				if(akt != null && akt > 0)
+					m_oButton.setSelection(true);
+				else
+					m_oButton.setSelection(false);
+			}
+			// define font object after setText for PUSH and TOGGLE button
+			// because when color changes font object delete text and paint
+			// own one
+			font.setDevice(m_oButton);
 			
 		}else if(this.type.equals("text"))
 		{
 			boolean bread= false;
-			int style= readonly ? SWT.SINGLE | SWT.READ_ONLY : SWT.SINGLE;
-			m_oText= new Text(composite, style);
-			GridData data= new GridData();
-			//RE floatStr= new RE("([ +-/]|\\*|\\(|\\)|^)#([0-9])+(\\.([0-9])*)?([ +-/]|\\*|\\(|\\)|$)");
-			//RE floatStr= new RE("(.*)(\\*)(#([0-9])+(.[0-9]*)?)?(.*)");
-			//RE floatStr= new RE("(.*)((#[0-9]+)(.[0-9]*)?)?(.*)");
+			int style;
 			RE floatStr= new RE("([\\\\]*)#([0-9]+)(.([0-9]*))?");
 			textFormat formatObj;
 			String[] spl;
@@ -638,6 +667,10 @@ public class Component  extends HtmTags implements IComponentListener
 			}
 			if(actLayout.compareTo(layout.readonly) == 0)
 				readonly= true;
+			style= readonly ? SWT.SINGLE | SWT.READ_ONLY : SWT.SINGLE;
+			style= !disabled && !readonly ? style | SWT.BORDER : style;
+			m_oText= new Text(composite, style);
+			font.setDevice(m_oText);
 			if(	!getPermission().equals(permission.None) &&
 				!m_nSoftButton								)
 			{
@@ -767,11 +800,11 @@ public class Component  extends HtmTags implements IComponentListener
 
 			if(width == -1)
 				width= 100;
+			gridData.widthHint= width;
 			if(height != -1)
-				data.heightHint= height;
+				gridData.heightHint= height;
+			m_oText.setLayoutData(gridData);
 			m_oComponent= m_oText;
-			data.widthHint= width;
-			m_oText.setLayoutData(data);
 			if(!m_nSoftButton)
 				m_oText.setText(calculateInputValue());
 			m_oText.setEnabled(!disabled);
@@ -828,20 +861,61 @@ public class Component  extends HtmTags implements IComponentListener
 					data.heightHint= height;
 				if(width < height)
 					style= SWT.VERTICAL;
-					
+				
 			}else
 				data.widthHint= 100;
 			
 			disabled= disabled || readonly ? true : false;
 			slider= new Slider(composite, style);
 			slider.setLayoutData(data);
-			slider.setMinimum(min);
 			slider.setSize(width, height);
+			if(!m_smin.equals(""))
+			{
+				akt= client.getValue(m_smin, /*bthrow*/false);
+				if(akt != null)
+				{
+					min= akt.intValue();
+					
+				}else if(HtmTags.debug)
+				{
+					String message= "";
+					
+					if(!this.result.equals(""))
+						message= "cannot reach subroutine '" + this.result + "' from ";
+					message+= "component slider";
+					if(!this.name.equals(""))
+						message+= " with min value " + this.m_smin + " ";
+					System.out.println(message);
+					System.out.println(client.getErrorMessage());
+				}
+			}
+			slider.setMinimum(min);
 			min= slider.getMinimum();
+			if(!m_smax.equals(""))
+			{
+				akt= client.getValue(m_smax, /*bthrow*/false);
+				if(akt != null)
+				{
+					max= akt.intValue();
+					
+				}else if(HtmTags.debug)
+				{
+					String message= "";
+					
+					if(!this.result.equals(""))
+						message= "cannot reach subroutine '" + this.result + "' from ";
+					message+= "component slider";
+					if(!this.name.equals(""))
+						message+= " with max value " + this.m_smin + " ";
+					System.out.println(message);
+					System.out.println(client.getErrorMessage());
+				}
+			}
 			// toDo:	search reason why maximum need 
 			//			10 values more than minimum
 			slider.setMaximum(max+10);
 			max= slider.getMaximum();
+			font.setDevice(slider);
 			// Pfeiltaste
 			slider.setIncrement(arrowkey);
 			// klick auf Schieberegler
@@ -850,6 +924,7 @@ public class Component  extends HtmTags implements IComponentListener
 			slider.setSelection(value);
 			slider.setEnabled(!disabled);
 			m_oComponent= slider;
+			slider.setMaximum(max);
 			
 		}else if(this.type.equals("range"))
 		{
@@ -910,7 +985,47 @@ public class Component  extends HtmTags implements IComponentListener
 			disabled= disabled || readonly ? true : false;
 			scale= new Scale(composite, style);
 			scale.setLayoutData(data);
+			if(!m_smin.equals(""))
+			{
+				akt= client.getValue(m_smin, /*bthrow*/false);
+				if(akt != null)
+				{
+					min= akt.intValue();
+					
+				}else if(HtmTags.debug)
+				{
+					String message= "";
+					
+					if(!this.result.equals(""))
+						message= "cannot reach subroutine '" + this.result + "' from ";
+					message+= "component range";
+					if(!this.name.equals(""))
+						message+= " with min value " + this.m_smin + " ";
+					System.out.println(message);
+					System.out.println(client.getErrorMessage());
+				}
+			}
 			scale.setMinimum(min);
+			if(!m_smax.equals(""))
+			{
+				akt= client.getValue(m_smax, /*bthrow*/false);
+				if(akt != null)
+				{
+					max= akt.intValue();
+					
+				}else if(HtmTags.debug)
+				{
+					String message= "";
+					
+					if(!this.result.equals(""))
+						message= "cannot reach subroutine '" + this.result + "' from ";
+					message+= "component range";
+					if(!this.name.equals(""))
+						message+= " with max value " + this.m_smin + " ";
+					System.out.println(message);
+					System.out.println(client.getErrorMessage());
+				}
+			}
 			scale.setMaximum(max);
 			scale.setSize(width, height);
 			// Pfeiltaste
@@ -918,20 +1033,25 @@ public class Component  extends HtmTags implements IComponentListener
 			// klick auf Schieberegler
 			scale.setPageIncrement(rollbarfield);
 			// Aktuaelle Position
-			scale.setSelection(value);
-			scale.setEnabled(!disabled);			
+			scale.setEnabled(!disabled);
+
+			if(value != 0) // do not set 0 for selection, because in this case
+				scale.setSelection(value); // scale will be set to full range
+			value= scale.getMinimum();
+			value= scale.getMaximum();
+			value= scale.getSelection();
 			m_oComponent= scale;
-			m_nAktValue= (int)min;
+			m_nAktValue= value;
 			
 		}else if(	this.type.equals("combo")
 					&&
 					this.size == 1				)
 		{
-			Combo combo= new Combo(composite, SWT.READ_ONLY | SWT.DROP_DOWN);
-			GridData data= null;
-			double value= -1;
+			Combo combo= new Combo(composite, SWT.READ_ONLY | SWT.DROP_DOWN | SWT.BORDER);
+			//Combo combo= new Combo(composite, SWT.READ_ONLY | SWT.DROP_DOWN);
 			Double akt= null;
 			
+			font.setDevice(combo);
 			if(	!getPermission().equals(permission.None) &&
 				!m_nSoftButton								)
 			{
@@ -959,22 +1079,15 @@ public class Component  extends HtmTags implements IComponentListener
 			}
 			m_oComponent= combo;
 			if(width != -1)
-			{
-				data= new GridData();
-				data.widthHint= width;
-			}
+				gridData.widthHint= width;
 			if(height != -1)
-			{
-				if(data == null)
-					data= new GridData();
-				data.heightHint= height;
-			}
-			if(data != null)
-				combo.setLayoutData(data);
+				gridData.heightHint= height;
+			combo.setLayoutData(gridData);
 			combo.setEnabled(!disabled);
 			if(	!m_lContent.isEmpty())
 			{
 				boolean bfirst= true;
+				double value= -1;
 				
 				for(HtmTags tag : m_lContent)
 				{
@@ -982,7 +1095,7 @@ public class Component  extends HtmTags implements IComponentListener
 					{
 						Option option= (Option)tag;
 						String entry= option.getOptionString();
-						
+
 						if(option.value != null)
 							value= option.value;
 						else
@@ -1006,12 +1119,16 @@ public class Component  extends HtmTags implements IComponentListener
 					&&
 					this.size > 1				)
 		{
-			List list= new List(composite, m_lContent.size() > this.size ? SWT.SINGLE | SWT.V_SCROLL : SWT.SINGLE);
-			GridData data= new GridData();
+			int style;
+			List list;
 			int item= 0;
 			double value= -1;
 			Double akt= null;
 			
+			style= m_lContent.size() > this.size ? SWT.SINGLE | SWT.V_SCROLL : SWT.SINGLE;
+			style= !readonly && !disabled ? style | SWT.BORDER : style;
+			list= new List(composite, style);
+			font.setDevice(list);
 			if(	!getPermission().equals(permission.None) &&
 				!m_nSoftButton								)
 			{
@@ -1039,14 +1156,11 @@ public class Component  extends HtmTags implements IComponentListener
 			}
 			m_oComponent= list;
 			if(width != -1)
-			{
-				data= new GridData();
-				data.widthHint= width;
-			}
-			data.heightHint= list.getItemHeight()  * this.size;
+				gridData.widthHint= width;
+			gridData.heightHint= list.getItemHeight()  * this.size + this.size;
+			//data.heightHint= fontData.getHeight()  * this.size;
 			//data.heightHint= (list.computeSize(SWT.DEFAULT, SWT.DEFAULT, true).x/4) * this.size;
-			if(data != null)
-				list.setLayoutData(data);
+			list.setLayoutData(gridData);
 			list.setEnabled(!disabled);
 			if(	!m_lContent.isEmpty()
 				&&
@@ -1065,7 +1179,6 @@ public class Component  extends HtmTags implements IComponentListener
 							++value;
 						addComboEntrys(entry, value);
 						list.add(entry);
-						//list.setBackground(SWT.COLOR_WHITE);
 						if(akt == value)
 							list.select(item);
 						++item;
@@ -1077,9 +1190,9 @@ public class Component  extends HtmTags implements IComponentListener
 			
 		}else if(this.type.equals("spinner"))
 		{
-			int style= readonly ? SWT.READ_ONLY  : SWT.NONE;			
-			final Spinner spinner= new Spinner(composite, style);
-			GridData data= new GridData();
+			int style= readonly ? SWT.READ_ONLY  : SWT.NONE;
+			style= !readonly && !disabled ? style | SWT.BORDER : style;
+			Spinner spinner= new Spinner(composite, style);
 			Double akt= null;
 			
 			if(	!getPermission().equals(permission.None) &&
@@ -1109,21 +1222,20 @@ public class Component  extends HtmTags implements IComponentListener
 			}
 			m_oComponent= spinner;
 			if(width != -1)
-			{
-				data= new GridData();
-				data.widthHint= width;
-			}
+				gridData.widthHint= width;
 			if(height != -1)
-			{
-				data.heightHint= height;
-			}
-			if(data != null)
-				spinner.setLayoutData(data);
+				gridData.heightHint= height;
+			spinner.setLayoutData(gridData);
 			spinner.setEnabled(!disabled);
+			if(this.min > -1)
+				spinner.setMinimum(this.min);
+			if(this.max > -1)
+				spinner.setMaximum(this.max);
 			if(akt == null)
 				akt= new Double(0);
 			spinner.setValues((int)akt.doubleValue(), min, max, this.digits, arrowkey, rollbarfield);
 			spinner.setEnabled(!disabled);
+			
 		}else
 		{
 			m_bCorrectName= false;
@@ -1476,6 +1588,7 @@ public class Component  extends HtmTags implements IComponentListener
 		final String result= this.result;
 		final MsgClientConnector client= MsgClientConnector.instance();
 
+		
 		//System.out.println(type + " " + result);
 		if(	m_bCorrectName &&
 			!result.equals("") &&
@@ -1931,9 +2044,14 @@ public class Component  extends HtmTags implements IComponentListener
 				@Override
 				public void widgetSelected(SelectionEvent e)
 				{
+					if(HtmTags.syncSWTExec)
+						System.out.println("Combo is selected");
 					String key= ((Combo)m_oComponent).getText();
 					Double value= m_asComboValueEntrys.get(key);
+					//MsgClientConnector client= MsgClientConnector.instance();
 					
+					if(HtmTags.syncSWTExec)
+						System.out.println("    with text " + key);
 					if(perm.equals(permission.readable))
 					{
 						((Combo)m_oComponent).setText(m_asComboNameEntrys.get(m_nAktValue));
@@ -1951,6 +2069,8 @@ public class Component  extends HtmTags implements IComponentListener
 				    	}
 					}
 					super.widgetSelected(e);
+					if(HtmTags.syncSWTExec)
+						System.out.println("Combo was selected");
 				}			
 			});
 			
@@ -2250,6 +2370,7 @@ public class Component  extends HtmTags implements IComponentListener
 	{
 		boolean bValue= false;
 		textFormat formatObj= null;
+		String foldersub= cont.getFolderName() + ":" + cont.getSubroutineName();
 
 		if(	!m_bCorrectName
 			||
@@ -2262,14 +2383,10 @@ public class Component  extends HtmTags implements IComponentListener
 			cont.hasValue()	)
 		{
 			if(this.type.equals("text"))
-			{
-				String folder= cont.getFolderName() + ":" + cont.getSubroutineName();
-				
-				if(folder.equals("time_routines:minutes"))
-					System.out.print("");
+			{	
 				for (textFormat obj : m_aResult)
 				{
-					if(obj.resultStr.equals(folder))
+					if(obj.resultStr.equals(foldersub))
 					{
 						formatObj= obj;
 						break;
@@ -2280,8 +2397,21 @@ public class Component  extends HtmTags implements IComponentListener
 				
 			}else
 			{
-				if(!(cont.getFolderName() + ":" + cont.getSubroutineName()).equals(this.result))
-					return;
+				if(!foldersub.equals(this.result))
+				{
+					if(	this.type.equals("slider") ||
+						this.type.equals("range")		)
+					{
+						if(	(	m_smin.equals("") ||
+								!foldersub.equals(m_smin)	) &&
+							(	m_smax.equals("") ||
+								!foldersub.equals(m_smax)	)	)
+						{
+							return;
+						}
+					}else
+						return;
+				}
 			}
 			if(cont.hasDoubleValue())
 			{
@@ -2343,11 +2473,32 @@ public class Component  extends HtmTags implements IComponentListener
 					}
 				}
 			
-			});
+			}, this.type.toString());
 			
 		}else if(this.type.equals("radio"))
 		{
-			final double nValue= Double.parseDouble(this.value);
+			Double nValue= null;
+			final double fnValue;
+			
+			try{
+				nValue= Double.parseDouble(this.value);
+				
+			}catch(NumberFormatException ex)
+			{
+				MsgTranslator msg= MsgTranslator.instance();
+				
+				msg.errorPool("FAULT_double_value", "radio button", this.value);
+				ex.printStackTrace();
+				
+			}
+			finally
+			{
+				if(nValue == null)
+				{
+					nValue= 1D;
+				}
+			}
+			fnValue= nValue;
 			
 			DisplayAdapter.asyncExec(new Runnable()
 			{				
@@ -2355,12 +2506,12 @@ public class Component  extends HtmTags implements IComponentListener
 				public void run() 
 				{
 					Button button= (Button)m_oComponent;
-					boolean bSet= m_nAktValue == nValue ? true : false;
+					boolean bSet= m_nAktValue == fnValue ? true : false;
 					
 					button.setSelection(bSet);
 				}
 			
-			});
+			}, this.type.toString());
 			
 		//}else if(this.type.equals("text"))
 		}else if(m_oComponent instanceof Text)
@@ -2376,24 +2527,64 @@ public class Component  extends HtmTags implements IComponentListener
 					text.setText(calculateInputValue());
 				}
 			
-			});
+			}, this.type.toString());
 			
 		}else if(this.type.equals("slider"))
 		{
+			final short nCurType;
+
+			if(	!m_smin.equals("") &&
+				foldersub.equals(m_smin)	)
+			{
+				nCurType= 1;
+				
+			}else if(	!m_smax.equals("") &&
+						foldersub.equals(m_smax)	)
+			{
+				nCurType= 2;
+				
+			}else
+				nCurType= 0;
 			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
 				{
 					Slider slider= (Slider)m_oComponent;
-					
-					slider.setSelection((int)m_nAktValue);
+
+					switch(nCurType)
+					{
+					case 0:
+						slider.setSelection((int)m_nAktValue);
+						break;
+						
+					case 1:
+						slider.setMinimum((int)m_nAktValue);
+						break;
+						
+					case 2:
+						slider.setMaximum((int)m_nAktValue);
+					}
 				}
 			
-			});
+			}, this.type.toString());
 			
 		}else if(this.type.equals("range"))
 		{
+			final short nCurType;
+
+			if(	!m_smin.equals("") &&
+				foldersub.equals(m_smin)	)
+			{
+				nCurType= 1;
+				
+			}else if(	!m_smax.equals("") &&
+						foldersub.equals(m_smax)	)
+			{
+				nCurType= 2;
+				
+			}else
+				nCurType= 0;
 			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
@@ -2401,10 +2592,23 @@ public class Component  extends HtmTags implements IComponentListener
 				{
 					Scale scale= (Scale)m_oComponent;
 					
-					scale.setSelection((int)m_nAktValue);
+					switch(nCurType)
+					{
+					case 0:
+						scale.setSelection((int)m_nAktValue);
+						break;
+						
+					case 1:
+						scale.setMinimum((int)m_nAktValue);
+						break;
+						
+					case 2:
+						scale.setMaximum((int)m_nAktValue);
+					}
 				}
 			
-			});
+			}, this.type.toString());
+			
 		}else if(m_oComponent instanceof Combo)
 		{
 			DisplayAdapter.asyncExec(new Runnable()
@@ -2431,7 +2635,8 @@ public class Component  extends HtmTags implements IComponentListener
 						combo.deselectAll();
 				}
 			
-			});
+			}, this.type.toString());
+			
 		}else if(m_oComponent instanceof List)
 		{
 			final int min= this.min;
@@ -2455,7 +2660,8 @@ public class Component  extends HtmTags implements IComponentListener
 						list.select(value);
 				}
 			
-			});
+			}, this.type.toString());
+			
 		}else if(m_oComponent instanceof Spinner)
 		{
 			DisplayAdapter.asyncExec(new Runnable()
@@ -2468,7 +2674,7 @@ public class Component  extends HtmTags implements IComponentListener
 					spinner.setSelection((int)m_nAktValue);
 				}
 			
-			});
+			}, this.type.toString());
 		}
 	}
 }

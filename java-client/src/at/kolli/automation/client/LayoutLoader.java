@@ -535,15 +535,13 @@ public class LayoutLoader extends Thread
 		WidgetChecker checker= WidgetChecker.instance();
 		Thread t= null;
 		
-		if(	HtmTags.debug &&
-			HtmTags.lockDebug	)
+		if(HtmTags.lockDebug)
 		{
 			t= Thread.currentThread();
 			System.out.println(t.getName()+" want to lock sideLock for setActiveSideVisible");
 		}
 		sideLock.lock();
-		if(	HtmTags.debug &&
-				HtmTags.lockDebug)
+		if(	HtmTags.lockDebug)
 		{
 			System.out.println(t.getName()+" lock sideLock for setActiveSideVisible");
 		}
@@ -551,8 +549,7 @@ public class LayoutLoader extends Thread
 		if(	m_oAktTreeNode != null &&
 			m_oAktTreeNode.isCorrectTitleSequence(m_sAktFolder)	)
 		{
-			if(	HtmTags.debug &&
-				HtmTags.lockDebug	)
+			if(HtmTags.lockDebug	)
 			{
 				System.out.println(t.getName()+" unlock sideLock for setActiveSideVisible");
 			}
@@ -620,8 +617,7 @@ public class LayoutLoader extends Thread
 					}, "LayoutLoader::setActiveSideVisible() addListeners()");					
 				}
 				checker.setTreeNode(m_oAktTreeNode);
-				if(	HtmTags.debug &&
-					HtmTags.lockDebug	)
+				if(	HtmTags.lockDebug	)
 				{
 					System.out.println(t.getName()+" unlock sideLock for setActiveSideVisible");
 				}
@@ -630,8 +626,7 @@ public class LayoutLoader extends Thread
 			}
 		}
 		m_oAktTreeNode= oldNode;
-		if(	HtmTags.debug &&
-			HtmTags.lockDebug	)
+		if(	HtmTags.lockDebug	)
 		{
 			System.out.println(t.getName()+" unlock sideLock for setActiveSideVisible");
 		}
@@ -792,6 +787,7 @@ public class LayoutLoader extends Thread
 		}
 		
 		mainComposite= new Composite(m_oTopLevelShell, SWT.NONE);
+		mainComposite.setBackground(HtmTags.systemColor);
 		if(HtmTags.notree)
 		{
 			FillLayout fill= new FillLayout();
@@ -802,8 +798,18 @@ public class LayoutLoader extends Thread
 			m_oPopupComposite= new Composite(m_oPopupIn, SWT.NONE);
 			m_oMainComposite= new Composite(m_shellForm, SWT.NONE);
 			
-			fill.marginHeight= 3;
-			fill.marginWidth= 3;
+			m_shellForm.setBackground(HtmTags.systemColor);
+			m_oPopupIn.setBackground(HtmTags.systemColor);
+			m_oPopupComposite.setBackground(HtmTags.systemColor);
+			m_oMainComposite.setBackground(HtmTags.systemColor);
+			fill.marginHeight= 0;
+			fill.marginWidth= 0;
+			popupLayout.marginHeight= HtmTags.popupPadding;
+			popupLayout.marginWidth= HtmTags.popupPadding;
+			popupLayout.marginBottom= 0;
+			popupLayout.marginTop= 0;
+			popupLayout.marginLeft= 0;
+			popupLayout.marginRight= 0;
 			mainComposite.setLayout(mainLayout);
 			m_oPopupIn.setLayout(fill);
 			m_oPopupComposite.setLayout(popupLayout);
@@ -817,8 +823,10 @@ public class LayoutLoader extends Thread
 			m_oMainComposite= new Composite(m_shellForm, SWT.NONE);
 			m_oTree= new Tree(treeComposite, SWT.SINGLE);
 
-			mainLayout.marginHeight= 10;
-			mainLayout.marginWidth= 10;
+			treeComposite.setBackground(HtmTags.systemColor);
+			m_oMainComposite.setBackground(HtmTags.systemColor);
+			mainLayout.marginHeight= 0;
+			mainLayout.marginWidth= 0;
 			mainComposite.setLayout(mainLayout);
 
 			check= login.get("sashwidth");
@@ -839,8 +847,8 @@ public class LayoutLoader extends Thread
 			treeComposite.setVisible(true);
 		}
 		
-		m_StackLayout.marginHeight= 10;
-		m_StackLayout.marginWidth= 10;
+		m_StackLayout.marginHeight= HtmTags.mainPadding;
+		m_StackLayout.marginWidth= HtmTags.mainPadding;
 		m_oMainComposite.setLayout(m_StackLayout);
 
 		m_oTopLevelShell.setLayout(new FillLayout());
@@ -939,6 +947,7 @@ public class LayoutLoader extends Thread
 						m_oPopupComposite.dispose();
 						m_oPopupComposite= new Composite(m_oPopupIn, SWT.NONE);
 						m_oPopupComposite.setLayout(new RowLayout());
+						m_oPopupComposite.setBackground(HtmTags.systemColor);
 					}
 					
 				});
@@ -1007,8 +1016,8 @@ public class LayoutLoader extends Thread
 							pop= m_oPopupComposite.getBounds();
 						}
 						size= m_shellForm.getBounds();
-						sashHeight[0]= pop.height + 10;
-						sashHeight[1]= size.height - pop.height - 10;
+						sashHeight[0]= pop.height + HtmTags.popupPadding * 2;
+						sashHeight[1]= size.height - pop.height - HtmTags.mainPadding;
 						m_shellForm.setWeights(sashHeight);
 						//m_shellForm.pack();
 					}
@@ -1041,8 +1050,8 @@ public class LayoutLoader extends Thread
 								pop= m_oPopupComposite.getBounds();
 							}
 							size= m_shellForm.getBounds();
-							sashHeight[0]= pop.height + 10;
-							sashHeight[1]= size.height - pop.height - 10;
+							sashHeight[0]= pop.height + HtmTags.popupPadding * 2;
+							sashHeight[1]= size.height - pop.height - HtmTags.mainPadding;
 							m_shellForm.setWeights(sashHeight);
 						}
 						
@@ -1162,7 +1171,7 @@ public class LayoutLoader extends Thread
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 			return oRetTrees;
 		if(folderSet.size() > 0)
-			DialogThread.m_nProgressSteps= nMax / folderSet.size();
+			DialogThread.m_nProgressSteps= nMax / folderSet.size() / 2;
 		else
 			DialogThread.m_nProgressSteps= nMax;
 		dialog.setSelection(0);

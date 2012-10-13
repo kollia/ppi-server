@@ -23,8 +23,10 @@ import java.util.HashMap;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
+import org.xml.sax.SAXException;
 
 import at.kolli.automation.client.MsgClientConnector;
+import at.kolli.automation.client.MsgTranslator;
 
 /**
  * class representing an row in an table for layout on display
@@ -66,7 +68,11 @@ public class ContentRows extends HtmTags
 	 * whether the user want to see an border by all composites<br />
 	 * in this case it will be create an  {@link Group} control
 	 */
-	private boolean m_bBorder= false;
+	private int m_nBorder= 0;
+	/**
+	 * color of table field or body
+	 */
+	public String bgcolor= "";
 	
 	/**
 	 * create instance of tr-tag
@@ -86,12 +92,13 @@ public class ContentRows extends HtmTags
 	 * overridden insert for inherit tags
 	 * 
 	 * @param newTag {@link HtmTags} which should be inherit of tr tag
+	 * @throws SAXExecption for wrong tag handling
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 06.12.2007
 	 * @since JDK 1.6
 	 */
-	public void insert(HtmTags newTag)
+	public void insert(HtmTags newTag) throws SAXException
 	{
 		HtmTags list;
 		
@@ -99,7 +106,7 @@ public class ContentRows extends HtmTags
 		{
 			ContentFields field= (ContentFields)newTag;
 			
-			field.setBorder(m_bBorder);
+			field.setBorder(m_nBorder);
 			field.cellpadding= this.cellpadding;
 			++m_nContent;
 			m_lContent.add(newTag);
@@ -145,89 +152,77 @@ public class ContentRows extends HtmTags
 		}
 		return columns;
 	}
-	
 	/**
-	 * calculate the highest height per column
+	 * fill row with lost columns
 	 * 
-	 * @return the highest height 
+	 * @param columns maximal columns
+	 * @param rownr actual row number
 	 * @author Alexander Kolli
-	 * @version 1.00.00, 24.09.2011
+	 * @version 0.02.00, 06.12.2007
 	 * @since JDK 1.6
 	 */
-	public int getHighestField()
+	public void fillMaxColumns(int rownr, ArrayList<Integer> rowspanColumns)
 	{
-		int highest= -1;
-		
+		boolean again= false;
+		Integer fromTop;
+		int column= 0, set;
+		int maxColumns= rowspanColumns.size();
+
 		for(HtmTags tag : m_lContent)
 		{
-			ContentFields field= (ContentFields)tag;
 			
-			if(field.height > highest)
-				highest= field.height;
+			do{
+				fromTop= rowspanColumns.get(column);
+				if(fromTop > 0)
+				{
+					--fromTop;
+					rowspanColumns.set(column, fromTop);
+					++column;
+					// go to next column,
+					// because this should be the right one
+					again= true;
+				}else
+					again= false;
+				
+			}while(again);
+			
+			set= fromTop + ((ContentFields)tag).rowspan -1;
+			for(int i= 0; i < ((ContentFields)tag).colspan; ++i)
+			{
+				fromTop= rowspanColumns.get(column);
+				if(fromTop > 0)
+				{
+					MsgTranslator.instance().errorPool("WRONG_colspan_number", layoutName, Integer.toString(rownr));
+					((ContentFields)tag).colspan= i;
+					break;
+				}
+				rowspanColumns.set(column, set);
+				++column;
+			}
 		}
-		return highest;
+		again= false;
+		// fill table with forgotten columns
+		while(column < maxColumns)
+		{
+			fromTop= rowspanColumns.get(column);
+			if(fromTop > 0)
+			{
+				--fromTop;
+				rowspanColumns.set(column, fromTop);
+			}else
+			{
+				ContentFields field= new ContentFields();
+				
+				field.layoutName= layoutName;
+				m_lContent.add(field);
+				again= true;
+			}
+			++column;
+		}
+		if(again)
+			MsgTranslator.instance().errorPool("WARNING_add_columns", layoutName, Integer.toString(rownr));
 	}
 	
-	/**
-	 * set the highest height in each column
-	 * 
-	 * @param height highest height
-	 * @author Alexander Kolli
-	 * @version 1.00.00, 24.09.2011
-	 * @since JDK 1.6
-	 */
-	public void setHighestField(int height)
-	{
-		for(HtmTags tag : m_lContent)			
-		{
-			ContentFields field= (ContentFields)tag;
-			
-			field.height= height;
-		}
-	}
-	
-	/**
-	 * calculate the maximal width for each column
-	 * 
-	 * @return maximal width for each column
-	 * @author Alexander Kolli
-	 * @version 1.00.00, 24.09.2011
-	 * @since JDK 1.6
-	 */
-	public ArrayList<Integer> getMaxWidth()
-	{
-		ArrayList<Integer> aRv= new ArrayList<Integer>();
-
-		for(HtmTags tag : m_lContent)			
-		{
-			ContentFields field= (ContentFields)tag;
-			
-			aRv.add(field.width);
-		}
-		return aRv;
-	}
-	
-	/**
-	 * set the maximal width in each column
-	 * 
-	 * @param width maximal width
-	 * @author Alexander Kolli
-	 * @version 1.00.00, 24.09.2011
-	 * @since JDK 1.6
-	 */
-	public void setMaxWidth(ArrayList<Integer> width)
-	{
-		int count= 0;
-
-		for(HtmTags tag : m_lContent)			
-		{
-			ContentFields field= (ContentFields)tag;
-			
-			field.width= width.get(count);
-			++count;
-		}
-	}
-
 	/**
 	 * check permission on server for this component
 	 * 
@@ -258,87 +253,26 @@ public class ContentRows extends HtmTags
 	 * on screen (in window)
 	 * 
 	 * @param composite parent {@link Composite}
+	 * @param font object of defined font and colors
 	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
-	 * @version 1.00.00, 06.12.2007
+	 * @version 0.02.00, 06.3.2012
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite, HashMap<String, HtmTags> classes) throws IOException
+	public void execute(Composite composite, FontObject font, HashMap<String, HtmTags> classes) throws IOException
 	{
-		execute(composite, classes, null);
-	}
-	
-	/**
-	 * method to generate the widget in the display window
-	 * 
-	 * @param composite parent {@link Composite}
-	 * @param classes all class definition for any tags
-	 * @param isAlsoNextColumn ArrayList to see how much rows the field in the row before needed
-	 * @author Alexander Kolli
-	 * @version 1.00.00, 07.12.2007
-	 * @since JDK 1.6
-	 */
-	public void execute(Composite composite, HashMap<String, HtmTags> classes, ArrayList<Integer> isAlsoNextColumn) throws IOException
-	{
-		int column= 0;
-		int maxColumns= isAlsoNextColumn.size();
-		
 		askPermission();
 		if(getPermission().compareTo(permission.readable) == -1)
 			return;
 		for(HtmTags tag : m_lContent)
 		{
-			boolean again= false;
-			Integer fromTop;
-			
-			do{
-				fromTop= isAlsoNextColumn.get(column);
-				if(fromTop > 0)
-				{
-					--fromTop;
-					isAlsoNextColumn.set(column, fromTop);
-					++column;
-					again= true;
-				}else
-					again= false;
-				
-			}while(again);
-			
-			isAlsoNextColumn.set(column, fromTop + ((ContentFields)tag).rowspan -1);
-			column+= ((ContentFields)tag).colspan;
-			tag.execute(composite, classes);
-		}
-		while(column < maxColumns)
-		{
-			ContentFields field= new ContentFields();
-			boolean again= false;
-			Integer fromTop;
-			Label label;
-			
-			do{
-				fromTop= isAlsoNextColumn.get(column);
-				if(fromTop > 0)
-				{
-					--fromTop;
-					isAlsoNextColumn.set(column, fromTop);
-					++column;
-					again= true;
-				}else
-					again= false;
-				
-			}while(again && column < maxColumns);
-			
-			if(column < maxColumns)
+			if(	!bgcolor.equals("") &&
+				((ContentFields)tag).bgcolor.equals("")	)
 			{
-				insert(field);
-				field.setBorder(m_bBorder);
-				label= new Label();
-				label.setText(" ");
-				field.insert(label);
-				field.execute(composite, classes);
-				++column;
+				((ContentFields)tag).bgcolor= bgcolor;
 			}
+			tag.execute(composite, font, classes);
 		}
 	}
 
@@ -352,8 +286,8 @@ public class ContentRows extends HtmTags
 	 * @version 1.00.00, 08.12.2007
 	 * @since JDK 1.6
 	 */
-	public void setBorder(boolean set)
+	public void setBorder(int set)
 	{
-		m_bBorder= set;
+		m_nBorder= set;
 	}
 }

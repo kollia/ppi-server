@@ -17,6 +17,7 @@
 package at.kolli.layout;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -35,7 +36,7 @@ public class Label extends HtmTags
 	/**
 	 * the text which should displayed
 	 */
-	private String m_sText= "";
+	public String m_sText= "";
 	/**
 	 * whether label should be an separator 
 	 */
@@ -107,29 +108,65 @@ public class Label extends HtmTags
 	 * on screen (in window)
 	 * 
 	 * @param composite parent {@link Composite}
+	 * @param font object of defined font and colors
 	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 06.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite, HashMap<String, HtmTags> classes)
+	public void execute(Composite composite, FontObject font, HashMap<String, HtmTags> classes)
 	{
 		GridData data= new GridData();
 		org.eclipse.swt.widgets.Label label= new org.eclipse.swt.widgets.Label(composite, separator);
-		
-		label.setText(m_sText);		
+
+		//System.out.println("wirte: " + m_sText);
+		font.setDevice(label);
 		if(separator != SWT.NONE)
 		{
 			if(width == -1)
 			{
+				GridData fieldData;
+				
+				fieldData= (GridData)composite.getLayoutData();
+				fieldData.grabExcessHorizontalSpace= true;
+				fieldData.horizontalAlignment= GridData.FILL;				
 				data.grabExcessHorizontalSpace= true;
 				data.horizontalAlignment= GridData.FILL;
+				//data.grabExcessVerticalSpace= true;
+				//data.verticalAlignment= GridData.FILL;
 			}else
 				data.widthHint= width;				
 		}else
-			data.horizontalAlignment= GridData.BEGINNING;
+		{
+			label.setText(m_sText);
+			data.grabExcessHorizontalSpace= true;
+			data.horizontalAlignment= align;//GridData.BEGINNING;
+			//data.verticalAlignment= valign;
+			data.verticalAlignment= GridData.CENTER;
+			data.grabExcessVerticalSpace= true;
+		}
 		label.setLayoutData(data);
+	}
+	/**
+	 * describe whether Htm object has inside text fields
+	 * 
+	 * @param before text field before in the same row
+	 * @return count of text fields
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 09.03.2012
+	 * @since JDK 1.6
+	 */
+	public LinkedList<Integer> textFields(Integer before)
+	{	
+		LinkedList<Integer> lRv= new LinkedList<Integer>();
+		
+		lRv.addLast(before + 1);
+		return lRv;
+	}
+	public String toString()
+	{
+		return m_sText;
 	}
 
 }

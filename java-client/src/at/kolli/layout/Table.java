@@ -21,12 +21,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
+import org.omg.CORBA.BooleanHolder;
+import org.xml.sax.SAXException;
 
 import at.kolli.automation.client.MsgClientConnector;
+import at.kolli.layout.FontObject.colors;
 
 //import at.kolli.layout.Component.permission;
 
@@ -71,14 +75,22 @@ public class Table extends HtmTags
 	 */
 	public String permgroup= "";
 	/**
+	 * color of table
+	 */
+	public String bgcolor= "";
+	/**
 	 * actual field (column) in the row
 	 */
 	protected ContentFields m_oAktField= null;
 	/**
+	 * whether filling inside an row-tag (tr)
+	 */
+	protected ContentRows m_oAktRow= null;
+	/**
 	 * whether the user want to see an border by all composites<br />
 	 * in this case it will be created groups
 	 */
-	private boolean m_bBorder= false;
+	private int m_nBorder= 0;	
 	
 	/**
 	 * constructor of table-tag
@@ -109,50 +121,85 @@ public class Table extends HtmTags
 	 * insert method to write new content into table
 	 * 
 	 * @param newTag new opject of tag
+	 * @throws SAXExecption for wrong tag handling
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	protected void insert(HtmTags newTag)
+	protected void insert(HtmTags newTag) throws SAXException
 	{
 		HtmTags list;
 		ContentRows row;
 		
-		if(!(newTag instanceof ContentFields))
+		if(	!(newTag instanceof ContentFields) ||
+			newTag instanceof FieldSet				)
 		{
 			if(m_oAktField == null)
 			{
+				String[] split;
+				String firstTag, secondTag, curTag;
+				
+				if(m_oAktRow != null)
+				{
+					firstTag= "<tr>";
+					secondTag= "<td>";
+					
+				}else
+				{
+					firstTag= "<table>";
+					secondTag= "<tr>";
+				}
+				System.out.println();
 				System.out.println("no correct table handling.");
 				System.out.println("tag table must have follow content:");
 				System.out.println("                 <table>");
 				System.out.println("                    <tr>");
 				System.out.println("                       <td>");
-				System.out.println("                         <component> , other tables or text");
+				System.out.println("                         other tags or text");
 				System.out.println("                       </td>");
 				System.out.println("                    </tr>");
 				System.out.println("                 </table>");
 				System.out.println();
-				System.exit(1);
+				if(newTag instanceof Label)
+				{
+					throw new SAXException( "no text characters be allowed between " + firstTag
+							+ "- and " + secondTag +"-tag.");
+					
+				}else
+				{
+					if(newTag instanceof Style)
+						curTag= "font";
+					else
+					{
+						curTag= newTag.getClass().getName();
+						split= curTag.split("\\.");
+						curTag= split[split.length - 1].toLowerCase();
+					}
+					throw new SAXException( "no <" + curTag + ">-tag be allowed between " + firstTag
+												+ "- and " + secondTag +"-tag.");
+				}
 			}
 			newTag.m_oParent= this;
 			m_oAktField.insert(newTag);
 			return;
 		}
+		newTag.m_oParent= this;
 		list= m_lContent.get(m_nContent);		
 		list.insert(newTag);
 		if(newTag instanceof ContentFields)
 		{
 			m_oAktField= (ContentFields)newTag;
-			m_oAktField.setBorder(m_bBorder);
+			m_oAktField.setBorder(m_nBorder);
 			m_oAktField.align= align;
 			m_oAktField.valign= valign;
 		}else
 		{
 			row= (ContentRows)newTag;
-			row.setBorder(m_bBorder);
+			row.setBorder(m_nBorder);
 			row.align= align;
 			row.valign= valign;
+			m_oAktRow= row;
 		}
 	}
 
@@ -163,14 +210,26 @@ public class Table extends HtmTags
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public void nextLine()
+	public ContentRows nextLine()
 	{
-		ContentRows cr= new ContentRows();
+		m_oAktRow= new ContentRows();
 		
 		++m_nContent;
-		cr.setBorder(m_bBorder);
-		cr.cellpadding= this.cellpadding;
-		m_lContent.add(cr);
+		m_oAktRow.setBorder(m_nBorder);
+		m_oAktRow.cellpadding= this.cellpadding;
+		m_lContent.add(m_oAktRow);
+		m_oAktField= null;
+		return m_oAktRow;
+	}
+	/**
+	 * XMLSaxParser can so signal end of tr- or td-tag 
+	 */
+	public void tagEnd(String curTag)
+	{
+		if(curTag.equals("tr"))
+			m_oAktRow= null;
+		else if(curTag.equals("td"))
+			m_oAktField= null;
 	}
 
 	/**
@@ -201,19 +260,20 @@ public class Table extends HtmTags
 	 * execute method to create the composite for display
 	 * 
 	 * @param composite parent composite
+	 * @param font object of defined font and colors
 	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite, HashMap<String, HtmTags> classes) throws IOException
+	public void execute(Composite composite, FontObject font, HashMap<String, HtmTags> classes) throws IOException
 	{
-		int columns= 1;
-		int heighest= -1;
-		ArrayList<Integer> maxwidth= new ArrayList<Integer>();
+		int rownr= 1;
 		GridLayout layout= new GridLayout();
-		ArrayList<Integer> isAlsoNext= new ArrayList<Integer>();
+		ArrayList<Integer> rowspanColumns= new ArrayList<Integer>();
+		FontObject newFont, structureFont;
+		BooleanHolder bHolder= new BooleanHolder();
 		
 		askPermission();
 		if(getPermission().equals(permission.None))
@@ -223,65 +283,83 @@ public class Table extends HtmTags
 		{
 			ContentRows row= (ContentRows)tag;
 			
-			row.getMaxColumns(isAlsoNext);			
-			for(int ch= 0; ch < isAlsoNext.size(); ++ch)
+			row.getMaxColumns(rowspanColumns);			
+			for(int ch= 0; ch < rowspanColumns.size(); ++ch)
 			{
-				int akt= isAlsoNext.get(ch);
+				int akt= rowspanColumns.get(ch);
 				
 				if(akt > 0)
-					isAlsoNext.set(ch, akt - 1);
+					rowspanColumns.set(ch, akt - 1);
 			}
 		}
-		for(int i= 0; i < isAlsoNext.size(); ++i)
-			isAlsoNext.set(i, 0);
+		for(int i= 0; i < rowspanColumns.size(); ++i)
+			rowspanColumns.set(i, 0);
 		// calculate the highest height per column
+		// and fill also the the lost columns per row
 		for(HtmTags tag : m_lContent)
 		{
 			ContentRows row= (ContentRows)tag;
-			int hig= row.getHighestField();
-			if(hig > -1)
-				row.setHighestField(hig);
+			row.fillMaxColumns(rownr, rowspanColumns);
+			++rownr;
 		}
-		// calculate the maximun width for each column
-		for(HtmTags tag : m_lContent)
+		
+		if(m_nBorder == 1)
 		{
-			ArrayList<Integer> mwidth;
+			m_oComposite= new Group(composite, SWT.SHADOW_IN);
 			
-			ContentRows row= (ContentRows)tag;
-			mwidth= row.getMaxWidth();
-			for(int i= 0; i < mwidth.size(); ++i)
-			{			
-				if(i >= maxwidth.size())
-					maxwidth.add(mwidth.get(i));
-				else if(maxwidth.get(i) < mwidth.get(i))
-					maxwidth.set(i, mwidth.get(i));
+		}else
+		{
+			m_oComposite= new Composite(composite, SWT.NONE);
+			if(m_nBorder > 1)
+			{
+				font.setDevice(m_oComposite, colors.TEXT_INACTIVE);
+				layout.numColumns= 1;
+				layout.marginWidth= m_nBorder;
+				layout.marginHeight= m_nBorder;
+				layout.marginLeft= 0;
+				layout.marginRight= 0;
+				layout.marginTop= 0;
+				layout.marginBottom= 0;
+				layout.horizontalSpacing= 0;
+				layout.verticalSpacing= 0;
+				m_oComposite.setLayout(layout);
+				m_oComposite= new Composite(m_oComposite, SWT.NONE);
+				layout= new GridLayout();				
 			}
 		}
-		// set the maximum width in each column
-		// this routine was deleted in version 0.2.05 before 
-//		for(HtmTags tag : m_lContent)
-//		{
-//			ContentRows row= (ContentRows)tag;
-//			row.setMaxWidth(maxwidth);
-//		}
-		
-		layout.numColumns= isAlsoNext.size();
-		layout.marginWidth= cellspacing;
-		layout.marginHeight= cellspacing;
+		bHolder.value= true;
+		newFont= font.defineNewColorObj(m_oComposite, bgcolor, colors.BACKGROUND, bHolder, layoutName);
+		if(!HtmTags.tablestructure.equals(""))
+		{
+			BooleanHolder bStruct= new BooleanHolder();
+			
+			bStruct.value= true;
+			structureFont= font.defineNewColorObj(m_oComposite, HtmTags.tablestructure, colors.BACKGROUND, bStruct, layoutName);
+			structureFont.setDevice(m_oComposite);
+			if(bStruct.value)
+				structureFont.dispose();
+			
+		}else
+			newFont.setDevice(m_oComposite);
+
+		layout.numColumns= rowspanColumns.size();
+		layout.marginLeft= cellspacing;
+		layout.marginRight= cellspacing;
+		layout.marginTop= cellspacing;
+		layout.marginBottom= cellspacing;
+		layout.marginWidth= 0;
+		layout.marginHeight= 0;
 		layout.horizontalSpacing= cellspacing;
 		layout.verticalSpacing= cellspacing;
-		
-		if(m_bBorder)
-			m_oComposite= new Group(composite, SWT.SHADOW_NONE);
-		else
-			m_oComposite= new Composite(composite, SWT.NONE);
 		m_oComposite.setLayout(layout);
 		for(HtmTags tag : m_lContent)
 		{
 			ContentRows row= (ContentRows)tag;
 			
-			row.execute(m_oComposite, classes, isAlsoNext);
+			row.execute(m_oComposite, newFont, classes);
 		}
+		if(bHolder.value)
+			newFont.dispose();
 	}
 	
 	/**
@@ -296,24 +374,6 @@ public class Table extends HtmTags
 	 */
 	public void setBorder(int set)
 	{
-		if(set < 1)
-			m_bBorder= false;
-		else
-			m_bBorder= true;
-	}
-	
-	/**
-	 * whether a border should be set or not
-	 * 
-	 * @param set boolean value whether an border should be display
-	 * @serial
-	 * @see
-	 * @author Alexander Kolli
-	 * @version 1.00.00, 04.12.2007
-	 * @since JDK 1.6
-	 */
-	public void setBorder(boolean set)
-	{
-		m_bBorder= set;
+		m_nBorder= set;
 	}
 }

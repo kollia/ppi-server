@@ -19,7 +19,10 @@ package at.kolli.layout;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+
+import javax.swing.text.AbstractDocument.BranchElement;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
@@ -29,9 +32,11 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
+import org.omg.CORBA.BooleanHolder;
 
 import at.kolli.automation.client.MsgClientConnector;
 import at.kolli.automation.client.NodeContainer;
+import at.kolli.layout.FontObject.colors;
 
 /**
  * class representing an field (column) in an table for layout on display
@@ -68,24 +73,22 @@ public class ContentFields extends HtmTags implements IComponentListener
 	 */
 	public int cellpadding;
 	/**
-	 * representing the horizontal align.<br />
-	 * constant value from GridData BEGINNING, CENTER or ENDING
-	 */
-	public int align;
-	/**
-	 * representing the vertical align.<br />
-	 * constant value from GridData BEGINNING, CENTER or ENDING
-	 */
-	public int valign;
-	/**
 	 * group name for permission
 	 */
 	public String permgroup= "";
 	/**
+	 * color of table field or body
+	 */
+	public String bgcolor= "";
+	/**
 	 * whether the user want to see an border by all composites<br />
 	 * in this case it will be create an  {@link Group}
 	 */
-	private boolean m_bBorder= false;
+	private int m_nBorder= 0;
+	/**
+	 * content name of fieldset
+	 */
+	public String fieldset= "";
 	/**
 	 * if this variable filled,
 	 * this field or body is an internet browser
@@ -138,8 +141,13 @@ public class ContentFields extends HtmTags implements IComponentListener
 	 */
 	public void insert(HtmTags newTag)
 	{
-		if(this instanceof Body)
+		if(	this instanceof Body ||
+			this instanceof FieldSet	)
+		{
 			newTag.m_oParent= this;
+		}
+		//else
+		//	System.out.print("");
 		m_lContent.add(newTag);
 	}
 
@@ -153,9 +161,9 @@ public class ContentFields extends HtmTags implements IComponentListener
 	 * @version 1.00.00, 08.12.2007
 	 * @since JDK 1.6
 	 */
-	public void setBorder(boolean set)
+	public void setBorder(int set)
 	{
-		m_bBorder= set;
+		m_nBorder= set;
 	}
 	/**
 	 * check permission on server for this component
@@ -182,94 +190,193 @@ public class ContentFields extends HtmTags implements IComponentListener
     	}
 	}
 	/**
-	 * method to generate the widget in the display window
+	 * method to generate widgets in the display window
 	 * 
 	 * @param composite parent {@link Composite}
+	 * @param font object of defined font and colors
 	 * @param classes all class definition for any tags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 08.12.2007
 	 * @since JDK 1.6
 	 */
-	public void execute(Composite composite, HashMap<String, HtmTags> classes) throws IOException
+	public void execute(Composite composite, FontObject font, HashMap<String, HtmTags> classes) throws IOException
 	{
+		/**
+		 * whether last tag was an break tag
+		 */
+		BooleanHolder bBrLast= new BooleanHolder();
+		/**
+		 * whether font for mainCp was set for legend
+		 */
+		boolean bSetFontMain= false;
 		int count;
-		ArrayList<Integer > lenList= new ArrayList<Integer>();
+		LinkedList<Integer > lenList= new LinkedList<Integer>();
 		Composite mainCp;
-		Composite fieldCp;
 		Composite rowCp;
+		Composite fieldCp;
 		GridLayout mainLayout= new GridLayout();
-		GridLayout fieldLayout= new GridLayout();
 		GridLayout rowLayout= new GridLayout();
+		GridLayout fieldLayout= new GridLayout();
 		GridData mainData= new GridData();
-		GridData fieldData= new GridData();
 		GridData rowData= new GridData();
+		GridData fieldData= new GridData();
+		FontObject newFont= font;
+		FontObject legendFont;
+		BooleanHolder bHolder= new BooleanHolder();
 
+		if(align == -1)
+			align= GridData.BEGINNING;
+		if(valign == -1)
+			valign= GridData.CENTER;
 		askPermission();
 		if(getPermission().compareTo(permission.readable) == -1)
 			return;
-		if(	m_bBorder && 
-			(	m_lContent.size() > 0 ||
-				href != ""				)	)
+		
+		if(	this instanceof FieldSet ||
+			(	m_nBorder == 1 && 
+				(	m_lContent.size() > 0 ||
+					href != ""				)	)	)
 		{
 			mainCp= new Group(composite, SWT.SHADOW_ETCHED_IN);
 			
 		}else
-			mainCp= new Composite(composite, SWT.NONE);
-		
-		if(	this instanceof Body &&
-			href != ""				)
 		{
-			m_oBrowser= new Browser(mainCp, SWT.NONE);			
-			composite.setLayout(new FillLayout());
-			mainCp.setLayout(new FillLayout());
-			this.composite= mainCp;
-			return;
+			mainCp= new Composite(composite, SWT.NONE);	
+		}
+		
+		if(	this instanceof FieldSet &&
+			m_lContent.size() > 0 &&
+			m_lContent.get(0) instanceof Legend	)
+		{
+			Legend legend= (Legend)m_lContent.get(0);
+		
+			bHolder.value= true;
+			legendFont= legend.getFontObject(mainCp, font, bHolder);
+			((Group)mainCp).setText(legend.getText());
+			legendFont.setDevice(mainCp);
+			if(bHolder.value)
+				legendFont.dispose();
+			bSetFontMain= true;
+		}
+
+		bHolder.value= true;
+		newFont= font.defineNewColorObj(mainCp, bgcolor, colors.BACKGROUND, bHolder, layoutName);
+		
+		if(this instanceof Body)
+		{	
+			if(!href.equals(""))
+			{		
+				composite.setLayout(new FillLayout());
+				m_oBrowser= new Browser(mainCp, SWT.NONE);
+				mainCp.setLayout(new FillLayout());
+				this.composite= mainCp;
+				return;
+			}
+			newFont.setDevice(composite);
 		}
 		if(	m_lContent.size() == 0 &&
-			href == "")
+			href.equals("")				)
 		{// no content exist
-			return;
+			Label label= new Label();
+			
+			label.setText(" ");
+			m_lContent.add(label);
 		}
-		fieldCp= new Composite(mainCp, SWT.NONE);
-		//fieldCp= new Group(mainCp, SWT.SHADOW_ETCHED_IN);
-		rowCp= new Composite(fieldCp, SWT.NONE);
-		//rowCp= new Group(fieldCp, SWT.SHADOW_ETCHED_IN);	
+		rowCp= new Composite(mainCp, SWT.NONE);
+		fieldCp= new Composite(rowCp, SWT.NONE);
 		
+		if(!bSetFontMain)
+			newFont.setDevice(mainCp);
+		newFont.setDevice(rowCp);
+		newFont.setDevice(fieldCp);
 		
-		mainLayout.numColumns= 1;
-		mainLayout.marginWidth= cellpadding;
-		mainLayout.marginHeight= cellpadding;
 
-		fieldLayout.marginHeight= 0;
-		fieldLayout.marginWidth= 0;
+		if(this instanceof Body)
+			cellpadding= 0;
+		mainLayout.numColumns= 1;
+		mainLayout.marginWidth= 0;
+		mainLayout.marginHeight= 0;
+		mainLayout.marginLeft= cellpadding;
+		mainLayout.marginRight= cellpadding;
+		mainLayout.marginTop= cellpadding;
+		mainLayout.marginBottom= cellpadding;
+		mainLayout.horizontalSpacing= cellpadding;
+		mainLayout.verticalSpacing= cellpadding;
 		
 		rowLayout.marginHeight= 0;
 		rowLayout.marginWidth= 0;
+		rowLayout.marginLeft= 0;
+		rowLayout.marginRight= 0;
 		rowLayout.marginTop= 0;
 		rowLayout.marginBottom= 0;
+		rowLayout.horizontalSpacing= 0;
+		rowLayout.verticalSpacing= 0;
+		
+		fieldLayout.marginHeight= 0;
+		fieldLayout.marginWidth= 0;
+		fieldLayout.marginLeft= 0;
+		fieldLayout.marginRight= 0;
+		fieldLayout.marginTop= 0;
+		fieldLayout.marginBottom= 0;
+		fieldLayout.horizontalSpacing= 0;
+		fieldLayout.verticalSpacing= 0;
 		count= 0;
 		if(href.equals(""))
 		{
-			for(HtmTags ntag : m_lContent)
+			// count how much entries of text
+			// the field has
+			int o= 0;
+			HtmTags ntag;
+			LinkedList<Integer> lRv;
+			
+			bBrLast.value= false;
+			while(o < m_lContent.size())
 			{
+				ntag= m_lContent.get(o);
 				if(ntag instanceof Break)
 				{
+					if(bBrLast.value)
+					{
+						Label lable= new Label();
+						
+						lable.setText(" ");
+						m_lContent.add(o, lable);
+						++o;
+						++count;
+					}
 					lenList.add(count);
 					count= 0;
+					bBrLast.value= true;
+					
+				}else if(ntag instanceof Style)
+				{
+					lRv= ntag.textFields(count, bBrLast);
+					for(int i= 0; i < lRv.size()-1; ++i)
+					{
+						lenList.addLast(lRv.get(i));
+						//if(lRv.get(i) > maxVal)
+						//	maxVal= lRv.get(i);
+					}
+					count= lRv.get(lRv.size()-1);
+						
 				}else
+				{
+					bBrLast.value= false;
 					++count;
+				}
+				++o;
 			}
 		}else
 			++count;
 		lenList.add(count);
-		rowLayout.numColumns= lenList.get(0);
-		count= 1; //<- for next list index
+		fieldLayout.numColumns= lenList.getFirst();
+		lenList.removeFirst(); //<- for next list index
 		
 		
 		mainCp.setLayout(mainLayout);
-		fieldCp.setLayout(fieldLayout);
 		rowCp.setLayout(rowLayout);
+		fieldCp.setLayout(fieldLayout);
 
 		mainData.horizontalSpan= colspan;
 		mainData.horizontalAlignment= GridData.FILL;
@@ -283,27 +390,30 @@ public class ContentFields extends HtmTags implements IComponentListener
 				mainData.heightHint= this.height;
 		}
 
+		rowData.horizontalAlignment= GridData.FILL;
+		rowData.grabExcessHorizontalSpace= true;
+		rowData.verticalAlignment= valign;
+		rowData.grabExcessVerticalSpace= true;
+
 		fieldData.horizontalAlignment= align;
 		fieldData.grabExcessHorizontalSpace= true;
-		fieldData.verticalAlignment= valign;
-		fieldData.grabExcessVerticalSpace= true;
-
-		rowData.horizontalAlignment= align;
-		rowData.grabExcessHorizontalSpace= true;
+		//fieldData.verticalAlignment= GridData.END;
+		//fieldData.grabExcessVerticalSpace= true;
 		
 		
 		mainCp.setLayoutData(mainData);
-		fieldCp.setLayoutData(fieldData);
 		rowCp.setLayoutData(rowData);
+		fieldCp.setLayoutData(fieldData);
 		
 		if(!href.equals(""))
 		{
 			final int minus= 10;
-			Composite gridCompo= new Group(rowCp, SWT.SHADOW_ETCHED_IN);//new Composite(rowCp, SWT.NONE);
+			Composite gridCompo= new Group(fieldCp, SWT.SHADOW_ETCHED_IN);//new Composite(fieldCp, SWT.NONE);
 			GridLayout gridLayout= new GridLayout();
 			//Composite browseCompo= new Composite(gridCompo, SWT.NONE); 
 			GridData data= null;
 
+			newFont.setDevice(gridCompo);
 			m_oBrowser= new Browser(gridCompo, SWT.NONE);
 			if(	width != -1 &&
 				width > minus	)
@@ -324,45 +434,51 @@ public class ContentFields extends HtmTags implements IComponentListener
 			gridLayout.marginHeight= 0;
 			gridCompo.setLayout(new FillLayout());
 			this.composite= gridCompo;
-			//tag.execute(gridCompo);
-			
-			//composite.setLayout(new FillLayout());
-			//browser.setLayout(new FillLayout());
+			if(bHolder.value)
+				newFont.dispose();
 			return;
 		}else
-		{
+		{	
 			for(HtmTags tag : m_lContent)
 			{
 				if(tag instanceof Break)
 				{
-					rowCp= new Composite(fieldCp, SWT.NONE);
-					//rowCp= new Group(fieldCp, SWT.SHADOW_NONE);
-					rowLayout= new GridLayout();
-					rowData= new GridData();
+					fieldCp= new Composite(rowCp, SWT.NONE);
+					fieldLayout= new GridLayout();
+					fieldData= new GridData();
 					
-					rowData.horizontalAlignment= align;
-					rowData.grabExcessHorizontalSpace= true;
-					rowLayout.marginTop= 0;
-					rowLayout.marginBottom= 0;
-					rowLayout.marginHeight= 0;
-					rowLayout.marginWidth= 0;
-					rowLayout.numColumns= lenList.get(count);
-					++count; //<- for next list index
-					rowCp.setLayout(rowLayout);
-					rowCp.setLayoutData(rowData);
+					newFont.setDevice(fieldCp);
+					//fieldFont.setDevice(fieldCp);
+					fieldData.horizontalAlignment= align;
+					fieldData.grabExcessHorizontalSpace= true;
+					fieldLayout.marginHeight= 0;
+					fieldLayout.marginWidth= 0;
+					fieldLayout.marginLeft= 1;
+					fieldLayout.marginRight= 1;
+					fieldLayout.marginTop= 1;
+					fieldLayout.marginBottom= 1;
+					fieldLayout.horizontalSpacing= 0;
+					fieldLayout.verticalSpacing= 0;
+					fieldLayout.numColumns= lenList.getFirst();
+					lenList.removeFirst(); //<- for next list index
+					fieldCp.setLayout(fieldLayout);
+					fieldCp.setLayoutData(fieldData);
 				}else
 				{
-					Composite gridCompo= new Composite(rowCp, SWT.NONE);
-					GridLayout gridLayout= new GridLayout();
-					
-					gridLayout.marginWidth= 1;
-					gridLayout.marginHeight= 0;
-					gridCompo.setLayout(gridLayout);
-					tag.execute(gridCompo, classes);
+					if(tag instanceof Style)
+					{
+						((Style)tag).align= align;
+						((Style)tag).valign= valign;
+						fieldCp= ((Style)tag).execute(rowCp, fieldCp, newFont, classes, lenList);
+					}else
+						tag.execute(fieldCp, newFont, classes);
 				}
 			}
 		}
+		if(bHolder.value)
+			newFont.dispose();			
 	}
+
 
 	/**
 	 * method listen on server whether value of component is changed

@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Properties;
 
+import javax.swing.JButton;
+
 import org.eclipse.jface.dialogs.DialogSettings;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
@@ -34,15 +36,19 @@ import org.eclipse.swt.SWTException;
 import org.eclipse.swt.custom.PopupList;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
+import org.omg.CORBA.BooleanHolder;
 
 import org.apache.regexp.RE;
 //import com.sun.org.apache.regexp.internal.RE;
 
 import at.kolli.dialogs.DialogThread;
+import at.kolli.layout.DetectSystemSettingChange;
+import at.kolli.layout.FontObject;
 import at.kolli.layout.HtmTags;
 import at.kolli.layout.WidgetChecker;
 
@@ -83,74 +89,109 @@ public class PortServerClient
 		boolean shellpwd= false;
 		LinkedList<String> param= new LinkedList<String>();
 		String host;
-		int port= 20004;
-		String lang;
+		String inifile= "client.ini";
+		int port= 20004, nPadding, nPopup;
+		String lang, maincolor, mainpadding, popuppadding;
 		
 		HtmTags.debug= false;
 		TreeNodes.m_sLayoutStyle= "desktop";
 		for(String arg : args)
 		{
-			if(arg.substring(0, 1).equals("-"))
+			if(arg.substring(0, 2).equals("--"))
 			{
 				if(arg.equals("--false"))
 				{
 					HtmTags.showFalse= true;
+					
+				}else if(arg.equals("--sync"))
+				{
+					HtmTags.syncSWTExec= true;
+					
+				}else if(arg.equals("--lock"))
+				{
+					HtmTags.lockDebug= true;
+					
+				}else if(arg.equals("--dispatch"))
+				{
+					HtmTags.dispatchShell= true;
+					
+				}else if(arg.equals("--tablestructure"))
+				{
+					param.addLast("tablestructure");
+					
+				}else if(arg.equals("--colors"))
+				{
+					DetectSystemSettingChange.display();
+					System.exit(0);
+					
 				}else
 				{
-					for(int c= 1; c < arg.length(); ++c)
+					System.out.println("undefined option '" + arg + "'");
+					error= true;
+				}				
+			}else if(arg.substring(0, 1).equals("-"))
+			{
+				for(int c= 1; c < arg.length(); ++c)
+				{
+					String s= arg.substring(c, c+1);
+					
+					if(s.equals("?"))
 					{
-						String s= arg.substring(c, c+1);
+						System.out.println();
+						System.out.println("syntax java -jar ppi-client [options]");
+						System.out.println();
+						System.out.println("       options:");
+						System.out.println("           -?             -  show this help");
+						System.out.println("           -f             -  full screen for main window");
+						System.out.println("           -m             -  show no normaly menu in menubar (refresh/change user/exit)");
+						System.out.println("           -t             -  displays no tree for sides, but in the menu-bar");
+						System.out.println("           -w             -  main window without title-bar");
+						System.out.println("           -d             -  show debug information and content of layout files");
+						System.out.println("           -u <user>      -  starting binding to server with the given user name");
+						System.out.println("           -p             -  password will be asking after command on shell");
+						System.out.println("           -s <style>     -  fetch all layout files from server with this extension");
+						System.out.println("                             default is \"desktop\"");
+						System.out.println("           -i <ini-file>  -  define new ini-file (default: 'client.ini')");
+						System.out.println("           --false        -  show also pages from server which are defined");
+						System.out.println("                             with meta tag display as false");
+						System.out.println("           --tablestructure <color>");
+						System.out.println("                          -  show table structure in defined color.");
+						System.out.println("                             Some operating systems, like KDE4, do not show shadows when");
+						System.out.println("                             an table defined with border=\"1\". For this case,");
+						System.out.println("                             this should be an workaround for developing of layout");
+						System.out.println();
+						System.out.println("       example:");
+						System.out.println("          java -jar ppi-client -fmtwups <user> touchscreen");
+						System.out.println("                     displays the main window as full screen with no tree and title");
+						System.out.println("                     Fetch all layout files with extension touchscreen and start the client");
+						System.out.println("                     with an user and the password will be asked on command line.");
+						System.out.println("                     and also in the server client folder the touchscreen layout files are given.");
+						System.out.println();
+						System.out.println("            also the same command would be -fmtw -u <user> -p -s touchscreen");
+						System.exit(0);
 						
-						if(s.equals("?"))
-						{
-							System.out.println();
-							System.out.println("syntax java -jar ppi-client [options]");
-							System.out.println();
-							System.out.println("       options:");
-							System.out.println("           -?             -  show this help");
-							System.out.println("           -f             -  full screen for main window");
-							System.out.println("           -m             -  show no normaly menu in menubar (refresh/change user/exit)");
-							System.out.println("           -t             -  displays no tree for sides, but in the menu-bar");
-							System.out.println("           -w             -  main window without title-bar");
-							System.out.println("           -d             -  show debug information and content of layout files");
-							System.out.println("           -u <user>      -  starting binding to server with the given user name");
-							System.out.println("           -p             -  password will be asking after command on shell");
-							System.out.println("           -s <style>     -  fetch all layout files from server with this extension");
-							System.out.println("                             default is desktop");
-							System.out.println("           --false        -  show also pages from server which are defined");
-							System.out.println("                             with meta tag display as false");
-							System.out.println();
-							System.out.println("       example:");
-							System.out.println("          java -jar ppi-client -fmtwups <user> touchscreen");
-							System.out.println("                     displays the main window as full screen with no tree and title");
-							System.out.println("                     Fetch all layout files with extension touchscreen and start the client");
-							System.out.println("                     with an user and the password will be asked on command line.");
-							System.out.println("                     and also in the server client folder the touchscreen layout files are given.");
-							System.out.println();
-							System.out.println("            also the same command would be -fmtw -u <user> -p -s touchscreen");
-							System.exit(0);
-							
-						}else if(s.equals("d"))
-							HtmTags.debug= true;
-						else if(s.equals("f"))
-							HtmTags.fullscreen= true;
-						else if(s.equals("m"))
-							HtmTags.nomenu= true;
-						else if(s.equals("t"))
-							HtmTags.notree= true;
-						else if(s.equals("w"))
-							HtmTags.notitle= true;
-						else if(s.equals("u"))
-							param.addLast("u");
-						else if(s.equals("p"))
-							shellpwd= true;
-						else if(s.equals("s"))
-							param.addLast("s");
-						else 
-						{
-							System.out.println("undefined param char '" + s + "`");
-							error= true;
-						}
+					}else if(s.equals("d"))
+						HtmTags.debug= true;
+					else if(s.equals("f"))
+						HtmTags.fullscreen= true;
+					else if(s.equals("m"))
+						HtmTags.nomenu= true;
+					else if(s.equals("t"))
+						HtmTags.notree= true;
+					else if(s.equals("w"))
+						HtmTags.notitle= true;
+					else if(s.equals("u"))
+						param.addLast("u");
+					else if(s.equals("p"))
+						shellpwd= true;
+					else if(s.equals("s"))
+						param.addLast("s");
+					else if(s.equals("i"))
+						param.addLast("i");
+					else 
+					{
+						System.out.println("undefined option char '" + s + "`");
+						error= true;
 					}
 				}
 			}else if(param.size() != 0)
@@ -162,16 +203,25 @@ public class PortServerClient
 					TreeNodes.m_sUser= arg;
 				else if(s.equals("s"))
 					TreeNodes.m_sLayoutStyle= arg;
+				else if(s.equals("i"))
+					inifile= arg;
+				else if(s.equals("tablestructure"))
+					HtmTags.tablestructure= arg;
+				else
+				{
+					System.out.println("undefined parameter '" + arg + "'");
+					error= true;
+				}
 			}else 
 			{
-				System.out.println("undefined parameter '" + arg + "`");
+				System.out.println("undefined parameter '" + arg + "'");
 				error= true;
 			}
 		}
 		if(error)
 			System.exit(1);
 		if(HtmTags.debug)
-			System.out.println("start ppi-client");
+			System.out.println("start ppi-java-client");
 		if(shellpwd)
 		{
 			Console c= System.console();
@@ -212,13 +262,65 @@ public class PortServerClient
 		try{
 			boolean bStop= false;
 			String sPort;
-			FileInputStream file= new FileInputStream("client.ini");
+			FileInputStream file;
 			Properties prop= new Properties();
 			
+			try{
+				file= new FileInputStream(inifile);
+				
+			}catch(Exception ex)
+			{
+				if(inifile.equals("client.ini"))
+					throw ex;
+				System.out.println("WARNING: cannot find file '" + inifile + "' for initialization");
+				System.out.println("         take standard file 'client.ini'");
+				file= new FileInputStream("client.ini");
+			}
 			prop.load(file);
 			lang= prop.getProperty("defaultLang");
+			maincolor= prop.getProperty("maincolor");
 			host= prop.getProperty("host");
 			sPort= prop.getProperty("port");
+			mainpadding= prop.getProperty("padding");
+			if(mainpadding != null)
+			{
+				boolean bfault= false;
+				
+				nPadding= 10;
+				try{
+					nPadding= Integer.parseInt(mainpadding);
+					if(nPadding < 0)
+						bfault= true;
+						
+				}catch(NumberFormatException ex)
+				{
+					bfault= true;
+				}
+				if(bfault)
+					System.out.println("ERROR: padding is set to fault content '" + mainpadding + "' take default 10");
+				else
+					HtmTags.mainPadding= nPadding;
+			}
+			popuppadding= prop.getProperty("popuppadding");
+			if(popuppadding != null)
+			{
+				boolean bfault= false;
+				
+				nPopup= 3;
+				try{
+					nPopup= Integer.parseInt(popuppadding);
+					if(nPopup < 0)
+						bfault= true;
+				}catch(NumberFormatException ex)
+				{
+					bfault= true;
+				}
+				if(bfault)
+					System.out.println("ERROR: popuppadding is set to fault content '" + popuppadding + "' take default 3");
+				else
+					HtmTags.popupPadding= nPopup;
+				
+			}
 			file.close();
 			
 			if(host == null)
@@ -231,7 +333,15 @@ public class PortServerClient
 				System.out.println("ERROR: no port defined in client.ini");
 				bStop= true;
 			}else
-				port= Integer.parseInt(sPort);
+			{
+				try{
+					port= Integer.parseInt(sPort);
+				}catch(NumberFormatException ex)
+				{
+					System.out.println("ERROR: no right port defined in client.ini");
+					bStop= true;
+				}
+			}
 			
 			if(lang == null)
 			{
@@ -284,7 +394,7 @@ public class PortServerClient
 		{
 			System.out.println("found operating system '" + os + "'");
 			System.out.println("with follow set path's:");
-			System.out.println("    ALLUSER: '" + allUser + "'");
+			//System.out.println("    ALLUSER: '" + allUser + "'");
 			System.out.println("    HOME:    '" + homeEnv + "'");
 			System.out.println("    Host:     " + host);
 			System.out.println("    port:     " + port);
@@ -321,7 +431,7 @@ public class PortServerClient
 			TreeNodes.m_Settings.put("version", 1.0);
 		}
 		
-		new PortServerClient().startApp(host, port, lang);
+		new PortServerClient().startApp(host, port, lang, maincolor);
 		TreeNodes.saveSettings();
 	}
 	
@@ -367,18 +477,22 @@ public class PortServerClient
 	 * @param host host-name or IP-address where the server running
 	 * @param port port-number on which the server running on host
 	 * @param lang language in which the messages and menu should displayed
+	 * @param maincolor main color set from client.ini
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 02.12.2007
 	 * @since JDK 1.6
 	 */
-	protected void startApp(String host, int port, String lang)
+	protected void startApp(String host, int port, String lang, String maincolor)
 	{
+		BooleanHolder oCreated= new BooleanHolder();
 		int mainStyle= SWT.NONE;
+		int debugCount= 0;
 		DialogThread dialog;
 		WidgetChecker checker;
 		MsgClientConnector client;
 		LayoutLoader loader;
 		MsgTranslator trans= MsgTranslator.init(lang);
+		FontObject baseFont= new FontObject();
 
 		if(!trans.getError().equals("NONE"))
 		{
@@ -394,7 +508,15 @@ public class PortServerClient
 		toplevelShell= new Shell(display, mainStyle);
 		dialog= DialogThread.instance(toplevelShell);
 		LayoutLoader.init(toplevelShell, host, port);
-
+		if(	maincolor == null ||
+			maincolor.trim().equals("")	)
+		{
+			HtmTags.systemColor= baseFont.getColor(display, "BACKGROUND", oCreated, "client.ini_maincolor");
+		}else
+			HtmTags.systemColor= baseFont.getColor(display, maincolor, oCreated, "client.ini_maincolor");
+			
+		
+		toplevelShell.setBackground(HtmTags.systemColor);
 		if(HtmTags.fullscreen)
 			toplevelShell.setMaximized(true);
 		setDisplayImages(display, toplevelShell);
@@ -422,6 +544,7 @@ public class PortServerClient
 			}
 			return;
 		}
+		final boolean bCreated= oCreated.value;
 		toplevelShell.addDisposeListener(new DisposeListener() {
 		
 			public void widgetDisposed(DisposeEvent ev) {
@@ -444,6 +567,8 @@ public class PortServerClient
 				login.put("yLocation", location.y);
 				login.put("mainwidth", size.x);
 				login.put("mainheight", size.y);
+				if(bCreated)
+					HtmTags.systemColor.dispose();
 		
 			}
 		
@@ -451,10 +576,30 @@ public class PortServerClient
 		toplevelShell.open();
 		while(!toplevelShell.isDisposed())
 		{
+			if(	HtmTags.dispatchShell	)
+			{
+				System.out.println(debugCount + " dispatch for toplevelShell");
+			}
 			if(!display.readAndDispatch())
+			{
+				if(	HtmTags.dispatchShell	)
+				{
+					System.out.println(debugCount + " sleep for no dispatch");
+				}
 				display.sleep();
+			}
 			if(!loader.isAlive())
 				toplevelShell.dispose();
+			if(	HtmTags.dispatchShell	)
+			{
+				++debugCount;
+				if(debugCount == Integer.MAX_VALUE)
+					debugCount= 0;
+			}
+		}
+		if(	HtmTags.dispatchShell	)
+		{
+			System.out.println("toplevelShell was disposed");
 		}
 
 		
@@ -471,7 +616,7 @@ public class PortServerClient
 			System.out.println("Interrupted exception by ending with join");
 			ex.printStackTrace();
 		}
-		display.dispose();
+		//display.dispose();
 		/*if(m_aImgBuffer != null)
 		{
 			for (Image sysImg : m_aImgBuffer) {

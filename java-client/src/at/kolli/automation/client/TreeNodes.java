@@ -38,8 +38,10 @@ import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.StackLayout;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 
@@ -48,6 +50,7 @@ import at.kolli.dialogs.DisplayAdapter;
 import at.kolli.layout.Body;
 import at.kolli.layout.Break;
 import at.kolli.layout.Component;
+import at.kolli.layout.FontObject;
 import at.kolli.layout.Head;
 import at.kolli.layout.HtmTags;
 import at.kolli.layout.IComponentListener;
@@ -686,7 +689,7 @@ public class TreeNodes
 				if(!bNoSides)
 				{
 					m_sName= name;
-					m_sTitleName= name;
+					m_sTitleName= name.trim();
 				}
 				if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 					throw new IllegalAccessException("### loading dialog closed");
@@ -696,6 +699,8 @@ public class TreeNodes
 						
 						m_oScrolledComposite= new ScrolledComposite(subComposite, SWT.H_SCROLL | SWT.V_SCROLL);
 						m_oComposite= new Composite(m_oScrolledComposite, SWT.SHADOW_NONE);
+						m_oComposite.setBackground(HtmTags.systemColor);
+						m_oScrolledComposite.setBackground(HtmTags.systemColor);
 						m_oScrolledComposite.setContent(m_oComposite);
 						m_oScrolledComposite.setExpandHorizontal(true);
 						m_oScrolledComposite.setExpandVertical(true);
@@ -873,8 +878,25 @@ public class TreeNodes
 				@Override
 				public void run() {
 					// define minimal shown size
-					System.out.println("define minimal scroll size");
-					m_oScrolledComposite.setMinSize(m_oComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT, true));
+					Point size;
+					
+					if(HtmTags.debug)
+					{
+						Control[] childs;
+						org.eclipse.swt.widgets.Layout parentLayout, layout, childLayout;
+						
+						layout= m_oComposite.getLayout();
+						System.out.println("define minimal scroll size for "+layout);
+						layout= m_oComposite.getParent().getLayout();
+						System.out.println("        with parent "+layout);
+						childs= m_oComposite.getChildren();
+						for (Control child : childs) {
+							layout= ((Composite)child).getLayout();
+							System.out.println("              child "+layout);
+						}
+					}
+					size= m_oComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT, true);
+					m_oScrolledComposite.setMinSize(size);
 					//System.out.println(m_sName + ": " + m_oComposite.getSize());
 				}
 			});
@@ -1027,6 +1049,7 @@ public class TreeNodes
 	        else
 	        	saxParser.parse(emptyStream, handler);
 	        m_mMetaBlock= handler.getMetaBlock();
+	        dialog.setSelection(dialog.getSelection() + DialogThread.m_nProgressSteps);
 	        if(	m_mMetaBlock != null &&
 	        	!HtmTags.showFalse		)
 	        {
@@ -1046,6 +1069,7 @@ public class TreeNodes
 		    bodyList= layout.getBody();
 	      } catch( Throwable t ) 
 	      {
+	    	  dialog.setSelection(dialog.getSelection() + DialogThread.m_nProgressSteps);
 	    	  m_mMetaBlock= handler.getMetaBlock();
 				if(	m_mMetaBlock != null &&
 				    	!HtmTags.showFalse		)
@@ -1131,7 +1155,7 @@ public class TreeNodes
 		    	{
 		    		if(!title.name.equals(""))
 		    		{
-		    			m_sTitleName= title.name;
+		    			m_sTitleName= title.name.trim();
 		    		}
 		    	}
 		    }
@@ -1153,7 +1177,16 @@ public class TreeNodes
 						public void run() {
 							
 							try{
-								m_oBodyTag.execute(m_oComposite, oClasses);
+								GridLayout layout= new GridLayout();
+
+								layout.marginLeft= 0;
+								layout.marginRight= 0;
+								layout.marginTop= 0;
+								layout.marginBottom= 0;
+								layout.horizontalSpacing= 0;
+								layout.verticalSpacing= 0;
+								m_oComposite.setLayout(layout);
+								m_oBodyTag.execute(m_oComposite, new FontObject(), oClasses);
 							}catch(IOException ex)
 							{
 								m_runnable_ex= ex;

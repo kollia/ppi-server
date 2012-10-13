@@ -63,8 +63,7 @@ public class DisplayAdapter {
 	{
 		Thread t= null;
 		
-		if(	HtmTags.debug &&
-			HtmTags.syncSWTExec	)
+		if(	HtmTags.syncSWTExec	)
 		{
 			t= Thread.currentThread();
 			System.out.println(t.getName()+" set asynchron display for SWT by " + runnable);
@@ -72,8 +71,7 @@ public class DisplayAdapter {
 				System.out.println("   by defined position of " + def);
 		}
 		Display.getDefault().asyncExec(runnable);
-		if(	HtmTags.debug &&
-			HtmTags.syncSWTExec	)
+		if(	HtmTags.syncSWTExec	)
 		{
 			System.out.println(t.getName()+" has synchronized by " + runnable);
 			if(!def.equals(""))

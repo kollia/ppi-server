@@ -21,14 +21,19 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.layout.GridData;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import org.apache.regexp.RE;
+
+import at.kolli.automation.client.MsgTranslator;
+import at.kolli.layout.FontObject.colors;
 
 /**
  * XML parser class
@@ -228,7 +233,9 @@ public class XMLSaxParser extends DefaultHandler
 			echoString( "<" + eName );
 		if(m_bTitleDef)
 		{
-			((Title)m_oAktTag).name+= "<" + eName;
+			String content;
+			
+			content= "<" + eName;
 			for( int i=0; i<attrs.getLength(); i++ )
 		    {
 				String aName = attrs.getLocalName( i ); // Attr name
@@ -236,13 +243,14 @@ public class XMLSaxParser extends DefaultHandler
 		        
 		        if( "".equals( aName ) )  aName = attrs.getQName( i );
 				value= " " + aName + "=\"" + attrs.getValue( i ) + "\"";
-		        ((Title)m_oAktTag).name+= value;
+		        content+= value;
 		        if(HtmTags.debug)
 		        	echoString(value);
 		    }
-			((Title)m_oAktTag).name+=  ">";
+			content+=  ">";
 			if(HtmTags.debug)
 				echoString(">");
+			((Title)m_oAktTag).name+= content;
 			return;
 		}
 		createTextBuffer();
@@ -296,17 +304,20 @@ public class XMLSaxParser extends DefaultHandler
 			}
 		}else
 		{
-		    if(eName.equals("table"))
+		    if(	eName.equals("table") ||
+		    	eName.equals("fonttable")	)
 		    {
 		    	tag= new Table();
 		    	m_oAktTag.insert(tag);
 		    	m_oAktTag= tag;
+		    	if(eName.equals("fonttable"))
+		    		createFontTable();
 		    	
 		    }else if(eName.equals("tr"))
 		    {
 		    	Table table= (Table)m_oAktTag;
 		    	
-		    	table.nextLine();
+		    	tr= table.nextLine();
 		    	
 		    }else if(eName.equals("td"))
 		    {
@@ -353,6 +364,55 @@ public class XMLSaxParser extends DefaultHandler
 		    	hr.separator= SWT.SEPARATOR | SWT.HORIZONTAL;
 		    	m_oAktTag.insert(hr);
 		    	m_oAktTag= hr;
+		    	
+		    }else if(eName.equals("font"))
+		    {
+		    	Style style= new Style();
+		    	
+		    	m_oAktTag.insert(style);
+		    	m_oAktTag= style;
+		    	
+		    }else if(eName.equals("b"))
+		    {
+		    	Style style= new Style();
+		    	
+		    	style.bold= true;
+		    	m_oAktTag.insert(style);
+		    	m_oAktTag= style;
+		    	
+		    }else if(eName.equals("i"))
+		    {
+		    	Style style= new Style();
+		    	
+		    	style.italic= true;
+		    	m_oAktTag.insert(style);
+		    	m_oAktTag= style;
+		    	
+		    }else if(eName.equals("u"))
+		    {
+		    	Style style= new Style();
+		    	
+		    	style.underline= true;
+		    	m_oAktTag.insert(style);
+		    	m_oAktTag= style;
+		    	
+		    }else if(eName.equals("fieldset"))
+		    {
+		    	FieldSet fieldset= new FieldSet();
+		    	
+		    	fieldset.cellpadding= 0;
+		    	m_oAktTag.insert(fieldset);
+		    	m_oAktTag= fieldset;
+		    	
+		    }else if(eName.equals("legend"))
+		    {
+		    	Legend legend;
+	    		
+	    		if(!m_oAktTag.tagName.equals("fieldset"))
+	    			throw new SAXException("tag of <legend> can be defined only after <fieldset>");
+	    		legend= new Legend();
+	    		m_oAktTag.insert(legend);
+	    		m_oAktTag= legend;
 		    	
 		    }else
 		    {
@@ -402,8 +462,10 @@ public class XMLSaxParser extends DefaultHandler
 	        		m_aoComponents.add((Body)m_oAktTag);
 	        	}else if(aName.equals("class"))
 	        		m_mClasses.put(attrs.getValue(i), m_oAktTag);
+	        	else if(aName.equals("bgcolor"))
+	        		((Body)m_oAktTag).bgcolor= attrs.getValue(i);
 	        	else
-				{
+	        	{
 					if(HtmTags.debug)
 						echoString("\nfind unknown attribute " + aName + " in tag <" + eName + ">\n");
 				}
@@ -517,10 +579,36 @@ public class XMLSaxParser extends DefaultHandler
 	        	else if(aName.equals("result"))
 	        		component.result= attrs.getValue(i);
 	        	else if(aName.equals("min"))
-	        		component.min= Integer.parseInt(attrs.getValue(i));
-	        	else if(aName.equals("max"))
-	        		component.max= Integer.parseInt(attrs.getValue(i));
-	        	else if(aName.equals("arrow"))
+	        	{
+	        		if(	component.type.equals("slider") ||
+	        			component.type.equals("range")		)
+	        		{
+	        			try{
+	        				component.min= Integer.parseInt(attrs.getValue(i));
+	        				
+	        			}catch(NumberFormatException ex)
+	        			{
+	        				component.m_smin= attrs.getValue(i);
+	        			}
+	        		}else
+	        			component.min= Integer.parseInt(attrs.getValue(i));
+	        		
+	        	}else if(aName.equals("max"))
+	        	{
+	        		if(	component.type.equals("slider") ||
+	        			component.type.equals("range")		)
+	        		{
+	        			try{
+	        				component.max= Integer.parseInt(attrs.getValue(i));
+	        				
+	        			}catch(NumberFormatException ex)
+	        			{
+	        				component.m_smax= attrs.getValue(i);
+	        			}
+	        		}else
+	        			component.max= Integer.parseInt(attrs.getValue(i));
+	        		
+	        	}else if(aName.equals("arrow"))
 	        		component.arrowkey= Integer.parseInt(attrs.getValue(i));
 	        	else if(aName.equals("step"))
 	        		component.rollbarfield= Integer.parseInt(attrs.getValue(i));
@@ -550,6 +638,22 @@ public class XMLSaxParser extends DefaultHandler
 		    				td != null				)
 		    	{
 		    		td.colspan= Integer.parseInt(attrs.getValue(i));
+		    		
+		    	}else if(aName.equals("bgcolor"))
+		    	{
+		    		if(	td == null &&
+		    			tr == null		)
+		    		{
+		    			((Table)m_oAktTag).bgcolor= attrs.getValue(i);
+		    			
+		    		}else if(	tr != null &&
+		    					td == null		)
+		    		{
+		    			tr.bgcolor= attrs.getValue(i);
+		    			
+		    		}else if(td != null)
+		    			td.bgcolor= attrs.getValue(i);
+		    		
 		    	}else if(aName.equals("align"))
 		    	{
 		    		int type= GridData.BEGINNING;
@@ -631,20 +735,145 @@ public class XMLSaxParser extends DefaultHandler
 					if(HtmTags.debug)
 						echoString("\nfind unknown attribute " + aName + " inside tag <table>\n");
 				}		        	
+	        }else if(m_oAktTag instanceof Style)
+	        {
+	        	if(aName.equals("face"))
+	        		((Style)m_oAktTag).font= attrs.getValue(i);
+	        	else if(aName.equals("size"))
+	        	{
+	        		((Style)m_oAktTag).size= Integer.parseInt(attrs.getValue(i));
+	        		
+	        	}else if(aName.equals("color"))
+	        		((Style)m_oAktTag).color= attrs.getValue(i);
+	        	else if(aName.equals("type"))
+	        	{
+	        		colors colorID;
+	        		String color= attrs.getValue(i);
+	        			        		
+					try{
+						
+						colorID= colors.valueOf(color);
+		        		((Style)m_oAktTag).colortype= colorID;
+						
+					}catch(IllegalArgumentException ex)
+					{
+						MsgTranslator.instance().errorPool("FAULT_font_color_type", color, getActFolder());
+					}
+	        		
+	        	}else if(aName.equals("style"))
+	        	{
+	        		int style= SWT.None;
+	        		String text;	        		
+	        		
+	        		text= attrs.getValue(i).toLowerCase();
+	        		if(text.contains("bold"))
+	        			style= SWT.BOLD;
+	        		if(text.contains("italic"))
+	        			style= style | SWT.ITALIC;	        			
+	        	}
 	        }
 	      }
 	    }
 	    if(HtmTags.debug)
 	    	echoString( ">" );
-	    td= null;
-	    tr= null;
 	}
 	
+	/**
+	 * create table with all font's on system
+	 * 
+	 * @throws SAXExecption for wrong tag handling
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 06.03.2012
+	 * @since JDK 1.6
+	 */
+	private void createFontTable() throws SAXException
+	{
+		HtmTags parentTag;
+		HtmTags curTag, tdTag;
+		String sysFont;
+		FontData[] fontDatas;
+		LinkedList<FontData[]> otherFonts;
+		
+		fontDatas= FontObject.getSystemFont();
+		sysFont= fontDatas[0].name;
+		((Table)m_oAktTag).nextLine();
+		parentTag= m_oAktTag;
+			curTag= new ContentFields();
+			((ContentFields)curTag).bgcolor= "white";
+			((ContentFields)curTag).align= GridData.CENTER;
+			parentTag.insert(curTag);
+			parentTag= tdTag= curTag;
+			
+				curTag= new Style();
+				((Style)curTag).color= "black";
+				((Style)curTag).font= sysFont;
+				((Style)curTag).italic= true;
+				parentTag.insert(curTag);
+				parentTag= curTag;
+					curTag= new Label();
+					((Label)curTag).setText(sysFont);
+					parentTag.insert(curTag);
+				parentTag= tdTag;
+				parentTag.insert(new Break());
+				
+				curTag= new Style();
+				((Style)curTag).color= "black";
+				((Style)curTag).font= sysFont;
+				((Style)curTag).bold= true;
+				((Style)curTag).size= 20;
+				parentTag.insert(curTag);
+				parentTag= curTag;
+					curTag= new Label();
+					((Label)curTag).setText("defined Font - " + sysFont);
+					parentTag.insert(curTag);
+		
+		otherFonts= FontObject.getotherFonts();
+		if(otherFonts.size() > 0)
+		{
+			for (FontData[] fontData : otherFonts)
+			{
+				((Table)m_oAktTag).nextLine();
+				parentTag= m_oAktTag;
+					curTag= new ContentFields();
+					((ContentFields)curTag).bgcolor= "white";
+					((ContentFields)curTag).align= GridData.CENTER;
+					parentTag.insert(curTag);
+					parentTag= tdTag= curTag;
+					
+						curTag= new Style();
+						((Style)curTag).color= "black";
+						((Style)curTag).italic= true;
+						parentTag.insert(curTag);
+						parentTag= curTag;
+							curTag= new Label();
+							((Label)curTag).setText(fontData[0].name);
+							parentTag.insert(curTag);
+						parentTag= tdTag;
+						parentTag.insert(new Break());
+						
+						curTag= new Style();
+						((Style)curTag).color= "black";
+						((Style)curTag).font= fontData[0].name;
+						((Style)curTag).bold= true;
+						((Style)curTag).size= 20;
+						parentTag.insert(curTag);
+						parentTag= curTag;
+							curTag= new Label();
+							((Label)curTag).setText("defined Font - " + fontData[0].name);
+							parentTag.insert(curTag);
+						parentTag= tdTag;
+						parentTag.insert(new Break());				
+			}
+		}
+	}
 	/**
 	 * Return HashMap with all defined tags
 	 * which has an class definition
 	 * 
 	 * @return class names with tags
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 01.02.2012
+	 * @since JDK 1.6
 	 */
 	public HashMap<String, HtmTags> getClassDefinitions()
 	{
@@ -674,16 +903,19 @@ public class XMLSaxParser extends DefaultHandler
 	  if(m_bFinishedLayout)
 		  return;
 	  createTextBuffer();
-	  //if(!eName.equals("br"))
-		  echoTextBuffer();
+	  echoTextBuffer();
     
 	  if(HtmTags.debug)
 	    	echoString( "</" + eName + ">" ); // element name
+	  //if(eName.equals("td") ||
+	//		  eName.equals("tr"))
+	//	  System.out.println();
 		if(	m_bTitleDef &&
 			!eName.equals("title")	)
 		{
 			((Title)m_oAktTag).name+= "</" + eName + ">";
 			return;
+			
 		}
 	if(m_oAktTag != null)
 	{
@@ -699,26 +931,27 @@ public class XMLSaxParser extends DefaultHandler
 			m_aoPermissionTag.remove(0);
 		}
 		
-		if(	eName.equals("layout")
-			||
-			eName.equals("head")
-			||
-			eName.equals("title")
-			||
-			eName.equals("body")
-			||
-			eName.equals("table")
-			||
-			eName.equals("input")
-			||
-			eName.equals("select")
-			||
-			eName.equals("option")
-			||
+		if(	eName.equals("layout") ||
+			eName.equals("head") ||
+			eName.equals("title") ||
+			eName.equals("body") ||
+			eName.equals("table") ||
+			eName.equals("fonttable") ||
+			eName.equals("input") ||
+			eName.equals("select") ||
+			eName.equals("option") ||
+			eName.equals("font") ||
+			eName.equals("b") ||
+			eName.equals("i") ||
+			eName.equals("u") ||
 			eName.equals("br") ||
-			eName.equals("hr")		)
+			eName.equals("hr") ||
+			eName.equals("fieldset") ||
+			eName.equals("legend")		)
 	    {    		
 	    	if(	!m_oAktTag.tagName.equals(eName) &&
+	    		!m_oAktTag.tagName.equals("fonttable") &&
+	    		eName.equals("legend")	&&
 	    		(	eName.equals("select") &&
 	    			!m_oAktTag.tagName.equals("input")	)	)
 	    	{
@@ -737,9 +970,17 @@ public class XMLSaxParser extends DefaultHandler
 	    	else if(eName.equals("layout"))
 	    		m_bFinishedLayout= true;
 	    	m_oAktTag= m_oAktTag.getParentTag();
+	    	
+	    }else if(	m_oAktTag instanceof Table &&
+	    			(	eName.equals("tr") ||
+	    				eName.equals("td")		)	)
+	    {
+	    	((Table)m_oAktTag).tagEnd(eName);
 	    }
+		if(HtmTags.debug)
+			System.out.println();
 	}
-  }
+}
 
   /**
    * Receive notification of character data inside an element.
@@ -769,25 +1010,28 @@ public class XMLSaxParser extends DefaultHandler
 
     if(HtmTags.debug)
     	echoString(s);
-    if(!m_bTitleDef)
+    if(m_bTitleDef)
+    	((Title)m_oAktTag).name+= s;
+    else
     {
 	    if( textBuffer == null )
 	      textBuffer = new StringBuffer( s );
 	    else
 	      textBuffer.append( s );
-    }else
-    	((Title)m_oAktTag).name+= s;
+    }
+    	
   }
 
   
   /**
    * Display text in label composite, accumulated in the character buffer
    * 
+   * @throws SAXExecption for wrong tag handling
    * @author Alexander Kolli
    * @version 1.00.00, 04.12.2007
    * @since JDK 1.6
    */
-  private void echoTextBuffer()  
+  private void echoTextBuffer() throws SAXException
   {
 	  Label label;
 	  
