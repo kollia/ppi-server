@@ -133,6 +133,8 @@ public class WidgetChecker extends Thread
 				{
 					String res= client.hearing(/*bthrow*/false);
 					
+					if(HtmTags.debug)
+						System.out.println("get source: '" + res + "'");
 					if(	!cont.read("%f:%s=%d", res)
 						&&
 						!cont.read("%f:%s %c", res))
