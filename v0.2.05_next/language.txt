@@ -143,6 +143,10 @@ FAULT_layout_color:
 FEHLER: Die Zeichenfolge '@' in der layout Datei @ ist keine richtige Farbe.
 ERROR: The caracter string '@' inside layout file @ is no correct color.
 
+FAULT_font_color_type:
+FEHLER: Der Farbtyp '@' im font-tag der layout Datei @ existiert nicht.
+ERROR: The color type ’@’ in font tag of layout file @ do not exist.
+
 FAULT_init_color:
 FEHLER: Die Zeichenfolge '@' fuer @ aus der Datei client.ini ist keine richtige Farbe.
 ERROR: The caracter string '@' for @ from file client.ini is no correct color.
@@ -159,7 +163,9 @@ WARNING_add_columns:
 WARNUNG: in der layout Datei @ wurden in der @. Reihe einer Tabelle Spalten hinzugefuegt
 WARNING: in layout file @ adding some columns at @. row from an table
 
-
+FAULT_double_value:
+FEHLER: Die Zeichenfolge der Membervariable value beim @ kann nicht gelesen werden. ('@')
+ERROR: The character string of the member variable value from @ can not be read correctly. ('@')
 
 
 
