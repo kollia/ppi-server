@@ -466,8 +466,11 @@ public class ContentFields extends HtmTags implements IComponentListener
 				}else
 				{
 					if(tag instanceof Style)
+					{
+						((Style)tag).align= align;
+						((Style)tag).valign= valign;
 						fieldCp= ((Style)tag).execute(rowCp, fieldCp, newFont, classes, lenList);
-					else
+					}else
 						tag.execute(fieldCp, newFont, classes);
 				}
 			}
