@@ -762,14 +762,15 @@ public class XMLSaxParser extends DefaultHandler
 	        		
 	        	}else if(aName.equals("style"))
 	        	{
-	        		int style= SWT.None;
 	        		String text;	        		
-	        		
+
+	        		((Style)m_oAktTag).bold= false;
+	        		((Style)m_oAktTag).italic= false;
 	        		text= attrs.getValue(i).toLowerCase();
 	        		if(text.contains("bold"))
-	        			style= SWT.BOLD;
+	        			((Style)m_oAktTag).bold= true;
 	        		if(text.contains("italic"))
-	        			style= style | SWT.ITALIC;	        			
+	        			((Style)m_oAktTag).italic= true;
 	        	}
 	        }
 	      }
