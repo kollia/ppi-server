@@ -262,6 +262,7 @@ public class PortServerClient
 		try{
 			boolean bStop= false;
 			String sPort;
+			String sBrowser;
 			FileInputStream file;
 			Properties prop= new Properties();
 			
@@ -281,6 +282,20 @@ public class PortServerClient
 			maincolor= prop.getProperty("maincolor");
 			host= prop.getProperty("host");
 			sPort= prop.getProperty("port");
+			sBrowser= prop.getProperty("browser");
+			if(sBrowser != null)
+			{
+				if(sBrowser.equals("MOZILLA"))
+					HtmTags.m_nUseBrowser= SWT.MOZILLA;
+				else if(sBrowser.equals("WEBKIT"))
+					HtmTags.m_nUseBrowser= SWT.WEBKIT;
+				else
+				{
+					System.out.println("WARNING: cannot define spezific browser '" + sBrowser + "'");
+					System.out.println("         so take standard browser for operation system");
+				}
+				
+			}
 			mainpadding= prop.getProperty("padding");
 			if(mainpadding != null)
 			{

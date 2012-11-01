@@ -102,6 +102,45 @@ public abstract class HtmTags
 	 */
 	public static String tablestructure= "";
 	/**
+	 * flag to use native browser inside SWT browser widget
+	 * <table>
+	 * 	<tr>
+	 * 		<td>
+	 * 			SWT.NONE
+	 * 		</td>
+	 * 		<td>
+	 * 			-
+	 * 		</td>
+	 * 		<td>
+	 * 			using standard browser on OS (default)
+	 * 		</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>
+	 * 			SWT.MOZIllA
+	 * 		</td>
+	 * 		<td>
+	 * 			-
+	 * 		</td>
+	 * 		<td>
+	 * 			using mozilla browser
+	 * 		</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>
+	 * 			SWT.WEBKIT
+	 * 		</td>
+	 * 		<td>
+	 * 			-
+	 * 		</td>
+	 * 		<td>
+	 * 			using webkit browser
+	 * 		</td>
+	 * 	</tr>
+	 * </table> 
+	 */
+	public static int m_nUseBrowser= SWT.NONE;
+	/**
 	 * padding border around body of layout
 	 */
 	public static int mainPadding= 10;

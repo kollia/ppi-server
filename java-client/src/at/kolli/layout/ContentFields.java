@@ -266,9 +266,9 @@ public class ContentFields extends HtmTags implements IComponentListener
 		if(this instanceof Body)
 		{	
 			if(!href.equals(""))
-			{		
+			{
 				composite.setLayout(new FillLayout());
-				m_oBrowser= new Browser(mainCp, SWT.NONE);
+				m_oBrowser= new Browser(mainCp, HtmTags.m_nUseBrowser);
 				mainCp.setLayout(new FillLayout());
 				this.composite= mainCp;
 				return;
@@ -414,7 +414,7 @@ public class ContentFields extends HtmTags implements IComponentListener
 			GridData data= null;
 
 			newFont.setDevice(gridCompo);
-			m_oBrowser= new Browser(gridCompo, SWT.NONE);
+			m_oBrowser= new Browser(gridCompo, HtmTags.m_nUseBrowser);
 			if(	width != -1 &&
 				width > minus	)
 			{
