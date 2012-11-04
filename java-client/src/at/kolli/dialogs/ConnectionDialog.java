@@ -125,8 +125,10 @@ public class ConnectionDialog extends TitleAreaDialog
 	 */
 	public void create(short dialogType)
 	{
+		super.create();
+		getShell().setText("ppi-client");
+		//setTitle("ppi-client");
 		m_nType= dialogType;
-		create();
 	}
 	/**
 	 * Overridden adds buttons to this dialog's button bar.
@@ -140,7 +142,7 @@ public class ConnectionDialog extends TitleAreaDialog
 	protected void createButtonsForButtonBar(Composite parent)
 	{		
 		MsgTranslator trans= MsgTranslator.instance();
-		
+
 		if(m_bVerification)
 		{
 			FillLayout fillLayout= new FillLayout();
