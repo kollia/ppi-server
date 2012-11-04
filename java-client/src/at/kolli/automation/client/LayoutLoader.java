@@ -942,12 +942,21 @@ public class LayoutLoader extends Thread
 				DisplayAdapter.syncExec(new Runnable() {
 					
 					public void run() {
+
+						RowLayout popupLayout= new RowLayout();
 						
 						PopupMenu.clearAll();
 						m_oPopupComposite.dispose();
 						m_oPopupComposite= new Composite(m_oPopupIn, SWT.NONE);
 						m_oPopupComposite.setLayout(new RowLayout());
 						m_oPopupComposite.setBackground(HtmTags.systemColor);
+						popupLayout.marginHeight= HtmTags.popupPadding;
+						popupLayout.marginWidth= HtmTags.popupPadding;
+						popupLayout.marginBottom= 0;
+						popupLayout.marginTop= 0;
+						popupLayout.marginLeft= 0;
+						popupLayout.marginRight= 0;
+						m_oPopupComposite.setLayout(popupLayout);
 					}
 					
 				});
@@ -1050,8 +1059,30 @@ public class LayoutLoader extends Thread
 								pop= m_oPopupComposite.getBounds();
 							}
 							size= m_shellForm.getBounds();
+							while(size.height == 0)
+							{
+								System.out.println("-----  wait for mainwindow  ----------");
+								try{
+									Thread.sleep(1000);
+								}catch(InterruptedException ex)
+								{
+								}
+								size= m_shellForm.getBounds();
+							}
 							sashHeight[0]= pop.height + HtmTags.popupPadding * 2;
+							if(sashHeight[0] < 0)
+								sashHeight[0]= 0;
 							sashHeight[1]= size.height - pop.height - HtmTags.mainPadding;
+							if(sashHeight[1] < 0)
+								sashHeight[1]= 0;
+							if(HtmTags.debug)
+							{
+								System.out.println("size height:   " + size.height);
+								System.out.println("popup height:  " + pop.height);
+								System.out.println("popup padding: " + HtmTags.popupPadding);
+								System.out.println("main padding:  " + HtmTags.mainPadding);
+								System.out.println("sash size:     " + sashHeight[0] + "/" + sashHeight[1]);
+							}
 							m_shellForm.setWeights(sashHeight);
 						}
 						
