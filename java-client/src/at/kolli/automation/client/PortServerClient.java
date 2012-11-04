@@ -268,13 +268,21 @@ public class PortServerClient
 			
 			try{
 				file= new FileInputStream(inifile);
+				if(HtmTags.debug)
+				{
+					System.out.println("--------------------------------------------------------------------------");
+					System.out.println("read property file '" + inifile + "'");
+					System.out.println("--------------------------------------------------------------------------");
+				}
 				
 			}catch(Exception ex)
 			{
 				if(inifile.equals("client.ini"))
 					throw ex;
+				System.out.println("--------------------------------------------------------------------------");
 				System.out.println("WARNING: cannot find file '" + inifile + "' for initialization");
-				System.out.println("         take standard file 'client.ini'");
+				System.out.println("         read standard property file 'client.ini'");
+				System.out.println("--------------------------------------------------------------------------");
 				file= new FileInputStream("client.ini");
 			}
 			prop.load(file);
@@ -582,12 +590,15 @@ public class PortServerClient
 				login.put("yLocation", location.y);
 				login.put("mainwidth", size.x);
 				login.put("mainheight", size.y);
+				TreeNodes.saveSettings();
 				if(bCreated)
 					HtmTags.systemColor.dispose();
 		
 			}
 		
 		});
+		if(HtmTags.debug)
+			System.out.println("open top level shell");
 		toplevelShell.open();
 		while(!toplevelShell.isDisposed())
 		{
