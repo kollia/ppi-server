@@ -24,10 +24,12 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Shell;
 
@@ -78,6 +80,14 @@ public class PopupMenu
 	 * Otherwise the string is ""
 	 */
 	private String m_sMenu= "";
+	/**
+	 * Listener for main pop-up menu
+	 */
+	private Hashtable<String, HashMap<Control, MouseListener> > m_aMainPopupListeners= new Hashtable<String, HashMap<Control,MouseListener>>();
+	/**
+	 * Listener for opened pop-up list
+	 */
+	private HashMap<Control, MouseListener> m_aPopupListeners= new HashMap<Control, MouseListener>();
 	
 	/**
 	 * private destructor to create object of popup menu
@@ -111,6 +121,8 @@ public class PopupMenu
 		boolean bold= false;
 		boolean italic= false;
 		String looks, ssize;
+		MouseListener listener1, listener2;
+		HashMap<Control, MouseListener> ListenerMap= new HashMap<Control, MouseListener>();
 
 		if(_instance == null)
 		{
@@ -121,7 +133,7 @@ public class PopupMenu
 		ssize= metablock.get("popupfontsize");
 		if(ssize != null)
 			popupsize= Integer.parseInt(ssize);
-		looks= metablock.get("popupstyle");
+		looks= metablock.get("popupfontstyle");
 		if(looks != null)
 		{
 			String[] split;
@@ -154,7 +166,7 @@ public class PopupMenu
 		font.setDevice(popup);
 		font.setDevice(text);
 		font.dispose();
-		text.addMouseListener(new MouseAdapter() 
+		text.addMouseListener(listener1= new MouseAdapter() 
 		{
 			public void mouseDown(MouseEvent event)
 			{
@@ -187,7 +199,7 @@ public class PopupMenu
 				}
 			}
 		});
-		popup.addMouseListener(new MouseAdapter() 
+		popup.addMouseListener(listener2= new MouseAdapter() 
 		{
 			public void mouseDown(MouseEvent event)
 			{
@@ -214,20 +226,9 @@ public class PopupMenu
 				}
 			}
 		});
-		/*text.addMouseMoveListener(new MouseMoveListener()
-		{
-			public void  mouseMove(MouseEvent ev)
-			{
-				_instance.show(entry, true);
-			}
-		});
-		popup.addMouseMoveListener(new MouseMoveListener()
-		{
-			public void  mouseMove(MouseEvent ev)
-			{
-				_instance.show(entry, true);
-			}
-		});*/
+		ListenerMap.put(text, listener1);
+		ListenerMap.put(popup, listener2);
+		_instance.m_aMainPopupListeners.put(entry, ListenerMap);
 		_instance.m_mRootEntrys.put(entry, popup);
 		_instance.m_mRootNodes.put(entry, node);
 	}
@@ -241,19 +242,39 @@ public class PopupMenu
 		if(_instance != null)
 		{
 			final String name= node.getName();
-			
+
 			DisplayAdapter.syncExec(new Runnable() {
 			
 				public void run() 
 				{
 					Group popup;
+					HashMap<Control, MouseListener> listenerMap;
+					
 					
 					popup= _instance.m_mRootEntrys.get(name);
 					if(popup != null)
+					{
+						listenerMap= _instance.m_aMainPopupListeners.get(name);
+						if(	listenerMap != null &&
+							!listenerMap.isEmpty()	)
+						{
+							for(Control key : listenerMap.keySet())
+							{
+								MouseListener listener;
+								
+								listener= listenerMap.get(key);					
+								if(	listener != null	)
+								{
+									key.removeMouseListener(listener);
+								}
+							}	
+						}
 						popup.dispose();
+					}
 				}
 		
 			});
+			_instance.m_aMainPopupListeners.remove(name);
 			_instance.m_mRootEntrys.remove(name);
 			_instance.m_mRootNodes.remove(name);
 		}
@@ -266,6 +287,7 @@ public class PopupMenu
 	{
 		if(_instance != null)
 		{
+			_instance.destroy();
 			_instance.m_mRootEntrys.clear();
 			_instance.m_mRootNodes.clear();
 		}
@@ -346,6 +368,7 @@ public class PopupMenu
 				boolean bold= false;
 				boolean italic= false;
 				String looks, ssize;
+				MouseListener listener1, listener2;
 				
 				entry= m_sMenu + ":" + subnode.getName();
 				ssize= metablock.get("popupfontsize");
@@ -382,7 +405,7 @@ public class PopupMenu
 				font.setDevice(text);
 				font.dispose();
 				comps.add(comp);
-				text.addMouseListener(new MouseAdapter() 
+				text.addMouseListener(listener1= new MouseAdapter() 
 				{
 					public void mouseDown(MouseEvent event)
 					{
@@ -405,7 +428,8 @@ public class PopupMenu
 						m_sMenu= "";
 					}
 				});
-				comp.addMouseListener(new MouseAdapter() 
+				m_aPopupListeners.put(text, listener1);
+				comp.addMouseListener(listener2= new MouseAdapter() 
 				{
 					public void mouseDown(MouseEvent event)
 					{
@@ -428,6 +452,7 @@ public class PopupMenu
 						m_sMenu= "";
 					}
 				});
+				m_aPopupListeners.put(comp, listener2);
 			}
 			
 			if(m_nPopup != null)
@@ -449,12 +474,27 @@ public class PopupMenu
 		}
 	}
 	/**
-	 * destroy all menu popups
+	 * destroy exist menu pop-up
 	 */
 	public void destroy()
 	{
 		if(m_popupShell == null)
 			return;
+		DisplayAdapter.syncExec(new Runnable() {
+			
+			public void run() 
+			{
+				for(Control key : m_aPopupListeners.keySet())
+				{
+					MouseListener listener;
+					
+					listener= m_aPopupListeners.get(key);
+					if(listener != null)
+						key.removeMouseListener(listener);
+				}
+			}
+		});
+		m_aPopupListeners.clear();
 		m_popupShell.dispose();
 		m_sMenu= "";
 		m_popupShell= null;
