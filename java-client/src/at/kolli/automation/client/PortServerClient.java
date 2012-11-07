@@ -27,16 +27,12 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Properties;
 
-import javax.swing.JButton;
-
 import org.eclipse.jface.dialogs.DialogSettings;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
-import org.eclipse.swt.custom.PopupList;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Display;
@@ -44,7 +40,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.omg.CORBA.BooleanHolder;
 
 import org.apache.regexp.RE;
-//import com.sun.org.apache.regexp.internal.RE;
 
 import at.kolli.dialogs.DialogThread;
 import at.kolli.layout.DetectSystemSettingChange;
@@ -91,7 +86,7 @@ public class PortServerClient
 		String host;
 		String inifile= "client.ini";
 		int port= 20004, nPadding, nPopup;
-		String lang, maincolor, mainpadding, popuppadding;
+		String lang, maincolor, mainpadding, popuppadding, mousepos, mouseDelay;
 		
 		HtmTags.debug= false;
 		TreeNodes.m_sLayoutStyle= "desktop";
@@ -271,6 +266,7 @@ public class PortServerClient
 				if(HtmTags.debug)
 				{
 					System.out.println("--------------------------------------------------------------------------");
+					System.out.println("show layout files  '*." + TreeNodes.m_sLayoutStyle + "'");
 					System.out.println("read property file '" + inifile + "'");
 					System.out.println("--------------------------------------------------------------------------");
 				}
@@ -280,6 +276,8 @@ public class PortServerClient
 				if(inifile.equals("client.ini"))
 					throw ex;
 				System.out.println("--------------------------------------------------------------------------");
+				System.out.println("show layout files  '*." + TreeNodes.m_sLayoutStyle + "'");
+				System.out.println();
 				System.out.println("WARNING: cannot find file '" + inifile + "' for initialization");
 				System.out.println("         read standard property file 'client.ini'");
 				System.out.println("--------------------------------------------------------------------------");
@@ -343,6 +341,47 @@ public class PortServerClient
 				else
 					HtmTags.popupPadding= nPopup;
 				
+			}
+			mousepos= prop.getProperty("mousemovePos");
+			mouseDelay= prop.getProperty("mousemoveDelay");
+			if(mousepos != null)
+			{
+				String[] split;
+				
+				split= mousepos.split(",");
+				if(split.length > 0)
+				{
+					try{
+						HtmTags.moveMouseX= Integer.parseInt(split[0].trim());
+						
+					}catch(NumberFormatException ex)
+					{
+						System.out.println("ERROR: cannot read mouse X position '" + split[0] + "' for moving");
+					}
+					if(split.length > 1)
+					{
+						try{
+							HtmTags.moveMouseY= Integer.parseInt(split[1].trim());
+							
+						}catch(NumberFormatException ex)
+						{
+							System.out.println("ERROR: cannot read mouse Y position '" + split[1] + "' for moving");
+						}
+					}
+					HtmTags.moveMouseDelay= 0;
+					if(mouseDelay != null)
+					{
+						try{
+							HtmTags.moveMouseDelay= Integer.parseInt(mouseDelay.trim());
+							
+						}catch(NumberFormatException ex)
+						{
+							System.out.println("ERROR: cannot read mouse delay '" + mouseDelay + "' for moving");
+							System.out.println("       so move after 0 milliseconds");
+						}
+						
+					}
+				}
 			}
 			file.close();
 			

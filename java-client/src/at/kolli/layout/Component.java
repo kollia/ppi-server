@@ -16,6 +16,8 @@
  */
 package at.kolli.layout;
 
+import java.awt.AWTException;
+import java.awt.Robot;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +34,7 @@ import org.eclipse.swt.browser.StatusTextListener;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.FocusListener;
+import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -330,6 +333,10 @@ public class Component  extends HtmTags implements IComponentListener
 	 * Listener {@link SWT}.MouseUp for component button
 	 */
 	private Listener m_eListener2;
+	/**
+	 * mouse up listener for moving after press
+	 */
+	private MouseListener m_eMouseUpListener= null;
 	/**
 	 * SelectionListener for components
 	 */
@@ -1606,6 +1613,41 @@ public class Component  extends HtmTags implements IComponentListener
 			}else
 				client.hear(result, /*bthrow*/true);
 		}
+		if(	HtmTags.moveMouseX >= 0 ||
+			HtmTags.moveMouseY >= 0		)
+		{
+			m_oComponent.addMouseListener(m_eMouseUpListener= new MouseAdapter() 
+			{
+				public void mouseUp(MouseEvent event)
+				{
+					int x, y;
+					Robot robot;
+					PopupMenu popup;
+	
+					popup= PopupMenu.instance();
+					if(popup != null)
+						popup.destroy();
+					if(HtmTags.moveMouseX >= 0)
+						x= HtmTags.moveMouseX;
+					else
+						x= event.x;
+					if(HtmTags.moveMouseY >= 0)
+						y= HtmTags.moveMouseY;
+					else
+						y= event.y;
+					try{
+						robot= new Robot();
+						if(HtmTags.moveMouseDelay > 0)
+							robot.delay(HtmTags.moveMouseDelay);
+						robot.mouseMove(x, y);
+						
+					}catch(AWTException ex)
+					{
+						System.out.println("cannot define AWT Robot to move mose");
+					}
+				}
+			});
+		}
 		if(	this.type.equals("combo") ||
 			(	getPermission().equals(permission.readable) &&
 				(	this.type.equals("text") &&
@@ -2219,6 +2261,11 @@ public class Component  extends HtmTags implements IComponentListener
 			return;
 		
 		haveListener= false;
+		if(m_eMouseUpListener != null)
+		{
+			m_oComponent.removeMouseListener(m_eMouseUpListener);
+			m_eMouseUpListener= null;
+		}
 		if(	this.type.equals("checkbox")
 			||
 			this.type.equals("radio")

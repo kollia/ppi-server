@@ -62,6 +62,18 @@ public abstract class HtmTags
 	 */
 	public static Color systemColor= null;
 	/**
+	 * after press button, move to x position
+	 */
+	public static int moveMouseX= -1;
+	/**
+	 * after press button, move to y position 
+	 */
+	public static int moveMouseY= -1;
+	/**
+	 * move mouse to new position after milliseconds
+	 */
+	public static int moveMouseDelay= -1;
+	/**
 	 * boolean value for setting an debug session.<br />
 	 * this flag can be set by starting
 	 * with option -d
