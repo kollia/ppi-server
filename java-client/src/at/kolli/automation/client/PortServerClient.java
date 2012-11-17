@@ -217,72 +217,42 @@ public class PortServerClient
 			System.exit(1);
 		if(HtmTags.debug)
 			System.out.println("start ppi-java-client");
-		if(shellpwd)
-		{
-			Console c= System.console();
-			
-			if(c != null)
-			{
-				if(HtmTags.debug)
-					System.out.println("read password from console with method readPassword()");
-				TreeNodes.m_sPwd= new String(c.readPassword("password: "));
-			}else
-			{
-				int input= 0;
-
-				if(HtmTags.debug)
-					System.out.println("read password from IO string");
-				try{
-					while(input != 10)
-					{
-						if(input != 0)
-							TreeNodes.m_sPwd+= (char)input;
-						input= System.in.read();
-					}
-							
-				}catch(IOException ex)
-				{
-					System.out.println("ERROR on input password");
-					return;
-				}
-			}
-			//if(HtmTags.debug)
-			//	System.out.println("get password: '" + TreeNodes.m_sPwd + "'");
-			if(TreeNodes.m_sPwd.equals(""))
-			{
-				System.out.println("cannot create NULL password ('') for user " + TreeNodes.m_sUser);
-				System.exit(1);
-			}
-		}
 		try{
 			boolean bStop= false;
 			String sPort;
 			String sBrowser;
 			FileInputStream file;
 			Properties prop= new Properties();
-			
+
+			if(HtmTags.debug)
+			{
+				System.out.println("--------------------------------------------------------------------------");
+				System.out.println("read layout files  '*." + TreeNodes.m_sLayoutStyle + "'");
+				if(HtmTags.notree)
+					System.out.println("show pages inside pop-up menu on top");
+				else
+					System.out.println("show pages inside tree on left side");
+				if(HtmTags.notitle)
+					System.out.println("display main client window with no title-bar");
+				if(HtmTags.fullscreen)
+					System.out.println("display main client window on full screen");
+			}
 			try{
 				file= new FileInputStream(inifile);
 				if(HtmTags.debug)
-				{
-					System.out.println("--------------------------------------------------------------------------");
-					System.out.println("show layout files  '*." + TreeNodes.m_sLayoutStyle + "'");
 					System.out.println("read property file '" + inifile + "'");
-					System.out.println("--------------------------------------------------------------------------");
-				}
 				
 			}catch(Exception ex)
 			{
 				if(inifile.equals("client.ini"))
 					throw ex;
-				System.out.println("--------------------------------------------------------------------------");
-				System.out.println("show layout files  '*." + TreeNodes.m_sLayoutStyle + "'");
 				System.out.println();
 				System.out.println("WARNING: cannot find file '" + inifile + "' for initialization");
 				System.out.println("         read standard property file 'client.ini'");
-				System.out.println("--------------------------------------------------------------------------");
 				file= new FileInputStream("client.ini");
 			}
+			if(HtmTags.debug)
+				System.out.println("--------------------------------------------------------------------------");
 			prop.load(file);
 			lang= prop.getProperty("defaultLang");
 			maincolor= prop.getProperty("maincolor");
@@ -414,6 +384,43 @@ public class PortServerClient
 			}
 			if(bStop)
 				System.exit(1);
+			if(shellpwd)
+			{
+				Console c= System.console();
+				
+				if(c != null)
+				{
+					if(HtmTags.debug)
+						System.out.println("read password from console with method readPassword()");
+					TreeNodes.m_sPwd= new String(c.readPassword("password: "));
+				}else
+				{
+					int input= 0;
+
+					if(HtmTags.debug)
+						System.out.println("read password from IO string");
+					try{
+						while(input != 10)
+						{
+							if(input != 0)
+								TreeNodes.m_sPwd+= (char)input;
+							input= System.in.read();
+						}
+								
+					}catch(IOException ex)
+					{
+						System.out.println("ERROR on input password");
+						return;
+					}
+				}
+				//if(HtmTags.debug)
+				//	System.out.println("get password: '" + TreeNodes.m_sPwd + "'");
+				if(TreeNodes.m_sPwd.equals(""))
+				{
+					System.out.println("cannot create NULL password ('') for user " + TreeNodes.m_sUser);
+					System.exit(1);
+				}
+			}
 			
 		}catch(Exception ex)
 		{
@@ -689,5 +696,7 @@ public class PortServerClient
 				sysImg.dispose();
 			}
 		}*/
+		if(HtmTags.debug)
+			System.out.println("Ending of thread 'main'");
 	}
 }
