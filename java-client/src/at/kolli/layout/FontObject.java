@@ -528,7 +528,7 @@ public class FontObject
 											"monospaced", "dialog", "dialoginput", "Paint Boy",
 											"DejaVu Sans Mono", "Courier 10 Pitch"};
 			fontData= display.getSystemFont().getFontData();
-			sysFont= fontData[0].name;
+			sysFont= fontData[0].getName();
 			m_aSystemFont= display.getFontList(sysFont, /*scalable*/true);
 			if(m_aSystemFont.length == 0)
 				m_aSystemFont= display.getFontList(sysFont, /*scalable*/false);
@@ -540,7 +540,7 @@ public class FontObject
 				if(fontData.length == 0)
 					fontData= display.getFontList(font, /*scalable*/false);
 				if(	fontData.length != 0 &&
-					!fontData[0].name.equals(sysFont)	)
+					!fontData[0].getName().equals(sysFont)	)
 				{
 					m_lFonts.add(fontData);
 					if(m_lFonts.size() >= 15)
@@ -554,14 +554,14 @@ public class FontObject
 				fontData= display.getFontList(null, /*scalable*/true);
 				for(FontData font : fontData) 
 				{
-					if(	!font.name.equals(sysFont) &&
-						!font.name.equals(currentFont)	)
+					if(	!font.getName().equals(sysFont) &&
+						!font.getName().equals(currentFont)	)
 					{
 						boolean bfound= false;
 						
 						for (FontData[] fData : m_lFonts)
 						{
-							if(fData[0].name == font.name)
+							if(fData[0].getName() == font.getName())
 							{
 								bfound= true;
 								break;
@@ -569,11 +569,11 @@ public class FontObject
 						}
 						if(!bfound)
 						{
-							fontData= display.getFontList(font.name, /*scalable*/true);
+							fontData= display.getFontList(font.getName(), /*scalable*/true);
 							if(fontData.length > 0)
 							{
 								m_lFonts.add(fontData);
-								currentFont= fontData[0].name;
+								currentFont= fontData[0].getName();
 							}
 							if(m_lFonts.size() >= 15)
 								break;
@@ -784,12 +784,12 @@ public class FontObject
 		if(	font == null ||
 			font.trim().equals("")	)
 		{
-			font= fontData[0].name;
+			font= fontData[0].getName();
 		}
 		if(size == 0)
 			size= fontData[0].getHeight();
-		if(	fontData[0].name.equals(font.trim()) &&
-			fontData[0].style == style &&
+		if(	fontData[0].getName().equals(font.trim()) &&
+			fontData[0].getStyle() == style &&
 			m_nSystemFontSize == size				)
 		{
 			m_oCurrentFont= null;
