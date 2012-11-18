@@ -165,7 +165,7 @@ public class WidgetChecker extends Thread
 							m_bRun= false;
 							break;
 						}
-						sleep(10);
+						//sleep(10);
 					}
 				}
 				Thread t= null;
@@ -237,6 +237,8 @@ public class WidgetChecker extends Thread
 				}
 			}
 		}
+		if(HtmTags.debug)
+			System.out.println("Ending of thread '" + getName() + "'");
 	}
 	
 	/**

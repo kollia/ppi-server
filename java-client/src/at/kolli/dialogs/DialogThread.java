@@ -574,5 +574,7 @@ public class DialogThread // extends Thread
 				}
 			});
 		}
+		if(HtmTags.debug)
+			System.out.println("Closing dialog box");
 	}
 }

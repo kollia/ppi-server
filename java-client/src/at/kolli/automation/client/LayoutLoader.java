@@ -492,6 +492,8 @@ public class LayoutLoader extends Thread
 				type= WAIT;
 			}	
 		}
+		if(HtmTags.debug)
+			System.out.println("Ending of thread '" + getName() + "'");
 	}
 
 	/**
