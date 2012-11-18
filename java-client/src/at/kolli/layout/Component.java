@@ -17,6 +17,7 @@
 package at.kolli.layout;
 
 import java.awt.AWTException;
+import java.awt.GraphicsEnvironment;
 import java.awt.Robot;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
@@ -1636,15 +1638,37 @@ public class Component  extends HtmTags implements IComponentListener
 					else
 						y= event.y;
 					try{
+						Thread.sleep(HtmTags.moveMouseDelay);
+					}catch(InterruptedException ex)
+					{
+						System.out.println("cannot wait " + HtmTags.moveMouseDelay + " milliseconds before moving");
+						ex.printStackTrace();
+					}
+					Display.getCurrent().setCursorLocation(x, y);
+					/*try{
+					 *
+					 * throw AWTException if the XTEST 2.2 standard extension is not supported (or not enabled) by the X server. *
+					 * 
 						robot= new Robot();
 						if(HtmTags.moveMouseDelay > 0)
+						{
+							if(HtmTags.debug)
+								System.out.println("wait " + HtmTags.moveMouseDelay + " milliseconds before moving");
 							robot.delay(HtmTags.moveMouseDelay);
+						}
+						if(HtmTags.debug)
+							System.out.println("move mouse to position " + HtmTags.moveMouseX + "/" + HtmTags.moveMouseY + "(x/y)");
 						robot.mouseMove(x, y);
 						
 					}catch(AWTException ex)
 					{
-						System.out.println("cannot define AWT Robot to move mose");
-					}
+						System.out.println("cannot define AWT Robot to move mouse");
+					System.out.print("Graphics environment is ");
+					if(!GraphicsEnvironment.isHeadless())
+						System.out.print("not ");
+					System.out.println("Headless");
+						ex.printStackTrace();
+					}*/
 				}
 			});
 		}
