@@ -81,7 +81,7 @@ import at.kolli.layout.WidgetChecker;
 public class LayoutLoader extends Thread
 {
 	/**
-	 * constant variable or waiting for next action
+	 * constant variable of waiting for next action
 	 */
 	public static final short WAIT= 0;
 	/**
@@ -558,9 +558,15 @@ public class LayoutLoader extends Thread
 			sideLock.unlock();
 			return true;
 		}
+		newNode= null;
 		for(TreeNodes node : m_aTreeNodes)
 		{
-			newNode= node.setVisible(m_StackLayout, m_sAktFolder, inform);
+			if(	m_sAktFolder.equals(node.getName()) ||
+				m_oAktTreeNode != null ||		// ask only whether not should shown inside tree
+				node.treeDisplay()			) 	// by first starting of client when no actual tree node defined
+			{
+				newNode= node.setVisible(m_StackLayout, m_sAktFolder, inform);
+			}
 			
 			if(newNode != null)
 			{
@@ -990,6 +996,8 @@ public class LayoutLoader extends Thread
 		nodes= creatingWidgets(m_oTree, m_oMainComposite, folderSet);
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 			return;
+		if(HtmTags.debug)
+			System.out.println("all new nodes created inside class LayoutLoader");
 		if(m_aTreeNodes != null)
 		{// dispose all old sides
 			for (TreeNodes node : m_aTreeNodes) {
@@ -998,6 +1006,8 @@ public class LayoutLoader extends Thread
 			}
 		}
 		m_aTreeNodes= nodes;
+		if(HtmTags.debug)
+			System.out.println("all new nodes changed with old nodes");
 
 		if(	m_nWidth != 0
 			&&
@@ -1105,6 +1115,8 @@ public class LayoutLoader extends Thread
 		String firstActiveSide= "";
 		String actFolderBefore;
 		
+		// search first wich first side 
+		// on server list is set active
 		for(TreeNodes current : m_aTreeNodes)
 		{
 			firstActiveSide= current.getFirstActiveSidePath("");
@@ -1123,7 +1135,9 @@ public class LayoutLoader extends Thread
 			node.sendNotVisible();
 
 		if(!firstActiveSide.equals(""))
-		{
+		{// if first active side on server found,
+		 // set this one visible
+			m_oAktTreeNode= null;
 			actFolderBefore= m_sAktFolder;
 			m_sAktFolder= firstActiveSide;
 			if(setActSideVisible(/*inform server by no body*/false))
@@ -1131,18 +1145,18 @@ public class LayoutLoader extends Thread
 			m_sAktFolder= actFolderBefore;
 		}
 		if(m_oAktTreeNode != null)
-		{
+		{// when no side on server found,
+		 // but client was running before
+		 // set the same side (actually inside m_sAktFolder) visible
 			m_oAktTreeNode= null;
 			if(setActSideVisible(/*inform server*/true))
 				return;
 		}
 		
+		// when no side on server found
+		// and actually no actual side be set from running client before
+		// set first regular side, which can be set visible, to active
 		setFirstSide(m_aTreeNodes, "");
-/*		if(!setActSideVisible(/*inform server/true))
-		{
-			m_sAktFolder= nodes.get(0).getName();
-			setActSideVisible(/*inform server/true);
-		}*/
 	}
 	/**
 	 * set first side by starting active
@@ -1155,9 +1169,12 @@ public class LayoutLoader extends Thread
 	{
 		for(TreeNodes current : nodes)
 		{
-			m_sAktFolder= path + current.getName();
-			if(setActSideVisible(/*inform server by no body*/false))
-				return true;
+			if(current.treeDisplay())
+			{
+				m_sAktFolder= path + current.getName();
+				if(setActSideVisible(/*inform server by no body*/false))
+					return true;
+			}
 		}
 		for(TreeNodes current : nodes)
 		{
@@ -1200,6 +1217,8 @@ public class LayoutLoader extends Thread
 		ArrayList<TreeNodes> oRetTrees= new ArrayList<TreeNodes>();
 		RE nameParser= new RE("^(.*)\\." + TreeNodes.m_sLayoutStyle);
 		int nMax= dialog.getMaximum();
+		String display;
+		HashMap<String, String> mMetaBlock;
 		
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 			return oRetTrees;
@@ -1246,7 +1265,16 @@ public class LayoutLoader extends Thread
 					if(access)
 					{
 						oRetTrees.add(node);
-						++pos;
+						display= null;
+						mMetaBlock= node.getMetaData();
+						if(mMetaBlock != null)
+							display= mMetaBlock.get("display");
+						if(	HtmTags.showFalse ||
+							display == null ||
+							!display.equals("notree")	)
+						{// do not increment position index for navigation tree
+							++pos; // when the side should'nt display in tree
+						}
 					}
 					if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 						return oRetTrees;

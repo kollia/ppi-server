@@ -662,7 +662,7 @@ public class TreeNodes
 	{ 
 		boolean bNoSides= false;
 		short ipos= 0;
-		String name;
+		String name, display= null;
 		String aktName= "";
 		ArrayList<String> aktFolderList= new ArrayList<String>();
 		DialogThread dialog= DialogThread.instance(null);
@@ -721,7 +721,12 @@ public class TreeNodes
 						msg= "### loading dialog closed";
 					throw new IllegalAccessException(msg);
 				}
-				if(!bNoSides)
+				if(m_mMetaBlock != null)
+					display= m_mMetaBlock.get("display");
+				if(	!bNoSides &&
+					display == null ||
+					!display.equals("notree") ||
+					HtmTags.showFalse				)
 				{
 					if(HtmTags.notree)
 					{
@@ -777,6 +782,18 @@ public class TreeNodes
 							}
 						
 						});
+					}
+				}else if(	display != null &&
+							display.equals("notree")	)
+				{
+					String pageset= null;
+					
+					if(m_mMetaBlock != null)
+						pageset= m_mMetaBlock.get("pageset");
+					if(pageset == null)
+					{
+						System.out.println("WARNING: page " + m_sName + " is not shown inside navigation tree and has not pageset from server,");
+						System.out.println("         so page can not be reached in any case");
 					}
 				}
 
@@ -855,7 +872,7 @@ public class TreeNodes
 		
 		if(!hasContent())
 		{
-			String display= null;
+			display= null;
 			
 			if(m_mMetaBlock != null)
 				display= m_mMetaBlock.get("display");
@@ -917,6 +934,7 @@ public class TreeNodes
 		Layout layout= null;
 		Head head= null;
 		Title title;
+		String sTitle;
 		String fileName= m_sParentFolder+"/"+m_sName;
 		String osFileName;
 		File file= null;
@@ -1148,17 +1166,36 @@ public class TreeNodes
 	    		  return false;
 	    	  }
 	      }
+	      sTitle= "";
 		    if(head != null)
 		    {
 		    	title= head.getTitle();
 		    	if(title != null)
 		    	{
-		    		if(!title.name.equals(""))
-		    		{
-		    			m_sTitleName= title.name.trim();
-		    		}
+		    		sTitle= title.name.trim();
+		    		if(sTitle == null)
+		    			sTitle= "";
 		    	}
 		    }
+			if(HtmTags.showFalse)
+			{
+				String sFile= m_sTitleName;
+				
+				m_sTitleName= "";
+				if(m_mMetaBlock != null)
+				{
+					String display= m_mMetaBlock.get("display");
+	
+					if(display != null)
+						m_sTitleName= "[" + display + "]  ";
+				}
+				if(!sTitle.equals(""))
+					m_sTitleName+= sTitle + "  (" + sFile + ")";
+				else
+					m_sTitleName+= sFile;
+				
+			} else if(!sTitle.equals(""))
+				m_sTitleName= sTitle;
 		    if(	bodyList != null
 		    	&&
 		    	bodyList.size() > 0	)
@@ -1297,6 +1334,26 @@ public class TreeNodes
 			}
 		}
 		return sRv; 
+	}
+	/**
+	 * whether page should display inside navigation tree
+	 * 
+	 * @return whether should display
+	 */
+	public boolean treeDisplay()
+	{
+		String display= null;
+		
+		if(HtmTags.showFalse)
+			return true;
+		if(m_mMetaBlock != null)
+			display= m_mMetaBlock.get("display");
+		if(	display == null ||
+			!display.equals("notree")	)
+		{
+			return true;
+		}
+		return false;
 	}
 	/**
 	 * insert into server connection all sides having an defined address
