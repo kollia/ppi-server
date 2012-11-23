@@ -934,7 +934,7 @@ public class TreeNodes
 		Layout layout= null;
 		Head head= null;
 		Title title;
-		String sTitle;
+		String sTitle, display;
 		String fileName= m_sParentFolder+"/"+m_sName;
 		String osFileName;
 		File file= null;
@@ -1071,7 +1071,7 @@ public class TreeNodes
 	        if(	m_mMetaBlock != null &&
 	        	!HtmTags.showFalse		)
 	        {
-	        	String display= m_mMetaBlock.get("display");
+	        	display= m_mMetaBlock.get("display");
 	        	
 	        	if(	display != null &&
 	        		display.equals("false")	)
@@ -1092,7 +1092,7 @@ public class TreeNodes
 				if(	m_mMetaBlock != null &&
 				    	!HtmTags.showFalse		)
 				{
-					String display= m_mMetaBlock.get("display");
+					display= m_mMetaBlock.get("display");
 					
 					if(	display != null &&
 						display.equals("false")	)
@@ -1167,6 +1167,7 @@ public class TreeNodes
 	    	  }
 	      }
 	      sTitle= "";
+	      display= null;
 		    if(head != null)
 		    {
 		    	title= head.getTitle();
@@ -1176,23 +1177,35 @@ public class TreeNodes
 		    		if(sTitle == null)
 		    			sTitle= "";
 		    	}
+		    	if(m_mMetaBlock != null)
+		    	{
+		    		display= m_mMetaBlock.get("display");
+		    		if(display != null)
+		    		{
+		    			display= display.toLowerCase();
+		    			if(	!display.equals("true") &&
+		    				!display.equals("false") &&
+		    				!display.equals("notree")	)
+		    			{
+		    				System.out.println("WARNING: for meta tag 'display' wrong content with '" + display + "' be set");
+		    				display= m_mMetaBlock.get("display");
+		    				display= "(?) " + display + "(?)";
+		    			}
+		    		}
+		    	}
 		    }
 			if(HtmTags.showFalse)
 			{
 				String sFile= m_sTitleName;
 				
 				m_sTitleName= "";
-				if(m_mMetaBlock != null)
-				{
-					String display= m_mMetaBlock.get("display");
-	
-					if(display != null)
-						m_sTitleName= "[" + display + "]  ";
-				}
-				if(!sTitle.equals(""))
-					m_sTitleName+= sTitle + "  (" + sFile + ")";
-				else
+				if(display != null)
+					m_sTitleName= "[" + display + "]  ";
+				if(sTitle.equals(""))
 					m_sTitleName+= sFile;
+				else
+					m_sTitleName+= sTitle;
+				m_sTitleName+= "  (" + sFile + ")";
 				
 			} else if(!sTitle.equals(""))
 				m_sTitleName= sTitle;
