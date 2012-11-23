@@ -45,17 +45,19 @@ now see all allowed tags you can use:
            pageset        -  inform server that client display this side
                              client inform then also that he leave this side
                              unless the side has no body
-                             content value have to be an folder with subroutine seperated with an colon
+                             content value have to be an folder with subroutine separated with an colon
            display        -  whether client should show this side
-                             this can be used for sides which you dont want to use this time
-                             define display with false
-                             normaly if you write an side with no body,
+                             this can be used for sides which you don't want to use this time, define display with false
+                             or you don't want to see the side inside the navigation tree
+                             when only should shown the page from server defined with meta tag pageset,
+                             define display with notree
+                             normally if you write an side with no body,
                              the most time for an folder to give specific permission or other name as the file name,
-                             but the folder has no content inside the folder, the client do not show this side.
+                             but the folder has no content inside the folder, the client do not show this sub folder.
                              In this case, by maybe some reasons, if you want to see always this side
                              is still in the navigation tree or popup menu
                              define display with true
-                             content value should be an string of true or false
+                             content value should be an string of true, false or notree
            popupwidth     -  by starting with -t --notree
                              width of pop-up button on top
                              content value is an unsigned integer
