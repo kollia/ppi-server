@@ -1189,7 +1189,7 @@ public class TreeNodes
 		    			{
 		    				System.out.println("WARNING: for meta tag 'display' wrong content with '" + display + "' be set");
 		    				display= m_mMetaBlock.get("display");
-		    				display= "(?) " + display + "(?)";
+		    				display= "(?) " + display + " (?)";
 		    			}
 		    		}
 		    	}
