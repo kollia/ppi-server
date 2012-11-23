@@ -94,7 +94,7 @@ public class PortServerClient
 		{
 			if(arg.substring(0, 2).equals("--"))
 			{
-				if(arg.equals("--false"))
+				if(arg.equals("--develop"))
 				{
 					HtmTags.showFalse= true;
 					
@@ -147,8 +147,8 @@ public class PortServerClient
 						System.out.println("           -s <style>     -  fetch all layout files from server with this extension");
 						System.out.println("                             default is \"desktop\"");
 						System.out.println("           -i <ini-file>  -  define new ini-file (default: 'client.ini')");
-						System.out.println("           --false        -  show also pages from server which are defined");
-						System.out.println("                             with meta tag display as false");
+						System.out.println("           --develop      -  show also pages from server which are defined");
+						System.out.println("                             with meta tag display as false or notree");
 						System.out.println("           --tablestructure <color>");
 						System.out.println("                          -  show table structure in defined color.");
 						System.out.println("                             Some operating systems, like KDE4, do not show shadows when");
