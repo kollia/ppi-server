@@ -38,8 +38,8 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	string prop, smtime, sSetNull;
 
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "switch_test_begin_end" &&
-		getSubroutineName() == "poll"					)
+	/*if(	getFolderName() == "display_settings" &&
+		getSubroutineName() == "activate"					)
 	{
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 		cout << __FILE__ << __LINE__ << endl;
@@ -70,39 +70,33 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	else
 		m_eWhich= notype;
 
-	if(	properties->haveAction("time") ||
-		m_eWhich != notype					)
-	{
+	if(m_eWhich != notype)
 		m_nCaseNr= 1;
-	}
 
-
-	if(m_nCaseNr == 0)
+	if(	m_nCaseNr == 0 &&
+		properties->haveAction("activate")	)
 	{
 		// -----------------------------------------------------------------------
 		// case 2: time count down to setting date time
-		if(properties->haveAction("activate"))
-		{
-			m_nCaseNr= 2;
-			m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
-			if(!m_oYears.isEmpty())
-				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-			m_oMonths.init(pStartFolder, properties->getValue("month", /*warning*/false));
-			if(!m_oMonths.isEmpty())
-				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-			m_oDays.init(pStartFolder, properties->getValue("day", /*warning*/false));
-			if(!m_oDays.isEmpty())
-				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-			m_oHours.init(pStartFolder, properties->getValue("hour", /*warning*/false));
-			if(!m_oHours.isEmpty())
-				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-			m_oMinutes.init(pStartFolder, properties->getValue("min", /*warning*/false));
-			if(!m_oMinutes.isEmpty())
-				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-			m_oSeconds.init(pStartFolder, properties->getValue("sec", /*warning*/false));
-			if(!m_oSeconds.isEmpty())
-				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-		}
+		m_nCaseNr= 2;
+		m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
+		if(!m_oYears.isEmpty())
+			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+		m_oMonths.init(pStartFolder, properties->getValue("month", /*warning*/false));
+		if(!m_oMonths.isEmpty())
+			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+		m_oDays.init(pStartFolder, properties->getValue("day", /*warning*/false));
+		if(!m_oDays.isEmpty())
+			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+		m_oHours.init(pStartFolder, properties->getValue("hour", /*warning*/false));
+		if(!m_oHours.isEmpty())
+			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+		m_oMinutes.init(pStartFolder, properties->getValue("min", /*warning*/false));
+		if(!m_oMinutes.isEmpty())
+			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
+		m_oSeconds.init(pStartFolder, properties->getValue("sec", /*warning*/false));
+		if(!m_oSeconds.isEmpty())
+			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
 	}
 	if(m_nCaseNr == 0)
 	{
@@ -178,6 +172,8 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 
 		if(!bTimeMeasure)
 		{
+			// -----------------------------------------------------------------------
+			// case 3 or 4: count the time down to 0, or up to full time
 			m_bPoll= properties->haveAction("poll");
 			smtime= properties->getValue("direction", /*warning*/false);
 			m_oDirect.init(pStartFolder, smtime);
@@ -297,18 +293,78 @@ double timer::measure(const double actValue)
 	switchClass::setting set;
 
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "switch_test_begin_end" &&
-		getSubroutineName() == "poll"					)
+	/*if(	getFolderName() == "display_settings" &&
+		getSubroutineName() == "activate"					)
 	{
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 		cout << __FILE__ << __LINE__ << endl;
 	}*/
-/*	if(	!m_bTime ||
-		m_bSwitchbyTime ||
-		m_bTimeMeasure ||
-		!m_bMeasure			)*/
-	if(	m_bSwitchbyTime ) // &&
-//		m_dSwitch <= 0		)
+	if(gettimeofday(&tv, NULL))
+	{
+		string msg("ERROR: cannot get time of day,\n");
+
+		msg+= "       so cannot measure time for TIMER function in folder ";
+		msg+= getFolderName() + " and subroutine " + getSubroutineName() + ".";
+		TIMELOG(LOG_ALERT, "gettimeofday", msg);
+		if(debug)
+			tout << msg << endl;
+		if(m_nCaseNr == 5) // measure time inside case of begin/while/end
+			need= 0;
+		else
+			need= -1;
+		return need;
+	}
+	if(debug)
+	{
+		tout << "routine running in case of " << m_nCaseNr << " (";
+		switch(m_nCaseNr)
+		{
+		case 1:
+			tout << "folder polling all ";
+			switch(m_eWhich)
+			{
+			case seconds:
+				tout << "seconds";
+				break;
+			case minutes:
+				tout << "minutes";
+				break;
+			case hours:
+				tout << "hours";
+				break;
+			case days:
+				tout << "days";
+				break;
+			case months:
+				tout << "months";
+				break;
+			case years:
+				tout << "years";
+				break;
+			default:
+				tout << "(no correct ACTION be set)";
+				break;
+			}
+			break;
+		case 2:
+			char timeString[21];
+
+			strftime(timeString, 20, "%Y.%m.%d %H:%M:%S", gmtime(&m_tmStop.tv_sec));
+			tout << "time count down to setting date time " << timeString;
+			break;
+		case 3:
+			tout << "count the time down to 0";
+			break;
+		case 4:
+			tout << "count the time down to 0, or up to full time";
+			break;
+		case 5:
+			tout << "measure time inside case of begin/while/end";
+			break;
+		}
+		tout << ")" << endl;
+	}
+	if(	m_bSwitchbyTime )
 	{
 		m_dSwitch= switchClass::measure(m_dSwitch, set);
 
@@ -324,28 +380,6 @@ double timer::measure(const double actValue)
 		bswitch= true;
 	else
 		bswitch= false;
-/*	if(	bswitch ||
-		m_bMeasure ||
-		m_bTimeMeasure ||
-		(	m_nCaseNr == 1 &&
-			m_omtime.isEmpty()	)	)
-	{*/
-		if(gettimeofday(&tv, NULL))
-		{
-			string msg("ERROR: cannot get time of day,\n");
-
-			msg+= "       so cannot measure time for TIMER function in folder ";
-			msg+= getFolderName() + " and subroutine " + getSubroutineName() + ".";
-			TIMELOG(LOG_ALERT, "gettimeofday", msg);
-			if(debug)
-				tout << msg << endl;
-			if(m_nCaseNr == 5) // measure time inside case of begin/while/end
-				need= 0;
-			else
-				need= -1;
-			return need;
-		}
-//	}
 	if(	m_nCaseNr == 1 || // folder should polling all seconds, minutes, hours, ...
 		m_nCaseNr == 2	) // time count down to setting date time
 	{
