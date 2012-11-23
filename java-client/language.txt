@@ -43,9 +43,17 @@ READERIOEXCEPTION:
 Die Verbindung kann nicht gelesen werden
 cannot read on socket
 
+FAILDSECONDCONNECTIONID:
+Es kann keine zweite Vervindung zum server aufgenommen werden
+can not make second connection to server
+
 IOCLOSEERROR:
 Die Verbindung zum port-server kann nicht geschlossen werden
 cannot close read - write connection to server
+
+dialogLoadContent:
+lade inhalt aller Seiten
+load content of sides
 
 PORTSERVERERROR001:
 Client hat die Transaktion falsch begonnen
