@@ -115,6 +115,23 @@ class MeasureThread : 	public Thread,
 		void nextActivateTime(const string& folder, const timeval& time)
 		{ LOCK(m_ACTIVATETIME);m_vtmNextTime.push_back(time);UNLOCK(m_ACTIVATETIME); };
 		/**
+		 * searching whether folder was starting from an specific time condition.<br />
+		 * This method will be called only from own thread
+		 * so we need no LOCKING. <br />but WARNING:
+		 * it's possible to call method also from other threads
+		 *        ( method is not locking save !!! )
+		 *
+		 * @param timeConditionString string of time condition setting before
+		 */
+		bool hasActivatedTime(const string& timeConditionString);
+		/**
+		 * get time string of date with microseconds
+		 *
+		 * @param time structure of time with seconds and microseconds
+		 * @param debug whether method should write an error by debugging mode
+		 */
+		static string getTimevalString(const timeval& time, const bool debug);
+		/**
 		 * get string with starting zeros from microseconds
 		 *
 		 * @param usec microseconds

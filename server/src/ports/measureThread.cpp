@@ -226,6 +226,26 @@ struct time_sort : public binary_function<timeval, timeval, bool>
 	}
 };
 
+string MeasureThread::getTimevalString(const timeval& time, const bool debug)
+{
+	char stime[22];
+	struct tm ttime;
+	string sRv;
+
+	if(localtime_r(&time.tv_sec, &ttime) != NULL)
+	{
+		strftime(stime, 21, "%d.%m.%Y %H:%M:%S  ", &ttime);
+		sRv= stime;
+	}else
+	{
+		if(debug)
+			tout << "++ cannot create localtime_r from seconds ++" << endl;
+		sRv= "xx.xx.xxxx xx:xx:xx  ";
+	}
+	sRv+= getUsecString(time.tv_usec);
+	return sRv;
+}
+
 string MeasureThread::getUsecString(const suseconds_t usec)
 {
 	string::size_type nLen;
@@ -245,18 +265,25 @@ int MeasureThread::execute()
 	bool debug(isDebug());
 	string folder;
 	static timeval start_tv;
-	timeval end_tv, diff_tv, cond;
+	timeval end_tv, diff_tv;
 	timespec waittm;
 	vector<timeval>::iterator akttime, lasttime;
 
-	//Debug info to stop by right folder
-	/*if(folder == "Hauppauge_KEY_6")
+	//Debug info before measure routine to stop by right folder
+	/*folder= getThreadName();
+	if(folder == "display_settings")
 	{
 		cout << __FILE__ << __LINE__ << endl;
 		cout << "starting folder " << folder << endl;
 	}*/
-	timerclear(&cond);
 	measure();
+	//Debug info behind measure routine to stop by right folder
+	/*folder= getThreadName();
+	if(folder == "display_settings")
+	{
+		cout << __FILE__ << __LINE__ << endl;
+		cout << "starting folder " << folder << endl;
+	}*/
 
 	if(gettimeofday(&end_tv, NULL))
 	{
@@ -306,6 +333,7 @@ int MeasureThread::execute()
 		if(!m_vtmNextTime.empty())
 		{
 			bool fold(false);
+			char stime[18];
 
 			sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
 			akttime= m_vtmNextTime.begin();
@@ -315,12 +343,12 @@ int MeasureThread::execute()
 				if(timercmp(&end_tv, &*akttime, <))
 					break;
 				fold= true;
-				//cout << __FILE__ << " " << __LINE__ << endl;
-				//cout << "remove older time" << endl;
+				m_vFolder.push_back("#timecondition " + getTimevalString(*akttime, debug));
 				m_vtmNextTime.erase(akttime);
+				akttime= m_vtmNextTime.begin();
 			}
 			do{ // search for same times
-				// and erase one of them
+				// and erase until one on of them
 				lasttime= akttime;
 				++akttime;
 				if(	akttime == m_vtmNextTime.end() ||
@@ -329,8 +357,6 @@ int MeasureThread::execute()
 					akttime= lasttime;
 					break;
 				}
-				//cout << __FILE__ << " " << __LINE__ << endl;
-				//cout << "found two same times and erase one of them" << endl;
 				if(lasttime != m_vtmNextTime.end())
 					m_vtmNextTime.erase(lasttime);
 				akttime= m_vtmNextTime.begin();
@@ -338,36 +364,52 @@ int MeasureThread::execute()
 			//cout << __FILE__ << " " << __LINE__ << endl;
 			//cout << "akttime:  " << end_tv.tv_sec << " " << end_tv.tv_usec << endl;
 			//cout << "polltime: " << akttime->tv_sec << " " << akttime->tv_usec << endl;
-			UNLOCK(m_ACTIVATETIME);
 			if(	akttime != m_vtmNextTime.end() &&
 				fold == false						)
 			{// no older times be found
+				int condRv= 0;
+
+				UNLOCK(m_ACTIVATETIME);
 				waittm.tv_sec= akttime->tv_sec;
 				waittm.tv_nsec= akttime->tv_usec * 1000;
-				//cout << __FILE__ << " " << __LINE__ << endl;
-				//cout << "make condition to time" << endl;
-				if(TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm) == ETIMEDOUT)
+				while(m_vFolder.empty())
 				{
-					if(debug)
-						cond= *akttime;
-					LOCK(m_ACTIVATETIME);
+					condRv= TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm);
+					if(condRv == ETIMEDOUT)
+					{
+						m_vFolder.push_back("#timecondition " + getTimevalString(*akttime, debug));
+						break;
+					}
+					if(m_vFolder.empty())
+					{
+						if(stopping())
+							break;
+						cout << "WARNING: condition for folder list " << getThreadName()
+										<< " get's an spurious wakeup" << endl;
+					}
+				}
+				LOCK(m_ACTIVATETIME);
+				if(condRv == ETIMEDOUT)
+				{
 					m_vtmNextTime.erase(akttime);
-					UNLOCK(m_ACTIVATETIME);
 				}
 			}// else found only old times
 			//  and make now an new pass of older
-			//cout << __FILE__ << " " << __LINE__ << endl;
-			//cout << "make new pass of older time" << endl;
+			UNLOCK(m_ACTIVATETIME);
 		}else
 		{
 			UNLOCK(m_ACTIVATETIME);
-			CONDITION(m_VALUECONDITION, m_VALUE);
-			static pid_t pid(0);
-
-			if(Thread::gettid() == pid)
+			while(m_vFolder.empty())
 			{
-				cout << "running thread " << pid << endl;
-				cout << __FILE__ << " " << __LINE__ << endl;
+				CONDITION(m_VALUECONDITION, m_VALUE);
+				if(m_vFolder.empty())
+				{
+					if(stopping())
+						break;
+					cout << "WARNING: condition for folder list " << getThreadName()
+									<< " get's an spurious wakeup" << endl;
+				}else
+					break;
 			}
 		}
 	}
@@ -404,28 +446,21 @@ int MeasureThread::execute()
 			}else
 				tout << " cannot create localtime_r from seconds ";
 			tout << getUsecString(start_tv.tv_usec) << ")" << endl;
-			if(timerisset(&cond))
-			{
-				tout << "      awaked from setting time ";
-				if(localtime_r(&cond.tv_sec, &ttime) != NULL)
-				{
-					strftime(stime, 16, "%Y%m%d:%H%M%S", &ttime);
-					tout << stime << " ";
-				}else
-					tout << " cannot create localtime_r from seconds ";
-				tout << getUsecString(cond.tv_usec) << ")" << endl;
-			}
 			for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
 			{
-				tout << "    informed ";
-				if(i->substr(0, 1) == "|")
+				if(i->substr(0, 15) != "#timecondition ")
 				{
-					if(i->substr(1, 1) == "|")
-						tout << "from ppi-reader '" << i->substr(2) << "'" << endl;
-					else
-						tout << "over Internet connection account '" << i->substr(1) << "'" << endl;
+					tout << "    informed ";
+					if(i->substr(0, 1) == "|")
+					{
+						if(i->substr(1, 1) == "|")
+							tout << "from ppi-reader '" << i->substr(2) << "'" << endl;
+						else
+							tout << "over Internet connection account '" << i->substr(1) << "'" << endl;
+					}else
+						tout << "from " << *i << " because value was changed" << endl;
 				}else
-					tout << "from " << *i << " because value was changed" << endl;
+					tout << "      awaked from setting time " << i->substr(15) << endl;
 			}
 		}
 		tout << "--------------------------------------------------------------------" << endl;
@@ -433,6 +468,26 @@ int MeasureThread::execute()
 	}
 	UNLOCK(m_VALUE);
 	return 0;
+}
+
+bool MeasureThread::hasActivatedTime(const string& timeConditionString)
+{
+	bool bRv= false;
+
+	// this method will be called only from own thread
+	// so we need no LOCKING. message from 25/11/2012
+	// but WARNING: it's possible to call method also from other threads
+	//                      ( method is not locking save !!! )
+	for(vector<string>::iterator it= m_vInformed.begin(); it != m_vInformed.end(); ++it)
+	{
+		if(*it == timeConditionString)
+		{
+			m_vInformed.erase(it);
+			bRv= true;
+			break;
+		}
+	}
+	return bRv;
 }
 
 vector<string> MeasureThread::wasInformed()
