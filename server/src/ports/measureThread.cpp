@@ -37,12 +37,13 @@ using namespace ports;
 SHAREDPTR::shared_ptr<meash_t> meash_t::firstInstance= SHAREDPTR::shared_ptr<meash_t>();
 string meash_t::clientPath= "";
 
-MeasureThread::MeasureThread(string threadname) :
+MeasureThread::MeasureThread(const string& threadname, const time_t& nServerSearch) :
 Thread(threadname, /*defaultSleep*/0)
 {
 #ifdef DEBUG
 	cout << "constructor of measurethread for folder " << getThreadName() << endl;
 #endif // DEBUG
+	m_nServerSearchSeconds= nServerSearch;
 	m_DEBUGLOCK= Thread::getMutex("DEBUGLOCK");
 	m_VALUE= Thread::getMutex("VALUE");
 	m_ACTIVATETIME= Thread::getMutex("ACTIVATETIME");
@@ -330,54 +331,90 @@ int MeasureThread::execute()
 	{
 		TERMINALEND;
 		LOCK(m_ACTIVATETIME);
-		if(!m_vtmNextTime.empty())
+		if(	!m_vtmNextTime.empty() ||
+			!m_osUndefServers.empty()	)
 		{
 			bool fold(false);
 			char stime[18];
 
-			sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
-			akttime= m_vtmNextTime.begin();
-			while(akttime != m_vtmNextTime.end())
-			{// remove all older times than actual from NextTime vector
-			 // and make no condition when any older found
-				if(timercmp(&end_tv, &*akttime, <))
-					break;
-				fold= true;
-				m_vFolder.push_back("#timecondition " + getTimevalString(*akttime, debug));
-				m_vtmNextTime.erase(akttime);
+			if(!m_vtmNextTime.empty())
+			{
+				sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
 				akttime= m_vtmNextTime.begin();
-			}
-			do{ // search for same times
-				// and erase until one on of them
-				lasttime= akttime;
-				++akttime;
-				if(	akttime == m_vtmNextTime.end() ||
-					timercmp(&*akttime, &*lasttime, !=)	)
-				{
-					akttime= lasttime;
-					break;
+				while(akttime != m_vtmNextTime.end())
+				{// remove all older times than actual from NextTime vector
+				 // and make no condition when any older found
+					if(timercmp(&end_tv, &*akttime, <))
+						break;
+					fold= true;
+					m_vFolder.push_back("#timecondition " + getTimevalString(*akttime, debug));
+					m_vtmNextTime.erase(akttime);
+					akttime= m_vtmNextTime.begin();
 				}
-				if(lasttime != m_vtmNextTime.end())
-					m_vtmNextTime.erase(lasttime);
-				akttime= m_vtmNextTime.begin();
-			}while(akttime != m_vtmNextTime.end());
-			//cout << __FILE__ << " " << __LINE__ << endl;
-			//cout << "akttime:  " << end_tv.tv_sec << " " << end_tv.tv_usec << endl;
-			//cout << "polltime: " << akttime->tv_sec << " " << akttime->tv_usec << endl;
-			if(	akttime != m_vtmNextTime.end() &&
-				fold == false						)
+				do{ // search for same times
+					// and erase until one on of them
+					lasttime= akttime;
+					++akttime;
+					if(	akttime == m_vtmNextTime.end() ||
+						timercmp(&*akttime, &*lasttime, !=)	)
+					{
+						akttime= lasttime;
+						break;
+					}
+					if(lasttime != m_vtmNextTime.end())
+						m_vtmNextTime.erase(lasttime);
+					akttime= m_vtmNextTime.begin();
+				}while(akttime != m_vtmNextTime.end());
+				//cout << __FILE__ << " " << __LINE__ << endl;
+				//cout << "akttime:  " << end_tv.tv_sec << " " << end_tv.tv_usec << endl;
+				//cout << "polltime: " << akttime->tv_sec << " " << akttime->tv_usec << endl;
+			}
+			if(	fold == false &&
+				(	m_vtmNextTime.empty() ||
+					akttime != m_vtmNextTime.end()	)	)
 			{// no older times be found
+			 // or folder should start again for searching external port server
 				int condRv= 0;
+				bool bSearchServer(false);
 
+				if(akttime != m_vtmNextTime.end())
+				{
+					waittm.tv_sec= akttime->tv_sec;
+					waittm.tv_nsec= akttime->tv_usec * 1000;
+				}else
+				{// searching for external port server
+					timeval tv;
+
+					bSearchServer= true;
+					if(gettimeofday(&tv, NULL))
+					{
+						string msg("ALERT: cannot get time of day,\n");
+
+						msg+= "       so cannot measure time for next start of folder ";
+						msg+= getThreadName() + " to search for external port server\n";
+						msg+= "       waiting only for 10 seconds !!!";
+						TIMELOG(LOG_ALERT, "gettimeofday", msg);
+						if(debug)
+							tout << msg << endl;
+						UNLOCK(m_ACTIVATETIME);
+						sleep(10);
+						LOCK(m_ACTIVATETIME);
+					}else
+					{
+						waittm.tv_sec= tv.tv_sec + m_nServerSearchSeconds;
+						waittm.tv_nsec= tv.tv_usec * 1000;
+					}
+				}
 				UNLOCK(m_ACTIVATETIME);
-				waittm.tv_sec= akttime->tv_sec;
-				waittm.tv_nsec= akttime->tv_usec * 1000;
 				while(m_vFolder.empty())
 				{
 					condRv= TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm);
 					if(condRv == ETIMEDOUT)
 					{
-						m_vFolder.push_back("#timecondition " + getTimevalString(*akttime, debug));
+						if(!bSearchServer)
+							m_vFolder.push_back("#timecondition " + getTimevalString(*akttime, debug));
+						else
+							m_vFolder.push_back("#searchserver");
 						break;
 					}
 					if(m_vFolder.empty())
@@ -389,7 +426,8 @@ int MeasureThread::execute()
 					}
 				}
 				LOCK(m_ACTIVATETIME);
-				if(condRv == ETIMEDOUT)
+				if(	!bSearchServer &&
+					condRv == ETIMEDOUT	)
 				{
 					m_vtmNextTime.erase(akttime);
 				}
@@ -448,7 +486,14 @@ int MeasureThread::execute()
 			tout << getUsecString(start_tv.tv_usec) << ")" << endl;
 			for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
 			{
-				if(i->substr(0, 15) != "#timecondition ")
+				if(i->substr(0, 15) == "#timecondition ")
+				{
+					tout << "      awaked from setting time " << i->substr(15) << endl;
+
+				}else if(i->substr(0, 13) == "#searchserver")
+				{
+					tout << "      awaked to search again for external port server (owserver)" << endl;
+				}else
 				{
 					tout << "    informed ";
 					if(i->substr(0, 1) == "|")
@@ -459,8 +504,8 @@ int MeasureThread::execute()
 							tout << "over Internet connection account '" << i->substr(1) << "'" << endl;
 					}else
 						tout << "from " << *i << " because value was changed" << endl;
-				}else
-					tout << "      awaked from setting time " << i->substr(15) << endl;
+				}
+
 			}
 		}
 		tout << "--------------------------------------------------------------------" << endl;
@@ -498,6 +543,21 @@ vector<string> MeasureThread::wasInformed()
 	vRv= m_vInformed;
 	UNLOCK(m_VALUE);
 	return vRv;
+}
+
+void MeasureThread::foundPortServer(const bool bfound, const string& server, const string& id)
+{
+	string newId(server + "!" + id);
+
+	if(bfound)
+	{// found server
+		set<string>::iterator it;
+
+		it= find(m_osUndefServers.begin(), m_osUndefServers.end(), newId);
+		if(it != m_osUndefServers.end())
+			m_osUndefServers.erase(it);
+	}else
+		m_osUndefServers.insert(newId);
 }
 
 void MeasureThread::ending()

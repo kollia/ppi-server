@@ -48,8 +48,9 @@ class MeasureThread : 	public Thread,
 		 * creating instance of MeasureThread
 		 *
 		 * @param threadname name of running folder
+		 * @param how long thread should waiting to start folder list again when an external server wasn't found
 		 */
-		MeasureThread(string threadname= "MeasureThread");
+		MeasureThread(const string& threadname, const time_t& nServerSearch);
 		/**
 		 * return class of subroutine from this folder
 		 *
@@ -114,6 +115,14 @@ class MeasureThread : 	public Thread,
 		 */
 		void nextActivateTime(const string& folder, const timeval& time)
 		{ LOCK(m_ACTIVATETIME);m_vtmNextTime.push_back(time);UNLOCK(m_ACTIVATETIME); };
+		/**
+		 * subroutine signal whether can find the server for external measuring
+		 *
+		 * @param bfound whether server was finding
+		 * @param server type of server will be found
+		 * @param id chip id searched inside server
+		 */
+		void foundPortServer(const bool bfound, const string& server, const string& id);
 		/**
 		 * searching whether folder was starting from an specific time condition.<br />
 		 * This method will be called only from own thread
@@ -191,6 +200,16 @@ class MeasureThread : 	public Thread,
 		 * next time to activate measure routine without action from extern
 		 */
 		vector<timeval> m_vtmNextTime;
+		/**
+		 * object with server type's an id's for unknown server,
+		 * to know whether folder list should starting all pre-defined seconds
+		 * the list to searching again
+		 */
+		set<string> m_osUndefServers;
+		/**
+		 * pre-defined seconds to search for server
+		 */
+		time_t m_nServerSearchSeconds;
 		/**
 		 * mutex by any changing of value
 		 */

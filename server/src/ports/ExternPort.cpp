@@ -137,6 +137,7 @@ namespace ports
 	bool ExternPort::allocateServer()
 	{
 		short chipAccess;
+		IMeasurePattern* pRunFolder;
 
 		m_pOWServer= OWInterface::getServer(m_sServer, m_sChipID);
 		if(!m_pOWServer)
@@ -154,8 +155,14 @@ namespace ports
 			m_bDisplayNotFound= true;
 			TIMELOG(LOG_WARNING, log, msg);
 			setDeviceAccess(false);
+			pRunFolder= getRunningThread();
+			if(pRunFolder != NULL)// when running folder is NULL method was called from init() method and running folder do not exist
+				pRunFolder->foundPortServer(false, m_sServer, m_sChipID); // so inform running folder only by first pass of folder list
 			return true;// no error try again later
 		}
+		pRunFolder= getRunningThread();
+		if(pRunFolder != NULL)// when running folder is NULL method was called from init() method and running folder do not exist
+			pRunFolder->foundPortServer(true, m_sServer, m_sChipID); // so inform running folder only by first pass of folder list
 		m_pOWServer->usePropActions(m_pSettings);
 		chipAccess= m_pOWServer->useChip(m_pSettings, m_sChipID, getFolderName(), getSubroutineName());
 		if(	chipAccess < 1
@@ -225,7 +232,7 @@ namespace ports
 					tout << msg << endl;
 			}
 			if(!m_pOWServer)
-				return false;
+				return 0;
 			registerSubroutine();
 		}
 		if(m_bRead)

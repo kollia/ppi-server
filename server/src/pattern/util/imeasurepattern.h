@@ -65,6 +65,14 @@ namespace design_pattern_world
 				 */
 				virtual void nextActivateTime(const string& folder, const timeval& time)= 0;
 				/**
+				 * subroutine signal whether can find the server for external measuring
+				 *
+				 * @param bfound whether server was finding
+				 * @param server type of server will be found
+				 * @param id chip id searched inside server
+				 */
+				virtual void foundPortServer(const bool bfound, const string& server, const string& id)= 0;
+				/**
 				 * dummy destructor for pattern
 				 */
 				virtual ~IMeasurePattern() {};
