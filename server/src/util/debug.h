@@ -67,7 +67,7 @@
 
 // show all sending over tcp/ip
 // from internet server
-//#ifndef SERVERDEBUG
+#ifndef SERVERDEBUG
 //#define SERVERDEBUG
 #endif // SERVERDEBUG
 
