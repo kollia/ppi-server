@@ -414,7 +414,7 @@ namespace ports
 		/**
 		 * all incorrect or not founding chips
 		 */
-		static vector<string> m_vsIncorrect;
+		static set<string> m_vsIncorrect;
 
 		/**
 		 * fill into the m_vsIncorrect vector the chipID

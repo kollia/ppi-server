@@ -475,7 +475,18 @@ namespace server
 					devIt->value= chip->value;
 					bDebug= true;
 				}
+#ifdef __OWSERVERREADWRITE
+				ostringstream scout;
+
+				scout << "write on chip id " << chip->id << " value " << chip->value << endl;
+				cout << scout.str();
+#endif // __OWSERVERREADWRITE
 				endWork= m_poChipAccess->write(chip->id, chip->value, chip->addinfo);
+#ifdef __OWSERVERREADWRITE
+				ostringstream scout3;
+				scout3 << "-- writing done by state " << endWork << endl;
+				cout << scout3.str();
+#endif // __OWSERVERREADWRITE
 				if(bDebug)
 					measureTimeDiff(&(*devIt));
 				if(	endWork == -1 ||
@@ -672,10 +683,20 @@ namespace server
 							bDebug= true;
 						}
 						value= 0;//(*pActChip)->value;
+#ifdef __OWSERVERREADWRITE
+						ostringstream scout;
+						scout << "read external value on " << (*pActChip)->id << endl;
+						cout << scout.str();
+#endif // __OWSERVERREADWRITE
 						UNLOCK(m_READCACHE);
 						endWork= m_poChipAccess->read((*pActChip)->id, value);
 						//cout << "server read from id " << ID << " value " << dec << value << " where value before was " << (*pActChip)->value << endl;
 						LOCK(m_READCACHE);
+#ifdef __OWSERVERREADWRITE
+						ostringstream scout2;
+						scout2 << "-- reading value " << value << " with state " << endWork << endl;
+						cout << scout2.str();
+#endif // __OWSERVERREADWRITE
 						switch (endWork)
 						{
 						case -1:
@@ -887,6 +908,11 @@ namespace server
 		vector<string> vRv;
 
 		sleep(1);
+#ifdef __OWSERVERREADWRITE
+		ostringstream scout;
+		scout << "~~~ want read debug info  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+		cout << scout.str();
+#endif // __OWSERVERREADWRITE
 		LOCK(m_DEBUGINFO);
 		debVect= m_debugInfo;
 		for(vector<device_debug_t>::iterator o= m_debugInfo.begin(); o != m_debugInfo.end(); ++o)
@@ -914,6 +940,11 @@ namespace server
 			dev1String << o->device;
 			vRv.push_back(dev1String.str());
 		}
+#ifdef __OWSERVERREADWRITE
+		ostringstream scout2;
+		scout2 << "~~~ return debug info  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+		cout << scout2.str();
+#endif // __OWSERVERREADWRITE
 		return vRv;
 	}
 

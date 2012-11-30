@@ -67,7 +67,7 @@ namespace ports
 	}
 
 	short MaximChipAccess::m_nInterface= -1;
-	vector<string> MaximChipAccess::m_vsIncorrect;
+	set<string> MaximChipAccess::m_vsIncorrect;
 	pthread_mutex_t* MaximChipAccess::m_INCORRECTCHIPIDS= NULL; //Thread::getMutex("INCORRECTMAXIMCHIPIDS");
 
 	MaximChipAccess::MaximChipAccess(const string init/*= ""*/, vector<string>* idsBefore/*= NULL*/)
@@ -492,18 +492,20 @@ namespace ports
 	void MaximChipAccess::incorrectChip(const string chipID)
 	{
 		LOCK(m_INCORRECTCHIPIDS);
-		m_vsIncorrect.push_back(chipID);
+		cout << " incorrect chip " << chipID << "-----------------------------------------------------------------------" << endl;
+		m_vsIncorrect.insert(chipID);
 		UNLOCK(m_INCORRECTCHIPIDS);
 	}
 
 	void MaximChipAccess::foundChip(const string chipID)
 	{
-		vector<string>::iterator it;
+		set<string>::iterator it;
 
 		LOCK(m_INCORRECTCHIPIDS);
 		it= find(m_vsIncorrect.begin(), m_vsIncorrect.end(), chipID);
 		if(it != m_vsIncorrect.end())
 		{
+			cout << " finding chip " << chipID << "-----------------------------------------------------------------------" << endl;
 			m_vsIncorrect.erase(it);
 		}
 		UNLOCK(m_INCORRECTCHIPIDS);
@@ -750,6 +752,11 @@ namespace ports
 		vector<string>::size_type size;
 		vector<string>::iterator oldIt;
 
+#ifdef __OWSERVERREADWRITE
+		ostringstream scout2;
+		scout2 << "---------------------------------------------------------------------------------------------------------" << endl;
+		cout << scout2.str();
+#endif // __OWSERVERREADWRITE
 		res= OW_get("/", &buf, &s);
 		if(res < 0)
 		{
@@ -799,6 +806,13 @@ namespace ports
 				}
 			}
 		}
+#ifdef __OWSERVERREADWRITE
+		ostringstream scout;
+
+		scout << msg << endl;
+		scout << "---------------------------------------------------------------------------------------------------------" << endl;
+		cout << scout.str();
+#endif // __OWSERVERREADWRITE
 		// set second parameter for TIMELOG to founded directory length
 		// because if reading from directorys changed it should write into log
 		TIMELOG(LOG_INFO, dirStr, msg);
@@ -1056,7 +1070,6 @@ namespace ports
 			if(pin->steps == 0)
 			{// nothing to do, value param set, was reading befor (chip wasn't read) -> go to the next pin)
 				value= pin->value;
-				//cout << "end of reading with state 3" << endl;
 				return 3;
 			}
 			path= pin->path;
@@ -1174,7 +1187,6 @@ namespace ports
 				cerr << msg << endl;
 #endif //DEBUG
 			value= 0;
-			//cout << "end of reading with state -1" << endl;
 			return -1;
 		}
 		if(chip)
@@ -1273,7 +1285,6 @@ namespace ports
 				value= atof(sResult.c_str());
 		}else
 			value= atof(sResult.c_str());
-		//cout << "end of reading with state " << nRv << endl;
 		return nRv;
 	}
 
