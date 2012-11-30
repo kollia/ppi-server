@@ -334,6 +334,9 @@ namespace server
 		string sSendbuf, last;
 		auto_ptr<XMLStartEndTagReader> xmlReader;
 		device_debug_t tdebug;
+		timeval time;
+		struct tm ttime;
+		char stime[22];
 
 		if(m_bHearing)
 		{
@@ -341,6 +344,18 @@ namespace server
 				descriptor >> result;
 				if(bHeader)
 				{
+					if(gettimeofday(&time, NULL))
+					{
+						cout << "XX:XX:xx (cannot calculate time)" << endl;
+					}else
+					{
+						if(localtime_r(&time.tv_sec, &ttime) != NULL)
+						{
+							strftime(stime, 21, "%H:%M:%S", &ttime);
+							cout << stime << endl;
+						}else
+							cout << "XX:XX:xx (cannot calculate time)" << endl;
+					}
 					cout << "Nr.| CALL | last call        |    value     |  every   | need time | length time "
 						"| act. | chip ID / pin" << endl;
 					cout << "---------------------------------------------------------------------------------"
@@ -479,8 +494,17 @@ namespace server
 		do{
 			if(m_sCommand == "")
 			{
+				char str[200];
+
 				cout << "$>" << flush;
-				getline(std::cin, m_sCommand);
+				while(!(std::cin.getline(str, 199, '\n')))
+				{
+					std::cin.clear();
+				    //std::cin.ignore(std::numeric_limits<streamsize>::max(),'\n');
+					usleep(500000);
+					cout << "." << flush;
+				}
+				m_sCommand= str;
 				if(	m_sCommand == "quit"
 					||
 					m_sCommand == "exit"	)
