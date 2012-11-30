@@ -492,7 +492,6 @@ namespace ports
 	void MaximChipAccess::incorrectChip(const string chipID)
 	{
 		LOCK(m_INCORRECTCHIPIDS);
-		cout << " incorrect chip " << chipID << "-----------------------------------------------------------------------" << endl;
 		m_vsIncorrect.insert(chipID);
 		UNLOCK(m_INCORRECTCHIPIDS);
 	}
@@ -505,7 +504,6 @@ namespace ports
 		it= find(m_vsIncorrect.begin(), m_vsIncorrect.end(), chipID);
 		if(it != m_vsIncorrect.end())
 		{
-			cout << " finding chip " << chipID << "-----------------------------------------------------------------------" << endl;
 			m_vsIncorrect.erase(it);
 		}
 		UNLOCK(m_INCORRECTCHIPIDS);

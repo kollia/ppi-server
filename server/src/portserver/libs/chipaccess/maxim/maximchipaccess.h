@@ -20,6 +20,7 @@
 #ifdef _OWFSLIBRARY
 
 #include <string>
+#include <set>
 
 #include "../../../../util/debug.h"
 #include "../../../../util/smart_ptr.h"
