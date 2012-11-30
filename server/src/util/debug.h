@@ -65,7 +65,9 @@
 //#define DEBUG
 #endif //DEBUG
 
-#ifndef SERVERDEBUG
+// show all sending over tcp/ip
+// from internet server
+//#ifndef SERVERDEBUG
 //#define SERVERDEBUG
 #endif // SERVERDEBUG
 
@@ -77,8 +79,8 @@
 //   "ppi-internet-server"
 //   "ppi-db-server"  or
 //   "ppi-log-client"
-//#define _APPLICATIONSTOPMESSAGES "ppi-inter"
-//#define _APPLICATIONTREADSTOPMESSAGES
+//#define _APPLICATIONSTOPMESSAGES ""
+//#define _APPLICATIONTHREADSTOPMESSAGES
 #endif //_APPLICATIONSTOPMESSAGES
 
 #ifndef ALLOCATEONMETHODSERVER
@@ -118,6 +120,11 @@
 #ifndef SERVERTIMELOG
 //#define SERVERTIMELOG
 #endif //SERVERTIMELOG
+
+// show reading and writing on external ports
+// and also when an client ask for debug info
+// (ppi-client DEBUG -ow 1)
+//#define __OWSERVERREADWRITE
 
 //#define SINGLETHREADING
 #ifdef _K8055LIBRARY
