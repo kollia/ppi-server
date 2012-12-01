@@ -50,7 +50,7 @@ pthread_mutex_t g_READMUTEX;
 map<pthread_mutex_t*, mutexnames_t> g_mMutex;
 map<pthread_cond_t*, string> g_mCondition;
 
-Thread::Thread(string threadName, useconds_t defaultSleep, bool waitInit)
+Thread::Thread(const string& threadName, useconds_t defaultSleep, bool waitInit)
 {
 	m_nThreadId= 0;
 	m_nPosixThreadID= 0;

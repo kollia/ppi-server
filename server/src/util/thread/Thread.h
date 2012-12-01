@@ -92,7 +92,7 @@ class Thread :	public virtual IThreadPattern,
 		 * @param defaultSleep sleeping for default time in microseconds
 		 * @param waitInit if flag is true (default), starting thread waiting until this thread initial with method init()
 		 */
-		Thread(string threadName, useconds_t defaultSleep, bool waitInit= true);
+		Thread(const string& threadName, useconds_t defaultSleep, bool waitInit= true);
 		/**
 		 * start method to running the thread paralell
 		 *
