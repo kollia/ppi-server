@@ -111,6 +111,11 @@ public class Component  extends HtmTags implements IComponentListener
 							readonly,
 							disabled	}
 	/**
+	 * whether permission right checked from server.<br />
+	 * (permission only will be set inside method askPermission)
+	 */
+	private boolean permissionSet= false;
+	/**
 	 * layout type from layout file if permission is correctly
 	 * and permission on server is not checked
 	 */
@@ -243,6 +248,15 @@ public class Component  extends HtmTags implements IComponentListener
 		 * result value for actual result string
 		 */
 		public Double result= null;
+		/**
+		 * whether permission right checked from server.<br />
+		 * (permission only will be set inside method askPermission)
+		 */
+		public boolean permissionSet= false;
+		/**
+		 * permission from server
+		 */
+		public permission actPermission= permission.None;
 		/**
 		 * disabled or read only attribute of component.
 		 */
@@ -1312,8 +1326,18 @@ public class Component  extends HtmTags implements IComponentListener
 	 */
 	protected void setPermission(permission perm, textFormat formatObj)
 	{
+		if(HtmTags.debug)
+		{
+			System.out.print("set permission '" + perm + "' for ");
+			if(formatObj != null)
+				System.out.println("result: " + formatObj.resultStr);
+			else
+				System.out.println(" no result");
+		}
 		if(formatObj == null)
 			super.setPermission(perm);
+		else
+			formatObj.actPermission= perm;
 		switch (perm)
 		{
 		case writeable:			
@@ -1337,7 +1361,7 @@ public class Component  extends HtmTags implements IComponentListener
 			if(normal == layout.disabled)
 			{
 				if(formatObj == null)
-					actLayout= normal;
+					this.actLayout= normal;
 				else
 					formatObj.actLayout= normal;
 			}else
@@ -1377,12 +1401,25 @@ public class Component  extends HtmTags implements IComponentListener
 		permission eRv;
 		MsgClientConnector client;
 		
+		if(	(	formatObj == null &&
+				permissionSet == true	) ||
+			(	formatObj != null &&
+				formatObj.permissionSet == true	)	)
+		{
+			if(formatObj != null)
+				return formatObj.actPermission;
+			return super.getPermission();
+		}
 		if(	(	formatObj != null &&
 				formatObj.resultStr.equals("") ) ||
 			(	formatObj == null &&
 				this.result.equals("")	)			)
 		{
 			setPermission(permission.None, formatObj);
+			if(formatObj != null)
+				formatObj.permissionSet= true;
+			else
+				permissionSet= true;
 			return permission.None;
 		}
 		if(formatObj != null)
@@ -1404,18 +1441,28 @@ public class Component  extends HtmTags implements IComponentListener
 				eRv= permission.writeable;
 				setPermission(eRv, formatObj);
 			}
+			if(formatObj != null)
+				formatObj.permissionSet= true;
+			else
+				permissionSet= true;
 				
 		}else
 		{	
 			eRv= permission.None;
 			setPermission(eRv, formatObj);
 			System.out.println(client.getErrorMessage());
-			if(client.getErrorCode().equals("ERROR 016"))
+			if(client.getErrorCode().equals("PORTSERVERERROR016"))
 			{
 				if(formatObj != null)
 					formatObj.deviceAccess= false;
 				else
 					m_bDeviceAccess= false;
+			}else
+			{
+				if(formatObj != null)
+					formatObj.permissionSet= true;
+				else
+					permissionSet= true;
 			}
 		}
 		return eRv;
@@ -1602,7 +1649,7 @@ public class Component  extends HtmTags implements IComponentListener
 		if(	m_bCorrectName &&
 			!result.equals("") &&
 			!m_nSoftButton &&
-			getPermission().compareTo(permission.readable) >= 0 &&
+			//getPermission().compareTo(permission.readable) >= 0 &&
 			client.haveSecondConnection()							)
 		{
 			if(type.equals("text"))
@@ -1610,7 +1657,11 @@ public class Component  extends HtmTags implements IComponentListener
 				for (textFormat obj : m_aResult)
 				{
 					if(!obj.resultStr.equals(""))
+					{
+						if(HtmTags.debug)
+							System.out.println("client hear on '" + obj.resultStr + "'");
 						client.hear(obj.resultStr, /*throw*/true);
+					}
 				}
 			}else
 				client.hear(result, /*bthrow*/true);
@@ -2216,12 +2267,13 @@ public class Component  extends HtmTags implements IComponentListener
 		char stringChars[];
 		String Rv;
 		String result= "";
+		Double sh;
 
 		if(!m_bDeviceAccess)
 			return "ERROR";
 		for (textFormat obj : m_aResult)
 		{
-			if(getPermission().equals(permission.None))
+			if(obj.actPermission.equals(permission.None))
 				return " --- ";
 			Rv= "";
 			bInt= false;
@@ -2237,9 +2289,17 @@ public class Component  extends HtmTags implements IComponentListener
 				Rv+= stringChars[strPos];
 				++strPos;
 			}
-			Double sh= new Double(stringValue.substring(0, strPos));
-			if(obj.result.equals(sh))
+			try{
+				sh= new Double(stringValue.substring(0, strPos));
+			}catch(NumberFormatException ex)
+			{
+				sh= new Double(0);
+			}
+			if(	obj.result != null &&
+				obj.result.equals(sh))
+			{
 				bInt= true;
+			}
 			for(int c= strPos; c<obj.numBefore; ++c)
 				Rv= "0" + Rv;
 			if(	obj.numBehind > 0 ||
@@ -2443,47 +2503,52 @@ public class Component  extends HtmTags implements IComponentListener
 		textFormat formatObj= null;
 		String foldersub= cont.getFolderName() + ":" + cont.getSubroutineName();
 
-		if(	!m_bCorrectName
-			||
-			getPermission().equals(permission.None) 	)
+		if(!m_bCorrectName)
+			return;
+		if(this.type.equals("text"))
+		{	
+			for (textFormat obj : m_aResult)
+			{
+				if(obj.resultStr.equals(foldersub))
+				{
+					formatObj= obj;
+					break;
+				}
+			}
+			if(formatObj == null)
+				return;
+			
+		}else if(!foldersub.equals(this.result))
+		{
+			if(	this.type.equals("slider") ||
+				this.type.equals("range")		)
+			{
+				if(	(	m_smin.equals("") ||
+						!foldersub.equals(m_smin)	) &&
+					(	m_smax.equals("") ||
+						!foldersub.equals(m_smax)	)	)
+				{
+					return;
+				}
+			}else
+				return;
+		}
+		if(	cont != null &&
+			cont.hasStringValue() &&
+			cont.getSValue().equals("access")	)
+		{
+			askPermission(formatObj);
+		}
+		if(	(	formatObj == null &&
+				getPermission().equals(permission.None)	) ||
+			(	formatObj != null &&
+				formatObj.actPermission.equals(permission.None)	)	)
 		{
 			return;
 		}
-		if(	cont != null
-			&&
+		if(	cont != null &&
 			cont.hasValue()	)
 		{
-			if(this.type.equals("text"))
-			{	
-				for (textFormat obj : m_aResult)
-				{
-					if(obj.resultStr.equals(foldersub))
-					{
-						formatObj= obj;
-						break;
-					}
-				}
-				if(formatObj == null)
-					return;
-				
-			}else
-			{
-				if(!foldersub.equals(this.result))
-				{
-					if(	this.type.equals("slider") ||
-						this.type.equals("range")		)
-					{
-						if(	(	m_smin.equals("") ||
-								!foldersub.equals(m_smin)	) &&
-							(	m_smax.equals("") ||
-								!foldersub.equals(m_smax)	)	)
-						{
-							return;
-						}
-					}else
-						return;
-				}
-			}
 			if(cont.hasDoubleValue())
 			{
 				m_nAktValue= cont.getDValue();
