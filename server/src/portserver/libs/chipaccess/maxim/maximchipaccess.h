@@ -62,7 +62,7 @@ namespace ports
 		 * @return name of server
 		 */
 		virtual string getServerName()
-		{ return "OWFS device"; };
+		{ return "OWFS"; };
 		/**
 		 * constructor to initial class
 		 * with main property management
@@ -300,6 +300,18 @@ namespace ports
 			 * if it is an cached reading
 			 */
 			double value;
+			/**
+			 * minimal allowed value of chip
+			 */
+			double dmin;
+			/**
+			 * maximal allowed value of chip
+			 */
+			double dmax;
+			/**
+			 * whether chip can have an float value
+			 */
+			double bfloat;
 			/**
 			 * reading in 2 steps and wirte one on DS2408
 			 * if action after be set.<br />

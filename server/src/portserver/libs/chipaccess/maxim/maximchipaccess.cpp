@@ -23,6 +23,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <string.h>
+#include <limits.h>
 
 #include <vector>
 #include <iostream>
@@ -223,15 +224,15 @@ namespace ports
 
 	short MaximChipAccess::useChip(const IActionPropertyMsgPattern* prop, string& unique, unsigned short& kernelmode)
 	{
-		bool read, write, cache= false;
+		bool read, write, cache= false, bint;
 		bool currentRead= false;
 		bool cacheWrite= false;
 		bool writecacheWrite= false;
 		bool bnew= false;
 		short nPin;
 		short steps= 1;// default step
-		double cachetime;
-		string folder, chipID, ID, path, pin;
+		double cachetime, dmin, dmax;
+		string folder, chipID, ID, path, pin, smin, smax;
 		string sprop;
 
 		kernelmode= 0;
@@ -254,8 +255,11 @@ namespace ports
 		currentRead= prop->haveAction("current");
 		sprop= "cache";
 		cachetime= prop->getDouble(sprop, /*warning*/false);
-		if(cachetime == 0)
-			cachetime= 9999;
+		smin= "min";
+		smax= "max";
+		dmin= prop->getDouble(smin, /*warning*/false);
+		dmax= prop->getDouble(smax, /*warning*/false);
+		bint= prop->haveAction("int");
 		if(	folder == ""
 			||
 			path == ""	)
@@ -316,7 +320,33 @@ namespace ports
 			}
 			if(!defaultChip.bWritable)
 				read= true;
+			if(smin == "#ERROR")
+			{
+				dmin= defaultChip.dmin;
+				smin= "min";
+			}
+			if(smax == "#ERROR")
+			{
+				dmax= defaultChip.dmax;
+				smax= "min";
+			}
+			if(bint == false)
+				bint= !defaultChip.bFloat;
+			if(cachetime == 0)
+				cachetime= defaultChip.dCache;
 		}
+		if(cachetime == 0)
+			cachetime= 9999;
+		if(	smin == "#ERROR" &&
+			smax == "#ERROR"	)
+		{
+			dmin= 0;
+			dmax= -1;
+
+		}else if(smin == "#ERROR")
+			dmin= LONG_MIN;
+		else if(smax == "#ERROR")
+			dmax= LONG_MAX;
 		if(pin != "")
 		{
 			if(isdigit(*pin.c_str()))
@@ -443,7 +473,8 @@ namespace ports
 			ptpin= SHAREDPTR::shared_ptr<chip_pin_t>(new chip_pin_t);
 		}else
 			ptpin= pinIt->second;
-		unique= URL::addPath(folder + "." + path, pin);
+		//path should be add with pin before
+		unique= path;
 		ptpin->id= unique;
 		ptpin->chipid= chipID;
 		ptpin->pin= nPin;
@@ -452,6 +483,9 @@ namespace ports
 		ptpin->steps= steps;
 		ptpin->used= true;
 		ptpin->cache= cache;
+		ptpin->dmin= dmin;
+		ptpin->dmax= dmax;
+		ptpin->bfloat= !bint;
 		ptpin->msg= prop->getMsgHead();// without error identif
 		ptpin->errmsg= prop->getMsgHead(/*error message*/true);
 		ptpin->warnmsg= prop->getMsgHead(/*warning message*/false);
@@ -466,7 +500,9 @@ namespace ports
 		if(bnew)// create new pin in chip
 			ptchip->pins[pin]= ptpin;
 		foundChip(getChipID(unique));
+		//cout << "regist chip inside method useChip from maximchipaccess" << endl;
 		defaultChipReader->registerChip(getServerName(), unique, pin, ptchip->type, ptchip->family);
+		//cout << "for server " << getServerName() << " id " << unique << " pin " << pin << " type " << ptchip->type << " family code " << ptchip->family << endl;
 		if(read)
 			return 1;
 		return 2;
@@ -1288,16 +1324,14 @@ namespace ports
 
 	void MaximChipAccess::range(const string pin, double& min, double& max, bool &bfloat)
 	{
-		string server(getServerName());
-		DbInterface *reader= DbInterface::instance();
-		DbInterface::chips_t chip;
+		map<string, SHAREDPTR::shared_ptr<chip_pin_t> >::iterator pinIt;
 
-		chip= reader->getRegisteredDefaultChip(server, pin);
-		if(chip.exists)
+		pinIt= m_mUsedChips.find(pin);
+		if(pinIt != m_mUsedChips.end())
 		{
-			min= chip.dmin;
-			max= chip.dmax;
-			bfloat= chip.bFloat;
+			min= pinIt->second->dmin;
+			max= pinIt->second->dmax;
+			bfloat= pinIt->second->bfloat;
 		}else
 		{
 			string msg("### DEV INFO: undefined Maxim chip ");
@@ -1306,8 +1340,8 @@ namespace ports
 			msg+= "\n              by define range in MaximChipAccess class";
 			msg+= "\n              so allow hole range for chip";
 			TIMELOG(LOG_INFO, "maximrangedef" + pin, msg);
-			min= 1;
-			max= 0;
+			min= 0;
+			max= -1;
 			bfloat= true;
 		}
 	}
