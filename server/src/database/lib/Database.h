@@ -186,7 +186,7 @@ namespace ppi_database
 		 * @param chip the unique define chip
 		 * @return map of folder with subroutines
 		 */
-		virtual map<string, vector<string> >* getSubroutines(const string& onServer, const string& chip);
+		virtual map<string, set<string> >* getSubroutines(const string& onServer, const string& chip);
 		/**
 		 * fill double value into database
 		 *
@@ -347,9 +347,9 @@ namespace ppi_database
 		map<string, time_t> m_mOldest;
 		/**
 		 * all subroutines witch need new content of any chips.<br/>
-		 * saving in map<onServer, map<chip, map<folder, vector<subroutine> > > >
+		 * saving in map<onServer, map<chip, map<folder, set<subroutine> > > >
 		 */
-		map<string, map<string, map<string, vector<string> > > > m_mmmvServerContent;
+		map<string, map<string, map<string, set<string> > > > m_mmmvServerContent;
 		/**
 		 * in which case reading information of saved subroutine result
 		 */

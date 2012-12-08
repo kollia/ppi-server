@@ -1074,20 +1074,23 @@ namespace ppi_database
 
 	void Database::useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip)
 	{
-		m_mmmvServerContent[onServer][chip][folder].push_back(subroutine);
+		m_mmmvServerContent[onServer][chip][folder].insert(subroutine);
 	}
 
-	map<string, vector<string> >* Database::getSubroutines(const string& onServer, const string& chip)
+	map<string, set<string> >* Database::getSubroutines(const string& onServer, const string& chip)
 	{
-		return &m_mmmvServerContent[onServer][chip];
+		map<string, set<string> >* pRv;
+
+		pRv= &m_mmmvServerContent[onServer][chip];
+		return pRv;
 	}
 
 	void Database::writeDb(db_t entry, ofstream *dbfile/*= NULL*/)
 	{
-		typedef map<string, map<string, map<string, vector<string> > > >::iterator itServer;
-		typedef map<string, map<string, vector<string> > >::iterator itChip;
-		typedef map<string, vector<string> >::iterator itFolder;
-		typedef vector<string>::iterator itSubroutine;
+		typedef map<string, map<string, map<string, set<string> > > >::iterator itServer;
+		typedef map<string, map<string, set<string> > >::iterator itChip;
+		typedef map<string, set<string> >::iterator itFolder;
+		typedef set<string>::iterator itSubroutine;
 		typedef vector<double>::iterator iter;
 
 		bool bNewFile= false;
@@ -1095,10 +1098,10 @@ namespace ppi_database
 		unsigned short writecount;
 		vector<write_t> vWrite;
 		write_t writeaccess;
-		map<string, vector<string> >::iterator foundFolder;
+		map<string, set<string> >::iterator foundFolder;
 		itSubroutine foundSubroutine;
-		static map<string, vector<string> > mNeedCheck;
-		static map<string, vector<string> > mNoCheck;
+		static map<string, set<string> > mNeedCheck;
+		static map<string, set<string> > mNoCheck;
 
 		if(entry.identif == "value")
 		{
@@ -1119,7 +1122,8 @@ namespace ppi_database
 			foundFolder= mNoCheck.find(entry.folder);
 			if(foundFolder != mNoCheck.end())
 			{
-				foundSubroutine= find(foundFolder->second.begin(), foundFolder->second.end(), entry.subroutine);
+				foundSubroutine= foundFolder->second.find(entry.subroutine);
+				//foundSubroutine= find(foundFolder->second.begin(), foundFolder->second.end(), entry.subroutine);
 				if(foundSubroutine != foundFolder->second.end())
 					bNeedCheck= false;
 			}
@@ -1155,7 +1159,7 @@ namespace ppi_database
 										if(entry.subroutine == *itSub)
 										{
 											writeaccess= m_pChipReader->allowDbWriting(entry.folder, entry.subroutine, entry.values[0], entry.tm);
-											mNeedCheck[entry.folder].push_back(entry.subroutine);
+											mNeedCheck[entry.folder].insert(entry.subroutine);
 											bNeedCheck= true;
 											break;
 										}
@@ -1171,7 +1175,7 @@ namespace ppi_database
 							break;
 					}
 					if(!bNeedCheck)
-						mNoCheck[entry.folder].push_back(entry.subroutine);
+						mNoCheck[entry.folder].insert(entry.subroutine);
 				}
 			}
 	#endif

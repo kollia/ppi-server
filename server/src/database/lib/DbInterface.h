@@ -316,7 +316,8 @@ namespace ppi_database
 		 * @param onServer name of server from which is using chip
 		 * @param chip unique definition of chip
 		 */
-		void useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip);
+		void registerPortID(const string& folder, const string& subroutine, const string& onServer, const string& chip);
+		//void useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip);
 		/**
 		 * inform database for changed chip and database inform subroutine
 		 *

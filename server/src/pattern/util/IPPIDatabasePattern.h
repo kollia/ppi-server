@@ -155,7 +155,7 @@ namespace design_pattern_world
 		 * @param chip the unique define chip
 		 * @return map of folder with subroutines
 		 */
-		virtual map<string, vector<string> >* getSubroutines(const string& onServer, const string& chip)= 0;
+		virtual map<string, set<string> >* getSubroutines(const string& onServer, const string& chip)= 0;
 		/**
 		 * change the communication ID to an new one
 		 *

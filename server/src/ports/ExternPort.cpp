@@ -115,10 +115,11 @@ namespace ports
 			if(!portBase::init(properties, pStartFolder))
 				bRv= false;
 		}
-		if(bRv)
+/*		if(	bRv &&
+			m_pOWServer	)
 		{
-			db->useChip(getFolderName(), getSubroutineName(), m_sServer, m_sChipID);
-		}
+			db->registerPortID(getFolderName(), getSubroutineName(), m_pOWServer->getServerName(), m_sChipID);
+		}*/
 		return bRv;
 	}
 
@@ -182,12 +183,13 @@ namespace ports
 		static bool registered= false;
 		DbInterface *reader;
 
-		if(registered)
-			return;
+		/*if(registered)
+			return;*/
 		if(!m_pOWServer)
 			return;
+		cout << "register " << m_sChipID << " on " << getFolderName() << ":" << getSubroutineName() << endl;
 		reader= DbInterface::instance();
-		reader->registerSubroutine(getSubroutineName(), getFolderName(), m_pOWServer->getServerName(), m_sChipID);
+		reader->registerPortID(getFolderName(), getSubroutineName(), m_sServer, m_sChipID);
 		registered= true;
 	}
 

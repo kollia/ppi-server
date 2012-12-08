@@ -291,6 +291,19 @@ namespace server
 				pdCache= NULL;
 			reader->registerChip(server, chip, pin, type, family, pdmin, pdmax, pbFloat, pdCache);
 
+		}else if(method == "registerPortID")
+		{
+			string folder, subroutine, server, chip;
+
+			object >> folder;
+			object >> subroutine;
+			object >> server;
+			object >> chip;
+			db= DatabaseThread::instance()->getDatabaseObj();
+			db->useChip(folder, subroutine, server, chip);
+			reader->registerSubroutine(subroutine, folder, server, chip);
+			descriptor << "done";
+
 		}else if(method == "registerSubroutine")
 		{
 			string subroutine, folder, server, chip;
@@ -300,6 +313,18 @@ namespace server
 			object >> server;
 			object >> chip;
 			reader->registerSubroutine(subroutine, folder, server, chip);
+
+		}else if(method == "useChip")
+		{
+			string folder, subroutine, onServer, chip;
+
+			db= DatabaseThread::instance()->getDatabaseObj();
+			object >> folder;
+			object >> subroutine;
+			object >> onServer;
+			object >> chip;
+			db->useChip(folder, subroutine, onServer, chip);
+			descriptor << "done";
 
 		}else if(method == "getRegisteredDefaultChipCache")
 		{
@@ -593,24 +618,12 @@ namespace server
 			}
 			descriptor << "done";
 
-		}else if(method == "useChip")
-		{
-			string folder, subroutine, onServer, chip;
-
-			db= DatabaseThread::instance()->getDatabaseObj();
-			object >> folder;
-			object >> subroutine;
-			object >> onServer;
-			object >> chip;
-			db->useChip(folder, subroutine, onServer, chip);
-			descriptor << "done";
-
 		}else if(method == "changedChip")
 		{
 			bool device;
 			double value;
 			string onServer, chip;
-			map<string, vector<string> >* mvFSubs;
+			map<string, set<string> >* mvFSubs;
 			OMethodStringStream command("changedChip");
 
 			db= DatabaseThread::instance()->getDatabaseObj();
@@ -619,10 +632,12 @@ namespace server
 			object >> value;
 			object >> device;
 			mvFSubs= db->getSubroutines(onServer, chip);
-			for(map<string, vector<string> >::iterator fit= mvFSubs->begin(); fit != mvFSubs->end(); ++fit)
+			for(map<string, set<string> >::iterator fit= mvFSubs->begin(); fit != mvFSubs->end(); ++fit)
 			{
-				for(vector<string>::iterator sit= fit->second.begin(); sit != fit->second.end(); ++sit)
+				for(set<string>::iterator sit= fit->second.begin(); sit != fit->second.end(); ++sit)
 				{
+					//cout << "  on server '" << onServer << "'  " << fit->first << ":" << *sit <<
+					//				" has new value " << value << " access " << boolalpha << device << endl;
 					command << fit->first;
 					command << *sit;
 					command << value;
@@ -631,6 +646,7 @@ namespace server
 					descriptor.sendToOtherClient("ProcessChecker", command.str(), false, "");
 				}
 			}
+
 			descriptor << "done";
 
 		}else if(method == "checkUnused")
