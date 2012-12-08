@@ -52,7 +52,7 @@ namespace ports
 		 */
 		ExternPort(string type, string folder, string subroutine) :
 		switchClass(type, folder, subroutine),
-		m_bDisplayNotFound(false),
+		m_bFirstAllocate(true),
 		m_oValue(folder, subroutine, "value", true, false),
 		m_dLastWValue(0),
 		m_bDoSwitch(false),
@@ -165,7 +165,7 @@ namespace ports
 		/**
 		 * whether have given display by not founding an server
 		 */
-		bool m_bDisplayNotFound;
+		bool m_bFirstAllocate;
 		/*
 		 * calculation of value
 		 */

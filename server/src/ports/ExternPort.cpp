@@ -149,11 +149,20 @@ namespace ports
 			log+= m_sServer;
 			log+= m_sChipID;
 			msg= m_pSettings->getMsgHead(/*error message*/false);
+			if(m_bFirstAllocate)
+			{
+				m_pOWServer= OWInterface::getServer(m_sServer);
+				if(m_pOWServer)
+				{
+					m_pOWServer->usePropActions(m_pSettings);
+					m_pOWServer= SHAREDPTR::shared_ptr<OWInterface>();
+				}
+			}
 			msg+= "cannot find OWServer for ID:" + m_sChipID;
 			msg+= "\n             try again later";
-			if(!m_bDisplayNotFound)
+			if(m_bFirstAllocate)
 				cerr << msg << endl;
-			m_bDisplayNotFound= true;
+			m_bFirstAllocate= false;
 			TIMELOG(LOG_WARNING, log, msg);
 			setDeviceAccess(false);
 			pRunFolder= getRunningThread();
@@ -187,7 +196,7 @@ namespace ports
 			return;*/
 		if(!m_pOWServer)
 			return;
-		cout << "register " << m_sChipID << " on " << getFolderName() << ":" << getSubroutineName() << endl;
+		//cout << "register " << m_sChipID << " on " << getFolderName() << ":" << getSubroutineName() << endl;
 		reader= DbInterface::instance();
 		reader->registerPortID(getFolderName(), getSubroutineName(), m_sServer, m_sChipID);
 		registered= true;

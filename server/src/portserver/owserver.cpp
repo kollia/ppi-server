@@ -127,6 +127,12 @@ namespace server
 
 	bool OWServer::isServer(const string& type, const string& chipID)
 	{
+		if(chipID == "")
+		{
+			if(type == m_sServerType)
+				return true;
+			return false;
+		}
 		if(m_poChipAccess->existID(type, chipID))
 			return true;
 		return false;

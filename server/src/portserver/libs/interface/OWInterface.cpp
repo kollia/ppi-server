@@ -69,7 +69,7 @@ SHAREDPTR::shared_ptr<OWInterface> OWInterface::getServer(const string& process,
 	return _instances[serverID];
 }
 
-SHAREDPTR::shared_ptr<OWInterface> OWInterface::getServer(const string& type, const string& chipID)
+SHAREDPTR::shared_ptr<OWInterface> OWInterface::getServer(const string& type, const string& chipID/*= ""*/)
 {
 	for(map<unsigned short, SHAREDPTR::shared_ptr<OWInterface> >::iterator it= _instances.begin(); it != _instances.end(); ++it)
 	{

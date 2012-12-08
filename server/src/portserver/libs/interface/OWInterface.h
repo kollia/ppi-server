@@ -58,10 +58,10 @@ public:
 	 * All OWServer instaces be defined in an vector in the constructor
 	 *
 	 * @param type type of server (OWFS, Vk8055, ...)
-	 * @param chipID specific ID which the server should holded
+	 * @param chipID specific ID which the server should hold.<br />when no chip ID be set, method give back first server which has specified type
 	 * @return the server instance
 	 */
-	static SHAREDPTR::shared_ptr<OWInterface> getServer(const string& type, const string& chipID);
+	static SHAREDPTR::shared_ptr<OWInterface> getServer(const string& type, const string& chipID= "");
 	/**
 	 * display identification name for OWServer
 	 *
