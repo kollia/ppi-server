@@ -99,6 +99,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	auto_ptr<ProcessStarter> process, logprocess;
 	vector<string>::size_type readercount;
 	set<string> shellstarter;
+	time_t nServerSearchSequence;
 
 	// starting time
 	struct tm ttime;
@@ -174,8 +175,14 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		bInternet= true;
 	else
 		bInternet= false;
-
-
+	property= "serversearch";
+	nServerSearchSequence= static_cast<time_t>(m_oServerFileCasher.getInt(property, /*warning*/true));
+	if(	property == "#ERROR" ||
+		nServerSearchSequence <= 0	)
+	{
+		cerr << "###          parameter serversearch not be set correctly, set as default to 15 seconds" << endl;
+		nServerSearchSequence= 15;
+	}
 	readPasswd();
 
 	string commhost;
@@ -831,6 +838,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	cout << endl;
 	if(bStarting)
 		cout << "### start folder thread(s) from measure.conf" << endl;
+
 	while(aktFolder != NULL)
 	{
 		if(!aktFolder->bCorrect)
@@ -857,7 +865,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 				pCurrentMeasure->next= SHAREDPTR::shared_ptr<meash_t>(new meash_t);
 				pCurrentMeasure= pCurrentMeasure->next;
 			}
-			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name));
+			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name, nServerSearchSequence));
 			args.subroutines= &aktFolder->subroutines;
 
 #if 0
