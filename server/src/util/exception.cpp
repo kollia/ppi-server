@@ -18,12 +18,9 @@
 //#define _GNU_SOURCE         /* See feature_test_macros(7) */
 #include <unistd.h>
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
-#include <execinfo.h>
-#include <errno.h>
-#include <string.h>
 
 #include <cstdlib>
-//#include <cstring>
+#include <cstring>
 
 #include <exception>
 #include <fstream>
@@ -60,13 +57,6 @@ vector<string> SignalException::getFirstTraceVector() const
 {
 	string errortxt;
 	vector<string> vRTrace;
-	sigset_t signal_set;
-
-	sigemptyset(&signal_set);
-	if(sigaddset(&signal_set, getSignal()) != 0)
-		cout << "cannot add signal " << getSignalName() << " from class " << getClassName() << endl;
-	if(sigprocmask(SIG_UNBLOCK, &signal_set, NULL) != 0)
-		cout << "cannot unblock signal" << getSignalName() << endl;
 
 	if(m_sErrorText == "")
 		errortxt= getMainErrorMessage();

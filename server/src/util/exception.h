@@ -23,6 +23,8 @@
 
 #include <sys/types.h>
 #include <unistd.h>
+#include <execinfo.h>
+#include <string.h>
 
 #include <csignal>
 #include <cstdio>
@@ -47,6 +49,13 @@ template <class SignalExceptionClass> class SignalTranslator
 
          static void SignalHandler(int sig)
          {
+			sigset_t signal_set;
+
+			sigemptyset(&signal_set);
+			if(sigaddset(&signal_set, SignalExceptionClass::GetSignalNumber()) != 0)
+				cout << "cannot add signal -" << SignalExceptionClass::GetSignalNumber() << endl;
+			if(sigprocmask(SIG_UNBLOCK, &signal_set, NULL) != 0)
+				cout << "cannot unblock signal -" << SignalExceptionClass::GetSignalNumber() << endl;
              throw SignalExceptionClass();
          }
      };
