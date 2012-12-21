@@ -35,6 +35,7 @@
 
 #include "Thread.h"
 
+#include "../exception.h"
 #include "../GlobalStaticMethods.h"
 #include "../properties/configpropertycasher.h"
 
@@ -182,25 +183,26 @@ void Thread::run()
 		UNLOCK(m_STARTSTOPTHREAD);
 		if(running())
 		{
-			try{
-				while(!stopping())
-				{
-					POS("###THREAD_execute_start");
-					execute();
-				}
-			}catch(...)
+			while(!stopping())
 			{
-				error+= "execute thread ";
-				error+= thname;
-				LOG(LOG_ALERT, error);
-				cerr << error << endl;
+				POS("###THREAD_execute_start");
+				execute();
 			}
 		}
+	}catch(SignalException& ex)
+	{
+		string err;
+
+		ex.addMessage("running thread of " + thname + "\nso ending hole thread routine");
+		err= ex.getTraceString();
+		cout << endl << err << endl;
+		LOG(LOG_ALERT, err+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
+
 	}catch(...)
 	{
-		error+= "initialisation on thread ";
+		error+= "Initialization on thread ";
 		error+= thname;
-		LOG(LOG_ALERT, error);
+		LOG(LOG_ALERT, error+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
 		cerr << error << endl;
 	}
 	ending();

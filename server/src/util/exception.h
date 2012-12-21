@@ -15,40 +15,126 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef __BASETHREADEXCEPTION_H
+#define __BASETHREADEXCEPTION_H
+
+#define TRACELINES 25
+#define SPACELEFT "      "
+
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <csignal>
+#include <cstdio>
+
 #include <string>
+#include <vector>
+#include <exception>
 
 using namespace std;
 
-enum PortExcept
-{
-	DEKLARATION= 0,
-	UNKNOWN
-};
+template <class SignalExceptionClass> class SignalTranslator
+ {
 
-class BaseException
-{
-	private:
-		string m_sErrorHead;
-		string m_sErrorText;
+ public:
+     class SingleTonTranslator
+     {
+     public:
+         SingleTonTranslator()
+         {
+             signal(SignalExceptionClass::GetSignalNumber(), SignalHandler);
+         }
 
+         static void SignalHandler(int sig)
+         {
+             throw SignalExceptionClass();
+         }
+     };
+
+     SignalTranslator()
+     {
+         static SingleTonTranslator s_objTranslator;
+     }
+ };
+
+class SignalException : public exception
+{
 	public:
-		BaseException(string heading, string error);
-		~BaseException();
+		SignalException() throw();
+		SignalException(const string& errortxt) throw();
+		virtual ~SignalException() throw();
 
-		const string getHeading();
-		const string getErrorText();
-		const string getMessage();
-};
+		const string getMessage() const { return m_sErrorText; };
+		vector<string> getTraceVector() const;
+		string getTraceString() const;
+		void printTrace() const;
+	    /** Returns a C-style character string describing the general cause
+	     *  of the current error.  */
+	    virtual const char* what() const throw();
+	    virtual int getSignal() const { return 0; };
+	    void addMessage(const string& message);
 
-class PortException : public BaseException
-{
+	protected:
+		/**
+		 * single exception messages,
+		 * or static string holder for uncaught exceptions
+		 */
+		mutable string m_sErrorText;
+
+		pid_t getThreadID() const { return m_nThreadID; };
+		vector<string> getFirstTraceVector() const;
+		virtual string getMainErrorMessage() const;
+		virtual string getClassName() const { return "SignalException"; };
+		virtual string getSignalName() const { return ""; };
+
 	private:
-		PortExcept m_status;
+		/**
+		 * whether exception class was initialed with main error
+		 */
+		mutable bool m_bInit;
+		/**
+		 * id of actual running thread
+		 */
+		pid_t m_nThreadID;
+		/**
+		 * vector of stack trace
+		 */
+		vector<string> m_vStackTrace;
 
-	public:
-		PortException(string heading, PortExcept status, string error) :
-			BaseException(heading, error),
-			m_status(status) {};
-
-		const string getMessage();
+		/**
+		 * return vector of stack trace
+		 *
+		 * @param del delete first rows of stack trace
+		 * @return stack trace
+		 */
+		vector<string> trace(const unsigned short del) const;
 };
+
+ class SegmentationFault : public SignalException
+ {
+ public:
+	 virtual ~SegmentationFault() throw() {};
+     static int GetSignalNumber() {return SIGSEGV;}
+	 virtual int getSignal() const { return GetSignalNumber(); };
+
+ protected:
+     virtual string getSignalName() const { return "SIGSEGV"; };
+     virtual string getClassName() const { return "SegmentationFault"; };
+ };
+
+
+ class FloatingPointException : public SignalException
+ {
+ public:
+	 virtual ~FloatingPointException() throw() {};
+     static int GetSignalNumber() {return SIGFPE;}
+	 virtual int getSignal() const { return GetSignalNumber(); };
+
+ protected:
+     virtual string getSignalName() const { return "SIGFPE"; };
+     virtual string getClassName() const { return "FloatingPointException"; };
+ };
+
+#endif // __BASETHREADEXCEPTION_H
+
+

@@ -2,7 +2,7 @@
 set(utilSrcs	GlobalStaticMethods.cpp
 		        CalculatorContainer.cpp
 		        Calendar.cpp
-#        		exception.cpp
+        		exception.cpp
         		URL.cpp
         		ParamCommand.cpp
         		MainParams.cpp

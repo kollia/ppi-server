@@ -109,8 +109,8 @@ void GlobalStaticMethods::setSignals(const string& process)
 		printSigError("SIGINT", process);
 	if(signal(SIGHUP, signalconverting) == SIG_ERR)
 		printSigError("SIGHUP", process);
-	if(signal(SIGSEGV, signalconverting) == SIG_ERR)
-		printSigError("SIGSEGV", process);
+	//if(signal(SIGSEGV, signalconverting) == SIG_ERR)
+	//	printSigError("SIGSEGV", process);
 	if(signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 		printSigError("SIGPIPE", process);
 
@@ -162,10 +162,11 @@ void GlobalStaticMethods::printSigError(const string& cpSigValue, const string& 
 
 void GlobalStaticMethods::signalconverting(int nSignal)
 {
-	string msg;
+	ostringstream msg;
 	int nexit= EXIT_FAILURE;
 	pid_t threadid= (pid_t)syscall(SYS_gettid);
 	//LogHolderPattern *log= LogHolderPattern::instance();
+	//ExceptionTracker except;
 
 	switch(nSignal)
 	{
@@ -184,6 +185,9 @@ void GlobalStaticMethods::signalconverting(int nSignal)
 			break;*/
 
 		case SIGSEGV:
+
+			//msg << "SIGSEGV \"" << m_sProcessName << "\" " << getpid() << ":" << syscall(SYS_gettid) << " close from system";
+			//ExceptionTracker(msg.str()).printTrace();
 			cout << "SIGSEGV: \"" << m_sProcessName << "\":" << getpid() << ":" << threadid << " close from system" << endl;
 			pthread_exit(&nexit);
 			break;
