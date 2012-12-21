@@ -27,6 +27,8 @@
 #include "owserver.h"
 #include "OwServerQuestions.h"
 
+#include "../util/exception.h"
+
 #include "../pattern/util/LogHolderPattern.h"
 
 #include "../database/lib/DbInterface.h"
@@ -85,9 +87,20 @@ namespace server
 						if(out)
 							cout << " has value " << flush;
 						value= 0;
-						do{
-							res= m_poChipAccess->read((*chip)->id, value);
-						}while(res == 1);
+						try{
+							do{
+								res= m_poChipAccess->read((*chip)->id, value);
+							}while(res == 1);
+						}catch(SignalException &ex)
+						{
+							string err;
+
+							ex.addMessage("reading first state of chip '" + (*chip)->id + "'");
+							err= ex.getTraceString();
+							cout << endl << err << endl;
+							LOG(LOG_ERROR, err);
+							res= -1;
+						}
 						if(res < 0)
 						{
 							(*chip)->device= false;
@@ -133,31 +146,55 @@ namespace server
 				return true;
 			return false;
 		}
-		if(m_poChipAccess->existID(type, chipID))
-			return true;
+		try{
+			if(m_poChipAccess->existID(type, chipID))
+				return true;
+
+		}catch(SignalException& ex)
+		{
+			string err;
+
+			ex.addMessage("asking external chip reader for chip " + chipID);
+			err= ex.getTraceString();
+			cout << endl << err << endl;
+			LOG(LOG_ERROR, err);
+		}
 		return false;
 	}
 
 	int OWServer::init(void* arg)
 	{
 		string threadName("owreader[");
-		string defaultConfig(m_poChipAccess->getDefaultFileName());
+		string defaultConfig;
 
-		m_oServerProperties= static_cast<IPropertyPattern*>(arg);
-		if(defaultConfig != "")
-			DbInterface::instance()->define(m_poChipAccess->getServerName(), defaultConfig);
-		if(!m_poChipAccess->init(m_oServerProperties))
-			return 1;
-		threadName+= m_poChipAccess->getServerName() + "]";
-		LogHolderPattern::instance()->setThreadName(threadName);
-		if(!m_poChipAccess->isConnected())
+		try{
+			defaultConfig= m_poChipAccess->getDefaultFileName();
+			m_oServerProperties= static_cast<IPropertyPattern*>(arg);
+			if(defaultConfig != "")
+				DbInterface::instance()->define(m_poChipAccess->getServerName(), defaultConfig);
+			if(!m_poChipAccess->init(m_oServerProperties))
+				return 1;
+			threadName+= m_poChipAccess->getServerName() + "]";
+			LogHolderPattern::instance()->setThreadName(threadName);
+			if(!m_poChipAccess->isConnected())
+			{
+				string msg(" connection to device was failed, try to connect all seconds");
+
+				LOG(LOG_INFO, msg);
+				cout << "### WARNING: " << msg << endl;
+			}else
+				m_bConnected= true;
+
+		}catch(SignalException& ex)
 		{
-			string msg(" connection to device was failed, try to connect all seconds");
+			string err;
 
-			LOG(LOG_INFO, msg);
-			cout << "### WARNING: " << msg << endl;
-		}else
-			m_bConnected= true;
+			ex.addMessage("initialing external chip reader " +  m_sServerType);
+			err= ex.getTraceString();
+			cout << endl << err << endl;
+			LOG(LOG_ALERT, err);
+			return 1;
+		}
 
 		return 0;
 	}
@@ -211,142 +248,154 @@ namespace server
 			dCacheSeq= 0;
 		}
 
-		res= m_poChipAccess->useChip(properties, unique, kernelmode);
-		if(m_poChipAccess->getDefaultFileName() == "")
-		{// chip isn't registered,
-		 // do it now
-			bool fl;
-			bool *pfl= &fl;
-			double min, max;
-			double *pmin= &min;
-			double *pmax= &max;
-			string chip, type, pin, family;
+		try{
+			res= m_poChipAccess->useChip(properties, unique, kernelmode);
+			if(m_poChipAccess->getDefaultFileName() == "")
+			{// chip isn't registered,
+			 // do it now
+				bool fl;
+				bool *pfl= &fl;
+				double min, max;
+				double *pmin= &min;
+				double *pmax= &max;
+				string chip, type, pin, family;
 
-			range(unique, min, max, fl);
-			chip= properties->getValue("ID");
-			pin= properties->getValue("pin");
-			type= m_poChipAccess->getChipType(pin);
-			reader= DbInterface::instance();
-			reader->registerChip(m_poChipAccess->getServerName(), unique, pin, type, "unknown", pmin, pmax, pfl);
-		}
-		if(res == 0)
-			return 0;
-		else if(res == 1)
-		{// chip is for reading
-			read= true;
-			write= false;
-			//*pCache= currentReading;
-			if(dCacheSeq == 0)
-			{
-				bool bExist;
-				double defaultCache;
-
+				range(unique, min, max, fl);
+				chip= properties->getValue("ID");
+				pin= properties->getValue("pin");
+				type= m_poChipAccess->getChipType(pin);
 				reader= DbInterface::instance();
-				defaultCache= reader->getRegisteredDefaultChipCache(m_poChipAccess->getServerName(), unique, bExist);
-				if(	bExist
-					&&
-					defaultCache != 0	)
-				{
-					dCacheSeq= defaultCache;
-				}else
-				{
-					bool fl;
-					double min, max;
-
-					range(unique, min, max, fl);
-					dCacheSeq= reader->getDefaultCache(min, max, fl, folder, subroutine);
-					if(dCacheSeq == 0)
-						dCacheSeq= 15;
-				}
+				reader->registerChip(m_poChipAccess->getServerName(), unique, pin, type, "unknown", pmin, pmax, pfl);
 			}
-			priority= 0;
-		}else if(res == 2)
-		{// chip is for writing
-			read= false;
-			write= true;
-			if(priority == 0)
-				priority= 9999;
-			dCacheSeq= 0;
-			m_bKernelOnly= false;
-		}else // res is 3
-		{
-			read= false;
-			write= false;
-		}
-
-
-		pchip= SHAREDPTR::shared_ptr<chip_types_t>(new chip_types_t);
-		pchip->id= unique;
-		if(cacheWrite)
-			pchip->writecache= true;
-		else
-			pchip->writecache= false;
-
-		pchip->wcacheID= m_poChipAccess->getChipTypeID(unique);
-		pchip->read= read;
-		pchip->value= 0;
-		pchip->priority= priority;
-		pchip->timeSeq.tv_sec= 0;
-		pchip->timeSeq.tv_usec= 0;
-		pchip->device= true;
-		m_mtConductors[unique]= pchip;
-		if(kernelmode)
-		{ // chip is for reading over kernel module
-			vector<string>::iterator found;
-
-			if(!read)
-			{
-				string msg(properties->getMsgHead(true));
-
-				msg+= "application can only read from kernelmodule. Don't set an writing chip with kernelmode";
-				cout << msg << endl;
-				LOG(LOG_ERROR, msg);
+			if(res == 0)
 				return 0;
-			}
-			m_pKernelModule->fillChipType(pchip.get());
-			m_bKernel= true;
-			if(kernelmode == 2)
+			else if(res == 1)
+			{// chip is for reading
+				read= true;
+				write= false;
+				//*pCache= currentReading;
+				if(dCacheSeq == 0)
+				{
+					bool bExist;
+					double defaultCache;
+
+					reader= DbInterface::instance();
+					defaultCache= reader->getRegisteredDefaultChipCache(m_poChipAccess->getServerName(), unique, bExist);
+					if(	bExist
+						&&
+						defaultCache != 0	)
+					{
+						dCacheSeq= defaultCache;
+					}else
+					{
+						bool fl;
+						double min, max;
+
+						range(unique, min, max, fl);
+						dCacheSeq= reader->getDefaultCache(min, max, fl, folder, subroutine);
+						if(dCacheSeq == 0)
+							dCacheSeq= 15;
+					}
+				}
+				priority= 0;
+			}else if(res == 2)
+			{// chip is for writing
+				read= false;
+				write= true;
+				if(priority == 0)
+					priority= 9999;
+				dCacheSeq= 0;
 				m_bKernelOnly= false;
-		}
-		if(	dCacheSeq )
-		{
-			long tm;
-			map<double, seq_t>::iterator found;
-
-			tm= (long)dCacheSeq;
-			pchip->timeSeq.tv_sec= (time_t)tm;
-			tm= (long)((dCacheSeq - tm) * 1000000);
-			pchip->timeSeq.tv_usec= (suseconds_t)tm;
-			if(kernelmode != 1)
+			}else // res is 3
 			{
-				pchip->bPoll= true;
-				m_bPollRead= true;
-				m_bKernelOnly= false;
-				m_mvTrueReadingCache[dCacheSeq].push_back(pchip);
-			}else
-				pchip->bPoll= false;
-			m_mvReadingCache[dCacheSeq].push_back(pchip);
-
-			found= m_mStartSeq.find(dCacheSeq);
-			if(found == m_mStartSeq.end())
-			{
-				seq_t t;
-
-				t.tm.tv_sec= pchip->timeSeq.tv_sec;
-				t.tm.tv_usec= pchip->timeSeq.tv_usec;
-				t.nextUnique= pchip;
-				t.bPoll= true;
-				m_mStartSeq[dCacheSeq]= t;
+				read= false;
+				write= false;
 			}
 
-		}
-		// if owreader not be connected to any board or chip
-		// set device access to false;
-		if(!m_bConnected)
+
+			pchip= SHAREDPTR::shared_ptr<chip_types_t>(new chip_types_t);
+			pchip->id= unique;
+			if(cacheWrite)
+				pchip->writecache= true;
+			else
+				pchip->writecache= false;
+
+			pchip->wcacheID= m_poChipAccess->getChipTypeID(unique);
+			pchip->read= read;
+			pchip->value= 0;
+			pchip->priority= priority;
+			pchip->timeSeq.tv_sec= 0;
+			pchip->timeSeq.tv_usec= 0;
+			pchip->device= true;
+			m_mtConductors[unique]= pchip;
+			if(kernelmode)
+			{ // chip is for reading over kernel module
+				vector<string>::iterator found;
+
+				if(!read)
+				{
+					string msg(properties->getMsgHead(true));
+
+					msg+= "application can only read from kernelmodule. Don't set an writing chip with kernelmode";
+					cout << msg << endl;
+					LOG(LOG_ERROR, msg);
+					return 0;
+				}
+				m_pKernelModule->fillChipType(pchip.get());
+				m_bKernel= true;
+				if(kernelmode == 2)
+					m_bKernelOnly= false;
+			}
+			if(	dCacheSeq )
+			{
+				long tm;
+				map<double, seq_t>::iterator found;
+
+				tm= (long)dCacheSeq;
+				pchip->timeSeq.tv_sec= (time_t)tm;
+				tm= (long)((dCacheSeq - tm) * 1000000);
+				pchip->timeSeq.tv_usec= (suseconds_t)tm;
+				if(kernelmode != 1)
+				{
+					pchip->bPoll= true;
+					m_bPollRead= true;
+					m_bKernelOnly= false;
+					m_mvTrueReadingCache[dCacheSeq].push_back(pchip);
+				}else
+					pchip->bPoll= false;
+				m_mvReadingCache[dCacheSeq].push_back(pchip);
+
+				found= m_mStartSeq.find(dCacheSeq);
+				if(found == m_mStartSeq.end())
+				{
+					seq_t t;
+
+					t.tm.tv_sec= pchip->timeSeq.tv_sec;
+					t.tm.tv_usec= pchip->timeSeq.tv_usec;
+					t.nextUnique= pchip;
+					t.bPoll= true;
+					m_mStartSeq[dCacheSeq]= t;
+				}
+
+			}
+			// if owreader not be connected to any board or chip
+			// set device access to false;
+			if(!m_bConnected)
+			{
+				reader= DbInterface::instance();
+				reader->changedChip(m_sServerType, unique, /*value*/0, /*access*/false);
+				pchip->device= false;
+			}
+		}catch(SignalException& ex)
 		{
-			reader= DbInterface::instance();
-			reader->changedChip(m_sServerType, unique, /*value*/0, /*access*/false);
-			pchip->device= false;
+			string err;
+
+			ex.addMessage("initialing chip " + unique + " inside " +  m_sServerType
+							+ "reader\nfor subroutine " + subroutine + " in folder " + folder);
+			err= ex.getTraceString();
+			cout << endl << err << endl;
+			LOG(LOG_ERROR, err);
+			return 0;
 		}
 
 		// define debug info to make benchmark
@@ -372,6 +421,8 @@ namespace server
 	{
 		vector<string> unused;
 
+		// do not display unused chips
+		return;
 		unused= m_poChipAccess->getUnusedIDs();
 		if(!unused.empty())
 		{
@@ -429,12 +480,25 @@ namespace server
 			sleep(1);
 			if(stopping())
 				return 1;
-			if(m_poChipAccess->connect())
+			try{
+				if(m_poChipAccess->connect())
+				{
+					if(m_poChipAccess->init(m_oServerProperties) != 0)
+						return 1;
+					m_bConnected= true;
+				}else
+					return 0;
+			}catch(SignalException& ex)
 			{
-				m_poChipAccess->init(m_oServerProperties);
-				m_bConnected= true;
-			}else
+				string err;
+
+				ex.addMessage("trying to connect to external chip access " +  m_sServerType);
+				err= ex.getTraceString();
+				cout << endl << err << endl;
+				LOG(LOG_ERROR, err);
 				return 0;
+			}
+
 		}
 		if(m_bKernelOnly)
 			return m_pKernelModule->execute();
@@ -487,7 +551,19 @@ namespace server
 				scout << "write on chip id " << chip->id << " value " << chip->value << endl;
 				cout << scout.str();
 #endif // __OWSERVERREADWRITE
-				endWork= m_poChipAccess->write(chip->id, chip->value, chip->addinfo);
+				try{
+					endWork= m_poChipAccess->write(chip->id, chip->value, chip->addinfo);
+
+				}catch(SignalException& ex)
+				{
+					string err;
+
+					ex.addMessage("writing on chip " +  chip->id + "inside reader " + m_sServerType);
+					err= ex.getTraceString();
+					cout << endl << err << endl;
+					LOG(LOG_ERROR, err);
+					endWork= -1;
+				}
 #ifdef __OWSERVERREADWRITE
 				ostringstream scout3;
 				scout3 << "-- writing done by state " << endWork << endl;
@@ -695,8 +771,19 @@ namespace server
 						cout << scout.str();
 #endif // __OWSERVERREADWRITE
 						UNLOCK(m_READCACHE);
-						endWork= m_poChipAccess->read((*pActChip)->id, value);
-						//cout << "server read from id " << ID << " value " << dec << value << " where value before was " << (*pActChip)->value << endl;
+						try{
+							endWork= m_poChipAccess->read((*pActChip)->id, value);
+							//cout << "server read from id " << ID << " value " << dec << value << " where value before was " << (*pActChip)->value << endl;
+						}catch(SignalException& ex)
+						{
+							string err;
+
+							ex.addMessage("read on chip " +  (*pActChip)->id + "inside reader " + m_sServerType);
+							err= ex.getTraceString();
+							cout << endl << err << endl;
+							LOG(LOG_ERROR, err);
+							endWork= -1;
+						}
 						LOCK(m_READCACHE);
 #ifdef __OWSERVERREADWRITE
 						ostringstream scout2;
@@ -790,7 +877,17 @@ namespace server
 						&&
 						pActChip == m_mvTrueReadingCache[pActSeq->first].end())
 					{
-						m_poChipAccess->endOfCacheReading(pActSeq->first);
+						try{
+							m_poChipAccess->endOfCacheReading(pActSeq->first);
+						}catch(SignalException& ex)
+						{
+							string err;
+
+							ex.addMessage("sending endOfCacheReading to reader " + m_sServerType);
+							err= ex.getTraceString();
+							cout << endl << err << endl;
+							LOG(LOG_ERROR, err);
+						}
 						pActSeq->second.nextUnique= SHAREDPTR::shared_ptr<chip_types_t>();
 						if(m_mvTrueReadingCache[pActSeq->first].size() > 0)
 						{// set next new time for reading
@@ -850,7 +947,18 @@ namespace server
 
 			shorttm.tv_sec= -1;
 			shorttm.tv_usec= -1;
-			m_poChipAccess->endOfLoop();
+			try{
+				m_poChipAccess->endOfLoop();
+
+			}catch(SignalException& ex)
+			{
+				string err;
+
+				ex.addMessage("sending endOfLoop to reader " + m_sServerType);
+				err= ex.getTraceString();
+				cout << endl << err << endl;
+				LOG(LOG_ERROR, err);
+			}
 			LOCK(m_READCACHE);
 			if(m_mStartSeq.empty())
 			{
@@ -956,7 +1064,20 @@ namespace server
 
 	vector<string> OWServer::getChipIDs()
 	{
-		return m_poChipAccess->getChipIDs();
+		vector<string> vRv;
+
+		try{
+			vRv= m_poChipAccess->getChipIDs();
+		}catch(SignalException& ex)
+		{
+			string err;
+
+			ex.addMessage("asking for exist chip id's on reader " + m_sServerType);
+			err= ex.getTraceString();
+			cout << endl << err << endl;
+			LOG(LOG_ERROR, err);
+		}
+		return vRv;
 	}
 
 	void OWServer::measureTimeDiff(device_debug_t* device) const
@@ -1115,7 +1236,19 @@ namespace server
 		int nRv;
 
 		LOCK(m_EXECUTEMUTEX);
-		nRv= m_poChipAccess->command_exec(command, result, more);
+		try{
+			nRv= m_poChipAccess->command_exec(command, result, more);
+
+		}catch(SignalException& ex)
+		{
+			string err;
+
+			ex.addMessage("execute command on reader " + m_sServerType);
+			err= ex.getTraceString();
+			cout << endl << err << endl;
+			LOG(LOG_ERROR, err);
+			nRv= 127;
+		}
 		UNLOCK(m_EXECUTEMUTEX);
 		return nRv;
 	}

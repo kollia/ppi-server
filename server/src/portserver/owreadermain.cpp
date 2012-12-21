@@ -29,6 +29,7 @@
 
 #include "../util/GlobalStaticMethods.h"
 #include "../util/URL.h"
+#include "../util/exception.h"
 
 #include "../util/properties/interlacedproperties.h"
 
@@ -353,8 +354,22 @@ int main(int argc, char* argv[])
 		}
 	}
 	newProp.setDefault("confpath", sConfPath, /*overwrite*/false);
-	if(owserver->start(&newProp) != 0)
-		return EXIT_FAILURE;
+	try{
+
+		if(owserver->start(&newProp) != 0)
+			return EXIT_FAILURE;
+
+	}catch(SignalException &ex)
+	{
+		string msg;
+
+		ex.printTrace();
+		msg= "catch exception inside running main thread of one wire server\n";
+		msg+= "  so do not run server from type " + servertype + " any more and STOPPING";
+		cerr << endl << endl << msg << endl << endl;
+		LOG(LOG_ALERT, msg);
+		exit(EXIT_FAILURE);
+	}
 
 	LOG(LOG_INFO, "starting owreader object for extern interfaces\n\n" + output.str());
 
@@ -412,7 +427,20 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	err= pQuestions->run();
+	try{
+
+		err= pQuestions->run();
+
+	}catch(SignalException &ex)
+	{
+		string msg;
+
+		ex.addMessage("catch exception inside hearing of questions from other processes\n"
+						"so STOPPING one wire server from type " + servertype);
+		msg= ex.getTraceString();
+		cerr << endl << endl << msg << endl << endl;
+		LOG(LOG_ALERT, msg);
+	}
 	owserver->stop();
 	DbInterface::deleteAll();
 	if(err > 0)
