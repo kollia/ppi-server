@@ -52,6 +52,7 @@ int OwfsSupport::execute(const ICommandStructPattern* params, IInterlacedPropert
 	string examplefile("maxim_examples.conf");
 	vector<string> result;
 	string currentPath, newPath, snum;
+	const string owfsIdentif("OWFS");
 	size_t num;
 	unsigned short nCount(0);
 	unsigned short nback;
@@ -61,7 +62,7 @@ int OwfsSupport::execute(const ICommandStructPattern* params, IInterlacedPropert
 	map<unsigned short, string> mMenu;
 	Properties oExample;
 	IChipAccessPattern* chip;
-	const IPropertyPattern* const properties(oServerProperties->getSection("owreader", "OWFS"));
+	const IPropertyPattern* const properties(oServerProperties->getSection("owreader", owfsIdentif));
 	bool bUsedIds(false), bUsedPins(false), bReadProps(false);
 	string prop, sDescription, sName, sId, sPin, sIdPath, sAction;
 	vector<string>::size_type actDesc(0), actNames(0), actIds(0), actPins(0), actAction(0);
@@ -255,13 +256,13 @@ int OwfsSupport::execute(const ICommandStructPattern* params, IInterlacedPropert
 		if(currentPath == "")
 		{// list first from all process
 			mMenu.clear();
-			OWFSFactory("needprocesses", 0, nProcess, properties);
+			OWFSFactory(owfsIdentif, "needprocesses", 0, nProcess, properties);
 			m_nChip= 0;
 			nCount= 0;
 			m_nFirstChip.clear();
 			for(size_t n= 1; n <= nProcess; ++n)
 			{
-				chip= OWFSFactory("chipobject", n, n, properties);
+				chip= OWFSFactory(owfsIdentif, "chipobject", n, n, properties);
 				if(chip->connect())
 				{
 					if(n == 1)
@@ -287,7 +288,7 @@ int OwfsSupport::execute(const ICommandStructPattern* params, IInterlacedPropert
 		}else
 		{// defined process is given
 			mMenu.clear();
-			chip= OWFSFactory("chipobject", nProcess, nProcess, properties);
+			chip= OWFSFactory(owfsIdentif, "chipobject", nProcess, nProcess, properties);
 			if(chip->connect())
 			{
 				cout << endl << endl;

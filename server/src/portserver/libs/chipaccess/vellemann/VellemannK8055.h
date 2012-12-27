@@ -36,18 +36,18 @@ namespace ports
 	{
 		public:
 			/**
-			 * display identification name for OWServer
-			 *
-			 * @return name of server
-			 */
-			virtual string getServerName()
-			{ return "k8055 USB port from Vellemann"; };
-			/**
 			 * konstructor to declare object with port ID on USB
 			 *
 			 * @param ID port ID jumperd on K8055 platine
 			 */
 			VellemannK8055(long ID);
+			/**
+			 * server description for external library port reader
+			 *
+			 * @return description
+			 */
+			virtual string getServerDescription()
+			{ return "k8055 USB port from Vellemann"; };
 			/**
 			 * select all properties and actions whitch are uesed in interface
 			 *

@@ -47,7 +47,7 @@ using namespace ppi_database;
 
 namespace ports
 {
-	IChipAccessPattern* OWFSFactory(const string& need, const unsigned short actID,
+	IChipAccessPattern* OWFSFactory(const string& identif, const string& need, const unsigned short actID,
 									size_t& count, const IPropertyPattern* properties)
 	{
 		if(need == "needprocesses")
@@ -61,7 +61,7 @@ namespace ports
 			vector<string> adapters;
 			MaximChipAccess* object;
 
-			object= new MaximChipAccess(init, &adapters);
+			object= new MaximChipAccess(identif, init, &adapters);
 			return object;
 		}
 		return NULL;
@@ -71,11 +71,12 @@ namespace ports
 	set<string> MaximChipAccess::m_vsIncorrect;
 	pthread_mutex_t* MaximChipAccess::m_INCORRECTCHIPIDS= NULL; //Thread::getMutex("INCORRECTMAXIMCHIPIDS");
 
-	MaximChipAccess::MaximChipAccess(const string init/*= ""*/, vector<string>* idsBefore/*= NULL*/)
+	MaximChipAccess::MaximChipAccess(const string& identif, const string& init/*= ""*/, vector<string>* idsBefore/*= NULL*/)
 	{
 		m_bDebug= false;
 		m_bConnected= false;
 		m_sInit= init;
+		m_sServerIdentif= identif;
 		m_DEBUGINFO= Thread::getMutex("MAXIMDEBUGINFO");
 		if(m_INCORRECTCHIPIDS == NULL)
 			m_INCORRECTCHIPIDS= Thread::getMutex("INCORRECTMAXIMCHIPIDS");
@@ -287,7 +288,7 @@ namespace ports
 			return 0;
 		}
 		ptchip= chipIt->second;
-		defaultChip= defaultChipReader->getRegisteredDefaultChip(getServerName(), ptchip->family, ptchip->type, ID);
+		defaultChip= defaultChipReader->getRegisteredDefaultChip(m_sServerIdentif, ptchip->family, ptchip->type, ID);
 		//defaultChip= defaultChipReader->getDefaultChip(getServerName(), ID);
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// seting typical chip behavior
@@ -501,7 +502,7 @@ namespace ports
 			ptchip->pins[pin]= ptpin;
 		foundChip(getChipID(unique));
 		//cout << "regist chip inside method useChip from maximchipaccess" << endl;
-		defaultChipReader->registerChip(getServerName(), unique, pin, ptchip->type, ptchip->family);
+		defaultChipReader->registerChip(m_sServerIdentif, unique, pin, ptchip->type, ptchip->family);
 		//cout << "for server " << getServerName() << " id " << unique << " pin " << pin << " type " << ptchip->type << " family code " << ptchip->family << endl;
 		if(read)
 			return 1;

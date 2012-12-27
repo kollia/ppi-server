@@ -42,20 +42,18 @@ namespace ports
 	public:
 		/**
 		 * constructor to declare object lirc
-		 *
-		 * @param ID port ID jumperd on K8055 platine
 		 */
 		LircClient() :
 			m_bDebug(false),
 			m_bConnected(false),
 			m_READMUTEX(Thread::getMutex("READMUTEX")) {};
 		/**
-		 * display identification name for OWServer
+		 * server description for external library port reader
 		 *
-		 * @return name of server
+		 * @return description
 		 */
-		virtual string getServerName()
-		{ return "lircClient"; };
+		virtual string getServerDescription()
+		{ return "Linux Infrared Remote Control"; };
 		/**
 		 * select all properties and actions whitch are uesed in interface
 		 *

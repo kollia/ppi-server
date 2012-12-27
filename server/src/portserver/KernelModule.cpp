@@ -30,7 +30,7 @@ namespace server {
 	{
 		string threadName("KernelModul[");
 
-		threadName+= m_poChipAccess->getServerName() + ")";
+		threadName+= m_sServerType + ")";
 		LogHolderPattern::instance()->setThreadName(threadName);
 		return 0;
 	}

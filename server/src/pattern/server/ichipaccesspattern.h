@@ -37,11 +37,11 @@ namespace design_pattern_world
 	{
 	public:
 		/**
-		 * display identification name for OWServer
+		 * server description for external library port reader
 		 *
-		 * @return name of server
+		 * @return description string
 		 */
-		virtual string getServerName()= 0;
+		virtual string getServerDescription()= 0;
 		/**
 		 * select all properties and actions whitch are uesed in interface
 		 *

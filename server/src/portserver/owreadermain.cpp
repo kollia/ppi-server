@@ -257,7 +257,7 @@ int main(int argc, char* argv[])
 					first= adapters.begin();
 					maximconf= *first;
 					adapters.erase(first);
-					accessPort= new MaximChipAccess(maximconf, &adapters); // object will be given as pointer into OWServer, need no auto_ptr
+					accessPort= new MaximChipAccess(servertype, maximconf, &adapters); // object will be given as pointer into OWServer, need no auto_ptr
 					bConf= true;
 				}else
 				{
@@ -328,7 +328,7 @@ int main(int argc, char* argv[])
 
 	output << "    one wire reader";
 	owserver= auto_ptr<OWServer>(new OWServer(nServerID, servertype, accessPort));
-	output << " with name '" << owserver->getServerName();
+	output << " with name '" << owserver->getServerDescription();
 	output << "' and ID '" << dec << nServerID << "'" << endl;
 	output << "    " << usestring.str();
 	if(strncmp(argv[2], "maxim", vLength[2]) != 0)
@@ -447,7 +447,7 @@ int main(int argc, char* argv[])
 	{
 		string msg;
 
-		msg=  "### ERROR: cannot start question thread for one wire server " + owserver->getServerName() + "\n";
+		msg=  "### ERROR: cannot start question thread for one wire server " + owserver->getServerDescription() + "\n";
 		msg+= "           " + pQuestions->strerror(err);
 		cerr << msg << endl;
 		LOG(LOG_ERROR, msg);

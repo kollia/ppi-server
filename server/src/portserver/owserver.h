@@ -77,12 +77,12 @@ namespace server
 		 */
 		OWServer(const unsigned short ID, const string& type, IChipAccessPattern* accessPattern);
 		/**
-		 * display identification name for OWServer
+		 * server description for external library port reader
 		 *
-		 * @return name of server
+		 * @return description string
 		 */
-		string getServerName()
-		{ return m_poChipAccess->getServerName(); };
+		string getServerDescription()
+		{ return m_poChipAccess->getServerDescription(); };
 		/**
 		 * all initialication of subroutines
 		 * are done

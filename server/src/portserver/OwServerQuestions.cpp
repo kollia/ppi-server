@@ -52,7 +52,7 @@ int OwServerQuestions::execute()
 			// try again later
 			return 0;
 		}
-		command=  "### ERROR: ending OWServer question client for server " + m_oServer->getServerName() + "\n";
+		command=  "### ERROR: ending OWServer question client for server " + m_oServer->getServerDescription() + "\n";
 		command+= "           " + strerror(err);
 		cerr << command << endl;
 		LOG(LOG_ERROR, command);
@@ -124,9 +124,9 @@ int OwServerQuestions::execute()
 	{
 		m_vAnswer.push_back("true");
 
-	}else if(command == "getServerName")
+	}else if(command == "getServerDescription")
 	{
-		m_sAnswer= m_oServer->getServerName();
+		m_sAnswer= m_oServer->getServerDescription();
 
 	}else if(command == "endOfInitialisation")
 	{
@@ -285,7 +285,7 @@ int OwServerQuestions::execute()
 			{								// send back as first answer name of server
 				m_sAnswer= "false";
 			}else
-				m_sAnswer= m_oServer->getServerName();
+				m_sAnswer= m_oServer->getServerDescription();
 		}else
 			m_sAnswer= "done";
 		first= false;

@@ -37,13 +37,14 @@ namespace ports
 	/**
 	 * factory to get chip access or subroutine object
 	 *
+	 * @param identif identification name of server
 	 * @param need which object (for 'needprocesses', 'chipobject' or 'subroutine') will be needed
 	 * @param actID ID for chip access object
 	 * @param count number of needed chip access object by 'chipobject' or give back number of needed processes by 'needprocesses'
 	 * @param properties defined properties inside server.conf specific for OWFS
 	 * @return needed object
 	 */
-	IChipAccessPattern* OWFSFactory(const string& need, const unsigned short actID,
+	IChipAccessPattern* OWFSFactory(const string& identif, const string& need, const unsigned short actID,
 										size_t& count, const IPropertyPattern* properties);
 
 	/**
@@ -57,21 +58,22 @@ namespace ports
 	{
 	public:
 		/**
-		 * display identification name for OWServer
+		 * server description for external library port reader
 		 *
-		 * @return name of server
+		 * @return description
 		 */
-		virtual string getServerName()
-		{ return "OWFS"; };
+		virtual string getServerDescription()
+		{ return "one wire bus for maxim/dallas semiconductors"; };
 		/**
 		 * constructor to initial class
 		 * with main property management
 		 *
+		 * @param identif identification name of server
 		 * @param init 	initialitation string for dallas semiconductors.<br />
 		 * 				If string not defined, init method fetch full maximinit string
 		 * 				from properties
 		 */
-		MaximChipAccess(const string init= "", vector<string>* idsBefore= NULL);
+		MaximChipAccess(const string& identif, const string& init= "", vector<string>* idsBefore= NULL);
 		/**
 		 * select all properties and actions whitch are uesed in interface
 		 *
@@ -387,9 +389,13 @@ namespace ports
 		 */
 		bool m_bConnected;
 		/**
-		 * initialitation string for dallas conductors
+		 * Initialization string for dallas conductors
 		 */
 		string m_sInit;
+		/**
+		 * identification name of server defined inside server.conf
+		 */
+		string m_sServerIdentif;
 		/**
 		 * mutex lock of show debug info
 		 */

@@ -137,20 +137,21 @@ namespace ports
 		return true;
 	}
 
-	string ExternPorts::getServerName()
+	string ExternPorts::getServerDescription()
 	{
-		string sRv("extern_computer");
+		Pin epin;
+		string sRv("external COM/LPT Interface to ");
 
 		switch(m_eType)
 		{
 		case PORT:
-			sRv+= "PORT";
+			sRv+= "set or read power on pins";
 			break;
 		case MPORT:
-			sRv+= "MPORT";
+			sRv+= "measure time from outgoing power to incoming pin";
 			break;
 		case RWPORT:
-			sRv+= "RWPORT";
+			sRv+= "read or write on hole port";
 			break;
 		}
 		return sRv;

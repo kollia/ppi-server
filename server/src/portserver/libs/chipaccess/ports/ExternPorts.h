@@ -137,11 +137,11 @@ namespace ports
 			};
 
 			/**
-			 * display identification name for OWServer
+			 * server description for external library port reader
 			 *
-			 * @return name of server
+			 * @return description string
 			 */
-			virtual string getServerName();
+			virtual string getServerDescription();
 			/**
 			 * constructor to declare object to read from all serial and parallel port interfaces
 			 *

@@ -73,7 +73,7 @@ namespace server
 		if(m_mvReadingCache.size() > 0)
 		{
 			if(out)
-				cout << "read all defined input for first state from " << m_poChipAccess->getServerName() << " ..." << endl;
+				cout << "read all defined input for first state from " << m_poChipAccess->getServerDescription() << " ..." << endl;
 			for(map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >::iterator it= m_mvReadingCache.begin(); it != m_mvReadingCache.end(); ++it)
 			{
 				if(out)
@@ -171,10 +171,10 @@ namespace server
 			defaultConfig= m_poChipAccess->getDefaultFileName();
 			m_oServerProperties= static_cast<IPropertyPattern*>(arg);
 			if(defaultConfig != "")
-				DbInterface::instance()->define(m_poChipAccess->getServerName(), defaultConfig);
+				DbInterface::instance()->define(m_sServerType, defaultConfig);
 			if(!m_poChipAccess->init(m_oServerProperties))
 				return 1;
-			threadName+= m_poChipAccess->getServerName() + "]";
+			threadName+= m_sServerType + "]";
 			LogHolderPattern::instance()->setThreadName(threadName);
 			if(!m_poChipAccess->isConnected())
 			{
@@ -265,7 +265,7 @@ namespace server
 				pin= properties->getValue("pin");
 				type= m_poChipAccess->getChipType(pin);
 				reader= DbInterface::instance();
-				reader->registerChip(m_poChipAccess->getServerName(), unique, pin, type, "unknown", pmin, pmax, pfl);
+				reader->registerChip(m_sServerType, unique, pin, type, "unknown", pmin, pmax, pfl);
 			}
 			if(res == 0)
 				return 0;
@@ -280,7 +280,7 @@ namespace server
 					double defaultCache;
 
 					reader= DbInterface::instance();
-					defaultCache= reader->getRegisteredDefaultChipCache(m_poChipAccess->getServerName(), unique, bExist);
+					defaultCache= reader->getRegisteredDefaultChipCache(m_sServerType, unique, bExist);
 					if(	bExist
 						&&
 						defaultCache != 0	)

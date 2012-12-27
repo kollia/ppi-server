@@ -37,11 +37,11 @@ namespace ports
 	{
 		public:
 			/**
-			 * display identification name for OWServer
+			 * server description for external library port reader
 			 *
-			 * @return name of server
+			 * @return description
 			 */
-			virtual string getServerName()
+			virtual string getServerDescription()
 			{ return "shell for system account " + m_sUser; };
 			/**
 			 * konstructor to declare object with port ID on USB
