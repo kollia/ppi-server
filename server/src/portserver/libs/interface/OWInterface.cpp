@@ -79,10 +79,10 @@ SHAREDPTR::shared_ptr<OWInterface> OWInterface::getServer(const string& type, co
 	return SHAREDPTR::shared_ptr<OWInterface>();
 }
 
-string OWInterface::getServerName()
+string OWInterface::getServerDescription()
 {
 	string sRv;
-	OMethodStringStream method("getServerName");
+	OMethodStringStream method("getServerDescription");
 
 	sRv= sendMethod(m_stoClient, method, true);
 	return sRv;

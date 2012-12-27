@@ -63,11 +63,11 @@ public:
 	 */
 	static SHAREDPTR::shared_ptr<OWInterface> getServer(const string& type, const string& chipID= "");
 	/**
-	 * display identification name for OWServer
+	 * server description for external library port reader
 	 *
-	 * @return name of server
+	 * @return description string
 	 */
-	string getServerName();
+	string getServerDescription();
 	/**
 	 * all initialication of subroutines
 	 * are done
