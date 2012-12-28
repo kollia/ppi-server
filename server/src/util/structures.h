@@ -122,7 +122,7 @@ struct timemap_t
 enum PortTypes
 {
 	PORT, //!- set or read power on one pin
-	MPORT, //!- measure from outgoing power to incomming pin
+	MPORT, //!- measure time from outgoing power to incoming pin
 	RWPORT //!- read or write on hole port with open()
 };
 
