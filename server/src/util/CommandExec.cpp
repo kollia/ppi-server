@@ -16,12 +16,17 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+
 #include <cstdio>
 #include <cstring>
 
 #include "../pattern/util/LogHolderPattern.h"
 
 #include "CommandExec.h"
+
+using namespace boost;
 
 int CommandExec::init(void* args)
 {
@@ -104,6 +109,7 @@ int CommandExec::execute()
 		LOG(LOG_ERROR, sline);
 		return -1;
 	}
+	command= "";
 	while(fgets(line, sizeof line, fp))
 	{
 		sline+= line;
@@ -113,8 +119,19 @@ int CommandExec::execute()
 			sline.substr(nLen-1) == "\n")
 		{
 			sline= sline.substr(0, nLen-1);
+			if(	sline.length() > 7 &&
+				sline.substr(0, 7) == "PPI-SET"	)
+			{
+				if(!setValue(sline))
+					command= " ### ERROR: cannot read correctly PPI-SET command";
+			}
 			LOCK(m_RESULTMUTEX);
 			m_vOutput.push_back(sline);
+			if(command != "")
+			{
+				m_vOutput.push_back(command);
+				command= "";
+			}
 			UNLOCK(m_RESULTMUTEX);
 			sline= "";
 		}
@@ -122,12 +139,51 @@ int CommandExec::execute()
 	pclose(fp);
 	if(sline != "")
 	{
+		if(	sline.length() > 7 &&
+			sline.substr(0, 7) == "PPI-SET"	)
+		{
+			if(!setValue(sline))
+				command= " ### ERROR: cannot read correctly PPI-SET command";
+		}
 		LOCK(m_RESULTMUTEX);
 		m_vOutput.push_back(sline);
+		if(command != "")
+			m_vOutput.push_back(command);
 		UNLOCK(m_RESULTMUTEX);
 	}
 	stop(false);
 	return 0;
+}
+
+bool CommandExec::setValue(const string& command)
+{
+	double value;
+	string outstr;
+	vector<string> spl;
+	istringstream icommand(command);
+
+	if(m_pPort == NULL)
+		return false;
+	icommand >> outstr; // string of PPI-SET
+	if(	icommand.eof() ||
+		icommand.fail()		)
+	{
+		return false;
+	}
+	icommand >> outstr; // folder:subroutine string
+	if(	icommand.eof() ||
+		icommand.fail()		)
+	{
+		return false;
+	}
+	split(spl, outstr, is_any_of(":"));
+	if(spl.size() != 2)
+		return false;
+	icommand >> value;
+	if(icommand.fail())
+		return false;
+	m_pPort->setValue(spl[0], spl[1], value, "SHELL_command");
+	return true;
 }
 
 vector<string> CommandExec::getOutput()

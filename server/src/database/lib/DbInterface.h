@@ -24,6 +24,8 @@
 #include <map>
 #include <fstream>
 
+#include "../../pattern/util/IMeasureSet.h"
+
 #include "../../util/structures.h"
 
 #include "../../server/libs/client/ProcessInterfaceTemplate.h"
@@ -45,7 +47,8 @@ namespace ppi_database
 	 * @version 1.0.0.
 	 */
 	class DbInterface : public LogInterface,
-						public ProcessInterfaceTemplate
+						public ProcessInterfaceTemplate,
+						public IMeasureSet
 	{
 	public:
 		/**
@@ -173,7 +176,7 @@ namespace ppi_database
 		 * @param value value which should write into database
 		 * @param account from which account over Internet the value will be set
 		 */
-		void setValue(string folder, string subroutine, double value, const string& account);
+		virtual void setValue(const string& folder, const string& subroutine, double value, const string& account);
 		/**
 		 * fill double value into database
 		 *

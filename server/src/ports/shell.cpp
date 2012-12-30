@@ -48,6 +48,34 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		m_bBlock= properties->haveAction("block");
 	else
 		m_bBlock= false;
+	m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
+	if(!m_oYears.isEmpty())
+		m_bFixTimePoll= true;
+	m_oMonths.init(pStartFolder, properties->getValue("month", /*warning*/false));
+	if(!m_oMonths.isEmpty())
+		m_bFixTimePoll= true;
+	m_oDays.init(pStartFolder, properties->getValue("day", /*warning*/false));
+	if(!m_oDays.isEmpty())
+		m_bFixTimePoll= true;
+	m_oHours.init(pStartFolder, properties->getValue("hour", /*warning*/false));
+	if(!m_oHours.isEmpty())
+		m_bFixTimePoll= true;
+	m_oMinutes.init(pStartFolder, properties->getValue("min", /*warning*/false));
+	if(!m_oMinutes.isEmpty())
+		m_bFixTimePoll= true;
+	m_oSeconds.init(pStartFolder, properties->getValue("sec", /*warning*/false));
+	if(!m_oSeconds.isEmpty())
+		m_bFixTimePoll= true;
+	if(	m_oYears.isEmpty() &&
+		m_oMonths.isEmpty()		)
+	{
+		m_oMilliseconds.init(pStartFolder, properties->getValue("millisec", /*warning*/false));
+		if(!m_oMilliseconds.isEmpty())
+			m_bFixTimePoll= true;
+		m_oMicroseconds.init(pStartFolder, properties->getValue("microsec", /*warning*/false));
+		if(!m_oMicroseconds.isEmpty())
+			m_bFixTimePoll= true;
+	}
 	m_bMore= false;
 	//m_sGUI= properties->getValue("gui", /*warning*/false);
 	m_sUserAccount= properties->getValue("runuser", /*warning*/false);
@@ -189,6 +217,7 @@ double Shell::measure(const double actValue)
 				break;
 			default:
 				tout << " for ERROR - take a look in LOG file!" << endl;
+				break;
 			}
 		}else
 		{
@@ -266,7 +295,7 @@ int Shell::system(const string& action, string command)
 			thread= m_vCommandThreads[0];
 
 		}else
-			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec());
+			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this));
 
 		LOCK(m_EXECUTEMUTEX);
 		res= CommandExec::command_exec(thread, command, result, m_bMore, m_bWait, m_bBlock);

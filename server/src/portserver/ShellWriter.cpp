@@ -28,11 +28,15 @@
 #include "../pattern/util/LogHolderPattern.h"
 
 #include "../util/URL.h"
+#include "../util/exception.h"
 #include "../util/thread/Thread.h"
+
+#include "../database/lib/DbInterface.h"
 
 #include "ShellWriter.h"
 
 using namespace std;
+using namespace ppi_database;
 using namespace design_pattern_world;
 
 namespace ports
@@ -162,6 +166,7 @@ namespace ports
 		string execute;
 		string folder, subroutine, foldsub;
 		const IInterlacedPropertyPattern* pSub;
+		DbInterface* db;
 		istringstream get(command);
 		SHAREDPTR::shared_ptr<CommandExec> thread;
 		typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
@@ -184,8 +189,8 @@ namespace ports
 		if(block == false)
 		{
 			wait= false;
-			//thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec());
-			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec());
+			db= DbInterface::instance();
+			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db));
 			pSub= m_oMeasure.getSection("folder", folder);
 			pSub= pSub->getSection("name", subroutine);
 			get >> sline;
@@ -204,18 +209,42 @@ namespace ports
 			thread= m_vCommandThreads[0];
 		}
 		nRv= CommandExec::command_exec(thread, execute, result, more, wait, block);
-		do{// remove all not needed threads from vector
-			bchangedVec= false;
-			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
-			{
-				if(!(*it)->running())
+		try{
+			do{// remove all not needed threads from vector
+				unsigned short count= 1;
+
+				bchangedVec= false;
+				for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
 				{
-					m_vCommandThreads.erase(it);
-					bchangedVec= true;
-					break;
+					if(!(*it)->running())
+					{
+						try{
+							m_vCommandThreads.erase(it);
+
+						}catch(SignalException& ex)
+						{
+							ostringstream msg;
+
+							msg << "try to erase " << count << ". thread ";
+							msg << "of " << m_vCommandThreads.size() << " exist";
+							ex.addMessage(msg.str());
+							throw ex;
+						}
+						bchangedVec= true;
+						break;
+					}
+					++count;
 				}
-			}
-		}while(bchangedVec);
+			}while(bchangedVec);
+		}catch(SignalException& ex)
+		{
+			string err;
+
+			ex.addMessage("remove all not needed CommandExec threads");
+			err= ex.getTraceString();
+			cout << endl << err << endl;
+			LOG(LOG_ERROR, err);
+		}
 		if(	wait == false ||
 			block == true ||
 			thread->running()	)

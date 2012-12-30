@@ -166,7 +166,7 @@ namespace ppi_database
 		}
 	}
 
-	void DbInterface::setValue(string folder, string subroutine, double value, const string& account)
+	void DbInterface::setValue(const string& folder, const string& subroutine, double value, const string& account)
 	{
 		int err;
 		string sRv;

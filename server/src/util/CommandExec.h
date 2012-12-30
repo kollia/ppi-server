@@ -19,6 +19,8 @@
 #ifndef COMMANDEXEC_H_
 #define COMMANDEXEC_H_
 
+#include "../pattern/util/IMeasureSet.h"
+
 #include "../util/smart_ptr.h"
 #include "../util/thread/Thread.h"
 
@@ -27,10 +29,13 @@ class CommandExec : public Thread
 public:
 	/**
 	 * constructor of CommandExec to run some commands on shell
+	 *
+	 * @param port Interface to set value in an subroutine
 	 */
-	CommandExec()
+	CommandExec(IMeasureSet* port)
 	: Thread("CommandExec", 0),
-	  m_bStarted(false)
+	  m_bStarted(false),
+	  m_pPort(port)
 	{ m_RESULTMUTEX= getMutex("RESULTMUTEX"); };
 	/**
 	 * writing command on shell
@@ -84,6 +89,10 @@ private:
 	 */
 	bool m_bStarted;
 	/**
+	 * Interface to set value in an subroutine
+	 */
+	IMeasureSet* m_pPort;
+	/**
 	 * command to execute
 	 */
 	string m_sCommand;
@@ -105,6 +114,13 @@ private:
 	 * @return defined error code from extended class
 	 */
 	virtual int execute();
+	/**
+	 * set new value inside folder list
+	 *
+	 * @param command string beginning with 'PPI-SET' getting from output on SHELL
+	 * @return whether method can reading correctly given command from SHELL
+	 */
+	bool setValue(const string& command);
 	/**
 	 * This method will be called if any other or own thread
 	 * calling method stop().

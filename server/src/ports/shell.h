@@ -32,6 +32,15 @@ class Shell : public switchClass
 public:
 	Shell(string folderName, string subroutineName)
 	: switchClass(folderName, subroutineName),
+	  m_oMicroseconds(folderName, subroutineName, "microsec", false, false),
+	  m_oMilliseconds(folderName, subroutineName, "millisec", false, false),
+	  m_oSeconds(folderName, subroutineName, "sec", false, false),
+	  m_oMinutes(folderName, subroutineName, "min", false, false),
+	  m_oHours(folderName, subroutineName, "hour", false, false),
+	  m_oDays(folderName, subroutineName, "day", false, false),
+	  m_oMonths(folderName, subroutineName, "month", false, false),
+	  m_oYears(folderName, subroutineName, "year", false, false),
+	  m_bFixTimePoll(false),
 	  m_EXECUTEMUTEX(Thread::getMutex("EXECUTEMUTEX"))
 	{ };
 	virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
@@ -45,6 +54,43 @@ public:
 	virtual ~Shell();
 
 protected:
+	/**
+	 * defined-value for microseconds
+	 */
+	ListCalculator m_oMicroseconds;
+	/**
+	 * defined-value for milliseconds
+	 */
+	ListCalculator m_oMilliseconds;
+	/**
+	 * defined-value for seconds
+	 */
+	ListCalculator m_oSeconds;
+	/**
+	 * defined-value for minutes
+	 */
+	ListCalculator m_oMinutes;
+	/**
+	 * defined-value for hours
+	 */
+	ListCalculator m_oHours;
+	/**
+	 * defined-value for days
+	 */
+	ListCalculator m_oDays;
+	/**
+	 * defined-value for months
+	 */
+	ListCalculator m_oMonths;
+	/**
+	 * defined-value for years
+	 */
+	ListCalculator m_oYears;
+	/**
+	 * whether an polling time for shell script be set
+	 */
+	bool m_bFixTimePoll;
+
 	/**
 	 * this method is an dummy
 	 * because the value can not write into database

@@ -26,6 +26,7 @@
 
 #include "../util/properties/configpropertycasher.h"
 
+#include "../pattern/util/IMeasureSet.h"
 #include "../pattern/util/IListObjectPattern.h"
 #include "../pattern/util/imeasurepattern.h"
 
@@ -37,7 +38,8 @@ using namespace design_pattern_world::util_pattern;
 
 namespace ports
 {
-	class portBase : virtual public IListObjectPattern
+	class portBase : virtual public IListObjectPattern,
+					 virtual public IMeasureSet
 	{
 		public:
 	#ifdef DEBUG
@@ -381,6 +383,15 @@ namespace ports
 			 * @param from which folder:subroutine or account changing the value
 			 */
 			virtual void setValue(const double value, const string& from);
+			/**
+			 * set double value into measure list
+			 *
+			 * @param folder folder name from the running thread
+			 * @param subroutine name of the subroutine in the folder
+			 * @param value value which should write into database
+			 * @param account from which account over Internet the value will be set
+			 */
+			virtual void setValue(const string& folder, const string& subroutine, double value, const string& account);
 			/**
 			 * return count of subroutine in folder
 			 *
