@@ -99,7 +99,7 @@ class Thread :	public virtual IThreadPattern,
 		 * @param args arbitary optional defined parameter to get in initialisation method init
 		 * @param bHold should the caller wait of thread by ending.<br />
 		 * 				default is false
-		 * @return NULL when all ok if bHold is false, otherwise the returnvalue of the thread in an void pointer
+		 * @return 0 when all ok if bHold is false, otherwise the returnvalue of the thread in an void pointer
 		 */
 		virtual int start(void *args= NULL, bool bHold= false);
 		/**

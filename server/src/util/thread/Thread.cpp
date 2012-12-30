@@ -71,67 +71,111 @@ Thread::Thread(const string& threadName, useconds_t defaultSleep, bool waitInit)
 int Thread::start(void *args, bool bHold)
 {
 	int nRv= 0;
-	string threadName(getThreadName());
+	string threadName("");
 	pthread_attr_t attr;
 
+	try{
+
 #ifdef SINGLETHREADING
-	run();
-	return NULL;
+		run();
+		return m_nEndValue;
 #else // SINGLETHREADING
 
+		threadName= getThreadName();
+		m_bHold= bHold;
+		m_pArgs= args;
+		LOCK(m_STARTSTOPTHREAD);
+		m_bStop= false;
+		UNLOCK(m_STARTSTOPTHREAD);
+		pthread_attr_init(&attr);
+		nRv= pthread_create (&m_nPosixThreadID, &attr, Thread::EntryPoint, this);
 
-
-	m_bHold= bHold;
-	m_pArgs= args;
-	LOCK(m_STARTSTOPTHREAD);
-	m_bStop= false;
-	UNLOCK(m_STARTSTOPTHREAD);
-	pthread_attr_init(&attr);
-	nRv= pthread_create (&m_nPosixThreadID, &attr, Thread::EntryPoint, this);
-
-	if(nRv != 0)
-	{
-		LOG(LOG_ALERT, "Error by creating thread " + threadName + "\n-> does not start thread");
-		return 2;
-	}
-	if(bHold)
-	{
-		POSS("###Thread_join", getThreadName());
-		nRv= pthread_join(m_nPosixThreadID, NULL);
 		if(nRv != 0)
 		{
-			LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
-			return 3;
+			LOG(LOG_ALERT, "Error by creating thread " + threadName + "\n-> does not start thread");
+			return 2;
 		}
-		return 0;
-	}else
-	{
-		if(m_bWaitInit)
+		if(bHold)
 		{
-			LOCK(m_STARTSTOPTHREAD);
-			while(!running() && !m_bStop)
+			POSS("###Thread_join", getThreadName());
+			nRv= pthread_join(m_nPosixThreadID, NULL);
+			if(nRv != 0)
 			{
-				if(m_bStop)
-				{// an error is occured in init methode
-					nRv= pthread_join(m_nPosixThreadID, NULL);
-					if(nRv != 0)
-					{
-						LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
-					}
-					UNLOCK(m_STARTSTOPTHREAD);
-					return 4;
-				}
-				CONDITION(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD);
+				LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
+				return 3;
 			}
-			UNLOCK(m_STARTSTOPTHREAD);
-		}
+			return 0;
+		}else
+		{
+			if(m_bWaitInit)
+			{
+				LOCK(m_STARTSTOPTHREAD);
+				while(!running() && !m_bStop)
+				{
+					if(m_bStop)
+					{// an error is occured in init methode
+						nRv= pthread_join(m_nPosixThreadID, NULL);
+						if(nRv != 0)
+						{
+							LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
+						}
+						UNLOCK(m_STARTSTOPTHREAD);
+						return 4;
+					}
+					CONDITION(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD);
+				}
+				UNLOCK(m_STARTSTOPTHREAD);
+			}
 		//detach();
 #ifdef DEBUG
-		cout << endl;
+			cout << endl;
 #endif
-	}
-	return m_nEndValue;
+		}
+		return m_nEndValue;
 #endif // else SUNGLETHREADING
+	}catch(SignalException& ex)
+	{
+		string err;
+
+		ex.addMessage("try to start thread " + threadName + "\nso ending hole thread routine");
+		err= ex.getTraceString();
+		cerr << endl << err << endl;
+		try{
+			LOG(LOG_ALERT, err);
+		}catch(...)
+		{
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+		}
+
+	}catch(std::exception& ex)
+	{
+		string err;
+
+		err=  "ERROR: STD exception by try to start thread " + threadName + "\n       so ending hole thread routine\n";
+		err+= "what(): " + string(ex.what());
+		cerr << err << endl;
+		try{
+			LOG(LOG_ALERT, err);
+		}catch(...)
+		{
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+		}
+
+	}catch(...)
+	{
+		string error;
+
+		error+= "ERROR: catching UNKNOWN exception by running thread of " + threadName;
+		error+= "\n       so ending hole thread routine";
+		cerr << error << endl;
+		try{
+			LOG(LOG_ALERT, error);
+		}catch(...)
+		{
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+		}
+	}
+	return 5;
 }
 
 void Thread::run()
@@ -143,24 +187,32 @@ void Thread::run()
 	pos_t pos;
 	int err;
 
-	m_nThreadId= gettid();
-	initstatus(getThreadName(), this);
-	startmsg+= thname + "'";
-	logObj= LogHolderPattern::instance();
-	logObj->setThreadName(thname);
-	logObj->log(__FILE__, __LINE__, 0, startmsg, "");
-#ifdef SERVERDEBUG
-	cout << startmsg << endl;
-#endif // SERVERDEBUG
-	setThreadLogName(thname);
 	try{
+		m_nThreadId= gettid();
+		initstatus(getThreadName(), this);
+		startmsg+= thname + "'";
+		logObj= LogHolderPattern::instance();
+		logObj->setThreadName(thname);
+		logObj->log(__FILE__, __LINE__, 0, startmsg, "");
 
+#ifdef SERVERDEBUG
+		cout << startmsg << endl;
+#endif // SERVERDEBUG
+
+		setThreadLogName(thname);
 		LOCK(m_RUNTHREAD);
 		m_bRun= true;
 		m_bInitialed= false;
 		UNLOCK(m_RUNTHREAD);
 		LOCK(m_STARTSTOPTHREAD);
-		err= init(m_pArgs);
+		try{
+			err= init(m_pArgs);
+
+		}catch(SignalException& ex)
+		{
+			ex.addMessage("running init() method");
+			throw ex;
+		}
 		if(err == 0)
 		{
 			LOCK(m_RUNTHREAD);
@@ -171,7 +223,7 @@ void Thread::run()
 			m_nEndValue= err;
 			error+= "### thread ";
 			error+= thname;
-			error+= " cannot inital correcty";
+			error+= " cannot initial correctly";
 			LOG(LOG_ERROR, error);
 			m_bStop= true;
 			LOCK(m_RUNTHREAD);
@@ -186,43 +238,162 @@ void Thread::run()
 			while(!stopping())
 			{
 				POS("###THREAD_execute_start");
-				execute();
+				try{
+					err= execute();
+
+				}catch(SignalException& ex)
+				{
+					ex.addMessage("running execute() method");
+					throw ex;
+				}
+				if(err != 0)
+				{
+					ostringstream errmsg;
+
+					stop();
+					if(err != 1)
+					{
+						errmsg << "stopping thread while execute returning error code (";
+						errmsg << err << ")";
+						LOG(LOG_INFO, errmsg.str());
+					}
+					break;
+				}
 			}
 		}
+
 	}catch(SignalException& ex)
 	{
 		string err;
 
 		ex.addMessage("running thread of " + thname + "\nso ending hole thread routine");
 		err= ex.getTraceString();
-		cout << endl << err << endl;
+		cerr << endl << err << endl;
+		LOG(LOG_ALERT, err+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
+
+	}catch(std::exception& ex)
+	{
+		string err;
+
+		err=  "STD exception by running thread of " + thname + "\nso ending hole thread routine\n";
+		err+= "what(): " + string(ex.what());
+		cerr << err << endl;
 		LOG(LOG_ALERT, err+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
 
 	}catch(...)
 	{
-		error+= "Initialization on thread ";
-		error+= thname;
-		LOG(LOG_ALERT, error+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
+		error+= "ERROR: catching UNKNOWN exception by running thread of " + thname;
+		error+= "\n       so ending hole thread routine";
 		cerr << error << endl;
+		LOG(LOG_ALERT, error+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
 	}
-	ending();
 
-	glob::threadStopMessage("Thread::run(): running thread of '" + getThreadName() + "' was reaching end and will be destroy");
-	removestatus(m_nThreadId);
+	try{
+		ending();
+		glob::threadStopMessage("Thread::run(): running thread of '" + getThreadName() + "' was reaching end and will be destroy");
+		removestatus(m_nThreadId);
+
+	}catch(SignalException& ex)
+	{
+		string err;
+
+		ex.addMessage("running end of thread " + thname + "\nso ending hole thread routine");
+		err= ex.getTraceString();
+		cerr << endl << err << endl;
+		LOG(LOG_ALERT, err+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
+
+	}catch(std::exception& ex)
+	{
+		string err;
+
+		err=  "ERROR: STD exception by running end of thread " + thname;
+		err+= "\n       so ending hole thread routine\n";
+		err+= "what(): " + string(ex.what());
+		cerr << err << endl;
+		LOG(LOG_ALERT, err+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
+
+	}catch(...)
+	{
+		error+= "ERROR: catching UNKNOWN exception by running end of thread " + thname;
+		error+= "\n       so ending hole thread routine";
+		cerr << error << endl;
+		LOG(LOG_ALERT, error+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
+	}
 }
 
 /*static */
 void *Thread::EntryPoint(void *pthis)
 {
-	Thread *pt = (Thread*)pthis;
-	pt->run();
-	LOCK(pt->m_RUNTHREAD);
-	pt->m_bRun= false;
-	UNLOCK(pt->m_RUNTHREAD);
-	//POS("###THREAD_execute_stop");
-	LOCK(pt->m_STARTSTOPTHREAD);
-	AROUSE(pt->m_STARTSTOPTHREADCOND);
-	UNLOCK(pt->m_STARTSTOPTHREAD);
+	Thread *pt= NULL;
+
+	try{
+		pt= (Thread*)pthis;
+		pt->run();
+		LOCK(pt->m_RUNTHREAD);
+		pt->m_bRun= false;
+		UNLOCK(pt->m_RUNTHREAD);
+		//POS("###THREAD_execute_stop");
+		LOCK(pt->m_STARTSTOPTHREAD);
+		AROUSE(pt->m_STARTSTOPTHREADCOND);
+		UNLOCK(pt->m_STARTSTOPTHREAD);
+
+	}catch(SignalException& ex)
+	{
+		string err;
+
+		err= "running entry point of thread";
+		try{
+			if(pt != NULL)
+				err+= " " + pt->m_sThreadName;
+		}catch(...){}
+		err+= ", so ending hole thread routine";
+		ex.addMessage(err);
+		err= ex.getTraceString();
+		cerr << endl << err << endl;
+		try{
+			LOG(LOG_ALERT, err);
+		}catch(...)
+		{
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+		}
+
+	}catch(std::exception& ex)
+	{
+		string err;
+
+		err= "ERROR: STD exception by running entry point of thread";
+		try{
+			if(pt != NULL)
+				err+= " " + pt->m_sThreadName;
+		}catch(...){}
+		err+= ", so ending hole thread routine\n";
+		err+= "what(): " + string(ex.what());
+		cerr << err << endl;
+		try{
+			LOG(LOG_ALERT, err);
+		}catch(...)
+		{
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+		}
+
+	}catch(...)
+	{
+		string err;
+
+		err= "ERROR: catching UNKNOWN exception by running entry point of thread";
+		try{
+			if(pt != NULL)
+				err+= " " + pt->m_sThreadName;
+		}catch(...){}
+		err+= ", so ending hole thread routine";
+		cerr << endl << err << endl;
+		try{
+			LOG(LOG_ALERT, err);
+		}catch(...)
+		{
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+		}
+	}
 	return NULL;
 }
 
