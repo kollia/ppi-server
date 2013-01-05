@@ -34,6 +34,7 @@ extern "C" {
 #include "../../../../pattern/util/LogHolderPattern.h"
 
 #include "../../../../util/thread/Thread.h"
+#include "../../../../util/GlobalStaticMethods.h"
 
 
 using namespace std;
@@ -47,15 +48,12 @@ namespace ports
 		m_bDebug= false;
 		m_bConnected= false;
 		m_DEBUGINFO= Thread::getMutex("MAXIMDEBUGINFO");
-		m_ndRead= 0x00;
 		m_nDigitalInput= 0x00;
 		m_nAnalogOutputC1= 0;
 		m_nAnalogOutputC2= 0;
 		m_nDigitalOutput= 0x00;
 		m_nAnalogInputC1= 0;
 		m_nAnalogInputC2= 0;
-		m_mnCount[1]= 0;
-		m_mnCount[2]= 0;
 	}
 
 	bool VellemannK8055::init(const IPropertyPattern* properties)
@@ -291,6 +289,7 @@ namespace ports
 
 	short VellemannK8055::write(const string id, const double value, const string& addinfo)
 	{
+		static bool bfRead= true;
 		int res;
 		string pin(id.substr(2));
 
@@ -348,7 +347,24 @@ namespace ports
 			res= WriteAllDigital((long)m_nDigitalOutput);
 		}
 		if(res < 0)
+		{
+			if(bfRead)
+			{
+				if(connect())
+				{
+					short nRv;
+					ostringstream oid;
+
+					oid << m_nID;
+					LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ oid.str() + " by writing channels");
+					bfRead= false;
+					nRv= write(id, value, addinfo);
+					bfRead= true;
+					return nRv;
+				}
+			}
 			return -1;
+		}
 		return 0;
 	}
 
@@ -376,36 +392,61 @@ namespace ports
 			long oldcount= 0;
 			int pin= atoi(&spin[1]);
 			int res;
-			int set= 0x01;
 			int nvalue= (int)value;
 
 			if(pin > 0 && pin <= 5)
 			{
-				m_ndRead|= ReadAllDigital();
 				res= ReadDigitalChannel(pin);
-				if(pin > 0 && pin <= 2)
+				//cout << "read pin " << id << " is single result " << res << endl;
+				if(res < 0)
 				{
-					count= ReadCounter(pin);
-					oldcount= m_mnCount[pin];
-					m_mnCount[pin]= count;
-				}else
-				{
-					count= 0;
-					oldcount= 0;
+					if(connect())
+					{
+						ostringstream id;
+
+						id << m_nID;
+						LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ id.str() + " by reading digital channels");
+						res= ReadDigitalChannel(pin);
+					}
+					if(res < 0)
+					{
+						nRv= -1;
+						value= 0;
+					}
 				}
-				set<<= (pin-1);
-				if(	res || m_ndRead & set || count != oldcount)
+				if(nRv >= 0)
 				{
-					nvalue= res ? 0x03 : 0x02;
-					set= ~set;
-					m_ndRead&= set;
-				}else
-					nvalue&= 0x02;
-				value= (double)nvalue;
-				if(value < 0)
-				{
-					value= 0;
-					nRv= -1;
+					if(pin > 0 && pin <= 2)
+					{
+						map<int, long>::iterator found;
+
+						count= ReadCounter(pin);
+						found= m_mnCount.find(pin);
+						if(found != m_mnCount.end())
+						{
+							oldcount= found->second;
+							found->second= count;
+						}else
+						{
+							m_mnCount[pin]= count;
+							oldcount= count;
+						}
+					}else
+					{
+						count= 0;
+						oldcount= 0;
+					}
+					if(	res || count != oldcount)
+						nvalue= res ? 0x03 : 0x02;
+					else
+						nvalue&= 0x02;
+					value= (double)nvalue;
+					//cout << " is result " << glob::getBinString(static_cast<long>(nvalue), 2) << endl;
+					if(value < 0)
+					{
+						value= 0;
+						nRv= -1;
+					}
 				}
 			}else
 			{
@@ -439,7 +480,7 @@ namespace ports
 						ostringstream id;
 
 						id << m_nID;
-						LOG(LOG_INFO, "reconnect successfully vellemann port "+ id.str() + " by reading analog channels");
+						LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ id.str() + " by reading analog channels");
 						value= (double)ReadAnalogChannel(channel);
 					}
 					if(value < 0)
