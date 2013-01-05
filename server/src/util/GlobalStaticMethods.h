@@ -95,6 +95,14 @@ public:
 	 * @return whether procedure found all users
 	 */
 	static bool readPasswd(const string& passwd, map<string, uid_t>& users);
+	/**
+	 * define binary string
+	 *
+	 * @param value pin which should set as binary string
+	 * @param bits count of bits set in string
+	 * @return binary string
+	 */
+	static string getBinString(const long value, const size_t bits);
 
 private:
 	/**

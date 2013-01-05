@@ -353,3 +353,22 @@ bool GlobalStaticMethods::readPasswd(const string& passwd, map<string, uid_t>& u
 	}
 	return true;
 }
+
+string GlobalStaticMethods::getBinString(const long value, const size_t bits)
+{
+	ostringstream bRv;
+	long bit= 0x01;
+
+	for(short n= bits-1; n>=0; n--)
+	{
+		//cout << "value:" << n << " bit:" << bit << endl;
+		if(value & bit)
+			bRv << "1";
+		else
+			bRv << "0";
+		if(n == 0)
+			break;
+		bit<<= 1;
+	}
+	return bRv.str();
+}
