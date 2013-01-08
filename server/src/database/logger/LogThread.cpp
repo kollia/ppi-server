@@ -231,6 +231,7 @@ int LogThread::execute()
 {
 	auto_ptr<vector<struct log_t> > pvLogVector;
 
+	bool bOpenedLogF= false, bAnyW= false;
 	pvLogVector= getLogVector();
 	ofstream logfile;
 	string sThreadName;
@@ -253,14 +254,6 @@ int LogThread::execute()
 			sprintf(timeString, "%d", getpid());
 			m_sCurrentLogFile+= timeString;
 			m_sCurrentLogFile+=  ".log";
-		}
-		logfile.open(m_sCurrentLogFile.c_str(), ios::app);
-		if(logfile.fail())
-		{
-			cerr << "### ERROR: cannot open file '" << m_sCurrentLogFile << "'" << endl;
-			cerr << "           so cannot write any log file" << endl;
-			cerr << "    ERRNO: " << strerror(errno) << endl;
-			return 1;
 		}
 		nSize= pvLogVector->size();
 		for(unsigned int n= 0; n < nSize; n++)
@@ -320,6 +313,19 @@ int LogThread::execute()
 					char datetime[30];
 					tm tmnow;
 
+					bAnyW= true;
+					if(bOpenedLogF == false)
+					{
+						logfile.open(m_sCurrentLogFile.c_str(), ios::app);
+						if(logfile.fail())
+						{
+							cerr << "### ERROR: cannot open file '" << m_sCurrentLogFile << "'" << endl;
+							cerr << "           so cannot write any log file" << endl;
+							cerr << "    ERRNO: " << strerror(errno) << endl;
+							return 1;
+						}
+						bOpenedLogF= true;
+					}
 					logfile << "*****************************************************************************************" << endl;
 					logfile << "*  ";
 					switch((*pvLogVector)[n].type)
@@ -375,60 +381,64 @@ int LogThread::execute()
 				}
 			}
 		}
-		logfile.close();
+		if(bOpenedLogF == true)
+			logfile.close();
 	}
-	time(&tmnow);
-	if(	m_nDeleteDays > 0
-		&&
-		(	m_nNextDeleteTime == 0
-			||
-			m_nNextDeleteTime < tmnow	)	)
+	if(bAnyW)
 	{
-		struct stat fileStat;
-		map<string, string> files;
-		time_t older, tm;
-		string file;
-
-		time(&tm);
-		older= Calendar::calcDate(/*newer*/false, tm, m_nDeleteDays, Calendar::days);
-		files= URL::readDirectory(m_sLogFilePath, m_sLogFilePrefix, ".log");
-		for(map<string, string>::iterator it= files.begin(); it != files.end(); ++it)
+		time(&tmnow);
+		if(	m_nDeleteDays > 0
+			&&
+			(	m_nNextDeleteTime == 0
+				||
+				m_nNextDeleteTime < tmnow	)	)
 		{
-			file= URL::addPath(m_sLogFilePath, it->second, /*always*/true);
-			//cout << "read file " << file << endl;
-			if(stat(file.c_str(), &fileStat) != 0)
-			{
-				char cerrno[20];
-				string error("   cannot read date of log file ");
+			struct stat fileStat;
+			map<string, string> files;
+			time_t older, tm;
+			string file;
 
-				error+= file + "\n   ERRNO(";
-				sprintf(cerrno, "%d", errno);
-				error+= cerrno;
-				error+= "): ";
-				error+= strerror(errno);
-				log(__FILE__, __LINE__, LOG_WARNING, error);
-			}else
+			time(&tm);
+			older= Calendar::calcDate(/*newer*/false, tm, m_nDeleteDays, Calendar::days);
+			files= URL::readDirectory(m_sLogFilePath, m_sLogFilePrefix, ".log");
+			for(map<string, string>::iterator it= files.begin(); it != files.end(); ++it)
 			{
-				tm= fileStat.st_mtime;
-				if(tm < older)
+				file= URL::addPath(m_sLogFilePath, it->second, /*always*/true);
+				//cout << "read file " << file << endl;
+				if(stat(file.c_str(), &fileStat) != 0)
 				{
-					if(unlink(file.c_str()) < 0)
-					{
-						char cerrno[20];
-						string error("   cannot delete log file ");
+					char cerrno[20];
+					string error("   cannot read date of log file ");
 
-						error+= file + "\n   ERRNO(";
-						sprintf(cerrno, "%d", errno);
-						error+= cerrno;
-						error+= "): ";
-						error+= strerror(errno);
-						log(__FILE__, __LINE__, LOG_ERROR, error);
+					error+= file + "\n   ERRNO(";
+					sprintf(cerrno, "%d", errno);
+					error+= cerrno;
+					error+= "): ";
+					error+= strerror(errno);
+					log(__FILE__, __LINE__, LOG_WARNING, error);
+				}else
+				{
+					tm= fileStat.st_mtime;
+					if(tm < older)
+					{
+						if(unlink(file.c_str()) < 0)
+						{
+							char cerrno[20];
+							string error("   cannot delete log file ");
+
+							error+= file + "\n   ERRNO(";
+							sprintf(cerrno, "%d", errno);
+							error+= cerrno;
+							error+= "): ";
+							error+= strerror(errno);
+							log(__FILE__, __LINE__, LOG_ERROR, error);
+						}
 					}
 				}
 			}
+			time(&tm);
+			m_nNextDeleteTime= Calendar::calcDate(/*newer*/true, tm, m_nDeleteDays, Calendar::days);
 		}
-		time(&tm);
-		m_nNextDeleteTime= Calendar::calcDate(/*newer*/true, tm, m_nDeleteDays, Calendar::days);
 	}
 	return 0;
 }
