@@ -594,7 +594,7 @@ bool MeasureThread::measure()
 				cout << __FILE__ << __LINE__ << endl;
 				cout << stopfolder << ":" << it->name << endl;
 			}*/
-			result= it->portClass->getValue(folder);
+			result= it->portClass->getValue("i:"+folder);
 			if( debug &&
 				it->portClass->isDebug())
 			{

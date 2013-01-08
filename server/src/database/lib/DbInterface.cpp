@@ -415,6 +415,53 @@ namespace ppi_database
 		}
 	}
 
+	double DbInterface::getFolderValue(short& noexist, const string& folder, const string& subroutine, const string& account)
+	{
+		int err;
+		double dRv= 0;
+		string sRv;
+		OMethodStringStream command("getValue");
+
+
+		command << folder;
+		command << subroutine;
+		command << account;
+		sRv= ExternClientInputTemplate::sendMethod("ProcessChecker", command, true);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+			return 0;
+		}
+
+		if(sRv == "nochipaccess")
+			noexist= -1;
+		else if(sRv == "nocorrectsubroutine")
+			noexist= -2;
+		else if(sRv == "nosubroutine")
+			noexist= -3;
+		else if(sRv == "nofolder")
+			noexist= -4;
+		else
+		{
+			istringstream oRv(sRv);
+			oRv >> dRv;
+			noexist= 0;
+		}
+		return dRv;
+	}
+
 	double DbInterface::getActEntry(bool& exist, const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number/*= 0*/)
 	{
 		int err;

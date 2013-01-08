@@ -120,6 +120,46 @@ int ProcessChecker::execute()
 		}else
 			m_sAnswer= "nofolder";
 
+	}else if(method == "getValue")
+	{
+		bool bCorrect;
+		double value;
+		string folder, subroutine, account;
+		ostringstream sval;
+		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
+		SHAREDPTR::shared_ptr<IListObjectPattern> port;
+
+		object >> folder;
+		object >> subroutine;
+		object >> account;
+		while(pCurMeas)
+		{
+			if(pCurMeas->pMeasure->getThreadName() == folder)
+				break;
+			pCurMeas= pCurMeas->next;
+		}
+		if(pCurMeas)
+		{
+			port= pCurMeas->pMeasure->getPortClass(subroutine, bCorrect);
+			if(port)
+			{
+				if(bCorrect)
+				{
+					bCorrect= port->hasDeviceAccess();
+					if(bCorrect)
+					{
+						value= port->getValue(account);
+						sval << value;
+						m_sAnswer= sval.str();
+					}else
+						m_sAnswer= "nochipaccess";
+				}else
+					m_sAnswer= "nocorrectsubroutine";
+			}else
+				m_sAnswer= "nosubroutine";
+		}else
+			m_sAnswer= "nofolder";
+
 	}else if(method == "debugSubroutine")
 	{
 		bool bFound= false, debug;

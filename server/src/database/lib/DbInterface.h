@@ -178,6 +178,18 @@ namespace ppi_database
 		 */
 		virtual void setValue(const string& folder, const string& subroutine, double value, const string& account);
 		/**
+		 * get double value into measure list
+		 *
+		 * @param noexist returning error value<br />
+		 *                 0 when value is ok, -1 when currently no access to value given, -1 when subroutine isn't define correctly,
+		 *                -2 when subroutine not exist and -3 when folder not exist
+		 * @param folder folder name from the running thread
+		 * @param subroutine name of the subroutine in the folder
+		 * @param account from which account over Internet the value will be set
+		 * @return double value from subroutine
+		 */
+		virtual double getFolderValue(short& noexist, const string& folder, const string& subroutine, const string& account);
+		/**
 		 * fill double value into database
 		 *
 		 * @param folder folder name from the running thread

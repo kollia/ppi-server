@@ -107,6 +107,7 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	m_sErrorHead= properties->getMsgHead(/*error message*/true);
 	m_sWarningHead= properties->getMsgHead(/*error message*/false);
 	m_sMsgHead= properties->getMsgHead();// without error identification
+
 	defineRange();
 	registerSubroutine();
 	return true;
@@ -525,7 +526,8 @@ double portBase::getValue(const string& who)
 		cout << endl;
 		cout << "        will be ask from '" << who << "'" << endl;
 #endif // __moreOutput
-	if(m_bSwitch)
+	if(	m_bSwitch &&
+		who.substr(0, 2) == "e:"	)
 	{
 		nValue= static_cast<short>(m_dValue);
 		found= m_mdValue.find(who);

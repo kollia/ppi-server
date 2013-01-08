@@ -985,7 +985,7 @@ namespace server
 
 						if(nExist == 5)
 						{
-							bool bCorrect;
+							short noexist;
 							double value;
 							string command;
 							string account(descriptor.getString("username"));
@@ -1001,16 +1001,21 @@ namespace server
 								{
 									ostringstream ovalue;
 
-														// bCorrect must be always true
-									value= db->getActEntry(bCorrect, values[0], values[1], "value");
-									//value= port->getValue("e:"+descriptor.getString("username"));
-									ovalue << value;
-									sendmsg= ovalue.str();
+									value= db->getFolderValue(noexist, values[0], values[1], "e:" + account);
+									if(noexist == 0)
+									{
+										ovalue << value;
+										sendmsg= ovalue.str();
 #ifdef SERVERDEBUG
-									cout << "send: " << sendmsg << endl;
+										cout << "send: " << sendmsg << endl;
 #endif
-									sendmsg+= "\n";
-									descriptor << sendmsg;
+										sendmsg+= "\n";
+										descriptor << sendmsg;
+
+									}else if(noexist == -1)
+										descriptor << DEBUGERROR(descriptor, 16, input, "");
+									else if(noexist == -2)
+										descriptor << ERROR(descriptor, 14, input, "");
 									bWait= false;
 								}else
 								{

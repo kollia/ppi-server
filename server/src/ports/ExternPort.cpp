@@ -60,7 +60,7 @@ namespace ports
 
 		if(m_pOWServer)
 		{ // set min and max value and action float from range by ask server if not set
-			bool bfloat;
+			bool bfloat, bCurrent;
 			double min, max, val;
 			ostringstream sval;
 			string prop;
@@ -78,13 +78,23 @@ namespace ports
 				{
 					sval << min;
 					properties->setDefault("min", sval.str());
-				}
+				}else
+					min= val;
 				prop= "max";
 				val= properties->getDouble(prop, /*warning*/false);
 				if(prop == "#ERROR")
 				{
 					sval << max;
 					properties->setDefault("max", sval.str());
+				}else
+					max= val;
+				if(	!bfloat &&
+					min == 0 &&
+					max == 1	)
+				{
+					bCurrent= properties->haveAction("current");
+					if(!bCurrent)
+						properties->setAction("binary");
 				}
 			}
 		}
