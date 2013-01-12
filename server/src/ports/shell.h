@@ -154,6 +154,10 @@ private:
 	 * all running shell threads
 	 */
 	vector<SHAREDPTR::shared_ptr<CommandExec> > m_vCommandThreads;
+	/**
+	 * map container of all last written values inside folder list
+	 */
+	map<string, double> m_msdWritten;
 
 	/**
 	 * execute shell command on system or send command to client with X-Server
@@ -162,6 +166,14 @@ private:
 	 * @param command shell command to execute
 	 */
 	int system(const string& action, string command);
+	/**
+	 * set new value inside folder list
+	 *
+	 * @param always whether should write all values (normal behavior) or only changed (for debugging when not wait)
+	 * @param command string beginning with 'PPI-SET' getting from output on SHELL
+	 * @return whether method can reading correctly given command from SHELL
+	 */
+	bool setValue(bool always, const string& command);
 };
 
 #endif /*SHELL_H_*/

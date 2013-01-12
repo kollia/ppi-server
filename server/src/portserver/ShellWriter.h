@@ -267,6 +267,10 @@ namespace ports
 			 * all running shell threads
 			 */
 			vector<SHAREDPTR::shared_ptr<CommandExec> > m_vCommandThreads;
+			/**
+			 * map container of all last written values inside folder list
+			 */
+			map<string, double> m_msdWritten;
 
 	}; // class VellemannK8055
 

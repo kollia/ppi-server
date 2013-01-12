@@ -35,7 +35,8 @@ public:
 	CommandExec(IMeasureSet* port)
 	: Thread("CommandExec", 0),
 	  m_bStarted(false),
-	  m_pPort(port)
+	  m_pPort(port),
+	  m_bWait(false)
 	{ m_RESULTMUTEX= getMutex("RESULTMUTEX"); };
 	/**
 	 * writing command on shell
@@ -70,6 +71,19 @@ public:
 	bool started()
 	{ return m_bStarted; };
 	/**
+	 * set folder and subroutine name
+	 * for which shell command running
+	 */
+	void setFor(const string& folder, const string& subroutine)
+	{ m_sFolder= folder; m_sSubroutine= subroutine; };
+	/**
+	 * set map of all last written values inside folder list
+	 *
+	 * @param pointer of map
+	 */
+	void setWritten(map<string, double>* written)
+	{ m_msdWritten= written; };
+	/**
 	 * returning current output of command
 	 */
 	vector<string> getOutput();
@@ -97,9 +111,25 @@ private:
 	 */
 	string m_sCommand;
 	/**
+	 * for which folder shell command running
+	 */
+	string m_sFolder;
+	/**
+	 * for which subroutine shell command running
+	 */
+	string m_sSubroutine;
+	/**
 	 * output result of command
 	 */
 	vector<string> m_vOutput;
+	/**
+	 * whether subroutine should waiting for result of command
+	 */
+	bool m_bWait;
+	/**
+	 * map container of all last written values inside folder list
+	 */
+	map<string, double>* m_msdWritten;
 
 	/**
 	 * initialization of starting command

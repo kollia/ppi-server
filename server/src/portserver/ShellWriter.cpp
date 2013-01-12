@@ -208,6 +208,7 @@ namespace ports
 		 // variable m_vCommandThread have only one thread inside
 			thread= m_vCommandThreads[0];
 		}
+		thread->setWritten(&m_msdWritten);
 		nRv= CommandExec::command_exec(thread, execute, result, more, wait, block);
 		try{
 			do{// remove all not needed threads from vector

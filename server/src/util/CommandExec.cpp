@@ -50,6 +50,7 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 						// now not the same as wait action
 						// in subroutine
 
+	thread->m_bWait= wait;
 	if(!thread->started())
 	{
 		thread->start(&command, thwait);
@@ -119,11 +120,17 @@ int CommandExec::execute()
 			sline.substr(nLen-1) == "\n")
 		{
 			sline= sline.substr(0, nLen-1);
-			if(	sline.length() > 7 &&
+			if(	m_bWait == false &&     // when wait is true
+				sline.length() > 7 &&   // all PPI-SET will be do inside SHELL subroutine
 				sline.substr(0, 7) == "PPI-SET"	)
 			{
 				if(!setValue(sline))
+				{
 					command= " ### ERROR: cannot read correctly PPI-SET command";
+					TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+sline, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+									+ "\nby command: " + command + "\noutput string '" + sline
+									+ "'\n               ### ERROR: cannot read correctly PPI-SET command"               );
+				}
 			}
 			LOCK(m_RESULTMUTEX);
 			m_vOutput.push_back(sline);
@@ -161,10 +168,11 @@ bool CommandExec::setValue(const string& command)
 	string outstr;
 	vector<string> spl;
 	istringstream icommand(command);
+	map<string, double>::iterator it;
 
 	if(m_pPort == NULL)
 		return false;
-	icommand >> outstr; // string of PPI-SET
+	icommand >> outstr; // string of PPI-SET (not needed)
 	if(	icommand.eof() ||
 		icommand.fail()		)
 	{
@@ -182,7 +190,13 @@ bool CommandExec::setValue(const string& command)
 	icommand >> value;
 	if(icommand.fail())
 		return false;
-	m_pPort->setValue(spl[0], spl[1], value, "SHELL_command");
+	it= m_msdWritten->find(outstr);
+	if(	it == m_msdWritten->end() ||
+		it->second != value			)
+	{
+		m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr);
+		(*m_msdWritten)[outstr]= value;
+	}
 	return true;
 }
 

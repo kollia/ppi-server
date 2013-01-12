@@ -14,6 +14,10 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+
 #include <stdlib.h>
 
 #include <iostream>
@@ -28,6 +32,7 @@
 #include "shell.h"
 
 using namespace ppi_database;
+using namespace boost;
 
 bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
@@ -239,11 +244,17 @@ bool Shell::range(bool& bfloat, double* min, double* max)
 
 int Shell::system(const string& action, string command)
 {
+	bool wait(m_bWait);
 	bool bDebug(isDebug());
 	int res(0);
 	vector<string> result;
 	string msg, folder(getFolderName()), subroutine(getSubroutineName());
 
+	if(	m_bWait == false &&
+		bDebug == true		)
+	{// when subroutine is set for debugging
+		wait= true; // always wait for output script strings
+	}
 	if(action != "read")
 	{
 		msg= "make " + action + " '" + command + "'";
@@ -254,9 +265,6 @@ int Shell::system(const string& action, string command)
 		tout << msg << endl;
 	if(m_sGUI != "")
 	{
-		DbInterface* db;
-
-		db= DbInterface::instance();
 		// toDo: sending command to client with X-Server
 		TIMELOG(LOG_ERROR, folder+":"+subroutine, "sending to client with X-Server not implemented now");
 		if(bDebug)
@@ -268,7 +276,7 @@ int Shell::system(const string& action, string command)
 	{
 		command= folder + " " + subroutine;
 		command+= " " + action;
-		if(m_bWait)
+		if(wait)
 			command+= " wait";
 		if(m_bBlock)
 			command+= " block";
@@ -280,7 +288,7 @@ int Shell::system(const string& action, string command)
 				tout << "execute command ";
 			tout << "by foreign process with user account " << m_sUserAccount << endl;
 		}
-		res= m_pOWServer->command_exec(m_bWait, command, result, m_bMore);
+		res= m_pOWServer->command_exec(wait, command, result, m_bMore);
 
 	}else
 	{
@@ -297,8 +305,9 @@ int Shell::system(const string& action, string command)
 		}else
 			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this));
 
+		thread->setWritten(&m_msdWritten);
 		LOCK(m_EXECUTEMUTEX);
-		res= CommandExec::command_exec(thread, command, result, m_bMore, m_bWait, m_bBlock);
+		res= CommandExec::command_exec(thread, command, result, m_bMore, wait, m_bBlock);
 		do{// remove all not needed threads from vector
 			bchangedVec= false;
 			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
@@ -321,24 +330,91 @@ int Shell::system(const string& action, string command)
 		}
 		UNLOCK(m_EXECUTEMUTEX);
 	}
+	if(m_bWait)
+	{
+		for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
+		{
+			if(	it->length() > 7 &&
+				it->substr(0, 7) == "PPI-SET"	)
+			{
+				if(!setValue(true, *it))
+					TIMELOG(LOG_WARNING, "shell_setValue"+command+*it, "SHELL subroutine " + folder + ":" + subroutine
+									+ "\nby command: " + command + "\noutput string '" + *it
+									+ "'\n               ### ERROR: cannot read correctly PPI-SET command"               );
+			}
+		}
+	}
 	if(bDebug)
 	{
 		if(	action != "read" &&
 			m_bMore &&
 			result.empty()		)
 		{
+			tout << "~~~~~~~~" << endl;
 			tout << "no output exist by begin of blocking, get by next pass" << endl;
+			tout << "~~~~~~~~" << endl;
 
-		}else if(m_bWait)
+		}else
 		{
 			tout << "output of command:" << endl;
 			tout << "~~~~~~~~" << endl;
 			for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
+			{
 				tout << *it << endl;
-			tout << "--------" << endl;
+				if(	m_bWait == false &&   // make same behavior for writing values
+					it->length() > 7 &&   // like inside ShellWriter for other user
+					it->substr(0, 7) == "PPI-SET"	)
+				{
+					if(!setValue(false, *it))
+					{
+						tout << " ### ERROR: cannot read correctly PPI-SET command" << endl;
+						TIMELOG(LOG_WARNING, "shell_setValue"+command+*it, "SHELL subroutine " + folder + ":" + subroutine
+										+ "\nby command: " + command + "\noutput string '" + *it
+										+ "'\n               ### ERROR: cannot read correctly PPI-SET command"               );
+					}
+				}
+			}
+			tout << "~~~~~~~~" << endl;
 		}
 	}
 	return res;
+}
+
+bool Shell::setValue(bool always, const string& command)
+{
+	double value;
+	string outstr;
+	vector<string> spl;
+	istringstream icommand(command);
+	map<string, double>::iterator it;
+
+	icommand >> outstr; // string of PPI-SET (not needed)
+	if(	icommand.eof() ||
+		icommand.fail()		)
+	{
+		return false;
+	}
+	icommand >> outstr; // folder:subroutine string
+	if(	icommand.eof() ||
+		icommand.fail()		)
+	{
+		return false;
+	}
+	split(spl, outstr, is_any_of(":"));
+	if(spl.size() != 2)
+		return false;
+	icommand >> value;
+	if(icommand.fail())
+		return false;
+	it= m_msdWritten.find(outstr);
+	if(	always == true ||
+		it == m_msdWritten.end() ||
+		it->second != value			)
+	{
+		portBase::setValue(spl[0], spl[1], value, "SHELL-command_"+outstr);
+		m_msdWritten[outstr]= value;
+	}
+	return true;
 }
 
 Shell::~Shell()
