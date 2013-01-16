@@ -303,24 +303,33 @@ public class Style extends HtmTags
 		boolean shouldCreate= bCreated.value;
 		
 		obj= defineObject(composite, obj, bCreated);
+		if(bCreated.value)
+		{
+			bCreated.value= false;
+			isCreated= true;
+			shouldCreate= false; // no second object should be created
+			
+		}else if(shouldCreate)
+			bCreated.value= true;
 		for (HtmTags tag : m_lContent)
 		{
-			if(bCreated.value)
-			{
-				bCreated.value= false;
-				isCreated= true;
-				shouldCreate= false; // no second object should be created
-				
-			}else if(shouldCreate)
-				bCreated.value= true;
 			if(tag instanceof Style)
+			{
 				obj= ((Style)tag).getFontObject(composite, obj, bCreated);
+				if(bCreated.value)
+				{
+					bCreated.value= false;
+					isCreated= true;
+					shouldCreate= false; // no second object should be created
+					
+				}else if(shouldCreate)
+					bCreated.value= true;
+			}
 		}
-		if(	bCreated.value == false &&
-			isCreated == true			)
-		{
+		if(isCreated == true)
 			bCreated.value= true;
-		}
+		else
+			bCreated.value= false;
 		return obj;
 	}
 	/**

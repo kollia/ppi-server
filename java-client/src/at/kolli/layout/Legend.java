@@ -126,6 +126,8 @@ public class Legend extends HtmTags
 		{
 			if(tag instanceof Style)
 				obj= ((Style)tag).getFontObject(composite, obj, bCreated);
+			else
+				bCreated.value= false;
 			if(bCreated.value)
 			{
 				bCreated.value= false;
@@ -135,11 +137,10 @@ public class Legend extends HtmTags
 			}else if(shouldCreate)
 				bCreated.value= true;
 		}
-		if(	bCreated.value == false &&
-				isCreated == true			)
-		{
+		if(isCreated == true)
 			bCreated.value= true;
-		}
+		else
+			bCreated.value= false;
 		return obj;
 	}
 	/**
