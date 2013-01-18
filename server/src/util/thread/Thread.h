@@ -86,6 +86,16 @@ class Thread :	public virtual IThreadPattern,
 {
 	public:
 		/**
+		 * error types
+		 */
+		enum ERRORtype
+		{
+			NONE= 0,
+			BASIC,
+			INIT,
+			EXECUTE
+		};
+		/**
 		 * creating instance of thread
 		 *
 		 * @param threadName Name of thread to identify in logmessages
@@ -99,7 +109,8 @@ class Thread :	public virtual IThreadPattern,
 		 * @param args arbitary optional defined parameter to get in initialisation method init
 		 * @param bHold should the caller wait of thread by ending.<br />
 		 * 				default is false
-		 * @return 0 when all ok if bHold is false, otherwise the returnvalue of the thread in an void pointer
+		 * @return 0 when all OK or bHold is false, otherwise BASIC thread error code returning<br />
+		 *         differ by <code>getErrorType()</code> (see also method <code>getErrorCode()</code>
 		 */
 		virtual int start(void *args= NULL, bool bHold= false);
 		/**
@@ -146,6 +157,225 @@ class Thread :	public virtual IThreadPattern,
 		 * @return id
 		 */
 		static pid_t gettid();
+		/**
+		 * returning type of error<br />
+		 *         <table>
+		 *           <tr>
+		 *             <td>
+		 *               NONE
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               no error is occurred
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               BASIC
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               error caused inside main thread routine<br />
+		 *               (see codes like <code>getErrorCode()</code>
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               INIT
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               error/warning caused inside initialization of extended thread object
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               EXECUTE
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               error/warning caused by execute extended thread object
+		 *             </td>
+		 *           </tr>
+		 *         </table>
+		 *
+		 * @return error type
+		 */
+		ERRORtype getErrorType();
+		/**
+		 * return error code differ by error type<br />
+		 * INIT and EXECUTE error types handled by extended classes,<br />
+		 * BASIC errors see as follow<br />
+		 *         <table>
+		 *           <th>
+		 *             <td colspan="3">
+		 *               BASIC error codes from thread
+		 *             </td>
+		 *           </th>
+		 *           <tr>
+		 *             <td>
+		 *               1
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               cannot start thread again when running
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               0
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               no error is occurred
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -1
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               cannot create an new thread
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -2
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               cannot join correctly to thread until thread running
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -3
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               cannot join correctly to thread until waiting for running thread by stopping
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -4
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               exception was throwing while start method running
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -5
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               exception throwing while initialization from extended thread object running
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -6
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               exception throwing while execute extended thread
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -7
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               -
+		 *             </td>
+		 *           </tr>
+		 *           <tr>
+		 *             <td>
+		 *               exception was throwing while thread running
+		 *             </td>
+		 *           </tr>
+		 *         </table>
+		 *
+		 * @return error code
+		 */
+		int getErrorCode();
 		/**
 		 * creating an new mutex to lock the thread or an hole part
 		 *
@@ -364,10 +594,14 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		bool m_bHold;
 		/**
-		 * error number from thread if exist
+		 * error type of error code when not 0
+		 */
+		ERRORtype m_eErrorType;
+		/**
+		 * error code from thread when exist
 		 * elsewhere 0
 		 */
-		int m_nEndValue;
+		int m_nErrorCode;
 		/**
 		 * default sleep time in microseconds.<br />
 		 * Some older computer needs to much cpu time if an thread running
@@ -392,6 +626,10 @@ class Thread :	public virtual IThreadPattern,
 		 * mutex lock for start or stop thread
 		 */
 		pthread_mutex_t* m_STARTSTOPTHREAD;
+		/**
+		 * mutex lock for error codes
+		 */
+		pthread_mutex_t* m_ERRORCODES;
 		/**
 		 * condition for start or stop thread
 		 */

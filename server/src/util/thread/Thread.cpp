@@ -58,13 +58,15 @@ Thread::Thread(const string& threadName, useconds_t defaultSleep, bool waitInit)
 	m_bRun= false;
 	m_bInitialed= false;
 	m_bStop= false;
-	m_nEndValue= 0;
+	m_eErrorType= NONE;
+	m_nErrorCode= 0;
 	m_sThreadName= threadName;
 	m_nDefaultSleep= defaultSleep;
 	m_bWaitInit= waitInit;
 	m_RUNTHREAD= getMutex("RUNTHREAD");
 	m_THREADNAME= getMutex("THREADNAME");
 	m_STARTSTOPTHREAD= getMutex("STARTSTOPTHREAD");
+	m_ERRORCODES= getMutex("ERRORCODES");
 	m_STARTSTOPTHREADCOND= getCondition("STARTSTOPTHREADCOND");
 }
 
@@ -75,7 +77,18 @@ int Thread::start(void *args, bool bHold)
 	pthread_attr_t attr;
 
 	try{
-
+		if(running())
+		{
+			LOCK(m_ERRORCODES);
+			m_eErrorType= BASIC;
+			m_nErrorCode= 1;
+			UNLOCK(m_ERRORCODES);
+			return 1;
+		}
+		LOCK(m_ERRORCODES);
+		m_eErrorType= NONE;
+		m_nErrorCode= 0;
+		UNLOCK(m_ERRORCODES);
 #ifdef SINGLETHREADING
 		run();
 		return m_nEndValue;
@@ -92,8 +105,12 @@ int Thread::start(void *args, bool bHold)
 
 		if(nRv != 0)
 		{
-			LOG(LOG_ALERT, "Error by creating thread " + threadName + "\n-> does not start thread");
-			return 2;
+			LOG(LOG_ALERT, "Error by creating thread " + threadName + "\n      -> does not start thread");
+			LOCK(m_ERRORCODES);
+			m_eErrorType= BASIC;
+			m_nErrorCode= -1;
+			UNLOCK(m_ERRORCODES);
+			return -1;
 		}
 		if(bHold)
 		{
@@ -101,26 +118,53 @@ int Thread::start(void *args, bool bHold)
 			nRv= pthread_join(m_nPosixThreadID, NULL);
 			if(nRv != 0)
 			{
-				LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
-				return 3;
+				ostringstream msg;
+
+				msg << "ERROR(" << nRv << "): ";
+				msg << "cannot join correctly to thread " << threadName;
+				msg << " until thread running";
+				LOG(LOG_ALERT, msg.str());
+				LOCK(m_ERRORCODES);
+				if(m_eErrorType == NONE)
+				{
+					m_eErrorType= BASIC;
+					m_nErrorCode= -2;
+					UNLOCK(m_ERRORCODES);
+				}
+				UNLOCK(m_ERRORCODES);
+				return getErrorCode();
 			}
-			return 0;
+			return getErrorCode();
 		}else
 		{
 			if(m_bWaitInit)
 			{
 				LOCK(m_STARTSTOPTHREAD);
-				while(!running() && !m_bStop)
+				while(!running())
 				{
 					if(m_bStop)
 					{// an error is occured in init methode
 						nRv= pthread_join(m_nPosixThreadID, NULL);
 						if(nRv != 0)
 						{
-							LOG(LOG_ALERT, "ERROR: cannot join correctly to thread " + threadName);
+							ostringstream msg;
+
+							msg << "ERROR(" << nRv << "): ";
+							msg << "cannot join correctly to thread " << threadName;
+							msg << " until waiting for running thread by stopping";
+							LOG(LOG_ALERT, msg.str());
+							UNLOCK(m_STARTSTOPTHREAD);
+							LOCK(m_ERRORCODES);
+							if(m_eErrorType == NONE)
+							{
+								m_eErrorType= BASIC;
+								m_nErrorCode= -3;
+							}
+							LOCK(m_ERRORCODES);
+							return getErrorCode();
 						}
 						UNLOCK(m_STARTSTOPTHREAD);
-						return 4;
+						return getErrorCode();
 					}
 					CONDITION(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD);
 				}
@@ -131,7 +175,7 @@ int Thread::start(void *args, bool bHold)
 			cout << endl;
 #endif
 		}
-		return m_nEndValue;
+		return getErrorCode();
 #endif // else SUNGLETHREADING
 	}catch(SignalException& ex)
 	{
@@ -175,7 +219,14 @@ int Thread::start(void *args, bool bHold)
 			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
 		}
 	}
-	return 5;
+	LOCK(m_ERRORCODES);
+	if(m_eErrorType == NONE)
+	{
+		m_eErrorType= BASIC;
+		m_nErrorCode= -4;
+	}
+	UNLOCK(m_ERRORCODES);
+	return getErrorCode();
 }
 
 void Thread::run()
@@ -210,7 +261,12 @@ void Thread::run()
 
 		}catch(SignalException& ex)
 		{
+			UNLOCK(m_STARTSTOPTHREAD);
 			ex.addMessage("running init() method");
+			LOCK(m_ERRORCODES);
+			m_eErrorType= BASIC;
+			m_nErrorCode= -5;
+			UNLOCK(m_ERRORCODES);
 			throw ex;
 		}
 		if(err == 0)
@@ -220,7 +276,10 @@ void Thread::run()
 			UNLOCK(m_RUNTHREAD);
 		}else
 		{
-			m_nEndValue= err;
+			LOCK(m_ERRORCODES);
+			m_eErrorType= INIT;
+			m_nErrorCode= err;
+			UNLOCK(m_ERRORCODES);
 			error+= "### thread ";
 			error+= thname;
 			error+= " cannot initial correctly";
@@ -244,6 +303,10 @@ void Thread::run()
 				}catch(SignalException& ex)
 				{
 					ex.addMessage("running execute() method");
+					LOCK(m_ERRORCODES);
+					m_eErrorType= BASIC;
+					m_nErrorCode= -6;
+					UNLOCK(m_ERRORCODES);
 					throw ex;
 				}
 				if(err != 0)
@@ -256,6 +319,10 @@ void Thread::run()
 						errmsg << "stopping thread while execute returning error code (";
 						errmsg << err << ")";
 						LOG(LOG_INFO, errmsg.str());
+						LOCK(m_ERRORCODES);
+						m_eErrorType= EXECUTE;
+						m_nErrorCode= err;
+						UNLOCK(m_ERRORCODES);
 					}
 					break;
 				}
@@ -319,6 +386,33 @@ void Thread::run()
 		cerr << error << endl;
 		LOG(LOG_ALERT, error+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
 	}
+	LOCK(m_ERRORCODES);
+	if(m_eErrorType == NONE)
+	{
+		m_eErrorType= BASIC;
+		m_nErrorCode= -7;
+	}
+	UNLOCK(m_ERRORCODES);
+}
+
+Thread::ERRORtype Thread::getErrorType()
+{
+	ERRORtype eRv;
+
+	LOCK(m_ERRORCODES);
+	eRv= m_eErrorType;
+	UNLOCK(m_ERRORCODES);
+	return eRv;
+}
+
+int Thread::getErrorCode()
+{
+	int nRv;
+
+	LOCK(m_ERRORCODES);
+	nRv= m_nErrorCode;
+	UNLOCK(m_ERRORCODES);
+	return nRv;
 }
 
 /*static */
@@ -352,9 +446,20 @@ void *Thread::EntryPoint(void *pthis)
 		cerr << endl << err << endl;
 		try{
 			LOG(LOG_ALERT, err);
+			if(pt != NULL)
+			{
+				LOCK(pt->m_ERRORCODES);
+				if(pt->m_eErrorType == NONE)
+				{
+					pt->m_eErrorType= BASIC;
+					pt->m_nErrorCode= -7;
+				}
+				UNLOCK(pt->m_ERRORCODES);
+			}
 		}catch(...)
 		{
 			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+			cerr << "       '" << err << "'" << endl << endl;
 		}
 
 	}catch(std::exception& ex)
@@ -371,9 +476,20 @@ void *Thread::EntryPoint(void *pthis)
 		cerr << err << endl;
 		try{
 			LOG(LOG_ALERT, err);
+			if(pt != NULL)
+			{
+				LOCK(pt->m_ERRORCODES);
+				if(pt->m_eErrorType == NONE)
+				{
+					pt->m_eErrorType= BASIC;
+					pt->m_nErrorCode= -7;
+				}
+				UNLOCK(pt->m_ERRORCODES);
+			}
 		}catch(...)
 		{
 			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+			cerr << "       '" << err << "'" << endl << endl;
 		}
 
 	}catch(...)
@@ -389,9 +505,20 @@ void *Thread::EntryPoint(void *pthis)
 		cerr << endl << err << endl;
 		try{
 			LOG(LOG_ALERT, err);
+			if(pt != NULL)
+			{
+				LOCK(pt->m_ERRORCODES);
+				if(pt->m_eErrorType == NONE)
+				{
+					pt->m_eErrorType= BASIC;
+					pt->m_nErrorCode= -7;
+				}
+				UNLOCK(pt->m_ERRORCODES);
+			}
 		}catch(...)
 		{
 			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+			cerr << "       '" << err << "'" << endl << endl;
 		}
 	}
 	return NULL;
@@ -1447,5 +1574,6 @@ Thread::~Thread()
 	DESTROYMUTEX(m_RUNTHREAD);
 	DESTROYMUTEX(m_THREADNAME);
 	DESTROYMUTEX(m_STARTSTOPTHREAD);
+	DESTROYMUTEX(m_ERRORCODES);
 	DESTROYCOND(m_STARTSTOPTHREADCOND);
 }
