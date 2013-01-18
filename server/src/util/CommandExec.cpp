@@ -24,6 +24,8 @@
 
 #include "../pattern/util/LogHolderPattern.h"
 
+#include "../util/exception.h"
+
 #include "CommandExec.h"
 
 using namespace boost;
@@ -31,9 +33,28 @@ using namespace boost;
 int CommandExec::init(void* args)
 {
 	if(args != NULL)
-		m_sCommand= *static_cast<string*>(args);
+	{
+		try{
+			m_sCommand= *static_cast<string*>(args);
+		}catch(SignalException& ex)
+		{
+			string err;
+			ostringstream msg;
+
+			msg << "make static cast from void*(";
+			msg << args << ") to string";
+			ex.addMessage(msg.str());
+			err= ex.getTraceString();
+			cerr << endl << err << endl;
+			LOG(LOG_ERROR, err);
+			return -2;
+		}
+	}
 	if(m_sCommand == "")
+	{
+		TIMELOG(LOG_ERROR, "msCommandInitial", "CommandExec object will be create without command string");
 		return -1;
+	}
 	return 0;
 }
 
@@ -53,7 +74,21 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 	thread->m_bWait= wait;
 	if(!thread->started())
 	{
-		thread->start(&command, thwait);
+		if(thread->start(&command, thwait) != 0)
+		{
+			if(	thread->getErrorType() == Thread::INIT &&
+				thread->getErrorCode() == -2				)
+			{
+				string msg;
+
+				msg= "ERROR: exception caused by writing command ";
+				msg+= "'"+command+"' into CommandExec object";
+				cerr << msg << endl;
+				LOG(LOG_ERROR, msg);
+				return -3;
+			}
+			return -2;
+		}
 		if(	wait == false ||
 			block == true	)
 		{
