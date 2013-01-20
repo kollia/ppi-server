@@ -115,6 +115,17 @@ bool CalculatorContainer::render()
 	int breaks= 0;
 	ostringstream msg;
 
+	// for debugging stop by an defined block
+	// an block inside an calculation beginning with ( and ending with )
+	// the variable of calcStringBegin should be some first characters of the block
+	// without the block beginning of (
+	/*string calcStringBegin("0.0000102102");
+	if(	m_sStatement.length() >= calcStringBegin.length() &&
+		m_sStatement.substr(0, calcStringBegin.length()) == calcStringBegin	)
+	{
+		cout << "CalculatorContainer::render() will be stopping by calculation of '" << m_sStatement << "'" << endl;
+		cout << __FILE__ << " line:" << __LINE__ << endl;
+	}*/
 	if(m_bRendered)
 		return m_bCorrect;
 	full= m_sStatement;
@@ -483,65 +494,48 @@ void CalculatorContainer::findVariables()
 
 bool CalculatorContainer::searchResult(const string& var, double &dResult)
 {
+	bool bOk(true), bSetCol(false);
 	string full;
 	string::size_type nLen;
+	string::size_type nPos= 0;
 
-	trim(full);
 	full= var;
 	nLen= full.length();
-	if(	isdigit(full[0]) ||
-		(	nLen > 1 &&
-			(	full[0] == '.' || /*maybe a float beginning with no 0*/
-				full[0] == '-' ||
-				full[0] == '+' 		) &&
-				isdigit(full[1])			) ||
-		(	nLen > 2 &&
-			(	full[0] == '-' ||
-				full[0] == '+'		) &&
-			full[1] == '.' && /*maybe a float beginning with no 0*/
-			isdigit(full[2])			)			)
-
+	while(nPos < nLen)
 	{
-		istringstream cNum(full);
-		ostringstream cBack;
-
-		cNum >> dResult;
-		cBack << dResult;
-		if(full[0] == '+')
+		if(	!(	isdigit(full[nPos]) ||
+				(	nPos == 0 && /*only for first digit*/
+					nLen > 1 &&  /*have to be longer then one*/
+					(	full[0] == '.' || /*maybe a float beginning with no 0*/
+						full[0] == '-' ||
+						full[0] == '+' 		)	) ||
+				(	nPos > 0 &&
+					bSetCol == false &&
+					full[nPos] == '.' 		)			)	)
 		{
-			full= full.substr(1);
-			--nLen;
+			// string is no correct number
+			bOk= false;
+			break;
 		}
-		if(	nLen > 1 &&
-			full[0] == '-' &&
-			full[1] == '.'		)
+		if(full[nPos] == '.')
+			bSetCol= true;
+		++nPos;
+	}
+	if(!bOk)
+	{// when string is no number look whether string are the characters true or false
+		transform(full.begin(), full.end(), full.begin(), (int(*)(int)) toupper);
+		if(full == "TRUE")
 		{
-			full= "-0" + full.substr(1);
-			++nLen;
-		}else if(full[0] == '.')
-			full= "0"+full;
-		if(	full == cBack.str() ||
-			(	full[0] == '.' &&
-				cBack.str() == "0"+full	)	)
+			dResult= 1;
+			return true;
+
+		}else if(full == "FALSE")
 		{
+			dResult= 0;
 			return true;
 		}
-		return false;
 	}
-
-
-	transform(full.begin(), full.end(), full.begin(), (int(*)(int)) toupper);
-	if(full == "TRUE")
-	{
-		dResult= 1;
-		return true;
-
-	}else if(full == "FALSE")
-	{
-		dResult= 0;
-		return true;
-	}
-	return false;
+	return bOk;
 }
 
 bool CalculatorContainer::calculate(double& dResult)
@@ -587,7 +581,6 @@ bool CalculatorContainer::calculate(double& dResult)
 bool CalculatorContainer::calculateI(double& dResult)
 {
 	bool correct;
-	bool first= true;
 	double result;
 	string comp;
 	vector<double>::iterator itValue;
@@ -721,7 +714,6 @@ bool CalculatorContainer::calculateI(double& dResult)
 				result= getResult();
 				comp= *itOperator;
 				++itOperator;
-				first= true;
 
 			}else if(	*itOperator == "|" ||
 						*itOperator == "&"		)
@@ -770,7 +762,6 @@ bool CalculatorContainer::calculateI(double& dResult)
 					outputF(false, __FILE__, __LINE__, msg);
 				}
 				comp= "";
-				first= true;
 				++itOperator;
 			}
 		}
