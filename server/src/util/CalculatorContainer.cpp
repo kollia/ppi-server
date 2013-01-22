@@ -492,49 +492,51 @@ void CalculatorContainer::findVariables()
 	}
 }
 
-bool CalculatorContainer::searchResult(const string& var, double &dResult)
+bool CalculatorContainer::searchResult(string var, double &dResult)
 {
 	bool bOk(true), bSetCol(false);
-	string full;
 	string::size_type nLen;
 	string::size_type nPos= 0;
+	istringstream sResult(var);
 
-	full= var;
-	nLen= full.length();
+	dResult= 0;
+	nLen= var.length();
 	while(nPos < nLen)
 	{
-		if(	!(	isdigit(full[nPos]) ||
+		if(	!(	isdigit(var[nPos]) ||
 				(	nPos == 0 && /*only for first digit*/
 					nLen > 1 &&  /*have to be longer then one*/
-					(	full[0] == '.' || /*maybe a float beginning with no 0*/
-						full[0] == '-' ||
-						full[0] == '+' 		)	) ||
+					(	var[0] == '.' || /*maybe a float beginning with no 0*/
+						var[0] == '-' ||
+						var[0] == '+' 		)	) ||
 				(	nPos > 0 &&
 					bSetCol == false &&
-					full[nPos] == '.' 		)			)	)
+					var[nPos] == '.' 		)			)	)
 		{
 			// string is no correct number
 			bOk= false;
 			break;
 		}
-		if(full[nPos] == '.')
+		if(var[nPos] == '.')
 			bSetCol= true;
 		++nPos;
 	}
 	if(!bOk)
 	{// when string is no number look whether string are the characters true or false
-		transform(full.begin(), full.end(), full.begin(), (int(*)(int)) toupper);
-		if(full == "TRUE")
+		transform(var.begin(), var.end(), var.begin(), (int(*)(int)) toupper);
+		if(var == "TRUE")
 		{
 			dResult= 1;
 			return true;
 
-		}else if(full == "FALSE")
+		}else if(var == "FALSE")
 		{
 			dResult= 0;
 			return true;
 		}
 	}
+	if(bOk)
+		sResult >> dResult;
 	return bOk;
 }
 

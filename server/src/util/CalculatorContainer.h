@@ -458,7 +458,7 @@ private:
 	 * @param dResult value from var
 	 * @return whether var was an correct number or boolean, elsewhere should be an variable
 	 */
-	bool searchResult(const string& var, double& dResult);
+	bool searchResult(string var, double& dResult);
 	/**
 	 * intern method to writing output and set m_sError for all next calls
 	 *
