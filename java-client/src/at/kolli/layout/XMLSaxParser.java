@@ -544,6 +544,7 @@ public class XMLSaxParser extends DefaultHandler
 	        			!type.equals("checkbox") &&
 	        			!type.equals("radio") &&
 	        			!type.equals("text") &&
+	        			!type.equals("label") &&
 	        			!type.equals("spinner") &&
 	        			!type.equals("slider") &&
 	        			!type.equals("range")			)

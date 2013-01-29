@@ -48,6 +48,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Scale;
@@ -144,9 +145,14 @@ public class Component  extends HtmTags implements IComponentListener
 	public String value= "";
 	/**
 	 * when component is from type text
-	 * variable is an valid text object
+	 * variable is an text-box
 	 */
 	private Text m_oText= null;
+	/**
+	 * when component is from type label
+	 * variable is an normal text without any boy
+	 */
+	private Label m_oLabel= null;
 	/**
 	 * whether text widget has the focus.<br />
 	 * This will be set to true when mouse listener get up
@@ -644,9 +650,11 @@ public class Component  extends HtmTags implements IComponentListener
 			// own one
 			font.setDevice(m_oButton);
 			
-		}else if(this.type.equals("text"))
+		}else if(	this.type.equals("text") ||
+					(	this.type.equals("label") &&
+						m_lContent.isEmpty()		)	)
 		{
-			boolean bread= false;
+			boolean bread= false, bLabel= this.type.equals("label");
 			int style;
 			RE floatStr= new RE("([\\\\]*)#([0-9]+)(.([0-9]*))?");
 			textFormat formatObj;
@@ -692,8 +700,15 @@ public class Component  extends HtmTags implements IComponentListener
 				readonly= true;
 			style= readonly ? SWT.SINGLE | SWT.READ_ONLY : SWT.SINGLE;
 			style= !disabled && !readonly ? style | SWT.BORDER : style;
-			m_oText= new Text(composite, style);
-			font.setDevice(m_oText);
+			if(bLabel)
+			{
+				m_oLabel= new Label(composite, style);
+				font.setDevice(m_oLabel);
+			}else
+			{
+				m_oText= new Text(composite, style);
+				font.setDevice(m_oText);
+			}
 			if(	!getPermission().equals(permission.None) &&
 				!m_nSoftButton								)
 			{
@@ -826,11 +841,21 @@ public class Component  extends HtmTags implements IComponentListener
 			gridData.widthHint= width;
 			if(height != -1)
 				gridData.heightHint= height;
-			m_oText.setLayoutData(gridData);
-			m_oComponent= m_oText;
-			if(!m_nSoftButton)
-				m_oText.setText(calculateInputValue());
-			m_oText.setEnabled(!disabled);
+			if(bLabel)
+			{
+				m_oLabel.setLayoutData(gridData);
+				m_oComponent= m_oLabel;
+				m_oLabel.setText(calculateInputValue());
+				m_oLabel.setEnabled(!disabled);
+				
+			}else
+			{
+				m_oText.setLayoutData(gridData);
+				m_oComponent= m_oText;
+				if(!m_nSoftButton)
+					m_oText.setText(calculateInputValue());
+				m_oText.setEnabled(!disabled);
+			}
 			
 		}else if(this.type.equals("slider"))
 		{
@@ -1066,19 +1091,48 @@ public class Component  extends HtmTags implements IComponentListener
 			m_oComponent= scale;
 			m_nAktValue= value;
 			
-		}else if(	this.type.equals("combo")
-					&&
-					this.size == 1				)
+		}else if(	this.type.equals("label") ||
+					(	this.type.equals("combo") &&
+						this.size == 1					)	)
 		{
-			Combo combo= new Combo(composite, SWT.READ_ONLY | SWT.DROP_DOWN | SWT.BORDER);
+			boolean bLabel= this.type.equals("label");
+			Combo combo= null;
+			Label label= null;
 			//Combo combo= new Combo(composite, SWT.READ_ONLY | SWT.DROP_DOWN);
 			Double akt= null;
+			permission perm;
 			
-			font.setDevice(combo);
-			if(	!getPermission().equals(permission.None) &&
+			if(bLabel)
+			{
+				String[] spl;
+				textFormat formatObj;
+				
+				label= new Label(composite, SWT.NONE);
+				font.setDevice(label);
+				m_aResult= new ArrayList<textFormat>();
+				spl= this.result.split(",");
+				for (String res : spl)
+				{
+					formatObj= new textFormat();
+					formatObj.resultStr= res.trim();
+					m_aResult.add(formatObj);
+				}
+				
+			}else
+			{
+				combo= new Combo(composite, SWT.READ_ONLY | SWT.DROP_DOWN | SWT.BORDER);
+				font.setDevice(combo);
+			}
+			perm= getPermission();
+			if(	!perm.equals(permission.None) &&
 				!m_nSoftButton								)
 			{
 				akt= client.getValue(this.result, /*bthrow*/true);
+				if(bLabel)
+				{
+					for (textFormat obj : m_aResult)
+						obj.actPermission= perm;
+				}
 			}
 			if(	!client.getErrorCode().equals("ERROR 016")
 				&&
@@ -1100,13 +1154,26 @@ public class Component  extends HtmTags implements IComponentListener
 				}
 				m_bCorrectName= false;
 			}
-			m_oComponent= combo;
+			if(bLabel)
+			{
+				label.setLayoutData(gridData);
+				label.setEnabled(true);
+				m_oComponent= label;
+			}else
+			{
+				combo.setLayoutData(gridData);
+				combo.setEnabled(!disabled);
+				m_oComponent= combo;
+			}
 			if(width != -1)
 				gridData.widthHint= width;
+			else if(bLabel &&
+					width == -1)
+			{
+				gridData.widthHint= 100;
+			}
 			if(height != -1)
 				gridData.heightHint= height;
-			combo.setLayoutData(gridData);
-			combo.setEnabled(!disabled);
 			if(	!m_lContent.isEmpty())
 			{
 				boolean bfirst= true;
@@ -1124,14 +1191,18 @@ public class Component  extends HtmTags implements IComponentListener
 						else
 							++value;
 						addComboEntrys(entry, value);
-						combo.add(entry);
+						if(!bLabel)
+							combo.add(entry);
 						if(	(	akt == null &&
 								bfirst == true	) ||
 							(	akt != null &&
 								akt.equals(m_asComboValueEntrys.get(entry))	)
 																)
 						{
-							combo.setText(entry);
+							if(bLabel)
+								label.setText(entry);
+							else
+								combo.setText(entry);
 							bfirst= false;
 						}
 					}
@@ -1674,7 +1745,6 @@ public class Component  extends HtmTags implements IComponentListener
 				public void mouseUp(MouseEvent event)
 				{
 					int x, y;
-					Robot robot;
 					PopupMenu popup;
 	
 					popup= PopupMenu.instance();
@@ -2505,7 +2575,8 @@ public class Component  extends HtmTags implements IComponentListener
 
 		if(!m_bCorrectName)
 			return;
-		if(this.type.equals("text"))
+		if(	this.type.equals("text") ||
+			this.type.equals("label")	)
 		{	
 			for (textFormat obj : m_aResult)
 			{
@@ -2665,6 +2736,22 @@ public class Component  extends HtmTags implements IComponentListener
 			
 			}, this.type.toString());
 			
+		}else if(	m_oComponent instanceof Label &&
+					m_lContent.isEmpty()			)
+		{
+			DisplayAdapter.asyncExec(new Runnable()
+			{				
+				//@Override
+				public void run() 
+				{
+					Label label= (Label)m_oComponent;
+					
+					label.setText(calculateInputValue());
+					label.pack(true);
+				}
+			
+			}, this.type.toString());
+			
 		}else if(this.type.equals("slider"))
 		{
 			final short nCurType;
@@ -2745,30 +2832,53 @@ public class Component  extends HtmTags implements IComponentListener
 			
 			}, this.type.toString());
 			
-		}else if(m_oComponent instanceof Combo)
+		}else if(	m_oComponent instanceof Combo ||
+					m_oComponent instanceof Label	)
 		{
 			DisplayAdapter.asyncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
 				{
-					boolean bfound= false;
+					boolean bfound= false, bLabel= type.equals("label");
 					Set<String> entrys;
-					Combo combo= (Combo)m_oComponent;
+					Combo combo= null;
+					Label label= null;
 					
+					if(bLabel)
+						label= (Label)m_oComponent;
+					else
+						combo= (Combo)m_oComponent;					
 					entrys= m_asComboValueEntrys.keySet();
 					for(String entry : entrys)
 					{
 						Double akt= m_asComboValueEntrys.get(entry);
 						if(akt.equals(m_nAktValue))
 						{
-							bfound= true;
-							combo.setText(entry);
+							if(bLabel)
+							{
+								bfound= true;
+								label.setText(entry);//calculateInputValue());
+								label.pack(true);
+								
+							}else
+							{
+								bfound= true;
+								combo.setText(entry);
+							}
 							break;
 						}
 					}
 					if(!bfound)
-						combo.deselectAll();
+					{
+						if(bLabel)
+						{
+							label.setText("");
+							label.pack(true);
+							
+						}else
+							combo.deselectAll();
+					}
 				}
 			
 			}, this.type.toString());
