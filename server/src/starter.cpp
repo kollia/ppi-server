@@ -839,6 +839,50 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	if(bStarting)
 		cout << "### start folder thread(s) from measure.conf" << endl;
 
+	map<string, vector<string> > folderDebug;
+	if(commands->hasOption("folderdebug"))
+	{
+		string result(commands->getOptionContent("folderdebug"));
+		vector<string> folderSubroutines;
+
+		boost::algorithm::split(folderSubroutines, result, boost::algorithm::is_any_of(","));
+		for(vector<string>::iterator it= folderSubroutines.begin(); it != folderSubroutines.end(); ++it)
+		{
+			result= *it;
+			trim(result);
+			if(result != "")
+			{
+				vector<string> folderSubroutine;
+
+				split(folderSubroutine, result, is_any_of(":"));
+				trim(folderSubroutine[0]);
+				if(folderSubroutine.size() >= 2)
+				{
+					trim(folderSubroutine[1]);
+					folderDebug[folderSubroutine[0]].push_back(folderSubroutine[1]);
+				}else
+					folderDebug[folderSubroutine[0]]= vector<string>();
+
+			}
+		}
+		for(map<string, vector<string> >::iterator it= folderDebug.begin(); it != folderDebug.end(); ++it)
+		{
+			if(it->second.empty())
+			{
+				while(aktFolder != NULL)
+				{
+					if(aktFolder->name == it->first)
+					{
+						for(vector<sub>::iterator itsub= aktFolder->subroutines.begin(); itsub != aktFolder->subroutines.end(); ++itsub)
+							it->second.push_back(itsub->name);
+						break;
+					}
+					aktFolder= aktFolder->next;
+				}
+			}
+		}
+	}
+	aktFolder= m_tFolderStart;
 	while(aktFolder != NULL)
 	{
 		if(!aktFolder->bCorrect)
@@ -868,17 +912,20 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name, nServerSearchSequence));
 			args.subroutines= &aktFolder->subroutines;
 
-#if 0
-			// set debug output for defined folder
-			// or specific subroutine also by starting
-			if(aktFolder->name == "global_settings")
+			if(!folderDebug.empty())
 			{
+				map<string, vector<string> >::iterator itFound;
+
 				args.debugSubroutines.clear();
-				args.debugSubroutines.push_back("recalibrate0");
-				args.debugSubroutines.push_back("isFirst");
-			}else
-				args.debugSubroutines.clear();
-#endif
+				// set debug output for defined folder
+				// or specific subroutine also by starting
+				itFound= folderDebug.find(aktFolder->name);
+				if(itFound != folderDebug.end())
+				{
+					for(vector<string>::iterator it= itFound->second.begin(); it != itFound->second.end(); ++it)
+						args.debugSubroutines.push_back(*it);
+				}
+			}
 			pCurrentMeasure->pMeasure->start(&args);
 		}
 		aktFolder= aktFolder->next;
