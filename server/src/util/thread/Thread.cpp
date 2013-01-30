@@ -129,7 +129,6 @@ int Thread::start(void *args, bool bHold)
 				{
 					m_eErrorType= BASIC;
 					m_nErrorCode= -2;
-					UNLOCK(m_ERRORCODES);
 				}
 				UNLOCK(m_ERRORCODES);
 				return getErrorCode();
@@ -144,6 +143,7 @@ int Thread::start(void *args, bool bHold)
 				{
 					if(m_bStop)
 					{// an error is occured in init methode
+						UNLOCK(m_STARTSTOPTHREAD);
 						nRv= pthread_join(m_nPosixThreadID, NULL);
 						if(nRv != 0)
 						{
@@ -160,10 +160,9 @@ int Thread::start(void *args, bool bHold)
 								m_eErrorType= BASIC;
 								m_nErrorCode= -3;
 							}
-							LOCK(m_ERRORCODES);
+							UNLOCK(m_ERRORCODES);
 							return getErrorCode();
 						}
-						UNLOCK(m_STARTSTOPTHREAD);
 						return getErrorCode();
 					}
 					CONDITION(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD);
@@ -359,6 +358,7 @@ void Thread::run()
 		ending();
 		glob::threadStopMessage("Thread::run(): running thread of '" + getThreadName() + "' was reaching end and will be destroy");
 		removestatus(m_nThreadId);
+		return;
 
 	}catch(SignalException& ex)
 	{
