@@ -153,7 +153,6 @@ int Thread::start(void *args, bool bHold)
 							msg << "cannot join correctly to thread " << threadName;
 							msg << " until waiting for running thread by stopping";
 							LOG(LOG_ALERT, msg.str());
-							UNLOCK(m_STARTSTOPTHREAD);
 							LOCK(m_ERRORCODES);
 							if(m_eErrorType == NONE)
 							{
