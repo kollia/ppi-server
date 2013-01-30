@@ -41,7 +41,8 @@ public:
 	  m_oMonths(folderName, subroutineName, "month", false, false),
 	  m_oYears(folderName, subroutineName, "year", false, false),
 	  m_bFixTimePoll(false),
-	  m_EXECUTEMUTEX(Thread::getMutex("EXECUTEMUTEX"))
+	  m_EXECUTEMUTEX(Thread::getMutex("EXECUTEMUTEX")),
+	  m_WRITTENVALUES(Thread::getMutex("WRITTENVALUES"))
 	{ };
 	virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 	/**
@@ -108,6 +109,10 @@ private:
 	 * mutex lock to execute <code>command_exec()</code>
 	 */
 	pthread_mutex_t* m_EXECUTEMUTEX;
+	/**
+	 * mutex lock for last written values
+	 */
+	pthread_mutex_t* m_WRITTENVALUES;
 	/**
 	 * begin command when set
 	 */

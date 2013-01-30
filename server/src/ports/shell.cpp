@@ -49,10 +49,7 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	m_sWhileCom= properties->getValue("whilecommand", /*warning*/false);
 	m_sEndCom= properties->getValue("endcommand", /*warning*/false);
 	m_bWait= properties->haveAction("wait");
-	if(m_bWait)
-		m_bBlock= properties->haveAction("block");
-	else
-		m_bBlock= false;
+	m_bBlock= properties->haveAction("block");
 	m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
 	if(!m_oYears.isEmpty())
 		m_bFixTimePoll= true;
@@ -121,7 +118,8 @@ double Shell::measure(const double actValue)
 	bool bDebug(isDebug());
 	bool bswitch(false);
 	int res;
-	double dRv(0);
+	double dRv(actValue);
+	double dLastSwitch;
 	string command;
 
 	//Debug info to stop by right subroutine
@@ -132,17 +130,23 @@ double Shell::measure(const double actValue)
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 	}*/
 	if(m_bLastValue)
-		dRv= 1;
-	if(switchClass::measure(dRv))
+		dLastSwitch= 1;
+	else
+		dLastSwitch= 0;
+	if(switchClass::measure(dLastSwitch))
 		bswitch= true;
-	dRv= 0;
 	if(m_bMore)
 	{// command was sending in the last pass
 	 // and should get now only results
 	 // no command be necessary
 		res= system("read", "need_no_command");
 		m_bLastValue= bswitch;
-		dRv= static_cast<double>(res);
+		if(	m_sUserAccount == "" ||
+			m_bWait ||
+			bDebug		)
+		{
+			dRv= static_cast<double>(res);
+		}
 
 	}else
 	{
@@ -155,49 +159,36 @@ double Shell::measure(const double actValue)
 				if(m_sBeginCom != "")
 				{
 					res= system("begincommand", m_sBeginCom);
-					if(	m_bWait ||
-						res == -1 ||
-						res == 127	)
-					{
-						dRv= static_cast<double>(res);
-					}else
-						dRv= 1;
 					bMaked= true;
 				}
 			}
 			if(!bMaked)
 			{
 				if(m_sWhileCom != "")
-				{
 					res= system("whilecommand", m_sWhileCom);
-					if(	m_bWait ||
-						res == -1 ||
-						res == 127	)
-					{
-						dRv= static_cast<double>(res);
-					}else
-						dRv= 2;
-				}
 			}
 			m_bLastValue= true;
+			if(	m_sUserAccount == "" ||
+				m_bWait ||
+				bDebug		)
+			{
+				dRv= static_cast<double>(res);
+			}
 
 		}else
 		{
 			if(m_bLastValue)
 			{
 				if(m_sEndCom != "")
-				{
 					res= system("endcommand", m_sEndCom);
-					if(	m_bWait ||
-						res == -1 ||
-						res == 127	)
-					{
-						dRv= static_cast<double>(res);
-					}else
-						dRv= 3;
-				}
 			}
 			m_bLastValue= false;
+			if(	m_sUserAccount == "" ||
+				m_bWait ||
+				bDebug		)
+			{
+				dRv= static_cast<double>(res);
+			}
 		}
 	}
 	if(bDebug)
@@ -221,7 +212,7 @@ double Shell::measure(const double actValue)
 				tout << "END" << endl;
 				break;
 			default:
-				tout << " for ERROR - take a look in LOG file!" << endl;
+				tout << "ERROR - take a look in LOG file!" << endl;
 				break;
 			}
 		}else
@@ -276,12 +267,13 @@ int Shell::system(const string& action, string command)
 	{
 		command= folder + " " + subroutine;
 		command+= " " + action;
-		if(wait)
+		if(m_bWait)
 			command+= " wait";
 		if(m_bBlock)
 			command+= " block";
 		if(bDebug)
 		{
+			command+= " debug";
 			if(action == "read")
 				tout << "execute reading ";
 			else
@@ -297,17 +289,28 @@ int Shell::system(const string& action, string command)
 		typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
 
 
-		if(action == "read")
+		if(	action == "read" &&
+			!m_vCommandThreads.empty()	)
 		{// when action is defined with read, m_bBlock is true
 		 // and variable m_vCommandThread has only one thread inside
 			thread= m_vCommandThreads[0];
 
 		}else
+		{
 			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this));
+			thread->setFor(folder, subroutine);
+		}
 
-		thread->setWritten(&m_msdWritten);
+		if(	m_bBlock &&
+			!thread->running())
+		{
+			LOCK(m_WRITTENVALUES);
+			m_msdWritten.clear();
+			UNLOCK(m_WRITTENVALUES);
+		}
+		thread->setWritten(&m_msdWritten, m_WRITTENVALUES);
 		LOCK(m_EXECUTEMUTEX);
-		res= CommandExec::command_exec(thread, command, result, m_bMore, wait, m_bBlock);
+		res= CommandExec::command_exec(thread, command, result, m_bMore, m_bWait, m_bBlock, bDebug);
 		do{// remove all not needed threads from vector
 			bchangedVec= false;
 			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
@@ -334,8 +337,8 @@ int Shell::system(const string& action, string command)
 	{
 		for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
 		{
-			if(	it->length() > 7 &&
-				it->substr(0, 7) == "PPI-SET"	)
+			if(	it->length() > 8 &&
+				it->substr(0, 8) == "-PPI-SET"	)
 			{
 				if(!setValue(true, *it))
 					TIMELOG(LOG_WARNING, "shell_setValue"+command+*it, "SHELL subroutine " + folder + ":" + subroutine
@@ -361,9 +364,9 @@ int Shell::system(const string& action, string command)
 			for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
 			{
 				tout << *it << endl;
-				if(	m_bWait == false &&   // make same behavior for writing values
-					it->length() > 7 &&   // like inside ShellWriter for other user
-					it->substr(0, 7) == "PPI-SET"	)
+				if(	m_bWait == false &&   // make same behavior for writing values inside method setValue()
+					it->length() > 8 &&   // like inside ShellWriter for other user
+					it->substr(0, 8) == "-PPI-SET"	)
 				{
 					if(!setValue(false, *it))
 					{
@@ -406,18 +409,25 @@ bool Shell::setValue(bool always, const string& command)
 	icommand >> value;
 	if(icommand.fail())
 		return false;
-	it= m_msdWritten.find(outstr);
-	if(	always == true ||
-		it == m_msdWritten.end() ||
-		it->second != value			)
+	if(!always)
 	{
-		portBase::setValue(spl[0], spl[1], value, "SHELL-command_"+outstr);
-		m_msdWritten[outstr]= value;
+		LOCK(m_WRITTENVALUES);
+		it= m_msdWritten.find(outstr);
+		if(	it == m_msdWritten.end() ||
+			it->second != value			)
+		{
+			m_msdWritten[outstr]= value;
+			always= true;
+		}
+		UNLOCK(m_WRITTENVALUES);
 	}
+	if(always)
+		portBase::setValue(spl[0], spl[1], value, "SHELL-command_"+outstr);
 	return true;
 }
 
 Shell::~Shell()
 {
 	DESTROYMUTEX(m_EXECUTEMUTEX);
+	DESTROYMUTEX(m_WRITTENVALUES);
 }

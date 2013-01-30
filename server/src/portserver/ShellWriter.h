@@ -242,6 +242,10 @@ namespace ports
 			 */
 			pthread_mutex_t* m_DEBUGINFO;
 			/**
+			 * mutex lock for last written values
+			 */
+			pthread_mutex_t* m_WRITTENVALUES;
+			/**
 			 * name of user in which account of system running
 			 */
 			string m_sUser;
@@ -264,9 +268,13 @@ namespace ports
 			 */
 			InterlacedActionProperties m_oMeasure;
 			/**
-			 * all running shell threads
+			 * all running shell threads which are not blocking
 			 */
 			vector<SHAREDPTR::shared_ptr<CommandExec> > m_vCommandThreads;
+			/**
+			 * all blocking threads
+			 */
+			map<string, SHAREDPTR::shared_ptr<CommandExec> > m_msoBlockThreads;
 			/**
 			 * map container of all last written values inside folder list
 			 */

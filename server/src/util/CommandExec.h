@@ -19,6 +19,10 @@
 #ifndef COMMANDEXEC_H_
 #define COMMANDEXEC_H_
 
+#include <sys/types.h>
+
+#include <deque>
+
 #include "../pattern/util/IMeasureSet.h"
 
 #include "../util/smart_ptr.h"
@@ -36,8 +40,11 @@ public:
 	: Thread("CommandExec", 0),
 	  m_bStarted(false),
 	  m_pPort(port),
-	  m_bWait(false)
-	{ m_RESULTMUTEX= getMutex("RESULTMUTEX"); };
+	  m_nStopSignal(0),
+	  m_bWait(false),
+	  m_bBlock(false)
+	{ m_RESULTMUTEX= getMutex("RESULTMUTEX");
+	  m_WAITMUTEX= getMutex("WAITMUTEX");     };
 	/**
 	 * writing command on shell
 	 *
@@ -50,9 +57,11 @@ public:
 	 * @param wait whether method should wait for result of command
 	 * @param block whether method should'nt wait for result of command,
 	 *              but shown every next pass when not ending between
+	 * @param debug whether subroutine is inside debugging mode
 	 * @return returning error level of command or script
 	 */
-	static int command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string command, vector<string>& result, bool& more, bool wait, bool block);
+	static int command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string command, vector<string>& result,
+					bool& more, bool wait, bool block, bool debug);
 	/**
 	 * start method to running the thread paralell
 	 *
@@ -64,6 +73,19 @@ public:
 	virtual int start(void *args= NULL, bool bHold= false)
 	{ m_bStarted= true; return Thread::start(args, bHold); };
 	/**
+	 *  external command to stop thread
+	 *
+	 * @param bWait calling rutine should wait until the thread is stopping
+	 */
+	virtual int stop(const bool bWait)
+	{ return CommandExec::stop(&bWait); };
+	/**
+	 *  external command to stop thread
+	 *
+	 * @param bWait calling rutine should wait until the thread is stopping
+	 */
+	virtual int stop(const bool *bWait= NULL);
+	/**
 	 * whether process was started any time before
 	 *
 	 * @return whether porcess was started
@@ -73,6 +95,9 @@ public:
 	/**
 	 * set folder and subroutine name
 	 * for which shell command running
+	 *
+	 * @param folder name of folder for which started
+	 * @param subroutine name of subroutine for which started
 	 */
 	void setFor(const string& folder, const string& subroutine)
 	{ m_sFolder= folder; m_sSubroutine= subroutine; };
@@ -80,9 +105,9 @@ public:
 	 * set map of all last written values inside folder list
 	 *
 	 * @param pointer of map
+	 * @param WRITTENVALUES extern defined mutex for all written values
 	 */
-	void setWritten(map<string, double>* written)
-	{ m_msdWritten= written; };
+	void setWritten(map<string, double>* written, pthread_mutex_t* WRITTENVALUES);
 	/**
 	 * returning current output of command
 	 */
@@ -91,13 +116,24 @@ public:
 	 * destructor
 	 */
 	virtual ~CommandExec()
-	{ DESTROYMUTEX(m_RESULTMUTEX); };
+	{ stop(true);
+	  DESTROYMUTEX(m_RESULTMUTEX);
+	  DESTROYMUTEX(m_WAITMUTEX);   };
 
 private:
 	/**
 	 * mutex of locking output result
 	 */
 	pthread_mutex_t* m_RESULTMUTEX;
+	/**
+	 * mutex for wait flag ->
+	 * whether folder-list waiting for result
+	 */
+	pthread_mutex_t* m_WAITMUTEX;
+	/**
+	 * extern mutex for last written values
+	 */
+	pthread_mutex_t* m_externWRITTENVALUES;
 	/**
 	 * whether thread was started
 	 */
@@ -121,11 +157,30 @@ private:
 	/**
 	 * output result of command
 	 */
-	vector<string> m_vOutput;
+	deque<string> m_qOutput;
+	/**
+	 * process id from running shell script
+	 */
+	pid_t m_tScriptPid;
+	/**
+	 * signal type to send by stopping<br />
+	 * allowed signals from shell script set with 'running-process <pid> <signal>' are:<br />
+	 * <code>SIGHUP, SIGINT, SIGQUIT, SIGTRAP, SIGABRT, SIGBUS,
+	 * SIGKILL, SIGUSR1, SIGUSR2, SIGPIPE, SIGALRM, SIGTERM, SIGSTOP</code>
+	 */
+	int m_nStopSignal;
 	/**
 	 * whether subroutine should waiting for result of command
 	 */
 	bool m_bWait;
+	/**
+	 * whether shell script will be blocking
+	 */
+	bool m_bBlock;
+	/**
+	 * whether subroutine is in debugging mode
+	 */
+	bool m_bDebug;
 	/**
 	 * map container of all last written values inside folder list
 	 */
@@ -144,6 +199,14 @@ private:
 	 * @return defined error code from extended class
 	 */
 	virtual int execute();
+	/**
+	 * read output line from script
+	 *
+	 * @param bWait whether starting thread wait for output result
+	 * @param bDebug whether subroutine is in debugging mode
+	 * @param sline one output line from script
+	 */
+	void readLine(const bool& bWait, const bool& bDebug, string sline);
 	/**
 	 * set new value inside folder list
 	 *

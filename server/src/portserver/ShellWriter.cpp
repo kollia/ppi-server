@@ -48,6 +48,7 @@ namespace ports
 		m_sUser= user;
 		m_bDebug= false;
 		m_DEBUGINFO= Thread::getMutex("MAXIMDEBUGINFO");
+		m_WRITTENVALUES= Thread::getMutex("WRITTENVALUES");
 	}
 
 	bool ShellWriter::init(const IPropertyPattern* properties)
@@ -158,58 +159,71 @@ namespace ports
 	{
 		int nRv;
 		bool bchangedVec(false);
-		static map<string, bool> mwait;
-		static map<string, bool> mblock;
-		static map<string, bool> minsert;
-		bool wait, block, binsert;
+		bool wait(false), block(false), debug(false);
 		string sline;
 		string execute;
 		string folder, subroutine, foldsub;
 		const IInterlacedPropertyPattern* pSub;
 		DbInterface* db;
 		istringstream get(command);
+		map<string, bool>::iterator itFoundBlock;
 		SHAREDPTR::shared_ptr<CommandExec> thread;
 		typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
+		typedef map<string, SHAREDPTR::shared_ptr<CommandExec> >::iterator blIt;
 
 
 		get >> folder;
 		get >> subroutine;
 		foldsub= folder + ":" + subroutine;
-		if(mwait.find(foldsub) != mwait.end())
+		pSub= m_oMeasure.getSection("folder", folder);
+		pSub= pSub->getSection("name", subroutine);
+		get >> sline;
+		if(	sline != "read" &&
+			sline != "info"		)
 		{
-			wait= mwait[foldsub];
-			block= mblock[foldsub];
-			binsert= minsert[foldsub];
+			execute= pSub->getValue(sline);
 		}else
+			execute= sline;
+		while(!get.eof())
 		{
-			wait= false;
-			block= false;
-			binsert= false;
+			get >> sline;
+			if(sline == "wait")
+				wait= true;
+			else if(sline == "block")
+				block= true;
+			else if(sline == "debug")
+				debug= true;
 		}
 		if(block == false)
 		{
-			wait= false;
 			db= DbInterface::instance();
 			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db));
-			pSub= m_oMeasure.getSection("folder", folder);
-			pSub= pSub->getSection("name", subroutine);
-			get >> sline;
-			execute= pSub->getValue(sline);
-			get >> sline;
-			if(sline == "wait")
-			{
-				wait= true;
-				get >> sline;
-				if(sline == "block")
-					block= true;
-			}
+			thread->setFor(folder, subroutine);
+			m_vCommandThreads.push_back(thread);
 		}else
 		{// when subroutine defined with action property block
-		 // variable m_vCommandThread have only one thread inside
-			thread= m_vCommandThreads[0];
+		 // variable m_vCommandThread should have only one thread inside
+			blIt pfound;
+
+			pfound= m_msoBlockThreads.find(foldsub);
+			if(pfound == m_msoBlockThreads.end())
+			{
+				db= DbInterface::instance();
+				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db));
+				thread->setFor(folder, subroutine);
+				m_msoBlockThreads[foldsub]= thread;
+
+			}else
+				thread= pfound->second;
+			if(!thread->running())
+			{
+				LOCK(m_WRITTENVALUES);
+				m_msdWritten.clear();
+				UNLOCK(m_WRITTENVALUES);
+			}
 		}
-		thread->setWritten(&m_msdWritten);
-		nRv= CommandExec::command_exec(thread, execute, result, more, wait, block);
+		thread->setWritten(&m_msdWritten, m_WRITTENVALUES);
+		nRv= CommandExec::command_exec(thread, execute, result, more, wait, block, debug);
 		try{
 			do{// remove all not needed threads from vector
 				unsigned short count= 1;
@@ -217,7 +231,7 @@ namespace ports
 				bchangedVec= false;
 				for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
 				{
-					if(!(*it)->running())
+					if(	!(*it)->running()			)
 					{
 						try{
 							m_vCommandThreads.erase(it);
@@ -245,30 +259,6 @@ namespace ports
 			err= ex.getTraceString();
 			cout << endl << err << endl;
 			LOG(LOG_ERROR, err);
-		}
-		if(	wait == false ||
-			block == true ||
-			thread->running()	)
-		{// give CommandExec inside queue and delete object by next pass
-		 // when he was stopping between
-			if(binsert == false)
-			{
-				m_vCommandThreads.push_back(thread);
-				binsert= true;
-			}
-		}
-		// set variable for next pass
-		if(more == false)
-		{
-			mwait[foldsub]= false;
-			mblock[foldsub]= false;
-			minsert[foldsub]= false;
-
-		}else
-		{
-			mwait[foldsub]= wait;
-			mblock[foldsub]= block;
-			minsert[foldsub]= binsert;
 		}
 		return nRv;
 	}
@@ -298,6 +288,7 @@ namespace ports
 	ShellWriter::~ShellWriter()
 	{
 		DESTROYMUTEX(m_DEBUGINFO);
+		DESTROYMUTEX(m_WRITTENVALUES);
 	}
 
 }
