@@ -250,11 +250,14 @@ public class PopupMenu
 					Group popup;
 					HashMap<Control, MouseListener> listenerMap;
 					
-					
+
 					popup= _instance.m_mRootEntrys.get(name);
 					if(popup != null)
 					{
-						listenerMap= _instance.m_aMainPopupListeners.get(name);
+						// Alexander Kolli 01/02/2014
+						// do not need to remove mouse listeners 
+						// when I dispose the widget
+						/*listenerMap= _instance.m_aMainPopupListeners.get(name);
 						if(	listenerMap != null &&
 							!listenerMap.isEmpty()	)
 						{
@@ -266,9 +269,10 @@ public class PopupMenu
 								if(	listener != null	)
 								{
 									key.removeMouseListener(listener);
+									listenerMap.remove(key);
 								}
 							}	
-						}
+						}*/
 						popup.dispose();
 					}
 				}
@@ -480,7 +484,10 @@ public class PopupMenu
 	{
 		if(m_popupShell == null)
 			return;
-		DisplayAdapter.syncExec(new Runnable() {
+		// Alexander Kolli 01/02/2014
+		// do not need to remove mouse listeners 
+		// when I dispose the widget
+/*		DisplayAdapter.syncExec(new Runnable() {
 			
 			public void run() 
 			{
@@ -490,10 +497,13 @@ public class PopupMenu
 					
 					listener= m_aPopupListeners.get(key);
 					if(listener != null)
+					{
 						key.removeMouseListener(listener);
+						m_aPopupListeners.remove(key);
+					}
 				}
 			}
-		});
+		});*/
 		m_aPopupListeners.clear();
 		m_popupShell.dispose();
 		m_sMenu= "";
