@@ -477,21 +477,21 @@ public class Component  extends HtmTags implements IComponentListener
 				readonly= true;
 		}
 
-		if(	this.type.equals("checkbox")
-			||
-			this.type.equals("radio")
-			||
-			this.type.equals("button")
-			||
-			this.type.equals("togglebutton")
-			||
-			this.type.equals("upbutton")
-			||
-			this.type.equals("leftbutton")
-			||
-			this.type.equals("rightbutton")
-			||
-			this.type.equals("downbutton")	)
+		if(this.type.equals("hidden"))
+		{
+			if(!this.result.equals(""))
+				m_bCorrectName= true;
+			return; // nothing to implement
+		}
+		
+		if(	this.type.equals("checkbox") ||
+			this.type.equals("radio") ||
+			this.type.equals("button") ||
+			this.type.equals("togglebutton") ||
+			this.type.equals("upbutton") ||
+			this.type.equals("leftbutton") ||
+			this.type.equals("rightbutton") ||
+			this.type.equals("downbutton")		)
 		{
 			int type= 0;
 			Double akt= null;
@@ -1627,7 +1627,31 @@ public class Component  extends HtmTags implements IComponentListener
 		}
 		if(!sBrowserClass.equals(""))
 		{
-			if(	(	type.equals("text") &&
+			if(	(	(	m_sSoftButtonName.equals("browser_home") ||
+						m_sSoftButtonName.equals("browser_stop") ||
+						m_sSoftButtonName.equals("browser_back") ||
+						m_sSoftButtonName.equals("browser_refresh") ||
+						m_sSoftButtonName.equals("browser_forward") ||
+						(	m_sSoftButtonName.equals("browser_url") &&
+							!m_sSoftButtonUrl.equals("")				)	) &&
+					(	type.equals("button") ||		
+						type.equals("upbutton") ||
+						type.equals("leftbutton") ||
+						type.equals("rightbutton") ||
+						type.equals("downbutton") ||
+						type.equals("togglebutton") ||		
+						type.equals("hidden")			)							) ||
+						
+				(	m_sSoftButtonName.equals("browser_load") &&
+					(	type.equals("checkbox") ||
+						type.equals("radio") ||
+						type.equals("togglebutton")	)				) ||
+							
+				(	(	m_sSoftButtonName.equals("browser_info") ||
+						(	m_sSoftButtonName.equals("browser_url") &&
+							m_sSoftButtonUrl.equals("")					)	) &&
+					type.equals("text")												)		)
+/*			if(	(	type.equals("text") &&
 					m_sSoftButtonUrl.equals("") &&
 					(	m_sSoftButtonName.equals("browser_url") ||
 						m_sSoftButtonName.equals("browser_info")	)	) ||
@@ -1645,7 +1669,7 @@ public class Component  extends HtmTags implements IComponentListener
 						type.equals("upbutton") ||
 						type.equals("leftbutton") ||
 						type.equals("rightbutton") ||
-						type.equals("downbutton")		)		)				)
+						type.equals("downbutton")		)		)				)*/
 			{
 				m_oSoftButtonTag= null;
 				m_oSoftButtonTag= classes.get(sBrowserClass);
@@ -1693,18 +1717,24 @@ public class Component  extends HtmTags implements IComponentListener
 		{
 			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
 			
+			if(HtmTags.debug)
+				System.out.println("set browser to HOME URL " + tdTag.href);
 			tdTag.getBrowser().setUrl(tdTag.href);
 			
 		}else if(m_sSoftButtonName.equals("browser_refresh"))
 		{
 			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
-			
+
+			if(HtmTags.debug)
+				System.out.println("refresh browser with aktual URL " + tdTag.getBrowser().getUrl());
 			tdTag.getBrowser().refresh();
 			
 		}else if(m_sSoftButtonName.equals("browser_stop"))
 		{
 			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
-			
+
+			if(HtmTags.debug)
+				System.out.println("stop browser loading by URL " + tdTag.getBrowser().getUrl());
 			tdTag.getBrowser().stop();
 			
 		}else if(m_sSoftButtonName.equals("browser_forward"))
@@ -1712,7 +1742,11 @@ public class Component  extends HtmTags implements IComponentListener
 			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
 
 			m_bActiveButton= true;
+			if(HtmTags.debug)
+				System.out.println("forward browser from URL " + tdTag.getBrowser().getUrl());
 			tdTag.getBrowser().forward();
+			if(HtmTags.debug)
+				System.out.println("                  to URL " + tdTag.getBrowser().getUrl());
 			
 		}else if(m_sSoftButtonName.equals("browser_back"))
 		{
@@ -1735,9 +1769,15 @@ public class Component  extends HtmTags implements IComponentListener
 					else
 						value= tdTag.m_sActRef;		
 				}
+				if(HtmTags.debug)
+					System.out.println("set browser to URL " + value);
 				tdTag.getBrowser().setUrl(value);
 			}else
+			{
+				if(HtmTags.debug)
+					System.out.println("set browser to URL " + m_sSoftButtonUrl);
 				tdTag.getBrowser().setUrl(m_sSoftButtonUrl);
+			}
 			
 		}
 	}
@@ -1758,7 +1798,8 @@ public class Component  extends HtmTags implements IComponentListener
 		final MsgClientConnector client= MsgClientConnector.instance();
 
 		
-		//System.out.println(type + " " + result);
+		//System.out.println("add listener for type:" + type + " soft button:" + m_sSoftButtonName + " and result " + result);
+		haveListener= false;
 		if(	m_bCorrectName &&
 			!result.equals("") &&
 			//getPermission().compareTo(permission.readable) >= 0 &&
@@ -1782,6 +1823,8 @@ public class Component  extends HtmTags implements IComponentListener
 				client.hear(result, /*bthrow*/true);
 			}
 		}
+		if(this.type.equals("hidden"))
+			return;
 		if(	HtmTags.moveMouseX >= 0 ||
 			HtmTags.moveMouseY >= 0		)
 		{
@@ -1858,16 +1901,15 @@ public class Component  extends HtmTags implements IComponentListener
 			return;
 		}
 		
-		haveListener= true;
-		if(	m_sSoftButtonName.equals("browser_load") &&
-			(	this.type.equals("checkbox") ||
-				this.type.equals("radio") ||
-				this.type.equals("togglebutton")	)	)
+		if(	this.type.equals("checkbox") ||
+			this.type.equals("radio") ||
+			this.type.equals("togglebutton")	)
 		{
 			if(m_nSoftButton)
 			{
 				ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
-				
+
+				haveListener= true;
 				tdTag.getBrowser().addProgressListener(m_eProgressListener= new ProgressListener()
 				{
 					@Override
@@ -1895,7 +1937,8 @@ public class Component  extends HtmTags implements IComponentListener
 					sValue= this.value;
 				final String gType= this.type;
 				final short gValue= Short.parseShort(sValue);
-				
+
+				haveListener= true;
 				((Button)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter()
 				{
 					public void widgetSelected(SelectionEvent ev)
@@ -1937,6 +1980,7 @@ public class Component  extends HtmTags implements IComponentListener
 					||
 					this.type.equals("downbutton")	)
 		{
+			haveListener= true;
 			m_oComponent.addListener(SWT.MouseDown, m_eListener1= new Listener()
 			{
 			    public void handleEvent(final Event event)
@@ -2066,6 +2110,7 @@ public class Component  extends HtmTags implements IComponentListener
 			
 		}else if(this.type.equals("text"))
 		{
+			haveListener= true;
 			if(m_nSoftButton)
 			{
 				if(m_sSoftButtonName.equals("browser_info"))
@@ -2222,6 +2267,7 @@ public class Component  extends HtmTags implements IComponentListener
 			
 		}else if(this.type.equals("slider"))
 		{
+			haveListener= true;
 			((Slider)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter()
 			{			
 				@Override
@@ -2246,6 +2292,7 @@ public class Component  extends HtmTags implements IComponentListener
 			
 		}else if(this.type.equals("range"))
 		{
+			haveListener= true;
 			((Scale)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter()
 			{			
 				@Override
@@ -2273,7 +2320,8 @@ public class Component  extends HtmTags implements IComponentListener
 					this.size == 1				)
 		{
 			final permission perm= getPermission();
-			
+
+			haveListener= true;
 			((Combo)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter() 
 			{			
 				@Override
@@ -2314,7 +2362,8 @@ public class Component  extends HtmTags implements IComponentListener
 				this.size > 1					)
 		{
 			final permission perm= getPermission();
-			
+
+			haveListener= true;
 			((List)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter() 
 			{			
 				@Override
@@ -2346,6 +2395,7 @@ public class Component  extends HtmTags implements IComponentListener
 			
 		}else if(this.type.equals("spinner"))
 		{
+			haveListener= true;
 			((Spinner)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter()
 			{		
 				@Override
@@ -2450,7 +2500,7 @@ public class Component  extends HtmTags implements IComponentListener
 	
 	/**
 	 * remove listeners if the component have an correct result attribute.<br />
-	 * This method is to remove all listeners which set bevore with addListeners()
+	 * This method is to remove all listeners which set before with addListeners()
 	 * if the component is in an {@link Composite} witch is not on the top of the {@link StackLayout}
 	 * 
 	 * @author Alexander Kolli
@@ -2459,15 +2509,15 @@ public class Component  extends HtmTags implements IComponentListener
 	 */
 	public void removeListeners()
 	{
-		if(haveListener == false)
-			return;
-		
-		haveListener= false;
+		//System.out.println("remove listener for type:" + type + " soft button:" + m_sSoftButtonName + " and result " + result);
 		if(m_eMouseUpListener != null)
 		{
 			m_oComponent.removeMouseListener(m_eMouseUpListener);
 			m_eMouseUpListener= null;
 		}
+		if(haveListener == false)
+			return;
+		haveListener= false;
 		if(	this.type.equals("checkbox")
 			||
 			this.type.equals("radio")
@@ -2728,6 +2778,24 @@ public class Component  extends HtmTags implements IComponentListener
 					}
 					if(	bSet &&
 						m_nSoftButton )
+					{
+						doSoftButton();
+					}
+				}
+			
+			}, this.type.toString());
+			
+		}else if(this.type.equals("hidden"))
+		{
+			DisplayAdapter.asyncExec(new Runnable()
+			{				
+				//@Override
+				public void run() 
+				{
+					MsgClientConnector client= MsgClientConnector.instance();
+				
+					if(	m_nAktValue != 0 &&
+						m_nSoftButton 		)
 					{
 						doSoftButton();
 					}

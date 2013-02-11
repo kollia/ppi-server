@@ -547,7 +547,8 @@ public class XMLSaxParser extends DefaultHandler
 	        			!type.equals("label") &&
 	        			!type.equals("spinner") &&
 	        			!type.equals("slider") &&
-	        			!type.equals("range")			)
+	        			!type.equals("range") &&
+	        			!type.equals("hidden")			)
 	        		{
 	        			type= "text";
 	        		}
