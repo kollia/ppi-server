@@ -239,7 +239,7 @@ int Shell::system(const string& action, string command)
 	bool bDebug(isDebug());
 	int res(0);
 	vector<string> result;
-	string msg, folder(getFolderName()), subroutine(getSubroutineName());
+	string msg, nocorrread, folder(getFolderName()), subroutine(getSubroutineName());
 
 	if(	m_bWait == false &&
 		bDebug == true		)
@@ -335,17 +335,41 @@ int Shell::system(const string& action, string command)
 	}
 	if(m_bWait)
 	{
+		if(bDebug)
+		{
+			if(	action != "read" &&
+				m_bMore &&
+				result.empty()		)
+			{
+				tout << "~~~~~~~~" << endl;
+				tout << "no output exist by begin of blocking, get by next pass" << endl;
+				tout << "~~~~~~~~" << endl;
+
+			}else
+			{
+				tout << "output of command:" << endl;
+				tout << "~~~~~~~~" << endl;
+			}
+		}
 		for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
 		{
+			if(bDebug)
+				tout << *it << endl;
 			if(	it->length() > 8 &&
 				it->substr(0, 8) == "-PPI-SET"	)
 			{
 				if(!setValue(true, *it))
+				{
+					if(bDebug)
+						tout << " ### ERROR: cannot read correctly PPI-SET command" << endl;
 					TIMELOG(LOG_WARNING, "shell_setValue"+command+*it, "SHELL subroutine " + folder + ":" + subroutine
 									+ "\nby command: " + command + "\noutput string '" + *it
 									+ "'\n               ### ERROR: cannot read correctly PPI-SET command"               );
+				}
 			}
 		}
+		if(bDebug)
+			tout << "~~~~~~~~" << endl;
 	}
 	if(bDebug)
 	{
@@ -364,18 +388,6 @@ int Shell::system(const string& action, string command)
 			for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
 			{
 				tout << *it << endl;
-				if(	m_bWait == false &&   // make same behavior for writing values inside method setValue()
-					it->length() > 8 &&   // like inside ShellWriter for other user
-					it->substr(0, 8) == "-PPI-SET"	)
-				{
-					if(!setValue(false, *it))
-					{
-						tout << " ### ERROR: cannot read correctly PPI-SET command" << endl;
-						TIMELOG(LOG_WARNING, "shell_setValue"+command+*it, "SHELL subroutine " + folder + ":" + subroutine
-										+ "\nby command: " + command + "\noutput string '" + *it
-										+ "'\n               ### ERROR: cannot read correctly PPI-SET command"               );
-					}
-				}
 			}
 			tout << "~~~~~~~~" << endl;
 		}
@@ -422,7 +434,8 @@ bool Shell::setValue(bool always, const string& command)
 		UNLOCK(m_WRITTENVALUES);
 	}
 	if(always)
-		portBase::setValue(spl[0], spl[1], value, "SHELL-command_"+outstr);
+		if(!portBase::setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
+			return false;
 	return true;
 }
 

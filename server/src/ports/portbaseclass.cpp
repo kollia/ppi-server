@@ -492,7 +492,7 @@ void portBase::setValue(double value, const string& from)
 	UNLOCK(m_VALUELOCK);
 }
 
-void portBase::setValue(const string& folder, const string& subroutine, double value, const string& account)
+bool portBase::setValue(const string& folder, const string& subroutine, double value, const string& account)
 {
 	string foldersub;
 	IListObjectPattern* port;
@@ -507,8 +507,10 @@ void portBase::setValue(const string& folder, const string& subroutine, double v
 		msg << "folder:subroutine " << foldersub << " ";
 		msg << "set from '" << account << "'";
 		TIMELOG(LOG_ERROR, "setValue"+folder+":"+subroutine, msg.str());
-	}else
-		port->setValue(value, "i:"+account);
+		return false;
+	}
+	port->setValue(value, "i:"+account);
+	return true;
 }
 
 double portBase::getValue(const string& who)

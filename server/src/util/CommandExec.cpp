@@ -169,11 +169,21 @@ int CommandExec::execute()
 	char line[130];
 	string sline;
 	string command;
-	vector<string>::size_type nLen;
+	string sLastErrorlevel;
+	vector<string> spl;
+	deque<string>::iterator deqIt;
+	string::size_type nLen;
 	FILE *fp;
 
-	command+= m_sCommand;
-	command+= ";ERRORLEVEL=$?; echo; echo PPI-DEF ERRORLEVEL $ERRORLEVEL";
+	split(spl, m_sCommand, is_any_of(";"));
+	for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
+	{
+		command+= *it;
+		if(it->find('>', 0) == string::npos)
+			command+= " 2>&1";
+		command+= ";";
+	}
+	command+= "ERRORLEVEL=$?;echo;echo ERRORLEVEL $ERRORLEVEL";
 	fp= popen(command.c_str(), "r");
 	if(fp == NULL)
 	{
@@ -197,6 +207,11 @@ int CommandExec::execute()
 			sline.substr(nLen-1) == "\n")
 		{
 			sline= sline.substr(0, nLen-1);
+			if(	sline.length() >  11 &&
+				sline.substr(0, 11) == "ERRORLEVEL "	)
+			{// write always last error level, because when taken the error level from m_qOutput,
+				sLastErrorlevel= sline; // it can be that queue was pulled before from starting thread
+			}							// and queue will be empty -> no ERRORLEVEL
 			LOCK(m_WAITMUTEX);
 			bWait= m_bWait;
 			bDebug= m_bDebug;
@@ -207,12 +222,51 @@ int CommandExec::execute()
 		if(stopping())
 			break;
 	}
-	pclose(fp);
-	if(sline != "")
-		readLine(bWait, bDebug, sline);
 	LOCK(m_WAITMUTEX);
 	m_nStopSignal= 0;
 	UNLOCK(m_WAITMUTEX);
+	pclose(fp);
+	if(sline != "")
+		readLine(bWait, bDebug, sline);
+	if(sLastErrorlevel != "")
+	{
+		LOCK(m_RESULTMUTEX);
+		if(!m_qOutput.empty())
+		{
+			sline= m_qOutput.back();
+			if(	sline.length() >  12 &&
+				sline.substr(0, 12) == "-ERRORLEVEL "	)
+			{
+				m_qOutput.pop_back();
+			}
+		}
+		if(bWait == false)
+		{
+			int nRv;
+			istringstream oline(sLastErrorlevel);
+			ostringstream setErrorlevel;
+
+			oline >> sline; // string of 'ERRORLEVEL' not needed
+			oline >> nRv;
+			setErrorlevel << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
+			setErrorlevel << nRv;
+			if(!setValue(setErrorlevel.str()))
+			{
+				if(bDebug)
+					m_qOutput.push_back("  ### ERROR: cannot write correctly ERRORLEVEL for subroutine");
+				TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+setErrorlevel.str(), "for SHELL subroutine "
+								+ m_sFolder + ":" + m_sSubroutine
+								+ "\nby command: '" + setErrorlevel.str()
+								+ "'\n               ### ERROR: cannot write correctly ERRORLEVEL for result of subroutine" );
+			}
+		}
+		if(	bWait ||
+			bDebug	)
+		{
+			m_qOutput.push_back("PPI-DEF " + sLastErrorlevel);
+		}
+		UNLOCK(m_RESULTMUTEX);
+	}
 	return 1;
 }
 
@@ -224,18 +278,10 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 	if(	bWait ||
 		bDebug	)
 	{
-		string insertLine(sline);
-
-		LOCK(m_RESULTMUTEX);
-		if(	insertLine.length() <= 19 ||
-			insertLine.substr(0, 19) != "PPI-DEF ERRORLEVEL "	)
-		{ // add an '-' as workaround before all strings getting from shell command
-			insertLine= "-" + insertLine; // because this time an null string makes communication problems
-		}                                 // and also when shell gives in the string only 'done' communication
-										  // stops to early
-		m_qOutput.push_back(insertLine);
-		if(m_qOutput.size() > 1000)
-			m_qOutput.pop_front();
+		LOCK(m_RESULTMUTEX);				// add an '-' as workaround before all strings getting from shell command
+		m_qOutput.push_back("-" + sline);	// because this time an null string makes communication problems
+		if(m_qOutput.size() > 1000)			// and also when shell gives in the string only 'done' communication
+			m_qOutput.pop_front();			// stops to early
 		UNLOCK(m_RESULTMUTEX);
 	}
 	if(	sline.length() > 8 &&
@@ -326,7 +372,7 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 			UNLOCK(m_RESULTMUTEX);
 			command= "";
 
-		}else if(command == "ERRORLEVEL")
+/*		}else if(command == "ERRORLEVEL")
 		{
 			int nRv;
 			ostringstream setErrorlevel;
@@ -353,7 +399,7 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 									+ "\nby command: " + command + "\nresult string '" + setErrorlevel.str()
 									+ "'\n               ### ERROR: cannot write correctly PPI-SET command for result of subroutine" );
 				}
-			}
+			}*/
 		}else
 		{
 			command= " ### WARNING: cannot recognize PPI-DEF line as any correct definition";
@@ -361,14 +407,14 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 							+ "\ncannot recognize PPI-DEF shell-output as any correct definition\noutput string '" + sline + "'" );
 		}
 	}
-	if(	!bWait &&
-		!bDebug		)
+	if(!bWait)
 	{
 		ostringstream setErrorlevel;
 
-		if(	sline.length() > 7 &&             // when wait or debug is true
+		if(	sline.length() > 7 &&             // when wait flag is true
 			sline.substr(0, 7) == "PPI-SET"	) // all PPI-SET will be do inside SHELL subroutine
 		{
+			bFoundDefCommand= true;
 			if(!setValue(sline))
 			{
 				command= " ### ERROR: cannot read correctly PPI-SET command";
@@ -450,7 +496,8 @@ bool CommandExec::setValue(const string& command)
 	}
 	UNLOCK(m_externWRITTENVALUES);
 	if(bwrite)
-		m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr);
+		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
+			return false;
 	return true;
 }
 

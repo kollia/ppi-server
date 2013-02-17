@@ -166,7 +166,7 @@ namespace ppi_database
 		}
 	}
 
-	void DbInterface::setValue(const string& folder, const string& subroutine, double value, const string& account)
+	bool DbInterface::setValue(const string& folder, const string& subroutine, double value, const string& account)
 	{
 		int err;
 		string sRv;
@@ -192,7 +192,9 @@ namespace ppi_database
 				LOG(LOG_WARNING, msg);
 				cout << "### " << msg << endl;
 			}
+			return false;
 		}
+		return true;
 	}
 
 	void DbInterface::fillValue(string folder, string subroutine, string identif, double value, bool bNew/*= true*/)

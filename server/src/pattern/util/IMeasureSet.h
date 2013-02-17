@@ -34,8 +34,9 @@ public:
 	 * @param subroutine name of the subroutine in the folder
 	 * @param value value which should write into database
 	 * @param account from which account over Internet the value will be set
+	 * @return whether subroutine can be set correctly
 	 */
-	virtual void setValue(const string& folder, const string& subroutine, double value, const string& account)= 0;
+	virtual bool setValue(const string& folder, const string& subroutine, double value, const string& account)= 0;
 	/**
 	 * dummy destructor for pattern
 	 */
