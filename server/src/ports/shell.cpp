@@ -395,6 +395,46 @@ int Shell::system(const string& action, string command)
 	return res;
 }
 
+void Shell::setDebug(bool bDebug)
+{
+	string command;
+	vector<string> result;
+
+	portBase::setDebug(bDebug);
+	m_oMicroseconds.doOutput(bDebug);
+	m_oMilliseconds.doOutput(bDebug);
+	m_oSeconds.doOutput(bDebug);
+	m_oMinutes.doOutput(bDebug);
+	m_oHours.doOutput(bDebug);
+	m_oDays.doOutput(bDebug);
+	m_oMonths.doOutput(bDebug);
+	m_oYears.doOutput(bDebug);
+	if(m_bBlock)
+	{
+		if(m_sUserAccount != "")
+		{
+			command= getFolderName() + " " + getSubroutineName() + " info ";
+			if(!bDebug)
+				command+= "no";
+			command+= "debug";
+			if(m_bWait)
+				command+= " wait";
+			if(m_bBlock)
+				command+= " block";
+			m_pOWServer->command_exec(false, command, result, m_bMore);
+
+		}else
+		{
+			typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
+
+			LOCK(m_EXECUTEMUTEX);
+			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
+				CommandExec::command_exec(*it, "info", result, m_bMore, m_bWait, m_bBlock, bDebug);
+			UNLOCK(m_EXECUTEMUTEX);
+		}
+	}
+}
+
 bool Shell::setValue(bool always, const string& command)
 {
 	double value;

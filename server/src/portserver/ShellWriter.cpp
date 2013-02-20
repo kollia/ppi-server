@@ -193,6 +193,8 @@ namespace ports
 				block= true;
 			else if(sline == "debug")
 				debug= true;
+			else if(sline == "nodebug")
+				debug= false;
 		}
 		if(block == false)
 		{
@@ -208,6 +210,8 @@ namespace ports
 			pfound= m_msoBlockThreads.find(foldsub);
 			if(pfound == m_msoBlockThreads.end())
 			{
+				if(execute == "info")
+					return 0;
 				db= DbInterface::instance();
 				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db));
 				thread->setFor(folder, subroutine);

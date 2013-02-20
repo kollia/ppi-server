@@ -52,6 +52,15 @@ public:
 	 * @return return measured value
 	 */
 	virtual double measure(const double actValue);
+	/**
+	 * set subroutine for output doing actions
+	 *
+	 * @param whether should write output
+	 */
+	virtual void setDebug(bool bDebug);
+	/**
+	 * destructor
+	 */
 	virtual ~Shell();
 
 protected:
