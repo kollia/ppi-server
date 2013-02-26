@@ -224,6 +224,19 @@ namespace server
 		 */
 		virtual bool reachAllChips();
 		/**
+		 *  external command to stop thread
+		 *
+		 * @param bWait calling rutine should wait until the thread is stopping
+		 */
+		virtual int stop(const bool bWait)
+		{ return OWServer::stop(&bWait); };
+		/**
+		 *  external command to stop thread
+		 *
+		 * @param bWait calling rutine should wait until the thread is stopping
+		 */
+		virtual int stop(const bool *bWait= NULL);
+		/**
 		 * destructor to close connection
 		 */
 		virtual ~OWServer();

@@ -1259,8 +1259,18 @@ namespace server
 		if(	m_bKernel == true &&
 			m_bKernelOnly == false	)
 		{
-			m_pKernelModule->stop(true);
+			m_pKernelModule->stop(false);
 		}
+	}
+
+	int OWServer::stop(const bool *bWait)
+	{
+		Thread::stop(false);
+		AROUSEALL(m_PRIORITYCACHECOND);
+		ending();
+		if(m_pKernelModule.get() != NULL)
+			m_pKernelModule->stop(bWait);
+		Thread::stop(bWait);
 	}
 
 	OWServer::~OWServer()
@@ -1271,8 +1281,8 @@ namespace server
 		DESTROYMUTEX(m_PRIORITYCACHE);
 		DESTROYMUTEX(m_PRIORITY1CHIP);
 		DESTROYMUTEX(m_CACHEWRITEENTRYS);
-		DESTROYCOND(m_PRIORITYCACHECOND);
 		DESTROYMUTEX(m_EXECUTEMUTEX);
+		DESTROYCOND(m_PRIORITYCACHECOND);
 	}
 
 }

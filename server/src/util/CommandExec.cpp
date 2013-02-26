@@ -156,17 +156,189 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 
 int CommandExec::stop(const bool *bWait/*= NULL*/)
 {
+	bool bFound(false);
+	string command;
+	ostringstream ocommand;
+	vector<string> spl;
+	vector<string> result;
+	vector<pid_t> vallPids;
+
+	Thread::stop(false);
 	LOCK(m_WAITMUTEX);
 	if(m_nStopSignal > 0)
-		kill(m_tScriptPid, m_nStopSignal);
+	{
+		split(spl, m_sCommand, is_any_of(";"));
+		if(m_tScriptPid > 0)
+		{
+			ostringstream opid;
+
+			result= grepPS(m_tScriptPid);
+			for(vector<string>::iterator res= result.begin(); res != result.end(); ++res)
+			{
+				//cout << "search in result '" << *res << "' (" << res->length() << " chars)" << endl;
+				for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
+				{
+					//cout << "      for '" << *it << "'" << endl;
+					if(res->find(*it) != string::npos)
+					{
+						bFound= true;
+						vallPids.push_back(m_tScriptPid);
+						break;
+					}
+				}
+				if(bFound)
+					break;
+			}
+		}
+		if(!bFound)
+		{
+			pid_t lastPid, curPid;
+			vector<pid_t> vlastPid;
+
+			lastPid= m_tOwnPid;
+			curPid= lastPid;
+			vlastPid= getChildProcess(curPid, &spl);
+			if(vlastPid.size() > 1)
+			{
+				string msg;
+
+				msg=  "### ERROR: by searching of started process from thread object CommandExec()\n";
+				msg+= "           (for command: '" + m_sCommand + "')\n";
+				msg+= "           found ambiguous process id's\n";
+				msg+= "           so do not kill any process";
+				msg+= "    WARNING: started command be unfortunately alive\n";
+				msg+= "    ( please do not start the same command in more than one SHELL subroutine\n";
+				msg+= "                                        maybe only with different parameters )";
+				cerr << msg << endl;
+				LOG(LOG_ERROR, msg);
+
+			}else if(vlastPid.size() == 1)
+			{
+				vector<pid_t>::size_type n(0);
+
+				bFound= true;
+				vallPids.push_back(vlastPid[0]);
+				while(n < vallPids.size())
+				{// create list of all child processes
+					vlastPid= getChildProcess(vallPids[n], NULL);
+					if(!vlastPid.empty())
+						vallPids.insert(vallPids.end(), vlastPid.begin(), vlastPid.end());
+					++n;
+				}
+			}
+		}
+		if(bFound)
+		{
+			for(vector<pid_t>::iterator it= vallPids.begin(); it != vallPids.end(); ++it)
+			{
+				cout << "kill pid " << *it << endl;
+				kill(*it, m_nStopSignal);
+			}
+		}
+		m_nStopSignal= 0;
+		m_tScriptPid= 0;
+	}
 	UNLOCK(m_WAITMUTEX);
-	return Thread::stop(bWait);
+	if(	bWait != NULL &&
+		*bWait			)
+	{
+		return Thread::stop(bWait);
+	}
+	return 0;
+}
+
+vector<pid_t> CommandExec::getChildProcess(pid_t actPid, vector<string>* commands) const
+{
+	string user;
+	pid_t pid, ppid;
+	vector<string> result;
+	vector<pid_t> vRv;
+
+	do{
+		if(vRv.size() > 1)
+		{
+			vector<string>::iterator itDel;
+
+			//cout << "found ambigius processes" << endl;
+			//cout << "search again for next command" << endl;
+			itDel= commands->begin();
+			commands->erase(itDel);
+			vRv.clear();
+			//cout << "-----------------------------------------------" << endl;
+		}
+		//cout << "search last pid for '" << m_sCommand << "'" << endl;
+		result= grepPS(actPid);
+		for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
+		{
+			istringstream output(*it);
+
+			output >> user;
+			output >> pid;
+			output >> ppid;
+			//cout << "ps >> " << *it;
+			//cout << "   process id:" << pid << endl;
+			//cout << "   parent id :" << ppid << endl;
+			if(ppid == actPid)
+			{
+				if(commands != NULL)
+				{
+					for(vector<string>::const_iterator co= commands->begin(); co != commands->end(); ++co)
+					{
+						if(it->find(*co) != string::npos)
+						{
+							vRv.push_back(pid);
+							break;
+						}
+					}
+				}else
+					vRv.push_back(pid);
+			}
+		}
+	}while(	commands != NULL &&
+			commands->size() > 1 &&
+			vRv.size() > 1			);
+	return vRv;
+}
+
+vector<string> CommandExec::grepPS(pid_t pid) const
+{
+	char line[1024];
+	string sline;
+	string grepStr;
+	FILE *fp;
+	vector<string> vsRv;
+	ostringstream opid;
+
+	opid << "grep ";
+	opid << pid;
+	grepStr= "ps -ef --columns 1023 | " + opid.str();
+	fp= popen(grepStr.c_str(), "r");
+	if(fp == NULL)
+	{
+		sline=  "ERROR by grep running process with line "+ grepStr + "\n";
+		sline+= "         to secure stop process of shell command '" + m_sCommand + "'\n";
+		sline+= "ERRNO: ";
+		sline+=           *strerror(errno) + "\n";
+		sline+= "       >> do not stop process !!! <<";
+		cerr << sline << endl;
+		LOG(LOG_ERROR, sline);
+		return vsRv;
+	};
+	sline= "";
+	while(fgets(line, sizeof(line), fp))
+	{
+		sline= line;
+		if(sline.find(opid.str()) == string::npos)
+			vsRv.push_back(sline);
+	}
+	pclose(fp);
+	return vsRv;
 }
 
 int CommandExec::execute()
 {
 	bool bWait, bDebug;
-	char line[130];
+	char line[1024];
 	string sline;
 	string command;
 	string sLastErrorlevel;
@@ -184,11 +356,16 @@ int CommandExec::execute()
 		command+= ";";
 	}
 	command+= "ERRORLEVEL=$?;echo;echo ERRORLEVEL $ERRORLEVEL";
+	LOCK(m_WAITMUTEX);
+	m_tOwnPid= getpid();
+	m_nStopSignal= 9; // SIGKILL
+	m_tScriptPid= 0;
+	UNLOCK(m_WAITMUTEX);
 	fp= popen(command.c_str(), "r");
 	if(fp == NULL)
 	{
 		sline= "ERROR by writing command on folder subroutine " + m_sCommand + " on command line\n";
-		sline+= "ERRNO" + *strerror(errno);
+		sline+= "ERRNO: " + *strerror(errno);
 		LOG(LOG_ERROR, sline);
 		return -1;
 	};
@@ -199,7 +376,9 @@ int CommandExec::execute()
 	if(!bWait) // when wait not be set and thread do not starting the first time, the own subroutine can having
 		setValue("PPI-SET " + m_sFolder + ":" + m_sSubroutine + " 0");// the ERRORLEVEL result from the last pass
 	while(fgets(line, sizeof line, fp))                               // when now the script fail with the same ERRORLEVEL
-	{																  // the subroutine will be not informed
+	{														  // the subroutine will be not informed
+		if(stopping())
+			break;
 		sline+= line;
 		//cout << sline << flush;
 		nLen= sline.length();
@@ -219,11 +398,15 @@ int CommandExec::execute()
 			readLine(bWait, bDebug, sline);
 			sline= "";
 		}
-		if(stopping())
-			break;
+	}
+	if(stopping())
+	{
+		pclose(fp);
+		return 1;
 	}
 	LOCK(m_WAITMUTEX);
 	m_nStopSignal= 0;
+	m_tScriptPid= 0;
 	UNLOCK(m_WAITMUTEX);
 	pclose(fp);
 	if(sline != "")
@@ -495,9 +678,12 @@ bool CommandExec::setValue(const string& command)
 		bwrite= true;
 	}
 	UNLOCK(m_externWRITTENVALUES);
-	if(bwrite)
+	if(	bwrite &&
+		!stopping()	)
+	{
 		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
 			return false;
+	}
 	return true;
 }
 

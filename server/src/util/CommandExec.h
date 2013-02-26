@@ -40,6 +40,7 @@ public:
 	: Thread("CommandExec", 0),
 	  m_bStarted(false),
 	  m_pPort(port),
+	  m_tScriptPid(0),
 	  m_nStopSignal(0),
 	  m_bWait(false),
 	  m_bBlock(false)
@@ -109,6 +110,20 @@ public:
 	 */
 	void setWritten(map<string, double>* written, pthread_mutex_t* WRITTENVALUES);
 	/**
+	 * get child process from given process
+	 *
+	 * @param actPid current pid from searching child process
+	 * @return one ore more child processes
+	 */
+	vector<pid_t> getChildProcess(pid_t actPid, vector<string>* commands) const;
+	/**
+	 * make over shell command an egrep over all processes
+	 *
+	 * @param pid searching pid in run processes
+	 * @return vector string of egrep result
+	 */
+	vector<string> grepPS(pid_t pid) const;
+	/**
 	 * returning current output of command
 	 */
 	vector<string> getOutput();
@@ -158,6 +173,10 @@ private:
 	 * output result of command
 	 */
 	deque<string> m_qOutput;
+	/**
+	 * process id of own current pid
+	 */
+	pid_t m_tOwnPid;
 	/**
 	 * process id from running shell script
 	 */

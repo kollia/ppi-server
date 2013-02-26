@@ -305,6 +305,7 @@ int OwServerQuestions::execute()
 	}else if(command == "stop-owclient")
 	{
 		closeGetConnection();
+		m_oServer->stop(false);
 		stop(false);
 	}else if(command == "getStatusInfo")
 	{
