@@ -506,31 +506,31 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 				trim(command);
 				LOCK(m_WAITMUTEX);
 				if(command == "SIGHUP")
-					m_nStopSignal= 1;
+					m_nStopSignal= SIGHUP;
 				else if(command == "SIGINT")
-					m_nStopSignal= 2;
+					m_nStopSignal= SIGINT;
 				else if(command == "SIGQUIT")
-					m_nStopSignal= 3;
+					m_nStopSignal= SIGQUIT;
 				else if(command == "SIGTRAP")
-					m_nStopSignal= 5;
+					m_nStopSignal= SIGTRAP;
 				else if(command == "SIGABRT")
-					m_nStopSignal= 6;
+					m_nStopSignal= SIGABRT;
 				else if(command == "SIGBUS")
-					m_nStopSignal= 7;
+					m_nStopSignal= SIGBUS;
 				else if(command == "SIGKILL")
-					m_nStopSignal= 9;
+					m_nStopSignal= SIGKILL;
 				else if(command == "SIGUSR1")
-					m_nStopSignal= 10;
+					m_nStopSignal= SIGUSR1;
 				else if(command == "SIGUSR2")
-					m_nStopSignal= 12;
+					m_nStopSignal= SIGUSR2;
 				else if(command == "SIGPIPE")
-					m_nStopSignal= 13;
+					m_nStopSignal= SIGPIPE;
 				else if(command == "SIGALRM")
-					m_nStopSignal= 14;
+					m_nStopSignal= SIGALRM;
 				else if(command == "SIGTERM")
-					m_nStopSignal= 15;
+					m_nStopSignal= SIGTERM;
 				else if(command == "SIGSTOP")
-					m_nStopSignal= 19;
+					m_nStopSignal= SIGSTOP;
 				else
 				{
 					m_nStopSignal= 0;
