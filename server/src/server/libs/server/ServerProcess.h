@@ -151,6 +151,11 @@ namespace server
 			 */
 			const uid_t m_uid;
 			/**
+			 * thread id from running process
+			 * which accept connection
+			 */
+			pthread_t m_nAcceptThread;
+			/**
 			 * whether new connections are allowed
 			 */
 			bool m_bNewConnections;

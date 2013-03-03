@@ -54,12 +54,6 @@ namespace design_pattern_world
 			 */
 			virtual int accept()= 0;
 			/**
-			 * ask whether socket wait to accept new transactions
-			 *
-			 * @return whether socket wait
-			 */
-			virtual bool socketWait()= 0;
-			/**
 			 * destructor for pattern
 			 */
 			virtual ~IServerConnectArtPattern() {};

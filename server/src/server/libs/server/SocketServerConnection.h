@@ -547,9 +547,7 @@ namespace server
 			SocketServerConnection(int type, const string host, const unsigned short port, const unsigned int timeout,
 					ITransferPattern* transfer)
 			:	SocketClientConnection(type, host, port, timeout, transfer),
-				m_pServer(NULL),
-				m_bWaitAccept(false),
-				m_WAITACCEPT(Thread::getMutex("WAITACCEPT"))
+				m_pServer(NULL)
 				{ };
 			/**
 			 * set an instnace of the called server
@@ -570,12 +568,6 @@ namespace server
 			 * @return error code
 			 */
 			virtual int accept();
-			/**
-			 * ask whether socket wait to accept new transactions
-			 *
-			 * @return whether socket wait
-			 */
-			virtual bool socketWait();
 			/**
 			 * return the address witch the comunication have reached after listen
 			 *
@@ -610,14 +602,6 @@ namespace server
 			 * calling server instance
 			 */
 			IServerPattern* m_pServer;
-			/**
-			 * whether socket wait to accept new transactions
-			 */
-			bool m_bWaitAccept;
-			/**
-			 * mutex to change flag to wait for an transaction
-			 */
-			pthread_mutex_t* m_WAITACCEPT;
 	};
 
 }

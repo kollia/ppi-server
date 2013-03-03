@@ -31,16 +31,6 @@
 
 namespace server
 {
-	bool SocketServerConnection::socketWait()
-	{
-		bool bRv;
-
-		LOCK(m_WAITACCEPT);
-		bRv= m_bWaitAccept;
-		UNLOCK(m_WAITACCEPT);
-		return bRv;
-	}
-
 	int SocketServerConnection::accept()
 	{
 		int nRv= 0;
@@ -49,14 +39,8 @@ namespace server
 		FILE* fp;
 		SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
 
-		LOCK(m_WAITACCEPT);
-		m_bWaitAccept= true;
 		POS("#server#wait-client");
-		UNLOCK(m_WAITACCEPT);
 		m_kSocket.bindSocket = ::accept(m_kSocket.serverSocket, (struct sockaddr *) &m_kSocket.rec_addres, &m_kSocket.adrlaenge);
-		LOCK(m_WAITACCEPT);
-		m_bWaitAccept= false;
-		UNLOCK(m_WAITACCEPT);
 		if (m_kSocket.bindSocket < 0)
 		{
 			switch(errno)
@@ -436,6 +420,7 @@ namespace server
 				else
 					str= SocketClientConnection::strerror(error);
 			}
+			break;
 		}
 		return str;
 	}

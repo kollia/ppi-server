@@ -514,6 +514,13 @@ class Thread :	public virtual IThreadPattern,
 		pid_t getThreadID()
 		{ return m_nThreadId; };
 		/**
+		 * return POSIX thread from creation
+		 *
+		 * @return thread id
+		 */
+		pthread_t getPosixThreadID()
+		{ return m_nPosixThreadID; };
+		/**
 		 * destructor of class Thread
 		 */
 		virtual ~Thread();

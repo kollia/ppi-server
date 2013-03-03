@@ -51,6 +51,7 @@ namespace server
 										IClientConnectArtPattern* extcon/*= NULL*/, const string& open/*= ""*/, const bool wait/*= true*/)
 	:	Process(processName, processName, extcon, NULL, wait),
 		m_uid(uid),
+		m_nAcceptThread(0),
 		m_bNewConnections(true),
 		m_pStarterPool(starter),
 		m_pConnect(connect),
@@ -157,6 +158,7 @@ namespace server
 			allowed= false;
 		}else
 		{
+			m_nAcceptThread= pthread_self();
 			ret= m_pConnect->accept();
 			allowed= connectionsAllowed();
 		}
@@ -209,16 +211,13 @@ namespace server
 		allowNewConnections(false);
 		m_pStarterPool->stop(false);
 		nRv= Process::stop(false);
-		//close();
 		AROUSE(m_NOCONWAITCONDITION);
 		if(	running() &&
-			m_pConnect && m_pConnect->socketWait())
+			m_nAcceptThread != 0	)
 		{
-			// send also stop message to server,
-			// by only open an connection to socket
-			openSendConnection();
-			closeSendConnection();
+			pthread_kill(m_nAcceptThread, SIGALRM);
 		}
+		close();
 		if(bWait)
 		{
 			m_pStarterPool->stop(true);
