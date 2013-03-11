@@ -232,7 +232,7 @@ private:
 	 * @param command string beginning with 'PPI-SET' getting from output on SHELL
 	 * @return whether method can reading correctly given command from SHELL
 	 */
-	bool setValue(const string& command);
+	void setValue(const string& command);
 	/**
 	 * This method will be called if any other or own thread
 	 * calling method stop().

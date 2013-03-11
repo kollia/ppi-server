@@ -423,6 +423,7 @@ int CommandExec::execute()
 				m_qOutput.pop_back();
 			}
 		}
+		UNLOCK(m_RESULTMUTEX);
 		if(bWait == false)
 		{
 			int nRv;
@@ -433,22 +434,15 @@ int CommandExec::execute()
 			oline >> nRv;
 			setErrorlevel << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
 			setErrorlevel << nRv;
-			if(!setValue(setErrorlevel.str()))
-			{
-				if(bDebug)
-					m_qOutput.push_back("  ### ERROR: cannot write correctly ERRORLEVEL for subroutine");
-				TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+setErrorlevel.str(), "for SHELL subroutine "
-								+ m_sFolder + ":" + m_sSubroutine
-								+ "\nby command: '" + setErrorlevel.str()
-								+ "'\n               ### ERROR: cannot write correctly ERRORLEVEL for result of subroutine" );
-			}
+			setValue(setErrorlevel.str());
 		}
 		if(	bWait ||
 			bDebug	)
 		{
+			LOCK(m_RESULTMUTEX);
 			m_qOutput.push_back("PPI-DEF " + sLastErrorlevel);
+			UNLOCK(m_RESULTMUTEX);
 		}
-		UNLOCK(m_RESULTMUTEX);
 	}
 	return 1;
 }
@@ -592,19 +586,11 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 	}
 	if(!bWait)
 	{
-		ostringstream setErrorlevel;
-
 		if(	sline.length() > 7 &&             // when wait flag is true
 			sline.substr(0, 7) == "PPI-SET"	) // all PPI-SET will be do inside SHELL subroutine
 		{
 			bFoundDefCommand= true;
-			if(!setValue(sline))
-			{
-				command= " ### ERROR: cannot read correctly PPI-SET command";
-				TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+sline, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-								+ "\nby command: " + command + "\noutput string '" + sline
-								+ "'\n               ### ERROR: cannot read correctly PPI-SET command"               );
-			}
+			setValue(sline);
 		}
 	}
 	if(command != "")
@@ -640,7 +626,7 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 	}
 }
 
-bool CommandExec::setValue(const string& command)
+void CommandExec::setValue(const string& command)
 {
 	bool bwrite(false);
 	double value;
@@ -650,25 +636,71 @@ bool CommandExec::setValue(const string& command)
 	map<string, double>::iterator it;
 
 	if(m_pPort == NULL)
-		return false;
+	{
+		LOCK(m_RESULTMUTEX);
+		m_qOutput.push_back(" ### ERROR: cannot read correctly PPI-SET command");
+		if(m_qOutput.size() > 1000)
+			m_qOutput.pop_front();
+		UNLOCK(m_RESULTMUTEX);
+		TIMELOG(LOG_ALERT, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\nby command: " + m_sCommand + "\noutput string '" + command
+							+ "'\n               no setValue interface be set"               );
+		return;
+	}
 	icommand >> outstr; // string of PPI-SET (not needed)
 	if(	icommand.eof() ||
 		icommand.fail()		)
 	{
-		return false;
+		LOCK(m_RESULTMUTEX);
+		m_qOutput.push_back(" ### ERROR: cannot read correctly PPI-SET command");
+		if(m_qOutput.size() > 1000)
+			m_qOutput.pop_front();
+		UNLOCK(m_RESULTMUTEX);
+		TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\nby command: " + m_sCommand + "\noutput string '" + command
+							+ "'\n               ### ERROR: cannot read correctly PPI-SET command"               );
+		return;
 	}
 	icommand >> outstr; // folder:subroutine string
 	if(	icommand.eof() ||
 		icommand.fail()		)
 	{
-		return false;
+		LOCK(m_RESULTMUTEX);
+		m_qOutput.push_back(" ### ERROR: cannot read correctly PPI-SET command");
+		if(m_qOutput.size() > 1000)
+			m_qOutput.pop_front();
+		UNLOCK(m_RESULTMUTEX);
+		TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\nby command: " + m_sCommand + "\noutput string '" + command
+							+ "'\n               cannot read definition of <folder>:<subroutine>"			               );
+		return;
 	}
 	split(spl, outstr, is_any_of(":"));
 	if(spl.size() != 2)
-		return false;
+	{
+		LOCK(m_RESULTMUTEX);
+		m_qOutput.push_back(" ### ERROR: cannot read correctly PPI-SET command");
+		if(m_qOutput.size() > 1000)
+			m_qOutput.pop_front();
+		UNLOCK(m_RESULTMUTEX);
+		TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\nby command: " + m_sCommand + "\noutput string '" + command
+							+ "'\n               cannot read definition of <folder>:<subroutine>"			               );
+		return;
+	}
 	icommand >> value;
 	if(icommand.fail())
-		return false;
+	{
+		LOCK(m_RESULTMUTEX);
+		m_qOutput.push_back(" ### ERROR: cannot read correctly PPI-SET command");
+		if(m_qOutput.size() > 1000)
+			m_qOutput.pop_front();
+		UNLOCK(m_RESULTMUTEX);
+		TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\nby command: " + m_sCommand + "\noutput string '" + command
+							+ "'\n               cannot read definition of value"			               );
+		return;
+	}
 	LOCK(m_externWRITTENVALUES);
 	it= m_msdWritten->find(outstr);
 	if(	it == m_msdWritten->end() ||
@@ -676,15 +708,33 @@ bool CommandExec::setValue(const string& command)
 	{
 		(*m_msdWritten)[outstr]= value;
 		bwrite= true;
+	}else
+	{
+		ostringstream oValue;
+
+		oValue << value;
+		LOCK(m_RESULTMUTEX);
+		m_qOutput.push_back(" ### do not write value " + oValue.str() + " into subroutine because value is same as before");
+		if(m_qOutput.size() > 1000)
+			m_qOutput.pop_front();
+		UNLOCK(m_RESULTMUTEX);
 	}
 	UNLOCK(m_externWRITTENVALUES);
 	if(	bwrite &&
 		!stopping()	)
 	{
 		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
-			return false;
+		{
+			LOCK(m_RESULTMUTEX);
+			m_qOutput.push_back(" ### ERROR: cannot write correctly PPI-SET command over interface to folder-list");
+			if(m_qOutput.size() > 1000)
+				m_qOutput.pop_front();
+			UNLOCK(m_RESULTMUTEX);
+			TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+								+ "\nby command: " + m_sCommand + "\noutput string '" + command
+								+ "'\n               cannot write correctly PPI-SET command over interface to folder-list"      );
+		}
 	}
-	return true;
 }
 
 void CommandExec::setWritten(map<string, double>* written, pthread_mutex_t* WRITTENVALUES)
