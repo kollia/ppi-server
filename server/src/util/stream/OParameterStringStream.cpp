@@ -195,13 +195,20 @@ OParameterStringStream* OParameterStringStream::operator << (const double* value
 	return this;
 }
 
+OParameterStringStream* OParameterStringStream::operator << (const char* const value)
+{
+	string sValue(value);
+
+	return *this << sValue;
+}
+
 OParameterStringStream* OParameterStringStream::operator << (string value)
 {
 	if(!m_sStream.eof())
 		m_sStream << " ";
+	replace_all(value, "\\", "\\\\");
 	replace_all(value, "\n", "\\n");
 	replace_all(value, "\"", "\\\"");
-	replace_all(value, "\\", "\\\\");
 	m_sStream << "\"" << value << "\" ";
 	return this;
 }

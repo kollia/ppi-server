@@ -168,6 +168,13 @@ public:
 	 * @param value string variable
 	 * @return own object
 	 */
+	OParameterStringStream* operator << (const char* const value);
+	/**
+	 * operator for string
+	 *
+	 * @param value string variable
+	 * @return own object
+	 */
 	OParameterStringStream* operator << (string value);
 	/**
 	 * operator for string pointer
