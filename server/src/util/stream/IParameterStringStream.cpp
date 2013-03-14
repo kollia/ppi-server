@@ -47,6 +47,7 @@ void IParameterStringStream::operator >> ( bool& value)
 		return;
 	}
 	m_sStream >> param;
+	pos= m_sStream.tellg();
 	if(param == "")
 	{
 		value= false;
@@ -411,9 +412,11 @@ void IParameterStringStream::operator >> (string& value)
 
 void IParameterStringStream::getString(string& value)
 {
+	short nBackS(0);
+	string sStream;
 	string sBuf;
-	string::size_type nVLen;
-	streampos pos= m_sStream.tellg();
+	string::size_type nVLen, nBefLen, nCur;
+	istringstream::pos_type npos= m_sStream.tellg();
 
 	m_bFail= false;
 	if(	m_bNull ||
@@ -428,33 +431,50 @@ void IParameterStringStream::getString(string& value)
 	{
 		value= "";
 		m_bNull= true;
+		m_bFail= true;
+		return;
 	}
 	if(sBuf.substr(0, 1) != "\"")
 	{
 		m_bFail= true;
 		value= "";
-		m_sStream.seekg(pos, ios::beg);
+		m_sStream.seekg(npos, ios::beg);
 		m_sStream.clear();
 		return;
 	}
-	value= sBuf;
-	nVLen= sBuf.size();
-	while(	(	sBuf[nVLen-1] != '"'
-				||
-				sBuf[nVLen-2] == '\\'	)
-				&&
-				!m_sStream.eof()				)
+	if(sBuf == "\"\"") // empty string
 	{
-		m_sStream >> sBuf;
-		nVLen= sBuf.size();
-		value+= " " + sBuf;
+		value= "";
+		return;
 	}
-
+	npos= m_sStream.tellg();
+	sStream= m_sStream.str();
+	sStream= sStream.substr(npos);
+	if(sBuf.size() > 1)
+	{
+		nBefLen= sBuf.length();
+		sStream= sBuf.substr(1) + sStream;
+	}else
+		nBefLen= 0;
+	nVLen= sStream.length();
+	nCur= 0;
+	value= "";
+	while(	nCur < nVLen &&
+			(	sStream[nCur] != '"' ||
+				nBackS % 2				)	)
+	{
+		if(sStream[nCur] == '\\')
+			++nBackS;
+		else
+			nBackS= 0;
+		value+= sStream[nCur];
+		++nCur;
+	}
+	nVLen= npos;
+	m_sStream.seekg(nVLen+nCur+3-nBefLen, ios::beg);
 	replace_all(value, "\\\\", "\\");
 	replace_all(value, "\\\"", "\"");
 	replace_all(value, "\\n", "\n");
-	value= value.substr(1);
-	value= value.substr(0, value.size() - 1);
 }
 
 bool IParameterStringStream::empty()
