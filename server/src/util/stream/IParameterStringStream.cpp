@@ -43,15 +43,17 @@ void IParameterStringStream::operator >> ( bool& value)
 		m_sStream.eof() )
 	{
 		m_bNull= true;
-		value= 0;
+		m_bFail= true;
+		value= false;
 		return;
 	}
 	m_sStream >> param;
-	pos= m_sStream.tellg();
 	if(param == "")
 	{
 		value= false;
 		m_bNull= true;
+		m_bFail= true;
+		return;
 	}else
 	{
 		bool bFail;
@@ -110,6 +112,7 @@ void IParameterStringStream::operator >> ( short& value)
 		m_sStream.eof()	)
 	{
 		m_bNull= true;
+		m_bFail= true;
 		value= 0;
 		return;
 	}
@@ -118,6 +121,8 @@ void IParameterStringStream::operator >> ( short& value)
 	{
 		value= 0;
 		m_bNull= true;
+		m_bFail= true;
+		return;
 	}else
 	{
 		bool bFail;
@@ -147,6 +152,8 @@ void IParameterStringStream::operator >> ( unsigned short& value)
 	if(	m_bNull ||
 		m_sStream.eof() )
 	{
+		m_bNull= true;
+		m_bFail= true;
 		value= 0;
 		return;
 	}
@@ -155,6 +162,8 @@ void IParameterStringStream::operator >> ( unsigned short& value)
 	{
 		value= 0;
 		m_bNull= true;
+		m_bFail= true;
+		return;
 	}else
 	{
 		bool bFail;
@@ -185,7 +194,8 @@ void IParameterStringStream::operator >> ( int& value)
 	if(	m_bNull ||
 		m_sStream.eof() )
 	{
-		m_bNull= false;
+		m_bNull= true;
+		m_bFail= true;
 		value= 0;
 		return;
 	}
@@ -194,6 +204,8 @@ void IParameterStringStream::operator >> ( int& value)
 	{
 		value= 0;
 		m_bNull= true;
+		m_bFail= true;
+		return;
 	}else
 	{
 		bool bFail;
@@ -224,7 +236,8 @@ void IParameterStringStream::operator >> ( unsigned int& value)
 	if(	m_bNull ||
 		m_sStream.eof() )
 	{
-		m_bNull= false;
+		m_bNull= true;
+		m_bFail= true;
 		value= 0;
 		return;
 	}
@@ -233,6 +246,8 @@ void IParameterStringStream::operator >> ( unsigned int& value)
 	{
 		value= 0;
 		m_bNull= true;
+		m_bFail= true;
+		return;
 	}else
 	{
 		bool bFail;
@@ -262,7 +277,8 @@ void IParameterStringStream::operator >> ( long& value)
 	if(	m_bNull ||
 		m_sStream.eof() )
 	{
-		m_bNull= false;
+		m_bNull= true;
+		m_bFail= true;
 		value= 0;
 		return;
 	}
@@ -271,6 +287,8 @@ void IParameterStringStream::operator >> ( long& value)
 	{
 		value= 0;
 		m_bNull= true;
+		m_bFail= true;
+		return;
 	}else
 	{
 		bool bFail;
@@ -300,7 +318,8 @@ void IParameterStringStream::operator >> ( unsigned long& value)
 	if(	m_bNull ||
 		m_sStream.eof() )
 	{
-		m_bNull= false;
+		m_bNull= true;
+		m_bFail= true;
 		value= 0;
 		return;
 	}
@@ -309,6 +328,8 @@ void IParameterStringStream::operator >> ( unsigned long& value)
 	{
 		value= 0;
 		m_bNull= true;
+		m_bFail= true;
+		return;
 	}else
 	{
 		bool bFail;
@@ -338,7 +359,8 @@ void IParameterStringStream::operator >> ( float& value)
 	if(	m_bNull ||
 		m_sStream.eof() )
 	{
-		m_bNull= false;
+		m_bNull= true;
+		m_bFail= true;
 		value= 0;
 		return;
 	}
@@ -347,6 +369,8 @@ void IParameterStringStream::operator >> ( float& value)
 	{
 		value= 0;
 		m_bNull= true;
+		m_bFail= true;
+		return;
 	}else
 	{
 		bool bFail;
@@ -376,7 +400,8 @@ void IParameterStringStream::operator >> ( double& value)
 	if(	m_bNull ||
 		m_sStream.eof() )
 	{
-		m_bNull= false;
+		m_bNull= true;
+		m_bFail= true;
 		value= 0;
 		return;
 	}
@@ -385,6 +410,8 @@ void IParameterStringStream::operator >> ( double& value)
 	{
 		value= 0;
 		m_bNull= true;
+		m_bFail= true;
+		return;
 	}else
 	{
 		bool bFail;
@@ -422,7 +449,8 @@ void IParameterStringStream::getString(string& value)
 	if(	m_bNull ||
 		m_sStream.eof() )
 	{
-		m_bNull= false;
+		m_bNull= true;
+		m_bFail= true;
 		value= "";
 		return;
 	}
