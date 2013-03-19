@@ -94,9 +94,16 @@ void IParameterStringStream::operator >> ( bool& value)
 			bFail= true;
 		if(bFail)
 		{
+			string::size_type npos;
+
 			m_bFail= true;
 			value= false;
-			m_sStream.seekg(pos, ios::beg);
+			if(pos >= 0)
+			{
+				npos= static_cast<string::size_type>(pos);
+				m_sStream.seekg(npos, ios::beg);
+			}else
+				m_sStream.seekg(0, ios::end);
 			m_sStream.clear();
 		}
 	}
@@ -137,7 +144,14 @@ void IParameterStringStream::operator >> ( short& value)
 		{
 			value= 0;
 			m_bFail= true;
-			m_sStream.seekg(pos, ios::beg);
+			if(pos >= 0)
+			{
+				string::size_type npos;
+
+				npos= static_cast<string::size_type>(pos);
+				m_sStream.seekg(npos, ios::beg);
+			}else
+				m_sStream.seekg(0, ios::end);
 			m_sStream.clear();
 		}
 	}
@@ -179,7 +193,14 @@ void IParameterStringStream::operator >> ( unsigned short& value)
 		{
 			value= 0;
 			m_bFail= true;
-			m_sStream.seekg(pos, ios::beg);
+			if(pos >= 0)
+			{
+				string::size_type npos;
+
+				npos= static_cast<string::size_type>(pos);
+				m_sStream.seekg(npos, ios::beg);
+			}else
+				m_sStream.seekg(0, ios::end);
 			m_sStream.clear();
 		}
 	}
@@ -221,7 +242,14 @@ void IParameterStringStream::operator >> ( int& value)
 		{
 			value= 0;
 			m_bFail= true;
-			m_sStream.seekg(pos, ios::beg);
+			if(pos >= 0)
+			{
+				string::size_type npos;
+
+				npos= static_cast<string::size_type>(pos);
+				m_sStream.seekg(npos, ios::beg);
+			}else
+				m_sStream.seekg(0, ios::end);
 			m_sStream.clear();
 		}
 	}
@@ -262,7 +290,14 @@ void IParameterStringStream::operator >> ( unsigned int& value)
 		{
 			value= 0;
 			m_bFail= true;
-			m_sStream.seekg(pos, ios::beg);
+			if(pos >= 0)
+			{
+				string::size_type npos;
+
+				npos= static_cast<string::size_type>(pos);
+				m_sStream.seekg(npos, ios::beg);
+			}else
+				m_sStream.seekg(0, ios::end);
 			m_sStream.clear();
 		}
 	}
@@ -303,7 +338,14 @@ void IParameterStringStream::operator >> ( long& value)
 		{
 			value= 0;
 			m_bFail= true;
-			m_sStream.seekg(pos, ios::beg);
+			if(pos >= 0)
+			{
+				string::size_type npos;
+
+				npos= static_cast<string::size_type>(pos);
+				m_sStream.seekg(npos, ios::beg);
+			}else
+				m_sStream.seekg(0, ios::end);
 			m_sStream.clear();
 		}
 	}
@@ -344,7 +386,14 @@ void IParameterStringStream::operator >> ( unsigned long& value)
 		{
 			value= 0;
 			m_bFail= true;
-			m_sStream.seekg(pos, ios::beg);
+			if(pos >= 0)
+			{
+				string::size_type npos;
+
+				npos= static_cast<string::size_type>(pos);
+				m_sStream.seekg(npos, ios::beg);
+			}else
+				m_sStream.seekg(0, ios::end);
 			m_sStream.clear();
 		}
 	}
@@ -385,7 +434,14 @@ void IParameterStringStream::operator >> ( float& value)
 		{
 			value= 0;
 			m_bFail= true;
-			m_sStream.seekg(pos, ios::beg);
+			if(pos >= 0)
+			{
+				string::size_type npos;
+
+				npos= static_cast<string::size_type>(pos);
+				m_sStream.seekg(npos, ios::beg);
+			}else
+				m_sStream.seekg(0, ios::end);
 			m_sStream.clear();
 		}
 	}
@@ -426,7 +482,14 @@ void IParameterStringStream::operator >> ( double& value)
 		{
 			value= 0;
 			m_bFail= true;
-			m_sStream.seekg(pos, ios::beg);
+			if(pos >= 0)
+			{
+				string::size_type npos;
+
+				npos= static_cast<string::size_type>(pos);
+				m_sStream.seekg(npos, ios::beg);
+			}else
+				m_sStream.seekg(0, ios::end);
 			m_sStream.clear();
 		}
 	}
@@ -443,7 +506,9 @@ void IParameterStringStream::getString(string& value)
 	string sStream;
 	string sBuf;
 	string::size_type nVLen, nBefLen, nCur;
-	istringstream::pos_type npos= m_sStream.tellg();
+	istringstream::pos_type pos= m_sStream.tellg();
+	string::size_type npos;
+
 
 	m_bFail= false;
 	if(	m_bNull ||
@@ -466,7 +531,12 @@ void IParameterStringStream::getString(string& value)
 	{
 		m_bFail= true;
 		value= "";
-		m_sStream.seekg(npos, ios::beg);
+		if(pos >= 0)
+		{
+			npos= static_cast<string::size_type>(pos);
+			m_sStream.seekg(npos, ios::beg);
+		}else
+			m_sStream.seekg(0, ios::end);
 		m_sStream.clear();
 		return;
 	}
@@ -475,9 +545,13 @@ void IParameterStringStream::getString(string& value)
 		value= "";
 		return;
 	}
-	npos= m_sStream.tellg();
-	sStream= m_sStream.str();
-	sStream= sStream.substr(npos);
+	pos= m_sStream.tellg();
+	if(pos >= 0)
+	{
+		sStream= m_sStream.str();
+		npos= static_cast<string::size_type>(pos);
+		sStream= sStream.substr(npos);
+	}
 	if(sBuf.size() > 1)
 	{
 		nBefLen= sBuf.length();
@@ -498,8 +572,11 @@ void IParameterStringStream::getString(string& value)
 		value+= sStream[nCur];
 		++nCur;
 	}
-	nVLen= npos;
-	m_sStream.seekg(nVLen+nCur+3-nBefLen, ios::beg);
+	if(pos >= 0)
+	{
+		npos= static_cast<string::size_type>(pos);
+		m_sStream.seekg(npos+nCur+3-nBefLen, ios::beg);
+	}
 	replace_all(value, "\\\\", "\\");
 	replace_all(value, "\\\"", "\"");
 	replace_all(value, "\\n", "\n");
@@ -519,7 +596,10 @@ bool IParameterStringStream::empty()
 		m_sStream >> param;
 		if(param != "")
 		{
-			m_sStream.seekg(pos, ios::beg);
+			string::size_type npos;
+
+			npos= static_cast<string::size_type>(pos);
+			m_sStream.seekg(npos, ios::beg);
 			m_sStream.clear();
 			m_bNull= false;
 		}else
