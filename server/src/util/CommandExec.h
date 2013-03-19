@@ -39,6 +39,7 @@ public:
 	CommandExec(IMeasureSet* port)
 	: Thread("CommandExec", 0),
 	  m_bStarted(false),
+	  m_bLogging(true),
 	  m_pPort(port),
 	  m_tScriptPid(0),
 	  m_nStopSignal(0),
@@ -154,6 +155,14 @@ private:
 	 */
 	bool m_bStarted;
 	/**
+	 * whether should write shell output into log-file
+	 */
+	bool m_bLogging;
+	/**
+	 * defined current log level from shell script
+	 */
+	int m_nLogLevel;
+	/**
 	 * Interface to set value in an subroutine
 	 */
 	IMeasureSet* m_pPort;
@@ -173,6 +182,10 @@ private:
 	 * output result of command
 	 */
 	deque<string> m_qOutput;
+	/**
+	 * output for logging
+	 */
+	deque<string> m_qLog;
 	/**
 	 * process id of own current pid
 	 */
