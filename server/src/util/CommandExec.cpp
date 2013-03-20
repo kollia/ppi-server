@@ -343,7 +343,7 @@ int CommandExec::execute()
 	string command;
 	string sLastErrorlevel;
 	vector<string> spl;
-	deque<string>::iterator deqIt;
+	deque<string> qLastRows;
 	string::size_type nLen;
 	FILE *fp;
 
@@ -385,6 +385,9 @@ int CommandExec::execute()
 		if(	nLen > 0 &&
 			sline.substr(nLen-1) == "\n")
 		{
+			qLastRows.push_back(sline);
+			if(qLastRows.size() > 10)
+				qLastRows.pop_front();
 			sline= sline.substr(0, nLen-1);
 			if(	sline.length() >  11 &&
 				sline.substr(0, 11) == "ERRORLEVEL "	)
@@ -410,9 +413,17 @@ int CommandExec::execute()
 	UNLOCK(m_WAITMUTEX);
 	pclose(fp);
 	if(sline != "")
+	{
+		qLastRows.push_back(sline);
+		if(qLastRows.size() > 10)
+			qLastRows.pop_front();
 		readLine(bWait, bDebug, sline);
+	}
 	if(sLastErrorlevel != "")
 	{
+		int nRv;
+		istringstream oline(sLastErrorlevel);
+
 		LOCK(m_RESULTMUTEX);
 		if(!m_qOutput.empty())
 		{
@@ -424,17 +435,28 @@ int CommandExec::execute()
 			}
 		}
 		UNLOCK(m_RESULTMUTEX);
+		oline >> sline; // string of 'ERRORLEVEL' not needed
+		oline >> nRv;
 		if(bWait == false)
 		{
-			int nRv;
-			istringstream oline(sLastErrorlevel);
 			ostringstream setErrorlevel;
 
-			oline >> sline; // string of 'ERRORLEVEL' not needed
-			oline >> nRv;
 			setErrorlevel << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
 			setErrorlevel << nRv;
 			setValue(setErrorlevel.str());
+		}
+		if(nRv != 0)
+		{
+			ostringstream msg;
+
+			msg << "shell script ending with error " << nRv << "\n\n";
+			if(!qLastRows.empty())
+			{
+				for(deque<string>::iterator it= qLastRows.begin(); it != qLastRows.end(); ++it)
+					msg << "    " << *it;
+			}else
+				msg << "    no output from script";
+			TIMELOG(LOG_ERROR, sLastErrorlevel, msg.str());
 		}
 		if(	bWait ||
 			bDebug	)
