@@ -23,6 +23,7 @@
 #include <sstream>
 
 #include "../util/debug.h"
+#include "../util/exception.h"
 #include "../util/thread/Terminal.h"
 
 #include "../pattern/util/LogHolderPattern.h"
@@ -208,6 +209,38 @@ int MeasureThread::stop(const bool* bWait/*=NULL*/)
 	//LOCK(m_VALUE);
 	AROUSE(m_VALUECONDITION);
 	//UNLOCK(m_VALUE);
+	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
+	{
+		if(it->bCorrect)
+		{
+			try{
+				it->portClass->stop(bWait);
+
+			}catch(SignalException& ex)
+			{
+				string err;
+
+				ex.addMessage("by stopping subroutine " + it->name + " inside folder " + getThreadName());
+				err= ex.getTraceString();
+				cerr << err << endl;
+				LOG(LOG_ERROR, err);
+
+			}catch(std::exception& ex)
+			{
+				string err("std exception by stopping subroutine " + it->name + " inside folder " + getThreadName());
+
+				err+= "\n" + string(ex.what());
+				cerr << "ERROR: " << err << endl;
+				LOG(LOG_ERROR, err);
+
+			}catch(...)
+			{
+				string err("undefined exception by stopping subroutine " + it->name + " inside folder " + getThreadName());
+				cerr << "ERROR: " << err << endl;
+				LOG(LOG_ERROR, err);
+			}
+		}
+	}
 	if(	bWait
 		&&
 		*bWait	)
@@ -612,7 +645,32 @@ bool MeasureThread::measure()
 				}
 			}else
 				classdebug= false;
-			result= it->portClass->measure(result);
+			try{
+				result= it->portClass->measure(result);
+
+			}catch(SignalException& ex)
+			{
+				string err;
+
+				ex.addMessage("by running subroutine " + it->name + " inside folder " + getThreadName());
+				err= ex.getTraceString();
+				cerr << err << endl;
+				LOG(LOG_ERROR, err);
+
+			}catch(std::exception& ex)
+			{
+				string err("std exception by running subroutine " + it->name + " inside folder " + getThreadName());
+
+				err+= "\n" + string(ex.what());
+				cerr << "ERROR: " << err << endl;
+				LOG(LOG_ERROR, err);
+
+			}catch(...)
+			{
+				string err("undefined exception by running subroutine " + it->name + " inside folder " + getThreadName());
+				cerr << "ERROR: " << err << endl;
+				LOG(LOG_ERROR, err);
+			}
 			it->portClass->setValue(result, "i:"+folder+":"+it->name);
 
 

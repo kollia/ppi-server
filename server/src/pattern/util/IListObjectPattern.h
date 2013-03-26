@@ -197,6 +197,19 @@ namespace design_pattern_world
 			 */
 			virtual bool range(bool& bfloat, double* min, double* max)= 0;
 			/**
+			 *  external command to send stopping to all subroutines when needed
+			 *
+			 * @param bWait calling routine should wait until the thread is stopping
+			 */
+			virtual void stop(const bool bWait)= 0;
+			/**
+			 *  external command to send stopping to all subroutines.<br />
+			 *  dummy routine can be overloaded when need
+			 *
+			 * @param bWait calling routine should wait until the thread is stopping
+			 */
+			virtual void stop(const bool *bWait= NULL)= 0;
+			/**
 			 * dummy destructor for pattern
 			 */
 			virtual ~IListObjectPattern() {};

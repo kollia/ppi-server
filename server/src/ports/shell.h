@@ -59,6 +59,19 @@ public:
 	 */
 	virtual void setDebug(bool bDebug);
 	/**
+	 *  external command to send stopping to all CommandExec Threads
+	 *
+	 * @param bWait calling routine should wait until the thread is stopping
+	 */
+	virtual void stop(const bool bWait)
+	{ Shell::stop(&bWait); };
+	/**
+	 *  external command to send stopping to all CommandExec Threads
+	 *
+	 * @param bWait calling routine should wait until the thread is stopping
+	 */
+	virtual void stop(const bool *bWait= NULL);
+	/**
 	 * destructor
 	 */
 	virtual ~Shell();

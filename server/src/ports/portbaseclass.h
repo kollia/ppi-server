@@ -355,6 +355,21 @@ namespace ports
 			 */
 			bool onlySwitch();
 			/**
+			 *  external command to send stopping to all subroutines when needed
+			 *
+			 * @param bWait calling routine should wait until the thread is stopping
+			 */
+			virtual void stop(const bool bWait)
+			{ portBase::stop(&bWait); };
+			/**
+			 *  external command to send stopping to all subroutines.<br />
+			 *  dummy routine can be overloaded when need
+			 *
+			 * @param bWait calling routine should wait until the thread is stopping
+			 */
+			virtual void stop(const bool *bWait= NULL)
+			{ /* dummy routine can be overloaded when need*/ };
+			/**
 			 * destructor
 			 */
 			virtual ~portBase();

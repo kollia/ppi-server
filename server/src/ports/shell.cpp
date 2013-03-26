@@ -120,7 +120,6 @@ double Shell::measure(const double actValue)
 	int res;
 	double dRv(actValue);
 	double dLastSwitch;
-	string command;
 
 	//Debug info to stop by right subroutine
 	/*if(	getFolderName() == "configure" &&
@@ -165,7 +164,9 @@ double Shell::measure(const double actValue)
 			if(!bMaked)
 			{
 				if(m_sWhileCom != "")
+				{
 					res= system("whilecommand", m_sWhileCom);
+				}
 			}
 			m_bLastValue= true;
 			if(	m_sUserAccount == "" ||
@@ -180,7 +181,9 @@ double Shell::measure(const double actValue)
 			if(m_bLastValue)
 			{
 				if(m_sEndCom != "")
+				{
 					res= system("endcommand", m_sEndCom);
+				}
 			}
 			m_bLastValue= false;
 			if(	m_sUserAccount == "" ||
@@ -393,6 +396,14 @@ int Shell::system(const string& action, string command)
 		}
 	}
 	return res;
+}
+
+void Shell::stop(const bool* bWait/*= NULL*/)
+{
+	typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
+
+	for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
+		(*it)->stop(bWait);
 }
 
 void Shell::setDebug(bool bDebug)
