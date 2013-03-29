@@ -95,17 +95,21 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 		{
 			if(thread->start(&command, thwait) != 0)
 			{
+				ostringstream msg;
+
 				if(	thread->getErrorType() == Thread::INIT &&
 					thread->getErrorCode() == -2				)
 				{
-					string msg;
-
-					msg= "ERROR: exception caused by writing command ";
-					msg+= "'"+command+"' into CommandExec object";
-					cerr << msg << endl;
-					LOG(LOG_ERROR, msg);
+					msg << "ERROR: exception caused by writing command ";
+					msg << "'" << command << "' into CommandExec object";
+					cerr << msg.str() << endl;
+					LOG(LOG_ERROR, msg.str());
 					return -3;
 				}
+				msg << "ERROR: by starting unused CommandExec thread for shell command '" << command << "'\n";
+				msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
+				cerr << msg.str() << endl;
+				LOG(LOG_ERROR, msg.str());
 				return -2;
 			}
 			if(	wait == false ||
@@ -175,10 +179,10 @@ int CommandExec::stop(const bool *bWait/*= NULL*/)
 			result= grepPS(m_tScriptPid);
 			for(vector<string>::iterator res= result.begin(); res != result.end(); ++res)
 			{
-				//cout << "search in result '" << *res << "' (" << res->length() << " chars)" << endl;
+				cout << "search in result '" << *res << "' (" << res->length() << " chars)" << endl;
 				for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
 				{
-					//cout << "      for '" << *it << "'" << endl;
+					cout << "      for '" << *it << "'" << endl;
 					if(res->find(*it) != string::npos)
 					{
 						bFound= true;
@@ -231,7 +235,7 @@ int CommandExec::stop(const bool *bWait/*= NULL*/)
 		{
 			for(vector<pid_t>::iterator it= vallPids.begin(); it != vallPids.end(); ++it)
 			{
-				//cout << "kill pid " << *it << endl;
+				cout << "kill pid " << *it << endl;
 				kill(*it, m_nStopSignal);
 			}
 		}
@@ -366,6 +370,7 @@ int CommandExec::execute()
 	{
 		sline= "ERROR by writing command on folder subroutine " + m_sCommand + " on command line\n";
 		sline+= "ERRNO: " + *strerror(errno);
+		cerr << sline << endl;
 		LOG(LOG_ERROR, sline);
 		return -1;
 	};
@@ -423,6 +428,7 @@ int CommandExec::execute()
 	{
 		int nRv;
 		istringstream oline(sLastErrorlevel);
+		ostringstream iline;
 
 		LOCK(m_RESULTMUTEX);
 		if(!m_qOutput.empty())
@@ -434,9 +440,11 @@ int CommandExec::execute()
 				m_qOutput.pop_back();
 			}
 		}
-		UNLOCK(m_RESULTMUTEX);
 		oline >> sline; // string of 'ERRORLEVEL' not needed
 		oline >> nRv;
+		iline << "PPI-DEF ERRORLEVEL " << nRv;
+		m_qOutput.push_back(iline.str());
+		UNLOCK(m_RESULTMUTEX);
 		if(bWait == false)
 		{
 			ostringstream setErrorlevel;
@@ -445,6 +453,7 @@ int CommandExec::execute()
 			setErrorlevel << nRv;
 			setValue(setErrorlevel.str());
 		}
+		stop(false);
 		if(nRv != 0)
 		{
 			ostringstream msg;
@@ -456,7 +465,7 @@ int CommandExec::execute()
 					msg << "    " << *it;
 			}else
 				msg << "    no output from script";
-			TIMELOG(LOG_ERROR, sLastErrorlevel, msg.str());
+			TIMELOG(LOG_INFO, sLastErrorlevel, msg.str());
 		}
 		if(	bWait ||
 			bDebug	)
