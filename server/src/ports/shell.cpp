@@ -318,8 +318,13 @@ int Shell::system(const string& action, string command)
 			bchangedVec= false;
 			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
 			{
-				if(!(*it)->running())
+				if((*it)->stopping())
 				{
+					if((*it)->running())
+					{// when thread should stopping,
+					 // waiting for finished
+						(*it)->stop(true);
+					}
 					m_vCommandThreads.erase(it);
 					bchangedVec= true;
 					break;
