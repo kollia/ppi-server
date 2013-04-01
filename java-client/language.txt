@@ -92,8 +92,8 @@ Kommando-Parameter @ ist falsch
 command parameter @ is incorrect
 
 PORTSERVERERROR004:
-es existiert kein folder mit dem Namen '@'
-folder '@' does not exist
+es existiert keine Arbeitsliste (folder) mit dem Namen '@'
+workinglist (folder) '@' does not exist
 
 PORTSERVERERROR005:
 Soubroutine '@' in Ordner @ existiert nicht
@@ -104,12 +104,8 @@ Falscher Eintrag für subroutine @
 unknow value to set in subroutine @
 
 PORTSERVERERROR011:
-Es existiert kein Benutzer mit dem Namen '@'
-user '@' do not exist
-
-PORTSERVERERROR012:
-Passwort für Benutzer '@' ist ungültig
-wrong password for user '@'
+Benutzername oder Passwort ist falsch
+wrong user name or password
 
 PORTSERVERERROR015:
 Benutzer '@' darf sich nicht als erster beim Server einloggen
