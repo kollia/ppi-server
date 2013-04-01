@@ -598,13 +598,9 @@ namespace server
 							sendmsg= INFOERROR(descriptor, error, input, msg);
 						}else
 						{
-							if(user->isUser(split[first]))
-								error= 12;
-							else
-								error= 11;
 							if(!descriptor.getBoolean("access"))
 								msg+= ", permission denied";
-							sendmsg= ERROR(descriptor, error, input, msg);
+							sendmsg= ERROR(descriptor, 11, input, msg);
 						}
 						sleep(2);
 						descriptor << sendmsg;
@@ -1292,10 +1288,10 @@ namespace server
 			str= "given ID from client do not exist";
 			break;
 		case 11:
-			str= "given user do not exist";
+			str= "wrong user or password";
 			break;
 		case 12:
-			str= "wrong password for given user";
+			str= "do not use error number 12 now";
 			break;
 		case 13:
 			str= "user has no permission";

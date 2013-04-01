@@ -707,10 +707,10 @@ namespace server
 			cerr << "given ID from client do not exist" << endl;
 			break;
 		case 11:
-			cerr << "given user do not exist" << endl;
+			cerr << "wrong user or password" << endl;
 			break;
 		case 12:
-			cerr << "wrong password for given user" << endl;
+			cerr << "do not use error number 12 now" << endl;
 			break;
 		case 13:
 			cerr << "user has no permission" << endl;
