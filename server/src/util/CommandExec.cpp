@@ -362,7 +362,7 @@ int CommandExec::execute()
 	command+= "ERRORLEVEL=$?;echo;echo ERRORLEVEL $ERRORLEVEL";
 	LOCK(m_WAITMUTEX);
 	m_tOwnPid= getpid();
-	m_nStopSignal= SIGKILL;
+	m_nStopSignal= SIGTERM;
 	m_tScriptPid= 0;
 	UNLOCK(m_WAITMUTEX);
 	fp= popen(command.c_str(), "r");
