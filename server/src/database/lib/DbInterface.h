@@ -71,6 +71,22 @@ namespace ppi_database
 		};
 
 		/**
+		 * method for starting ppi-server to define on which level
+		 * position the server is
+		 *
+		 * @param sProcess name of process current starting.<br />when server is started string should be &quote;finished&quote;
+		 * @param nPercent how much percent of process level be done
+		 */
+		virtual void setServerConfigureStatus(const string& sProcess, const short& nPercent);
+		/**
+		 * whether ppi-server is configured
+		 *
+		 * @param sProcess gives back name of process current starting
+		 * @param nPercent gives back percent of process level be done
+		 * @return whether server was started
+		 */
+		virtual bool isServerConfigured(string& sProcess, short& nPercent);
+		/**
 		 * Instantiate for DbProcess.<br/>
 		 * By cancel this DbInterface object, second parameter object will be also delete in parent class.
 		 *

@@ -59,6 +59,8 @@ namespace ppi_database
 
 		m_bError= false;
 		m_bDbStop= false;
+		m_nCondWait= -1;
+		m_sConfigureLevel= "NONE";
 		prop= "newdbafter";
 		newdbafter= (float)properties->getDouble(prop);
 		if(newdbafter == 0)
@@ -77,6 +79,7 @@ namespace ppi_database
 		if(m_nReadRows == 0)
 			m_nReadRows= 100;
 		m_sptEntrys= auto_ptr<vector<db_t> >(new vector<db_t>());
+		m_SERVERSTARTINGMUTEX= Thread::getMutex("SERVERSTARTINGMUTEX");
 		m_DBENTRYITEMSCOND= Thread::getCondition("DBENTRYITEMSCOND");
 		m_DBENTRYITEMS= Thread::getMutex("DBENTRYITEMS");
 		m_DBCURRENTENTRY= Thread::getMutex("DBCURRENTENTRY");
@@ -95,6 +98,43 @@ namespace ppi_database
 		m_nReadBlock= 0;
 	}
 
+	void Database::setServerConfigureStatus(const string& sProcess, const short& nPercent)
+	{
+		LOCK(m_SERVERSTARTINGMUTEX);
+		m_sConfigureLevel= sProcess;
+		m_nConfPercent= nPercent;
+		UNLOCK(m_SERVERSTARTINGMUTEX);
+	}
+
+	bool Database::isServerConfigured(string& sProcess, short& nPercent)
+	{
+		bool bRv(false);
+
+		LOCK(m_SERVERSTARTINGMUTEX);
+		if(m_sConfigureLevel == "NONE")
+		{
+			sProcess= "starting";
+			nPercent= -1;
+
+		}else if(	m_sConfigureLevel == "database" &&
+					m_nConfPercent == -1				)
+		{
+			sProcess= m_sConfigureLevel;
+			if(m_nDbLoaded != -1)
+				nPercent= static_cast<short>(100 / static_cast<float>(m_nDbSize) * m_nDbLoaded);
+			else
+				nPercent= -1;
+		}else
+		{
+			sProcess= m_sConfigureLevel;
+			nPercent= m_nConfPercent;
+			if(m_sConfigureLevel == "finished")
+				bRv= true;
+		}
+		UNLOCK(m_SERVERSTARTINGMUTEX);
+		return bRv;
+	}
+
 	bool Database::read()
 	{
 		typedef vector<pair<pair<pair<string, string>, double>, pair<pair<string, string>, double> > >::iterator readVector;
@@ -105,11 +145,16 @@ namespace ppi_database
 		tm l;
 		db_t entry;
 		bool bNew= false;
-		off_t size;
+		off_t size, loaded;
 		map<string, string> files;
 
 
 		m_sDbFile= getLastDbFile(m_sWorkDir, "entrys_", size);
+		LOCK(m_SERVERSTARTINGMUTEX);
+		m_nDbSize= size;
+		m_nDbLoaded= -1;
+		UNLOCK(m_SERVERSTARTINGMUTEX);
+		loaded= 0;
 		if(m_sDbFile == "")
 		{
 			m_sDbFile= "entrys_";
@@ -162,6 +207,11 @@ namespace ppi_database
 			while(!file.eof())
 			{
 				getline(file, line);
+				loaded= static_cast<off_t>(file.tellg());
+				LOCK(m_SERVERSTARTINGMUTEX);
+				if(loaded > 0)// when end of file reached or error occurred, loaded is -1
+					m_nDbLoaded= loaded;
+				UNLOCK(m_SERVERSTARTINGMUTEX);
 				entry= splitDbLine(line);
 #if 0
 				if(	(	entry.folder == "SONY_CMT_MINUS_CP100_KEY_CHANNELUP" ||
@@ -1820,6 +1870,7 @@ namespace ppi_database
 
 	Database::~Database()
 	{
+		DESTROYMUTEX(m_SERVERSTARTINGMUTEX);
 		DESTROYMUTEX(m_DBENTRYITEMS);
 		DESTROYMUTEX(m_DBCURRENTENTRY);
 		DESTROYMUTEX(m_DBMEASURECURVES);

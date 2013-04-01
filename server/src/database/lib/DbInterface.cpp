@@ -88,6 +88,67 @@ namespace ppi_database
 		_instance.clear();
 	}
 
+	void DbInterface::setServerConfigureStatus(const string& sProcess, const short& nPercent)
+	{
+		int err;
+		string sRv;
+		OMethodStringStream command("setServerConfigureStatus");
+
+		command << sProcess;
+		command << nPercent;
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}
+	}
+
+	bool DbInterface::isServerConfigured(string& sProcess, short& nPercent)
+	{
+		int err;
+		bool nRv(false);
+		string sRv;
+		OMethodStringStream command("isServerConfigured");
+
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}else
+		{
+			istringstream result(sRv);
+
+			result >> boolalpha >> nRv;
+			result >> sProcess;
+			result >> nPercent;
+		}
+		return nRv;
+	}
+
 	bool DbInterface::isDbLoaded()
 	{
 		int err;

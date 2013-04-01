@@ -86,6 +86,7 @@ namespace server
 		descriptor.setUShort("actualized", 0);
 		descriptor.setBoolean("readdebuginfo", false);
 		descriptor.setBoolean("nextconnection", true);
+		descriptor.setBoolean("finishedloading", false);
 		return true;
 	}
 
@@ -259,69 +260,96 @@ namespace server
 // *** checking whether hole ppi-server
 // *** is finished by loading all content
 // ***
-		LOCK(m_FINISHEDSERVERMUTEX);
-		if(	input.substr(0, 3) != "GET" &&
-			!m_bFinished					)
+		if(!descriptor.getBoolean("finishedloading"))
 		{
-			short res;
-			IUserManagementPattern* user;
-
-			user= UserManagement::instance();
-			res= user->finished();
-			if(	res == 0 &&
-				m_fProtocol <= 1.0	)
+			LOCK(m_FINISHEDSERVERMUTEX);
+			if(!m_bFinished)
 			{
-#ifdef SERVERDEBUG
-				cout << "server not finished by loading user-management" << endl;
-				cout << " waiting until finished" << endl;
-#endif // SERVERDEBUG
-				do{
-					usleep(500);
-					res= user->finished();
-				}while(res == 0);
-			}
-			if(res == 0)// server loading
-			{
-#ifdef SERVERDEBUG
-			cout << "server not finished by loading user-management" << endl;
-			//cout << "send: WARNING 001 - UserManagement isn't finished by loading" << endl;
-			cout << "ending connection" << endl;
-#endif // SERVERDEBUG
-				descriptor << "WARNING 001";
-				descriptor.endl();
-				descriptor.flush();
-				UNLOCK(m_FINISHEDSERVERMUTEX);
-				return false;
-			}else if(res == 1)// loding is finished
-			{
-				if(m_uid != 0)
+				if(input.substr(0, 3) == "GET")
 				{
-					if(setuid(m_uid) != 0)
-					{
-						string err;
+					short res, nPercent;
+					string sProcess;
+					IUserManagementPattern* user;
+					DbInterface* db;
 
-						err=   "### ERROR: cannot set process to default user\n";
-						err+=  "    ERRNO: " + *::strerror(errno);
-						err+= "\n          so internet server running as root";
-						LOG(LOG_ALERT, err);
-						cerr << err << endl;
+					user= UserManagement::instance();
+					res= user->finished();
+					if(	res == 0 &&
+						m_fProtocol <= 1.0	)
+					{
+#ifdef SERVERDEBUG
+						cout << "server not finished by loading user-management" << endl;
+						cout << " waiting until finished" << endl;
+#endif // SERVERDEBUG
+						do{
+							usleep(500);
+							res= user->finished();
+						}while(res == 0);
+					}
+					if(res == 0)// server loading
+					{
+#ifdef SERVERDEBUG
+					cout << "server not finished by loading user-management" << endl;
+					cout << "ending connection" << endl;
+					cout << "send: WARNING 001 starting -1" << endl;
+#endif // SERVERDEBUG
+					cout << "server starting, ending connection with 'WARNING 001 starting -1'" << endl;
+						descriptor << "WARNING 001 starting -1";
+						descriptor.endl();
+						descriptor.flush();
+						UNLOCK(m_FINISHEDSERVERMUTEX);
+						return false;
+					}else if(res == 1)// loding is finished
+					{
+						if(m_uid != 0)
+						{
+							if(setuid(m_uid) != 0)
+							{
+								string err;
+
+								err=   "### ERROR: cannot set process to default user\n";
+								err+=  "    ERRNO: " + *::strerror(errno);
+								err+= "\n          so internet server running as root";
+								LOG(LOG_ALERT, err);
+								cerr << err << endl;
+							}
+						}
+					}else
+					{// error occurred by loading UserManagement
+						descriptor << "ERROR 020";
+						descriptor.endl();
+						descriptor.flush();
+#ifdef SERVERDEBUG
+						cout << "send: ERROR 020 - ";
+						cout << "Usermanagement cannot be loading correctly" << endl;
+#endif
+						UNLOCK(m_FINISHEDSERVERMUTEX);
+						return false;
+					}
+					if(input != "GET wait")
+					{
+						db= DbInterface::instance();
+						if(!db->isServerConfigured(sProcess, nPercent))
+						{
+							ostringstream output;
+
+							output << "WARNING 001 " << sProcess << " " << nPercent;
+	#ifdef SERVERDEBUG
+							cout << "server not finished by starting, running " << sProcess << " by " << sPercent << "%" << endl;
+							cout << "ending connection, send: " << output.str() << endl;
+	#endif // SERVERDEBUG
+							descriptor << output.str();
+							UNLOCK(m_FINISHEDSERVERMUTEX);
+							return false;
+						}
+						m_bFinished= true;
+						descriptor.setBoolean("finishedloading", true);
 					}
 				}
-				m_bFinished= true;
 			}else
-			{// error occurred by loading UserManagement
-				descriptor << "ERROR 020";
-				descriptor.endl();
-				descriptor.flush();
-#ifdef SERVERDEBUG
-				cout << "send: ERROR 020 - ";
-				cout << "Usermanagement cannot be loading correctly" << endl;
-#endif
-				UNLOCK(m_FINISHEDSERVERMUTEX);
-				return false;
-			}
+				descriptor.setBoolean("finishedloading", true);
+			UNLOCK(m_FINISHEDSERVERMUTEX);
 		}
-		UNLOCK(m_FINISHEDSERVERMUTEX);
 // *** end of checking
 // *************************************************************************************************
 
@@ -721,7 +749,6 @@ namespace server
 			}else if(	input.substr(0, 5) == "DEBUG" ||
 						input.substr(0, 9) == "STOPDEBUG"	)
 			{
-				bool bWait= false;
 				bool bDebug= true;
 				//unsigned int nFolderPos;
 				string sCommand, sFolderSub, sFolder, sSubroutine;
@@ -807,7 +834,6 @@ namespace server
 							descriptor << INFOERROR(descriptor, 5, input, "");
 					}
 				}
-				bWait= false;
 
 			}else if(input.substr(0, 3) == "DIR")
 			{

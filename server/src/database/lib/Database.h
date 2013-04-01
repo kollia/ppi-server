@@ -52,6 +52,22 @@ namespace ppi_database
 		 */
 		Database(IPropertyPattern* properties, IChipConfigReaderPattern* chipreader);
 		/**
+		 * method for starting ppi-server to define on which level
+		 * position the server is
+		 *
+		 * @param sProcess name of process current starting.<br />when server is started string should be &quote;finished&quote;
+		 * @param nPercent how much percent of process level be done
+		 */
+		virtual void setServerConfigureStatus(const string& sProcess, const short& nPercent);
+		/**
+		 * whether ppi-server is configured
+		 *
+		 * @param sProcess gives back name of process current starting
+		 * @param nPercent gives back percent of process level be done
+		 * @return whether server was started
+		 */
+		virtual bool isServerConfigured(string& sProcess, short& nPercent);
+		/**
 		 * read database on hard disk
 		 *
 		 * @return whether can read or create database
@@ -239,6 +255,16 @@ namespace ppi_database
 
 	private:
 		/**
+		 * variable for starting ppi-server
+		 * define on which level position the server is.<br />
+		 * when hole server was configured variable is set to &quote;finished&quote;
+		 */
+		string m_sConfigureLevel;
+		/**
+		 * define how much percent of configure level be done
+		 */
+		short m_nConfPercent;
+		/**
 		 * reference to DefaultConfigReader
 		 */
 		IChipConfigReaderPattern* m_pChipReader;
@@ -250,6 +276,18 @@ namespace ppi_database
 		 * name of current database file
 		 */
 		string m_sDbFile;
+		/**
+		 * size of database file
+		 */
+		off_t m_nDbSize;
+		/**
+		 * loaded size of database file
+		 */
+		off_t m_nDbLoaded;
+		/**
+		 * mutex for server starting
+		 */
+		pthread_mutex_t* m_SERVERSTARTINGMUTEX;
 		/**
 		 * condition for new items filled in
 		 */

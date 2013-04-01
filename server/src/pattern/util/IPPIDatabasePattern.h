@@ -89,6 +89,22 @@ namespace design_pattern_world
 	{
 	public:
 		/**
+		 * method for starting ppi-server to define on which level
+		 * position the server is
+		 *
+		 * @param sProcess name of process current starting.<br />when server is started string should be &quote;finished&quote;
+		 * @param nPercent how much percent of process level be done
+		 */
+		virtual void setServerConfigureStatus(const string& sProcess, const short& nPercent)= 0;
+		/**
+		 * whether ppi-server is configured
+		 *
+		 * @param sProcess gives back name of process current starting
+		 * @param nPercent gives back percent of process level be done
+		 * @return whether server was started
+		 */
+		virtual bool isServerConfigured(string& sProcess, short& nPercent)= 0;
+		/**
 		 * read database
 		 *
 		 * @return whether can read or create database

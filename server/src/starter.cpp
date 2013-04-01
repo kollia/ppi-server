@@ -385,12 +385,61 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	LOG(LOG_INFO, "Read configuration files from " + m_sConfPath);
 
+	// ------------------------------------------------------------------------------------------------------------
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// start internet server
+	string host;
+	unsigned short port;
+
+	host= m_oServerFileCasher.getValue("listen", /*warning*/false);
+	property= "port";
+	port= m_oServerFileCasher.needUShort(property);
+	if(	port == 0
+		&&
+		property == "#ERROR"	)
+	{
+		exit(EXIT_FAILURE);
+	}
+
+	cout << endl;
+	cout << "### start ppi internet server" << endl;
+	process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", "ppi-internet-server",
+															new SocketClientConnection(	SOCK_STREAM,
+																						host,
+																						port,
+																						10			)	));
+	process->openendSendConnection("GET wait", "ending");
+
+	if(bInternet)
+		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-internet-server").c_str(), NULL);
+	else
+		err= process->check();
+	if(err > 0)
+	{
+		string msg;
+
+		//cout << "ERROR(" << err << ")" << endl;
+		msg=  "### WARNING: cannot start internet server for communication\n";
+		msg+= "             " + process->strerror(err) + "\n";
+		msg+= "             so no communication from outside (any client) is available";
+		cerr << msg << endl;
+		LOG(LOG_ERROR, msg);
+	}
+
+	// ------------------------------------------------------------------------------------------------------------
+
+
+	db= DbInterface::instance();
+	db->setServerConfigureStatus("owreader", 0);
+
 	/***********************************************************************************\
 	 *
 	 * define one wire server
 	 *
 	 */
 	int nServerID= 1;
+	short nServerStart(0);
 	string owreader("OwServerQuestion-");
 
 	/***************************************************
@@ -437,6 +486,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 									nServerID									);
 			++nServerID;
 		}
+		++nServerStart;
+		db->setServerConfigureStatus("owreader", 100 / nOWReader * nServerStart);
 	}
 
 	/***************************************************
@@ -492,6 +543,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 										nServerID									);
 				++nServerID;
 			}
+			++nServerStart;
+			db->setServerConfigureStatus("owreader", 100 / nOWReader * nServerStart);
 		}
 
 		// starting OWServer to measure on ports
@@ -541,6 +594,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 										nServerID									);
 				++nServerID;
 			}
+			++nServerStart;
+			db->setServerConfigureStatus("owreader", 100 / nOWReader * nServerStart);
 		}
 
 	}
@@ -588,6 +643,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 									nServerID									);
 			++nServerID;
 		}
+		++nServerStart;
+		db->setServerConfigureStatus("owreader", 100 / nOWReader * nServerStart);
 	}
 
 #ifdef _EXTERNVENDORLIBRARYS
@@ -668,6 +725,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 												nServerID									);
 						++nServerID;
 					}
+					++nServerStart;
+					db->setServerConfigureStatus("owreader", 100 / nOWReader * nServerStart);
 				}
 			}
 			if(bError)
@@ -753,17 +812,31 @@ bool Starter::execute(const IOptionStructPattern* commands)
 										nServerID									);
 				++nServerID;
 			}
+			++nServerStart;     // define nOWReader as float, otherwise percent calculation can be fault
+			db->setServerConfigureStatus("owreader", 100 / static_cast<float>(nOWReader) * nServerStart);
 			cout << endl;
 		}
 	}
 #endif //_OWFSLIBRARY
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// check whether database loading is finished
+	// set process id to default user
+	if(setuid(m_tDefaultUser) != 0)
+	{
+		string err;
+
+		err= "main application ppi-server has no privileges to get other userid!\n";
+		err= "ERRNO: " + string(strerror(errno)) + "\n";
+		err+= "       so hole application running as root!!";
+		LOG(LOG_ALERT, err);
+		cerr << err << endl;
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// check whether owreader processes configured
 	string aktReader, res;
 	bool fault= false;
 
-	db= DbInterface::instance();
 	res= db->allOwreadersInitialed();
 	if(res != "done")
 	{
@@ -801,9 +874,14 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			cout << " OK";
 		cout << endl << endl;
 	}
+	db->setServerConfigureStatus("owreader", 100);
 
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// check whether database loading is finished
 	if(!db->isDbLoaded())
 	{
+		db->setServerConfigureStatus("database", -1);
+		cout << endl;
 		cout << "### database is busy" << endl;
 		cout << "    wait for initialing " << flush;
 		while(!db->isDbLoaded())
@@ -812,6 +890,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			cout << "." << flush;
 		}
 		cout << " OK" << endl << endl;
+		db->setServerConfigureStatus("database", 100);
 	}
 	// ------------------------------------------------------------------------------------------------------------
 
@@ -827,6 +906,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	bool createThread= false;
 	bool bStarting(commands->hasOption("folderstart"));
+	short nFolderCount(0);
+	float nFolders(0); // define nFolders as float, otherwise percent calculation can be fault
 	MeasureArgArray args;
 	SHAREDPTR::shared_ptr<meash_t> pFirstMeasureThreads;
 	SHAREDPTR::shared_ptr<meash_t> pCurrentMeasure;
@@ -885,6 +966,13 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	aktFolder= m_tFolderStart;
 	while(aktFolder != NULL)
 	{
+		nFolders= nFolders + 1;
+		aktFolder= aktFolder->next;
+	}
+	db->setServerConfigureStatus("folder_start", 0);
+	aktFolder= m_tFolderStart;
+	while(aktFolder != NULL)
+	{
 		if(!aktFolder->bCorrect)
 		{
 			string msg("### WARNING: folder '");
@@ -929,6 +1017,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			pCurrentMeasure->pMeasure->start(&args);
 		}
 		aktFolder= aktFolder->next;
+		db->setServerConfigureStatus("folder_start", 100 / nFolders * ++nFolderCount);
 	}
 	if(bStarting)
 		cout << endl;
@@ -942,68 +1031,14 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		cout << "    does not start server" << endl;
 		exit(EXIT_FAILURE);
 	}
-
-	string host;
-	unsigned short port;
-
-	host= m_oServerFileCasher.getValue("listen", /*warning*/false);
-	property= "port";
-	port= m_oServerFileCasher.needUShort(property);
-	if(	port == 0
-		&&
-		property == "#ERROR"	)
-	{
-		exit(EXIT_FAILURE);
-	}
+	db->setServerConfigureStatus("folder_start", 100);
 
 	// after creating all threads and objects
 	// all chips should be defined in DefaultChipConfigReader
 	db->chipsDefined(true);
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// start internet server
 
-	cout << "### start ppi internet server" << endl;
-	process= auto_ptr<ProcessStarter>(new ProcessStarter(	"ppi-starter", "ppi-internet-server",
-															new SocketClientConnection(	SOCK_STREAM,
-																						host,
-																						port,
-																						10			)	));
-	process->openendSendConnection("GET wait", "ending");
-
-	if(bInternet)
-		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-internet-server").c_str(), NULL);
-	else
-		err= process->check();
-	if(err > 0)
-	{
-		string msg;
-
-		//cout << "ERROR(" << err << ")" << endl;
-		msg=  "### WARNING: cannot start internet server for communication\n";
-		msg+= "             " + process->strerror(err) + "\n";
-		msg+= "             so no communication from outside (any client) is available";
-		cerr << msg << endl;
-		LOG(LOG_ERROR, msg);
-	}
-
-	logprocess= auto_ptr<ProcessStarter>();
-	process= auto_ptr<ProcessStarter>();
-	// ------------------------------------------------------------------------------------------------------------
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// set process id to default user
-
-	if(setuid(m_tDefaultUser) != 0)
-	{
-		string err;
-
-		err= "main application ppi-server has no privileges to get other userid!\n";
-		err= "ERRNO: " + string(strerror(errno)) + "\n";
-		err+= "       so hole application running as root!!";
-		LOG(LOG_ALERT, err);
-		cerr << err << endl;
-	}
-	// ------------------------------------------------------------------------------------------------------------
+	//logprocess= auto_ptr<ProcessStarter>();
+	//process= auto_ptr<ProcessStarter>();
 
 	// start ProcessChecker
 	ProcessChecker checker(	new SocketClientConnection(	SOCK_STREAM,
@@ -1040,6 +1075,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	stimemsg= timemsg.str();
 	cout << stimemsg << " ..." << endl;
 	LOG(LOG_INFO, stimemsg);
+	db->setServerConfigureStatus("finished", -1);
 	// ------------------------------------------------------------------------------------------------------------
 	checker.start(pFirstMeasureThreads.get(), true);
 
@@ -1195,7 +1231,6 @@ void Starter::createFolderLists(set<string>& shellstarter)
 				cout << msg.str() << endl;
 				LOG(LOG_WARNING, msg.str());
 			}
-
 		}
 		aktualFolder= aktualFolder->next;
 	}
@@ -1204,12 +1239,21 @@ void Starter::createFolderLists(set<string>& shellstarter)
 void Starter::configurePortObjects(bool bShowConf)
 {
 	bool bNewMeasure(false);
+	short nCount(0);
+	float nSubroutines(0);  // define nSubroutines as float, otherwise percent calculation can be fault
 	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
-	//DbInterface* db= DbInterface::instance();
+	DbInterface* db= DbInterface::instance();
 	string property("defaultSleep");
 	string sMeasureFile;
 	unsigned short nDefaultSleep= m_oServerFileCasher.getUShort(property, /*warning*/false);
 
+	db->setServerConfigureStatus("folder_conf", 0);
+	while(aktualFolder != NULL)
+	{
+		nSubroutines+= aktualFolder->subroutines.size();
+		aktualFolder= aktualFolder->next;
+	}
+	aktualFolder= m_tFolderStart;
 	if(property == "#ERROR")
 		nDefaultSleep= 2;
 	sMeasureFile= URL::addPath(m_sConfPath, "measure.conf");
@@ -1243,7 +1287,8 @@ void Starter::configurePortObjects(bool bShowConf)
 			pobj= dynamic_cast<portBase*>(obj.get());
 			if(pobj)
 			{
-				//tout << pobj->getFolderName() << ":" << pobj->getSubroutineName() << endl;
+				//if(bShowConf)
+				//	tout << pobj->getFolderName() << ":" << pobj->getSubroutineName() << endl;
 				if(pobj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
 				{
 					aktualFolder->subroutines[n].bCorrect= true;
@@ -1338,6 +1383,7 @@ void Starter::configurePortObjects(bool bShowConf)
 				if(!aktualFolder->subroutines[n].bCorrect)
 					tout << "             SUBROUTINE do not running inside folder" << endl << endl;
 			}
+			db->setServerConfigureStatus("folder_conf", 100 / nSubroutines * ++nCount);
 		}
 		aktualFolder->bCorrect= correctFolder;
 		aktualFolder= aktualFolder->next;
@@ -1345,6 +1391,7 @@ void Starter::configurePortObjects(bool bShowConf)
 	TERMINALEND;
 	if(bShowConf)
 		cout << endl << endl;
+	db->setServerConfigureStatus("folder_conf", 100);
 }
 
 Starter::~Starter()

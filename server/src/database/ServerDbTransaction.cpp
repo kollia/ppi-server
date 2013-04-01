@@ -420,7 +420,6 @@ namespace server
 
 		}else if(method == "getStatusInfo")
 		{
-			static bool error= false;
 			static unsigned short nOWReader= 1;
 			static unsigned short nMaxOWReader;
 			static unsigned short step= 0;
@@ -483,7 +482,6 @@ namespace server
 				*piOWReader >> nMaxOWReader;
 				delete piOWReader;
 				++step;
-				error= false;
 			case 4:// get status info from all one wire reader
 				while(nOWReader <= nMaxOWReader)
 				{
@@ -766,6 +764,30 @@ namespace server
 					existClients= 0;
 				}
 			}
+
+		}else if(method == "isServerConfigured")
+		{
+			bool bConf;
+			short nPercent;
+			string sProcess;
+			ostringstream result;
+
+			db= DatabaseThread::instance()->getDatabaseObj();
+			bConf= db->isServerConfigured(sProcess, nPercent);
+			result << boolalpha << bConf << " ";
+			result << sProcess << " " << nPercent;
+			descriptor << result.str();
+
+		}else if(method == "setServerConfigureStatus")
+		{
+			short nPercent;
+			string sProcess;
+
+			db= DatabaseThread::instance()->getDatabaseObj();
+			object >> sProcess;
+			object >> nPercent;
+			db->setServerConfigureStatus(sProcess, nPercent);
+			descriptor << "done";
 
 		}else if(method == "stop-all")
 		{
