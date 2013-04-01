@@ -837,9 +837,11 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	string aktReader, res;
 	bool fault= false;
 
+	db->setServerConfigureStatus("owreader", 100);
 	res= db->allOwreadersInitialed();
 	if(res != "done")
 	{
+		db->setServerConfigureStatus("owreader_wait", -1);
 		aktReader= res;
 		cout << "### some owreader instances are bussy by initialing:" << endl;
 		cout << "    " << res << " ." << flush;
@@ -874,7 +876,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			cout << " OK";
 		cout << endl << endl;
 	}
-	db->setServerConfigureStatus("owreader", 100);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// check whether database loading is finished
