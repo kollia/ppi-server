@@ -55,6 +55,30 @@ dialogLoadContent:
 lade inhalt aller Seiten
 load content of sides
 
+PORTSERVERBUSY_starting:
+Server wird gestartet
+Server will be starting
+
+PORTSERVERBUSY_owreader:
+Server ist im Starte-Modus: startet externe Schnittstellen
+Server is busy: starting external interfaces
+
+PORTSERVERBUSY_owreader_wait:
+Server ist im Starte-Modus: wartet auf configuration aller Schnittstellen
+Server is busy: waiting for configuration of all interfaces
+
+PORTSERVERBUSY_database:
+Server ist im Starte-Modus: ladet Datenbank
+Server is busy: loading database
+
+PORTSERVERBUSY_folder_conf:
+Server ist im Starte-Modus: configuriert alle Abarbeitungs-Listen
+Server is busy: configure all working list's
+
+PORTSERVERBUSY_folder_start:
+Server ist im Starte-Modus: startet alle Abarbeitungs-Listen
+Server is busy: starting all working list's
+
 PORTSERVERERROR001:
 Client hat die Transaktion falsch begonnen
 client beginning fault transaction

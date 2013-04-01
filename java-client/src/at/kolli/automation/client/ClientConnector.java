@@ -108,6 +108,17 @@ import org.apache.regexp.RE;
 public class ClientConnector 
 {
 	/**
+	 * by starting ppi server this variable
+	 * shows which process be starting
+	 */
+	private volatile String m_sProcessStart;
+	/**
+	 * by starting ppi server this variable
+	 * shows how much percent is starting from process,
+	 * or -1 by undefined
+	 */
+	private volatile Integer m_nPercentStart;
+	/**
 	 * host where the ppi-server running
 	 */
 	protected String m_sHost;
@@ -191,6 +202,29 @@ public class ClientConnector
 		if(_instance == null)
 			_instance= new ClientConnector(host, port);
 		return _instance;
+	}
+
+	/**
+	 * by starting ppi server this variable
+	 * shows which process be starting
+	 * 
+	 * @return name of process which starting, elsewhere an null string
+	 */
+	public String getServerStartingProcess()
+	{
+		return m_sProcessStart;
+	}
+	
+	/**
+	 * by starting ppi server this variable
+	 * shows how much percent is starting from process,
+	 * or -1 by undefined
+	 * 
+	 * @return percent of starting process name
+	 */
+	public Integer getServerStartingPercent()
+	{
+		return m_nPercentStart;
 	}
 	
 	/**
@@ -276,6 +310,22 @@ public class ClientConnector
 					{
 						// ???
 					}
+					if(res.substring(0, 11).equals("WARNING 001"))
+					{
+						String[] split;						
+						
+						split= res.substring(12).split(" ");
+						if(split.length < 2)
+						{
+							m_sProcessStart= "starting";
+							m_nPercentStart= -1;
+						}else
+						{// is server busy
+							m_sProcessStart= split[0];
+							m_nPercentStart= Integer.valueOf(split[1]);
+						}
+						throw new IOException("PORTSERVERBUSY " + res.substring(12));
+					}
 					throw new IOException("UNDEFINEDSERVER");
 				}
 			}
@@ -301,10 +351,12 @@ public class ClientConnector
 		{
 			String error;
 			
-			if(ex.getMessage().equals("UNDEFINEDSERVER"))
-				error= ex.getMessage();
-			else
+			error= ex.getMessage();
+			if(	!ex.getMessage().equals("UNDEFINEDSERVER") &&
+				!ex.getMessage().substring(0, 14).equals("PORTSERVERBUSY")	)
+			{
 				error= "READERIOEXCEPTION";
+			}
 			try{
 				m_oSock.close();
 			}catch(IOException iex)

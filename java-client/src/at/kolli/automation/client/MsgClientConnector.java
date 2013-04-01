@@ -162,12 +162,16 @@ public class MsgClientConnector extends ClientConnector
 	 */
 	public synchronized void openNewConnection(String user, String password) throws IOException
 	{
+		boolean bReadPercent;
 		boolean bExcept= false;
 		int nMax= 0;
 		int nSelected;
 		String sRv= "NONE";
+		String sOldStartingLevel= "", sOldErrorCode= "";
+		Integer nOldStartPercent= 100;
 		DialogThread dialog;
 
+		bReadPercent= true;
 		if(	m_sRegUser != null &&
 			!m_sRegUser.equals("")	)
 		{
@@ -188,6 +192,8 @@ public class MsgClientConnector extends ClientConnector
 				sRv= "NONE";
 				sRv= super.openConnection(m_sCurUser, m_sCurPassword);
 				sRv= generateServerError(sRv);
+				if(sOldErrorCode.substring(0, 14).equals("PORTSERVERBUSY"))
+					dialog.setSelection(100);
 				if(sRv == null)
 				{
 					m_sRegUser= m_sCurUser;
@@ -198,10 +204,78 @@ public class MsgClientConnector extends ClientConnector
 			}catch(IOException ex)
 			{
 				long aktSec;
+				String errMsg;
 				
 				bExcept= true;
-				generateServerError(ex.getMessage());		
-				dialog.show(m_oTrans.translate("dialogConnectionTitle"), m_sErrorMsg);
+				errMsg= ex.getMessage();
+				generateServerError(errMsg);
+				if(!errMsg.substring(0, 14).equals("PORTSERVERBUSY"))
+				{
+					sOldErrorCode= m_sErrorCode;
+					dialog.show(m_oTrans.translate("dialogConnectionTitle"), m_sErrorMsg);
+					aktSec= System.currentTimeMillis();
+					do{	
+						if(nSelected < nMax)
+							++nSelected;
+						else
+							nSelected= 0;
+						dialog.setSelection(nSelected);
+						if(HtmTags.debug)
+							System.out.println("Wait for connection per " + nSelected + " %");
+						try{
+							Thread.sleep(100);
+							
+						}catch(InterruptedException interupt)
+						{
+							System.out.println("cannont sleep thread on file MsgClientConnector.java line 226");
+							break;
+						}
+					}while((aktSec + 3000) > System.currentTimeMillis());
+					
+				}else
+				{
+					Integer nPercent;
+					
+					nPercent= getServerStartingPercent();
+					if(	!sOldErrorCode.equals(m_sErrorCode) &&
+						nOldStartPercent != 100				)
+					{
+						generateServerError(sOldStartingLevel);
+						nPercent= 100;
+					}
+					sOldStartingLevel= errMsg;
+					sOldErrorCode= m_sErrorCode;
+					nOldStartPercent= nPercent;
+					dialog.show(m_oTrans.translate("dialogConnectionTitle"), m_sErrorMsg);
+					if(nPercent == -1)
+					{
+						if(bReadPercent)
+						{
+							nSelected= 0;
+							bReadPercent= false;
+						}
+						if(nSelected < nMax)
+							++nSelected;
+						else
+							nSelected= 0;
+						dialog.setSelection(nSelected);
+					}else
+					{
+						bReadPercent= true;
+						if(nPercent < 0)
+							nPercent= 0;
+						else if(nPercent > 100)
+							nPercent= 100;
+						dialog.setSelection(nPercent);
+					}
+					try{
+						Thread.sleep(100);
+						
+					}catch(InterruptedException interupt)
+					{
+						System.out.println("cannont sleep thread on file MsgClientConnector.java line 239");
+					}
+				}
 				if(HtmTags.debug)
 				{
 					System.out.println(m_sErrorMsg);
@@ -209,23 +283,6 @@ public class MsgClientConnector extends ClientConnector
 					System.out.println(" -> found no Server on given port");
 					System.out.println();
 				}
-				aktSec= System.currentTimeMillis();
-				do{	
-					if(nSelected < nMax)
-						++nSelected;
-					else
-						nSelected= 0;
-					dialog.setSelection(nSelected);
-					if(HtmTags.debug)
-						System.out.println("Wait for connection per " + nSelected + " %");
-					try{
-						Thread.sleep(100);
-						
-					}catch(InterruptedException interupt)
-					{
-						break;
-					}
-				}while((aktSec + 3000) > System.currentTimeMillis());
 			}
 		}while(	bExcept &&
 				dialog.isOpen()	);
@@ -299,13 +356,39 @@ public class MsgClientConnector extends ClientConnector
 			return null;
 		if(!error.match(res))
 		{
-			m_sErrorCode= res;
-			if(	m_sErrorCode.equals("UNKNOWNHOSTEXCEPTION") ||
-				m_sErrorCode.equals("UNDEFINEDSERVER")			)
+			if(res.substring(0, 14).equals("PORTSERVERBUSY"))
 			{
-				m_sErrorMsg= m_oTrans.translate(m_sErrorCode, m_sHost, Long.toString(m_nPort));
-			}else
+				Integer nPercent;
+				String sProcess;
+				String[] split;
+
+				split= res.substring(15).split(" ");
+				if(split.length < 2)
+				{
+					sProcess= "starting";
+					nPercent= -1;
+				}else
+				{
+					sProcess= split[0];
+					try{
+						nPercent= Integer.valueOf(split[1]);
+					}catch(Exception ex)
+					{
+						nPercent= -1;
+					}
+				}
+				m_sErrorCode= "PORTSERVERBUSY_" + sProcess;
 				m_sErrorMsg= m_oTrans.translate(m_sErrorCode);
+			}else
+			{
+				m_sErrorCode= res;
+				if(	m_sErrorCode.equals("UNKNOWNHOSTEXCEPTION") ||
+					m_sErrorCode.equals("UNDEFINEDSERVER")			)
+				{
+					m_sErrorMsg= m_oTrans.translate(m_sErrorCode, m_sHost, Long.toString(m_nPort));
+				}else
+					m_sErrorMsg= m_oTrans.translate(m_sErrorCode);
+			}
 			return m_sErrorCode;
 		}
 		number= error.getParen(1);
