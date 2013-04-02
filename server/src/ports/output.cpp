@@ -28,12 +28,16 @@
 #include "output.h"
 
 Output::Output(string folderName, string subroutineName)
-: switchClass("DEBUG", folderName, subroutineName)
+: switchClass("DEBUG", folderName, subroutineName),
+  m_nLogLevel(-1),
+  m_bCL(true)
 {
 }
 
 Output::Output(string type, string folderName, string subroutineName)
-: switchClass(type, folderName, subroutineName)
+: switchClass(type, folderName, subroutineName),
+  m_nLogLevel(-1),
+  m_bCL(true)
 {
 }
 
@@ -43,9 +47,26 @@ bool Output::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_pt
 	string svalue;
 	string folder(getFolderName());
 	string subroutine(getSubroutineName());
+	string sLogLevel;
 	vector<string>::size_type ncount;
 	ListCalculator* calc;
 
+	properties->haveAction("print");// ask only because when no log property set but action 'print'
+	sLogLevel= properties->getValue("log");         // should gives no warning output
+	if(sLogLevel != "")
+	{
+		m_bCL= properties->haveAction("print");
+		if(sLogLevel =="DEBUG")
+			m_nLogLevel= LOG_DEBUG;
+		else if(sLogLevel =="INFO")
+			m_nLogLevel= LOG_INFO;
+		else if(sLogLevel =="WARNING")
+			m_nLogLevel= LOG_WARNING;
+		else if(sLogLevel =="ERROR")
+			m_nLogLevel= LOG_ERROR;
+		else if(sLogLevel =="ALERT")
+			m_nLogLevel= LOG_ALERT;
+	}
 	ncount= properties->getPropertyCount("string");
 	if(ncount > 0)
 		bSet= true;
@@ -130,7 +151,10 @@ double Output::measure(const double actValue)
 			}else
 				out << "(## wrong value ##) ";
 		}
-		tout << out.str() << endl;
+		if(m_bCL)
+			tout << out.str() << endl;
+		if(m_nLogLevel > -1)
+			LOG(m_nLogLevel, out.str());
 		return 1;
 	}
 	return 0;

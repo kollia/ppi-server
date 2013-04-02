@@ -90,6 +90,14 @@ protected:
 
 	private:
 		/**
+		 * log level when output string defined for logging
+		 */
+		int m_nLogLevel;
+		/**
+		 * whether output string should displayed on command line
+		 */
+		bool m_bCL;
+		/**
 		 * text for output before value
 		 */
 		vector<string> m_vsStrings;
