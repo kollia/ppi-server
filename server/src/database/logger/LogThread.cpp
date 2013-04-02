@@ -310,7 +310,8 @@ int LogThread::execute()
 				}
 				if(bWrite)
 				{
-					char datetime[30];
+					//char datetime[30];
+					ostringstream datetime;
 					tm tmnow;
 
 					bAnyW= true;
@@ -365,16 +366,17 @@ int LogThread::execute()
 							break;
 					}
 					sThreadName= getThreadName((*pvLogVector)[n].thread);
+					tmnow.tm_isdst= -1;
 					if(localtime_r(&(*pvLogVector)[n].tmnow, &tmnow) != NULL)
 					{
-						sprintf(datetime, "  %02d.%02d.%2d %02d:%02d:%02d", 	tmnow.tm_mday, tmnow.tm_mon,
-																				tmnow.tm_year, tmnow.tm_hour,
-																				tmnow.tm_min, tmnow.tm_sec	);
+						datetime << tmnow.tm_mday << "." << (tmnow.tm_mon + 1) << "." << (tmnow.tm_year + 1900) << " ";
+						datetime << tmnow.tm_hour << ":" << tmnow.tm_min << ":" << tmnow.tm_sec;
 					}else
-						strcpy(datetime, "no correct time creation");
+						datetime << "(no correct time creation)";
+
 					logfile << " level for thread " << sThreadName << " ID:" << dec << (*pvLogVector)[n].tid;
 					logfile << " on process ID:" << dec << (*pvLogVector)[n].pid;
-					logfile << datetime << endl;
+					logfile << "  " << datetime.str() << endl;
 					logfile << "*  file:" << (*pvLogVector)[n].file;
 					logfile << " line:" << (*pvLogVector)[n].line << endl << endl;
 					logfile << (*pvLogVector)[n].message << endl << endl << endl;

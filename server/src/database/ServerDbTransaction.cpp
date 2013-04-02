@@ -692,6 +692,7 @@ namespace server
 			object >> log.tid;
 			object >> log.thread;
 			object >> log.identif;
+			object >> log.tmnow;
 			m_pLogObject->log(log);
 			descriptor << "done";
 

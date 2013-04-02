@@ -169,6 +169,7 @@ namespace logger
 		log.thread= pthread_self();
 		log.pid= getpid();
 		log.tid= Thread::gettid();
+		time(&log.tmnow);
 		if(!openedConnection())
 		{
 			LOCK(m_WRITELOOP);
@@ -236,6 +237,7 @@ namespace logger
 		command << log.tid;
 		command << log.thread;
 		command << log.identif;
+		command << log.tmnow;
 		sendMethod(/*LogServer*/m_sToProcess, command, false);
 	}
 }
