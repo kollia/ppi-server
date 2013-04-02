@@ -599,7 +599,7 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 			else if(command =="ERROR")
 				m_nLogLevel= LOG_ERROR;
 			else if(command =="ALERT")
-				m_nLogLevel= LOG_ERROR;
+				m_nLogLevel= LOG_ALERT;
 			else if(command == "end")
 			{
 				m_qLog.pop_back();// delete command string: PPI-DEF log end
@@ -650,35 +650,6 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 
 			}
 
-
-/*		}else if(command == "ERRORLEVEL")
-		{
-			int nRv;
-			ostringstream setErrorlevel;
-
-			command= "";
-			if(bWait == false)
-			{
-				if(!bDebug)
-				{
-					LOCK(m_RESULTMUTEX);
-					m_qOutput.push_back(sline);
-					if(m_qOutput.size() > 1000)
-						m_qOutput.pop_front();
-					UNLOCK(m_RESULTMUTEX);
-				}
-				oline >> nRv;
-				setErrorlevel << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
-				setErrorlevel << nRv;
-				if(!setValue(setErrorlevel.str()))
-				{
-					command= "  ### ERROR: cannot write correctly PPI-SET command for result of subroutine";
-					TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+setErrorlevel.str(), "for SHELL subroutine "
-									+ m_sFolder + ":" + m_sSubroutine
-									+ "\nby command: " + command + "\nresult string '" + setErrorlevel.str()
-									+ "'\n               ### ERROR: cannot write correctly PPI-SET command for result of subroutine" );
-				}
-			}*/
 		}else
 		{
 			command= " ### WARNING: cannot recognize PPI-DEF line as any correct definition";
