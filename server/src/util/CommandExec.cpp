@@ -179,7 +179,7 @@ int CommandExec::stop(const bool *bWait/*= NULL*/)
 			result= grepPS(m_tScriptPid);
 			for(vector<string>::iterator res= result.begin(); res != result.end(); ++res)
 			{
-				cout << "search in result '" << *res << "' (" << res->length() << " chars)" << endl;
+				//cout << "search in result '" << *res << "' (" << res->length() << " chars)" << endl;
 				for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
 				{
 					cout << "      for '" << *it << "'" << endl;
@@ -235,7 +235,7 @@ int CommandExec::stop(const bool *bWait/*= NULL*/)
 		{
 			for(vector<pid_t>::iterator it= vallPids.begin(); it != vallPids.end(); ++it)
 			{
-				cout << "kill pid " << *it << endl;
+				//cout << "kill pid " << *it << endl;
 				kill(*it, m_nStopSignal);
 			}
 		}
