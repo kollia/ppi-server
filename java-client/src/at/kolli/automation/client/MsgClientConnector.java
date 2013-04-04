@@ -192,8 +192,11 @@ public class MsgClientConnector extends ClientConnector
 				sRv= "NONE";
 				sRv= super.openConnection(m_sCurUser, m_sCurPassword);
 				sRv= generateServerError(sRv);
-				if(sOldErrorCode.substring(0, 14).equals("PORTSERVERBUSY"))
+				if(	sOldErrorCode.length() >= 14 &&
+					sOldErrorCode.substring(0, 14).equals("PORTSERVERBUSY")	)
+				{
 					dialog.setSelection(100);
+				}
 				if(sRv == null)
 				{
 					m_sRegUser= m_sCurUser;
@@ -209,7 +212,8 @@ public class MsgClientConnector extends ClientConnector
 				bExcept= true;
 				errMsg= ex.getMessage();
 				generateServerError(errMsg);
-				if(!errMsg.substring(0, 14).equals("PORTSERVERBUSY"))
+				if(	errMsg.length() < 14 ||
+					!errMsg.substring(0, 14).equals("PORTSERVERBUSY"))
 				{
 					sOldErrorCode= m_sErrorCode;
 					dialog.show(m_oTrans.translate("dialogConnectionTitle"), m_sErrorMsg);
