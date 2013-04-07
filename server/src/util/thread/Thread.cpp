@@ -772,6 +772,7 @@ int Thread::mutex_lock(string file, int line, pthread_mutex_t *mutex)
 			msg.width(5);
 			msg << dec << gettid() << "] ";
 			msg << "WARNING: thread lock's mutex " << mutexname << " again, on file:" << file << " line:" << line << endl;
+			msg << "           locking before on file:" << i->second.fileLocked << " line:" << i->second.lineLocked << endl;
 			cout << msg.str();
 		}
 	}else
@@ -825,7 +826,11 @@ int Thread::mutex_lock(string file, int line, pthread_mutex_t *mutex)
 		pthread_mutex_lock(&g_READMUTEX);
 		i= g_mMutex.find(mutex);
 		if(i != g_mMutex.end())
+		{
 			i->second.threadid= gettid();
+			i->second.fileLocked= file;
+			i->second.lineLocked= line;
+		}
 		pthread_mutex_unlock(&g_READMUTEX);
 		if(bSet)
 		{
@@ -984,6 +989,8 @@ int Thread::mutex_unlock(string file, int line, pthread_mutex_t *mutex)
 			cout << before.str();
 		}
 		i->second.threadid= 0;
+		i->second.fileLocked= "";
+		i->second.lineLocked= 0;
 	}
 	pthread_mutex_unlock(&g_READMUTEX);
 	if(bSet)

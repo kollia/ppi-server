@@ -52,11 +52,21 @@ struct mutexnames_t
 	 * defined name for mutex with getMutex()
 	 */
 	string name;
+#ifdef MUTEXLOCKDEBUG
 	/**
 	 * thread id which have locked mutex.<br />
 	 * this id is only defined if MUTEXLOCKDEBUG is defined
 	 */
 	pid_t threadid;
+	/**
+	 * mutex locked in file
+	 */
+	string fileLocked;
+	/**
+	 * mutex locked on line
+	 */
+	int lineLocked;
+#endif
 };
 
 /**
