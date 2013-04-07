@@ -1265,12 +1265,19 @@ namespace server
 
 	int OWServer::stop(const bool *bWait)
 	{
-		Thread::stop(false);
+		int nRv;
+
+		nRv= Thread::stop(false);
 		AROUSEALL(m_PRIORITYCACHECOND);
 		ending();
 		if(m_pKernelModule.get() != NULL)
 			m_pKernelModule->stop(bWait);
-		Thread::stop(bWait);
+		if(	bWait != NULL &&
+			*bWait == true	)
+		{
+			nRv= Thread::stop(bWait);
+		}
+		return nRv;
 	}
 
 	OWServer::~OWServer()
