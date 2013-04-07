@@ -134,7 +134,26 @@ namespace util {
 			 * @param head whether should writing WARNING with message parameter defined in setMsgParameter() (default true)
 			 * @return whether an error occurred, warnings can seen when ouptut isn't an null string ("")
 			 */
-			virtual bool checkProperties(string* output= NULL, const bool head= true) const;
+			virtual bool checkProperties(string* output= NULL, const bool head= true) const;	/**
+			 * return all modified sections
+			 *
+			 * @param modifier when this parameter set, only sections of this modifier will be returned
+			 * @return array of sections in this object
+			 */
+			virtual const vector<IInterlacedActionPropertyPattern*> getASections(const string& modifier= "") const;
+			/**
+			 * return specific section of modifier and value.<br />
+			 * The same like method getSections() from InterlacedProperties
+			 * but converted for the class IInterlacedActionPropertyPattern
+			 * which hold also methods from IActionPropertyPattern.
+			 *
+			 * @param modifier name of specific modifier
+			 * @param value specific value of modifier
+			 * @param index for more than one modifier with the same value, you can set also the index
+			 * @return defined section of modifier and value
+			 */
+			virtual const IInterlacedActionPropertyPattern* getASection(const string& modifier, const string& value,
+																vector<IInterlacedActionPropertyPattern*>::size_type index= 0) const;
 			/**
 			 * destructor of object
 			 */

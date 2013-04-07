@@ -109,6 +109,44 @@ namespace util {
 		return prop;
 	}
 
+	const vector<IInterlacedActionPropertyPattern*> InterlacedActionProperties::getASections(const string& modifier/*= ""*/) const
+	{
+		vector<IInterlacedPropertyPattern*>::const_iterator it;
+		vector<IInterlacedActionPropertyPattern*> vRv;
+		IInterlacedActionPropertyPattern *item;
+
+		for(it= m_vSections.begin(); it != m_vSections.end(); ++it)
+		{
+			if(	modifier == "" ||
+				(*it)->getSectionModifier() == modifier)
+			{
+				item= dynamic_cast<IInterlacedActionPropertyPattern*>(*it);
+				if(item)
+					vRv.push_back(item);
+			}
+		}
+		return vRv;
+	}
+
+	const IInterlacedActionPropertyPattern* InterlacedActionProperties::getASection(const string& modifier, const string& value,
+																			vector<IInterlacedActionPropertyPattern*>::size_type index) const
+	{
+		vector<IInterlacedActionPropertyPattern*>::size_type count(0);
+		vector<IInterlacedPropertyPattern*>::const_iterator it;
+
+		for(it= m_vSections.begin(); it != m_vSections.end(); ++it)
+		{
+			if(	(*it)->getSectionModifier() == modifier &&
+				(*it)->getSectionValue() == value			)
+			{
+				if(count == index)
+					return dynamic_cast<IInterlacedActionPropertyPattern*>(*it);
+				++count;
+			}
+		}
+		return NULL;
+	}
+
 	InterlacedActionProperties::~InterlacedActionProperties() {
 		// TODO Auto-generated destructor stub
 	}
