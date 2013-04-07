@@ -36,10 +36,11 @@ public:
 	 *
 	 * @param port Interface to set value in an subroutine
 	 */
-	CommandExec(IMeasureSet* port)
+	CommandExec(IMeasureSet* port, bool logError)
 	: Thread("CommandExec", 0),
 	  m_bStarted(false),
 	  m_bLogging(true),
+	  m_bLogError(logError),
 	  m_pPort(port),
 	  m_tScriptPid(0),
 	  m_nStopSignal(0),
@@ -158,6 +159,11 @@ private:
 	 * whether should write shell output into log-file
 	 */
 	bool m_bLogging;
+	/**
+	 * whether ending script should write error return value (!= 0)
+	 * into log file
+	 */
+	bool m_bLogError;
 	/**
 	 * defined current log level from shell script
 	 */

@@ -54,6 +54,7 @@ namespace ports
 	bool ShellWriter::init(const IPropertyPattern* properties)
 	{
 		m_sConfPath= properties->getValue("confpath");
+		m_oMeasure.action("action");
 		m_oMeasure.modifier("folder");
 		m_oMeasure.setMsgParameter("folder");
 		m_oMeasure.modifier("name");
@@ -159,11 +160,11 @@ namespace ports
 	{
 		int nRv;
 		bool bchangedVec(false);
-		bool wait(false), block(false), debug(false);
+		bool wait(false), block(false), debug(false), bLogError;
 		string sline;
 		string execute;
 		string folder, subroutine, foldsub;
-		const IInterlacedPropertyPattern* pSub;
+		const IInterlacedActionPropertyPattern* pSub;
 		DbInterface* db;
 		istringstream get(command);
 		map<string, bool>::iterator itFoundBlock;
@@ -175,8 +176,9 @@ namespace ports
 		get >> folder;
 		get >> subroutine;
 		foldsub= folder + ":" + subroutine;
-		pSub= m_oMeasure.getSection("folder", folder);
-		pSub= pSub->getSection("name", subroutine);
+		pSub= m_oMeasure.getASection("folder", folder);
+		pSub= pSub->getASection("name", subroutine);
+		bLogError= !pSub->haveAction("noerrorlog");
 		get >> sline;
 		if(	sline != "read" &&
 			sline != "info"		)
@@ -199,7 +201,7 @@ namespace ports
 		if(block == false)
 		{
 			db= DbInterface::instance();
-			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db));
+			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError));
 			thread->setFor(folder, subroutine);
 			m_vCommandThreads.push_back(thread);
 		}else
@@ -213,7 +215,7 @@ namespace ports
 				if(execute == "info")
 					return 0;
 				db= DbInterface::instance();
-				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db));
+				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError));
 				thread->setFor(folder, subroutine);
 				m_msoBlockThreads[foldsub]= thread;
 

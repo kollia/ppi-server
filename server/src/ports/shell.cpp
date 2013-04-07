@@ -79,6 +79,7 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 			m_bFixTimePoll= true;
 	}
 	m_bMore= false;
+	m_bLogError= !properties->haveAction("noerrorlog");
 	//m_sGUI= properties->getValue("gui", /*warning*/false);
 	m_sUserAccount= properties->getValue("runuser", /*warning*/false);
 	if(	m_sBeginCom == ""
@@ -254,7 +255,7 @@ int Shell::system(const string& action, string command)
 		msg= "make " + action + " '" + command + "'";
 	}else
 		msg= "read command results from one of last pass";
-	TIMELOG(LOG_DEBUG, folder+":"+subroutine, msg);
+	TIMELOG(LOG_DEBUG, folder+":"+subroutine+action, msg);
 	if(bDebug)
 		tout << msg << endl;
 	if(m_sGUI != "")
@@ -300,7 +301,7 @@ int Shell::system(const string& action, string command)
 
 		}else
 		{
-			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this));
+			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError));
 			thread->setFor(folder, subroutine);
 		}
 

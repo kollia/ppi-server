@@ -164,6 +164,11 @@ private:
 	 */
 	bool m_bMore;
 	/**
+	 * whether ending script should write error return value (!= 0)
+	 * into log file
+	 */
+	bool m_bLogError;
+	/**
 	 * whether commands should be sending to an client with X-Server access
 	 * content of variable is environment variable DISPLAY ('0', '0.0', '0.1', '1', ... )
 	 */

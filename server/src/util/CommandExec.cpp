@@ -454,18 +454,21 @@ int CommandExec::execute()
 			setValue(setErrorlevel.str());
 		}
 		stop(false);
-		if(nRv != 0)
+		if(	m_bLogError &&
+			nRv != 0		)
 		{
 			ostringstream msg;
 
-			msg << "shell script ending with error " << nRv << "\n\n";
+			msg << "shell script \"" << m_sCommand << "\"" << endl;
+			msg << "from folder '" << m_sFolder << "' and subroutine '" << m_sSubroutine << "'";
+			msg << " ending with error " << nRv << endl << endl;
 			if(!qLastRows.empty())
 			{
 				for(deque<string>::iterator it= qLastRows.begin(); it != qLastRows.end(); ++it)
 					msg << "    " << *it;
 			}else
 				msg << "    no output from script";
-			TIMELOG(LOG_INFO, sLastErrorlevel, msg.str());
+			TIMELOG(LOG_ERROR, sLastErrorlevel, msg.str());
 		}
 		if(	bWait ||
 			bDebug	)
@@ -649,6 +652,10 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 					command= "-  ### ERROR cannot recognize command \"" + command + "\" after log level";
 
 			}
+
+		}else if(command == "noerrorlog")
+		{
+			m_bLogError= false;
 
 		}else
 		{
