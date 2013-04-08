@@ -53,6 +53,14 @@ struct mutexnames_t
 	 */
 	string name;
 #ifdef MUTEXLOCKDEBUG
+#define MUTEX_CONDITION_DEBUG
+#endif
+#ifdef CONDITIONSDEBUG
+#ifndef MUTEX_CONDITION_DEBUG
+#define MUTEX_CONDITION_DEBUG
+#endif
+#endif
+#ifdef MUTEX_CONDITION_DEBUG
 	/**
 	 * thread id which have locked mutex.<br />
 	 * this id is only defined if MUTEXLOCKDEBUG is defined

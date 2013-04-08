@@ -573,7 +573,9 @@ pthread_mutex_t* Thread::getMutex(string name)
 		}
 
 		tName.name= name;
+#ifdef MUTEXLOCKDEBUG
 		tName.threadid= 0;
+#endif
 		if(name != "POSITIONSTATUS")
 		{
 			if(mMutexBuffer.size() > 0)
