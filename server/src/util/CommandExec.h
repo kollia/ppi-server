@@ -39,7 +39,7 @@ public:
 	CommandExec(IMeasureSet* port, bool logError)
 	: Thread("CommandExec", 0),
 	  m_bStarted(false),
-	  m_bLogging(true),
+	  m_bLogging(false),
 	  m_bLogError(logError),
 	  m_pPort(port),
 	  m_tScriptPid(0),
