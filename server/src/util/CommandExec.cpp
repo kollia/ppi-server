@@ -690,7 +690,8 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 	}
 	if(	bFoundDefCommand == false &&
 		(	bWait ||
-			bDebug	)					)
+			bDebug ||
+			m_bLogging	)					)
 	{
 		trim(sline);
 		if(sline.length() >= 7)
@@ -699,11 +700,15 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 			transform(sline.begin(), sline.end(), sline.begin(), (int(*)(int)) toupper);
 			if(sline == "PPI-DEF")
 			{
-				LOCK(m_RESULTMUTEX);
 				command= "-  ### WARNING: should this line be an definition command for ppi-server?";
-				m_qOutput.push_back(command);
-				if(m_qOutput.size() > 1000)
-					m_qOutput.pop_front();
+				if(	bWait ||
+					bDebug	)
+				{
+					LOCK(m_RESULTMUTEX);
+					m_qOutput.push_back(command);
+					if(m_qOutput.size() > 1000)
+						m_qOutput.pop_front();
+				}
 				if(m_bLogging)
 				{
 					m_qLog.push_back(command);
@@ -711,10 +716,14 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 						m_qLog.pop_front();
 				}
 				command= "-               command should be only >> PPI-DEF << in big letters with no spaces before";
-				m_qOutput.push_back(command);
-				if(m_qOutput.size() > 1000)
-					m_qOutput.pop_front();
-				UNLOCK(m_RESULTMUTEX);
+				if(	bWait ||
+					bDebug	)
+				{
+					m_qOutput.push_back(command);
+					if(m_qOutput.size() > 1000)
+						m_qOutput.pop_front();
+					UNLOCK(m_RESULTMUTEX);
+				}
 				if(m_bLogging)
 				{
 					m_qLog.push_back(command);
