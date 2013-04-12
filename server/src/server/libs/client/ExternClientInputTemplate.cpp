@@ -349,8 +349,20 @@ namespace util
 		err= m_oGetConnect->init();
 		if(err != 0)
 		{
+			answer= m_pGetTransaction->getReturnedString();
+			if(answer.size() > 0)
+			{
+				int err2;
+				string serr;
+
+				serr= answer.back();
+				err2= error(serr);
+				if(err2 != 0)
+					err= err2;
+			}
 			UNLOCK(m_GETQUESTIONLOCK);
 			err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
+			err+= (err > 0 ? m_oGetConnect->getMaxErrorNums(true) : (m_oGetConnect->getMaxErrorNums(false) * -1));
 			return error(err);
 		}
 
