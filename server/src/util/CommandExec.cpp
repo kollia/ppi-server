@@ -379,7 +379,7 @@ int CommandExec::execute()
 	bDebug= m_bDebug;
 	UNLOCK(m_WAITMUTEX);
 	if(!bWait) // when wait not be set and thread do not starting the first time, the own subroutine can having
-		setValue("PPI-SET " + m_sFolder + ":" + m_sSubroutine + " 0");// the ERRORLEVEL result from the last pass
+		setValue("PPI-SET " + m_sFolder + ":" + m_sSubroutine + " 0", bDebug);// the ERRORLEVEL result from the last pass
 	while(fgets(line, sizeof line, fp))                               // when now the script fail with the same ERRORLEVEL
 	{														  // the subroutine will be not informed
 		if(stopping())
@@ -451,7 +451,7 @@ int CommandExec::execute()
 
 			setErrorlevel << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
 			setErrorlevel << nRv;
-			setValue(setErrorlevel.str());
+			setValue(setErrorlevel.str(), bDebug);
 		}
 		stop(false);
 		if(	m_bLogError &&
@@ -505,12 +505,13 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 		sline.substr(0, 8) == "PPI-DEF ")
 	{
 		pid_t pid;
+		string msg;
 		istringstream oline(sline);
 
 		bFoundDefCommand= true;
-		oline >> command;// -> PPI-DEF string
-		oline >> command;
-		if(command == "running-process")
+		oline >> msg;// -> PPI-DEF string
+		oline >> msg;
+		if(msg == "running-process")
 		{
 			oline >> pid;
 			if(	!oline.fail() &&
@@ -530,40 +531,40 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 								+ "\ncannot recognize shell-output as correct running process-id\noutput string '" + sline + "'"        );
 			}
 
-		}else if(command == "stop")
+		}else if(msg == "stop")
 		{
 			bool bok= true;
 
-			oline >> command;
+			oline >> msg;
 			if(!oline.fail())
 			{
-				trim(command);
+				trim(msg);
 				LOCK(m_WAITMUTEX);
-				if(command == "SIGHUP")
+				if(msg == "SIGHUP")
 					m_nStopSignal= SIGHUP;
-				else if(command == "SIGINT")
+				else if(msg == "SIGINT")
 					m_nStopSignal= SIGINT;
-				else if(command == "SIGQUIT")
+				else if(msg == "SIGQUIT")
 					m_nStopSignal= SIGQUIT;
-				else if(command == "SIGTRAP")
+				else if(msg == "SIGTRAP")
 					m_nStopSignal= SIGTRAP;
-				else if(command == "SIGABRT")
+				else if(msg == "SIGABRT")
 					m_nStopSignal= SIGABRT;
-				else if(command == "SIGBUS")
+				else if(msg == "SIGBUS")
 					m_nStopSignal= SIGBUS;
-				else if(command == "SIGKILL")
+				else if(msg == "SIGKILL")
 					m_nStopSignal= SIGKILL;
-				else if(command == "SIGUSR1")
+				else if(msg == "SIGUSR1")
 					m_nStopSignal= SIGUSR1;
-				else if(command == "SIGUSR2")
+				else if(msg == "SIGUSR2")
 					m_nStopSignal= SIGUSR2;
-				else if(command == "SIGPIPE")
+				else if(msg == "SIGPIPE")
 					m_nStopSignal= SIGPIPE;
-				else if(command == "SIGALRM")
+				else if(msg == "SIGALRM")
 					m_nStopSignal= SIGALRM;
-				else if(command == "SIGTERM")
+				else if(msg == "SIGTERM")
 					m_nStopSignal= SIGTERM;
-				else if(command == "SIGSTOP")
+				else if(msg == "SIGSTOP")
 					m_nStopSignal= SIGSTOP;
 				else
 				{
@@ -582,38 +583,38 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 			}else
 				command= "";
 
-		}else if(command == "cycle-begin")
+		}else if(msg == "cycle-begin")
 		{
 			LOCK(m_RESULTMUTEX);
 			m_qOutput.clear();
 			UNLOCK(m_RESULTMUTEX);
 			command= "";
-		}else if(command == "log")
+		}else if(msg == "log")
 		{
 			bool bOK(true);
 
-			oline >> command;
-			if(command =="DEBUG")
+			oline >> msg;
+			if(msg =="DEBUG")
 				m_nLogLevel= LOG_DEBUG;
-			else if(command =="INFO")
+			else if(msg =="INFO")
 				m_nLogLevel= LOG_INFO;
-			else if(command =="WARNING")
+			else if(msg =="WARNING")
 				m_nLogLevel= LOG_WARNING;
-			else if(command =="ERROR")
+			else if(msg =="ERROR")
 				m_nLogLevel= LOG_ERROR;
-			else if(command =="ALERT")
+			else if(msg =="ALERT")
 				m_nLogLevel= LOG_ALERT;
-			else if(command == "end")
+			else if(msg == "end")
 			{
 				m_qLog.pop_back();// delete command string: PPI-DEF log end
 				if(!m_qLog.empty())
 				{
-					command= "";
+					msg= "";
 					for(deque<string>::iterator it= m_qLog.begin(); it != m_qLog.end(); ++it)
-						command+= *it + "\n";
-					trim(command);
-					//cout << "sending msg to logger: '" << command << "'" << endl;
-					LOG(m_nLogLevel, command);
+						msg+= *it + "\n";
+					trim(msg);
+					//cout << "sending msg to logger: '" << msg << "'" << endl;
+					LOG(m_nLogLevel, msg);
 					m_qLog.clear();
 				}
 				m_bLogging= false;
@@ -626,34 +627,34 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 			}
 			if(bOK)
 			{
-				oline >> command;
-				if(command == "string:")
+				oline >> msg;
+				if(msg == "string:")
 				{
 					string::size_type npos;
 					istringstream::pos_type pos;
 
 					pos= oline.tellg();
 					npos= static_cast<string::size_type>(pos);
-					command= oline.str();
+					msg= oline.str();
 					if(	pos > 0 &&
-						command.length() > npos)
+						msg.length() > npos)
 					{
-						command= command.substr(npos);
-						LOG(m_nLogLevel, command);
+						msg= msg.substr(npos);
+						LOG(m_nLogLevel, msg);
 						command= "";
 					}else
-						command= "-  #ERROR: logging command '" + command + "' has empty string";
+						command= "-  #ERROR: logging command has no string";
 
-				}else if(command == "begin")
+				}else if(msg == "begin")
 				{
 					m_bLogging= true;
 					command= "";
 				}else
-					command= "-  ### ERROR cannot recognize command \"" + command + "\" after log level";
+					command= "-  ### ERROR cannot recognize command after log level";
 
 			}
 
-		}else if(command == "noerrorlog")
+		}else if(msg == "noerrorlog")
 		{
 			m_bLogError= false;
 
@@ -670,16 +671,20 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 			sline.substr(0, 7) == "PPI-SET"	) // all PPI-SET will be do inside SHELL subroutine
 		{
 			bFoundDefCommand= true;
-			setValue(sline);
+			setValue(sline, bDebug);
 		}
 	}
 	if(command != "")
 	{
-		LOCK(m_RESULTMUTEX);
-		m_qOutput.push_back(command);
-		if(m_qOutput.size() > 1000)
-			m_qOutput.pop_front();
-		UNLOCK(m_RESULTMUTEX);
+		if(	bWait ||
+			bDebug	)
+		{
+			LOCK(m_RESULTMUTEX);
+			m_qOutput.push_back(command);
+			if(m_qOutput.size() > 1000)
+				m_qOutput.pop_front();
+			UNLOCK(m_RESULTMUTEX);
+		}
 		if(m_bLogging)
 		{
 			m_qLog.push_back(command);
@@ -735,7 +740,7 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 	}
 }
 
-void CommandExec::setValue(const string& command)
+void CommandExec::setValue(const string& command, bool bLog)
 {
 	bool bwrite(false);
 	double value;
@@ -746,12 +751,15 @@ void CommandExec::setValue(const string& command)
 
 	if(m_pPort == NULL)
 	{
-		LOCK(m_RESULTMUTEX);
 		outstr= "-  ### ERROR: cannot read correctly PPI-SET command";
-		m_qOutput.push_back(outstr);
-		if(m_qOutput.size() > 1000)
-			m_qOutput.pop_front();
-		UNLOCK(m_RESULTMUTEX);
+		if(bLog)
+		{
+			LOCK(m_RESULTMUTEX);
+			m_qOutput.push_back(outstr);
+			if(m_qOutput.size() > 1000)
+				m_qOutput.pop_front();
+			UNLOCK(m_RESULTMUTEX);
+		}
 		if(m_bLogging)
 		{
 			m_qLog.push_back(outstr);
@@ -767,12 +775,15 @@ void CommandExec::setValue(const string& command)
 	if(	icommand.eof() ||
 		icommand.fail()		)
 	{
-		LOCK(m_RESULTMUTEX);
 		outstr= "-  ### ERROR: cannot read correctly PPI-SET command";
-		m_qOutput.push_back(outstr);
-		if(m_qOutput.size() > 1000)
-			m_qOutput.pop_front();
-		UNLOCK(m_RESULTMUTEX);
+		if(bLog)
+		{
+			LOCK(m_RESULTMUTEX);
+			m_qOutput.push_back(outstr);
+			if(m_qOutput.size() > 1000)
+				m_qOutput.pop_front();
+			UNLOCK(m_RESULTMUTEX);
+		}
 		if(m_bLogging)
 		{
 			m_qLog.push_back(outstr);
@@ -788,12 +799,15 @@ void CommandExec::setValue(const string& command)
 	if(	icommand.eof() ||
 		icommand.fail()		)
 	{
-		LOCK(m_RESULTMUTEX);
 		outstr= "-  ### ERROR: cannot read correctly PPI-SET command";
-		m_qOutput.push_back(outstr);
-		if(m_qOutput.size() > 1000)
-			m_qOutput.pop_front();
-		UNLOCK(m_RESULTMUTEX);
+		if(bLog)
+		{
+			LOCK(m_RESULTMUTEX);
+			m_qOutput.push_back(outstr);
+			if(m_qOutput.size() > 1000)
+				m_qOutput.pop_front();
+			UNLOCK(m_RESULTMUTEX);
+		}
 		if(m_bLogging)
 		{
 			m_qLog.push_back(outstr);
@@ -808,12 +822,15 @@ void CommandExec::setValue(const string& command)
 	split(spl, outstr, is_any_of(":"));
 	if(spl.size() != 2)
 	{
-		LOCK(m_RESULTMUTEX);
 		outstr= "-  ### ERROR: cannot read correctly PPI-SET command";
-		m_qOutput.push_back(outstr);
-		if(m_qOutput.size() > 1000)
-			m_qOutput.pop_front();
-		UNLOCK(m_RESULTMUTEX);
+		if(bLog)
+		{
+			LOCK(m_RESULTMUTEX);
+			m_qOutput.push_back(outstr);
+			if(m_qOutput.size() > 1000)
+				m_qOutput.pop_front();
+			UNLOCK(m_RESULTMUTEX);
+		}
 		if(m_bLogging)
 		{
 			m_qLog.push_back(outstr);
@@ -828,12 +845,15 @@ void CommandExec::setValue(const string& command)
 	icommand >> value;
 	if(icommand.fail())
 	{
-		LOCK(m_RESULTMUTEX);
 		outstr= "-  ### ERROR: cannot read correctly PPI-SET command";
-		m_qOutput.push_back(outstr);
-		if(m_qOutput.size() > 1000)
-			m_qOutput.pop_front();
-		UNLOCK(m_RESULTMUTEX);
+		if(bLog)
+		{
+			LOCK(m_RESULTMUTEX);
+			m_qOutput.push_back(outstr);
+			if(m_qOutput.size() > 1000)
+				m_qOutput.pop_front();
+			UNLOCK(m_RESULTMUTEX);
+		}
 		if(m_bLogging)
 		{
 			m_qLog.push_back(outstr);
@@ -857,12 +877,15 @@ void CommandExec::setValue(const string& command)
 		ostringstream oValue;
 
 		oValue << value;
-		LOCK(m_RESULTMUTEX);
-		outstr= "  ### do not write value " + oValue.str() + " into subroutine because value is same as before";
-		m_qOutput.push_back("- " + outstr);
-		if(m_qOutput.size() > 1000)
-			m_qOutput.pop_front();
-		UNLOCK(m_RESULTMUTEX);
+		if(bLog)
+		{
+			LOCK(m_RESULTMUTEX);
+			outstr= "  ### do not write value " + oValue.str() + " into subroutine because value is same as before";
+			m_qOutput.push_back("- " + outstr);
+			if(m_qOutput.size() > 1000)
+				m_qOutput.pop_front();
+			UNLOCK(m_RESULTMUTEX);
+		}
 		if(m_bLogging)
 		{
 			m_qLog.push_back(outstr);
@@ -876,12 +899,15 @@ void CommandExec::setValue(const string& command)
 	{
 		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
 		{
-			LOCK(m_RESULTMUTEX);
 			outstr= "  ### ERROR: cannot write correctly PPI-SET command over interface to folder-list";
-			m_qOutput.push_back("- " + outstr);
-			if(m_qOutput.size() > 1000)
-				m_qOutput.pop_front();
-			UNLOCK(m_RESULTMUTEX);
+			if(bLog)
+			{
+				LOCK(m_RESULTMUTEX);
+				m_qOutput.push_back("- " + outstr);
+				if(m_qOutput.size() > 1000)
+					m_qOutput.pop_front();
+				UNLOCK(m_RESULTMUTEX);
+			}
 			if(m_bLogging)
 			{
 				m_qLog.push_back(outstr);
