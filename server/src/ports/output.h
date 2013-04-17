@@ -28,7 +28,7 @@ using namespace ports;
 
 class Output : public switchClass
 {
-public:
+	public:
 		/**
 		 * create object of class Output.
 		 *
@@ -54,6 +54,18 @@ public:
 		 */
 		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
+		 * set subroutine for output doing actions
+		 *
+		 * @param whether should write output
+		 */
+		virtual void setDebug(bool bDebug);
+		/**
+		 * return whether is subroutine set for output doing actions
+		 *
+		 * @return whether subroutine do output
+		 */
+		virtual bool isDebug();
+		/**
 		 * this method will be called from any measure thread to set as observer
 		 * for starting own folder to get value from foreign folder
 		 * if there the value was changing
@@ -73,22 +85,30 @@ public:
 		 */
 		virtual ~Output();
 
-protected:
-	/**
-	 * set min and max parameter to the range which can be set for this subroutine.<br />
-	 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.
-	 * Also if the values defined in an bit value 010 (dec:2) set 0 and for 011 (dec:3) set 1 in db.
-	 * Otherwise the range is only for calibrate the max and min value if set from client outher range.
-	 * If pointer of min and max parameter are NULL, the full range of the double value can be used
-	 *
-	 * @param bfloat whether the values can be float variables
-	 * @param min the minimal value
-	 * @param max the maximal value
-	 * @return whether the range is defined or can set all
-	 */
-	virtual bool range(bool& bfloat, double* min, double* max);
+	protected:
+		/**
+		 * set min and max parameter to the range which can be set for this subroutine.<br />
+		 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.
+		 * Also if the values defined in an bit value 010 (dec:2) set 0 and for 011 (dec:3) set 1 in db.
+		 * Otherwise the range is only for calibrate the max and min value if set from client outher range.
+		 * If pointer of min and max parameter are NULL, the full range of the double value can be used
+		 *
+		 * @param bfloat whether the values can be float variables
+		 * @param min the minimal value
+		 * @param max the maximal value
+		 * @return whether the range is defined or can set all
+		 */
+		virtual bool range(bool& bfloat, double* min, double* max);
 
 	private:
+		/**
+		 * mutex lock for debug
+		 */
+		pthread_mutex_t *m_DEBUG;
+		/**
+		 * whether set DEBUG over server for this folder
+		 */
+		bool m_bDebug;
 		/**
 		 * log level when output string defined for logging
 		 */
@@ -97,6 +117,11 @@ protected:
 		 * whether output string should displayed on command line
 		 */
 		bool m_bCL;
+		/**
+		 * whether output calculating over SWITCH type
+		 * or by define subroutine for debugging
+		 */
+		bool m_bNeedSwitch;
 		/**
 		 * text for output before value
 		 */

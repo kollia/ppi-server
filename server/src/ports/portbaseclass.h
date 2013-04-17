@@ -327,7 +327,7 @@ namespace ports
 			 *
 			 * @return whether subroutine do output
 			 */
-			bool isDebug();
+			virtual bool isDebug();
 			/**
 			 * returning the type of the current object
 			 *

@@ -59,6 +59,13 @@ class MeasureThread : 	public Thread,
 		 */
 		SHAREDPTR::shared_ptr<IListObjectPattern> getPortClass(const string subroutine, bool &bCorrect) const;
 		/**
+		 * returning thread id in which thread folder object running
+		 *
+		 * @return thread id
+		 */
+		virtual pid_t getRunningThreadID()
+		{ return Thread::getThreadID(); };
+		/**
 		 * set debug session in subroutine or hole folder when subroutine not given
 		 *
 		 * @param bDebug wheter should debug session be set or unset
@@ -74,8 +81,10 @@ class MeasureThread : 	public Thread,
 		virtual unsigned short getActCount(const string& subroutine);
 		/**
 		 * returning true if an client set this measurethread to debug
+		 *
+		 * @return whether measure thread do output
 		 */
-		bool isDebug();
+		virtual bool isDebug();
 		/**
 		 *  external command to stop object of MeasureThread
 		 *
@@ -183,7 +192,14 @@ class MeasureThread : 	public Thread,
 		vector<sub> *m_pvtSubroutines;
 		//set<portBase::Pins> m_vAfterContactPins;
 		//map<unsigned long, unsigned> m_vAfterContactPorts;
+		/**
+		 * whether any subroutine is set as debug for output
+		 */
 		bool m_bDebug;
+		/**
+		 * thread id in which measureThread object running
+		 */
+		pid_t m_tRunThread;
 		/**
 		 * actually count number of set subroutine
 		 */

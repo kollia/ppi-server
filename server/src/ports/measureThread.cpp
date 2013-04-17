@@ -51,6 +51,7 @@ Thread(threadname, /*defaultSleep*/0)
 	m_VALUECONDITION= Thread::getCondition("VALUECONDITION");
 	m_bDebug= false;
 	m_nActCount= 0;
+	m_tRunThread= Thread::getThreadID();
 }
 
 void MeasureThread::setDebug(bool bDebug, const string& subroutine)
@@ -83,7 +84,30 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 	out << " set debug to " << boolalpha << bDebug << " from folder " << getThreadName() << endl;
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
-		if(it->bCorrect)
+		if(	it->bCorrect &&			// set first all subroutines to debug
+			it->type != "DEBUG"	)	// which are not from type DEBUG
+		{							// because DEBUG subroutines will be set later and should know
+			if(	subroutine == "" ||	// whether also an other subroutine was set to debug
+				it->name == subroutine	)
+			{
+				if(it->portClass->isDebug() != bDebug)
+					out << "       in subroutine " << it->name << endl;
+				it->portClass->setDebug(bDebug);
+				if(bDebug)
+					isDebug= true;
+			}
+		}
+	}
+	LOCK(m_DEBUGLOCK);
+	if(isDebug)
+		m_bDebug= true;
+	else
+		m_bDebug= false;
+	UNLOCK(m_DEBUGLOCK);
+	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
+	{// set now subroutine(s) from type DEBUG
+		if(	it->bCorrect &&
+			it->type == "DEBUG"	)
 		{
 			if(	subroutine == "" ||
 				it->name == subroutine	)
@@ -91,13 +115,7 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 				if(it->portClass->isDebug() != bDebug)
 					out << "       in subroutine " << it->name << endl;
 				it->portClass->setDebug(bDebug);
-				if(	bDebug &&
-					it->type != "DEBUG"	)
-				{
-					isDebug= true;
-				}
 			}
-
 		}
 	}
 	if(!bDebug)
@@ -117,6 +135,17 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 					open << "       subroutine " << it->name << endl;
 				}
 			}
+		}
+	}
+	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
+	{// set subroutine(s) from type DEBUG again to true
+	 // because maybe debugging of other subroutine type
+	 // has now changed
+		if(	it->bCorrect &&
+			it->type == "DEBUG" &&
+			it->portClass->isDebug()	)
+		{
+				it->portClass->setDebug(true);
 		}
 	}
 	if(bOpen)
@@ -181,15 +210,13 @@ int MeasureThread::init(void *arg)
 		{
 			//cout << "define subroutine " << (*m_pvtSubroutines)[n].name << endl;
 			port= (*m_pvtSubroutines)[n].portClass;
+			port->setRunningThread(this);
 			port->setDebug(false);
 			port->setObserver(this);
-			port->setRunningThread(this);
 		}
 	}
 	for(vector<string>::iterator it= tArg.debugSubroutines.begin(); it != tArg.debugSubroutines.end(); ++it)
-	{
 		setDebug(true, *it);
-	}
 	return 0;
 }
 
@@ -368,7 +395,6 @@ int MeasureThread::execute()
 			!m_osUndefServers.empty()	)
 		{
 			bool fold(false);
-			char stime[18];
 
 			if(!m_vtmNextTime.empty())
 			{

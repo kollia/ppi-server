@@ -39,6 +39,18 @@ namespace design_pattern_world
 		{
 			public:
 				/**
+				 * returning thread id in which thread folder object running
+				 *
+				 * @return thread id
+				 */
+				virtual pid_t getRunningThreadID()= 0;
+				/**
+				 * returning true if an client set this measurethread to debug
+				 *
+				 * @return whether measure thread do output
+				 */
+				virtual bool isDebug()= 0;
+				/**
 				 * return actually count of current subroutine
 				 *
 				 * @param subroutine whitch count should be returned when set, elsewhere create new counts
