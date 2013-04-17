@@ -118,7 +118,11 @@ int OwServerQuestions::execute()
 			m_sAnswer= m_vAnswer[m_nPos];
 		}else
 			m_sAnswer= m_vAnswer[m_nPos];
-		//cout << "do send >> " << m_sAnswer << endl;
+		command= m_sAnswer;
+		trim(command);		// security insert
+		if(command == "")	// when m_sAnswer is an null string
+			m_sAnswer= "-";	// otherwise connection breaking
+		//cout << "do send >>'" << m_sAnswer << "'<<" << endl;
 
 	}else if(command == "exist")
 	{
