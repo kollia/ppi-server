@@ -45,11 +45,13 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	if(!switchClass::init(properties, pStartFolder))
 		bRv= false;
 	m_bLastValue= 0;
-	m_sBeginCom= properties->getValue("begincommand", /*warning*/false);
-	m_sWhileCom= properties->getValue("whilecommand", /*warning*/false);
-	m_sEndCom= properties->getValue("endcommand", /*warning*/false);
 	m_bWait= properties->haveAction("wait");
 	m_bBlock= properties->haveAction("block");
+	if(!m_bBlock)
+		m_sBeginCom= properties->getValue("begincommand", /*warning*/false);
+	m_sWhileCom= properties->getValue("whilecommand", /*warning*/false);
+	if(!m_bBlock)
+		m_sEndCom= properties->getValue("endcommand", /*warning*/false);
 	m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
 	if(!m_oYears.isEmpty())
 		m_bFixTimePoll= true;
