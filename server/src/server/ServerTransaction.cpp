@@ -265,7 +265,8 @@ namespace server
 			LOCK(m_FINISHEDSERVERMUTEX);
 			if(!m_bFinished)
 			{
-				if(input.substr(0, 3) == "GET")
+				if(	input.substr(0, 3) == "GET" &&
+					input != "GET wait"				)
 				{
 					short res, nPercent;
 					string sProcess;
@@ -281,24 +282,30 @@ namespace server
 						cout << "server not finished by loading user-management" << endl;
 						cout << " waiting until finished" << endl;
 #endif // SERVERDEBUG
-						do{
-							usleep(500);
-							res= user->finished();
-						}while(res == 0);
+						res= user->finished();
+						if(res != 0)
+						{
+							descriptor << "SERVERBUSY";
+							descriptor.endl();
+							descriptor.flush();
+							UNLOCK(m_FINISHEDSERVERMUTEX);
+							return false;
+						}
 					}
 					if(res == 0)// server loading
 					{
 #ifdef SERVERDEBUG
 					cout << "server not finished by loading user-management" << endl;
 					cout << "ending connection" << endl;
-					cout << "send: WARNING 001 starting -1" << endl;
+					cout << "send: 'ppi-server: WARNING 001 starting -1'" << endl;
 #endif // SERVERDEBUG
 					cout << "server starting, ending connection with 'WARNING 001 starting -1'" << endl;
-						descriptor << "WARNING 001 starting -1";
+						descriptor << "ppi-server: WARNING 001 starting -1";
 						descriptor.endl();
 						descriptor.flush();
 						UNLOCK(m_FINISHEDSERVERMUTEX);
-						return false;
+						return true;
+
 					}else if(res == 1)// loding is finished
 					{
 						if(m_uid != 0)
@@ -316,7 +323,7 @@ namespace server
 						}
 					}else
 					{// error occurred by loading UserManagement
-						descriptor << "ERROR 020";
+						descriptor << "ppi-server: ERROR 020";
 						descriptor.endl();
 						descriptor.flush();
 #ifdef SERVERDEBUG
@@ -333,14 +340,16 @@ namespace server
 						{
 							ostringstream output;
 
-							output << "WARNING 001 " << sProcess << " " << nPercent;
+							output << "ppi-server: WARNING 001 " << sProcess << " " << nPercent;
 	#ifdef SERVERDEBUG
 							cout << "server not finished by starting, running " << sProcess << " by " << sPercent << "%" << endl;
-							cout << "ending connection, send: " << output.str() << endl;
+							cout << "send: " << output.str() << endl;
 	#endif // SERVERDEBUG
 							descriptor << output.str();
+							descriptor.endl();
+							descriptor.flush();
 							UNLOCK(m_FINISHEDSERVERMUTEX);
-							return false;
+							return true;
 						}
 						m_bFinished= true;
 						descriptor.setBoolean("finishedloading", true);
@@ -553,15 +562,13 @@ namespace server
 				descriptor << sendmsg;
 				return true;
 
-			}else if(	(	!descriptor.getBoolean("access")
-							&&
-							length > 2
-							&&
-							spinput.substr(0, 2) == "U:"	)
-						||
-						(	descriptor.getBoolean("access")
-							&&
-							spinput == "CHANGE"				)	)
+			}else if(	descriptor.getBoolean("finishedloading") &&
+						(	(	!descriptor.getBoolean("access") &&
+								length > 2 &&
+								spinput.substr(0, 2) == "U:"	) ||
+							(	descriptor.getBoolean("access")
+								&&
+								spinput == "CHANGE"				)	)	)
 			{
 				bool login= true;
 				short first= 1;
