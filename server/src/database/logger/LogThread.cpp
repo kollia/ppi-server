@@ -45,7 +45,6 @@ LogThread::LogThread(bool check, bool asServer)
 	m_READTHREADS= getMutex("READTHREADS");
 	m_READLOGMESSAGES= getMutex("READLOGMESSAGES");
 	m_READLOGMESSAGESCOND= getCondition("READLOGMESSAGESCOND");
-	time(&m_tmbegin);
 }
 
 int LogThread::init(void* arg)
@@ -236,18 +235,23 @@ int LogThread::execute()
 	ofstream logfile;
 	string sThreadName;
 	unsigned int nSize;
-	time_t tmnow;
+	time_t timenow;
 
 	if(pvLogVector.get() != NULL)
 	{
-		time(&tmnow);
-		if(	m_sCurrentLogFile == ""
-			||
-			tmnow >= (m_tmbegin + m_tmWriteLogDays)	)
+		time(&timenow);
+		if(	m_sCurrentLogFile == "" ||
+			timenow >= (m_tmbegin + m_tmWriteLogDays)	)
 		{
-			char timeString[15];
+			struct tm tmtime;
+			char timeString[17];
 
-			strftime(timeString, 11, "%Y-%m-%d", gmtime(&tmnow));
+			localtime_r(&timenow, &tmtime);
+			strftime(timeString, 16, "%Y%m%d.%H%M%S", &tmtime);
+			tmtime.tm_sec= 0;
+			tmtime.tm_min= 0;
+			tmtime.tm_hour= 0;
+			m_tmbegin= mktime(&tmtime);
 			m_sCurrentLogFile= URL::addPath(m_sLogFilePath, m_sLogFilePrefix, /*always*/true);
 			m_sCurrentLogFile+= timeString;
 			m_sCurrentLogFile+= ".";
@@ -310,8 +314,7 @@ int LogThread::execute()
 				}
 				if(bWrite)
 				{
-					//char datetime[30];
-					ostringstream datetime;
+					string datetime;
 					tm tmnow;
 
 					bAnyW= true;
@@ -369,14 +372,16 @@ int LogThread::execute()
 					tmnow.tm_isdst= -1;
 					if(localtime_r(&(*pvLogVector)[n].tmnow, &tmnow) != NULL)
 					{
-						datetime << tmnow.tm_mday << "." << (tmnow.tm_mon + 1) << "." << (tmnow.tm_year + 1900) << " ";
-						datetime << tmnow.tm_hour << ":" << tmnow.tm_min << ":" << tmnow.tm_sec;
+						char formattime[21];
+
+						strftime(formattime, 20, "%d.%m.%Y %H:%M:%S", &tmnow);
+						datetime= formattime;
 					}else
-						datetime << "(no correct time creation)";
+						datetime= "(no correct time creation)";
 
 					logfile << " level for thread " << sThreadName << " ID:" << dec << (*pvLogVector)[n].tid;
 					logfile << " on process ID:" << dec << (*pvLogVector)[n].pid;
-					logfile << "  " << datetime.str() << endl;
+					logfile << "  " << datetime << endl;
 					logfile << "*  file:" << (*pvLogVector)[n].file;
 					logfile << " line:" << (*pvLogVector)[n].line << endl << endl;
 					logfile << (*pvLogVector)[n].message << endl << endl << endl;
@@ -388,23 +393,25 @@ int LogThread::execute()
 	}
 	if(bAnyW)
 	{
-		time(&tmnow);
-		if(	m_nDeleteDays > 0
-			&&
-			(	m_nNextDeleteTime == 0
-				||
-				m_nNextDeleteTime < tmnow	)	)
+		time(&timenow);
+		if(	m_nDeleteDays > 0 &&
+			(	m_nNextDeleteTime == 0 ||
+				m_nNextDeleteTime < timenow	)	)
 		{
 			struct stat fileStat;
+			map<string, string>::size_type allcount, count(0);
 			map<string, string> files;
-			time_t older, tm;
+			time_t older;
 			string file;
 
-			time(&tm);
-			older= Calendar::calcDate(/*newer*/false, tm, m_nDeleteDays, Calendar::days);
+			older= Calendar::calcDate(/*newer*/false, timenow, m_nDeleteDays, Calendar::days);
 			files= URL::readDirectory(m_sLogFilePath, m_sLogFilePrefix, ".log");
+			allcount= files.size() - static_cast<map<string, string>::size_type>(m_nDeleteDays);
 			for(map<string, string>::iterator it= files.begin(); it != files.end(); ++it)
 			{
+				++count;			// when not enough log files be exist,
+				if(count > allcount)// maybe days between no logging content,
+					break;			// break before the deletion to have always the count of m_nDeleteDays log files
 				file= URL::addPath(m_sLogFilePath, it->second, /*always*/true);
 				//cout << "read file " << file << endl;
 				if(stat(file.c_str(), &fileStat) != 0)
@@ -420,8 +427,7 @@ int LogThread::execute()
 					log(__FILE__, __LINE__, LOG_WARNING, error);
 				}else
 				{
-					tm= fileStat.st_mtime;
-					if(tm < older)
+					if(fileStat.st_mtime < older)
 					{
 						if(unlink(file.c_str()) < 0)
 						{
@@ -438,8 +444,7 @@ int LogThread::execute()
 					}
 				}
 			}
-			time(&tm);
-			m_nNextDeleteTime= Calendar::calcDate(/*newer*/true, tm, m_nDeleteDays, Calendar::days);
+			m_nNextDeleteTime= Calendar::calcDate(/*newer*/true, timenow, m_nDeleteDays, Calendar::days);
 		}
 	}
 	return 0;
