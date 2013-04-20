@@ -105,7 +105,6 @@ namespace ports
 		string msg;
 		string pin;
 		string property;
-		string::size_type len;
 
 		kernelmode= 0;
 		property= "ID";
@@ -118,7 +117,6 @@ namespace ports
 		//cout << "use pin " << pin << endl;
 		if(id == "")
 			return -1;
-		len= pin.size();
 		if(	pin == "01"
 			||
 			pin == "02"
@@ -350,13 +348,14 @@ namespace ports
 		{
 			if(bfRead)
 			{
+				disconnect();
 				if(connect())
 				{
 					short nRv;
 					ostringstream oid;
 
 					oid << m_nID;
-					LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ oid.str() + " by writing channels");
+					LOG(LOG_INFO, "reconnect successfully vellemann port "+ oid.str() + " by writing channels");
 					bfRead= false;
 					nRv= write(id, value, addinfo);
 					bfRead= true;
@@ -400,12 +399,13 @@ namespace ports
 				//cout << "read pin " << id << " is single result " << res << endl;
 				if(res < 0)
 				{
+					disconnect();
 					if(connect())
 					{
 						ostringstream id;
 
 						id << m_nID;
-						LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ id.str() + " by reading digital channels");
+						LOG(LOG_INFO, "reconnect successfully vellemann port "+ id.str() + " by reading digital channels");
 						res= ReadDigitalChannel(pin);
 					}
 					if(res < 0)
@@ -475,12 +475,13 @@ namespace ports
 				value= (double)ReadAnalogChannel(channel);
 				if(value < 0)
 				{
+					disconnect();
 					if(connect())
 					{
 						ostringstream id;
 
 						id << m_nID;
-						LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ id.str() + " by reading analog channels");
+						LOG(LOG_INFO, "reconnect successfully vellemann port "+ id.str() + " by reading analog channels");
 						value= (double)ReadAnalogChannel(channel);
 					}
 					if(value < 0)
