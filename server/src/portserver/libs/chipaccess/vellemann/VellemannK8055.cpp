@@ -355,7 +355,7 @@ namespace ports
 					ostringstream oid;
 
 					oid << m_nID;
-					LOG(LOG_INFO, "reconnect successfully vellemann port "+ oid.str() + " by writing channels");
+					LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ oid.str() + " by writing channels");
 					bfRead= false;
 					nRv= write(id, value, addinfo);
 					bfRead= true;
@@ -405,7 +405,7 @@ namespace ports
 						ostringstream id;
 
 						id << m_nID;
-						LOG(LOG_INFO, "reconnect successfully vellemann port "+ id.str() + " by reading digital channels");
+						LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ id.str() + " by reading digital channels");
 						res= ReadDigitalChannel(pin);
 					}
 					if(res < 0)
@@ -481,7 +481,7 @@ namespace ports
 						ostringstream id;
 
 						id << m_nID;
-						LOG(LOG_INFO, "reconnect successfully vellemann port "+ id.str() + " by reading analog channels");
+						LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ id.str() + " by reading analog channels");
 						value= (double)ReadAnalogChannel(channel);
 					}
 					if(value < 0)
