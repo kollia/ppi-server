@@ -191,6 +191,7 @@ namespace design_pattern_world
 		double dmax;
 		bool bFloat;
 		double dcache;
+		unsigned int internReaderChipID;
 		SHAREDPTR::shared_ptr<otime_t> older;
 	};
 	/**
@@ -202,13 +203,17 @@ namespace design_pattern_world
 		string type;
 		string id;
 		string pin;
+		string folder;
+		string subroutine;
 		vector<double> errorcode;
 		double dmin;
 		double dmax;
 		bool bFloat;
 		double dCache;
 		bool bWritable;
+		unsigned int internReaderChipID;
 		SHAREDPTR::shared_ptr<otime_t> older;
+		chips_t() { dmin= 0; dmax= 0; dCache= 0; bFloat= true; bWritable= true; internReaderChipID= 0; };
 	};
 
 	/**

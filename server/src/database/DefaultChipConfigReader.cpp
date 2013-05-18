@@ -28,6 +28,9 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/regex.hpp>
+
 #include "DefaultChipConfigReader.h"
 
 #include "../pattern/util/LogHolderPattern.h"
@@ -41,13 +44,14 @@
 namespace ports
 {
 	using namespace util;
+	using namespace boost;
 
 	DefaultChipConfigReader* DefaultChipConfigReader::_instance= NULL;
 
-	void DefaultChipConfigReader::init(const string& path)
+	void DefaultChipConfigReader::init(const string& path, bool bUseRegex)
 	{
 		if(_instance == NULL)
-			_instance= new DefaultChipConfigReader(path);
+			_instance= new DefaultChipConfigReader(path, bUseRegex);
 	}
 
 	inline void DefaultChipConfigReader::deleteObj()
@@ -64,18 +68,12 @@ namespace ports
 		typedef vector<IInterlacedPropertyPattern*>::iterator sit;
 
 		bool berror;
+		chips_t chip;
 		ostringstream output;
 		string fileName, propName, errmsg;
 		InterlacedProperties properties;
 		vector<IInterlacedPropertyPattern*> sections;
 
-		fileName= URL::addPath(m_sPath, "default.conf", /*always*/true);
-		properties.modifier("folder");
-		properties.setMsgParameter("folder");
-		properties.modifier("subroutine");
-		properties.setMsgParameter("subroutine");
-		properties.modifier("range");
-		properties.setMsgParameter("range", "range of chip");
 		properties.modifier("server");
 		properties.setMsgParameter("server");
 		properties.modifier("family");
@@ -86,22 +84,32 @@ namespace ports
 		properties.setMsgParameter("ID", "chip ID");
 		properties.modifier("pin");
 		properties.setMsgParameter("pin", "chip pin");
+		properties.modifier("folder");
+		properties.setMsgParameter("folder");
+		properties.modifier("subroutine");
+		properties.setMsgParameter("subroutine");
+		properties.modifier("range");
+		properties.setMsgParameter("range", "range of chip");
 		properties.modifier("dbolder");
 		properties.setMsgParameter("dbolder", "older time");
 		properties.allowLaterModifier(true);
+		fileName= URL::addPath(m_sPath, "default.conf", /*always*/true);
 		if(!properties.readFile(fileName))
 		{
 			string msg;
 
 			msg= "### ERROR: cannot read default configuration 'default.conf'\n";
-			msg+= "           for all chips";
+			msg+= "           for all chip's and folders";
 			cerr << msg << endl;
 			LOG(LOG_ERROR, msg);
 			return;
 		}
 		sections= properties.getSections();
+		//cout << "read " << sections.size() << " sctions inside default.conf" << endl;
+		//for(sit o= sections.begin(); o != sections.end(); ++o)
+		//	cout << "         section " << (*o)->getSectionModifier() << " with value '" << (*o)->getSectionValue() << "'" << endl;
 		for(sit o= sections.begin(); o != sections.end(); ++o)
-			readSection("", *o, /*default*/true);
+			readSection(*o, chip);
 		berror= properties.checkProperties(&errmsg);
 		if(errmsg != "")
 		{
@@ -124,6 +132,7 @@ namespace ports
 		typedef vector<IInterlacedPropertyPattern*>::iterator sit;
 
 		string fileName, propName;
+		chips_t chip;
 		InterlacedProperties properties;
 		vector<IInterlacedPropertyPattern*> sections;
 
@@ -150,175 +159,422 @@ namespace ports
 			LOG(LOG_ERROR, msg);
 			return;
 		}
+		chip.server= server;
 		sections= properties.getSections();
 		for(sit o= sections.begin(); o != sections.end(); ++o)
-			readSection(server, *o, /*default*/false);
+			readSection(*o, chip);
 		properties.checkProperties();
 	}
 
-	void DefaultChipConfigReader::readSection(string server, IInterlacedPropertyPattern *property, const bool bDefault)
+	void DefaultChipConfigReader::readSection(IInterlacedPropertyPattern *property, chips_t chip)
 	{
 		typedef vector<IInterlacedPropertyPattern*>::iterator sit;
 
-		bool read= false;
-		bool bwritten= false;
-		bool onlyDefault= false;
+		/**
+		 * whether data of an chip was read
+		 */
+		bool bChipReadings(false);
+		/**
+		 * currently section which reading
+		 */
+		string section(property->getSectionModifier());
+		/**
+		 * number of currently section
+		 *   1 - server
+		 *   2 - family
+		 *   3 - type
+		 *   4 - ID
+		 *   5 - pin
+		 *   6 - folder
+		 *   7 - subroutine
+		 *   8 - range
+		 */
+		unsigned short nSection;
+		/**
+		 * intern chip ID genarated for all default chip's
+		 */
+		unsigned int nInternChipID(0);
+		bool bErrWarn;
 		int errorcount= 0;
 		double errorcode;
 		double dRange;
 		double dCache= 0;
 		vector<IInterlacedPropertyPattern*> sections;
+		SHAREDPTR::shared_ptr<otime_t> older;
 		vector<string> split;
 		string propName("cache");
-		string family, type, ID, pin, dbolder;
+		string server, family, type, ID, pin, dbolder;
 		string range, sfloat, writable, dbwrite;
-		string folder, subroutine;
-		chips_t chip;
+		string folder, subroutine, errwarnmsg;
 		defValues_t defaultValues;
 
-		if(bDefault)
+		if(section == "server")
+			nSection= 1;
+		else if(section == "family")
+			nSection= 2;
+		else if(section == "type")
+			nSection= 3;
+		else if(section == "ID")
+			nSection= 4;
+		else if(section == "pin")
+			nSection= 5;
+		else if(section == "folder")
+			nSection= 6;
+		else if(section == "subroutine")
+			nSection= 7;
+		else if(section == "range")
+			nSection= 8;
+		if(nSection <= 1) // server
 		{
-			server= "###all";
-			folder= property->getValue("folder", /*warning*/false);
-			if(folder == "")
-				folder= "###all";
-			else
-				onlyDefault= true;
-			subroutine= property->getValue("subroutine", /*warning*/false);
-			if(subroutine == "")
-				subroutine= "###all";
-			else
+			server= property->getValue("server", /*warning*/false);
+			if(server != "")
 			{
-				if(folder == "###all")
-					property->needValue("folder");
-				onlyDefault= true;
+				//server= "###all";
+				if(section != "server")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				chip.server= server;
 			}
 		}
-		if(onlyDefault == false)
+		if(nSection <= 2) // family
 		{
 			family= property->getValue("family", /*warning*/false);
-			if(family == "")
-				family= "###all";
-			type= property->getValue("type", /*warning*/false);
-			if(type == "")
-				type= "###all";
-			ID= property->getValue("ID", /*warning*/false);
-			if(ID == "")
-				ID= "###all";
-			pin= property->getValue("pin", /*warning*/false);
-			if(pin == "")
-				pin= "###all";
-			if(	bDefault
-				&&
-				(	family != "###all"
-					||
-					type != "###all"
-					||
-					ID != "###all"
-					||
-					pin != "###all"		)	)
+			if(family != "")
 			{
-				server= property->needValue("server");
+				//family= "###all";
+				if(section != "family")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				chip.family= family;
 			}
 		}
+		if(nSection <= 3) // type
+		{
+			type= property->getValue("type", /*warning*/false);
+			if(type != "")
+			{
+				//type= "###all";
+				if(section != "type")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				chip.type= type;
+			}
+		}
+		if(nSection <= 4) // ID
+		{
+			ID= property->getValue("ID", /*warning*/false);
+			if(ID != "")
+			{
+				//ID= "###all";
+				if(section != "ID")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				chip.id= ID;
+			}
+		}
+		if(nSection <= 5) // pin
+		{
+			pin= property->getValue("pin", /*warning*/false);
+			if(pin != "")
+			{
+				//pin= "###all";
+				if(section != "pin")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				chip.pin= pin;
+			}
+		}
+		if(nSection <= 6) // folder
+		{
+			folder= property->getValue("folder", /*warning*/false);
+			if(folder != "")
+			{
+				string corr;
+				//folder= "###all";
+				if(section != "folder")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				corr= folder;
+				if(!m_bUseRegex)
+				{
+					replace_all(folder, "^", "\\^");
+					replace_all(folder, "$", "\\$");
+					replace_all(folder, "(", "\\(");
+					replace_all(folder, ")", "\\)");
+					replace_all(folder, "[", "\\[");
+					replace_all(folder, "]", "\\]");
+					replace_all(folder, "{", "\\{");
+					replace_all(folder, "}", "\\}");
+					replace_all(folder, "?", ".");
+					replace_all(folder, "+", ".+");
+					replace_all(folder, "*", ".*");
+					folder= "^" + folder + "$";
+				}
+				try{
+					regex exp(folder);
 
+					regex_match("anything", exp);
+					// when correct
+					chip.folder= folder;
+
+				}catch(...)
+				{
+					string errmsg("default folder definition '");
+
+					errmsg+= corr + "' wrong defined, making regex error";
+					cerr << "### ERROR: " << errmsg << endl;
+					cerr << "           so do not read defaults for this case" << endl;
+					LOG(LOG_ERROR, errmsg + "\nso do not read defaults for this case of folders");
+					return;
+				}
+			}
+		}
+		if(nSection <= 7) // subroutine
+		{
+			subroutine= property->getValue("subroutine", /*warning*/false);
+			if(subroutine != "")
+			{
+				string corr;
+				//subroutine= "###all";
+				if(chip.folder == "")
+				{
+					property->needValue("folder");
+					return;
+				}
+				if(section != "subroutine")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				corr= subroutine;
+				if(!m_bUseRegex)
+				{
+					replace_all(subroutine, "^", "\\^");
+					replace_all(subroutine, "$", "\\$");
+					replace_all(subroutine, "(", "\\(");
+					replace_all(subroutine, ")", "\\)");
+					replace_all(subroutine, "[", "\\[");
+					replace_all(subroutine, "]", "\\]");
+					replace_all(subroutine, "{", "\\{");
+					replace_all(subroutine, "}", "\\}");
+					replace_all(subroutine, "?", ".");
+					replace_all(subroutine, "+", ".+");
+					replace_all(subroutine, "*", ".*");
+					subroutine= "^" + subroutine + "$";
+				}
+				try{
+					regex exp(subroutine);
+
+					regex_match("anything", exp);
+					// when correct
+					chip.subroutine= subroutine;
+
+				}catch(...)
+				{
+					string errmsg("default subroutine definition '");
+
+					errmsg+= corr + "' wrong defined, making regex error";
+					cerr << "### ERROR: " << errmsg << endl;
+					cerr << "           so do not read defaults for this case" << endl;
+					LOG(LOG_ERROR, errmsg + "\nso do not read defaults for this case of subroutines");
+					return;
+				}
+			}
+		}
 		range= property->getValue("range", /*warning*/false);
 		if(range != "")
-			read= true;
-		else if(bDefault)
+		{
+			if(section != "range")
+			{
+				sections= property->getSections();
+				for(sit o= sections.begin(); o != sections.end(); ++o)
+					readSection(*o, chip);
+				return;
+			}
+			split= ConfigPropertyCasher::split(range, ":");
+			if(split.size() < 2)
+			{
+				string msg;
+
+				msg= property->getMsgHead(/*ERROR*/true);
+				msg+= "range should have 2 double values separated with an colon, define as hole range (1:0)";
+				LOG(LOG_ERROR, msg);
+				cerr << msg << endl;
+				chip.dmin= 1;
+				chip.dmax= 0;
+			}else
+			{
+				string str(split[0]);
+
+				str+= " ";
+				str+= split[1];
+				istringstream istr(str);
+				istr >> chip.dmin >> chip.dmax;
+			}
+		}else
+		{
 			range= "1:0";
+			chip.dmin= 1;
+			chip.dmax= 0;
+		}
 		propName= "cache";
 		dCache= property->getDouble(propName, /*warning*/false);
-		if(dCache != 0)
-			read= true;
-
+		if(propName == "cache")// no error
+			chip.dCache= dCache;
 		sfloat= property->getValue("float", /*warning*/false);
 		if(sfloat != "")
-			read= true;
+		{
+			if(sfloat == "false")
+				chip.bFloat= false;
+			else if(sfloat != "true")
+			{
+				string msg;
+
+				msg= property->getMsgHead(/*error*/false);
+				msg+= "float have to be 'true' or 'false', can not read '";
+				msg+= sfloat + "'. Set float to false.";
+				LOG(LOG_WARNING, msg);
+				cerr << msg << endl;
+			}
+		}
+		dbwrite= property->needValue("dbwrite");
+		sections= property->getSections();//should be only dbolder sections
+		if(	dbwrite != "" ||
+			sections.size() > 0	)
+		{
+			SHAREDPTR::shared_ptr<otime_t> older;
+
+			if(dbwrite == "")
+				dbwrite= "all";
+			older= readOlderSection(property);
+			chip.older= older;
+			chip.older->more= 0;  // Currently state of reading has the unit of the next dbodler section
+			chip.older->unit= 'D';// so change it to current with 0 days
+			for(sit o= sections.begin(); o != sections.end(); ++o)
+			{
+				older->older= readOlderSection(*o);
+				older= older->older;
+			}
+		}
+		bErrWarn= false;
+		errwarnmsg= property->getMsgHead(/*error*/true);
+		bChipReadings= false;
+		if(chip.server != "")
+			bChipReadings= true;
 		else
-			sfloat= "false";
-		if(!bDefault)
+			chip.server= "###all";
+		if(chip.family != "")
+		{
+			if(chip.server == "###all")
+			{
+				bErrWarn= true;
+				errwarnmsg+= "\n           family code";
+			}
+			bChipReadings= true;
+		}else
+			chip.family= "###all";
+		if(chip.type != "")
+		{
+			if(chip.server == "###all")
+			{
+				bErrWarn= true;
+				errwarnmsg+= ",\n           chip type";
+			}
+			bChipReadings= true;
+		}else
+			chip.type= "###all";
+		if(chip.id != "")
+		{
+			if(chip.server == "###all")
+			{
+				bErrWarn= true;
+				errwarnmsg+= ",\n           chip ID";
+			}
+			bChipReadings= true;
+		}else
+			chip.id= "###all";
+		if(chip.pin != "")
+		{
+			if(chip.server == "###all")
+			{
+				bErrWarn= true;
+				errwarnmsg+= ",\n           pin(s) of chip";
+			}
+			bChipReadings= true;
+		}else
+			chip.pin= "###all";
+		if(bErrWarn)
+		{
+			errwarnmsg+= ",\n           cannot be set when no server defined\n";
+
+		}else
+		{
+			if(chip.folder != "")
+			{
+				if(	chip.server != "###all" &&
+					chip.subroutine != ""		)
+				{
+					bErrWarn= true;
+					errwarnmsg+= "\n           folder cannot be set when server be defined\n";
+				}
+			}else
+				chip.folder= "###all";
+			if(chip.subroutine != "")
+			{
+				if(chip.server != "###all")
+				{
+					bErrWarn= true;
+					errwarnmsg+= "\n           folder/subroutine cannot be set when server be defined\n";
+				}
+			}else
+				chip.subroutine= "###all";
+		}
+		if(bErrWarn)
+		{
+			errwarnmsg+= "           so do not read this section";
+			LOG(LOG_WARNING, errwarnmsg);
+			cerr << errwarnmsg << endl;
+			return;
+		}
+		if(chip.dmin == 0 && chip.dmax == 0)
+		{// for hole range
+			chip.dmin= 1;
+			chip.dmax= 0;
+		}
+		if(bChipReadings)
 		{
 			writable= property->getValue("writable", /*warning*/false);
 			if(writable != "")
-				read= true;
-			errorcount= property->getPropertyCount("errorcode");
-			if(errorcount)
-				read= true;
-		}
-		if(	bDefault
-			&&
-			read	)
-		{
-			dbwrite= property->needValue("dbwrite");
-		}/*else
-		{
-			dbwrite= property->getValue("dbwrite", *warning*false);
-			if(dbwrite != "")
-				read= true;
-		}*/
-
-		chip.server= server;
-		chip.family= family;
-		chip.type= type;
-		chip.id= ID;
-		chip.dmin= 1;
-		chip.dmax= 0;
-		chip.bFloat= false;
-		chip.dCache= dCache;
-		chip.bWritable= false;
-
-		if(read)
-		{
-			string str;
-
-			if(range != "")
 			{
-				split= ConfigPropertyCasher::split(range, ":");
-				if(split.size() < 2)
-				{
-					string msg;
-
-					msg= property->getMsgHead(/*ERROR*/true);
-					msg+= "range should have 2 double values separated with an colon";
-					LOG(LOG_ERROR, msg);
-					cerr << msg << endl;
-				}else
-				{
-					string str(split[0]);
-
-					str+= " ";
-					str+= split[1];
-					istringstream istr(str);
-					istr >> chip.dmin >> chip.dmax;
-				}
-			}
-			if(	bDefault
-				&&
-				sfloat == ""	)
-			{
-				sfloat= "true";
-			}
-			if(sfloat != "")
-			{
-				if(sfloat == "true")
-					chip.bFloat= true;
-				else if(sfloat != "false")
-				{
-					string msg;
-
-					msg= property->getMsgHead(/*error*/false);
-					msg+= "float have to be 'true' or 'false', can not read '";
-					msg+= sfloat + "'. Set float to false.";
-					LOG(LOG_WARNING, msg);
-					cerr << msg << endl;
-				}
-			}
-			if(writable != "")
-			{
-				if(writable == "true")
-					chip.bWritable= true;
-				else if(writable != "false")
+				if(writable == "false")
+					chip.bWritable= false;
+				else if(writable != "true")
 				{
 					string msg;
 
@@ -329,6 +585,7 @@ namespace ports
 					cerr << msg << endl;
 				}
 			}
+			errorcount= property->getPropertyCount("errorcode");
 			if(errorcount)
 			{
 				string prop;
@@ -341,110 +598,135 @@ namespace ports
 						chip.errorcode.push_back(errorcode);
 				}
 			}
-			if(dbwrite != "")
-				chip.older= readOlderSection(property, /*first*/true);
-			if(bDefault)
-			{
-				if(	onlyDefault
-					||
-					(	server == "###all"
-						&&
-						family == "###all"
-						&&
-						type == "###all"
-						&&
-						ID == "###all"
-						&&
-						pin == "###all"		)	)
-				{
-					if(chip.dmin > chip.dmax)
-						dRange= 0;
-					else
-						dRange= chip.dmax - chip.dmin;
-					defaultValues.dmin= chip.dmin;
-					defaultValues.dmax= chip.dmax;
-					defaultValues.bFloat= chip.bFloat;
-					defaultValues.dcache= dCache;
-					defaultValues.older= chip.older;
-					m_mmmmDefaultValues[folder][subroutine][dRange][chip.bFloat]= defaultValues;
-				}else
-					saveChip(chip, server, family, type, ID, pin);
-			}else
-				saveChip(chip, server, family, type, ID, pin);
-			bwritten= true;
 		}
+		older= chip.older;// do not save older inside default chips with server configuration
+		chip.older= SHAREDPTR::shared_ptr<otime_t>();
+		if(bChipReadings)
+			nInternChipID= saveChip(chip);
+		chip.internReaderChipID= nInternChipID;
 
-		sections= property->getSections();
-		for(sit o= sections.begin(); o != sections.end(); ++o)
+		bool btake(true);
+		string msg;
+		map<unsigned int, map<string, map<string, map<double , map<bool, defValues_t> > > > >::iterator itChip;
+		map<string, map<string, map<double , map<bool, defValues_t> > > >::iterator itFolder;
+		map<string, map<double , map<bool, defValues_t> > >::iterator itSubroutine;
+		map<double , map<bool, defValues_t> >::iterator itRange;
+		map<bool, defValues_t>::iterator itFloat;
+
+		if(chip.dmin > chip.dmax)
+			dRange= 0;
+		else
+			dRange= chip.dmax - chip.dmin;
+		defaultValues.dmin= chip.dmin;
+		defaultValues.dmax= chip.dmax;
+		defaultValues.bFloat= chip.bFloat;
+		defaultValues.dcache= chip.dCache;
+		defaultValues.internReaderChipID= nInternChipID;
+		defaultValues.older= older;
+		itChip= m_mmmmDefaultValues.find(nInternChipID);
+		if(itChip != m_mmmmDefaultValues.end())
 		{
-			if((*o)->getSectionModifier() == "dbolder") {
-				if(!chip.older) {
-					chip.older= SHAREDPTR::shared_ptr<otime_t>(new otime_t);
-					chip.older->active= false;			// the first older is only
-					chip.older->more= 0;				// for current reading
-					chip.older->unit= 'D';
-					chip.older->dbwrite= "all";
-					chip.older->older= SHAREDPTR::shared_ptr<otime_t>(new otime_t);
-					chip.older->older->active= false;
-					chip.older->older->more= 0;			// the second and all other
-					chip.older->older->unit= 'D';		// to thin database
-					chip.older->older->dbwrite= "all";
-					chip.older->older->older= readOlderSection(*o, /*first*/false);
-				}else {
-					SHAREDPTR::shared_ptr<otime_t> older;
-
-					older= chip.older;
-					while(older->older)
-						older= older->older;
-					older->older= readOlderSection(*o, /*first*/false);
-				}
-				if(!bwritten) {
-					m_mmmmmChips[server][family][type][ID][pin]= chip;
-					bwritten= true;
-				}
-			}else
-				readSection(server, *o, bDefault);
-		}
-	}
-
-	void DefaultChipConfigReader::saveChip(chips_t chip, const string& server, const string& family, const string& type, const string& ID, const string& pin)
-	{
-		bool bDefault= false;
-		vector<string> pinsplit;
-		chips_t *addr;
-		chips_t *exist;
-
-		pinsplit= ConfigPropertyCasher::split(pin, ":");
-		for(vector<string>::iterator s= pinsplit.begin(); s != pinsplit.end(); ++s)
-		{
-			chip.pin= *s;
-			m_mmmmmChips[server][family][type][ID][*s]= chip;
-			if(	!bDefault
-				&&
-				pin != "###all"	)
+			if(nInternChipID != 0)
+				msg= "an " + chip.server + "/" + chip.id + " with ";
+			itFolder= itChip->second.find(chip.folder);
+			if(itFolder != itChip->second.end())
 			{
-				addr= &m_mmmmmChips[server][family][type][ID][*s];
-				if(family != "###all")
+				if(folder != "")
+					msg+= "folder '" + folder + "' ";
+				itSubroutine= itFolder->second.find(chip.subroutine);
+				if(itSubroutine != itFolder->second.end())
 				{
-					exist= m_mDefaults[server]["family"][family];
-					if(!exist)
-						m_mDefaults[server]["family"][family]= addr;
+					if(subroutine != "")
+						msg+= "subroutine '" + subroutine + "' ";
+					itRange = itSubroutine->second.find(dRange);
+					if(itRange != itSubroutine->second.end())
+					{
+						string sRange;
+						ostringstream oRange;;
+
+						oRange << dRange;
+						msg+= "range " + oRange.str() + " ";
+						itFloat= itRange->second.find(chip.bFloat);
+						if(itFloat != itRange->second.end())
+						{
+							msg+= "for ";
+							if(!chip.bFloat)
+								msg+= "non ";
+							msg+= "floating values";
+							//"### WARNING: "
+							msg= "found second default value from " + msg + " inside [xxx]default.conf";
+							cout << "### WARNING: " << msg << endl;
+							cout << "             take only the first entry's" << endl;
+							LOG(LOG_WARNING, msg + "\ntake only the first entry's");
+							btake= false;
+						}
+					}
 				}
-				if(type != "###all")
-				{
-					exist= m_mDefaults[server]["type"][type];
-					if(!exist)
-						m_mDefaults[server]["type"][type]= addr;
-				}
-				if(ID != "###all")
-				{
-					exist= m_mDefaults[server]["ID"][ID];
-					if(!exist)
-						m_mDefaults[server]["ID"][ID]= addr;
-				}
-				bDefault= true;
 			}
 		}
+		if(btake)
+			m_mmmmDefaultValues[nInternChipID][chip.folder][chip.subroutine][dRange][chip.bFloat]= defaultValues;
+	}
+
+	unsigned int DefaultChipConfigReader::saveChip(chips_t chip)
+	{
+		map<string, map<string, map<string, map<string, map<string, chips_t> > > > >::iterator servIt;
+		map<string, map<string, map<string, map<string, chips_t> > > >::iterator famIt;
+		map<string, map<string, map<string, chips_t> > >::iterator typIt;
+		map<string, map<string, chips_t> >::iterator idIt;
+		map<string, chips_t>::iterator pinIt;
+		vector<string> pinsplit;
+		string pin(chip.pin);
+		unsigned int nInternChip(0);
+		const chips_t* pDefaultChip;
+		bool bFound;
+
+		servIt= m_mmmmmChips.find(chip.server);
+		if(servIt != m_mmmmmChips.end())
+		{
+			famIt= servIt->second.find(chip.family);
+			if(famIt != servIt->second.end())
+			{
+				typIt= famIt->second.find(chip.type);
+				if(typIt != famIt->second.end())
+				{
+					idIt= typIt->second.find(chip.id);
+					if(	idIt != typIt->second.end() &&
+						idIt->second.size() > 0		)
+					{
+						nInternChip= idIt->second.begin()->second.internReaderChipID;
+					}
+				}
+			}
+		}
+		if(nInternChip == 0)
+		{
+			++m_nInternChip;
+			nInternChip= m_nInternChip;
+		}
+		chip.internReaderChipID= nInternChip;
+		pinsplit= ConfigPropertyCasher::split(chip.pin, ":");
+		for(vector<string>::iterator s= pinsplit.begin(); s != pinsplit.end(); ++s)
+		{
+			bFound= false;
+			chip.pin= *s;
+			pDefaultChip= getRegisteredDefaultChip(chip.server, chip.family, chip.type, chip.id, chip.pin);
+			if(pDefaultChip)
+			{
+				if(	pDefaultChip->server == chip.server &&
+					pDefaultChip->family == chip.family &&
+					pDefaultChip->type == chip.type &&
+					pDefaultChip->pin == chip.pin			)
+				{// when chip was found, do not save again inside chips map
+					bFound= true;
+				}
+				if(chip.older == NULL)
+					chip.older= pDefaultChip->older;
+			}
+			if(!bFound)
+				m_mmmmmChips[chip.server][chip.family][chip.type][chip.id][*s]= chip;
+		}
+		return nInternChip;
 	}
 
 	const SHAREDPTR::shared_ptr<otime_t> DefaultChipConfigReader::getLastActiveOlder(const string& folder,
@@ -462,7 +744,7 @@ namespace ports
 			return SHAREDPTR::shared_ptr<otime_t>();
 		if(subIt->second->older.get() == NULL)
 			return SHAREDPTR::shared_ptr<otime_t>();
-		older= subIt->second->older->older;
+		older= subIt->second->older;
 		while(older)
 		{
 			if(	older->active == true
@@ -514,47 +796,127 @@ namespace ports
 		return &tchip->dCache;
 	}
 
-	const chips_t* DefaultChipConfigReader::getRegisteredDefaultChip(const string& server, const string& family,
-																	const string& type, const string& chip) const
+	const chips_t* DefaultChipConfigReader::getRegisteredDefaultChip(string server, string family,
+																		string type, string chip, string pin) const
 	{
-		map<string, map<string, map<string, chips_t*> > >::const_iterator sIt;
-		map<string, map<string, chips_t*> >::const_iterator nIt;
-		map<string, chips_t*>::const_iterator tIt;
+		bool btype(false), bchip[2]= {false, false }, bpin[3]= {false, false, false };
+		string ifamily(family), itype(type), ichip(chip), ipin(pin);
+		map<string, map<string, map<string, map<string, map<string, chips_t> > > > >::const_iterator servIt;
+		map<string, map<string, map<string, map<string, chips_t> > > >::const_iterator famIt;
+		map<string, map<string, map<string, chips_t> > >::const_iterator typIt;
+		map<string, map<string, chips_t> >::const_iterator idIt;
+		map<string, chips_t>::const_iterator pinIt;
 
-		sIt= m_mDefaults.find(server);
-		if(sIt == m_mDefaults.end())
+		servIt= m_mmmmmChips.find(server);
+		if(servIt == m_mmmmmChips.end())
 			return NULL;
-
-		nIt= sIt->second.find("ID");
-		if(nIt != sIt->second.end())
+		//cout << endl;
+		while(true)
 		{
-			tIt= nIt->second.find(chip);
-			if(tIt != nIt->second.end())
-				if(tIt->second->pin != "###all")
-					return tIt->second;
-		}
-		nIt= sIt->second.find("type");
-		if(nIt != sIt->second.end())
-		{
-			tIt= nIt->second.find(type);
-			if(tIt != nIt->second.end())
-				if(tIt->second->pin != "###all")
-					return tIt->second;
-		}
-		nIt= sIt->second.find("family");
-		if(nIt != sIt->second.end())
-		{
-			tIt= nIt->second.find(family);
-			if(tIt != nIt->second.end())
-				if(tIt->second->pin != "###all")
-					return tIt->second;
+			//cout << "search for server'" << server << "' family'" << ifamily << "' type'" << itype << "' chip'" << ichip << "' pin'" << ipin << "'" << endl;
+			famIt= servIt->second.find(ifamily);
+			if(famIt == servIt->second.end())
+			{
+				if(ifamily != "###all")
+				{
+					ifamily= "###all";
+					continue;
+				}
+				return NULL;
+			}
+			typIt= famIt->second.find(itype);
+			if(typIt == famIt->second.end())
+			{
+				if(itype != "###all")
+				{
+					itype= "###all";
+					continue;
+				}
+				if(	!btype &&
+					ifamily != "###all")
+				{
+					ifamily= "###all";
+					itype= type;
+					btype= true;
+					continue;
+				}
+				return NULL;
+			}
+			idIt= typIt->second.find(ichip);
+			if(	idIt == typIt->second.end())
+			{
+				if(ichip != "###all")
+				{
+					ichip= "###all";
+					continue;
+				}
+				if(	!bchip[0] &&
+					itype != "###all")
+				{
+					ifamily= family;
+					itype= "###all";
+					ichip= chip;
+					bchip[0]= true;
+					continue;
+				}
+				if(	!bchip[1] &&
+					ifamily != "###all")
+				{
+					ifamily= "###all";
+					itype= type;
+					ichip= chip;
+					bchip[1]= true;
+					continue;
+				}
+				return NULL;
+			}
+			pinIt= idIt->second.find(ipin);
+			if(pinIt == idIt->second.end())
+			{
+				if(ipin != "###all")
+				{
+					ipin= "###all";
+					continue;
+				}
+				if(	!bpin[0] &&
+					ichip != "###all")
+				{
+					ifamily= family;
+					itype= type;
+					ichip= "###all";
+					ipin= pin;
+					bpin[0]= true;
+					continue;
+				}
+				if(	!bpin[1] &&
+					itype != "###all")
+				{
+					ifamily= family;
+					itype= "###all";
+					ichip= chip;
+					ipin= pin;
+					bpin[1]= true;
+					continue;
+				}
+				if(	!bpin[2] &&
+					ifamily != "###all")
+				{
+					ifamily= "###all";
+					itype= type;
+					ichip= chip;
+					ipin= pin;
+					bpin[2]= true;
+					continue;
+				}
+				return NULL;
+			}
+			return &pinIt->second;
 		}
 		return NULL;
 	}
 
-	SHAREDPTR::shared_ptr<otime_t> DefaultChipConfigReader::readOlderSection(IInterlacedPropertyPattern* property, const bool first)
+	SHAREDPTR::shared_ptr<otime_t> DefaultChipConfigReader::readOlderSection(IInterlacedPropertyPattern* property)
 	{
-
 		SHAREDPTR::shared_ptr<otime_t> older(new otime_t);
 		string dbolder, dbwrite, dbinterval, dbafter;
 
@@ -572,26 +934,27 @@ namespace ports
 
 			istr >> older->more;
 			istr >> d;
-			if(	older->more == 0
-				||
-				(	d != "W"
-					&&
-					d != "M"
-					&&
+			if(	older->more > 365 ||
+				(	d != "D" &&
+					d != "W" &&
+					d != "M" &&
 					d != "Y"	)	)
 			{
 				ostringstream msg;
 
 				older->unit= 'M';
-				if(older->more == 0)
-					older->more= 1;
+				older->more= 2;
 				msg << property->getMsgHead(/*error*/false);
-				msg << "dbolder is undefined, check values after all ";
-				msg << dec << older->more << " month";
+				msg << "dbolder is undefined, check values after all month";
 				LOG(LOG_WARNING, msg.str());
 				cerr << msg.str() << endl;
 			}else
+			{	// calculate for all units one more,
+				// because calculation should beginning
+				// at the end of an unit
+				older->more+= 1;
 				older->unit= d[0];
+			}
 		}
 		if(dbwrite != "") {
 			if(	dbwrite != "all"
@@ -717,11 +1080,6 @@ namespace ports
 				}
 			}
 		}
-		if(first == true)
-		{ // if the older section is the first, the method duplicate the section,
-		  // because the first is for normally reading and all other to thin database
-			older->older= copyOlder(older);
-		}
 		return older;
 	}
 
@@ -836,7 +1194,10 @@ namespace ports
 				max= 0;
 			else
 				max= *pdmax;
-			min= *pdmin;
+			if(!pdmin)
+				min= 1;
+			else
+				min= *pdmin;
 			entry.server= server;
 			entry.id= chip;
 			entry.family= family;
@@ -849,8 +1210,19 @@ namespace ports
 				entry.dCache= *pdCache;
 			else
 				entry.dCache= 0;
+			if(chip.substr(0, 11) != "###DefChip ")
+			{
+				const chips_t* defChip;
+
+				defChip= getRegisteredDefaultChip(server, family, type, chip, pin);
+				if(defChip)
+				{
+					entry.internReaderChipID= defChip->internReaderChipID;
+					entry.older= getNewDefaultChipOlder(/*folder*/"###all", /*subroutine*/"###all", min, max, bFloat, entry.internReaderChipID);
+				}
+			}
 			m_mmmmmChips[server][family][type][chip][pin]= entry;
-			m_mmUsedChips[server][chip]= entry; //&m_mmmmmChips[server][family][type][chip][pin];
+			m_mmUsedChips[server][chip]= entry;
 		}
 	}
 
@@ -864,6 +1236,7 @@ namespace ports
 		pRv->active= older->active;
 		pRv->more= older->more;
 		pRv->unit= older->unit;
+		pRv->dbwrite= older->dbwrite;
 		if(older->fraction.get())
 		{
 			pRv->fraction= auto_ptr<fraction_t>(new fraction_t);
@@ -880,6 +1253,7 @@ namespace ports
 
 	void DefaultChipConfigReader::registerSubroutine(const string& subroutine, const string& folder, const string& server, const string& chip)
 	{
+		const chips_t* pDefaultChip;
 		map<string, chips_t>::iterator usedIt;
 		map<string, map<string, chips_t> >::iterator servIt;
 
@@ -907,7 +1281,18 @@ namespace ports
 		}
 		if(usedIt->second.older == NULL)
 		{
-
+			if(chip.substr(0, 10) != "###DefChip")
+			{
+				pDefaultChip= getRegisteredDefaultChip(usedIt->second.server, usedIt->second.family,
+														usedIt->second.type, usedIt->second.id, usedIt->second.pin);
+				if(	pDefaultChip != NULL &&
+					pDefaultChip->older != NULL	)
+				{
+					usedIt->second.older= pDefaultChip->older;
+					m_mmAllChips[folder][subroutine]= &usedIt->second;
+					return;
+				}
+			}
 			usedIt->second.older= getNewDefaultChipOlder(folder, subroutine, usedIt->second.dmin, usedIt->second.dmax, usedIt->second.bFloat);
 		}
 		m_mmAllChips[folder][subroutine]= &usedIt->second;
@@ -921,104 +1306,208 @@ namespace ports
 		return defValues.dcache;
 	}
 
-	const defValues_t DefaultChipConfigReader::getDefaultValues(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/) const
+	const defValues_t DefaultChipConfigReader::getDefaultValues(const double min, const double max, const bool bFloat,
+																string folder/*= ""*/, string subroutine/*= ""*/, unsigned int nInternChipID/*= 0*/) const
 	{
 		bool bAll= false;
 		double dRange;
+		map<unsigned int, map<string, map<string, map<double , map<bool, defValues_t> > > > >::const_iterator itChip;
 		map<string, map<string, map<double, map<bool, defValues_t> > > >::const_iterator folderIt;
 		map<string, map<double, map<bool, defValues_t> > >::const_iterator subIt;
 		map<double, map<bool, defValues_t> >::const_iterator rangeIt;
 		map<double, map<bool, defValues_t> >::const_iterator highRange;
 		map<double, map<bool, defValues_t> >::const_iterator lowRange;
 		map<bool, defValues_t>::const_iterator floatIt;
-		defValues_t nullDef = { 0, 0, false, 0, SHAREDPTR::shared_ptr<otime_t>() };
+		defValues_t nullDef = { 0, 0, false, 0, 0, SHAREDPTR::shared_ptr<otime_t>() };
 
-		if(folder != "")
-			folderIt= m_mmmmDefaultValues.find(folder);
-		if(	folder == ""
-			||
-			folderIt == m_mmmmDefaultValues.end()	)
+		if(	folder != "" &&
+			folder != "###all" &&
+			subroutine != "" &&
+			subroutine != "###all")
 		{
-			bAll= true;
-			folderIt= m_mmmmDefaultValues.find("###all");
-			if(folderIt == m_mmmmDefaultValues.end())
-				return nullDef;
-		}
-		if(	bAll == false
-			&&
-			subroutine != ""	)
-		{
-			subIt= folderIt->second.find(subroutine);
-		}
-		if(	bAll == true
-			||
-			subroutine == ""
-			||
-			subIt == folderIt->second.end()	)
-		{
-			subIt= folderIt->second.find("###all");
-			if(subIt == folderIt->second.end())
-				return nullDef;
-		}
-		highRange= subIt->second.end();
-		lowRange= highRange;
-		if(min > max)
-			dRange= 0;
-		else
-			dRange= max - min;
-		for(rangeIt= subIt->second.begin(); rangeIt != subIt->second.end(); ++rangeIt)
-		{
-			if(dRange == rangeIt->first)
+			defValues_t tRv;
+			map<string, chips_t*>::const_iterator itSubroutine;
+			map<string, map<string, chips_t*> >::const_iterator itFolder;
+
+			itFolder= m_mmAllChips.find(folder);
+			if(itFolder != m_mmAllChips.end())
 			{
-				lowRange= rangeIt;
-				break;
-			}
-			if(rangeIt->first == 0)
-				highRange= rangeIt;
-			if(	rangeIt->first > dRange
-				&&
-				(	lowRange == subIt->second.end()
-					||
-					(	dRange < rangeIt->first
-						&&
-						lowRange->first > rangeIt->first	)	)	)
-			{
-				lowRange= rangeIt;
+				itSubroutine= itFolder->second.find(subroutine);
+				if(itSubroutine != itFolder->second.end())
+				{
+					tRv.bFloat= itSubroutine->second->bFloat;
+					tRv.dcache= itSubroutine->second->dCache;
+					tRv.dmax= itSubroutine->second->dmax;
+					tRv.dmin= itSubroutine->second->dmin;
+					tRv.internReaderChipID= itSubroutine->second->internReaderChipID;
+					nInternChipID= itSubroutine->second->internReaderChipID;
+					tRv.older= itSubroutine->second->older;
+					if(itSubroutine->second->older != NULL)
+						return tRv;
+				}
 			}
 		}
-		if(	highRange == subIt->second.end()
-			&&
-			lowRange == subIt->second.end()	)
-		{
-			return nullDef;
-		}
-		if(lowRange == subIt->second.end())
+		do{
+			itChip= m_mmmmDefaultValues.find(nInternChipID);
+			if(itChip == m_mmmmDefaultValues.end())
+			{
+				if(nInternChipID != 0)
+				{
+					itChip= m_mmmmDefaultValues.find(0);
+					if(itChip == m_mmmmDefaultValues.end())
+						return nullDef;
+				}else
+					return nullDef;
+			}
+			if(folder != "")
+			{
+				for(folderIt= itChip->second.begin(); folderIt != itChip->second.end(); ++folderIt)
+				{
+					regex expr(folderIt->first);
+
+					if(regex_match(folder, expr))
+						break;
+				}
+			}
+			if(	folder == "" ||
+				folder == "###all" ||
+				folderIt == itChip->second.end()	)
+			{
+				bAll= true;
+				folderIt= itChip->second.find("###all");
+				if(folderIt == itChip->second.end())
+					return nullDef;
+			}
+			if(	bAll == false &&
+				subroutine != "" &&
+				subroutine != "###all"	)
+			{
+				for(subIt= folderIt->second.begin(); subIt != folderIt->second.end(); ++subIt)
+				{
+					regex expr(subIt->first);
+
+					if(regex_match(subroutine, expr))
+						break;
+				}
+			}
+			if(	bAll == true
+				||
+				subroutine == "" ||
+				subroutine == "###all" ||
+				subIt == folderIt->second.end()	)
+			{
+				subIt= folderIt->second.find("###all");
+				if(subIt == folderIt->second.end())
+				{
+					if(folder != "")
+					{// search default again with no folder
+						folder= "";
+						subroutine= "";
+						continue;
+					}
+					return nullDef;
+				}
+			}
+			highRange= subIt->second.end();
 			lowRange= highRange;
-		if(bFloat == false)
-		{
-			floatIt= lowRange->second.find(false);
-			if(floatIt == lowRange->second.end())
+			if(min > max)
+				dRange= 0;
+			else
+				dRange= max - min;
+			for(rangeIt= subIt->second.begin(); rangeIt != subIt->second.end(); ++rangeIt)
+			{
+				if(dRange == rangeIt->first)
+				{
+					lowRange= rangeIt;
+					break;
+				}
+				if(rangeIt->first == 0)
+					highRange= rangeIt;
+				if(	rangeIt->first > dRange
+					&&
+					(	lowRange == subIt->second.end()
+						||
+						(	dRange < rangeIt->first
+							&&
+							lowRange->first > rangeIt->first	)	)	)
+				{
+					lowRange= rangeIt;
+				}
+			}
+			if(	highRange == subIt->second.end()
+				&&
+				lowRange == subIt->second.end()	)
+			{
+				if(subroutine != "")
+				{// search default again with no subroutine
+					subroutine= "";
+					continue;
+				}
+				if(folder != "")
+				{// search default again with no folder
+					folder= "";
+					continue;
+				}
+				return nullDef;
+			}
+			if(lowRange == subIt->second.end())
+				lowRange= highRange;
+			if(bFloat == false)
+			{
+				floatIt= lowRange->second.find(false);
+				if(floatIt == lowRange->second.end())
+				{
+					floatIt= lowRange->second.find(true);
+					if(floatIt == lowRange->second.end())
+					{
+						if(subroutine != "")
+						{// search default again with no subroutine
+							subroutine= "";
+							continue;
+						}
+						if(folder != "")
+						{// search default again with no folder
+							folder= "";
+							continue;
+						}
+						return nullDef;
+					}
+				}
+			}else
 			{
 				floatIt= lowRange->second.find(true);
 				if(floatIt == lowRange->second.end())
+				{
+					if(subroutine != "")
+					{// search default again with no subroutine
+						subroutine= "";
+						continue;
+					}
+					if(folder != "")
+					{// search default again with no folder
+						folder= "";
+						continue;
+					}
 					return nullDef;
+				}
 			}
-		}else
-		{
-			floatIt= lowRange->second.find(true);
-			if(floatIt == lowRange->second.end())
-				return nullDef;
-		}
+
+			// found default, leaf while loop
+			break;
+
+		}while(floatIt != lowRange->second.end());
 		return floatIt->second;
 	}
 
 
-	SHAREDPTR::shared_ptr<otime_t> DefaultChipConfigReader::getNewDefaultChipOlder(const string& folder, const string& subroutine, const double min, const double max, const bool bFloat) const
+	SHAREDPTR::shared_ptr<otime_t> DefaultChipConfigReader::getNewDefaultChipOlder(const string& folder, const string& subroutine,
+																					const double min, const double max, const bool bFloat,
+																					const unsigned int internChipID) const
 	{
 		defValues_t def;
 
-		def= getDefaultValues(min, max, bFloat, folder, subroutine);
-		if(!def.older) // toDo: check whether can define instnace of shared_ptr as boolean for content
+		def= getDefaultValues(min, max, bFloat, folder, subroutine, internChipID);
+		if(!def.older) // toDo: check whether can define instance of shared_ptr as boolean for content
 			return SHAREDPTR::shared_ptr<otime_t>();
 		return copyOlder(def.older);
 	}
@@ -1028,7 +1517,6 @@ namespace ports
 	write_t DefaultChipConfigReader::allowDbWriting(const string& folder, const string& subroutine, const double value, const time_t acttime, bool* newOlder/*=NULL*/)
 	{
 		write_t tRv;
-		SHAREDPTR::shared_ptr<otime_t> parento;
 		SHAREDPTR::shared_ptr<otime_t> wr;
 		chips_t* chip;
 		time_t thistime;
@@ -1043,56 +1531,78 @@ namespace ports
 		tRv.highest.lowtime= 0;
 		if(newOlder)
 			*newOlder= false;
-		tRv.action= "write";
+		tRv.action= "no";
 		folderIt= m_mmAllChips.find(folder);
 		if(folderIt == m_mmAllChips.end())
-		{ // found no specified folder with default chip, so allow writing
+		{ // found no specified folder which is registered, so do not write into database
 			return tRv;
 		}
 		subIt= folderIt->second.find(subroutine);
 		if(subIt == folderIt->second.end())
-		{ // found no specified subroutine with default chip, so allow writing
+		{ // found no specified action structure which is registered, so do not write into database
 			return tRv;
 		}
+		tRv.action= "write";
 		chip= subIt->second;
 		if(chip->older == NULL)
 		{ // no action is defined for default chip, so allow writing
+			string errmsg("found no specified action structure for registered folder:subroutine '");
+
+			errmsg+= folder + ":" + subroutine + "'\n";
+			errmsg+= "           so do not allow writing into database";
+			if(newOlder)
+				errmsg+= " by thinning";
+			LOG(LOG_ALERT,  errmsg);
+			cerr << "### ALERT: " << errmsg << endl;
 			return tRv;
 		}
 		time(&thistime);
 		wr= chip->older;
 		if(newOlder)
-		{	// question is for thin database, so don't take the first older,
-			// because all other be for thin,
-			// and calculate witch older structure to be used
-			// to thin
-			wr= wr->older;
-			parento= wr;
+		{
 			while(wr->older.get() != NULL)
 			{
-				Calendar::time_e unit(Calendar::seconds);
+				Calendar::time_e unit;
 
-				if(wr->unit == 'h')
+				wr->older->active= false;
+				if(wr->older->unit == 's')
+					unit= Calendar::seconds;
+				else if(wr->older->unit == 'm')
+					unit= Calendar::minutes;
+				else if(wr->older->unit == 'h')
 					unit= Calendar::hours;
-				else if(wr->unit == 'D')
+				else if(wr->older->unit == 'D')
 					unit= Calendar::days;
-				else if(wr->unit == 'M')
+				else if(wr->older->unit == 'W')
+					unit= Calendar::weeks;
+				else if(wr->older->unit == 'M')
 					unit= Calendar::months;
-				else if(wr->unit == 'Y')
+				else if(wr->older->unit == 'Y')
 					unit= Calendar::years;
 				else
 				{
-					string msg(&wr->unit);
+					string msg(&wr->older->unit);
 
-					msg= "undefined time unit '" + msg + "' for calendar";
-					TIMELOG(LOG_ALERT, "time_units", msg);
+					msg= "undefined time unit '" + msg + "' for calendar\nset older calculation to one year";
+					TIMELOG(LOG_ALERT, "time_units"+string(&wr->older->unit), msg);
+					unit= Calendar::years;
+					wr->older->more= 1;
 				}
-				if(Calendar::calcDate(/*newer*/false, thistime, wr->more, unit) < acttime)
+				if(Calendar::calcDate(/*newer*/false, thistime, wr->older->more, unit) < acttime)
+				{
+					SHAREDPTR::shared_ptr<otime_t> setFalse;
+
+					wr->active= true;
+					setFalse= wr;
+					while(setFalse->older)
+					{
+						setFalse= setFalse->older;
+						setFalse->active= false;
+					}
 					break;
-				parento= wr;
+				}
 				wr= wr->older;
 			}
-			wr= parento;
 			if(	wr->active == false
 				&&
 				wr->older != NULL
@@ -1102,7 +1612,6 @@ namespace ports
 				*newOlder= true;
 			}
 		}
-		wr->active= true;
 		if(wr->dbwrite == "all")
 			return tRv;
 		if(wr->dbwrite == "fractions") {
@@ -1176,6 +1685,7 @@ namespace ports
 				acttime >= wr->fraction->write	) {
 
 				wr->fraction->write= acttime + wr->fraction->dbafter;
+				tRv.highest.hightime= acttime;
 				return tRv;
 			}
 			tRv.action= "no";
@@ -1199,7 +1709,7 @@ namespace ports
 					||
 					wr->highest->nextwrite < acttime	)
 				{
-					Calendar::time_e unit(Calendar::seconds);
+					Calendar::time_e unit;
 
 					if(wr->highest->bValue)
 					{
@@ -1211,10 +1721,16 @@ namespace ports
 					}else
 						tRv.action= "no";
 
-					if(wr->highest->t == 'h')
+					if(wr->highest->t == 's')
+						unit= Calendar::seconds;
+					else if(wr->highest->t == 'm')
+						unit= Calendar::minutes;
+					else if(wr->highest->t == 'h')
 						unit= Calendar::hours;
 					else if(wr->highest->t == 'D')
 						unit= Calendar::days;
+					else if(wr->highest->t == 'W')
+						unit= Calendar::weeks;
 					else if(wr->highest->t == 'M')
 						unit= Calendar::months;
 					else if(wr->highest->t == 'Y')
@@ -1223,8 +1739,10 @@ namespace ports
 					{
 						string msg(&wr->highest->t);
 
-						msg= "undefined highest t time unit '" + msg + "' for calendar";
-						TIMELOG(LOG_ALERT, "highest_t_time_units", msg);
+						msg= "undefined highest t time unit '" + msg + "' for calendar\nset older calculation to one year";
+						TIMELOG(LOG_ALERT, "highest_t_time_units"+string(&wr->highest->t), msg);
+						unit= Calendar::years;
+						wr->highest->between= 1;
 					}
 					wr->highest->nextwrite= Calendar::calcDate(/*newer*/true, acttime, wr->highest->between, unit);
 					wr->highest->bValue= true;

@@ -28,10 +28,13 @@
 #include "../../pattern/util/IPPIDatabasePattern.h"
 #include "../../pattern/util/IChipConfigReaderPattern.h"
 
-#include "../../util/structures.h"
 #include "../../util/debug.h"
+#include "../../util/smart_ptr.h"
+#include "../../util/structures.h"
 #include "../../util/URL.h"
 #include "../../util/thread/Thread.h"
+
+#include "DatabaseThinning.h"
 
 using namespace std;
 using namespace design_pattern_world;
@@ -269,7 +272,7 @@ namespace ppi_database
 		 */
 		IChipConfigReaderPattern* m_pChipReader;
 		/**
-		 * working directory
+		 * working directory for database
 		 */
 		string m_sWorkDir;
 		/**
@@ -342,26 +345,10 @@ namespace ppi_database
 		 */
 		map<string, map<string, map<string, db_t> > > m_mCurrent;
 		/**
-		 * current file for thin database
-		 */
-		string m_sThinFile;
-		/**
 		 * variable is set if the database file cannot write.<br />
 		 * The base of case is to write the errormessage only on one time.
 		 */
 		bool m_bError;
-		/**
-		 * wait this seconds on condition before read older db files to thin
-		 */
-		unsigned short m_nCondWait;
-		/**
-		 * to thin older db files read always this count of rows before wait again in condition for new db entrys
-		 */
-		unsigned int m_nReadRows;
-		/**
-		 * how much byte read from file to thin
-		 */
-		ostream::pos_type m_nReadPos;
 		/**
 		 * write after MB an new database file
 		 */
@@ -379,10 +366,6 @@ namespace ppi_database
 		 * whether any value is changed in database
 		 */
 		bool m_bAnyChanged;
-		/**
-		 * map of all filenames with the time to thin
-		 */
-		map<string, time_t> m_mOldest;
 		/**
 		 * all subroutines witch need new content of any chips.<br/>
 		 * saving in map<onServer, map<chip, map<folder, set<subroutine> > > >
@@ -408,6 +391,10 @@ namespace ppi_database
 		 * actual reading block
 		 */
 		vector<vector<db_t> >::size_type m_nReadBlock;
+		/**
+		 * object to thinning database files
+		 */
+		std::auto_ptr<DatabaseThinning> m_oDbThinning;
 
 		/**
 		 * write entrys into database with asking bevore DefaultChipConfigReader whether is allowed
@@ -435,26 +422,11 @@ namespace ppi_database
 		 */
 		void writeEntry(const db_t& entry, ofstream &dbfile);
 		/**
-		 * comb through database to kill older not needed entry's
-		 *
-		 * @param ask whether call is only for asking
-		 * @return whether need to comb through again
-		 */
-		bool thinDatabase(const bool ask);
-		/**
-		 * calculate the new time which should thin the database files again.
-		 *
-		 * @param fromtime the time from which should calculated
-		 * @param older pointer to older structure
-		 */
-		void calcNewThinTime(time_t fromtime, const SHAREDPTR::shared_ptr<otime_t> &older);
-		/**
 		 * asking for cached entrys
 		 *
-		 * @param bWait wait for condition DBENTRYITEMSCOND if nothing to write
 		 * @return vector of db_t entrys structures
 		 */
-		std::auto_ptr<vector<db_t> > getDbEntryVector(bool bWait);
+		std::auto_ptr<vector<db_t> > getDbEntryVector();
 		/**
 		 * searching in given directory for the latest
 		 * file which beginning with filter, date

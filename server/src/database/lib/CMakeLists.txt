@@ -1,6 +1,7 @@
         		
 set(databaseLibSrcs	DatabaseFactory.cpp
-					Database.cpp	)
+					Database.cpp
+					DatabaseThinning.cpp	)
    
 add_library(ppidb ${libraries} ${databaseLibSrcs})
 target_link_libraries(ppidb ppistreamutil ppithreadutil ppipattern)

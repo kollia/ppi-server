@@ -916,15 +916,17 @@ namespace ppi_database
 
 	DbInterface::chips_t DbInterface::getRegisteredDefaultChip(const string& server, const string& chip)
 	{
-		return getRegisteredDefaultChipA(false, server, "", "", chip);
+		return getRegisteredDefaultChipA(false, server, "", "", chip, "");
 	}
 
-	DbInterface::chips_t DbInterface::getRegisteredDefaultChip(const string& server, const string& family, const string& type, const string& chip)
+	DbInterface::chips_t DbInterface::getRegisteredDefaultChip(const string& server, const string& family,
+																const string& type, const string& chip, const string& pin)
 	{
-		return getRegisteredDefaultChipA(true, server, family, type, chip);
+		return getRegisteredDefaultChipA(true, server, family, type, chip, pin);
 	}
 
-	DbInterface::chips_t DbInterface::getRegisteredDefaultChipA(bool bAll, const string& server, const string& family, const string& type, const string& chip)
+	DbInterface::chips_t DbInterface::getRegisteredDefaultChipA(bool bAll, const string& server, const string& family,
+																	const string& type, const string& chip, const string& pin)
 	{
 		int err;
 		chips_t tRv;
@@ -932,7 +934,7 @@ namespace ppi_database
 		string sRv;
 		string method("getRegisteredDefaultChip");
 		if(bAll)
-			method+= "4";
+			method+= "5";
 		else
 			method+= "2";
 		OMethodStringStream command(method);
@@ -944,6 +946,8 @@ namespace ppi_database
 			command << type;
 		}
 		command << chip;
+		if(bAll)
+			command << pin;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)

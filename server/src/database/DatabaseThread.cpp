@@ -48,10 +48,19 @@ DatabaseThread::DatabaseThread(string dbDir, string confDir, IPropertyPattern* p
 :	Thread("database", defaultSleep, false),
  	m_bDbLoaded(false)
 {
+	bool bUseRegex;
+	string res;
 	IChipConfigReaderPattern* reader;
 
+	bUseRegex= false;
+	res= properties->getValue("usefsdefault_regex");
+	if(	res == "true" ||
+		res == "TRUE"		)
+	{
+		bUseRegex= true;
+	}
 	// initial configuration path to reading default configuration for any chips
-	DefaultChipConfigReader::init(confDir);
+	DefaultChipConfigReader::init(confDir, bUseRegex);
 	reader= DefaultChipConfigReader::instance();
 	m_pDatabase= DatabaseFactory::getChoosenDatabase(properties, reader);
 	m_DBLOADED= getMutex("DBLOADED");

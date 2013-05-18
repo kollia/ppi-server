@@ -38,6 +38,10 @@ namespace design_pattern_world
 	struct db_t
 	{
 		/**
+		 * host on which measureing be done
+		 */
+		string measureHost;
+		/**
 		 * time of insert
 		 */
 		time_t tm;

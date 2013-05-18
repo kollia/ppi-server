@@ -49,8 +49,9 @@ namespace ports
 		 * create single instance of DefaultChipConfigReader
 		 *
 		 * @param path path where the config files be found
+		 * @param bUseRegex whether should use regex searching for default folders or subroutines
 		 */
-		static void init(const string& path);
+		static void init(const string& path, bool bUseRegex);
 		/**
 		 * method get and or create singelton object of DefaultChipConfigReader
 		 *
@@ -103,9 +104,11 @@ namespace ports
 		 * @param bFloat whether the value in the subroutine can be an floating point variable
 		 * @param folder name of folder
 		 * @param subroutine name of subroutine
+		 * @param internChipID internal chip ID for existing default chips
 		 * @return default values with defined older_t structure
 		 */
-		const defValues_t getDefaultValues(const double min, const double max, const bool bFloat, const string& folder= "", const string& subroutine= "") const;
+		const defValues_t getDefaultValues(const double min, const double max, const bool bFloat,
+											string folder= "", string subroutine= "", unsigned int internChipID= 0) const;
 		/**
 		 * return the defined default cache from default.conf.<br />
 		 * folder and subroutine set not be, or else both.<br />
@@ -148,8 +151,7 @@ namespace ports
 		 * @param type specified type of chip
 		 * @param chip unique id of chip
 		 */
-		const chips_t* getRegisteredDefaultChip(const string& server,
-						const string& family, const string& type, const string& chip) const;
+		const chips_t* getRegisteredDefaultChip(string server, string family, string type, string chip, string pin) const;
 		/**
 		 * return an older structure from the chip defined with folder and subroutine
 		 * which last older is active. By this older structure, active flag will be set to false.
@@ -209,6 +211,10 @@ namespace ports
 		 */
 		static DefaultChipConfigReader* _instance;
 		/**
+		 * whether should use regex searching for default folders or subroutines
+		 */
+		bool m_bUseRegex;
+		/**
 		 * path where the configuration files all be found
 		 */
 		string m_sPath;
@@ -217,10 +223,14 @@ namespace ports
 		 */
 		bool m_bChipsDef;
 		/**
-		 * map of all older structure from default.conf
-		 * splits in folder > subroutine > range > float value > older strutures otime_t
+		 * intern chip id
 		 */
-		map<string, map<string, map<double , map<bool, defValues_t> > > > m_mmmmDefaultValues;
+		unsigned int m_nInternChip;
+		/**
+		 * map of all older structure from default.conf
+		 * splits in folder > subroutine > range > float value > older structures otime_t
+		 */
+		map<unsigned int, map<string, map<string, map<double , map<bool, defValues_t> > > > > m_mmmmDefaultValues;
 		/**
 		 * map of all defined chips splits with server > family-id > type  > chip-id > pin > dbwriting-structure t_chips
 		 */
@@ -243,10 +253,15 @@ namespace ports
 
 		/**
 		 * constructor of object to first define
+		 *
+		 * @param path path where the config files be found
+		 * @param bUseRegex whether should use regex searching for default folders or subroutines
 		 */
-		DefaultChipConfigReader(const string& path)
-		:	m_sPath(path),
-			m_bChipsDef(false)
+		DefaultChipConfigReader(const string& path, bool bUseRegex)
+		:	m_bUseRegex(bUseRegex),
+		 	m_sPath(path),
+			m_bChipsDef(false),
+			m_nInternChip(0)
 			{ initialDefault(); };
 		/**
 		 * initial the default.conf for all chips how long be writing
@@ -257,30 +272,23 @@ namespace ports
 		 * save chip in map of all chips
 		 *
 		 * @param chip structure of chip witch should save
-		 * @param server name of server
-		 * @param family specified family code of chip
-		 * @param type specified type of chip
-		 * @param chip unique id of chip
-		 * @param pin witch pin inside the chip is used
+		 * @return intern chip ID
 		 */
-		void saveChip(chips_t chip, const string& server, const string& family, const string& type, const string& ID, const string& pin);
+		unsigned int saveChip(chips_t chip);
 		/**
 		 * read Section in properties
 		 *
-		 * @param server name of current server
-		 * @param property actual section
-		 * @param bDefault whether reading is only for the default.conf
+		 * @param property property of actual section
+		 * @param chip structure of reading chip, where should be by first call initialed with NULL values
 		 */
-		void readSection(string server, IInterlacedPropertyPattern *property, const bool bDefault);
+		void readSection(IInterlacedPropertyPattern *property, chips_t chip);
 		/**
 		 * read the older part's for section
 		 *
-		 * @param property actual section
-		 * @param first whether the older section is the first, the method duplicate the section,
-		 * 				because the first is for normally reading and all other to thin database
+		 * @param property properties from actual section
 		 * @return older part
 		 */
-		SHAREDPTR::shared_ptr<otime_t> readOlderSection(IInterlacedPropertyPattern* property, const bool first);
+		SHAREDPTR::shared_ptr<otime_t> readOlderSection(IInterlacedPropertyPattern* property);
 		/**
 		 * copy the given older structure into an new one
 		 *
@@ -297,9 +305,12 @@ namespace ports
 		 * @param min minimal value of range
 		 * @param max maximal value of range
 		 * @param bFloat whether value can be an floating value
+		 * @param internChipID internal chip ID for existing default chips
 		 * @return new older structure
 		 */
-		SHAREDPTR::shared_ptr<otime_t> getNewDefaultChipOlder(const string& folder, const string& subroutine, const double min, const double max, const bool bFloat) const;
+		SHAREDPTR::shared_ptr<otime_t> getNewDefaultChipOlder(const string& folder, const string& subroutine,
+																const double min, const double max, const bool bFloat,
+																const unsigned int internChipID= 0) const;
 	};
 
 }

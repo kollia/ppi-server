@@ -234,7 +234,7 @@ namespace ports
 		short steps= 1;// default step
 		double cachetime, dmin, dmax;
 		string folder, chipID, ID, path, pin, smin, smax;
-		string sprop;
+		string sprop, realID(unique);
 
 		kernelmode= 0;
 		DbInterface::chips_t defaultChip;
@@ -288,7 +288,7 @@ namespace ports
 			return 0;
 		}
 		ptchip= chipIt->second;
-		defaultChip= defaultChipReader->getRegisteredDefaultChip(m_sServerIdentif, ptchip->family, ptchip->type, ID);
+		defaultChip= defaultChipReader->getRegisteredDefaultChip(m_sServerIdentif, ptchip->family, ptchip->type, ID, pin);
 		//defaultChip= defaultChipReader->getDefaultChip(getServerName(), ID);
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// seting typical chip behavior
@@ -502,7 +502,7 @@ namespace ports
 			ptchip->pins[pin]= ptpin;
 		foundChip(getChipID(unique));
 		//cout << "regist chip inside method useChip from maximchipaccess" << endl;
-		defaultChipReader->registerChip(m_sServerIdentif, unique, pin, ptchip->type, ptchip->family);
+		defaultChipReader->registerChip(m_sServerIdentif, realID, pin, ptchip->type, ptchip->family);
 		//cout << "for server " << getServerName() << " id " << unique << " pin " << pin << " type " << ptchip->type << " family code " << ptchip->family << endl;
 		if(read)
 			return 1;

@@ -59,7 +59,6 @@ namespace ppi_database
 
 		m_bError= false;
 		m_bDbStop= false;
-		m_nCondWait= -1;
 		m_sConfigureLevel= "NONE";
 		prop= "newdbafter";
 		newdbafter= (float)properties->getDouble(prop);
@@ -70,14 +69,6 @@ namespace ppi_database
 			m_sMeasureName= "noHostDefined";
 		else
 			m_sMeasureName= *pHostN;
-		prop= "waitnewentry";
-		m_nCondWait= properties->getUShort(prop, /*warning*/false);
-		if(m_nCondWait == 0)
-			m_nCondWait= 5;
-		prop= "tothindbfilerows";
-		m_nReadRows= properties->getUInt(prop, /*warning*/false);
-		if(m_nReadRows == 0)
-			m_nReadRows= 100;
 		m_sptEntrys= auto_ptr<vector<db_t> >(new vector<db_t>());
 		m_SERVERSTARTINGMUTEX= Thread::getMutex("SERVERSTARTINGMUTEX");
 		m_DBENTRYITEMSCOND= Thread::getCondition("DBENTRYITEMSCOND");
@@ -96,6 +87,8 @@ namespace ppi_database
 		LOG(LOG_INFO, "Storage database " + m_sWorkDir);
 		m_pEndReading= NULL;
 		m_nReadBlock= 0;
+		m_oDbThinning= std::auto_ptr<DatabaseThinning>(new DatabaseThinning(m_sWorkDir, chipreader));
+		m_oDbThinning->start();
 	}
 
 	void Database::setServerConfigureStatus(const string& sProcess, const short& nPercent)
@@ -273,6 +266,7 @@ namespace ppi_database
 		}
 		line= "reading of database file " + m_sDbFile + " is finished";
 		LOG(LOG_INFO, line);
+		m_oDbThinning->startDatabaseThinning();
 
 //	for debugging write out current content of database before ending
 #if 0
@@ -470,6 +464,7 @@ namespace ppi_database
 		UNLOCK(m_DBMEASURECURVES);
 
 		dbFile.close();
+		m_oDbThinning->startDatabaseThinning();
 		return true;
 	}
 
@@ -487,6 +482,7 @@ namespace ppi_database
 		entry.device= true;
 		if(count > 0)
 		{
+			entry.measureHost= columns[0];
 			if(strptime(columns[1].c_str(), "%Y%m%d:%H%M%S", &entryTime) == NULL)
 				entry.tm= 0;
 			else
@@ -1318,371 +1314,6 @@ namespace ppi_database
 		dbfile << endl;
 	}
 
-	bool Database::thinDatabase(const bool ask)
-	{
-		int filecount, nextcount, count;
-		db_t entry;
-		time_t acttime;
-		map<string, string> files, thinfiles;
-		ofstream writeHandler;
-		map<string, time_t>::iterator fileparsed;
-
-		if(!m_pChipReader->chipsAreDefined())
-			return true;
-		if(	ask
-			&&
-			m_sThinFile != ""	)
-		{
-			return true;
-		}
-		if(m_sThinFile == "")
-		{ // search for the next to thin file
-
-			m_nReadPos= 0;
-			files= URL::readDirectory(m_sWorkDir, "entrys_", ".dat");
-			filecount= files.size();
-			nextcount= m_mOldest.size();
-			if(ask)
-			{
-				if((filecount - 1) != nextcount)
-					return true;
-			}
-			if((filecount - 1) != nextcount)
-			{
-				count= 0;
-				for(map<string, string>::iterator it= files.begin(); it != files.end(); ++it)
-				{
-					++count;
-					fileparsed= m_mOldest.find(it->second.substr(0, 21));
-					if(fileparsed == m_mOldest.end())
-					{
-						m_sThinFile= it->second.substr(0, 21);
-						m_mOldest[m_sThinFile]= 0;
-						// do not thin database if it is the last file
-						if(count == filecount)
-							return false;
-						if(ask)
-							return true;
-						break;
-					}
-				}
-			}
-			if(m_sThinFile == "")
-			{
-				time(&acttime);
-				for(fileparsed= m_mOldest.begin(); fileparsed != m_mOldest.end(); ++fileparsed)
-				{
-					if(acttime >= fileparsed->second)
-					{
-						m_sThinFile= fileparsed->first;
-						fileparsed->second= 0;
-						break;
-					}
-				}
-				if(m_sThinFile == "")
-					return false;
-				if(ask == true)
-					return true;
-			}
-			m_mOldest[m_sThinFile]= 0;
-		}
-
-
-		bool newOrder;
-		unsigned int nCountF= 0;
-		unsigned int lcount= 0;
-		string line;
-		string readName(URL::addPath(m_sWorkDir, m_sThinFile + ".dat"));
-		string writeName(URL::addPath(m_sWorkDir, m_sThinFile + ".new"));
-		string doneName(URL::addPath(m_sWorkDir, m_sThinFile + ".done"));
-		ifstream file(readName.c_str());
-		write_t write;
-		SHAREDPTR::shared_ptr<otime_t> older;
-
-		if(file.is_open())
-		{
-			file.seekg(m_nReadPos);
-			while(getline(file, line))
-			{
-				++nCountF;
-				//cout << "line: " << line << endl;
-				entry= splitDbLine(line);
-				if(entry.identif == "value")
-				{
-					write.action= "no";
-
-					for(vector<double>::iterator v= entry.values.begin(); v != entry.values.end(); ++v)
-					{
-						write= m_pChipReader->allowDbWriting(entry.folder, entry.subroutine, *v, entry.tm, &newOrder);
-						if(write.action != "no")
-						{
-							if(newOrder)
-							{
-								older= m_pChipReader->getLastActiveOlder(entry.folder, entry.subroutine, /*nonactive*/true);
-								if(older)
-								{
-									db_t wolder;
-
-									if(!writeHandler.is_open())
-									{
-										writeHandler.open(writeName.c_str(), ios::app);
-										if(writeHandler.fail())
-										{
-											string msg("### ERROR: cannot write new file '");
-
-											msg+= m_sThinFile + ".new'\n";
-											msg+= "    ERRNO: ";
-											msg+= strerror(errno);
-											cout << msg << endl;
-											TIMELOG(LOG_ALERT, "writenewfile", msg);
-											file.close();
-											return false;
-										}
-									}
-									wolder.device= true;
-									wolder.folder= entry.folder;
-									wolder.subroutine= entry.subroutine;
-									if(older->dbwrite == "fractions")
-									{
-										wolder.tm= older->fraction->deeptime;
-										wolder.values.push_back(older->fraction->deepvalue);
-										writeEntry(wolder, writeHandler);
-									}else if(older->dbwrite == "highest")
-									{
-										wolder.tm= older->highest->lowtime;
-										wolder.values.push_back(older->highest->lowest);
-										writeEntry(wolder, writeHandler);
-										wolder.tm= older->highest->hightime;
-										wolder.values.clear();
-										wolder.values.push_back(older->highest->highest);
-										writeEntry(wolder, writeHandler);
-									}
-									calcNewThinTime(wolder.tm, older);
-								}
-							}
-							break;
-						}
-					}
-					if(	write.action == "write"
-						||
-						write.action == "fractions"	)
-					{
-						if(!writeHandler.is_open())
-						{
-							writeHandler.open(writeName.c_str(), ios::app);
-							if(writeHandler.fail())
-							{
-								string msg("### ERROR: cannot write new file '");
-
-								msg+= m_sThinFile + ".new'\n";
-								msg+= "    ERRNO: ";
-								msg+= strerror(errno);
-								cout << msg << endl;
-								TIMELOG(LOG_ALERT, "writenewfile", msg);
-								file.close();
-								return false;
-							}
-						}
-						if(write.action == "fractions")
-						{
-							entry.values.clear();
-							entry.values.push_back(write.highest.highest);
-							entry.tm= write.highest.hightime;
-						}
-						writeEntry(entry, writeHandler);
-						older= m_pChipReader->getLastActiveOlder(entry.folder, entry.subroutine, /*nonactive*/false);
-						calcNewThinTime(entry.tm, older);
-
-					}else if (write.action == "highest")
-					{
-						if(writeHandler.is_open())
-						{
-							writeHandler.open(writeName.c_str(), ios::app);
-							if(writeHandler.fail())
-							{
-								string msg("### ERROR: cannot write new file '");
-
-								msg+= m_sThinFile + ".new'\n";
-								msg+= "    ERRNO: ";
-								msg+= strerror(errno);
-								cout << msg << endl;
-								TIMELOG(LOG_ALERT, "writenewfile", msg);
-								file.close();
-								return false;
-							}
-						}
-						entry.device= true;
-						entry.identif= "value";
-						entry.values.clear();
-						entry.values.push_back(write.highest.lowest);
-						entry.tm= write.highest.lowtime;
-						writeEntry(entry, writeHandler);
-						entry.values.clear();
-						entry.values.push_back(write.highest.highest);
-						entry.tm= write.highest.hightime;
-						writeEntry(entry, writeHandler);
-						older= m_pChipReader->getLastActiveOlder(entry.folder, entry.subroutine, /*nonactive*/false);
-						calcNewThinTime(entry.tm, older);
-					}
-				}else if(entry.identif == "access")
-				{
-					older= m_pChipReader->getLastActiveOlder(entry.folder, entry.subroutine, /*nonactive*/false);
-					if(	older
-						&&
-						older->more == 0	)
-					{
-						if(!writeHandler)
-						{
-							writeHandler.open(writeName.c_str(), ios::app);
-							if(writeHandler.fail())
-							{
-								string msg("### ERROR: cannot write new file '");
-
-								msg+= m_sThinFile + ".new'\n";
-								msg+= "    ERRNO: ";
-								msg+= strerror(errno);
-								cout << msg << endl;
-								TIMELOG(LOG_ALERT, "writenewfile", msg);
-								file.close();
-								return false;
-							}
-						}
-						writeEntry(entry, writeHandler);
-					}
-				}
-				if(nCountF == m_nReadRows)
-				{ // stop to thin after 50 rows to look for new db entrys
-					m_nReadPos= file.tellg();
-					if(writeHandler.is_open())
-						writeHandler.close();
-					file.close();
-					return true;
-				}
-			}
-
-			entry.device= true;
-			entry.identif= "value";
-			// read all entrys witch saved in any older structures
-			// and this value not saved in the files
-			do{
-				write= m_pChipReader->getLastValues(lcount, /*older*/true);
-				if(	write.action == "highest"
-					||
-					write.action == "fractions"	)
-				{
-					if(!writeHandler)
-					{
-						writeHandler.open(writeName.c_str(), ios::app);
-						if(writeHandler.fail())
-						{
-							string msg("### ERROR: cannot write new file '");
-
-							msg+= m_sThinFile + ".new'\n";
-							msg+= "    ERRNO: ";
-							msg+= strerror(errno);
-							cout << msg << endl;
-							TIMELOG(LOG_ALERT, "writenewfile", msg);
-							file.close();
-							return false;
-						}
-					}
-					entry.folder= write.folder;
-					entry.subroutine= write.subroutine;
-					entry.values.clear();
-					entry.values.push_back(write.highest.highest);
-					entry.tm= write.highest.hightime;
-					writeEntry(entry, writeHandler);
-					if(write.action == "highest")
-					{
-						entry.values.clear();
-						entry.values.push_back(write.highest.lowest);
-						entry.tm= write.highest.lowtime;
-						writeEntry(entry, writeHandler);
-					}
-					older= m_pChipReader->getLastActiveOlder(entry.folder, entry.subroutine, /*nonactive*/false);
-					calcNewThinTime(entry.tm, older);
-				}
-				++lcount;
-			}while(write.action != "kill");
-
-			newOrder= false;
-			file.close();
-			if(writeHandler.is_open())
-			{
-				writeHandler.close();
-				newOrder= true;
-			}else
-			{
-				files= URL::readDirectory(m_sWorkDir, writeName, "");
-				if(files.size() > 0)
-					newOrder= true;
-			}
-			if(newOrder)
-				rename(writeName.c_str(), doneName.c_str());
-			else
-				m_mOldest.erase(m_sThinFile);
-			unlink(readName.c_str());
-			if(newOrder)
-				rename(doneName.c_str(), readName.c_str());
-			m_sThinFile= "";
-		}else
-		{
-			string msg("### ERROR: cannot read file '");
-
-			msg+= readName + "'\n";
-			msg+= "    ERRNO: ";
-			msg+= strerror(errno);
-			cout << msg << endl;
-			TIMELOG(LOG_ERROR, "readdirectory", msg);
-			return false;
-		}
-		// maybe an next file is to thin
-		return true;
-	}
-
-	void Database::calcNewThinTime(time_t fromtime, const SHAREDPTR::shared_ptr<otime_t> &older)
-	{
-		SHAREDPTR::shared_ptr<otime_t> act;
-		time_t acttime, nextThin;
-		Calendar::time_e unit(Calendar::seconds);
-
-		act= older;
-		if(act.get())
-		{
-			if(act->older)
-				act= act->older;
-			time(&acttime);
-			if(act->unit == 'h')
-				unit= Calendar::hours;
-			else if(act->unit == 'D')
-				unit= Calendar::days;
-			else if(act->unit == 'M')
-				unit= Calendar::months;
-			else if(act->unit == 'Y')
-				unit= Calendar::years;
-			else
-			{
-				string msg(&act->unit);
-
-				msg= "undefined time unit '" + msg + "' for calendar";
-				TIMELOG(LOG_ALERT, "time_units", msg);
-			}
-			nextThin= Calendar::calcDate(/*newer*/true, fromtime, act->more, unit);
-			if(nextThin <= acttime)
-				nextThin= Calendar::calcDate(/*newer*/true, fromtime, (act->more + 1), unit);
-			if(nextThin > acttime)
-			{
-				acttime= m_mOldest[m_sThinFile];
-				if(	acttime == 0
-					||
-					acttime > nextThin	)
-				{
-					m_mOldest[m_sThinFile]= nextThin;
-				}
-			}
-		}
-	}
-
 	void Database::writeIntoDb(const string folder, const string subroutine)
 	{
 		db_t entry;
@@ -1724,37 +1355,27 @@ namespace ppi_database
 		UNLOCK(m_DBENTRYITEMS);
 	}
 
-	std::auto_ptr<vector<db_t> > Database::getDbEntryVector(bool bWait)
+	std::auto_ptr<vector<db_t> > Database::getDbEntryVector()
 	{
-		struct timespec time;
 		int conderror= 0;
 		std::auto_ptr<vector<db_t> > pRv(new vector<db_t>());
 
-		if(!bWait)
-		{
-			clock_gettime(CLOCK_REALTIME, &time);
-			time.tv_sec+= m_nCondWait;
-		}
 		do{
+			conderror= 0;
 			LOCK(m_DBENTRYITEMS);
 			if(m_sptEntrys->size() != 0)
 			{
 				pRv= m_sptEntrys;
 				m_sptEntrys= std::auto_ptr<vector<db_t> >(new vector<db_t>());
 
-			}else if(bWait) {
-				conderror= CONDITION(m_DBENTRYITEMSCOND, m_DBENTRYITEMS);
 			}else
-				conderror= TIMECONDITION(m_DBENTRYITEMSCOND, m_DBENTRYITEMS, &time);
+				conderror= CONDITION(m_DBENTRYITEMSCOND, m_DBENTRYITEMS);
 			UNLOCK(m_DBENTRYITEMS);
-			if(conderror == ETIMEDOUT)
-				break;
 			if(conderror)
 				usleep(500000);
 
-		}while(	pRv->size() == 0
-				&&
-				!stopping()	);
+		}while(	pRv->size() == 0 &&
+				!stopping()			);
 
 		return pRv;
 	}
@@ -1762,8 +1383,7 @@ namespace ppi_database
 	int Database::execute()
 	{
 		bool bNewValue;
-		static bool bWait= false;
-		std::auto_ptr<vector<db_t> > entrys= getDbEntryVector(bWait);
+		std::auto_ptr<vector<db_t> > entrys= getDbEntryVector();
 
 		if(entrys->size() > 0)
 		{
@@ -1799,10 +1419,7 @@ namespace ppi_database
 					}
 				}
 			}
-			if(bWait)
-				bWait= !thinDatabase(/*ask*/true);
-		}else
-			bWait= !thinDatabase(/*ask*/false);
+		}
 		createNewDbFile(/*check whether*/true);
 		return 0;
 	}
@@ -1812,6 +1429,7 @@ namespace ppi_database
 		LOCK(m_STOPDB);
 		m_bDbStop= true;
 		UNLOCK(m_STOPDB);
+		m_oDbThinning->stop(true);
 		LOCK(m_DBENTRYITEMS);
 		AROUSE(m_DBENTRYITEMSCOND);
 		AROUSEALL(m_CHANGINGPOOLCOND);
@@ -1830,7 +1448,7 @@ namespace ppi_database
 		{
 			entry.device= true;
 			entry.identif= "value";
-			// read all entrys witch saved in any first older structure
+			// read all entry's witch saved in any first older structure
 			// and this highest value not be saved in the file
 			do{
 				write= m_pChipReader->getLastValues(lcount, /*older*/false);
@@ -1859,7 +1477,7 @@ namespace ppi_database
 		{
 			string msg("### ERROR: cannot write into '");
 
-			msg+= m_sThinFile + ".new by ending application'\n";
+			msg+= m_sDbFile + " by ending application'\n";
 			msg+= "    ERRNO: ";
 			msg+= strerror(errno);
 			cout << msg << endl;

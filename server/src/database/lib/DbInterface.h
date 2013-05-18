@@ -396,7 +396,7 @@ namespace ppi_database
 		 * @param type specified type of chip
 		 * @param chip unique id of chip
 		 */
-		chips_t getRegisteredDefaultChip(const string& server, const string& family, const string& type, const string& chip);
+		chips_t getRegisteredDefaultChip(const string& server, const string& family, const string& type, const string& chip, const string& pin);
 		/**
 		 * return the defined default cache from default.conf.<br />
 		 * folder and subroutine set not be, or else both.<br />
@@ -511,7 +511,7 @@ namespace ppi_database
 		 * @param type specified type of chip
 		 * @param chip unique id of chip
 		 */
-		chips_t getRegisteredDefaultChipA(bool bAll, const string& server, const string& family, const string& type, const string& chip);
+		chips_t getRegisteredDefaultChipA(bool bAll, const string& server, const string& family, const string& type, const string& chip, const string& pin);
 
 	};
 

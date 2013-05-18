@@ -348,9 +348,9 @@ namespace server
 			bool bAll= false;
 			const chips_t* chip;
 			vector<double> errorcodes;
-			string server, family, type, schip;
+			string server, family, type, schip, pin;
 
-			if(method.substr(24, 1) == "4")
+			if(method.substr(24, 1) == "5")
 				bAll= true;
 			object >> server;
 			if(bAll)
@@ -360,7 +360,7 @@ namespace server
 			}
 			object >> schip;
 			if(bAll)
-				chip= reader->getRegisteredDefaultChip(server, family, type, schip);
+				chip= reader->getRegisteredDefaultChip(server, family, type, schip, pin);
 			else
 				chip= reader->getRegisteredDefaultChip(server, schip);
 			if(chip != NULL)
