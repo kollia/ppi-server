@@ -51,7 +51,7 @@ pthread_mutex_t g_READMUTEX;
 map<pthread_mutex_t*, mutexnames_t> g_mMutex;
 map<pthread_cond_t*, string> g_mCondition;
 
-Thread::Thread(const string& threadName, useconds_t defaultSleep, bool waitInit)
+Thread::Thread(const string& threadName, bool waitInit)
 {
 	m_nThreadId= 0;
 	m_nPosixThreadID= 0;
@@ -61,7 +61,6 @@ Thread::Thread(const string& threadName, useconds_t defaultSleep, bool waitInit)
 	m_eErrorType= NONE;
 	m_nErrorCode= 0;
 	m_sThreadName= threadName;
-	m_nDefaultSleep= defaultSleep;
 	m_bWaitInit= waitInit;
 	m_RUNTHREAD= getMutex("RUNTHREAD");
 	m_THREADNAME= getMutex("THREADNAME");

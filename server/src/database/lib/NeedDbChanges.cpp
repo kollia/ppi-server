@@ -22,7 +22,7 @@ namespace ppi_database {
 NeedDbChanges* NeedDbChanges::_instance= NULL;
 
 NeedDbChanges::NeedDbChanges(const string& process, IClientConnectArtPattern* connection, const bool bWait)
-:	Thread("NeedChangesObject", 0, bWait),
+:	Thread("NeedChangesObject", bWait),
 	m_sProcess(process),
 	m_oConnection(connection),
 	m_oDb(NULL),

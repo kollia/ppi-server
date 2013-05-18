@@ -38,7 +38,7 @@ public:
 	 * @param getConnection on which connection from outside the server is reachable to get questions
 	 */
 	ProcessChecker(IClientConnectArtPattern* sendConnection, IClientConnectArtPattern* getConnection, const unsigned short nExistOW)
-	:	Thread("ProcessChecker", 0, true),
+	:	Thread("ProcessChecker", true),
 		ExternClientInputTemplate("ppi-server", "ProcessChecker", sendConnection, getConnection),
 		m_nEndPos(0),
 		m_nExistOW(nExistOW)

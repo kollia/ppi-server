@@ -116,11 +116,10 @@ class Thread :	public virtual IThreadPattern,
 		/**
 		 * creating instance of thread
 		 *
-		 * @param threadName Name of thread to identify in logmessages
-		 * @param defaultSleep sleeping for default time in microseconds
+		 * @param threadName Name of thread to identify in log messages
 		 * @param waitInit if flag is true (default), starting thread waiting until this thread initial with method init()
 		 */
-		Thread(const string& threadName, useconds_t defaultSleep, bool waitInit= true);
+		Thread(const string& threadName, bool waitInit= true);
 		/**
 		 * start method to running the thread paralell
 		 *
@@ -566,15 +565,6 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		virtual int execute()=0;
 		/**
-		 * sleep an default microseconds time.<br />
-		 * Some older computer needs to much cpu time if an thread running
-		 * all the time. This waiting time can be set in the constructor of this class.<br />
-		 * The extended classes can so define an sleeping time on the right position
-		 * with this protected method.
-		 */
-		void sleepDefaultTime()
-		{ usleep(m_nDefaultSleep); };
-		/**
 		 * abstract method to ending the thread.<br />
 		 * This method will be called if any other or own thread
 		 * calling method stop().
@@ -627,14 +617,6 @@ class Thread :	public virtual IThreadPattern,
 		 * elsewhere 0
 		 */
 		int m_nErrorCode;
-		/**
-		 * default sleep time in microseconds.<br />
-		 * Some older computer needs to much cpu time if an thread running
-		 * all the time. This time can be set in the constructor of this class.<br />
-		 * The extended classes can so define an sleeping time on the right position
-		 * with the protected method sleepDefaultTime().
-		 */
-		useconds_t m_nDefaultSleep;
 		/**
 		 * specificed name of thread in constructor
 		 */

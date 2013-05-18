@@ -184,7 +184,6 @@ namespace ports
 
 	bool LircClient::existID(const string type, string ID) const
 	{
-		bool bfound= false;
 		vector<string>::const_iterator found;
 
 		if(type != "LIRC")
@@ -193,10 +192,7 @@ namespace ports
 		{
 			found= find(it->second.begin(), it->second.end(), ID);
 			if(found != it->second.end())
-			{
-				bfound= true;
 				break;
-			}
 		}
 		return true;
 	}

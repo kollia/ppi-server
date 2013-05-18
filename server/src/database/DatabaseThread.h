@@ -52,18 +52,15 @@ namespace ppi_database
 		using Thread::stop;
 
 		/**
-		 * instanciate class of database
+		 * Instantiate class of database
 		 *
 		 * @param dbDir working directory of database where write the files
 		 * @param confDir path of configuration files for default chips settings
-		 * @param measureName setting measure-name in file mesure.conf
-		 * @param mbyte write after MB an new database file default(15)
-		 * @param defaultSleep sleeping for default time in microseconds default(0)
-		 * @return instance of database
+		 * @param properties defined properties from server.conf
 		 */
-		static void initial(string dbDir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep= 0);
+		static void initial(string dbDir, string confDir, IPropertyPattern* properties);
 		/**
-		 * return object of daatabase
+		 * return object of database
 		 *
 		 * @return database object
 		 */
@@ -172,9 +169,8 @@ namespace ppi_database
 		 * @param confDir path of configuration files for default chips settings
 		 * @param measureName setting measure-name in file mesure.conf
 		 * @param mbyte write after MB an new database file
-		 * @param defaultSleep sleeping for default time in microseconds
 		 */
-		DatabaseThread(string dbdir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep);
+		DatabaseThread(string dbdir, string confDir, IPropertyPattern* properties);
 		/**
 		 * destruct of Database
 		 */

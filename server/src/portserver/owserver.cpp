@@ -41,7 +41,7 @@ using namespace ppi_database;
 namespace server
 {
 	OWServer::OWServer(const unsigned short ID, const string& type, IChipAccessPattern* accessPattern)
-	:	Thread("OwfsServer", /*defaultSleep*/0, /*wait for init*/false),
+	:	Thread("OwfsServer", /*wait for init*/false),
 		m_nServerID(ID),
 		m_sServerType(type),
 		m_bConnected(false),

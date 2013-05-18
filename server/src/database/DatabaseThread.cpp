@@ -44,8 +44,8 @@ namespace ppi_database
 
 DatabaseThread* DatabaseThread::_instance= NULL;
 
-DatabaseThread::DatabaseThread(string dbDir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep)
-:	Thread("database", defaultSleep, false),
+DatabaseThread::DatabaseThread(string dbDir, string confDir, IPropertyPattern* properties)
+:	Thread("database", false),
  	m_bDbLoaded(false)
 {
 	bool bUseRegex;
@@ -67,11 +67,11 @@ DatabaseThread::DatabaseThread(string dbDir, string confDir, IPropertyPattern* p
 
 }
 
-void DatabaseThread::initial(string workDir, string confDir, IPropertyPattern* properties, useconds_t defaultSleep)
+void DatabaseThread::initial(string workDir, string confDir, IPropertyPattern* properties)
 {
 	if(_instance == NULL)
 	{
-		_instance= new DatabaseThread(workDir, confDir, properties, defaultSleep);
+		_instance= new DatabaseThread(workDir, confDir, properties);
 		_instance->start(NULL, false);
 	}
 }

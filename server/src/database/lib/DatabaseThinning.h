@@ -41,7 +41,7 @@ namespace ppi_database
 		 * @param pChipReader DefaultChipConfigReader to define whether write value into new thinned database file
 		 */
 		DatabaseThinning(const string& sWorkDir, IChipConfigReaderPattern* pChipReader)
-		: Thread("DatabaseThinning", 0, false),
+		: Thread("DatabaseThinning", false),
 		  m_THINNINGMUTEX(getMutex("THINNINGMUTEX")),
 		  m_THINNINGWAITCONDITION(getCondition("THINNINGWAITCONDITION")),
 		  m_sWorkDir(sWorkDir),

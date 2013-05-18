@@ -122,7 +122,6 @@ namespace server
 		{
 			bAllFilled= fillCommunicationThreads();
 			checkThreads(m_poFirstCommunication);
-			sleepDefaultTime();
 			if(bAllFilled)
 			{
 				LOCK(m_NEXTCOMMUNICATION);

@@ -201,7 +201,6 @@ auto_ptr<vector<log_t> > LogThread::getLogVector()
 	auto_ptr<vector<struct log_t> > vtRv;
 
 	do{
-		sleepDefaultTime();
 		LOCK(m_READLOGMESSAGES);
 		if(m_pvtLogs->size() != 0)
 		{
