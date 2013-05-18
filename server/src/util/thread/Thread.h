@@ -456,10 +456,10 @@ class Thread :	public virtual IThreadPattern,
    		 * @param cond pointer to condition
    		 * @param mutex pointer to mutex in witch he should wait
    		 * @param sec how much seconds the method maximal should wait if set
-   		 * @param absolute if time be set, this parameter define whether the time is relative or absolute (default:false)
+   		 * @param absolute if time be set, this parameter define whether the time is relative or absolute (default:true)
    		 * @return 0 if successful, ETIMEDOUT if end of time reached, otherwise an error occured
    		 */
-   		static int conditionWait(string file, int line, pthread_cond_t* cond, pthread_mutex_t* mutex, const time_t sec, const bool absolute= false);
+   		static int conditionWait(string file, int line, pthread_cond_t* cond, pthread_mutex_t* mutex, const time_t sec, const bool absolute= true);
    		/**
    		 * arose one or more threads which wating for given condition
    		 *
@@ -690,7 +690,7 @@ class Thread :	public virtual IThreadPattern,
 #define TRYLOCK(mutex) Thread::mutex_trylock(__FILE__, __LINE__, mutex)
 #define UNLOCK(mutex) Thread::mutex_unlock(__FILE__, __LINE__, mutex)
 #define CONDITION(cond, mutex) Thread::conditionWait(__FILE__, __LINE__, cond, mutex)
-#define TIMECONDITION(cond, mutex, time) Thread::conditionWait(__FILE__, __LINE__, cond, mutex, time)
+#define TIMECONDITION(cond, mutex, time) Thread::conditionWait(__FILE__, __LINE__, cond, mutex, time, true)
 #define RELTIMECONDITION(cond, mutex, time) Thread::conditionWait(__FILE__, __LINE__, cond, mutex, time, false)
 #define AROUSE(cond) Thread::arouseCondition(__FILE__, __LINE__, cond)
 #define AROUSEALL(cond) Thread::arouseAllCondition(__FILE__, __LINE__, cond)

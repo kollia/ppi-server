@@ -253,13 +253,11 @@ void Thread::run()
 		m_bRun= true;
 		m_bInitialed= false;
 		UNLOCK(m_RUNTHREAD);
-		LOCK(m_STARTSTOPTHREAD);
 		try{
 			err= init(m_pArgs);
 
 		}catch(SignalException& ex)
 		{
-			UNLOCK(m_STARTSTOPTHREAD);
 			ex.addMessage("running init() method");
 			LOCK(m_ERRORCODES);
 			m_eErrorType= BASIC;
@@ -282,12 +280,15 @@ void Thread::run()
 			error+= thname;
 			error+= " cannot initial correctly";
 			LOG(LOG_ERROR, error);
+			LOCK(m_STARTSTOPTHREAD);
 			m_bStop= true;
+			UNLOCK(m_STARTSTOPTHREAD);
 			LOCK(m_RUNTHREAD);
 			m_bRun= false;
 			m_bInitialed= false;
 			UNLOCK(m_RUNTHREAD);
 		}
+		LOCK(m_STARTSTOPTHREAD);
 		AROUSE(m_STARTSTOPTHREADCOND);
 		UNLOCK(m_STARTSTOPTHREAD);
 		if(running())
