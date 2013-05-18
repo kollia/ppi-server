@@ -117,60 +117,39 @@ namespace ports
 		//cout << "use pin " << pin << endl;
 		if(id == "")
 			return -1;
-		if(	pin == "01"
-			||
-			pin == "02"
-			||
-			pin == "03"
-			||
-			pin == "04"
-			||
-			pin == "05"
-			||
-			pin == "06"
-			||
-			pin == "07"
-			||
-			pin == "08"
-			||
-			pin == "PWM1"
-			||
-			pin == "PWM2"
-			||
-			pin == "debounce1"
-			||
-			pin == "debounce2"
-			||
-			pin == "reset1"
-			||
-			pin == "reset2"		)
+		if(	pin.length() > 1 &&
+			(	(	(	pin.substr(0, 1) == "O" ||
+						pin.substr(0, 1) == "0"		) &&
+					(	pin.substr(1, 1) == "1" ||
+						pin.substr(1, 1) == "2" ||
+						pin.substr(1, 1) == "3" ||
+						pin.substr(1, 1) == "4" ||
+						pin.substr(1, 1) == "5" ||
+						pin.substr(1, 1) == "6" ||
+						pin.substr(1, 1) == "7" ||
+						pin.substr(1, 1) == "8"		) 	) ||
+				pin == "PWM1" ||
+				pin == "PWM2" ||
+				pin == "debounce1" ||
+				pin == "debounce2" ||
+				pin == "reset1" ||
+				pin == "reset2"		)						)
 		{
 			nRv= 2;
 			m_bUsed= true;
 
-		}else if(	(	pin.substr(0, 1) == "I"
-						&&
-						(	pin.substr(1, 1) == "1"
-							||
-							pin.substr(1, 1) == "2"
-							||
-							pin.substr(1, 1) == "3"
-							||
-							pin.substr(1, 1) == "4"
-							||
-							pin.substr(1, 1) == "5"	)	)
-					||
-					(	pin.substr(0, 1) == "A"
-						&&
-						(	pin.substr(1, 1) == "1"
-							||
-							pin.substr(1, 1) == "2"	)	)
-					||
-					(	pin.substr(0, 7) == "counter"
-						&&
-						(	pin.substr(7, 1) == "1"
-							||
-							pin.substr(7, 1) == "2"	)	)	)
+		}else if(	(	pin.substr(0, 1) == "I" &&
+						(	pin.substr(1, 1) == "1" ||
+							pin.substr(1, 1) == "2" ||
+							pin.substr(1, 1) == "3" ||
+							pin.substr(1, 1) == "4" ||
+							pin.substr(1, 1) == "5"		)	) ||
+					(	pin.substr(0, 1) == "A" &&
+						(	pin.substr(1, 1) == "1" ||
+							pin.substr(1, 1) == "2"		)	) ||
+					(	pin.substr(0, 7) == "counter" &&
+						(	pin.substr(7, 1) == "1" ||
+							pin.substr(7, 1) == "2"		)	)	)
 		{
 			nRv= 1;
 			m_bUsed= true;
@@ -232,12 +211,58 @@ namespace ports
 
 	void VellemannK8055::disconnect()
 	{
-		CloseDevice();
+		static bool failt= false;
+
+		if(m_bConnected)
+		{
+			try{
+				CloseDevice();
+				failt= false;
+			}catch(...)
+			{
+				ostringstream os;
+
+				os <<  "### ERROR: Could not disconnect k8055 (port:" << dec << m_nID << ")";
+				if(errno != 0)
+					   os << "\n    ERRNO(" << dec << errno << "): " << strerror(errno);
+				TIMELOG(LOG_ERROR, m_nID+"Vellemannk8055", os.str());
+				if(!failt)
+				{
+					cerr << os.str() << endl;
+					failt= true;
+				}
+			}
+			m_bConnected= false;
+		}
 	}
 
 	string VellemannK8055::getChipType(string ID)
 	{
-		return "Vellemann k8055 port";
+		string sRv("NONE");
+
+		if(	ID.length() > 2 &&
+			ID.substr(1, 1) == ":"	)
+		{ // when ID is unique ID change to pin
+			ID= ID.substr(2);
+		}
+
+		if(	ID.substr(0, 1) == "0" ||
+			ID.substr(0, 1) == "O"	)
+		{
+			sRv= "DIGOutput";
+		}else if(ID.substr(0, 1) == "I")
+			sRv= "DIGInput";
+		else if(ID.substr(0, 3) == "PWM")
+			sRv= "ANALOuput";
+		else if(ID.substr(0, 1) == "A")
+			sRv= "ANALInput";
+		else if(ID.substr(0, 7) == "counter")
+			sRv= "COUNTER";
+		else if(ID.substr(0, 8) == "debounce")
+			sRv= "DEBOUNCE";
+		else if(ID.substr(0, 5) == "reset")
+			sRv= "RESET";
+		return sRv;
 	}
 
 	//string VellemannK8055::getConstChipTypeID(const string ID) const
@@ -322,12 +347,19 @@ namespace ports
 			//portBase::printBin(&m_nDigitalOutput, 0);
 			binValue= 0x01; // pin is 01
 			if(pin == "02") binValue<<= 1; else
+				if(pin == "O2") binValue<<= 1; else
 			if(pin == "03") binValue<<= 2; else
+				if(pin == "O3") binValue<<= 2; else
 			if(pin == "04") binValue<<= 3; else
+				if(pin == "O4") binValue<<= 3; else
 			if(pin == "05") binValue<<= 4; else
+				if(pin == "O5") binValue<<= 4; else
 			if(pin == "06") binValue<<= 5; else
+				if(pin == "O6") binValue<<= 5; else
 			if(pin == "07") binValue<<= 6; else
-			if(pin == "08") binValue<<= 7;
+				if(pin == "O7") binValue<<= 6; else
+			if(pin == "08") binValue<<= 7; else
+				if(pin == "O8") binValue<<= 7;
 			if(value == 0)
 			{
 				binValue= ~binValue;
@@ -532,8 +564,13 @@ namespace ports
 
 	void VellemannK8055::range(const string id, double& min, double& max, bool &bfloat)
 	{
-		string pin(id.substr(2));
+		string pin(id);
 
+		if(	id.length() > 2 &&
+			id.substr(1, 1) == ":"	)
+		{
+			pin= id.substr(2);
+		}
 		bfloat= false;
 		min= 0;
 		if(pin.substr(0, 7) == "counter")
