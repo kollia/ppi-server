@@ -20,6 +20,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <exception>
 
 #include <boost/algorithm/string/split.hpp>
 
@@ -369,6 +370,17 @@ int main(int argc, char* argv[])
 		cerr << endl << endl << msg << endl << endl;
 		LOG(LOG_ALERT, msg);
 		exit(EXIT_FAILURE);
+
+	}catch(std::exception &ex)
+	{
+		string msg;
+
+		msg= "get std exception by running OwServerQuestions object\n";
+		msg+= *ex.what() + "\n";
+		msg+= "so stopping hole aplication of owreader";
+		cerr << endl << endl << "### ERROR: " << msg << endl << endl;
+		LOG(LOG_ALERT, msg);
+		exit(EXIT_FAILURE);
 	}
 
 	LOG(LOG_INFO, "starting owreader object for extern interfaces\n\n" + output.str());
@@ -439,6 +451,16 @@ int main(int argc, char* argv[])
 						"so STOPPING one wire server from type " + servertype);
 		msg= ex.getTraceString();
 		cerr << endl << endl << msg << endl << endl;
+		LOG(LOG_ALERT, msg);
+
+	}catch(std::exception &ex)
+	{
+		string msg;
+
+		msg= "get std exception by running OwServerQuestions object\n";
+		msg+= "what(): " + string(ex.what()) + "\n";
+		msg+= "so stopping hole aplication of owreader";
+		cerr << endl << endl << "### ERROR: " << msg << endl << endl;
 		LOG(LOG_ALERT, msg);
 	}
 	owserver->stop();

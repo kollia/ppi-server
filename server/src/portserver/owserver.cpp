@@ -209,7 +209,7 @@ namespace server
 		bool read= false;
 		bool write;
 		bool cacheWrite;
-		bool writecacheWrite;
+		//bool writecacheWrite;
 		short res;
 		unsigned short kernelmode= 0;
 		unsigned int priority;
@@ -222,7 +222,7 @@ namespace server
 		prop= "priority";
 		priority= properties->getInt(prop, /*warning*/false);
 		cacheWrite= properties->haveAction("cache");
-		writecacheWrite= properties->haveAction("writecache");
+		//writecacheWrite= properties->haveAction("writecache");
 		prop= "cache";
 		dCacheSeq= properties->getDouble(prop, /*warning*/false);
 		read= properties->haveAction("read");
@@ -265,7 +265,7 @@ namespace server
 				pin= properties->getValue("pin");
 				type= m_poChipAccess->getChipType(pin);
 				reader= DbInterface::instance();
-				reader->registerChip(m_sServerType, unique, pin, type, "unknown", pmin, pmax, pfl);
+				reader->registerChip(m_sServerType, /*chip*/unique, pin, type, "unknown", pmin, pmax, pfl);
 			}
 			if(res == 0)
 				return 0;
@@ -391,10 +391,30 @@ namespace server
 			string err;
 
 			ex.addMessage("initialing chip " + unique + " inside " +  m_sServerType
-							+ "reader\nfor subroutine " + subroutine + " in folder " + folder);
+							+ " reader\nfor subroutine " + subroutine + " in folder " + folder);
 			err= ex.getTraceString();
 			cout << endl << err << endl;
 			LOG(LOG_ERROR, err);
+			return 0;
+		}catch(std::exception &ex)
+		{
+			string msg;
+
+			msg= "by initialing chip " + unique + " inside " +  m_sServerType
+					+ " reader\nfor subroutine " + subroutine + " in folder " + folder + "\n";
+			msg+= "throwing std exception: " + *ex.what();
+			cerr << endl << endl << "### ERROR: " << msg << endl << endl;
+			LOG(LOG_ERROR, msg);
+			return 0;
+		}catch(...)
+		{
+			string msg;
+
+			msg= "by initialing chip " + unique + " inside " +  m_sServerType
+					+ " reader\nfor subroutine " + subroutine + " in folder " + folder + "\n";
+			msg+= "throwing unknown exception";
+			cerr << endl << endl << "### ERROR: " << msg << endl << endl;
+			LOG(LOG_ERROR, msg);
 			return 0;
 		}
 
