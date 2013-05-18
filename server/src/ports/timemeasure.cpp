@@ -163,14 +163,12 @@ unsigned long TimeMeasure::getMeasuredTime()
 	unsigned nGetPin= tGet.nPin;
 	unsigned long mikroSleepTime= 0, msleeptime= 0;
 	struct itimerval time;
-	double correction;
 	vector<correction_t> vCorrection;
 
 	//setPin(m_tNegative, false);
 	//setPin(m_tOut, false);
 
 	unsigned res;
-	int nPrintPin;
 
 	time.it_interval.tv_sec= ITIMERSTARTSEC;
 	time.it_interval.tv_usec= 0;
@@ -181,10 +179,10 @@ unsigned long TimeMeasure::getMeasuredTime()
 		tout << "maximal calculating for " << m_maxMeasuredTime << " mikroseconds" << endl;
 		tout << "beginning status: ";
 		res= inb(nGetPort);
-		nPrintPin= (int)res;
+		//nPrintPin= (int)res;
 		//printBin(&nPrintPin, nGetPort);
 		tout << "wait for          ";
-		nPrintPin= (int)nGetPin;
+		//nPrintPin= (int)nGetPin;
 		//printBin(&nPrintPin, nGetPort);
 	}
 	lockApplication(true);
@@ -215,7 +213,7 @@ unsigned long TimeMeasure::getMeasuredTime()
 	if(isDebug())
 	{
 		tout << "result:           ";
-		nPrintPin= (int)res;
+		//nPrintPin= (int)res;
 		//printBin(&nPrintPin, nGetPort);
 	}
 	if(mikroSleepTime >= m_maxMeasuredTime)
@@ -254,8 +252,8 @@ unsigned long TimeMeasure::getMeasuredTime()
 		printf("correction:%.60lf\n", vCorrection[0].correction);
 		return (unsigned long)((double)msleeptime * vCorrection[0].correction);
 	}
-	correction= vCorrection[0].correction + (vCorrection[1].correction - vCorrection[0].correction) *
-				(msleeptime - vCorrection[0].nMikrosec) / (vCorrection[1].nMikrosec - vCorrection[0].nMikrosec);
+	//correction= vCorrection[0].correction + (vCorrection[1].correction - vCorrection[0].correction) *
+	//			(msleeptime - vCorrection[0].nMikrosec) / (vCorrection[1].nMikrosec - vCorrection[0].nMikrosec);
 #ifdef DEBUG
 	if(isDebug())
 	{

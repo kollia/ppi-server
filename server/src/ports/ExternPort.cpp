@@ -199,7 +199,6 @@ namespace ports
 
 	void ExternPort::registerSubroutine()
 	{
-		static bool registered= false;
 		DbInterface *reader;
 
 		/*if(registered)
@@ -209,7 +208,6 @@ namespace ports
 		//cout << "register " << m_sChipID << " on " << getFolderName() << ":" << getSubroutineName() << endl;
 		reader= DbInterface::instance();
 		reader->registerPortID(getFolderName(), getSubroutineName(), m_sServer, m_sChipID);
-		registered= true;
 	}
 
 	bool ExternPort::range(bool& bfloat, double* min, double* max)

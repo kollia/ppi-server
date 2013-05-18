@@ -1147,6 +1147,8 @@ bool LircSupport::createConfigLayoutFiles(const bool transmit, const int vertica
 	if(bwritten == false)
 		return false;
 	cout << endl;
+	if(ballwritten)
+		cout << "    [WARNING: not all remote configure files are written]" << endl;
 	cout << "  Pleas copy now the generated *.conf file(s) into the configuration sub folder (conf) of ppi-server" << endl;
 	cout << "  and also the corresponding *desktop files to the client directory of ppi-server." << endl;
 	if(forremote == "")

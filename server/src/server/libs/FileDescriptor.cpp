@@ -386,7 +386,6 @@ namespace server
 	{
 		const unsigned short nDo= 5;
 		static unsigned short count= 0;
-		bool waitWait;
 		string str;
 		string waitEnding;
 		string waitStr;
@@ -413,7 +412,6 @@ namespace server
 									// but there are also strings in the SendString queue
 		{							// send some times also strings from there
 			waitStr= m_sSendString;
-			waitWait= m_bWait;
 			waitEnding= m_sEndingString;
 			if(m_qsSendStrings.size())
 			{

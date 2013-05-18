@@ -1239,7 +1239,6 @@ void Starter::createFolderLists(set<string>& shellstarter)
 
 void Starter::configurePortObjects(bool bShowConf)
 {
-	bool bNewMeasure(false);
 	short nCount(0);
 	float nSubroutines(0);  // define nSubroutines as float, otherwise percent calculation can be fault
 	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
@@ -1322,13 +1321,11 @@ void Starter::configurePortObjects(bool bShowConf)
 					bool bFillCorr= false;
 					unsigned int nContent= aktualFolder->subroutines[n].resistor.size();
 					unsigned int nCorrection= aktualFolder->subroutines[n].correction.size();
-					unsigned long time;
 					TimeMeasure* port;
 
 					port= dynamic_cast<TimeMeasure*>(aktualFolder->subroutines[n].portClass.get());
 					if(aktualFolder->subroutines[n].measuredness == -1)
 					{
-						bNewMeasure= true;
 						measuredness= port->setNewMeasuredness(m_nMeasurednessCount, nDefaultSleep);
 						aktualFolder->subroutines[n].measuredness= measuredness;
 						//cout << "set measuredness to " << measuredness << endl;
@@ -1346,10 +1343,9 @@ void Starter::configurePortObjects(bool bShowConf)
 					}
 					if(bFillCorr)
 					{
-						correction_t correction= port->getNewCorrection(aktualFolder->subroutines[n].correction[nCorr],
+						port->getNewCorrection(aktualFolder->subroutines[n].correction[nCorr],
 																		*pvOhm, nDefaultSleep);
 
-						bNewMeasure= true;
 						//readFile(sMeasureFile, aktualFolder->subroutines[n].name, "correction", &correction);
 						cout << endl;
 						cout << "### ending on write mikroseconds from resistance in server.conf" << endl << endl;
@@ -1364,8 +1360,7 @@ void Starter::configurePortObjects(bool bShowConf)
 					}
 					if(bFillMikro)
 					{
-						bNewMeasure= true;
-						time= port->getNewMikroseconds(&aktualFolder->subroutines[n].resistor);
+						/*time=*/ port->getNewMikroseconds(&aktualFolder->subroutines[n].resistor);
 						//readFile(sMeasureFile, aktualFolder->subroutines[n].name, "OHM", &time);
 						cout << endl;
 						cout << "### ending on write mikroseconds from resistance in server.conf" << endl << endl;
@@ -2313,7 +2308,7 @@ bool Starter::status()
 
 	fclose(fp);
 	close(clientsocket);
-	return true;
+	return bOK;
 }
 
 bool Starter::stop(bool debug)

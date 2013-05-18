@@ -139,7 +139,6 @@ namespace ports
 
 	string ExternPorts::getServerDescription()
 	{
-		Pin epin;
 		string sRv("external COM/LPT Interface to ");
 
 		switch(m_eType)
@@ -621,6 +620,19 @@ namespace ports
 					res= ioperm(it->first, 8, 0);
 				else
 					res= ioperm(it->first, 16, 0); // toDo: this number 16 is maybe not correct for an LPT-interface
+				if(res)
+				{
+					string msg;
+
+					msg= "cannot disconnect from external ";
+					if(ePort == COM)
+						msg+= "COM ";
+					else
+						msg+= "LPT ";
+					msg+= "interface";
+					cout << "### WARNING: " << msg << endl;
+					LOG(LOG_WARNING, msg);
+				}
 			}
 		}
 	}
@@ -763,10 +775,10 @@ namespace ports
 			actPin|= tDo.nPin;
 		if(!tPin.bCacheWriting)
 		{
-			int pin;
+			//int pin;
 			unsigned long port;
 
-			pin= foundPin->second;
+			//pin= foundPin->second;
 			port= tDo.nPort + tDo.nAdd;
 			outb(actPin, port);
 		}
