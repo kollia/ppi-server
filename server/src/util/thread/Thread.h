@@ -118,8 +118,10 @@ class Thread :	public virtual IThreadPattern,
 		 *
 		 * @param threadName Name of thread to identify in log messages
 		 * @param waitInit if flag is true (default), starting thread waiting until this thread initial with method init()
+		 * @param policy thread policy for scheduling
+		 * @param priority new other scheduling priority for thread
 		 */
-		Thread(const string& threadName, bool waitInit= true);
+		Thread(const string& threadName, bool waitInit= true, const int policy= -1, const int priority= -9999);
 		/**
 		 * start method to running the thread paralell
 		 *
@@ -570,6 +572,13 @@ class Thread :	public virtual IThreadPattern,
 		 * calling method stop().
 		 */
 		virtual void ending()=0;
+		/**
+		 * set new scheduling priority and or policy
+		 *
+		 * @param policy thread policy for scheduling
+		 * @param priority scheduling priority
+		 */
+		bool setSchedulingParameter(int policy, int priority);
 
 
 
@@ -618,7 +627,15 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		int m_nErrorCode;
 		/**
-		 * specificed name of thread in constructor
+		 * scheduling policy of actual thread
+		 */
+		int m_nSchedPolicy;
+		/**
+		 * scheduling priority of actual thread
+		 */
+		int m_nSchedPriority;
+		/**
+		 * Specified name of thread in constructor
 		 */
 		string m_sThreadName;
 		/**
@@ -626,7 +643,7 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		pthread_mutex_t* m_RUNTHREAD;
 		/**
-		 * lock to get threadname
+		 * lock to get thread name
 		 */
 		pthread_mutex_t* m_THREADNAME;
 		/**
@@ -653,13 +670,13 @@ class Thread :	public virtual IThreadPattern,
 		/**
 		 * private copy constructor for not allowed copy
 		 *
-		 * @param x object for coppy
+		 * @param x object for copy
 		 */
 		Thread(const Thread& x);
 		/**
 		 * private assignment operator for not allowed allocation
 		 *
-		 * @param x opbject for assignment
+		 * @param x object for assignment
 		 * @return own object
 		 */
 		Thread& operator=(const Thread& x);

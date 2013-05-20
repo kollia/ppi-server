@@ -51,13 +51,15 @@ pthread_mutex_t g_READMUTEX;
 map<pthread_mutex_t*, mutexnames_t> g_mMutex;
 map<pthread_cond_t*, string> g_mCondition;
 
-Thread::Thread(const string& threadName, bool waitInit)
+Thread::Thread(const string& threadName, bool waitInit/*0 true*/, const int policy/*= -9*/, const int priority/*= 9999*/)
 {
 	m_nThreadId= 0;
 	m_nPosixThreadID= 0;
 	m_bRun= false;
 	m_bInitialed= false;
 	m_bStop= false;
+	m_nSchedPolicy= policy;
+	m_nSchedPriority= priority;
 	m_eErrorType= NONE;
 	m_nErrorCode= 0;
 	m_sThreadName= threadName;
@@ -101,7 +103,7 @@ int Thread::start(void *args, bool bHold)
 		UNLOCK(m_STARTSTOPTHREAD);
 		pthread_attr_init(&attr);
 		nRv= pthread_create (&m_nPosixThreadID, &attr, Thread::EntryPoint, this);
-
+		setSchedulingParameter(m_nSchedPolicy, m_nSchedPriority);
 		if(nRv != 0)
 		{
 			LOG(LOG_ALERT, "Error by creating thread " + threadName + "\n      -> does not start thread");
@@ -224,6 +226,119 @@ int Thread::start(void *args, bool bHold)
 	}
 	UNLOCK(m_ERRORCODES);
 	return getErrorCode();
+}
+
+bool Thread::setSchedulingParameter(int policy, int priority)
+{
+	int res, oldPolicy;
+	sched_param param;
+
+	res= pthread_getschedparam(m_nPosixThreadID, &oldPolicy, &param);
+	if(res)
+	{
+		ostringstream smsg2;
+		string msg1("cannot define current scheduling priority for thread ");
+		string msg2("unknown error return number ");
+
+		msg1+= getThreadName() + "\n";
+		if(res != ESRCH)
+		{
+			smsg2 << res;
+			msg2+= smsg2.str();
+
+		}else
+			msg2= "No thread for given ID could be found";
+		cerr << "### ALERT: " << msg1;
+		cerr << "           " << msg2 << endl;
+		LOG(LOG_ALERT, msg1 + msg2);
+		return false;
+	}
+	if(	(	policy != -1 &&
+			policy != oldPolicy	) ||
+		(	priority != -9999 &&
+			priority != param.sched_priority	)	)
+
+	{
+		if(policy == -1)
+			policy= oldPolicy;
+		m_nSchedPolicy= policy;
+		if(priority == -9999)
+			priority= param.sched_priority;
+		m_nSchedPriority= priority;
+		param.sched_priority= priority;
+		res= pthread_setschedparam(m_nPosixThreadID, policy, &param);
+		if(res)
+		{
+			int min, max;
+			ostringstream smsg2, smin, smax, opolicy;
+			string spolicy;
+			string msg1("cannot set new scheduling priority for thread ");
+			string msg2("unknon error return number ");
+
+			min= sched_get_priority_min(policy);
+			smin << min;
+			max= sched_get_priority_max(policy);
+			smax << max;
+			switch(policy)
+			{
+			case SCHED_OTHER:
+				spolicy= "SCHED_OTHER";
+				break;
+			case SCHED_FIFO:
+				spolicy= "SCHED_FIFO";
+				break;
+			case SCHED_RR:
+				spolicy= "SCHED_RR";
+				break;
+			case SCHED_BATCH:
+				spolicy= "SCHED_BATCH";
+				break;
+			case SCHED_IDLE:
+				spolicy= "SCHED_IDLE";
+				break;
+			case SCHED_RESET_ON_FORK:
+				spolicy= "SCHED_RESET_ON_FORK";
+				break;
+			default:
+				opolicy << "(" << policy << ")";
+				spolicy= "unknown policy" + opolicy.str();
+				break;
+			}
+			msg1+= getThreadName() + "\n";
+			switch(res)
+			{
+			case ESRCH:
+				msg2= "No thread for given ID could be found";
+				break;
+			case EINVAL:
+				smsg2 << priority;
+				msg2= spolicy + " is not a recognized policy, or priority " + smsg2.str();
+				msg2+= " does not make sense for the policy (min:" + smin.str() + "/max:" + smax.str() + ")";
+				break;
+			case EPERM:
+				msg2= "The caller does not have appropriate privileges to set the specified scheduling policy and parameters";
+				break;
+			case ENOTSUP:
+				smsg2 << priority;
+				msg2= "attempt was made to set the policy " + spolicy + "or scheduling priority " + smsg2.str();
+				msg2+= " to an unsupported value (min:" + smin.str() + "/max:" + smax.str() + ")";
+				break;
+			default:
+				smsg2 << res;
+				msg2+= smsg2.str();
+				break;
+			}
+			cerr << "### ERROR: " << msg1;
+			cerr << "           " << msg2 << endl;
+			LOG(LOG_ERROR, msg1 + msg2);
+			return false;
+		}
+	}else
+	{
+		m_nSchedPolicy= oldPolicy;
+		m_nSchedPriority= param.__sched_priority;
+	}
+	return true;
 }
 
 void Thread::run()
@@ -1303,8 +1418,9 @@ int Thread::conditionWait(string file, int line, pthread_cond_t* cond, pthread_m
 		if(time)
 		{
 			msg << " with limit of ";
-			msg << dec << time->tv_sec << " seconds and ";
-			msg << dec << time->tv_nsec << " microseconds";
+			msg << dec << time->tv_sec << " seconds";
+			if(time->tv_nsec)
+				msg << " and " << dec << time->tv_nsec << " nanoseconds";
 		}
 		msg << "\n       ";
 		msg << "RETURNCODE(" << dec << retcode << ":";
