@@ -34,13 +34,14 @@
 #include "../../util/URL.h"
 #include "../../util/Calendar.h"
 
-LogThread::LogThread(bool check, bool asServer)
+LogThread::LogThread(bool check, bool waitFirst/*= false*/, bool asServer/*= true*/)
 :	Thread("LogThread", 0),
 	m_pvtLogs(new vector<struct log_t>()),
 	m_bAsServer(asServer),
 	m_bIdentifCheck(check),
 	m_nDeleteDays(0),
-	m_nNextDeleteTime(0)
+	m_nNextDeleteTime(0),
+	m_bDoWriting(!waitFirst)
 {
 	m_READTHREADS= getMutex("READTHREADS");
 	m_READLOGMESSAGES= getMutex("READLOGMESSAGES");
@@ -202,7 +203,8 @@ auto_ptr<vector<log_t> > LogThread::getLogVector()
 
 	do{
 		LOCK(m_READLOGMESSAGES);
-		if(m_pvtLogs->size() != 0)
+		if(	m_bDoWriting &&
+			m_pvtLogs->size() != 0	)
 		{
 			vtRv= m_pvtLogs;
 			m_pvtLogs= auto_ptr<vector<struct log_t> >(new vector<struct log_t>);
@@ -223,6 +225,14 @@ auto_ptr<vector<log_t> > LogThread::getLogVector()
 			!stopping()	);
 	//cout << "write " << vtRv->size() << " log messages" << endl;
 	return vtRv;
+}
+
+void LogThread::beginLogging()
+{
+	LOCK(m_READLOGMESSAGES);
+	m_bDoWriting= true;
+	AROUSE(m_READLOGMESSAGESCOND);
+	UNLOCK(m_READLOGMESSAGES);
 }
 
 int LogThread::execute()

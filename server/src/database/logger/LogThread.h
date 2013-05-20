@@ -41,13 +41,14 @@ class LogThread : 	public Thread,
 		 * creating instance of LogThread
 		 *
 		 * @param check whether polling execute should check for identif strings
+		 * @param waitFirst whether logging process should waiting before write first file to harddisk
 		 * @param asServer whether LogThread running as server, or logging directly on harddisk
 		 */
-		LogThread(bool check, bool asServer= true);
+		LogThread(bool check, bool waitFirst= false, bool asServer= true);
 		/**
 		 * start method to running the thread paralell
 		 *
-		 * @param args arbitary optional defined parameter to get in initialisation method init
+		 * @param args arbitrary optional defined parameter to get in initialization method init
 		 * @param bHold should the caller wait of thread by ending.<br />
 		 * 				default is false
 		 */
@@ -90,6 +91,12 @@ class LogThread : 	public Thread,
 		 */
 		virtual string getThreadName(const pthread_t threadID= 0);
 		bool ownThread(string threadName, pid_t currentPid);
+		/**
+		 * beginning to write log files after calling this command.<br />
+		 * maybe caller want to change process user id after starting this process
+		 * to do something other before as root
+		 */
+		void beginLogging();
 		/**
 		 * write log message into files
 		 *
@@ -171,6 +178,11 @@ class LogThread : 	public Thread,
 		 * path of all log files
 		 */
 		string m_sLogFilePath;
+		/**
+		 * whether logging process should writing log files on hard disk
+		 * or waiting for first write
+		 */
+		bool m_bDoWriting;
 		time_t m_tmbegin;
 		time_t m_tmWriteLogDays;
 		string m_sLogFile;
