@@ -55,29 +55,32 @@ namespace ppi_database
 	{
 		int nRv;
 
-		// when server has loaded database an configured all folder/subroutines
+		// when server has loaded database and configured all folder/subroutines
 		// DefaultChipConfigReader is finished and thread coming out from init() method
 		// checking first whether one database file is for thinning
-		// after that always when new database file created and DatabaseThinning object
-		// will be aroused
+		// after that always when new database file created
+		// or DatabaseThinning object will be aroused for any archived DB file
 		while(!stopping())
 		{
 			if(!thinDatabase())
 				break;
 		}
-		LOCK(m_THINNINGMUTEX);
-		if(m_nNextThinningTime == 0)
-			nRv= CONDITION(m_THINNINGWAITCONDITION, m_THINNINGMUTEX);
-		else
-			nRv= TIMECONDITION(m_THINNINGWAITCONDITION, m_THINNINGMUTEX, m_nNextThinningTime);
-		if(	nRv != 0 &&
-			nRv != ETIMEDOUT	)
+		if(!stopping())
 		{
-			sleep(10);	// by error sleeping fix seconds
-		}			 	// when res was 0 maybe database has finished loading
-					 	// or thread will be stopping, so do not sleep
+			LOCK(m_THINNINGMUTEX);
+			if(m_nNextThinningTime == 0)
+				nRv= CONDITION(m_THINNINGWAITCONDITION, m_THINNINGMUTEX);
+			else
+				nRv= TIMECONDITION(m_THINNINGWAITCONDITION, m_THINNINGMUTEX, m_nNextThinningTime);
+			if(	nRv != 0 &&
+				nRv != ETIMEDOUT	)
+			{
+				sleep(10);	// by error sleeping fix seconds
+			}			 	// when res was 0 maybe database has finished loading
+							// or thread will be stopping, so do not sleep
 
-		UNLOCK(m_THINNINGMUTEX);
+			UNLOCK(m_THINNINGMUTEX);
+		}
 		return 0;
 	}
 
@@ -182,6 +185,7 @@ namespace ppi_database
 		{
 			while(getline(file, line))
 			{
+				usleep(1000);// sleep for holding the process activity lower
 				if(stopping())
 					return false;
 				++nCountF;
@@ -596,7 +600,7 @@ namespace ppi_database
 		nRv= Thread::stop(false);
 		if(nRv != 0)
 			return nRv;
-		AROUSE(m_THINNINGWAITCONDITION);
+		AROUSEALL(m_THINNINGWAITCONDITION);
 		if(	bWait != NULL &&
 			*bWait == true	)
 		{

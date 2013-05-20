@@ -74,7 +74,6 @@ int main(int argc, char* argv[])
 	 */
 	unsigned short nDelete;
 
-	uid_t defaultuserID;
 	string defaultuser;
 	string workdir;
 	string commhost;
@@ -89,7 +88,7 @@ int main(int argc, char* argv[])
 	InterlacedProperties oServerProperties;
 	DatabaseThread* db;
 	CommunicationThreadStarter* starter;
-	LogThread logObj(/*check*/true, /*asServer*/true);
+	LogThread logObj(/*check*/true, /*waitFirst*/true, /*asServer*/true);
 	ServerDbTransaction* pDbTransaction;
 	map<string, uid_t> users;
 
@@ -141,30 +140,6 @@ int main(int argc, char* argv[])
 		defaultuser= "nobody";
 	}
 	users[defaultuser]= 0;
-	if(!glob::readPasswd(oServerProperties.getValue("passwd"), users))
-	{
-		string msg;
-
-		defaultuserID= 0;
-		msg=  "### WARNING: do not found default user " + defaultuser + " inside passwd\n";
-		msg+= "             so internet server running as root";
-		LOG(LOG_ALERT, msg);
-		cerr << msg << endl;
-	}else
-	{
-		if(setuid(users[defaultuser]) != 0)
-		{
-			string err;
-
-			defaultuserID= 0;
-			err=   "### ERROR: cannot set process to default user " + defaultuser + "\n";
-			err+=  "    ERRNO: " + *strerror(errno);
-			err+= "\n          so internet server running as root";
-			LOG(LOG_ALERT, err);
-			cerr << err << endl;
-		}else
-			defaultuserID= users[defaultuser];
-	}
 
 	commhost= oServerProperties.getValue("communicationhost", /*warning*/false);
 	if(commhost == "")
@@ -225,14 +200,41 @@ int main(int argc, char* argv[])
 
 	LOG(LOG_DEBUG, "starting database");
 	starter= new CommunicationThreadStarter(0, nDbConnectors);
-	// start initialitation from database
+	// start initialization from database
 	DatabaseThread::initial(dbpath, sConfPath, &oServerProperties);
 	db= DatabaseThread::instance();
 	db->setCommunicator(starter);
 
+	//*********************************************************************************
+	// change user id of process after creating DatabaseThread object
+	// because database starting thread of ThinningDatabase with lower priority
+	// and need by starting root rights
+	if(!glob::readPasswd(oServerProperties.getValue("passwd"), users))
+	{
+		string msg;
+
+		msg=  "### WARNING: do not found default user " + defaultuser + " inside passwd\n";
+		msg+= "             so internet server running as root";
+		LOG(LOG_ALERT, msg);
+		cerr << msg << endl;
+	}else
+	{
+		if(setuid(users[defaultuser]) != 0)
+		{
+			string err;
+
+			err=   "### ERROR: cannot set process to default user " + defaultuser + "\n";
+			err+=  "    ERRNO: " + *strerror(errno);
+			err+= "\n          so internet server running as root";
+			LOG(LOG_ALERT, err);
+			cerr << err << endl;
+		}
+	}
+
+	logObj.beginLogging();
 	pDbTransaction= new ServerDbTransaction();
 	pDbTransaction->setLogObject(&logObj);
-	ServerProcess database(	"ppi-db-server", defaultuserID, starter,
+	ServerProcess database(	"ppi-db-server", 0, starter,
 							new TcpServerConnection(	commhost,
 														commport,
 														10,
@@ -242,6 +244,8 @@ int main(int argc, char* argv[])
 														commport,
 														10			)						);
 
+	//*********************************************************************************
+	// starting database process
 	err= database.run(&oServerProperties);
 	if(err != 0)
 	{
