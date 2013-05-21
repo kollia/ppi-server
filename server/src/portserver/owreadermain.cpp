@@ -114,13 +114,6 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	defaultuser= oServerProperties.getValue("defaultuser", /*warning*/false);
-	if(defaultuser == "")
-	{
-		cerr << "### WARNING: defaultuser is not defined" << endl;
-		cerr << "             so processing run under 'nobody'" << endl;
-		defaultuser= "nobody";
-	}
 	commhost= oServerProperties.getValue("communicationhost", /*warning*/false);
 	if(commhost == "")
 		commhost= "127.0.0.1";
@@ -322,6 +315,7 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
+
 	string value;
 	ostringstream output;
 	Properties newProp;
@@ -393,6 +387,63 @@ int main(int argc, char* argv[])
 																								10			),
 																	owserver.get()								));
 
+
+	const IInterlacedPropertyPattern* pPortProps;
+
+	if(servertype != "SHELL")
+	{
+		if(	servertype == "MPORT" ||
+			servertype == "RWPORT"	)
+		{
+			pPortProps= oServerProperties.getSection("owreader", "PORT");
+		}else
+			pPortProps= oServerProperties.getSection("owreader", servertype);
+		if(pPortProps)
+		{
+			defaultuser= pPortProps->getValue("runuser", /*warning*/false);
+			if(defaultuser != "")
+			{
+				users.clear();
+				users[defaultuser]= 0;
+				if(!glob::readPasswd(oServerProperties.getValue("passwd"), users))
+				{
+					string msg1("defined user '");
+					string msg2("so external reader running as default user for external readers (defaultextuser)");
+
+					msg1+= defaultuser + "' for external interface " + servertype;
+					msg1+= " is not registered correctly inside operating system\n";
+					cout << "### WARNING: " << msg1;
+					cout << "             " << msg2 << endl;
+					LOG(LOG_WARNING, msg1 + msg2);
+					defaultuser= "";
+				}
+			}
+		}
+		if(defaultuser == "")
+		{
+			defaultuser= oServerProperties.getValue("defaultextuser", /*warning*/false);
+			if(defaultuser != "")
+			{
+				users.clear();
+				users[defaultuser]= 0;
+				if(!glob::readPasswd(oServerProperties.getValue("passwd"), users))
+				{
+					string msg1("defined default user '");
+					string msg2("so external reader running as default user '");
+
+					msg1+= defaultuser + "' for external interfaces";
+					msg1+= " is not registered correctly inside operating system\n";
+					msg2+= oServerProperties.getValue("defaultuser", /*warning*/false) + "'";
+					cout << "### WARNING: " << msg1;
+					cout << "             " << msg2 << endl;
+					LOG(LOG_WARNING, msg1 + msg2);
+					defaultuser= "";
+				}
+			}
+		}
+	}
+	if(defaultuser == "")
+		defaultuser= oServerProperties.getValue("defaultuser", /*warning*/false);
 	users[defaultuser]= 0;
 	if(servertype == "SHELL")
 		users[shelluser]= 0;

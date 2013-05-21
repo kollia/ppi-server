@@ -1212,7 +1212,21 @@ namespace server
 			bfloat= found->second.bfloat;
 		}else
 		{
-			m_poChipAccess->range(pin, min, max, bfloat);
+			try{
+				m_poChipAccess->range(pin, min, max, bfloat);
+
+			}catch(SignalException& ex)
+			{
+				string err;
+
+				ex.addMessage("trying to get range from  external chip with server type " +  m_sServerType);
+				err= ex.getTraceString();
+				cout << endl << err << endl;
+				LOG(LOG_ERROR, err);
+				min= 1;
+				max= 0;
+				bfloat= true;
+			}
 			chip.min= min;
 			chip.max= max;
 			chip.bfloat= bfloat;
@@ -1275,7 +1289,20 @@ namespace server
 
 	void OWServer::ending()
 	{
-		m_poChipAccess->disconnect();
+		try{
+			if(m_poChipAccess.get() != NULL)
+				m_poChipAccess->disconnect();
+
+		}catch(SignalException& ex)
+		{
+			string err;
+
+			ex.addMessage("trying to disconnect external chip access " +  m_sServerType);
+			err= ex.getTraceString();
+			cout << endl << err << endl;
+			LOG(LOG_ERROR, err);
+			return;
+		}
 		if(	m_bKernel == true &&
 			m_bKernelOnly == false	)
 		{
@@ -1289,7 +1316,6 @@ namespace server
 
 		nRv= Thread::stop(false);
 		AROUSEALL(m_PRIORITYCACHECOND);
-		ending();
 		if(m_pKernelModule.get() != NULL)
 			m_pKernelModule->stop(bWait);
 		if(	bWait != NULL &&

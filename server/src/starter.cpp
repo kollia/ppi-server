@@ -1398,6 +1398,7 @@ void Starter::readPasswd()
 {
 	map<string, uid_t> users;
 	string defaultUser(m_oServerFileCasher.needValue("defaultuser"));
+	string defaultextUser(m_oServerFileCasher.getValue("defaultextuser"));
 	string passwd(m_oServerFileCasher.needValue("passwd"));
 	size_t defaultLen= defaultUser.length();
 
@@ -1408,8 +1409,26 @@ void Starter::readPasswd()
 	}
 	users[defaultUser]= 0;
 	if(!glob::readPasswd(passwd, users))
+	{
+		cout << "           no correct default user defined inside server.conf" << endl;
+		cout << "           stop application" << endl;
 		exit(EXIT_FAILURE);
+	}
 	m_tDefaultUser= users[defaultUser];
+
+	// check als default user for external readers
+	users.clear();
+	users[defaultextUser]= 0;
+	if(!glob::readPasswd(passwd, users))
+	{
+		string msg1("default user '"), msg2("so external readers running as '");
+
+		msg1+= defaultextUser + "' for external readers not registered correctly inside operating system\n";
+		msg2+= defaultUser + "' and has no access to device by eventual reconnecting";
+		cout << "### WARNING: " << msg1;
+		cout << "             " << msg2 << endl;
+		LOG(LOG_WARNING, msg1 + msg2);
+	}
 }
 
 inline vector<pair<string, PortTypes> >::iterator Starter::find(vector<pair<string, PortTypes> >& vec, string port)

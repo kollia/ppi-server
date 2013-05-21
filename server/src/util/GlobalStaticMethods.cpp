@@ -293,7 +293,6 @@ bool GlobalStaticMethods::readPasswd(const string& passwd, map<string, uid_t>& u
 	string line;
 	string buffer;
 	string user;
-	string::size_type nLen;
 
 	for(map<string, uid_t>::iterator it= users.begin(); it != users.end(); ++it)
 		it->second= nouid;
@@ -312,18 +311,19 @@ bool GlobalStaticMethods::readPasswd(const string& passwd, map<string, uid_t>& u
 		getline(file, line);
 
 		ball= true;
+		//cout << line << endl;
 		for(map<string, uid_t>::iterator it= users.begin(); it != users.end(); ++it)
 		{
 			if(it->second == nouid)
 			{
-				user= it->first;
-				nLen= user.length();
-				if(line.substr(0, nLen) == user)
-				{
-					vector<string> vec;
+				vector<string> vec;
 
-					split(vec, line, is_any_of(":"));
-					if(vec.size() > 1)
+				split(vec, line, is_any_of(":"));
+				user= it->first;
+				if(	vec.size() > 0 &&
+					vec[0] == user		)
+				{
+					if(vec.size() > 2)
 						it->second= atoi(vec[2].c_str());
 					else
 						ball= false;
