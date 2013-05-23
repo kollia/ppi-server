@@ -35,7 +35,7 @@
 #include "../../util/Calendar.h"
 
 LogThread::LogThread(bool check, bool waitFirst/*= false*/, bool asServer/*= true*/)
-:	Thread("LogThread", 0),
+:	Thread("LogThread"),
 	m_pvtLogs(new vector<struct log_t>()),
 	m_bAsServer(asServer),
 	m_bIdentifCheck(check),
