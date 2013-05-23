@@ -173,10 +173,14 @@ int main(int argc, char* argv[])
 }
 
 
+//#define __MAKE_CALCULATER_TESTS
 //#define __CHECK_THREAD_CREATION
 //#define __CHECK_WORKING_INTERLACEDPROPERTIES
 //#define __SIMPLE_SERVER_CLIENT_CONNECTION
 
+#ifdef __MAKE_CALCULATER_TESTS
+#define __MAKE_TESTS
+#endif // __MAKE_CALCULATER_TESTS
 #ifdef __CHECK_THREAD_CREATION
 #define __MAKE_TESTS
 #endif // __CHECK_THREAD_CREATION
@@ -190,6 +194,8 @@ int main(int argc, char* argv[])
 #ifdef __MAKE_TESTS
 // some includes needed for tests method
 #include "util/URL.h"
+// only for calculator test
+#include "util/CalculatorContainer.h"
 // only for simple server client communication
 #include "server/libs/client/SocketClientConnection.h"
 #include "server/libs/server/TcpServerConnection.h"
@@ -234,6 +240,19 @@ void tests(const string& workdir, int argc, char* argv[])
 
 	sConfPath= URL::addPath(workdir, PPICONFIGPATH, /*always*/false);
 #endif // __MAKE_TESTS
+
+#ifdef __MAKE_CALCULATER_TESTS
+
+	double result;
+	CalculatorContainer calc;
+
+	calc.doOutput(true);
+	calc.statement("23/0");
+	calc.render();
+	calc.calculate(result);
+	cout << "result is " << result << endl;
+
+#endif // __MAKE_CALCULATER_TESTS
 
 #ifdef __CHECK_THREAD_CREATION
 	// check thread creation
