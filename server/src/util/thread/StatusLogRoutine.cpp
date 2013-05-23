@@ -290,15 +290,18 @@ void StatusLogRoutine::removestatus(pid_t threadid)
 	{
 		ostringstream msg;
 
-		msg << "cannot found own thread ";
+		UNLOCK(m_POSITIONSTATUS);
+		msg << "by removing, cannot found own thread ";
 		msg << dec << threadid;
 		msg << getStatusInfo("");
 		LOG(LOG_ERROR, msg.str());
 		msg << endl;
 		cerr << msg.str();
 	}else
+	{
 		m_mStatus.erase(del);
-	UNLOCK(m_POSITIONSTATUS);
+		UNLOCK(m_POSITIONSTATUS);
+	}
 }
 
 void StatusLogRoutine::setThreadLogName(string threadName)
