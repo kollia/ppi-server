@@ -421,6 +421,31 @@ void Thread::run()
 					m_nErrorCode= -6;
 					UNLOCK(m_ERRORCODES);
 					throw ex;
+				}catch(std::exception& ex)
+				{
+					string err;
+
+					err=  "STD exception by execute thread of " + thname + "\nso ending hole thread routine\n";
+					err+= "what(): " + string(ex.what());
+					cerr << err << endl;
+					LOCK(m_ERRORCODES);
+					m_eErrorType= BASIC;
+					m_nErrorCode= -6;
+					UNLOCK(m_ERRORCODES);
+					LOG(LOG_ALERT, err+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
+					break;
+
+				}catch(...)
+				{
+					error+= "ERROR: catching UNKNOWN exception by execute thread of " + thname;
+					error+= "\n       so ending hole thread routine";
+					cerr << error << endl;
+					LOCK(m_ERRORCODES);
+					m_eErrorType= BASIC;
+					m_nErrorCode= -6;
+					UNLOCK(m_ERRORCODES);
+					LOG(LOG_ALERT, error+"\n\n++++++  ending hole thread routine of " + thname + "  +++++");
+					break;
 				}
 				if(err != 0)
 				{
