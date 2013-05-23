@@ -137,7 +137,7 @@ public:
 	 * @param value2 second value to add, substract, ... with operator to oldValue
 	 * @return result of calculation
 	 */
-	static double calc(double value1, const char op, const double value2);
+	double calc(double value1, const char op, const double value2);
 	/**
 	 * calculate string of statement
 	 *

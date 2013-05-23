@@ -97,8 +97,15 @@ double CalculatorContainer::calc(double value1, const char op, const double valu
 	else if(op == '*')
 		value1*= value2;
 	else if(op == '/')
-		value1/= value2;
-	else if(op == '%')
+	{
+		if(value2 == 0)
+		{
+			if(m_bOutput)
+				outputF(false, __FILE__, __LINE__, "{### division thru 0 : set resutl to 0}");
+			value1= 0;
+		}else
+			value1/= value2;
+	}else if(op == '%')
 		value1= fmod(value1, value2);
 	else
 		value1= 0;
