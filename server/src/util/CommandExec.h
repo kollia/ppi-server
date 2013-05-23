@@ -37,7 +37,7 @@ public:
 	 * @param port Interface to set value in an subroutine
 	 */
 	CommandExec(IMeasureSet* port, bool logError)
-	: Thread("CommandExec", 0),
+	: Thread("CommandExec", true),
 	  m_bStarted(false),
 	  m_bLogging(false),
 	  m_bLogError(logError),

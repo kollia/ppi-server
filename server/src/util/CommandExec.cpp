@@ -33,21 +33,51 @@ using namespace boost;
 
 int CommandExec::init(void* args)
 {
+	char* cCommand;
+
 	if(args != NULL)
 	{
 		try{
-			m_sCommand= *static_cast<string*>(args);
+			cCommand= static_cast<char*>(args);
+			m_sCommand= string(cCommand);
+
 		}catch(SignalException& ex)
 		{
 			string err;
-			ostringstream msg;
 
-			msg << "make static cast from void*(";
-			msg << args << ") to string";
-			ex.addMessage(msg.str());
+			ex.addMessage("make static cast from void *args value to command string");
 			err= ex.getTraceString();
 			cerr << endl << err << endl;
 			LOG(LOG_ERROR, err);
+			return -2;
+
+		}catch(std::exception& ex)
+		{
+			string err;
+
+			err=  "ERROR: STD exception by make static cast from void *args value to command string\n";
+			err+= "what(): " + string(ex.what());
+			cerr << err << endl;
+			try{
+				LOG(LOG_ERROR, err);
+			}catch(...)
+			{
+				cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+			}
+			return -2;
+
+		}catch(...)
+		{
+			string error;
+
+			error+= "ERROR: catching UNKNOWN exception by make static cast from void *args value to command string";
+			cerr << error << endl;
+			try{
+				LOG(LOG_ALERT, error);
+			}catch(...)
+			{
+				cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+			}
 			return -2;
 		}
 	}
@@ -93,7 +123,15 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 		result= thread->getOutput();
 		if(result.size() == 0)
 		{
-			if(thread->start(&command, thwait) != 0)
+			const char* ccCommand;
+			char* cCommand;
+			string::size_type nLen;
+
+			nLen= command.length();
+			cCommand= new char[nLen + 2];
+			ccCommand= command.c_str();
+			strncpy(cCommand, ccCommand, nLen + 1);
+			if(thread->start(cCommand, thwait) != 0)
 			{
 				ostringstream msg;
 
@@ -110,8 +148,10 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 				msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
 				cerr << msg.str() << endl;
 				LOG(LOG_ERROR, msg.str());
+				delete[] cCommand;
 				return -2;
 			}
+			delete[] cCommand;
 			if(	wait == false ||
 				block == true	)
 			{
@@ -341,6 +381,7 @@ vector<string> CommandExec::grepPS(pid_t pid) const
 
 int CommandExec::execute()
 {
+	bool bWaitMutex(false), bResultMutex(false), bOpenShell(false);
 	bool bWait, bDebug;
 	char line[1024];
 	string sline;
@@ -351,132 +392,209 @@ int CommandExec::execute()
 	string::size_type nLen;
 	FILE *fp;
 
-	split(spl, m_sCommand, is_any_of(";"));
-	for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
-	{
-		command+= *it;
-		if(it->find('>', 0) == string::npos)
-			command+= " 2>&1";
-		command+= ";";
-	}
-	command+= "ERRORLEVEL=$?;echo;echo ERRORLEVEL $ERRORLEVEL";
-	LOCK(m_WAITMUTEX);
-	m_tOwnPid= getpid();
-	m_nStopSignal= SIGTERM;
-	m_tScriptPid= 0;
-	UNLOCK(m_WAITMUTEX);
-	fp= popen(command.c_str(), "r");
-	if(fp == NULL)
-	{
-		sline= "ERROR by writing command on folder subroutine " + m_sCommand + " on command line\n";
-		sline+= "ERRNO: " + *strerror(errno);
-		cerr << sline << endl;
-		LOG(LOG_ERROR, sline);
-		return -1;
-	};
-	LOCK(m_WAITMUTEX);
-	bWait= m_bWait;
-	bDebug= m_bDebug;
-	UNLOCK(m_WAITMUTEX);
-	if(!bWait) // when wait not be set and thread do not starting the first time, the own subroutine can having
-		setValue("PPI-SET " + m_sFolder + ":" + m_sSubroutine + " 0", bDebug);// the ERRORLEVEL result from the last pass
-	while(fgets(line, sizeof line, fp))                               // when now the script fail with the same ERRORLEVEL
-	{														  // the subroutine will be not informed
+	try{
+		split(spl, m_sCommand, is_any_of(";"));
+		for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
+		{
+			command+= *it;
+			if(it->find('>', 0) == string::npos)
+				command+= " 2>&1";
+			command+= ";";
+		}
+		command+= "ERRORLEVEL=$?;echo;echo ERRORLEVEL $ERRORLEVEL";
+		LOCK(m_WAITMUTEX);
+		bWaitMutex= true;
+		m_tOwnPid= getpid();
+		m_nStopSignal= SIGTERM;
+		m_tScriptPid= 0;
+		UNLOCK(m_WAITMUTEX);
+		bWaitMutex= false;
+		fp= popen(command.c_str(), "r");
+		bOpenShell= true;
+		if(fp == NULL)
+		{
+			sline= "ERROR by writing command on folder subroutine " + m_sCommand + " on command line\n";
+			sline+= "ERRNO: " + *strerror(errno);
+			cerr << sline << endl;
+			LOG(LOG_ERROR, sline);
+			return -1;
+		};
+		LOCK(m_WAITMUTEX);
+		bWaitMutex= true;
+		bWait= m_bWait;
+		bDebug= m_bDebug;
+		UNLOCK(m_WAITMUTEX);
+		bWaitMutex= false;
+		if(!bWait) // when wait not be set and thread do not starting the first time, the own subroutine can having
+			setValue("PPI-SET " + m_sFolder + ":" + m_sSubroutine + " 0", bDebug);// the ERRORLEVEL result from the last pass
+		while(fgets(line, sizeof line, fp))                               // when now the script fail with the same ERRORLEVEL
+		{														  // the subroutine will be not informed
+			if(stopping())
+				break;
+			sline+= line;
+			//cout << ">> " << sline << flush;
+			nLen= sline.length();
+			if(	nLen > 0 &&
+				sline.substr(nLen-1) == "\n")
+			{
+				qLastRows.push_back(sline);
+				if(qLastRows.size() > 10)
+					qLastRows.pop_front();
+				sline= sline.substr(0, nLen-1);
+				if(	sline.length() >  11 &&
+					sline.substr(0, 11) == "ERRORLEVEL "	)
+				{// write always last error level, because when taken the error level from m_qOutput,
+					sLastErrorlevel= sline; // it can be that queue was pulled before from starting thread
+				}							// and queue will be empty -> no ERRORLEVEL
+				LOCK(m_WAITMUTEX);
+				bWaitMutex= true;
+				bWait= m_bWait;
+				bDebug= m_bDebug;
+				UNLOCK(m_WAITMUTEX);
+				bWaitMutex= false;
+				readLine(bWait, bDebug, sline);
+				sline= "";
+			}
+		}
 		if(stopping())
-			break;
-		sline+= line;
-		//cout << ">> " << sline << flush;
-		nLen= sline.length();
-		if(	nLen > 0 &&
-			sline.substr(nLen-1) == "\n")
+		{
+			pclose(fp);
+			return 1;
+		}
+		LOCK(m_WAITMUTEX);
+		bWaitMutex= true;
+		m_nStopSignal= 0;
+		m_tScriptPid= 0;
+		UNLOCK(m_WAITMUTEX);
+		bWaitMutex= false;
+		pclose(fp);
+		bOpenShell= false;
+		if(sline != "")
 		{
 			qLastRows.push_back(sline);
 			if(qLastRows.size() > 10)
 				qLastRows.pop_front();
-			sline= sline.substr(0, nLen-1);
-			if(	sline.length() >  11 &&
-				sline.substr(0, 11) == "ERRORLEVEL "	)
-			{// write always last error level, because when taken the error level from m_qOutput,
-				sLastErrorlevel= sline; // it can be that queue was pulled before from starting thread
-			}							// and queue will be empty -> no ERRORLEVEL
-			LOCK(m_WAITMUTEX);
-			bWait= m_bWait;
-			bDebug= m_bDebug;
-			UNLOCK(m_WAITMUTEX);
 			readLine(bWait, bDebug, sline);
-			sline= "";
 		}
-	}
-	if(stopping())
-	{
-		pclose(fp);
-		return 1;
-	}
-	LOCK(m_WAITMUTEX);
-	m_nStopSignal= 0;
-	m_tScriptPid= 0;
-	UNLOCK(m_WAITMUTEX);
-	pclose(fp);
-	if(sline != "")
-	{
-		qLastRows.push_back(sline);
-		if(qLastRows.size() > 10)
-			qLastRows.pop_front();
-		readLine(bWait, bDebug, sline);
-	}
-	if(sLastErrorlevel != "")
-	{
-		int nRv;
-		istringstream oline(sLastErrorlevel);
-		ostringstream iline;
-
-		LOCK(m_RESULTMUTEX);
-		if(!m_qOutput.empty())
+		if(sLastErrorlevel != "")
 		{
-			sline= m_qOutput.back();
-			if(	sline.length() >  12 &&
-				sline.substr(0, 12) == "-ERRORLEVEL "	)
+			int nRv;
+			istringstream oline(sLastErrorlevel);
+			ostringstream iline;
+
+			LOCK(m_RESULTMUTEX);
+			bResultMutex= true;
+			if(!m_qOutput.empty())
 			{
-				m_qOutput.pop_back();
+				sline= m_qOutput.back();
+				if(	sline.length() >  12 &&
+					sline.substr(0, 12) == "-ERRORLEVEL "	)
+				{
+					m_qOutput.pop_back();
+				}
+			}
+			oline >> sline; // string of 'ERRORLEVEL' not needed
+			oline >> nRv;
+			iline << "PPI-DEF ERRORLEVEL " << nRv;
+			m_qOutput.push_back(iline.str());
+			UNLOCK(m_RESULTMUTEX);
+			bResultMutex= false;
+			if(bWait == false)
+			{
+				ostringstream setErrorlevel;
+
+				setErrorlevel << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
+				setErrorlevel << nRv;
+				setValue(setErrorlevel.str(), bDebug);
+			}
+			stop(false);
+			if(	m_bLogError &&
+				nRv != 0		)
+			{
+				ostringstream msg;
+
+				msg << "shell script \"" << m_sCommand << "\"" << endl;
+				msg << "from folder '" << m_sFolder << "' and subroutine '" << m_sSubroutine << "'";
+				msg << " ending with error " << nRv << endl << endl;
+				if(!qLastRows.empty())
+				{
+					for(deque<string>::iterator it= qLastRows.begin(); it != qLastRows.end(); ++it)
+						msg << "    " << *it;
+				}else
+					msg << "    no output from script";
+				TIMELOG(LOG_ERROR, sLastErrorlevel, msg.str());
+			}
+			if(	bWait ||
+				bDebug	)
+			{
+				LOCK(m_RESULTMUTEX);
+				bResultMutex= true;
+				m_qOutput.push_back("PPI-DEF " + sLastErrorlevel);
+				UNLOCK(m_RESULTMUTEX);
+				bResultMutex= false;
 			}
 		}
-		oline >> sline; // string of 'ERRORLEVEL' not needed
-		oline >> nRv;
-		iline << "PPI-DEF ERRORLEVEL " << nRv;
-		m_qOutput.push_back(iline.str());
-		UNLOCK(m_RESULTMUTEX);
-		if(bWait == false)
-		{
-			ostringstream setErrorlevel;
+	}catch(SignalException& ex)
+	{
+		string err;
 
-			setErrorlevel << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
-			setErrorlevel << nRv;
-			setValue(setErrorlevel.str(), bDebug);
-		}
-		stop(false);
-		if(	m_bLogError &&
-			nRv != 0		)
+		ex.addMessage("running shell command '" + m_sCommand + "' for folder '"
+						+ m_sFolder + "' and subroutine '" + m_sSubroutine + "'");
+		err= ex.getTraceString();
+		cerr << endl << err << endl;
+		try{
+			LOG(LOG_ALERT, err);
+		}catch(...)
 		{
-			ostringstream msg;
-
-			msg << "shell script \"" << m_sCommand << "\"" << endl;
-			msg << "from folder '" << m_sFolder << "' and subroutine '" << m_sSubroutine << "'";
-			msg << " ending with error " << nRv << endl << endl;
-			if(!qLastRows.empty())
-			{
-				for(deque<string>::iterator it= qLastRows.begin(); it != qLastRows.end(); ++it)
-					msg << "    " << *it;
-			}else
-				msg << "    no output from script";
-			TIMELOG(LOG_ERROR, sLastErrorlevel, msg.str());
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
 		}
-		if(	bWait ||
-			bDebug	)
-		{
-			LOCK(m_RESULTMUTEX);
-			m_qOutput.push_back("PPI-DEF " + sLastErrorlevel);
+		if(bWaitMutex)
+			UNLOCK(m_WAITMUTEX);
+		if(bResultMutex)
 			UNLOCK(m_RESULTMUTEX);
+		if(bOpenShell)
+			pclose(fp);
+
+	}catch(std::exception& ex)
+	{
+		string err;
+
+		err=  "ERROR: STD exception by running shell command '" + m_sCommand + "' for folder '"
+						+ m_sFolder + "' and subroutine '" + m_sSubroutine + "'\n";
+		err+= "what(): " + string(ex.what());
+		cerr << err << endl;
+		try{
+			LOG(LOG_ALERT, err);
+		}catch(...)
+		{
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
 		}
+		if(bWaitMutex)
+			UNLOCK(m_WAITMUTEX);
+		if(bResultMutex)
+			UNLOCK(m_RESULTMUTEX);
+		if(bOpenShell)
+			pclose(fp);
+
+	}catch(...)
+	{
+		string error;
+
+		error+= "ERROR: catching UNKNOWN exception running shell command '" + m_sCommand + "' for folder '"
+						+ m_sFolder + "' and subroutine '" + m_sSubroutine + "'";
+		cerr << error << endl;
+		try{
+			LOG(LOG_ALERT, error);
+		}catch(...)
+		{
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+		}
+		if(bWaitMutex)
+			UNLOCK(m_WAITMUTEX);
+		if(bResultMutex)
+			UNLOCK(m_RESULTMUTEX);
+		if(bOpenShell)
+			pclose(fp);
 	}
 	return 1;
 }
