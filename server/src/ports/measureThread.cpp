@@ -739,19 +739,15 @@ SHAREDPTR::shared_ptr<IListObjectPattern> MeasureThread::getPortClass(const stri
 	SHAREDPTR::shared_ptr<IListObjectPattern> pRv;
 
 	bCorrect= false;
-	cout << "search inside " << getThreadName() << " port for '" << name << "':" << endl;
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
-		cout << "           " << it->name << flush;
 		if(it->name == name)
 		{
-			cout << " OK" << endl;
 			pRv= it->portClass;
 			if(it->bCorrect)
 				bCorrect= true;
 			break;
 		}
-		cout << " no" << endl;
 	}
 	return pRv;
 }
