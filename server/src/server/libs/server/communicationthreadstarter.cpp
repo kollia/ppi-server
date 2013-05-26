@@ -29,7 +29,7 @@ namespace server
 	CommunicationThreadStarter* CommunicationThreadStarter::_instance= NULL;
 
 	CommunicationThreadStarter::CommunicationThreadStarter(const string &threadName, const unsigned short& minThreads, const unsigned short& maxThreads)
-	: 	Thread(threadName, 0),
+	: 	Thread(threadName),
 		m_bWillStop(false),
 		m_nNextFreeID(1),
 		m_maxConnThreads(maxThreads),
@@ -40,7 +40,7 @@ namespace server
 	}
 
 	CommunicationThreadStarter::CommunicationThreadStarter(const unsigned short& minThreads, const unsigned short& maxThreads)
-	: 	Thread("CommunicationThreadStarter", 0),
+	: 	Thread("CommunicationThreadStarter"),
 		m_bWillStop(false),
 		m_nNextFreeID(1),
 		m_maxConnThreads(maxThreads),

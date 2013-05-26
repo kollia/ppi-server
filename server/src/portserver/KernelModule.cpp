@@ -17,7 +17,7 @@ namespace server {
 
 	KernelModule::KernelModule(const string& servertype, IChipAccessPattern* chipaccess,
 			pthread_mutex_t* readcache, pthread_cond_t* prioritycond)
-	:	Thread("KernelModule", 0),
+	:	Thread("KernelModule"),
 		m_sServerType(servertype),
 		m_poChipAccess(chipaccess),
 		m_READCACHE(readcache),

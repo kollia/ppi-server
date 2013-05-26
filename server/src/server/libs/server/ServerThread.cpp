@@ -43,7 +43,7 @@
 namespace server
 {
 	ServerThread::ServerThread(IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect) :
-	Thread("ServerThread", /*defaultSleep*/0),
+	Thread("ServerThread"),
 	m_pStarterPool(starter),
 	m_pConnect(connect)
 	{
@@ -51,7 +51,7 @@ namespace server
 	}
 
 	ServerThread::ServerThread(string processName, IServerCommunicationStarterPattern* starter, IServerConnectArtPattern* connect) :
-	Thread("ServerThread", /*defaultSleep*/0),
+	Thread("ServerThread"),
 	m_pStarterPool(starter),
 	m_pConnect(connect)
 	{

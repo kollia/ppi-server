@@ -33,7 +33,7 @@ public:
 	 * constructor of ConnectionChecker
 	 */
 	LogConnectionChecker(ILogInterfacePattern* object, pthread_mutex_t* writeloop) :
-		Thread("LogConnectionChecker", 0),
+		Thread("LogConnectionChecker"),
 		m_poStarter(object),
 		m_WRITELOOP(writeloop)
 	{};

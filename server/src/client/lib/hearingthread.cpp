@@ -29,7 +29,7 @@ namespace server
 
 	HearingThread::HearingThread(string host, unsigned short port, string communicationID,
 																	string user, string pwd, bool bOwDebug)
-	: Thread("ClientHearingThread", /*defaultSleep*/0)
+	: Thread("ClientHearingThread")
 	{
 		m_shost= host;
 		m_nPort= port;

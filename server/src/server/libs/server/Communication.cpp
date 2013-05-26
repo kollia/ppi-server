@@ -40,7 +40,7 @@ using namespace user;
 namespace server
 {
 	Communication::Communication(unsigned int ID, const StarterPattern* pStarter) :
-	Thread("communicationThread", /*defaultSleep*/0),
+	Thread("communicationThread"),
 	m_poStarter(pStarter)
 	{
 		//m_SPEAKERVARACCESS= getMutex("SPEAKERVARACCESS");
