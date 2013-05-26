@@ -51,7 +51,7 @@ pthread_mutex_t g_READMUTEX;
 map<pthread_mutex_t*, mutexnames_t> g_mMutex;
 map<pthread_cond_t*, string> g_mCondition;
 
-Thread::Thread(const string& threadName, bool waitInit/*0 true*/, const int policy/*= -9*/, const int priority/*= 9999*/)
+Thread::Thread(const string& threadName, bool waitInit/*= true*/, const int policy/*= -9*/, const int priority/*= 9999*/)
 {
 	m_nThreadId= 0;
 	m_nPosixThreadID= 0;

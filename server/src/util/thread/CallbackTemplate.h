@@ -30,7 +30,7 @@ public:
 	 * @param threadName name of template class
 	 */
 	CallbackTemplate()
-	: Thread("callbackRoutine", 0)
+	: Thread("callbackRoutine")
 	{};
 	/**
 	 * constructor for callback template
@@ -38,7 +38,7 @@ public:
 	 * @param threadName name of template class
 	 */
 	CallbackTemplate(string threadName)
-	: Thread(threadName, 0)
+	: Thread(threadName)
 	{};
 	/**
 	 * starting callback routine inside an new thread
