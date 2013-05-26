@@ -236,8 +236,11 @@ int MeasureThread::init(void *arg)
 		cout << "### WARNING: cannot find follow subroutine(s) inside folder " << getThreadName() << ":" << endl;
 		cout << sFault;
 	}
-	if(*pbSubroutines)
+	if(	pbSubroutines &&
+		*pbSubroutines == true	)
+	{
 		cout << endl;
+	}
 	return 0;
 }
 
