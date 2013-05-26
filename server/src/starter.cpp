@@ -895,33 +895,46 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	}
 	// ------------------------------------------------------------------------------------------------------------
 
+	bool bConfigure, bFolderStart, bSubroutines;
+
 	LOG(LOG_DEBUG, "after knowing database was loaded, starting to configure all control list's to measure");
-	configurePortObjects(commands->hasOption("configure"));
+	bConfigure= commands->hasOption("configure");
+	bFolderStart= commands->hasOption("folderstart");
+	bSubroutines= commands->hasOption("subroutines");
+	if(	!bConfigure &&
+		!bFolderStart &&
+		bSubroutines	)
+	{// when no option --configure/--folderstart be set, also folder configuration should be displayed
+		bConfigure= true;
+	}
+	configurePortObjects(bConfigure, bSubroutines);
 	TERMINALEND;
+	if(!bFolderStart)// when no folder should be displayed by starting
+		bSubroutines= false; // also no subroutines should be shown
 
 	--nServerID;
 	OWInterface::checkUnused(nServerID);
-	OWInterface::endOfInitialisation(nServerID, commands->hasOption("firstvalue"));
+	OWInterface::endOfInitialisation(nServerID, commands->hasOption("configure"));
 
 	//checkAfterContact();
 
 	bool createThread= false;
-	bool bStarting(commands->hasOption("folderstart"));
 	short nFolderCount(0);
 	float nFolders(0); // define nFolders as float, otherwise percent calculation can be fault
 	MeasureArgArray args;
 	SHAREDPTR::shared_ptr<meash_t> pFirstMeasureThreads;
 	SHAREDPTR::shared_ptr<meash_t> pCurrentMeasure;
+	map<string, vector<string> > folderDebug;
+	map<string, bool> vFolderFound;
 
 	meash_t::clientPath= URL::addPath(m_sWorkdir, PPICLIENTPATH, /*always*/false);
 	LOG(LOG_INFO, "Read layout content for clients from " + meash_t::clientPath);
 	SHAREDPTR::shared_ptr<measurefolder_t> aktFolder= m_tFolderStart;
 	args.ports= ports;
 	cout << endl;
-	if(bStarting)
+	if(bFolderStart)
 		cout << "### start folder thread(s) from measure.conf" << endl;
 
-	map<string, vector<string> > folderDebug;
 	if(commands->hasOption("folderdebug"))
 	{
 		string result(commands->getOptionContent("folderdebug"));
@@ -944,6 +957,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 					folderDebug[folderSubroutine[0]].push_back(folderSubroutine[1]);
 				}else
 					folderDebug[folderSubroutine[0]]= vector<string>();
+				vFolderFound[folderSubroutine[0]]= false;
 
 			}
 		}
@@ -985,7 +999,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			cout << msg << endl;
 		}else
 		{
-			if(bStarting)
+			if(bFolderStart)
 				cout << "                     " << aktFolder->name << endl;
 			createThread= true;
 			if(pFirstMeasureThreads == NULL)
@@ -998,7 +1012,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 				pCurrentMeasure->next= SHAREDPTR::shared_ptr<meash_t>(new meash_t);
 				pCurrentMeasure= pCurrentMeasure->next;
 			}
-			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name, nServerSearchSequence));
 			args.subroutines= &aktFolder->subroutines;
 
 			if(!folderDebug.empty())
@@ -1011,17 +1024,27 @@ bool Starter::execute(const IOptionStructPattern* commands)
 				itFound= folderDebug.find(aktFolder->name);
 				if(itFound != folderDebug.end())
 				{
+					vFolderFound[aktFolder->name]= true;
 					for(vector<string>::iterator it= itFound->second.begin(); it != itFound->second.end(); ++it)
 						args.debugSubroutines.push_back(*it);
 				}
 			}
-			pCurrentMeasure->pMeasure->start(&args);
+			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name, args, nServerSearchSequence));
+			pCurrentMeasure->pMeasure->start(&bSubroutines);
 		}
 		aktFolder= aktFolder->next;
 		db->setServerConfigureStatus("folder_start", 100 / nFolders * ++nFolderCount);
 	}
-	if(bStarting)
+	if(bFolderStart)
 		cout << endl;
+	for(map<string, bool>::iterator itFF= vFolderFound.begin(); itFF != vFolderFound.end(); ++itFF)
+	{
+		if(itFF->second == false)
+		{
+			cout << "### WARNING: cannot find folder '" << itFF->first << "'" << endl;
+			cout << "             which is set for debugging from start with parameter --folderdebug (-d)" << endl;
+		}
+	}
 	if(!createThread)
 	{
 
@@ -1237,7 +1260,7 @@ void Starter::createFolderLists(set<string>& shellstarter)
 	}
 }
 
-void Starter::configurePortObjects(bool bShowConf)
+void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 {
 	short nCount(0);
 	float nSubroutines(0);  // define nSubroutines as float, otherwise percent calculation can be fault
@@ -1269,8 +1292,11 @@ void Starter::configurePortObjects(bool bShowConf)
 		}
 		for(int n= 0; n<nMuch; n++)
 		{
-			//cout << "    subroutine: " << aktualFolder->subroutines[n].name;
-			//cout << " with type " << aktualFolder->subroutines[n].type << endl;
+			if(bSubs)
+			{
+				cout << "      subroutine " << aktualFolder->subroutines[n].name;
+				cout << " from type " << aktualFolder->subroutines[n].type << endl;
+			}
 			SHAREDPTR::shared_ptr<IListObjectPattern> obj(aktualFolder->subroutines[n].portClass);
 			portBase* pobj;
 			vector<ohm> *pvOhm= &aktualFolder->subroutines[n].resistor;

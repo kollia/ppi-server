@@ -93,8 +93,9 @@ class Starter
 		 * configure all subroutine classes which are created in method <code>createFolderLists()</code>
 		 *
 		 * @param bShowConf whether should shown on command line which folder will be configured
+		 * @param bSubs whether should shown also subroutines
 		 */
-		void configurePortObjects(bool bShowConf);
+		void configurePortObjects(bool bShowConf, bool bSubs);
 		void isNoPathDefinedStop();
 		/**
 		 * write error or warning from server out to command line

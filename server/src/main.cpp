@@ -46,13 +46,15 @@ int main(int argc, char* argv[])
 	params.setDescription("start or stop ppi-server to reading external sensors and devices");
 
 	params.option("configure", "c", "display which folder configure by starting\n"
-							"(can be set by longer starting time to know what server is doing)");
-	params.option("firstvalue", "f", "show after configure folder all first values of defined ports from owreader");
-	params.option("folderstart", "F", "show all folder on command line which are starting");
-	params.option("folderdebug", "D", true, "debugging from begin the following <folder>[:<subroutine>]\n"
+							"(can be set by longer starting time to know what server is doing)\n"
+							"and show after configuration all first values of defined ports from external readers");
+	params.option("folderstart", "f", "show all folder on command line which are starting");
+	params.option("subroutines", "s", "for option --configure (-s) or --folderstart (-f) show also subroutines\n"
+					"(when none of this option be set, also folder configuration will be displayed)");
+	params.option("folderdebug", "d", true, "debugging from begin the following <folder>[:<subroutine>]\n"
 					               "also more subroutines can be given separated with an comma inside quotes\n"
 					               "('<folder>[:<subroutine>], <folder>[:<subroutine>]')");
-	params.option("debug", "d", "show logging messages, deep defined inside server.conf, on screen\n"
+	params.option("debug", "D", "show logging messages, deep defined inside server.conf, on screen\n"
 									"(only usable for stop command)");
 	params.version(PPI_MAJOR_RELEASE, PPI_MINOR_RELEASE, PPI_SUBVERSION, PPI_PATCH_LEVEL,
 										/*no build*/0, PPI_REVISION_NUMBER, DISTRIBUTION_RELEASE);
