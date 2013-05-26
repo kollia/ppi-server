@@ -342,7 +342,7 @@ namespace server
 
 							output << "ppi-server: WARNING 001 " << sProcess << " " << nPercent;
 	#ifdef SERVERDEBUG
-							cout << "server not finished by starting, running " << sProcess << " by " << sPercent << "%" << endl;
+							cout << "server not finished by starting, running " << sProcess << " by " << nPercent << "%" << endl;
 							cout << "send: " << output.str() << endl;
 	#endif // SERVERDEBUG
 							descriptor << output.str();
@@ -1045,6 +1045,10 @@ namespace server
 										descriptor << DEBUGERROR(descriptor, 16, input, "");
 									else if(noexist == -2)
 										descriptor << ERROR(descriptor, 14, input, "");
+									else if(noexist == -3)
+										descriptor << ERROR(descriptor, 5, input, "");
+									else if(noexist == -4)
+										descriptor << ERROR(descriptor, 4, input, "");
 									bWait= false;
 								}else
 								{
