@@ -38,8 +38,8 @@ using namespace ports;
 SHAREDPTR::shared_ptr<meash_t> meash_t::firstInstance= SHAREDPTR::shared_ptr<meash_t>();
 string meash_t::clientPath= "";
 
-MeasureThread::MeasureThread(const string& threadname, const time_t& nServerSearch) :
-Thread(threadname, /*defaultSleep*/0)
+MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tArg, const time_t& nServerSearch) :
+Thread(threadname, true)
 {
 #ifdef DEBUG
 	cout << "constructor of measurethread for folder " << getThreadName() << endl;
@@ -52,10 +52,15 @@ Thread(threadname, /*defaultSleep*/0)
 	m_bDebug= false;
 	m_nActCount= 0;
 	m_tRunThread= Thread::getThreadID();
+	m_pvlPorts= tArg.ports;
+	m_pvtSubroutines= tArg.subroutines;
+	m_vStartDebugSubs= tArg.debugSubroutines;
+
 }
 
-void MeasureThread::setDebug(bool bDebug, const string& subroutine)
+bool MeasureThread::setDebug(bool bDebug, const string& subroutine)
 {
+	bool bFound(false);
 	bool bOpen(false);
 	bool isDebug(false);
 	ostringstream open;
@@ -90,6 +95,7 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 			if(	subroutine == "" ||	// whether also an other subroutine was set to debug
 				it->name == subroutine	)
 			{
+				bFound= true;
 				if(it->portClass->isDebug() != bDebug)
 					out << "       in subroutine " << it->name << endl;
 				it->portClass->setDebug(bDebug);
@@ -98,6 +104,8 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 			}
 		}
 	}
+	if(!bFound)
+		return false;
 	LOCK(m_DEBUGLOCK);
 	if(isDebug)
 		m_bDebug= true;
@@ -165,6 +173,7 @@ void MeasureThread::setDebug(bool bDebug, const string& subroutine)
 	tout << out.str();
 	TERMINALEND;
 	UNLOCK(m_DEBUGLOCK);
+	return true;
 }
 
 bool MeasureThread::isDebug()
@@ -196,27 +205,39 @@ unsigned short MeasureThread::getActCount(const string& subroutine)
 int MeasureThread::init(void *arg)
 {
 	int nMuch;
+	bool *pbSubroutines(static_cast<bool*>(arg));
 	SHAREDPTR::shared_ptr<IListObjectPattern> port;
-	MeasureArgArray tArg= *((MeasureArgArray*)arg);
 	vector<string>::iterator found;
-
-	m_pvlPorts= tArg.ports;
-	m_pvtSubroutines= tArg.subroutines;
+	string sFault;
 
 	nMuch= m_pvtSubroutines->size();
 	for(int n= 0; n<nMuch; n++)
 	{
 		if((*m_pvtSubroutines)[n].bCorrect)
 		{
-			//cout << "define subroutine " << (*m_pvtSubroutines)[n].name << endl;
+			if(	pbSubroutines &&
+				*pbSubroutines == true	)
+			{
+				cout << "      subroutine " << (*m_pvtSubroutines)[n].name << endl;
+			}
 			port= (*m_pvtSubroutines)[n].portClass;
 			port->setRunningThread(this);
 			port->setDebug(false);
 			port->setObserver(this);
 		}
 	}
-	for(vector<string>::iterator it= tArg.debugSubroutines.begin(); it != tArg.debugSubroutines.end(); ++it)
-		setDebug(true, *it);
+	for(vector<string>::iterator it= m_vStartDebugSubs.begin(); it != m_vStartDebugSubs.end(); ++it)
+	{
+		if(!setDebug(true, *it))
+			sFault+= "                             " + *it + "\n";
+	}
+	if(sFault != "")
+	{
+		cout << "### WARNING: cannot find follow subroutine(s) inside folder " << getThreadName() << ":" << endl;
+		cout << sFault;
+	}
+	if(*pbSubroutines)
+		count << endl;
 	return 0;
 }
 
@@ -718,15 +739,19 @@ SHAREDPTR::shared_ptr<IListObjectPattern> MeasureThread::getPortClass(const stri
 	SHAREDPTR::shared_ptr<IListObjectPattern> pRv;
 
 	bCorrect= false;
+	cout << "search inside " << getThreadName() << " port for '" << name << "':" << endl;
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
+		cout << "           " << it->name << flush;
 		if(it->name == name)
 		{
+			cout << " OK" << endl;
 			pRv= it->portClass;
 			if(it->bCorrect)
 				bCorrect= true;
 			break;
 		}
+		cout << " no" << endl;
 	}
 	return pRv;
 }

@@ -48,9 +48,10 @@ class MeasureThread : 	public Thread,
 		 * creating instance of MeasureThread
 		 *
 		 * @param threadname name of running folder
+		 * @param tArg structure of subroutine and ports
 		 * @param how long thread should waiting to start folder list again when an external server wasn't found
 		 */
-		MeasureThread(const string& threadname, const time_t& nServerSearch);
+		MeasureThread(const string& threadname, const MeasureArgArray& tArg, const time_t& nServerSearch);
 		/**
 		 * return class of subroutine from this folder
 		 *
@@ -71,7 +72,7 @@ class MeasureThread : 	public Thread,
 		 * @param bDebug wheter should debug session be set or unset
 		 * @param subroutine name of subroutine
 		 */
-		void setDebug(bool bDebug, const string& subroutine= "");
+		bool setDebug(bool bDebug, const string& subroutine= "");
 		/**
 		 * return actually count of current subroutine
 		 *
@@ -190,8 +191,11 @@ class MeasureThread : 	public Thread,
 	private:
 		vector<pair<string, PortTypes> > m_pvlPorts;
 		vector<sub> *m_pvtSubroutines;
-		//set<portBase::Pins> m_vAfterContactPins;
-		//map<unsigned long, unsigned> m_vAfterContactPorts;
+		/**
+		 * all subroutines which should be set in debug modus
+		 * by starting
+		 */
+		vector<string> m_vStartDebugSubs;
 		/**
 		 * whether any subroutine is set as debug for output
 		 */
