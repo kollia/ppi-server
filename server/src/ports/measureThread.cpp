@@ -237,7 +237,7 @@ int MeasureThread::init(void *arg)
 		cout << sFault;
 	}
 	if(*pbSubroutines)
-		count << endl;
+		cout << endl;
 	return 0;
 }
 
