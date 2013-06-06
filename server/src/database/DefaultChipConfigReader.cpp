@@ -26,8 +26,11 @@
 #include <sstream>
 
 #include <time.h>
+#include <sys/time.h>
 #include <stdlib.h>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/regex.hpp>
 
@@ -732,41 +735,14 @@ namespace ports
 	const SHAREDPTR::shared_ptr<otime_t> DefaultChipConfigReader::getLastActiveOlder(const string& folder,
 																const string& subroutine, const bool nonactive)
 	{
+		map<string, SHAREDPTR::shared_ptr<otime_t> >::iterator it;
 		SHAREDPTR::shared_ptr<otime_t> older;
 		map<string, chips_t*>::const_iterator subIt;
 		map<string, map<string, chips_t*> >::const_iterator folderIt;
 
-		folderIt= m_mmAllChips.find(folder);
-		if(folderIt == m_mmAllChips.end())
-			return SHAREDPTR::shared_ptr<otime_t>();
-		subIt= folderIt->second.find(subroutine);
-		if(subIt == folderIt->second.end())
-			return SHAREDPTR::shared_ptr<otime_t>();
-		if(subIt->second->older.get() == NULL)
-			return SHAREDPTR::shared_ptr<otime_t>();
-		older= subIt->second->older;
-		while(older)
-		{
-			if(	older->active == true
-				&&
-				(	older->older.get() == NULL
-					||
-					(	older->older
-						&&
-						older->older->active == false	)	)	)
-			{
-				break;
-			}
-			older= older->older;
-		}
-		if(	older
-			&&
-			older->active == true	)
-		{
-			if(nonactive)
-				older->active= false;
-			return older;
-		}
+		it= m_mCurrentValues.find(folder + ":" + subroutine);
+		if(it != m_mCurrentValues.end())
+			return it->second->older;
 		return SHAREDPTR::shared_ptr<otime_t>();
 	}
 
@@ -1016,9 +992,11 @@ namespace ports
 
 					older->highest->bValue= false;
 					older->highest->highest= 0;
-					older->highest->hightime= 0;
+					older->highest->hightime.tv_sec= 0;
+					older->highest->hightime.tv_usec= 0;
 					older->highest->lowest= 0;
-					older->highest->lowtime= 0;
+					older->highest->lowtime.tv_sec= 0;
+					older->highest->lowtime.tv_usec= 0;
 
 				}else if(dbwrite == "fractions") {
 					older->fraction= auto_ptr<fraction_t>(new fraction_t);
@@ -1028,7 +1006,8 @@ namespace ports
 					older->fraction->direction= "";
 					older->fraction->writtenvalue= 0;
 					older->fraction->deepvalue= 0;
-					older->fraction->deeptime= 0;
+					older->fraction->deeptime.tv_sec= 0;
+					older->fraction->deeptime.tv_usec= 0;
 					older->fraction->write= 0;
 				}
 
@@ -1514,21 +1493,29 @@ namespace ports
 
 
 
-	write_t DefaultChipConfigReader::allowDbWriting(const string& folder, const string& subroutine, const double value, const time_t acttime, bool* newOlder/*=NULL*/)
+	write_t DefaultChipConfigReader::allowDbWriting(const string& folder, const string& subroutine, const double value,
+					const timeval acttime, const string& thinning/*= ""*/, bool* newOlder/*=NULL*/)
 	{
+		bool bThinning(false);
+		string sFolderSub(folder + ":" + subroutine);
 		write_t tRv;
 		SHAREDPTR::shared_ptr<otime_t> wr;
 		chips_t* chip;
 		time_t thistime;
 		map<string, chips_t*>::const_iterator subIt;
 		map<string, map<string, chips_t*> >::const_iterator folderIt;
+		map<string, SHAREDPTR::shared_ptr<otime_t> >::iterator itCurrent;
 
+		if(thinning != "")
+			bThinning= true;
 		tRv.folder= folder;
 		tRv.subroutine= subroutine;
 		tRv.highest.highest= 0;
-		tRv.highest.hightime= 0;
+		tRv.highest.hightime.tv_sec= 0;
+		tRv.highest.hightime.tv_usec= 0;
 		tRv.highest.lowest= 0;
-		tRv.highest.lowtime= 0;
+		tRv.highest.lowtime.tv_sec= 0;
+		tRv.highest.lowtime.tv_usec= 0;
 		if(newOlder)
 			*newOlder= false;
 		tRv.action= "no";
@@ -1558,7 +1545,7 @@ namespace ports
 		}
 		time(&thistime);
 		wr= chip->older;
-		if(newOlder)
+		if(bThinning)
 		{
 			while(wr->older.get() != NULL)
 			{
@@ -1588,7 +1575,7 @@ namespace ports
 					unit= Calendar::years;
 					wr->older->more= 1;
 				}
-				if(Calendar::calcDate(/*newer*/false, thistime, wr->older->more, unit) < acttime)
+				if(Calendar::calcDate(/*newer*/false, thistime, wr->older->more, unit) < acttime.tv_sec)
 				{
 					SHAREDPTR::shared_ptr<otime_t> setFalse;
 
@@ -1612,24 +1599,171 @@ namespace ports
 				*newOlder= true;
 			}
 		}
-		if(wr->dbwrite == "all")
+		LOCK(m_CURRENTVALMUTEX);
+		itCurrent= m_mCurrentValues.find(sFolderSub);
+		if(itCurrent == m_mCurrentValues.end())
+		{
+			SHAREDPTR::shared_ptr<otime_t> curVal;
+
+			curVal= SHAREDPTR::shared_ptr<otime_t>(new otime_t);
+			*curVal= *chip->older;
+			if(curVal->dbwrite == "fractions")
+			{
+				curVal->fraction= SHAREDPTR::shared_ptr<fraction_t>(new fraction_t);
+				*curVal->fraction= *chip->older->fraction;
+			}
+			if(curVal->dbwrite == "highest")
+			{
+				curVal->highest= SHAREDPTR::shared_ptr<highest_t>(new highest_t);
+				*curVal->highest= *chip->older->highest;
+			}
+			curVal->older= SHAREDPTR::shared_ptr<otime_t>();
+			if(bThinning)
+			{
+				curVal->older= SHAREDPTR::shared_ptr<otime_t>(new otime_t);
+				*curVal->older= *wr;
+				if(wr->dbwrite == "fractions")
+				{
+					curVal->older->fraction= SHAREDPTR::shared_ptr<fraction_t>(new fraction_t);
+					*curVal->older->fraction= *wr->fraction;
+				}
+				if(wr->dbwrite == "highest")
+				{
+					curVal->older->highest= SHAREDPTR::shared_ptr<highest_t>(new highest_t);
+					*curVal->older->highest= *wr->highest;
+				}
+				wr= curVal->older;
+			}else
+			{
+				curVal->older= SHAREDPTR::shared_ptr<otime_t>();
+				wr= curVal;
+			}
+			m_mCurrentValues[sFolderSub]= curVal;
+
+		}else
+		{
+			if(bThinning)
+			{
+				if(itCurrent->second->older == NULL)
+				{
+					itCurrent->second->older= SHAREDPTR::shared_ptr<otime_t>(new otime_t);
+					*itCurrent->second->older= *wr;
+					if(wr->dbwrite == "fractions")
+					{
+						itCurrent->second->older->fraction= SHAREDPTR::shared_ptr<fraction_t>(new fraction_t);
+						*itCurrent->second->older->fraction= *wr->fraction;
+					}
+					if(wr->dbwrite == "highest")
+					{
+						itCurrent->second->older->highest= SHAREDPTR::shared_ptr<highest_t>(new highest_t);
+						*itCurrent->second->older->highest= *wr->highest;
+					}
+				}
+				if(	itCurrent->second->older->more != wr->more ||
+					itCurrent->second->older->unit != wr->unit		)
+				{
+					// write first last entries of fractions or highest
+					// before change to an new older settings
+					if(	itCurrent->second->older->dbwrite == "fractions" &&
+						timercmp(&itCurrent->second->older->lastwrite, &itCurrent->second->older->fraction->deeptime, !=)	)
+					{
+						wr= itCurrent->second->older;
+						tRv.action= wr->dbwrite;
+						tRv.highest.hightime= wr->fraction->deeptime;
+						tRv.highest.highest= wr->fraction->deepvalue;
+						wr->lastwrite= wr->fraction->deeptime;
+						if(newOlder)
+							*newOlder= true;
+						UNLOCK(m_CURRENTVALMUTEX);
+						return tRv;
+
+					}else if(	itCurrent->second->older->dbwrite == "highest" &&
+								timercmp(&itCurrent->second->older->highest->lowtime, &itCurrent->second->older->lastwrite, >)	)
+					{
+						wr= itCurrent->second->older;
+						tRv.action= wr->dbwrite;
+						tRv.highest.hightime= wr->highest->hightime;
+						tRv.highest.highest= wr->highest->highest;
+						tRv.highest.lowtime= wr->highest->lowtime;
+						tRv.highest.lowest= wr->highest->lowest;
+						wr->lastwrite= wr->highest->lowtime;
+						if(newOlder)
+							*newOlder= true;
+						UNLOCK(m_CURRENTVALMUTEX);
+						return tRv;
+					}
+					*itCurrent->second->older= *wr;
+					if(wr->dbwrite == "fractions")
+					{
+						itCurrent->second->older->fraction= SHAREDPTR::shared_ptr<fraction_t>(new fraction_t);
+						*itCurrent->second->older->fraction= *wr->fraction;
+					}
+					if(wr->dbwrite == "highest")
+					{
+						itCurrent->second->older->highest= SHAREDPTR::shared_ptr<highest_t>(new highest_t);
+						*itCurrent->second->older->highest= *wr->highest;
+					}
+				}
+				wr= itCurrent->second->older;
+			}else
+				wr= itCurrent->second;
+		}
+		if(	bThinning &&
+			thinning != "value")
+		{
+			if(wr->more == 0)
+				tRv.action= "write";
+			else
+				tRv.action= "no";
+			UNLOCK(m_CURRENTVALMUTEX);
 			return tRv;
+		}
+		if(wr->dbwrite == "all")
+		{
+			wr->lastwrite= acttime;
+			tRv.highest.hightime= acttime;
+			tRv.highest.highest= value;
+			UNLOCK(m_CURRENTVALMUTEX);
+			return tRv;
+		}
 		if(wr->dbwrite == "fractions") {
 			double half;
 			string direction;
 
 			tRv.action= "fractions";
-			if(!wr->fraction->bValue) {
+			if(wr->fraction.get() == NULL)
+			{
+				wr->fraction= auto_ptr<fraction_t>(new fraction_t);
+				wr->fraction->bValue= false;
+			}
+			if(!wr->fraction->bValue)
+			{
 				wr->fraction->bValue= true;
 				wr->fraction->writtenvalue= value;
 				wr->fraction->deepvalue= value;
 				wr->fraction->deeptime= acttime;
+				wr->lastwrite= acttime;
 				if(wr->fraction->dbafter)
-					wr->fraction->write= acttime + wr->fraction->dbafter;
+					wr->fraction->write= acttime.tv_sec + wr->fraction->dbafter;
 				wr->fraction->direction= "";
 				// write highest.highest and highest.hightime
 				tRv.highest.highest= value;
 				tRv.highest.hightime= acttime;
+				UNLOCK(m_CURRENTVALMUTEX);
+				return tRv;
+			}
+			if(	wr->fraction->dbafter &&
+				timercmp(&wr->lastwrite, &wr->fraction->deeptime, !=) &&
+				wr->fraction->deeptime.tv_sec >= wr->fraction->write	)
+			{
+				wr->fraction->write= wr->fraction->deeptime.tv_sec + wr->fraction->dbafter;
+				wr->lastwrite= wr->fraction->deeptime;
+				wr->fraction->writtenvalue= wr->fraction->deepvalue;
+				tRv.highest.hightime=  wr->fraction->deeptime;
+				tRv.highest.highest= wr->fraction->deepvalue;
+				if(newOlder)
+					*newOlder= true;
+				UNLOCK(m_CURRENTVALMUTEX);
 				return tRv;
 			}
 			if(	(	wr->fraction->direction == "up"
@@ -1651,11 +1785,24 @@ namespace ports
 				wr->fraction->writtenvalue= value;
 				if(direction == "down")
 				{
-					tRv.highest.highest= wr->fraction->deepvalue;
-					tRv.highest.hightime= wr->fraction->deeptime;
+					bool bdis(false);
+
+					if(timercmp(&wr->fraction->deeptime, &wr->lastwrite, !=))
+					{
+						bdis= true;
+						tRv.highest.highest= wr->fraction->deepvalue;
+						tRv.highest.hightime= wr->fraction->deeptime;
+						wr->lastwrite= wr->fraction->deeptime;
+						wr->fraction->write= wr->fraction->deeptime.tv_sec + wr->fraction->dbafter;
+					}
 					wr->fraction->deepvalue= value;
 					wr->fraction->deeptime= acttime;
-					return tRv;
+					if(bdis)
+					{
+						UNLOCK(m_CURRENTVALMUTEX);
+						return tRv;
+					}
+
 				}else if(direction == "")
 				{
 					wr->fraction->deepvalue= value;
@@ -1669,11 +1816,24 @@ namespace ports
 				wr->fraction->writtenvalue= value;
 				if(direction == "up")
 				{
-					tRv.highest.highest= wr->fraction->deepvalue;
-					tRv.highest.hightime= wr->fraction->deeptime;
+					bool bdis(false);
+
+					if(timercmp(&wr->fraction->deeptime, &wr->lastwrite, !=))
+					{
+						bdis= true;
+						tRv.highest.highest= wr->fraction->deepvalue;
+						tRv.highest.hightime= wr->fraction->deeptime;
+						wr->lastwrite= wr->fraction->deeptime;
+						wr->fraction->write= wr->fraction->deeptime.tv_sec + wr->fraction->dbafter;
+					}
 					wr->fraction->deepvalue= value;
 					wr->fraction->deeptime= acttime;
-					return tRv;
+					if(bdis)
+					{
+						UNLOCK(m_CURRENTVALMUTEX);
+						return tRv;
+					}
+
 				}else if(direction == "")
 				{
 					wr->fraction->deepvalue= value;
@@ -1682,13 +1842,18 @@ namespace ports
 			}
 			if(	wr->fraction->dbafter
 				&&
-				acttime >= wr->fraction->write	) {
+				acttime.tv_sec >= wr->fraction->write	) {
 
-				wr->fraction->write= acttime + wr->fraction->dbafter;
+				wr->fraction->write= acttime.tv_sec + wr->fraction->dbafter;
+				wr->lastwrite= acttime;
+				wr->fraction->writtenvalue= value;
 				tRv.highest.hightime= acttime;
+				tRv.highest.highest= value;
+				UNLOCK(m_CURRENTVALMUTEX);
 				return tRv;
 			}
 			tRv.action= "no";
+			UNLOCK(m_CURRENTVALMUTEX);
 			return tRv;
 		}
 		if(wr->dbwrite == "highest") {
@@ -1705,9 +1870,14 @@ namespace ports
 			}
 			if(!iserror)
 			{
+				if(wr->highest.get() == NULL)
+				{
+					wr->highest= SHAREDPTR::shared_ptr<highest_t>(new highest_t);
+					wr->highest->bValue= false;
+				}
 				if(	!wr->highest->bValue
 					||
-					wr->highest->nextwrite < acttime	)
+					wr->highest->nextwrite < acttime.tv_sec	)
 				{
 					Calendar::time_e unit;
 
@@ -1718,6 +1888,10 @@ namespace ports
 						tRv.highest.hightime= wr->highest->hightime;
 						tRv.highest.lowest= wr->highest->lowest;
 						tRv.highest.lowtime= wr->highest->lowtime;
+						if(timercmp(&wr->highest->hightime, &wr->highest->lowtime, >))
+							wr->lastwrite= wr->highest->hightime;
+						else
+							wr->lastwrite= wr->highest->lowtime;
 					}else
 						tRv.action= "no";
 
@@ -1744,12 +1918,13 @@ namespace ports
 						unit= Calendar::years;
 						wr->highest->between= 1;
 					}
-					wr->highest->nextwrite= Calendar::calcDate(/*newer*/true, acttime, wr->highest->between, unit);
+					wr->highest->nextwrite= Calendar::calcDate(/*newer*/true, acttime.tv_sec, wr->highest->between, unit);
 					wr->highest->bValue= true;
 					wr->highest->highest= value;
 					wr->highest->hightime= acttime;
 					wr->highest->lowest= value;
 					wr->highest->lowtime= acttime;
+					UNLOCK(m_CURRENTVALMUTEX);
 					return tRv;
 				}
 				if(wr->highest->highest < value) {
@@ -1761,126 +1936,100 @@ namespace ports
 				}
 			}
 			tRv.action= "no";
+			UNLOCK(m_CURRENTVALMUTEX);
 			return tRv;
 		}
 		// wr->dbwrite have to be action 'kill'
 		tRv.action= "no";
+		UNLOCK(m_CURRENTVALMUTEX);
 		return tRv;
 	}
 
-	write_t DefaultChipConfigReader::getLastValues(const unsigned int pos, const bool bolder/*=false*/)
+	void DefaultChipConfigReader::setDbOlderNull()
 	{
-		unsigned int current= 0;
-		write_t tRv;
-		SHAREDPTR::shared_ptr<otime_t> older;
-		map<string, chips_t*>::const_iterator subIt;
-		map<string, map<string, chips_t*> >::const_iterator folderIt;
-
-		tRv.action= "kill"; // action kill is defined for reached ending
-		tRv.highest.highest= 0;
-		tRv.highest.hightime= 0;
-		tRv.highest.lowest= 0;
-		tRv.highest.lowtime= 0;
-	 	for(folderIt= m_mmAllChips.begin(); folderIt != m_mmAllChips.end(); ++folderIt)
+		LOCK(m_CURRENTVALMUTEX);
+		for(map<string, SHAREDPTR::shared_ptr<otime_t> >::iterator it= m_mCurrentValues.begin(); it != m_mCurrentValues.end(); ++it)
 		{
-			tRv.folder= folderIt->first;
-			for(subIt= folderIt->second.begin(); subIt != folderIt->second.end(); ++subIt)
+			if(it->second->older != NULL)
+				it->second->older= SHAREDPTR::shared_ptr<otime_t>();
+		}
+		UNLOCK(m_CURRENTVALMUTEX);
+	}
+
+	write_t DefaultChipConfigReader::getLastValues(const bool bolder/*=false*/)
+	{
+		bool bwrite;
+		write_t tRv;
+		vector<string> splSub;
+		SHAREDPTR::shared_ptr<otime_t> older;
+
+		LOCK(m_CURRENTVALMUTEX);
+		for(map<string, SHAREDPTR::shared_ptr<otime_t> >::iterator it= m_mCurrentValues.begin(); it != m_mCurrentValues.end(); ++it)
+		{
+			if(bolder)
+				older= it->second->older;
+			else
+				older= it->second;
+			if(older != NULL)
 			{
-				tRv.subroutine= subIt->first;
-				older= subIt->second->older;
-				if(bolder)
-					older= older->older;
-				while(older)
+				bwrite= false;
+				split(splSub, it->first, is_any_of(":"));
+				tRv.folder= splSub[0];
+				tRv.subroutine= splSub[1];
+				if(older->dbwrite == "highest")
 				{
-					if(	older->active == true
-						&&
-						(	older->dbwrite == "highest"
-							||
-							older->dbwrite == "fractions"	)	)
+					bwrite= true;
+					tRv.action= "highest";
+					tRv.highest.highest= older->highest->highest;
+					if(timercmp(&older->highest->hightime, &older->lastwrite, >))
 					{
-						if(current == pos)
-						{
-							if(older->dbwrite == "highest")
-							{
-								tRv.action= "highest";
-								tRv.highest.highest= older->highest->highest;
-								tRv.highest.hightime= older->highest->hightime;
-								tRv.highest.lowest= older->highest->lowest;
-								tRv.highest.lowtime= older->highest->lowtime;
-								older->highest->bValue= false;
-							}else // fractions
-							{
-								tRv.action= "fractions";
-								tRv.highest.highest= older->fraction->deepvalue;
-								tRv.highest.hightime= older->fraction->deeptime;
-								older->fraction->bValue= false;
-							}
-							return tRv;
-						}
-						++current;
-					} // if(current == pos)
-					if(!bolder)
-						break;
-					older= older->older;
+						tRv.highest.hightime= older->highest->hightime;
+						bwrite= true;
+					}else
+						timerclear(&tRv.highest.hightime);
+					tRv.highest.lowest= older->highest->lowest;
+					if(timercmp(&older->highest->lowtime, &older->lastwrite, >))
+					{
+						tRv.highest.lowtime= older->highest->lowtime;
+						bwrite= true;
+					}else
+						timerclear(&tRv.highest.lowtime);
+
+				}else if(older->dbwrite == "fractions")
+				{
+					if(older->fraction.get() != NULL)
+					{
+						tRv.action= "fractions";
+						tRv.highest.highest= older->fraction->deepvalue;
+						tRv.highest.hightime= older->fraction->deeptime;
+						if(timercmp(&older->fraction->deeptime, &older->lastwrite, >))
+							bwrite= true;
+					}
+
+				}// else if dbwrite is all or kill -> nothing to do
+				if(bolder)
+					it->second->older= SHAREDPTR::shared_ptr<otime_t>();
+				else if(bwrite)// erase value only when should written,
+					m_mCurrentValues.erase(it); // because otherwise maybe iterate map will be inconsistent
+				if(bwrite)
+				{
+					UNLOCK(m_CURRENTVALMUTEX);
+					return tRv;
 				}
 			}
 		}
+		UNLOCK(m_CURRENTVALMUTEX);
+		tRv.action= "kill"; // action kill is defined for reached ending
+		tRv.highest.highest= 0;
+		timerclear(&tRv.highest.hightime);
+		tRv.highest.lowest= 0;
+		timerclear(&tRv.highest.lowtime);
+
 		return tRv;
 	}
 
 	DefaultChipConfigReader::~DefaultChipConfigReader()
 	{
-	/*	typedef map<string, map<string, map<string, map<string, map<string, chips_t> > > > >::iterator servIt;
-		typedef map<string, map<string, map<string, map<string, chips_t> > > >::iterator famIt;
-		typedef map<string, map<string, map<string, chips_t> > >::iterator typIt;
-		typedef map<string, map<string, chips_t> >::iterator idIt;
-		typedef map<string, chips_t>::iterator pinIt;
-
-		otime_t *next;
-		otime_t *del;
-
-		for(servIt s= m_mmmmmChips.begin(); s != m_mmmmmChips.end(); ++s)
-		{
-			for(famIt f= s->second.begin(); f != s->second.end(); ++f)
-			{
-				for(typIt t= f->second.begin(); t != f->second.end(); ++t)
-				{
-					for(idIt i= t->second.begin(); i != t->second.end(); ++i)
-					{
-						for(pinIt p= i->second.begin(); p != i->second.end(); ++p)
-						{
-							del= p->second.older;
-							while(del)
-							{
-								next= del->older;
-								if(del->highest)
-									delete del->highest;
-								if(del->fraction)
-									delete del->fraction;
-								delete del;
-								del= next;
-							}
-						}
-					}
-				}
-			}
-		}
-		for(idIt i= m_mmUsedChips.begin(); i != m_mmUsedChips.end(); ++i)
-		{
-			for(pinIt p= i->second.begin(); p != i->second.end(); ++p)
-			{
-				del= p->second.older;
-				while(del)
-				{
-					next= del->older;
-					if(del->highest)
-						delete del->highest;
-					if(del->fraction)
-						delete del->fraction;
-					delete del;
-					del= next;
-				}
-			}
-		}*/
+		DESTROYMUTEX(m_CURRENTVALMUTEX);
 	}
 }

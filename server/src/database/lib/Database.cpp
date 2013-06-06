@@ -53,6 +53,7 @@ namespace ppi_database
 		m_pChipReader(chipreader)
 	{
 		float newdbafter;
+		unsigned int nSleepAll;
 		char* pHostN= NULL;
 		char hostname[]= "HOSTNAME";
 		string prop;
@@ -87,7 +88,19 @@ namespace ppi_database
 		LOG(LOG_INFO, "Storage database " + m_sWorkDir);
 		m_pEndReading= NULL;
 		m_nReadBlock= 0;
-		m_oDbThinning= std::auto_ptr<DatabaseThinning>(new DatabaseThinning(m_sWorkDir, chipreader));
+		prop= "sleepAllThinRows";
+		nSleepAll= properties->getUInt(prop, /*warning*/false);
+		if(prop != "sleepAllThinRows")
+		{
+			string msg("### WARNING: property 'sleepAllThinRows' is not set inside server.conf\n"
+							"             so set property to default sleeping of 1000");
+
+			cout << msg << endl;
+			LOG(LOG_WARNING, msg);
+			nSleepAll= 1000;
+		}
+		m_oDbThinning= std::auto_ptr<DatabaseThinning>(new DatabaseThinning(m_sWorkDir,
+												chipreader, static_cast<__useconds_t>(nSleepAll)));
 		m_oDbThinning->start();
 	}
 
@@ -206,6 +219,10 @@ namespace ppi_database
 					m_nDbLoaded= loaded;
 				UNLOCK(m_SERVERSTARTINGMUTEX);
 				entry= splitDbLine(line);
+				if(entry.bNew == false)
+					entry.identif= "";// line of database was corrupt
+				else
+					entry.bNew= false;
 #if 0
 				if(	(	entry.folder == "SONY_CMT_MINUS_CP100_KEY_CHANNELUP" ||
 						entry.folder == "SONY_CMT_MINUS_CP100_KEY_CHANNELDOWN"	) &&
@@ -475,7 +492,7 @@ namespace ppi_database
 		vector<string> columns;
 		vector<string>::size_type count;
 
-		columns= ConfigPropertyCasher::split(line, "|");
+		split(columns, line, is_any_of("|"));
 		count= columns.size();
 
 		entry.bNew= false;
@@ -483,40 +500,127 @@ namespace ppi_database
 		if(count > 0)
 		{
 			entry.measureHost= columns[0];
-			if(strptime(columns[1].c_str(), "%Y%m%d:%H%M%S", &entryTime) == NULL)
-				entry.tm= 0;
-			else
-				entry.tm= mktime(&entryTime);
-			if(localtime_r(&entry.tm, &entryTime) == NULL)
-				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
-			entry.folder= columns[2];
-			entry.subroutine= columns[3];
-			entry.identif= columns[4];
-			for(vector<string>::iterator iter= (columns.begin() + 5); iter != columns.end(); ++iter)
+			if(count > 1)
 			{
-				string value(ConfigPropertyCasher::trim(&(*iter)[0]));
+				string timestr;
+				vector<string> timespl;
+				vector<string>::size_type nLen;
+				timeval tv;
 
-				if(value != "")
+				split(timespl, columns[1], is_any_of(":"));
+				nLen= timespl.size();
+				if(nLen > 0)
 				{
-					double dvalue= 0;
-
-					if(entry.identif == "access")
+					timestr= timespl[0] + ":";
+					if(nLen > 1)
 					{
-						if(value == "NaN")
-							entry.device= false;
-						else
-							entry.device= true;
+						timestr+= timespl[1];
+						if(strptime(timestr.c_str(), "%Y%m%d:%H%M%S", &entryTime) == NULL)
+						{
+							string msg("ERROR: cannot read correctly time string '");
+
+							msg+= columns[1] + "' inside database string\n";
+							msg+= "       '" + line + "'\n";
+							msg+= "       so remove this value from database";
+							TIMELOG(LOG_ALERT, "gettimeofday", msg);
+							return entry;
+						}else
+						{
+							time_t nMkTime;
+
+							entryTime.tm_isdst= -1;
+							nMkTime= mktime(&entryTime);
+							if(nMkTime == -1)
+							{
+								string msg("ERROR: cannot read correctly time string '");
+
+								msg+= columns[1] + "' inside database string\n";
+								msg+= "       '" + line + "'\n";
+								msg+= "       so remove this value from database";
+								TIMELOG(LOG_ALERT, "gettimeofday", msg);
+								return entry;
+							}else
+								entry.tm.tv_sec= nMkTime;
+						}
+						if(nLen < 3)
+						{
+							if(gettimeofday(&tv, NULL))
+							{
+								string msg("ERROR: cannot get time of day to make new microtime for database entry,\n");
+
+								msg+= "       so maybe by sorting lost any value(s) ";
+								TIMELOG(LOG_ALERT, "gettimeofday", msg);
+								entry.tm.tv_usec= 0;
+							}else
+								entry.tm.tv_usec= tv.tv_usec;
+						}else
+						{
+							istringstream microseconds(timespl[2]);
+							microseconds >> entry.tm.tv_usec;
+						}
 
 					}else
-						dvalue= atof(&(*iter)[0]);
-					//if(entry.subroutine == "dallas_switch_PIO_1")
-					//	cout << ":" << dvalue;
-					entry.values.push_back(dvalue);
+					{
+						string msg("ERROR: cannot read correctly time string '");
+
+						msg+= columns[1] + "' inside database string\n";
+						msg+= "       '" + line + "'\n";
+						msg+= "       so remove this value from database";
+						TIMELOG(LOG_ALERT, "gettimeofday", msg);
+						return entry;
+					}
+				}else
+				{
+					string msg("ERROR: cannot read correctly time string '");
+
+					msg+= columns[1] + "' inside database string\n";
+					msg+= "       '" + line + "'\n";
+					msg+= "       so remove this value from database";
+					TIMELOG(LOG_ALERT, "gettimeofday", msg);
+					return entry;
 				}
-				//if(entry.subroutine == "dallas_switch_PIO_1")
-				//	cout << endl;
-			}
-		}
+				if(count > 2)
+				{
+					entry.folder= columns[2];
+					if(count > 3)
+					{
+						entry.subroutine= columns[3];
+						if(count > 4)
+						{
+							entry.identif= columns[4];
+							if(count > 5)
+							{
+								entry.bNew= true;
+								for(vector<string>::iterator iter= (columns.begin() + 5); iter != columns.end(); ++iter)
+								{
+									string value(ConfigPropertyCasher::trim(&(*iter)[0]));
+
+									if(value != "")
+									{
+										double dvalue= 0;
+
+										if(entry.identif == "access")
+										{
+											if(value == "NaN")
+												entry.device= false;
+											else
+												entry.device= true;
+
+										}else
+											dvalue= atof(&(*iter)[0]);
+										//if(entry.subroutine == "dallas_switch_PIO_1")
+										//	cout << ":" << dvalue;
+										entry.values.push_back(dvalue);
+									}
+									//if(entry.subroutine == "dallas_switch_PIO_1")
+									//	cout << endl;
+								}
+							}// if(count > 5)
+						}// if(count > 4)
+					}// if(count > 3)
+				}// if(count > 2)
+			}// if(count > 1)
+		}// if(count > 0)
 		return entry;
 	}
 
@@ -692,7 +796,7 @@ namespace ppi_database
 			{
 				ostringstream info;
 
-				info << "read_owserver_debuginfo " << i->tm;
+				info << "read_owserver_debuginfo " << i->tm.tv_sec;
 				vsRv.push_back(info.str());
 			}else
 			{
@@ -946,7 +1050,7 @@ namespace ppi_database
 		{
 			newentry.identif= "owserver";
 			name= name.substr(9);
-			newentry.tm= (time_t)atoi(name.c_str());
+			newentry.tm.tv_sec= (time_t)atoi(name.c_str());
 			LOCK(m_CHANGINGPOOL);
 			changeIt= m_mvoChanges.find(connection);
 			if(changeIt != m_mvoChanges.end())
@@ -1289,29 +1393,35 @@ namespace ppi_database
 
 	void Database::writeEntry(const db_t& entry, ofstream &dbfile)
 	{
-		char stime[18];
+		ostringstream line, otime;
+		char ctime[18];
 		tm l;
 
-		dbfile << m_sMeasureName << "|";
-		if(localtime_r(&entry.tm, &l) == NULL)
+		line << entry.measureHost << "|";
+		if(localtime_r(&entry.tm.tv_sec, &l) == NULL)
 			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
-		strftime(stime, 16, "%Y%m%d:%H%M%S", &l);
-		dbfile << stime << "|";
-		dbfile << entry.folder << "|" << entry.subroutine << "|";
-		dbfile << entry.identif;
-		dbfile << "|";
+		strftime(ctime, 16, "%Y%m%d:%H%M%S", &l);
+		otime << ctime << ":";
+		otime.width(6);
+		otime.fill('0');
+		otime.setf(ios_base::right);
+		otime << entry.tm.tv_usec;
+		line << otime.str() << "|";
+		line << entry.folder << "|" << entry.subroutine << "|";
+		line << entry.identif;
+		line << "|";
 		if(entry.identif == "access")
 		{
 			if(entry.device)
-				dbfile << "true";
+				line << "true";
 			else
-				dbfile << "NaN";
+				line << "NaN";
 		}else
 		{
 			for(vector<double>::const_iterator valIt= entry.values.begin(); valIt != entry.values.end(); ++valIt)
-				dbfile << dec << *valIt << "|";
+				line << dec << *valIt << "|";
 		}
-		dbfile << endl;
+		dbfile << line << endl;
 	}
 
 	void Database::writeIntoDb(const string folder, const string subroutine)
@@ -1335,7 +1445,15 @@ namespace ppi_database
 	{
 		db_t newEntry;
 
-		time(&newEntry.tm);
+		if(gettimeofday(&newEntry.tm, NULL))
+		{
+			string msg("ERROR: cannot get time of day to make new time for database filling,\n");
+
+			msg+= "       so make time without microseconds ";
+			TIMELOG(LOG_ALERT, "gettimeofday", msg);
+			time(&newEntry.tm.tv_sec);
+			newEntry.tm.tv_usec= 0;
+		}
 		newEntry.folder= folder;
 		newEntry.subroutine= subroutine;
 		newEntry.identif= identif;
@@ -1439,7 +1557,6 @@ namespace ppi_database
 
 	void Database::ending()
 	{
-		unsigned int lcount= 0;
 		db_t entry;
 		write_t write;
 		ofstream writeHandler(m_sDbFile.c_str(), ios::app);
@@ -1451,7 +1568,7 @@ namespace ppi_database
 			// read all entry's witch saved in any first older structure
 			// and this highest value not be saved in the file
 			do{
-				write= m_pChipReader->getLastValues(lcount, /*older*/false);
+				write= m_pChipReader->getLastValues(/*older*/false);
 				if(	write.action == "highest"
 					||
 					write.action == "fractions"	)
@@ -1461,16 +1578,17 @@ namespace ppi_database
 					entry.values.clear();
 					entry.values.push_back(write.highest.highest);
 					entry.tm= write.highest.hightime;
-					writeEntry(entry, writeHandler);
+					if(entry.tm.tv_sec != 0)
+						writeEntry(entry, writeHandler);
 					if(write.action == "highest")
 					{
 						entry.values.clear();
 						entry.values.push_back(write.highest.lowest);
 						entry.tm= write.highest.lowtime;
-						writeEntry(entry, writeHandler);
+						if(entry.tm.tv_sec != 0)
+							writeEntry(entry, writeHandler);
 					}
 				}
-				++lcount;
 			}while(write.action != "kill");
 			writeHandler.close();
 		}else

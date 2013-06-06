@@ -23,6 +23,9 @@
 #include <sstream>
 #include <fstream>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+
 #include "../../util/URL.h"
 
 #include "../../pattern/util/LogHolderPattern.h"
@@ -31,6 +34,7 @@ namespace ppi_database
 {
 	using namespace std;
 	using namespace util;
+	using namespace boost;
 
 	int DatabaseThinning::init(void *args)
 	{
@@ -93,8 +97,14 @@ namespace ppi_database
 
 	bool DatabaseThinning::thinDatabase()
 	{
+		/**
+		 * whether deleting lines from actual archive database file
+		 * to know when deleting one or more to write an new one
+		 * otherwise make no changes
+		 */
+		bool bDeleteLine(false);
 		int filecount, nextcount, count;
-		db_t entry;
+		db_t rentry, wentry;
 		time_t acttime, timediff;
 		map<string, string> files, thinfiles;
 		ofstream writeHandler;
@@ -137,24 +147,29 @@ namespace ppi_database
 					msg+= "\n       found no file(s) for thinning";
 				for(fileparsed= m_mOldest.begin(); fileparsed != m_mOldest.end(); ++fileparsed)
 				{
-					localtime_r(&fileparsed->second, &l);
-					strftime(stime, 21, "%d.%m.%Y %H:%M:%S", &l);
-					msg+= "\n           " + fileparsed->first + " for thinning at " + string(stime);
-					if(acttime >= fileparsed->second)
+					msg+= "\n           " + fileparsed->first;
+					if(fileparsed->second > 0)
 					{
-						msg+= "\n                    THINNING FILE\n";
-						m_sThinFile= fileparsed->first;
-						fileparsed->second= 0;
-						break;
-
-					}else
-					{
-						if(	m_nNextThinningTime == 0 ||
-							fileparsed->second < m_nNextThinningTime)
+						localtime_r(&fileparsed->second, &l);
+						strftime(stime, 21, "%d.%m.%Y %H:%M:%S", &l);
+						msg+= " for thinning at " + string(stime);
+						if(acttime >= fileparsed->second)
 						{
-							m_nNextThinningTime= fileparsed->second;
+							msg+= "\n                    THINNING FILE\n";
+							m_sThinFile= fileparsed->first;
+							fileparsed->second= 0;
+							break;
+
+						}else
+						{
+							if(	m_nNextThinningTime == 0 ||
+								fileparsed->second < m_nNextThinningTime)
+							{
+								m_nNextThinningTime= fileparsed->second;
+							}
 						}
-					}
+					}else
+						msg+= " isn't defined for thinning";
 				}
 				//cout << msg << endl;
 				if(m_sThinFile == "")
@@ -169,8 +184,8 @@ namespace ppi_database
 
 
 		bool newOrder;
-		unsigned int nCountF= 0;
-		unsigned int lcount= 0;
+		unsigned short nWriting(0);
+		const unsigned short nSleepAll(1000);
 		string line;
 		string readName(URL::addPath(m_sWorkDir, m_sThinFile + ".dat"));
 		string writeName(URL::addPath(m_sWorkDir, m_sThinFile + ".new"));
@@ -183,211 +198,181 @@ namespace ppi_database
 		time(&timediff);
 		if(file.is_open())
 		{
+			m_pChipReader->setDbOlderNull();
+			m_msNewFile.clear();
 			while(getline(file, line))
 			{
-				usleep(1000);// sleep for holding the process activity lower
+				usleep(m_nSleepAfterRows);// sleep to holding the process activity lower
 				if(stopping())
+				{
+					file.close();
 					return false;
-				++nCountF;
-				//cout << "line: " << line << endl;
-				entry= splitDbLine(line);
-				if(entry.identif == "value")
-				{
-					write.action= "no";
-
-					for(vector<double>::iterator v= entry.values.begin(); v != entry.values.end(); ++v)
-					{
-						write= m_pChipReader->allowDbWriting(entry.folder, entry.subroutine, *v, entry.tm, &newOrder);
-						//cout << "write " << write.action << endl;
-						if(write.action != "no")
-						{
-							if(newOrder)
-							{
-								older= m_pChipReader->getLastActiveOlder(entry.folder, entry.subroutine, /*nonactive*/true);
-								if(older)
-								{
-									db_t wolder;
-
-									if(!writeHandler.is_open())
-									{
-										writeHandler.open(writeName.c_str(), ios::app);
-										if(writeHandler.fail())
-										{
-											string msg("### ERROR: cannot write new file '");
-
-											msg+= m_sThinFile + ".new'\n";
-											msg+= "    ERRNO: ";
-											msg+= strerror(errno);
-											cout << msg << endl;
-											TIMELOG(LOG_ALERT, "writenewfile", msg);
-											file.close();
-											LOG(LOG_ERROR, "end database thinning file '" + m_sThinFile + ".dat' by ERROR");
-											return false;
-										}
-									}
-									wolder.device= true;
-									wolder.folder= entry.folder;
-									wolder.subroutine= entry.subroutine;
-									if(older->dbwrite == "fractions")
-									{
-										wolder.tm= older->fraction->deeptime;
-										wolder.values.push_back(older->fraction->deepvalue);
-										writeEntry(wolder, writeHandler);
-									}else if(older->dbwrite == "highest")
-									{
-										wolder.tm= older->highest->lowtime;
-										wolder.values.push_back(older->highest->lowest);
-										writeEntry(wolder, writeHandler);
-										wolder.tm= older->highest->hightime;
-										wolder.values.clear();
-										wolder.values.push_back(older->highest->highest);
-										writeEntry(wolder, writeHandler);
-									}
-									calcNewThinTime(wolder.tm, older);
-								}
-							}
-							break;
-						}
-					}
-					if(	write.action == "write"
-						||
-						write.action == "fractions"	)
-					{
-						if(!writeHandler.is_open())
-						{
-							writeHandler.open(writeName.c_str(), ios::app);
-							if(writeHandler.fail())
-							{
-								string msg("### ERROR: cannot write new file '");
-
-								msg+= m_sThinFile + ".new'\n";
-								msg+= "    ERRNO: ";
-								msg+= strerror(errno);
-								cout << msg << endl;
-								TIMELOG(LOG_ALERT, "writenewfile", msg);
-								file.close();
-								LOG(LOG_ERROR, "end database thinning file '" + m_sThinFile + ".dat' by ERROR");
-								return false;
-							}
-						}
-						if(write.action == "fractions")
-						{
-							entry.values.clear();
-							entry.values.push_back(write.highest.highest);
-							entry.tm= write.highest.hightime;
-						}
-						writeEntry(entry, writeHandler);
-						older= m_pChipReader->getLastActiveOlder(entry.folder, entry.subroutine, /*nonactive*/false);
-						calcNewThinTime(entry.tm, older);
-
-					}else if (write.action == "highest")
-					{
-						if(writeHandler.is_open())
-						{
-							writeHandler.open(writeName.c_str(), ios::app);
-							if(writeHandler.fail())
-							{
-								string msg("### ERROR: cannot write new file '");
-
-								msg+= m_sThinFile + ".new'\n";
-								msg+= "    ERRNO: ";
-								msg+= strerror(errno);
-								cout << msg << endl;
-								TIMELOG(LOG_ALERT, "writenewfile", msg);
-								file.close();
-								LOG(LOG_ERROR, "end database thinning file '" + m_sThinFile + ".dat' by ERROR");
-								return false;
-							}
-						}
-						entry.device= true;
-						entry.identif= "value";
-						entry.values.clear();
-						entry.values.push_back(write.highest.lowest);
-						entry.tm= write.highest.lowtime;
-						writeEntry(entry, writeHandler);
-						entry.values.clear();
-						entry.values.push_back(write.highest.highest);
-						entry.tm= write.highest.hightime;
-						writeEntry(entry, writeHandler);
-						older= m_pChipReader->getLastActiveOlder(entry.folder, entry.subroutine, /*nonactive*/false);
-						calcNewThinTime(entry.tm, older);
-					}
-				}else if(entry.identif == "access")
-				{
-					older= m_pChipReader->getLastActiveOlder(entry.folder, entry.subroutine, /*nonactive*/false);
-					if(	older
-						&&
-						older->more == 0	)
-					{
-						if(!writeHandler)
-						{
-							writeHandler.open(writeName.c_str(), ios::app);
-							if(writeHandler.fail())
-							{
-								string msg("### ERROR: cannot write new file '");
-
-								msg+= m_sThinFile + ".new'\n";
-								msg+= "    ERRNO: ";
-								msg+= strerror(errno);
-								cout << msg << endl;
-								TIMELOG(LOG_ALERT, "writenewfile", msg);
-								file.close();
-								LOG(LOG_ERROR, "end database thinning file '" + m_sThinFile + ".dat' by ERROR");
-								return false;
-							}
-						}
-						writeEntry(entry, writeHandler);
-					}
 				}
-			}
+				//cout << "line: " << line << endl;
+				rentry= splitDbLine(line);
+				if(rentry.bNew == false)
+					rentry.identif= ""; // line of database was corrupt
+				do{ // while newOrder == true)
+					newOrder= false;
+					if(rentry.identif == "value")
+					{
+						double value;
 
-			entry.device= true;
-			entry.identif= "value";
+						if(rentry.values.size() == 0)
+							break;//fault database entry
+						value= rentry.values[0];
+						write= m_pChipReader->allowDbWriting(rentry.folder, rentry.subroutine, value, rentry.tm,
+																				/*thinning*/"value", &newOrder);
+						//cout << "write " << write.action << endl;
+						if(	write.action == "write" ||
+							write.action == "fractions"	)
+						{
+							wentry.bNew= true;
+							wentry.device= true;
+							wentry.folder= write.folder;
+							wentry.subroutine= write.subroutine;
+							wentry.identif= rentry.identif;
+							wentry.measureHost= rentry.measureHost;
+							wentry.values.clear(); // for action fraction and write, the value and time
+							wentry.values.push_back(write.highest.highest); // will be written into higest
+							wentry.tm= write.highest.hightime;
+							writeEntry(wentry);
+							older= m_pChipReader->getLastActiveOlder(wentry.folder, wentry.subroutine, /*nonactive*/false);
+							calcNewThinTime(rentry.tm.tv_sec, older);
+
+						}else if(write.action == "highest")
+						{
+							wentry.device= true;
+							wentry.folder= write.folder;
+							wentry.subroutine= write.subroutine;
+							wentry.identif= rentry.identif;
+							wentry.measureHost= rentry.measureHost;
+							wentry.values.clear();
+							wentry.values.push_back(write.highest.lowest);
+							wentry.tm= write.highest.lowtime;
+							writeEntry(wentry);
+							wentry.values.clear();
+							wentry.values.push_back(write.highest.highest);
+							wentry.tm= write.highest.hightime;
+							writeEntry(wentry);
+							if(timercmp(&write.highest.lowtime, &write.highest.hightime, >))
+								wentry.tm= write.highest.lowtime;// <- if not hightime be set
+							older= m_pChipReader->getLastActiveOlder(wentry.folder, wentry.subroutine, /*nonactive*/false);
+							calcNewThinTime(wentry.tm.tv_sec, older);
+						}
+
+					}else if(rentry.identif == "access")
+					{
+						write= m_pChipReader->allowDbWriting(rentry.folder, rentry.subroutine, /*not needed*/0, rentry.tm, /*thinning*/"access");
+						if(write.action == "write")
+						{
+							writeEntry(rentry);
+							older= m_pChipReader->getLastActiveOlder(rentry.folder, rentry.subroutine, /*nonactive*/true);
+							calcNewThinTime(rentry.tm.tv_sec, older);
+
+						}
+					}
+				}while(newOrder == true);
+			}// while(getline(file, line))
+
+			rentry.device= true;
+			rentry.identif= "value";
 			// read all entrys witch saved in any older structures
 			// and this value not saved in the files
 			do{
-				write= m_pChipReader->getLastValues(lcount, /*older*/true);
+				write= m_pChipReader->getLastValues(/*older*/true);
 				if(	write.action == "highest"
 					||
 					write.action == "fractions"	)
 				{
-					if(!writeHandler)
-					{
-						writeHandler.open(writeName.c_str(), ios::app);
-						if(writeHandler.fail())
-						{
-							string msg("### ERROR: cannot write new file '");
-
-							msg+= m_sThinFile + ".new'\n";
-							msg+= "    ERRNO: ";
-							msg+= strerror(errno);
-							cout << msg << endl;
-							TIMELOG(LOG_ALERT, "writenewfile", msg);
-							file.close();
-							LOG(LOG_ERROR, "end database thinning file '" + m_sThinFile + ".dat' by ERROR");
-							return false;
-						}
-					}
-					entry.folder= write.folder;
-					entry.subroutine= write.subroutine;
-					entry.values.clear();
-					entry.values.push_back(write.highest.highest);
-					entry.tm= write.highest.hightime;
-					writeEntry(entry, writeHandler);
+					rentry.folder= write.folder;
+					rentry.subroutine= write.subroutine;
+					rentry.values.clear();
+					rentry.values.push_back(write.highest.highest);
+					rentry.tm= write.highest.hightime;
+					if(rentry.tm.tv_sec > 0)
+						writeEntry(rentry);
 					if(write.action == "highest")
 					{
-						entry.values.clear();
-						entry.values.push_back(write.highest.lowest);
-						entry.tm= write.highest.lowtime;
-						writeEntry(entry, writeHandler);
+						rentry.values.clear();
+						rentry.values.push_back(write.highest.lowest);
+						rentry.tm= write.highest.lowtime;
+						if(rentry.tm.tv_sec > 0)
+							writeEntry(rentry);
 					}
-					older= m_pChipReader->getLastActiveOlder(entry.folder, entry.subroutine, /*nonactive*/false);
-					calcNewThinTime(entry.tm, older);
+					older= m_pChipReader->getLastActiveOlder(rentry.folder, rentry.subroutine, /*nonactive*/false);
+					calcNewThinTime(rentry.tm.tv_sec, older);
 				}
-				++lcount;
 			}while(write.action != "kill");
 
 			newOrder= false;
+			bDeleteLine= false;
+			nWriting= 0;
+			// check whether any entries be deleted
+			file.seekg(0, ios_base::beg);
+			if(!file.good())
+			{
+				file.close();
+				file.open(readName.c_str(), ifstream::in);
+			}
+			for(map<timeval, string, TimeSort>::iterator it= m_msNewFile.begin(); it != m_msNewFile.end(); ++it)
+			{
+				++nWriting;
+				if(!getline(file, line))
+				{// more lines by defined as in original database file
+					bDeleteLine= true;	// this case shouldn't
+					break;				// but only do as secure
+				}
+				if(it->second != line)
+				{ // an different value be found, database file is thiner
+					bDeleteLine= true;
+					break;
+				}
+				if(nWriting >= nSleepAll)
+				{
+					usleep(m_nSleepAfterRows);// sleep to holding the process activity lower
+					if(stopping())
+					{
+						file.close();
+						return false;
+					}
+					nWriting= 0;
+				}
+			}
+			if(bDeleteLine)
+			{
+				writeHandler.open(writeName.c_str(), ios::app);
+				if(writeHandler.fail())
+				{
+					string msg("### ERROR: cannot write new file '");
+
+					msg+= m_sThinFile + ".new'\n";
+					msg+= "    ERRNO: ";
+					msg+= strerror(errno);
+					cout << msg << endl;
+					TIMELOG(LOG_ALERT, "writenewfile", msg);
+					file.close();
+					LOG(LOG_ERROR, "end database thinning file '" + m_sThinFile + ".dat' by ERROR");
+					return false;
+				}
+				for(map<timeval, string, TimeSort>::iterator it= m_msNewFile.begin(); it != m_msNewFile.end(); ++it)
+				{
+					++nWriting;
+					writeHandler << it->second << endl;
+					if(nWriting >= nSleepAll)
+					{
+						usleep(m_nSleepAfterRows);// sleep to holding the process activity lower
+						if(stopping())
+						{
+							file.close();
+							return false;
+						}
+						nWriting= 0;
+					}
+				}
+			}
+			m_msNewFile.clear();
+
 			file.close();
 			if(writeHandler.is_open())
 			{
@@ -401,9 +386,8 @@ namespace ppi_database
 			}
 			if(newOrder)
 				rename(writeName.c_str(), doneName.c_str());
-			else
-				m_mOldest.erase(m_sThinFile);
-			unlink(readName.c_str());
+			if(bDeleteLine)
+				unlink(readName.c_str());
 			if(newOrder)
 				rename(doneName.c_str(), readName.c_str());
 
@@ -411,6 +395,8 @@ namespace ppi_database
 			ostringstream timemsg;
 
 			line= "end correctly database thinning of file '" + m_sThinFile + ".dat'\n";
+			if(!bDeleteLine)
+				line+= "no changing of file be done (only checking)\n";
 			time(&acttime);
 			timediff= static_cast<time_t>(difftime(acttime, timediff));
 			ttime.tm_isdst= -1;
@@ -439,7 +425,8 @@ namespace ppi_database
 				line+= "  ERROR: cannot define correctly time difference with localtime_r method";
 			LOG(LOG_INFO, line);
 			m_sThinFile= "";
-		}else
+
+		}else // if(file.is_open())
 		{
 			string msg("### ERROR: cannot read file '");
 
@@ -462,7 +449,7 @@ namespace ppi_database
 		vector<string> columns;
 		vector<string>::size_type count;
 
-		columns= ConfigPropertyCasher::split(line, "|");
+		split(columns, line, is_any_of("|"));
 		count= columns.size();
 
 		entry.bNew= false;
@@ -470,81 +457,195 @@ namespace ppi_database
 		if(count > 0)
 		{
 			entry.measureHost= columns[0];
-			if(strptime(columns[1].c_str(), "%Y%m%d:%H%M%S", &entryTime) == NULL)
-				entry.tm= 0;
-			else
-				entry.tm= mktime(&entryTime);
-			if(localtime_r(&entry.tm, &entryTime) == NULL)
-				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
-			entry.folder= columns[2];
-			entry.subroutine= columns[3];
-			entry.identif= columns[4];
-			for(vector<string>::iterator iter= (columns.begin() + 5); iter != columns.end(); ++iter)
+			if(count > 1)
 			{
-				string value(ConfigPropertyCasher::trim(&(*iter)[0]));
+				string timestr;
+				vector<string> timespl;
+				vector<string>::size_type nLen;
+				timeval tv;
 
-				if(value != "")
+				split(timespl, columns[1], is_any_of(":"));
+				nLen= timespl.size();
+				if(nLen > 0)
 				{
-					double dvalue= 0;
-
-					if(entry.identif == "access")
+					timestr= timespl[0] + ":";
+					if(nLen > 1)
 					{
-						if(value == "NaN")
-							entry.device= false;
-						else
-							entry.device= true;
+						timestr+= timespl[1];
+						if(strptime(timestr.c_str(), "%Y%m%d:%H%M%S", &entryTime) == NULL)
+						{
+							string msg("ERROR: cannot read correctly time string '");
+
+							msg+= columns[1] + "' inside database string\n";
+							msg+= "       '" + line + "'\n";
+							msg+= "       so remove this value from database";
+							TIMELOG(LOG_ALERT, "gettimeofday", msg);
+							return entry;
+						}else
+						{
+							time_t nMkTime;
+
+							entryTime.tm_isdst= -1;
+							nMkTime= mktime(&entryTime);
+							if(nMkTime == -1)
+							{
+								string msg("ERROR: cannot read correctly time string '");
+
+								msg+= columns[1] + "' inside database string\n";
+								msg+= "       '" + line + "'\n";
+								msg+= "       so remove this value from database";
+								TIMELOG(LOG_ALERT, "gettimeofday", msg);
+								return entry;
+							}else
+								entry.tm.tv_sec= nMkTime;
+						}
+						if(nLen < 3)
+						{
+							if(gettimeofday(&tv, NULL))
+							{
+								string msg("ERROR: cannot get time of day to make new microtime for database entry,\n");
+
+								msg+= "       so maybe by sorting lost any value(s) ";
+								TIMELOG(LOG_ALERT, "gettimeofday", msg);
+								entry.tm.tv_usec= 0;
+							}else
+								entry.tm.tv_usec= tv.tv_usec;
+						}else
+						{
+							istringstream microseconds(timespl[2]);
+							microseconds >> entry.tm.tv_usec;
+						}
 
 					}else
-						dvalue= atof(&(*iter)[0]);
-					//if(entry.subroutine == "dallas_switch_PIO_1")
-					//	cout << ":" << dvalue;
-					entry.values.push_back(dvalue);
+					{
+						string msg("ERROR: cannot read correctly time string '");
+
+						msg+= columns[1] + "' inside database string\n";
+						msg+= "       '" + line + "'\n";
+						msg+= "       so remove this value from database";
+						TIMELOG(LOG_ALERT, "gettimeofday", msg);
+						return entry;
+					}
+				}else
+				{
+					string msg("ERROR: cannot read correctly time string '");
+
+					msg+= columns[1] + "' inside database string\n";
+					msg+= "       '" + line + "'\n";
+					msg+= "       so remove this value from database";
+					TIMELOG(LOG_ALERT, "gettimeofday", msg);
+					return entry;
 				}
-				//if(entry.subroutine == "dallas_switch_PIO_1")
-				//	cout << endl;
-			}
-		}
+				if(count > 2)
+				{
+					entry.folder= columns[2];
+					if(count > 3)
+					{
+						entry.subroutine= columns[3];
+						if(count > 4)
+						{
+							entry.identif= columns[4];
+							if(count > 5)
+							{
+								entry.bNew= true;
+								for(vector<string>::iterator iter= (columns.begin() + 5); iter != columns.end(); ++iter)
+								{
+									string value(ConfigPropertyCasher::trim(&(*iter)[0]));
+
+									if(value != "")
+									{
+										double dvalue= 0;
+
+										if(entry.identif == "access")
+										{
+											if(value == "NaN")
+												entry.device= false;
+											else
+												entry.device= true;
+
+										}else
+											dvalue= atof(&(*iter)[0]);
+										//if(entry.subroutine == "dallas_switch_PIO_1")
+										//	cout << ":" << dvalue;
+										entry.values.push_back(dvalue);
+									}
+									//if(entry.subroutine == "dallas_switch_PIO_1")
+									//	cout << endl;
+								}
+							// DEBUG output
+							/*	char ctime[18];
+								tm l;
+								localtime_r(&entry.tm.tv_sec, &l);
+								strftime(ctime, 16, "%Y%m%d:%H%M%S", &l);
+								cout << "           read time:       " << entry.tm.tv_sec << " " << entry.tm.tv_usec << "  is " << ctime << ":";
+											cout.width(6);
+											cout.fill('0');
+											cout << entry.tm.tv_usec << endl;
+								cout << "                folder:     " << entry.folder << endl;
+								cout << "                subroutine: " << entry.subroutine << endl;
+								cout << "                values:     ";
+								for(vector<double>::iterator it= entry.values.begin(); it != entry.values.end(); ++it)
+									cout << *it << " ";
+								cout << endl;*/
+							}// if(count > 5)
+						}// if(count > 4)
+					}// if(count > 3)
+				}// if(count > 2)
+			}// if(count > 1)
+		}// if(count > 0)
 		return entry;
 	}
 
-	void DatabaseThinning::writeEntry(const db_t& entry, ofstream &dbfile)
+	void DatabaseThinning::writeEntry(const db_t& entry)
 	{
-		char stime[18];
+		ostringstream line, otime;
+		char ctime[18];
 		tm l;
 
-		dbfile << entry.measureHost << "|";
-		if(localtime_r(&entry.tm, &l) == NULL)
+		line << entry.measureHost << "|";
+		if(localtime_r(&entry.tm.tv_sec, &l) == NULL)
 			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
-		strftime(stime, 16, "%Y%m%d:%H%M%S", &l);
-		dbfile << stime << "|";
-		dbfile << entry.folder << "|" << entry.subroutine << "|";
-		dbfile << entry.identif;
-		dbfile << "|";
+		strftime(ctime, 16, "%Y%m%d:%H%M%S", &l);
+		otime << ctime << ":";
+		otime.width(6);
+		otime.fill('0');
+		otime.setf(ios_base::right);
+		otime << entry.tm.tv_usec;
+		line << otime.str() << "|";
+		line << entry.folder << "|" << entry.subroutine << "|";
+		line << entry.identif;
+		line << "|";
 		if(entry.identif == "access")
 		{
 			if(entry.device)
-				dbfile << "true";
+				line << "true";
 			else
-				dbfile << "NaN";
+				line << "NaN";
 		}else
 		{
 			for(vector<double>::const_iterator valIt= entry.values.begin(); valIt != entry.values.end(); ++valIt)
-				dbfile << dec << *valIt << "|";
+				line << dec << *valIt << "|";
 		}
-		dbfile << endl;
+		m_msNewFile[entry.tm]= line.str();
+		//cout << "       get seconds     : " << entry.tm.tv_sec << endl;
+		//cout << "           microseconds: " << entry.tm.tv_usec << endl;
+		//cout << "write: " << line.str() << endl;
 	}
 
 	void DatabaseThinning::calcNewThinTime(time_t fromtime, const SHAREDPTR::shared_ptr<otime_t> &older)
 	{
+		unsigned short more;
 		SHAREDPTR::shared_ptr<otime_t> act;
 		time_t acttime, nextThin;
 		Calendar::time_e unit(Calendar::seconds);
+		map<string, time_t>::iterator timeIt;
 
 		act= older;
 		if(act.get())
 		{
-			if(act->older) // next thinning at next older structure
-				act= act->older;
+			if(act->older == NULL)
+				return; // do not thinning, because act older thinning be done and no next older time exist
+			act= act->older;// next thinning at next older structure
 			time(&acttime);
 			if(act->unit == 's')
 				unit= Calendar::seconds;
@@ -569,9 +670,20 @@ namespace ppi_database
 				unit= Calendar::years;
 				act->more= 1;
 			}
-			nextThin= Calendar::calcDate(/*newer*/true, fromtime, act->more, unit);
-			if(nextThin <= acttime)
-				nextThin= Calendar::calcDate(/*newer*/true, fromtime, (act->more + 1), unit);
+			more= act->more;
+			if(	more != 0 ||
+				unit != Calendar::days	)
+			{
+				if(more == 0)
+					more= 1;
+				nextThin= Calendar::calcDate(/*newer*/true, fromtime, more, unit);
+				while(nextThin <= acttime)
+				{
+					++more;
+					nextThin= Calendar::calcDate(/*newer*/true, fromtime, more, unit);
+				}
+			}else // database entry is not defined for thinning
+				return;
 		/*	tm tmstr;
 			char ctime[23];
 			localtime_r(&fromtime, &tmstr);
@@ -580,16 +692,17 @@ namespace ppi_database
 			localtime_r(&nextThin, &tmstr);
 			strftime(ctime, 21, "%Y.%m.%d %H:%M:%S", &tmstr);
 			cout << "          mext thinning " << string(ctime) << endl;*/
-			if(nextThin > acttime)
+
+			timeIt= m_mOldest.find(m_sThinFile);
+			if(timeIt != m_mOldest.end())
 			{
-				acttime= m_mOldest[m_sThinFile];
-				if(	acttime == 0
-					||
-					acttime > nextThin	)
+				if(	timeIt->second > nextThin ||
+					timeIt->second == 0			)
 				{
-					m_mOldest[m_sThinFile]= nextThin;
+					timeIt->second= nextThin;
 				}
-			}
+			}else
+				m_mOldest[m_sThinFile]= nextThin;
 		}
 	}
 

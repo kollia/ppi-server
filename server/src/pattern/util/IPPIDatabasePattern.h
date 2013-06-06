@@ -44,7 +44,7 @@ namespace design_pattern_world
 		/**
 		 * time of insert
 		 */
-		time_t tm;
+		timeval tm;
 		/**
 		 * name of folder in which thread running
 		 */

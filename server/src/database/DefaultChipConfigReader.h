@@ -30,6 +30,7 @@
 
 #include "../util/smart_ptr.h"
 
+#include "../util/thread/Thread.h"
 #include "../util/properties/interlacedactionproperties.h"
 
 #include "../pattern/util/IChipConfigReaderPattern.h"
@@ -166,12 +167,11 @@ namespace ports
 		/**
 		 * read all values which be inside of chips for fractions or highest be saved
 		 *
-		 * @param pos which position should read
 		 * @param older whether should read older values (true) or for current writing (false =default)
 		 * @return values with time for fractions or highest in variable action.<br />
 		 * 			By ending, action is 'no'. If action is fraction value and time is in variables highest.highest and hightime.
 		 */
-		virtual write_t getLastValues(const unsigned int pos, const bool bolder= false);
+		virtual write_t getLastValues(const bool bolder= false);
 		/**
 		 * whether allow writing into database
 		 *
@@ -179,11 +179,21 @@ namespace ports
 		 * @param subroutine name of subroutine
 		 * @param value whether can be writing this value
 		 * @param acttime time of entry which was set
-		 * @param newOlder if variable be set, method is to thin database and give back in this variable whether an new older structure be used
+		 * @param thinning whether need result of method for database thinning when defined as no null string.<br />
+		 *                 the string should be the type of which value. By an normally value entry (string is 'value')
+		 *                 the calculation of facilities and or highest will be don.
+		 *                 By all other strings (maybe 'access') the mehtod check only whether the right older be defined.
+		 * @param newOlder if variable be set, method is to thin database and give back in this variable
+		 *                 whether an new older structure be used to save into database file
 		 * @return an structure of write_t witch describe the writing values
 		 */
 		virtual write_t allowDbWriting(const string& folder, const string& subroutine, const double value,
-																		time_t acttime, bool *newOlder= NULL);
+																timeval acttime, const string& thinning= "", bool *newOlder= NULL);
+		/**
+		 * clear all older values from m_mCurrentValues.<br />
+		 * needed before thinning database file
+		 */
+		virtual void setDbOlderNull();
 		/**
 		 * describe whether all chips for folder and subroutine are defined to allow thin older database
 		 *
@@ -250,6 +260,14 @@ namespace ports
 		 * spliced in server > names of family/type/ID/pin > conde of names > pointer to pchips_t structure
 		 */
 		map<string, map<string, map<string, chips_t*> > > m_mDefaults;
+		/**
+		 * all current and older values for thinning from folder and subroutine
+		 */
+		map<string, SHAREDPTR::shared_ptr<otime_t> > m_mCurrentValues;
+		/**
+		 * mutex for handle current state of subroutine
+		 */
+		pthread_mutex_t* m_CURRENTVALMUTEX;
 
 		/**
 		 * constructor of object to first define
@@ -261,7 +279,8 @@ namespace ports
 		:	m_bUseRegex(bUseRegex),
 		 	m_sPath(path),
 			m_bChipsDef(false),
-			m_nInternChip(0)
+			m_nInternChip(0),
+			m_CURRENTVALMUTEX(Thread::getMutex("CURRENTVALMUTEX"))
 			{ initialDefault(); };
 		/**
 		 * initial the default.conf for all chips how long be writing

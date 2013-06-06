@@ -29,7 +29,7 @@ namespace design_pattern_world
 		/**
 		 * time of highest value
 		 */
-		time_t hightime;
+		timeval hightime;
 		/**
 		 * highest value
 		 */
@@ -37,7 +37,7 @@ namespace design_pattern_world
 		/**
 		 * time of lowest value
 		 */
-		time_t lowtime;
+		timeval lowtime;
 		/**
 		 * lowest value
 		 */
@@ -101,7 +101,7 @@ namespace design_pattern_world
 		/**
 		 * time of deepest or highest value
 		 */
-		time_t deeptime;
+		timeval deeptime;
 		/**
 		 * for witch direction the values for action fraction is gone
 		 */
@@ -130,7 +130,7 @@ namespace design_pattern_world
 		/**
 		 * time of highest value
 		 */
-		time_t hightime;
+		timeval hightime;
 		/**
 		 * highest value
 		 */
@@ -138,7 +138,7 @@ namespace design_pattern_world
 		/**
 		 * time of lowest value
 		 */
-		time_t lowtime;
+		timeval lowtime;
 		/**
 		 * lowest value
 		 */
@@ -171,13 +171,17 @@ namespace design_pattern_world
 		 */
 		string dbwrite;
 		/**
+		 * last writing time
+		 */
+		timeval lastwrite;
+		/**
 		 * pointer to fraction struct
 		 */
-		auto_ptr<fraction_t> fraction;
+		SHAREDPTR::shared_ptr<fraction_t> fraction;
 		/**
 		 * pointer to highest struct
 		 */
-		auto_ptr<highest_t> highest;
+		SHAREDPTR::shared_ptr<highest_t> highest;
 		/**
 		 * the next older structure should be after the current
 		 */
@@ -234,11 +238,21 @@ namespace design_pattern_world
 		 * @param subroutine name of subroutine
 		 * @param value whether can be writing this value
 		 * @param acttime time of entry which was set
-		 * @param newOlder if variable be set, method is to thin database and give back in this variable whether an new older structure be used
+		 * @param thinning whether need result of method for database thinning when defined as no null string.<br />
+		 *                 the string should be the type of which value. By an normally value entry (string is 'value')
+		 *                 the calculation of facilities and or highest will be don.
+		 *                 By all other strings (maybe 'access') the mehtod check only whether the right older be defined.
+		 * @param newOlder if variable be set, method is to thin database and give back in this variable
+		 *                 whether an new older structure be used to save into database file
 		 * @return an structure of write_t witch describe the writing values
 		 */
 		virtual write_t allowDbWriting(const string& folder, const string& subroutine, const double value,
-																		time_t acttime, bool *newOlder= NULL)= 0;
+													timeval acttime, const string& thinning= "", bool *newOlder= NULL)= 0;
+		/**
+		 * clear all older values from m_mCurrentValues.<br />
+		 * needed before thinning database file
+		 */
+		virtual void setDbOlderNull()= 0;
 		/**
 		 * return an older structure from the chip defined with folder and subroutine
 		 * which last older is active. By this older structure, active flag will be set to false.
@@ -253,12 +267,11 @@ namespace design_pattern_world
 		/**
 		 * read all values which be inside of chips for fractions or highest be saved
 		 *
-		 * @param pos which position should read
 		 * @param older whether should read older values (true) or for current writing (false =default)
 		 * @return values with time for fractions or highest in variable action.<br />
 		 * 			By ending, action is 'no'. If action is fraction value and time is in variables highest.highest and hightime.
 		 */
-		virtual write_t getLastValues(const unsigned int pos, const bool bolder= false)= 0;
+		virtual write_t getLastValues(const bool bolder= false)= 0;
 		/**
 		 * dummy destruktor for pattern
 		 */

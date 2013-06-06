@@ -29,6 +29,19 @@
 namespace ppi_database
 {
 	/**
+	 * structure for sorting timval keys in an map
+	 */
+	struct TimeSort
+	{
+	   bool operator()(const timeval x, const timeval y) const
+	   {
+			if(x.tv_sec < y.tv_sec) return true;
+			if(x.tv_sec == y.tv_sec) return x.tv_usec < y.tv_usec;
+			return false;
+	   }
+	};
+
+	/**
 	 * thinning database to hold memory space on hard disk closer
 	 */
 	class DatabaseThinning : public Thread
@@ -39,12 +52,14 @@ namespace ppi_database
 		 *
 		 * @param sWorkDir directory path where database files are laying
 		 * @param pChipReader DefaultChipConfigReader to define whether write value into new thinned database file
+		 * @param nSleepAfter sleep time after every reading row to hold process performance lower
 		 */
-		DatabaseThinning(const string& sWorkDir, IChipConfigReaderPattern* pChipReader)
+		DatabaseThinning(const string& sWorkDir, IChipConfigReaderPattern* pChipReader, __useconds_t nSleepAfter)
 		: Thread("DatabaseThinning", false, SCHED_FIFO, 50),
 		  m_THINNINGMUTEX(getMutex("THINNINGMUTEX")),
 		  m_THINNINGWAITCONDITION(getCondition("THINNINGWAITCONDITION")),
 		  m_sWorkDir(sWorkDir),
+		  m_nSleepAfterRows(nSleepAfter),
 		  m_pChipReader(pChipReader)
 		{};
 		/**
@@ -112,6 +127,10 @@ namespace ppi_database
 		 */
 		string m_sWorkDir;
 		/**
+		 * sleep time after every reading row to hold process performance lower
+		 */
+		__useconds_t m_nSleepAfterRows;
+		/**
 		 * reference to DefaultConfigReader
 		 */
 		IChipConfigReaderPattern* m_pChipReader;
@@ -127,6 +146,10 @@ namespace ppi_database
 		 * map of all filenames with the time to thin
 		 */
 		map<string, time_t> m_mOldest;
+		/**
+		 * new sorted database file content
+		 */
+		map<timeval, string, TimeSort> m_msNewFile;
 
 		/**
 		 * comb through database to kill older not needed entry's
@@ -145,9 +168,8 @@ namespace ppi_database
 		 * write entry direct into database
 		 *
 		 * @param entry db_t structure of chip
-		 * @param dbfile file handle to write
 		 */
-		void writeEntry(const db_t& entry, ofstream &dbfile);
+		void writeEntry(const db_t& entry);
 		/**
 		 * calculate the new time which should thin the database files again.
 		 *
