@@ -1397,7 +1397,15 @@ namespace ppi_database
 		char ctime[18];
 		tm l;
 
-		line << entry.measureHost << "|";
+		if(entry.measureHost == "")
+		{
+			if(m_sMeasureName == "")
+				line << "noHostDefined";
+			else
+				line << m_sMeasureName;
+		}else
+			line << entry.measureHost;
+		line << "|";
 		if(localtime_r(&entry.tm.tv_sec, &l) == NULL)
 			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
 		strftime(ctime, 16, "%Y%m%d:%H%M%S", &l);
