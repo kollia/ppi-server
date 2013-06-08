@@ -131,7 +131,7 @@ int DatabaseThread::stop(const bool *bWait)
 	int nRv= 0;
 	bool stopped;
 
-	nRv= Thread::stop();
+	nRv= Thread::stop(false);
 	stopped= m_pDatabase->stop();
 
 	if(	nRv == 0 &&
