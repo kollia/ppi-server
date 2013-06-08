@@ -231,7 +231,7 @@ public class MsgClientConnector extends ClientConnector
 							
 						}catch(InterruptedException interupt)
 						{
-							System.out.println("cannont sleep thread on file MsgClientConnector.java line 226");
+							System.out.println("cannont sleep thread on file MsgClientConnector.java line 234");
 							break;
 						}
 					}while((aktSec + 3000) > System.currentTimeMillis());
@@ -273,7 +273,7 @@ public class MsgClientConnector extends ClientConnector
 						dialog.setSelection(nPercent);
 					}
 					try{
-						Thread.sleep(100);
+						Thread.sleep(250);
 						
 					}catch(InterruptedException interupt)
 					{

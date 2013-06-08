@@ -137,7 +137,7 @@ public class ClientConnector
 	/**
 	 * connection ID given from Server
 	 */
-	private long m_nConnectionID;
+	private long m_nConnectionID= -1;
 	/**
 	 * whether have an second connection to server
 	 */
@@ -239,40 +239,46 @@ public class ClientConnector
 		String res, put;
 
 		if(	m_oSock != null &&
-			!m_oSock.isClosed()	)
+			!m_oSock.isClosed() &&
+			m_nConnectionID >= 0	)
 		{
 			return "OK";
 		}
-		try{
-			m_oSock= new Socket(m_sHost, m_nPort);
-		}catch(UnknownHostException ex)
+		if(	m_oSock == null ||
+			m_oSock.isClosed()	)
 		{
-			throw new IOException("UNKNOWNHOSTEXCEPTION");
-			
-		}catch(IOException ex)
-		{
-			throw new IOException("SOCKETIOEXCEPTION");
-		}
-		
-		try{
-			m_oPut= new PrintWriter(m_oSock.getOutputStream());
-		}catch(IOException ex)
-		{
-			throw new IOException("WRITERIOEXCEPTION");
-		}
-		
-		try{
-			m_oGet= new BufferedReader(new InputStreamReader(m_oSock.getInputStream()));
-		}catch(IOException ex)
-		{
+			m_nConnectionID= -1;
 			try{
-				m_oSock.close();
-				m_oPut.close();
-			}catch(IOException iex)
+				m_oSock= new Socket(m_sHost, m_nPort);
+			}catch(UnknownHostException ex)
 			{
-				// ???
+				throw new IOException("UNKNOWNHOSTEXCEPTION");
+				
+			}catch(IOException ex)
+			{
+				throw new IOException("SOCKETIOEXCEPTION");
 			}
-			throw new IOException("READERIOEXCEPTION");
+			
+			try{
+				m_oPut= new PrintWriter(m_oSock.getOutputStream());
+			}catch(IOException ex)
+			{
+				throw new IOException("WRITERIOEXCEPTION");
+			}
+			
+			try{
+				m_oGet= new BufferedReader(new InputStreamReader(m_oSock.getInputStream()));
+			}catch(IOException ex)
+			{
+				try{
+					m_oSock.close();
+					m_oPut.close();
+				}catch(IOException iex)
+				{
+					// ???
+				}
+				throw new IOException("READERIOEXCEPTION");
+			}
 		}
 		
 		put= "GET v" + Float.toString(Definitions.SERVER_PROTOCOL);
@@ -303,18 +309,11 @@ public class ClientConnector
 				oldmatch= oldanswer.match(res);
 				if(!oldmatch)
 				{
-					try{
-						m_oSock.close();
-						m_oPut.close();
-					}catch(IOException iex)
-					{
-						// ???
-					}
-					if(res.substring(0, 11).equals("WARNING 001"))
+					if(res.substring(0, 23).equals("ppi-server: WARNING 001"))
 					{
 						String[] split;						
 						
-						split= res.substring(12).split(" ");
+						split= res.substring(24).split(" ");
 						if(split.length < 2)
 						{
 							m_sProcessStart= "starting";
@@ -324,7 +323,14 @@ public class ClientConnector
 							m_sProcessStart= split[0];
 							m_nPercentStart= Integer.valueOf(split[1]);
 						}
-						throw new IOException("PORTSERVERBUSY " + res.substring(12));
+						throw new IOException("PORTSERVERBUSY " + res.substring(24));
+					}
+					try{
+						m_oSock.close();
+						m_oPut.close();
+					}catch(IOException iex)
+					{
+						// ???
 					}
 					throw new IOException("UNDEFINEDSERVER");
 				}
@@ -357,13 +363,16 @@ public class ClientConnector
 			{
 				error= "READERIOEXCEPTION";
 			}
-			try{
-				m_oSock.close();
-			}catch(IOException iex)
+			if(!ex.getMessage().substring(0, 14).equals("PORTSERVERBUSY"))
 			{
-				// ???
+				try{
+					m_oSock.close();
+				}catch(IOException iex)
+				{
+					// ???
+				}
+				m_oPut.close();
 			}
-			m_oPut.close();
 			throw new IOException(error);
 		}
 		return "OK";
