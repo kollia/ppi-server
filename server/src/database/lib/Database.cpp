@@ -1421,7 +1421,7 @@ namespace ppi_database
 			for(vector<double>::const_iterator valIt= entry.values.begin(); valIt != entry.values.end(); ++valIt)
 				line << dec << *valIt << "|";
 		}
-		dbfile << line << endl;
+		dbfile << line.str() << endl;
 	}
 
 	void Database::writeIntoDb(const string folder, const string subroutine)
