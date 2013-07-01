@@ -1258,7 +1258,7 @@ namespace ppi_database
 	#if 1
 			// check all subroutines whether to write into database
 			writeaccess= m_pChipReader->allowDbWriting(entry.folder, entry.subroutine, entry.values[0], entry.tm);
-			cout << "write access in database for subroutine " << entry.folder << ":" << entry.subroutine << " is '" << writeaccess.action << "'" << endl;
+			//cout << "write access in database for subroutine " << entry.folder << ":" << entry.subroutine << " is '" << writeaccess.action << "'" << endl;
 	#else
 			bool bNeedCheck;
 
