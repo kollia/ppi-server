@@ -478,7 +478,7 @@ namespace ppi_database
 		{
 			writeDb(*ci, &dbFile);
 		}
-		UNLOCK(m_DBMEASURECURVES);
+		UNLOCK(m_DBCURRENTENTRY);
 
 		dbFile.close();
 		m_oDbThinning->startDatabaseThinning();
