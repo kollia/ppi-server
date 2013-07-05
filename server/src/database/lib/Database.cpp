@@ -79,7 +79,7 @@ namespace ppi_database
 		m_CHANGINGPOOL= Thread::getMutex("CHANGINGPOOL");
 		m_CHANGINGPOOLCOND= Thread::getCondition("CHANGINGPOOLCOND");
 		m_STOPDB= Thread::getMutex("STOPDB");
-		m_nAfter= (unsigned int)(newdbafter * 1000000);
+		m_nAfter= (unsigned int)(newdbafter * 1024 * 1024);// calculation for bytes
 		m_bAnyChanged= false;
 		m_sWorkDir= properties->getValue("workdir");
 		m_sWorkDir= URL::addPath(m_sWorkDir, PPIDATABASEPATH, /*always*/false);
