@@ -69,7 +69,7 @@ namespace ppi_database
 		if(pHostN == NULL)
 			m_sMeasureName= "noHostDefined";
 		else
-			m_sMeasureName= *pHostN;
+			m_sMeasureName= string(pHostN);
 		m_sptEntrys= auto_ptr<vector<db_t> >(new vector<db_t>());
 		m_SERVERSTARTINGMUTEX= Thread::getMutex("SERVERSTARTINGMUTEX");
 		m_DBENTRYITEMSCOND= Thread::getCondition("DBENTRYITEMSCOND");
@@ -1462,6 +1462,7 @@ namespace ppi_database
 			time(&newEntry.tm.tv_sec);
 			newEntry.tm.tv_usec= 0;
 		}
+		newEntry.measureHost= m_sMeasureName;
 		newEntry.folder= folder;
 		newEntry.subroutine= subroutine;
 		newEntry.identif= identif;
