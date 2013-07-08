@@ -77,6 +77,10 @@ namespace ports
 		InterlacedProperties properties;
 		vector<IInterlacedPropertyPattern*> sections;
 
+		properties.modifier("folder");
+		properties.setMsgParameter("folder");
+		properties.modifier("subroutine");
+		properties.setMsgParameter("subroutine");
 		properties.modifier("server");
 		properties.setMsgParameter("server");
 		properties.modifier("family");
@@ -87,10 +91,6 @@ namespace ports
 		properties.setMsgParameter("ID", "chip ID");
 		properties.modifier("pin");
 		properties.setMsgParameter("pin", "chip pin");
-		properties.modifier("folder");
-		properties.setMsgParameter("folder");
-		properties.modifier("subroutine");
-		properties.setMsgParameter("subroutine");
 		properties.modifier("range");
 		properties.setMsgParameter("range", "range of chip");
 		properties.modifier("dbolder");
@@ -183,13 +183,13 @@ namespace ports
 		string section(property->getSectionModifier());
 		/**
 		 * number of currently section
-		 *   1 - server
-		 *   2 - family
-		 *   3 - type
-		 *   4 - ID
-		 *   5 - pin
-		 *   6 - folder
-		 *   7 - subroutine
+		 *   1 - folder
+		 *   2 - subroutine
+		 *   3 - server
+		 *   4 - family
+		 *   5 - type
+		 *   6 - ID
+		 *   7 - pin
 		 *   8 - range
 		 */
 		unsigned short nSection;
@@ -211,103 +211,23 @@ namespace ports
 		string folder, subroutine, errwarnmsg;
 		defValues_t defaultValues;
 
-		if(section == "server")
+		if(section == "folder")
 			nSection= 1;
-		else if(section == "family")
-			nSection= 2;
-		else if(section == "type")
-			nSection= 3;
-		else if(section == "ID")
-			nSection= 4;
-		else if(section == "pin")
-			nSection= 5;
-		else if(section == "folder")
-			nSection= 6;
 		else if(section == "subroutine")
+			nSection= 2;
+		else if(section == "server")
+			nSection= 3;
+		else if(section == "family")
+			nSection= 4;
+		else if(section == "type")
+			nSection= 5;
+		else if(section == "ID")
+			nSection= 6;
+		else if(section == "pin")
 			nSection= 7;
 		else if(section == "range")
 			nSection= 8;
-		if(nSection <= 1) // server
-		{
-			server= property->getValue("server", /*warning*/false);
-			if(server != "")
-			{
-				//server= "###all";
-				if(section != "server")
-				{
-					sections= property->getSections();
-					for(sit o= sections.begin(); o != sections.end(); ++o)
-						readSection(*o, chip);
-					return;
-				}
-				chip.server= server;
-			}
-		}
-		if(nSection <= 2) // family
-		{
-			family= property->getValue("family", /*warning*/false);
-			if(family != "")
-			{
-				//family= "###all";
-				if(section != "family")
-				{
-					sections= property->getSections();
-					for(sit o= sections.begin(); o != sections.end(); ++o)
-						readSection(*o, chip);
-					return;
-				}
-				chip.family= family;
-			}
-		}
-		if(nSection <= 3) // type
-		{
-			type= property->getValue("type", /*warning*/false);
-			if(type != "")
-			{
-				//type= "###all";
-				if(section != "type")
-				{
-					sections= property->getSections();
-					for(sit o= sections.begin(); o != sections.end(); ++o)
-						readSection(*o, chip);
-					return;
-				}
-				chip.type= type;
-			}
-		}
-		if(nSection <= 4) // ID
-		{
-			ID= property->getValue("ID", /*warning*/false);
-			if(ID != "")
-			{
-				//ID= "###all";
-				if(section != "ID")
-				{
-					sections= property->getSections();
-					for(sit o= sections.begin(); o != sections.end(); ++o)
-						readSection(*o, chip);
-					return;
-				}
-				chip.id= ID;
-			}
-		}
-		if(nSection <= 5) // pin
-		{
-			pin= property->getValue("pin", /*warning*/false);
-			if(pin != "")
-			{
-				//pin= "###all";
-				if(section != "pin")
-				{
-					sections= property->getSections();
-					for(sit o= sections.begin(); o != sections.end(); ++o)
-						readSection(*o, chip);
-					return;
-				}
-				chip.pin= pin;
-			}
-		}
-		if(nSection <= 6) // folder
+		if(nSection <= 1) // folder
 		{
 			folder= property->getValue("folder", /*warning*/false);
 			if(folder != "")
@@ -333,7 +253,6 @@ namespace ports
 					replace_all(folder, "{", "\\{");
 					replace_all(folder, "}", "\\}");
 					replace_all(folder, "?", ".");
-					replace_all(folder, "+", ".+");
 					replace_all(folder, "*", ".*");
 					folder= "^" + folder + "$";
 				}
@@ -356,7 +275,7 @@ namespace ports
 				}
 			}
 		}
-		if(nSection <= 7) // subroutine
+		if(nSection <= 2) // subroutine
 		{
 			subroutine= property->getValue("subroutine", /*warning*/false);
 			if(subroutine != "")
@@ -387,7 +306,6 @@ namespace ports
 					replace_all(subroutine, "{", "\\{");
 					replace_all(subroutine, "}", "\\}");
 					replace_all(subroutine, "?", ".");
-					replace_all(subroutine, "+", ".+");
 					replace_all(subroutine, "*", ".*");
 					subroutine= "^" + subroutine + "$";
 				}
@@ -408,6 +326,86 @@ namespace ports
 					LOG(LOG_ERROR, errmsg + "\nso do not read defaults for this case of subroutines");
 					return;
 				}
+			}
+		}
+		if(nSection <= 3) // server
+		{
+			server= property->getValue("server", /*warning*/false);
+			if(server != "")
+			{
+				//server= "###all";
+				if(section != "server")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				chip.server= server;
+			}
+		}
+		if(nSection <= 4) // family
+		{
+			family= property->getValue("family", /*warning*/false);
+			if(family != "")
+			{
+				//family= "###all";
+				if(section != "family")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				chip.family= family;
+			}
+		}
+		if(nSection <= 5) // type
+		{
+			type= property->getValue("type", /*warning*/false);
+			if(type != "")
+			{
+				//type= "###all";
+				if(section != "type")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				chip.type= type;
+			}
+		}
+		if(nSection <= 6) // ID
+		{
+			ID= property->getValue("ID", /*warning*/false);
+			if(ID != "")
+			{
+				//ID= "###all";
+				if(section != "ID")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				chip.id= ID;
+			}
+		}
+		if(nSection <= 7) // pin
+		{
+			pin= property->getValue("pin", /*warning*/false);
+			if(pin != "")
+			{
+				//pin= "###all";
+				if(section != "pin")
+				{
+					sections= property->getSections();
+					for(sit o= sections.begin(); o != sections.end(); ++o)
+						readSection(*o, chip);
+					return;
+				}
+				chip.pin= pin;
 			}
 		}
 		range= property->getValue("range", /*warning*/false);
@@ -465,7 +463,8 @@ namespace ports
 				LOG(LOG_WARNING, msg);
 				cerr << msg << endl;
 			}
-		}
+		}else
+			chip.bFloat= true;
 		dbwrite= property->needValue("dbwrite");
 		sections= property->getSections();//should be only dbolder sections
 		if(	dbwrite != "" ||
