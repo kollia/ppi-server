@@ -65,7 +65,7 @@ bool Output::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_pt
 		m_bNeedSwitch= true;
 	}
 	properties->haveAction("print");// ask only because when no log property set but action 'print'
-	sLogLevel= properties->getValue("log");         // should gives no warning output
+	sLogLevel= properties->getValue("log", /*warning*/false);  // should gives no warning output
 	if(sLogLevel != "")
 	{
 		m_bCL= properties->haveAction("print");
