@@ -80,6 +80,7 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	DbInterface *db= DbInterface::instance();
 
 	m_dValue= 0;
+	m_bInfo= !properties->haveAction("noinfo");
 	m_sPermission= properties->getValue("perm", /*warning*/false);
 	m_bWriteDb= properties->haveAction("db");
 	m_bSwitch= properties->haveAction("binary");
@@ -410,19 +411,22 @@ void portBase::setValue(double value, const string& from)
 		 // or in same folder, subroutine was from an later one
 			m_poMeasurePattern->changedValue(m_sFolder, from.substr(2));
 		}
-		if(debug && m_mvObservers.size() > 0)
+		if(debug)
 		{
-			output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
-			output << "  " << sOwn << " was changed to " << m_dValue << endl;
-			if(	spl[0] != "i" ||
-				from.substr(2) != sOwn		)
+			if(m_mvObservers.size() > 0)
 			{
-				output << "  was informed from";
-				if(from.substr(0, 1) == "e")
-					output << " internet account ";
-				else
-					output << ": ";
-				output << from.substr(2) << endl;
+				output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
+				output << "  " << sOwn << " was changed to " << m_dValue << endl;
+				if(	spl[0] != "i" ||
+					from.substr(2) != sOwn		)
+				{
+					output << "  was informed from";
+					if(from.substr(0, 1) == "e")
+						output << " internet account ";
+					else
+						output << ": ";
+					output << from.substr(2) << endl;
+				}
 			}
 		}
 		for(map<IMeasurePattern*, vector<string> >::iterator it= m_mvObservers.begin(); it != m_mvObservers.end(); ++it)

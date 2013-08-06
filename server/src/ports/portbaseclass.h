@@ -143,6 +143,11 @@ namespace ports
 			 */
 			bool m_bDebug;
 			/**
+			 * whether subroutine need information from other subroutines
+			 * when any value which set inside begin/while/end was changed
+			 */
+			bool m_bInfo;
+			/**
 			 * whether object should write changed values into database
 			 */
 			bool m_bWriteDb;
@@ -267,6 +272,14 @@ namespace ports
 			 */
 			virtual bool hasServer() const
 			{ return false; }
+			/**
+			 * return true when subroutine need information from other subroutines by changing.<br />
+			 * otherwise false.
+			 *
+			 * @return whether subroutine need information from other subroutines
+			 */
+			virtual bool needObserver() const
+			{ return m_bInfo; };
 			/**
 			 * this method will be called from any measure thread to set as observer
 			 * for starting own folder to get value from foreign folder

@@ -223,7 +223,8 @@ int MeasureThread::init(void *arg)
 			port= (*m_pvtSubroutines)[n].portClass;
 			port->setRunningThread(this);
 			port->setDebug(false);
-			port->setObserver(this);
+			if(port->needObserver())
+				port->setObserver(this);
 		}
 	}
 	for(vector<string>::iterator it= m_vStartDebugSubs.begin(); it != m_vStartDebugSubs.end(); ++it)
