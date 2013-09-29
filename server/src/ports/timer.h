@@ -28,6 +28,7 @@
 
 #include "ListCalculator.h"
 #include "switch.h"
+#include "measureThread.h"
 
 enum which_time
 {
@@ -48,15 +49,22 @@ public:
 	 *
 	 * @param folderName name of folder
 	 * @param subroutineName name of subroutine
+	 * @param bTimerLog whether timer routine should write percent into database
+	 * @param bNoDbRead whether times for TIMER subroutines should read from database
 	 */
-	timer(string folderName, string subroutineName)
+	timer(string folderName, string subroutineName, bool bTimerLog, bool bNoDbRead, short finishedCPUtime)
 	: switchClass("TIMER", folderName, subroutineName),
 	  m_bHasLinks(false),
 	  m_nCaseNr(0),
+	  m_bLogPercent(bTimerLog),
+	  m_nFinishedCPUtime(finishedCPUtime),
+	  m_bNoDbRead(bNoDbRead),
 	  m_bSwitchbyTime(false),
 	  m_bMeasure(false),
 	  m_bSeconds(true),
+	  m_bFinished(true),
 	  m_omtime(folderName, subroutineName, "mtime", false, false),
+	  m_oFinished(folderName, subroutineName, "finished", false, true),
 	  m_oMicroseconds(folderName, subroutineName, "microsec", false, false),
 	  m_oMilliseconds(folderName, subroutineName, "millisec", false, false),
 	  m_oSeconds(folderName, subroutineName, "sec", false, false),
@@ -83,6 +91,14 @@ public:
 	 */
 	virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 	/**
+	 * this method will be called from any measure thread to set as observer
+	 * for starting own folder to get value from foreign folder
+	 * if there the value was changing
+	 *
+	 * @param observer measure thread which containing the own folder
+	 */
+	virtual void setObserver(IMeasurePattern* observer);
+	/**
 	 * measure new value for subroutine
 	 *
 	 * @param actValue current value
@@ -104,14 +120,11 @@ public:
 	 */
 	virtual void setDebug(bool bDebug);
 	/**
-	 * calculate double result whether should measure in second range
-	 * or microsecond range
+	 * set measure thread which run this object with method <code>measure()</code>
 	 *
-	 * @param tv current time
-	 * @param secondcalc whether should calculate in seconds (true) or microseconds (false)
-	 * @return result of subroutine
+	 * @param thread measure thread
 	 */
-	static double calcResult(timeval tv, bool secondcalc);
+	virtual void setRunningThread(IMeasurePattern* thread);
 	/**
 	 * destructor
 	 */
@@ -158,6 +171,23 @@ protected:
 	 */
 	unsigned short m_nCaseNr;
 	/**
+	 * whether activation of folder should be performed with length time of folder run
+	 */
+	bool m_bExactTime;
+	/**
+	 * log inside database for starting earlier or estimate possible finish time
+	 * by which CPU percent time length be taken
+	 */
+	bool m_bLogPercent;
+	/**
+	 * on which CPU time should differ by database writing for possible finished time
+	 */
+	short m_nFinishedCPUtime;
+	/**
+	 * whether should read possible folder length or finished times from database
+	 */
+	bool m_bNoDbRead;
+	/**
 	 * whether should calculate times only when switch is true
 	 */
 	bool m_bSwitchbyTime;
@@ -175,9 +205,19 @@ protected:
 	 */
 	bool m_bSeconds;
 	/**
+	 * whether end time calculation or finished property be reached
+	 * when m_bExactTime be set
+	 */
+	bool m_bFinished;
+	/**
 	 * defined-value where get the time for count down
 	 */
 	ListCalculator m_omtime;
+	/**
+	 * for calculating middle length time
+	 * when other subroutines has correct results
+	 */
+	ListCalculator m_oFinished;
 	/**
 	 * defined-value for microseconds
 	 */
@@ -230,9 +270,19 @@ protected:
 	 */
 	timeval m_tmStart;
 	/**
-	 * when m_bTimeMeasure not set, ending the time measure on this time
+	 * when m_bTimeMeasure not set, ending the time measure after this time
+	 * which is subtracted from length folder time
 	 */
 	timeval m_tmStop;
+	/**
+	 * when m_bTimeMeasure not set, ending the time measure on this exact time
+	 */
+	timeval m_tmExactStop;
+	/**
+	 * full ending time when finished should be reached.<br />
+	 * only defined when parameter finished in subroutine be set
+	 */
+	timeval m_tmWantFinish;
 	/**
 	 * string of options whether set value to 0
 	 */
@@ -322,7 +372,26 @@ private:
 	 * this is the value by starting measuring
 	 */
 	double m_dStartValue;
+	/**
+	 * percent by getting length, to write into calculation
+	 */
+	short m_nLengthPercent;
+	/**
+	 * static types to calculating length of reached finished time
+	 */
+	MeasureThread::timetype_t m_tReachedTypes;
 
+	/**
+	 * running case 1 or 2<br />
+	 * when folder should polling all seconds, minutes, hours, ...<br />
+	 * or time count down to setting date time
+	 *
+	 * @param bswitch whether subroutine is activated from parameter begin, while or end
+	 * @param tv actual time for subroutine
+	 * @param debug whether subroutine is inside debug modus
+	 * @return new value of subroutine
+	 */
+	double polling_or_countDown(const bool bswitch, timeval tv, const bool debug);
 	/**
 	 * calculate next needed time
 	 *
@@ -341,6 +410,11 @@ private:
 	 * @param next give back calculated time to stopping
 	 */
 	double calcStartTime(const bool& debug, const double actValue, timeval* next);
+	/**
+	 * substract from time seconds for exact starting
+	 *
+	 */
+	double substractExactFinishTime(timeval* nextTime, timeval* refreshTime, timeval* exactStop, const bool& debug);
 };
 
 #endif /*TIMER_H_*/

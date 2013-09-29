@@ -141,6 +141,19 @@ public:
 
 	protected:
 		/**
+		 * begin calculation string
+		 */
+		ListCalculator m_oBegin;
+		/**
+		 * while calculation string
+		 */
+		ListCalculator m_oWhile;
+		/**
+		 * end calculation string
+		 */
+		ListCalculator m_oEnd;
+
+		/**
 		 * set min and max parameter to the range which can be set for this subroutine.<br />
 		 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.
 		 * Also if the values defined in an bit value 010 (dec:2) set 0 and for 011 (dec:3) set 1 in db.
@@ -181,18 +194,6 @@ public:
 		 * before while and end
 		 */
 		bool m_bAlwaysBegin;
-		/**
-		 * begin calculation string
-		 */
-		ListCalculator m_oBegin;
-		/**
-		 * while calculation string
-		 */
-		ListCalculator m_oWhile;
-		/**
-		 * end calculation string
-		 */
-		ListCalculator m_oEnd;
 		/**
 		 * locking for set m_msbSValue;
 		 */

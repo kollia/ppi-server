@@ -77,12 +77,13 @@ namespace server
 
 		}else if(method == "writeIntoDb")
 		{
-			string folder, subroutine;
+			string folder, subroutine, identif;
 
 			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> folder;
 			object >> subroutine;
-			db->writeIntoDb(folder, subroutine);
+			object >> identif;
+			db->writeIntoDb(folder, subroutine, identif);
 
 		}else if(method == "fillValue")
 		{

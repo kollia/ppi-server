@@ -87,8 +87,11 @@ class Starter
 		 * create defined folder list beginning by measure.conf
 		 *
 		 * @param shellstarter list of system user which should starting an command inside specific user account on system
+		 * @param bTimerLog whether timer routine should write percent into database
+		 * @param bNoDbRead whether times for TIMER subroutines should read from database
+		 * @param finishedCPUtime on which CPU time should differ by database writing for possible finished time
 		 */
-		void createFolderLists(set<string>& shellstarter);
+		void createFolderLists(set<string>& shellstarter, bool bTimerLog, bool bNoDbRead, short finishedCPUtime);
 		/**
 		 * configure all subroutine classes which are created in method <code>createFolderLists()</code>
 		 *

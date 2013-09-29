@@ -76,16 +76,18 @@ namespace design_pattern_world
 		{
 			if(folder > other->folder)
 				return true;
-			return subroutine > other->subroutine;
+			if(subroutine > other->subroutine)
+				return true;
+			return identif > other->identif;
 		}
 		/**
 		 * is same operator
 		 */
 		bool operator == (const db_t* other) const
 		{
-			return (	folder == other->folder
-						&&
-						subroutine == other->subroutine	);
+			return (	folder == other->folder &&
+						subroutine == other->subroutine &&
+						identif == other->identif			);
 		}
 	};
 
@@ -156,8 +158,9 @@ namespace design_pattern_world
 		 *
 		 * @param folder name of folder from the running thread
 		 * @param subroutine mame of the subroutine in the folder
+		 * @param identif identification of writing value
 		 */
-		virtual void writeIntoDb(const string folder, const string subroutine)= 0;
+		virtual void writeIntoDb(const string& folder, const string& subroutine, const string& identif= "value")= 0;
 		/**
 		 * database service for which changes in subroutines are needed.<br />
 		 * this method define for any specific client which subroutines in folder it does

@@ -22,6 +22,8 @@
 
 #include "ports/measureThread.h"
 
+#include "database/lib/DbInterface.h"
+
 #include "pattern/util/LogHolderPattern.h"
 
 #include "util/GlobalStaticMethods.h"
@@ -38,11 +40,17 @@ inline int ProcessChecker::init(void *args)
 
 int ProcessChecker::execute()
 {
+	static bool bfirst(false);
 	int nRv= 0;
 	string method;
 	string question;
 	string from;
 
+	if(!bfirst)
+	{
+		ppi_database::DbInterface::instance()->setServerConfigureStatus("finished", -1);
+		bfirst= true;
+	}
 	question= getQuestion(m_sAnswer);
 	IMethodStringStream object(question);
 

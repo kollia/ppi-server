@@ -51,6 +51,10 @@ int main(int argc, char* argv[])
 	params.option("folderstart", "f", "show all folder on command line which are starting");
 	params.option("subroutines", "s", "for option --configure (-s) or --folderstart (-f) show also subroutines\n"
 					"(when none of this option be set, also folder configuration will be displayed)");
+	params.option("timerdblog", "t", "logging inside database currently percent info for subroutines with type TIME\n"
+									"when taken starting time \"runnlength\" as \"|<folder>|<subroutine>|runpercent|\"\n"
+									"or estimated finish time \"reachend\" as \"|<folder>|<subroutine>|reachpercent|\"");
+	params.option("nodbbegintime", "n", "do not read beginning time from database for subroutines with type TIME");
 	params.option("folderdebug", "d", true, "debugging from begin the following <folder>[:<subroutine>]\n"
 					               "also more subroutines can be given separated with an comma inside quotes\n"
 					               "('<folder>[:<subroutine>], <folder>[:<subroutine>]')");

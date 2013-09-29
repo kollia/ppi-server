@@ -120,8 +120,9 @@ namespace ppi_database
 		 *
 		 * @param folder name of folder from the running thread
 		 * @param subroutine mame of the subroutine in the folder
+		 * @param identif identification of writing value
 		 */
-		virtual void writeIntoDb(const string folder, const string subroutine);
+		virtual void writeIntoDb(const string& folder, const string& subroutine, const string& identif= "value");
 		/**
 		 * database service for which changes in subroutines are needed.<br />
 		 * this method define for any specific client which subroutines in folder it does

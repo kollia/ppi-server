@@ -41,25 +41,25 @@ using namespace boost;
 
 switchClass::switchClass(string folderName, string subroutineName)
 : portBase("SWITCH", folderName, subroutineName),
+  m_oBegin(folderName, subroutineName, "begin", false, true),
+  m_oWhile(folderName, subroutineName, "while", false, true),
+  m_oEnd(folderName, subroutineName, "end", false, true),
   m_bSwitch(true),
   m_bLastValue(false),
   m_bCurrent(false),
-  m_bAlwaysBegin(false),
-  m_oBegin(folderName, subroutineName, "begin", false, true),
-  m_oWhile(folderName, subroutineName, "while", false, true),
-  m_oEnd(folderName, subroutineName, "end", false, true)
+  m_bAlwaysBegin(false)
 {
 	m_VALUELOCK= Thread::getMutex("VALUELOCK");
 }
 
 switchClass::switchClass(string type, string folderName, string subroutineName)
 : portBase(type, folderName, subroutineName),
-  m_bLastValue(false),
-  m_bCurrent(false),
-  m_bAlwaysBegin(false),
   m_oBegin(folderName, subroutineName, "begin", false, true),
   m_oWhile(folderName, subroutineName, "while", false, true),
-  m_oEnd(folderName, subroutineName, "end", false, true)
+  m_oEnd(folderName, subroutineName, "end", false, true),
+  m_bLastValue(false),
+  m_bCurrent(false),
+  m_bAlwaysBegin(false)
 {
 	if(type != "SWITCH")
 		m_bSwitch= false;

@@ -182,8 +182,9 @@ namespace ppi_database
 		 *
 		 * @param folder name of folder from the running thread
 		 * @param subroutine mame of the subroutine in the folder
+		 * @param identif identification of writing value
 		 */
-		void writeIntoDb(const string folder, const string subroutine);
+		void writeIntoDb(const string& folder, const string& subroutine, const string& identif= "value");
 		/**
 		 * set double value into measure list
 		 *

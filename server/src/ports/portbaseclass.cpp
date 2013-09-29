@@ -32,6 +32,7 @@
 
 #include "portbaseclass.h"
 
+#include "../util/exception.h"
 #include "../util/thread/Thread.h"
 #include "../util/thread/Terminal.h"
 
@@ -247,8 +248,11 @@ void portBase::informObserver(IMeasurePattern* observer, const string& folder, c
 	vector<string> vec;
 	vector<string>::iterator found;
 
-	if(folder == getFolderName())
+	if(	folder == getFolderName() &&
+		observer->getActCount(subroutine) > m_nCount	)
+	{// do not inform subroutine from own folder list, which running after own
 		return;
+	}
 	LOCK(m_OBSERVERLOCK);
 	vec= m_mvObservers[observer];
 	found= find(vec.begin(), vec.end(), inform);
@@ -311,189 +315,208 @@ string portBase::switchBinStr(double value)
 void portBase::setValue(double value, const string& from)
 {
 //#define __moreOutput
-	double invalue(value);
-	double dbvalue(value);
-	double oldMember(m_dValue);
-	DbInterface* db;
+	try{
+		double invalue(value);
+		double dbvalue(value);
+		double oldMember(m_dValue);
+		DbInterface* db;
 
-	LOCK(m_VALUELOCK);
-	if(!m_bDefined)// if device not found by starting in init method
-		defineRange(); // try again, maybe device was found meantime
-	if(m_bDefined)
-	{
+		LOCK(m_VALUELOCK);
+		if(!m_bDefined)// if device not found by starting in init method
+			defineRange(); // try again, maybe device was found meantime
+		if(m_bDefined)
+		{
 #ifdef __moreOutput
-		cout << "-------------------------------------------------------------------" << endl;
-		cout << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
-		if(m_bSwitch)
-			cout << " defined for binary switch";
-		cout << endl;
-		cout << "        set new value from '" << from << "'" << endl;
-		cout << "            Incoming value:" << dec << value;
-		if(m_bSwitch)
-			cout << " binary " << switchBinStr(value);
-		cout << endl;
-		cout << "value before in subroutine:" << dec << m_dValue;
+			cout << "-------------------------------------------------------------------" << endl;
+			cout << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
+			if(m_bSwitch)
+				cout << " defined for binary switch";
+			cout << endl;
+			cout << "        set new value from '" << from << "'" << endl;
+			cout << "            Incoming value:" << dec << value;
+			if(m_bSwitch)
+				cout << " binary " << switchBinStr(value);
+			cout << endl;
+			cout << "value before in subroutine:" << dec << m_dValue;
+			if(m_bSwitch)
+				cout << " binary " << switchBinStr(m_dValue);
+			cout << endl;
+			if(!m_bSwitch)
+			{
+				cout << "                 min range:" << dec << m_dMin << endl;
+				cout << "                 max range:" << dec << m_dMax << endl;
+			}
+#endif // __moreOutput
+			if(m_bSwitch)
+			{
+				short svalue(static_cast<short>(value));
+
+		//		if(from.substr(0, 1) == "e")
+		//			value= value != 0 ? 0b11 : 0b00;
+				if(svalue & 0b01)
+					svalue= 0b11;
+				else if(svalue == 0b10) // only when svalue is 2 and not 6, 14, ...
+					svalue= 0b10;
+				else
+					svalue= static_cast<short>(m_dValue) & 0b10;
+				value= static_cast<double>(svalue);
+				dbvalue= svalue & 0b01 ? 1 : 0;
+				oldMember= ((int)m_dValue & 0b01) ? 1 : 0;
+
+			}else
+			{
+				if(m_dMin < m_dMax)
+				{
+					if(value < m_dMin)
+						value= m_dMin;
+					if(value > m_dMax)
+						value= m_dMax;
+				}
+				if(!m_bFloat)
+					value= (double)((long)value);
+				dbvalue= value;
+				oldMember= m_dValue;
+			}
+#ifdef __moreOutput
+			cout << "          old member value:" << dec << oldMember;
+			if(m_bSwitch)
+				cout << " binary " << switchBinStr(oldMember);
+			cout << endl;
+			cout << "         new defined value:" << dec << value;
+			if(m_bSwitch)
+				cout << " binary " << switchBinStr(value);
+			cout << endl;
+			cout << "       new defined dbvalue:" << dec << dbvalue << endl;
+#endif // __moreOutput
+		}
+		if(value != m_dValue)
+		{
+			bool debug(isDebug());
+			string sOwn(m_sFolder+":"+m_sSubroutine);
+			ostringstream output;
+			vector<string> spl;
+
+			m_dValue= value;
+			if(m_bSwitch)
+			{
+				for(map<string, short>::iterator it= m_mdValue.begin(); it != m_mdValue.end(); ++it)
+					it->second= static_cast<short>(value);
+			}
+
+			split(spl, from, is_any_of(":"));
+			LOCK(m_OBSERVERLOCK);
+
+			if(	m_poMeasurePattern &&
+				spl[0] == "i" &&
+				(	spl[1] != m_sFolder ||
+					(	spl[1] == m_sFolder &&
+						m_nCount < m_poMeasurePattern->getActCount(spl[2])	)	)	)
+			{// inform own folder to restart
+			 // when setting was from other folder
+			 // or in same folder, subroutine was from an later one
+				m_poMeasurePattern->changedValue(m_sFolder, from.substr(2));
+			}
+			if(debug)
+			{
+				if(m_mvObservers.size() > 0)
+				{
+					output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
+					output << "  " << sOwn << " was changed to " << m_dValue << endl;
+					if(	spl[0] != "i" ||
+						from.substr(2) != sOwn		)
+					{
+						output << "  was informed from";
+						if(from.substr(0, 1) == "e")
+							output << " internet account ";
+						else
+							output << ": ";
+						output << from.substr(2) << endl;
+					}
+				}
+			}
+			for(map<IMeasurePattern*, vector<string> >::iterator it= m_mvObservers.begin(); it != m_mvObservers.end(); ++it)
+			{
+				for(vector<string>::iterator fit= it->second.begin(); fit != it->second.end(); ++fit)
+				{
+					string::size_type pos;
+
+					pos= fit->find(" ");
+					if(	from.substr(0, 1) != "i" ||
+						(	(	pos != string::npos &&
+								from.substr(2) != fit->substr(0, pos)	) ||
+							(	pos == string::npos &&
+								from.substr(2) != *fit	) 					)	)
+					{
+						if(debug)
+							output << "    inform " << *fit << endl;
+						it->first->changedValue(*fit, sOwn);
+
+					}else if(debug)
+						output << "    do not inform " << *fit << " back" << endl;
+					break;
+				}
+			}
+			if(debug && m_mvObservers.size() > 0)
+			{
+				bool registeredThread;
+
+				output << "////////////////////////////////////////" << endl;
+				registeredThread= Terminal::instance()->isRegistered();
+				tout << output.str();
+				if(!registeredThread)
+					TERMINALEND;
+			}
+			UNLOCK(m_OBSERVERLOCK);
+			if(	dbvalue != oldMember &&
+				(	m_bWriteDb ||
+					m_sPermission != ""	)	)
+			{
+#ifdef __moreOutput
+			cout << "            fill new value:" << dec << dbvalue << " into database" << endl;
+#endif // __moreOutput
+				db= DbInterface::instance();
+				db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
+			}
+
+		}else if(	invalue != value &&
+					(	m_bWriteDb ||
+						m_sPermission != ""	)	)
+		{
+			// make correction of value in database
+			// because client which set wrong value
+			// should now that value was wrong
+#ifdef __moreOutput
+			cout << "             correct value:" << dec << dbvalue << " inside database to inform all clients" << endl;
+#endif // __moreOutput
+			db= DbInterface::instance();
+			db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*update to old value*/true);
+		}
+#ifdef __moreOutput
+		cout << "       last state of value:" << dec << m_dValue;
 		if(m_bSwitch)
 			cout << " binary " << switchBinStr(m_dValue);
 		cout << endl;
-		if(!m_bSwitch)
-		{
-			cout << "                 min range:" << dec << m_dMin << endl;
-			cout << "                 max range:" << dec << m_dMax << endl;
-		}
+		cout << "-------------------------------------------------------------------" << endl;
 #endif // __moreOutput
-		if(m_bSwitch)
-		{
-			short svalue(static_cast<short>(value));
-
-	//		if(from.substr(0, 1) == "e")
-	//			value= value != 0 ? 0b11 : 0b00;
-			if(svalue & 0b01)
-				svalue= 0b11;
-			else if(svalue == 0b10) // only when svalue is 2 and not 6, 14, ...
-				svalue= 0b10;
-			else
-				svalue= static_cast<short>(m_dValue) & 0b10;
-			value= static_cast<double>(svalue);
-			dbvalue= svalue & 0b01 ? 1 : 0;
-			oldMember= ((int)m_dValue & 0b01) ? 1 : 0;
-
-		}else
-		{
-			if(m_dMin < m_dMax)
-			{
-				if(value < m_dMin)
-					value= m_dMin;
-				if(value > m_dMax)
-					value= m_dMax;
-			}
-			if(!m_bFloat)
-				value= (double)((long)value);
-			dbvalue= value;
-			oldMember= m_dValue;
-		}
-#ifdef __moreOutput
-		cout << "          old member value:" << dec << oldMember;
-		if(m_bSwitch)
-			cout << " binary " << switchBinStr(oldMember);
-		cout << endl;
-		cout << "         new defined value:" << dec << value;
-		if(m_bSwitch)
-			cout << " binary " << switchBinStr(value);
-		cout << endl;
-		cout << "       new defined dbvalue:" << dec << dbvalue << endl;
-#endif // __moreOutput
-	}
-	if(value != m_dValue)
+		UNLOCK(m_VALUELOCK);
+	}catch(SignalException& ex)
 	{
-		bool debug(isDebug());
-		string sOwn(m_sFolder+":"+m_sSubroutine);
-		ostringstream output;
-		vector<string> spl;
+		string err;
+		ostringstream msg;
 
-		m_dValue= value;
-		if(m_bSwitch)
+		msg << "set value " << value << " from " << from;
+		ex.addMessage(msg.str());
+		err= ex.getTraceString();
+		cerr << endl << err << endl;
+		try{
+			LOG(LOG_ALERT, err);
+		}catch(...)
 		{
-			for(map<string, short>::iterator it= m_mdValue.begin(); it != m_mdValue.end(); ++it)
-				it->second= static_cast<short>(value);
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+			cerr         << "       on file " << __FILE__ << " line " << __LINE__ << endl;
 		}
 
-		split(spl, from, is_any_of(":"));
-		LOCK(m_OBSERVERLOCK);
-
-		if(	m_poMeasurePattern &&
-			spl[0] == "i" &&
-			(	spl[1] != m_sFolder ||
-				(	spl[1] == m_sFolder &&
-					m_nCount < m_poMeasurePattern->getActCount(spl[2])	)	)	)
-		{// inform own folder to restart
-		 // when setting was from other folder
-		 // or in same folder, subroutine was from an later one
-			m_poMeasurePattern->changedValue(m_sFolder, from.substr(2));
-		}
-		if(debug)
-		{
-			if(m_mvObservers.size() > 0)
-			{
-				output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
-				output << "  " << sOwn << " was changed to " << m_dValue << endl;
-				if(	spl[0] != "i" ||
-					from.substr(2) != sOwn		)
-				{
-					output << "  was informed from";
-					if(from.substr(0, 1) == "e")
-						output << " internet account ";
-					else
-						output << ": ";
-					output << from.substr(2) << endl;
-				}
-			}
-		}
-		for(map<IMeasurePattern*, vector<string> >::iterator it= m_mvObservers.begin(); it != m_mvObservers.end(); ++it)
-		{
-			for(vector<string>::iterator fit= it->second.begin(); fit != it->second.end(); ++fit)
-			{
-				string::size_type pos;
-
-				pos= fit->find(" ");
-				if(	from.substr(0, 1) != "i" ||
-					(	(	pos != string::npos &&
-							from.substr(2) != fit->substr(0, pos)	) ||
-						(	pos == string::npos &&
-							from.substr(2) != *fit	) 					)	)
-				{
-					if(debug)
-						output << "    inform " << *fit << endl;
-					it->first->changedValue(*fit, sOwn);
-
-				}else if(debug)
-					output << "    do not inform " << *fit << " back" << endl;
-				break;
-			}
-		}
-		if(debug && m_mvObservers.size() > 0)
-		{
-			bool registeredThread;
-
-			output << "////////////////////////////////////////" << endl;
-			registeredThread= Terminal::instance()->isRegistered();
-			tout << output.str();
-			if(!registeredThread)
-				TERMINALEND;
-		}
-		UNLOCK(m_OBSERVERLOCK);
-		if(	dbvalue != oldMember &&
-			(	m_bWriteDb ||
-				m_sPermission != ""	)	)
-		{
-#ifdef __moreOutput
-		cout << "            fill new value:" << dec << dbvalue << " into database" << endl;
-#endif // __moreOutput
-			db= DbInterface::instance();
-			db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
-		}
-
-	}else if(	invalue != value &&
-				(	m_bWriteDb ||
-					m_sPermission != ""	)	)
-	{
-		// make correction of value in database
-		// because client which set wrong value
-		// should now that value was wrong
-#ifdef __moreOutput
-		cout << "             correct value:" << dec << dbvalue << " inside database to inform all clients" << endl;
-#endif // __moreOutput
-		db= DbInterface::instance();
-		db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*update to old value*/true);
 	}
-#ifdef __moreOutput
-	cout << "       last state of value:" << dec << m_dValue;
-	if(m_bSwitch)
-		cout << " binary " << switchBinStr(m_dValue);
-	cout << endl;
-	cout << "-------------------------------------------------------------------" << endl;
-#endif // __moreOutput
-	UNLOCK(m_VALUELOCK);
 }
 
 bool portBase::setValue(const string& folder, const string& subroutine, double value, const string& account)

@@ -433,7 +433,7 @@ namespace ports
 			 *
 			 * @param thread measure thread
 			 */
-			void setRunningThread(IMeasurePattern* thread)
+			virtual void setRunningThread(IMeasurePattern* thread)
 			{ m_poMeasurePattern= thread; };
 			/**
 			 * return measure thread which run this object with method <code>measure()</code>

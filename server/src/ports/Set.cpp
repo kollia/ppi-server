@@ -33,6 +33,7 @@ namespace ports
 {
 	bool Set::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
+		bool bAllFault(true);
 		double dDefault;
 		string prop, sFrom, sSet;
 		string folderName(getFolderName());
@@ -40,6 +41,7 @@ namespace ports
 		vector<string> spl;
 		vector<string>::size_type nFrom, nSet;
 		ListCalculator* calc;
+		ostringstream seterr;
 
 		//Debug info to stop by right subroutine
 		/*if(	getFolderName() == "TRANSMIT_SONY_receive" &&
@@ -73,29 +75,44 @@ namespace ports
 						(	spl[0].find(" ") != string::npos ||
 							spl[1].find(" ") != string::npos	)	)	)
 				{
-					ostringstream msg;
-
-					msg << properties->getMsgHead(/*error*/true);
-					msg << (n+1) << ". set parameter '"  << sSet;
-					msg << "' can only be an single [folder:]<sburoutine>.\n";
-					msg << "           Do not set any value in this subroutine.";
-					LOG(LOG_ERROR, msg.str());
-					tout << msg.str() << endl;
+					if(seterr.str() != "")
+						seterr << "           ";
+					seterr << (n+1) << ". set parameter '"  << sSet;
+					seterr << "' can only be an single [folder:]<sburoutine>." << endl;
+					seterr << "           Do not set any value in this subroutine." << endl;
+					LOG(LOG_ERROR, seterr.str());
 
 				}else
+				{
+					IListObjectPattern* port;
+
+					port= m_vpoFrom[0]->getSubroutine(sSet, /*own folder*/true);
+					if(!port)
+					{
+						if(seterr.str() != "")
+							seterr << "           ";
+						seterr << (n+1) << ". set parameter '"  << sSet;
+						seterr << " do not exist." << endl;
+						LOG(LOG_ERROR, seterr.str());
+					}else
+						bAllFault= false;
 					m_vsSet.push_back(sSet);
+				}
 			}
 			if(	nFrom != 1 &&
 				nFrom != m_vsSet.size()	)
 			{
-				string msg(properties->getMsgHead(/*error*/true));
+				string msg;
 
 				msg+= "by setting more 'from' parameter than one, same count of 'set' ";
 				msg+= "parameter have to exist. Set subroutine to incorrect!";
-				LOG(LOG_ERROR, msg);
-				tout << msg << endl;
+				LOG(LOG_ERROR, properties->getMsgHead(/*error*/true) + msg);
+				if(seterr.str() != "")
+					seterr << "           ";
+				seterr << msg << endl;
 				nFrom= 0;
 				nSet= 0;
+				bAllFault= true;
 
 			}else
 			{
@@ -112,6 +129,8 @@ namespace ports
 				}
 			}
 		}
+		if(seterr.str() != "")
+			tout << properties->getMsgHead(/*error*/true) << seterr.str() << endl;
 		prop= "default";
 		dDefault= properties->getDouble(prop, /*warning*/false);
 		properties->notAllowedAction("binary");
@@ -121,6 +140,8 @@ namespace ports
 		{
 			return false;
 		}
+		if(bAllFault)
+			return false;
 		setValue(dDefault, "i:"+getFolderName()+":"+getSubroutineName());
 		return true;
 	}

@@ -200,7 +200,7 @@ namespace ppi_database
 		return res;
 	}
 
-	void DbInterface::writeIntoDb(const string folder, const string subroutine)
+	void DbInterface::writeIntoDb(const string& folder, const string& subroutine, const string& identif/*= "value"*/)
 	{
 		int err;
 		string sRv;
@@ -208,6 +208,7 @@ namespace ppi_database
 
 		command << folder;
 		command << subroutine;
+		command << identif;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)

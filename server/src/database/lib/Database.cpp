@@ -633,12 +633,13 @@ namespace ppi_database
 
 #if 0
 #define write_out_found_written_content
-		if(	entry.folder == "writeVellemann0" &&
-			entry.subroutine == "digital07"		)
+		if(	entry.folder == "folder" )//&&
+			//entry.subroutine == "digital07"		)
 		{
 			cout << endl;
 			cout << "read " << entry.folder << ":" << entry.subroutine << " with value "
-							<< entry.values[0] << " and access " << boolalpha << entry.device << endl;
+							<< entry.values[0] << " and access " << boolalpha << entry.device
+							<< " for identification '" << entry.identif << "'" << endl;
 		}
 #endif
 		LOCK(m_DBCURRENTENTRY);
@@ -1432,12 +1433,14 @@ namespace ppi_database
 		dbfile << line.str() << endl;
 	}
 
-	void Database::writeIntoDb(const string folder, const string subroutine)
+	void Database::writeIntoDb(const string& folder, const string& subroutine, const string& identif/*= "value"*/)
 	{
 		db_t entry;
 
 		entry.folder= folder;
 		entry.subroutine= subroutine;
+		entry.identif= identif;
+		//cout << " >>>>> allow db writing for " << folder << ":" << subroutine << " '" << identif << "'"<< endl;
 		m_vtDbValues.push_back(entry);
 	}
 

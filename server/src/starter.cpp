@@ -188,6 +188,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	string commhost;
 	unsigned short commport;
 	int nLogAllSec;
+	bool btimerlog, bNoDbRead;
+	short folderCPUlength, finishedCPUtime;
 
 
 	commhost= m_oServerFileCasher.getValue("communicationhost", /*warning*/false);
@@ -216,7 +218,39 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	if(commands->hasOption("configure"))
 		cout << "   create folder lists ..." << endl;
-	createFolderLists(shellstarter);
+	btimerlog= commands->hasOption("timerdblog");
+	bNoDbRead= commands->hasOption("nodbbegintime");
+	property= "folderlength_split";
+	folderCPUlength= m_oServerFileCasher.getInt(property);
+	if(	property == "#ERROR" ||
+		folderCPUlength <= 0 ||
+		folderCPUlength > 100 ||
+		(100 % folderCPUlength) != 0	)
+	{
+		string err1("parameter folderlength_split not be set correctly,\n");
+		string err2("or not modular to 100, so do not differ between CPU times");
+
+		cerr << "###          " << err1;
+		cerr << "             " << err2 << endl;
+		LOG(LOG_ERROR, err1 + err2);
+		folderCPUlength= 100;
+	}
+	property= "finishedtime_split";
+	finishedCPUtime= m_oServerFileCasher.getInt(property);
+	if(	property == "#ERROR" ||
+		finishedCPUtime <= 0 ||
+		finishedCPUtime > 100 ||
+		(100 % finishedCPUtime) != 0	)
+	{
+		string err1("parameter finishedtime_split not be set correctly,\n");
+		string err2("or not modular to 100, so do not differ between CPU times");
+
+		cerr << "###          " << err1;
+		cerr << "             " << err2 << endl;
+		LOG(LOG_ERROR, err1 + err2);
+		finishedCPUtime= 100;
+	}
+	createFolderLists(shellstarter, btimerlog, bNoDbRead, finishedCPUtime);
 
 	//*********************************************************************************
 	//* calculate how much communication threads should be running
@@ -1029,7 +1063,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 						args.debugSubroutines.push_back(*it);
 				}
 			}
-			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name, args, nServerSearchSequence));
+			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name, args, nServerSearchSequence, bNoDbRead, folderCPUlength));
 			pCurrentMeasure->pMeasure->start(&bSubroutines);
 		}
 		aktFolder= aktFolder->next;
@@ -1099,7 +1133,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	stimemsg= timemsg.str();
 	cout << stimemsg << " ..." << endl;
 	LOG(LOG_INFO, stimemsg);
-	db->setServerConfigureStatus("finished", -1);
 	// ------------------------------------------------------------------------------------------------------------
 	checker.start(pFirstMeasureThreads.get(), true);
 
@@ -1125,7 +1158,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	return true;
 }
 
-void Starter::createFolderLists(set<string>& shellstarter)
+void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool bNoDbRead, short finishedCPUtime)
 {
 	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
 	//DbInterface* db= DbInterface::instance();
@@ -1158,7 +1191,8 @@ void Starter::createFolderLists(set<string>& shellstarter)
 			}else if(aktualFolder->subroutines[n].type == "TIMER")
 			{
 				auto_ptr<timer> obj= auto_ptr<timer>(new timer(	aktualFolder->name,
-																aktualFolder->subroutines[n].name	));
+																aktualFolder->subroutines[n].name,
+																bTimerLog, bNoDbRead, finishedCPUtime	));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "SHELL")
