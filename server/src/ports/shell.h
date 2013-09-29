@@ -31,7 +31,7 @@ class Shell : public switchClass
 {
 public:
 	Shell(string folderName, string subroutineName)
-	: switchClass(folderName, subroutineName),
+	: switchClass("SHELL", folderName, subroutineName),
 	  m_oMicroseconds(folderName, subroutineName, "microsec", false, false),
 	  m_oMilliseconds(folderName, subroutineName, "millisec", false, false),
 	  m_oSeconds(folderName, subroutineName, "sec", false, false),

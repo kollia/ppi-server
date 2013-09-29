@@ -125,12 +125,14 @@ double Shell::measure(const double actValue)
 	double dLastSwitch;
 
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "configure" &&
-		getSubroutineName() == "ppi_server"	)
+	/*if(	getFolderName() == "Raff1_Zeit" &&
+		getSubroutineName() == "port"	)
 	{
 		cout << __FILE__ << __LINE__ << endl;
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 	}*/
+	if(!m_bWait)
+		dRv= 0;
 	if(m_bLastValue)
 		dLastSwitch= 1;
 	else
@@ -143,14 +145,12 @@ double Shell::measure(const double actValue)
 	 // no command be necessary
 		res= system("read", "need_no_command");
 		m_bLastValue= bswitch;
-		if(	m_sUserAccount == "" ||
-			m_bWait ||
-			bDebug		)
+		if(	m_bWait	)
 		{
 			dRv= static_cast<double>(res);
 		}
 
-	}else
+	}else // if(m_bMore)
 	{
 		if(bswitch)
 		{
@@ -161,6 +161,7 @@ double Shell::measure(const double actValue)
 				if(m_sBeginCom != "")
 				{
 					res= system("begincommand", m_sBeginCom);
+					dRv= 1; // need when m_bWait is false
 					bMaked= true;
 				}
 			}
@@ -169,34 +170,32 @@ double Shell::measure(const double actValue)
 				if(m_sWhileCom != "")
 				{
 					res= system("whilecommand", m_sWhileCom);
+					dRv= 2; // need when m_bWait is false
 				}
 			}
 			m_bLastValue= true;
-			if(	m_sUserAccount == "" ||
-				m_bWait ||
-				bDebug		)
+			if(	m_bWait	)
 			{
 				dRv= static_cast<double>(res);
 			}
 
-		}else
+		}else // if(bswitch)
 		{
 			if(m_bLastValue)
 			{
 				if(m_sEndCom != "")
 				{
 					res= system("endcommand", m_sEndCom);
+					dRv= 3; // need when m_bWait is false
 				}
 			}
 			m_bLastValue= false;
-			if(	m_sUserAccount == "" ||
-				m_bWait ||
-				bDebug		)
+			if(	m_bWait	)
 			{
 				dRv= static_cast<double>(res);
 			}
-		}
-	}
+		} // else branch if(bswitch)
+	} // else branch if(m_bMore)
 	if(bDebug)
 	{
 		tout << "result of subroutine is " << dRv;
@@ -209,13 +208,13 @@ double Shell::measure(const double actValue)
 				tout << "do nothing" << endl;
 				break;
 			case 1:
-				tout << "BEGIN" << endl;
+				tout << "making 'begincommand'" << endl;
 				break;
 			case 2:
-				tout << "WHILE" << endl;
+				tout << "making 'whilecommand'" << endl;
 				break;
 			case 3:
-				tout << "END" << endl;
+				tout << "making 'endcommand'" << endl;
 				break;
 			default:
 				tout << "ERROR - take a look in LOG file!" << endl;
