@@ -23,6 +23,7 @@
 #include <iostream>
 
 #include "../util/structures.h"
+#include "../util/exception.h"
 #include "../util/thread/Terminal.h"
 
 #include "../database/lib/DbInterface.h"
@@ -46,6 +47,10 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		bRv= false;
 	m_bLastValue= 0;
 	m_bWait= properties->haveAction("wait");
+	if(!m_bWait)
+		m_bLastRes= properties->haveAction("last");
+	else
+		m_bLastRes= false;
 	m_bBlock= properties->haveAction("block");
 	if(!m_bBlock)
 		m_sBeginCom= properties->getValue("begincommand", /*warning*/false);
@@ -120,6 +125,7 @@ double Shell::measure(const double actValue)
 {
 	bool bDebug(isDebug());
 	bool bswitch(false);
+	bool bMaked(false);
 	int res;
 	double dRv(actValue);
 	double dLastSwitch;
@@ -131,8 +137,11 @@ double Shell::measure(const double actValue)
 		cout << __FILE__ << __LINE__ << endl;
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 	}*/
-	if(!m_bWait)
+	if(	!m_bWait &&
+		!m_bLastRes	)
+	{
 		dRv= 0;
+	}
 	if(m_bLastValue)
 		dLastSwitch= 1;
 	else
@@ -154,7 +163,6 @@ double Shell::measure(const double actValue)
 	{
 		if(bswitch)
 		{
-			bool bMaked= false;
 
 			if(!m_bLastValue)
 			{
@@ -171,6 +179,7 @@ double Shell::measure(const double actValue)
 				{
 					res= system("whilecommand", m_sWhileCom);
 					dRv= 2; // need when m_bWait is false
+					bMaked= true;
 				}
 			}
 			m_bLastValue= true;
@@ -187,6 +196,7 @@ double Shell::measure(const double actValue)
 				{
 					res= system("endcommand", m_sEndCom);
 					dRv= 3; // need when m_bWait is false
+					bMaked= true;
 				}
 			}
 			m_bLastValue= false;
@@ -208,13 +218,25 @@ double Shell::measure(const double actValue)
 				tout << "do nothing" << endl;
 				break;
 			case 1:
-				tout << "making 'begincommand'" << endl;
+				if(bMaked)
+					tout << "making ";
+				else
+					tout << "last command ";
+				tout << "'begincommand'" << endl;
 				break;
 			case 2:
-				tout << "making 'whilecommand'" << endl;
+				if(bMaked)
+					tout << "making ";
+				else
+					tout << "last command ";
+				tout << "'whilecommand'" << endl;
 				break;
 			case 3:
-				tout << "making 'endcommand'" << endl;
+				if(bMaked)
+					tout << "making ";
+				else
+					tout << "last command ";
+				tout << "'endcommand'" << endl;
 				break;
 			default:
 				tout << "ERROR - take a look in LOG file!" << endl;

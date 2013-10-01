@@ -156,6 +156,12 @@ private:
 	 */
 	bool m_bWait;
 	/**
+	 * false when result should show actual command
+	 * or true for last command.<br />
+	 * Only when action 'wait' not be set
+	 */
+	bool m_bLastRes;
+	/**
 	 * whether command is blocking the hole process
 	 */
 	bool m_bBlock;
