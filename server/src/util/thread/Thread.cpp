@@ -1719,7 +1719,6 @@ int Thread::initialed()
 Thread::~Thread()
 {
 	stop(true);
-	pthread_join(m_nPosixThreadID, NULL);
 	DESTROYMUTEX(m_RUNTHREAD);
 	DESTROYMUTEX(m_THREADNAME);
 	DESTROYMUTEX(m_STARTSTOPTHREAD);
