@@ -566,9 +566,17 @@ double timer::measure(const double actValue)
 		}
 		tout << ")" << endl;
 	}
-	if(	m_bSwitchbyTime )
+	if(m_bSwitchbyTime)
 	{
-		m_dSwitch= switchClass::measure(m_dSwitch, set);
+		if(	!m_bMeasure ||
+			(	m_nCaseNr != 3 &&
+				m_nCaseNr != 4		)	)
+		{	// for case 3 (count down to 0) and
+			// 4 (count down to 0 or up to full time)
+			// switch is making inside working branch
+			// for ending or during on
+			m_dSwitch= switchClass::measure(m_dSwitch, set);
+		}
 
 	}else if(debug)
 	{
@@ -787,9 +795,12 @@ double timer::measure(const double actValue)
 						need= 0;
 					else
 						need= calcNextTime(/*start*/false, debug, &tv);
-					if(debug)
-						tout << "look whether should polling time again" << endl;
-					m_dSwitch= switchClass::measure(m_dSwitch, set, &need);
+					if(m_bSwitchbyTime)
+					{
+						if(debug)
+							tout << "look whether should polling time again" << endl;
+						m_dSwitch= switchClass::measure(m_dSwitch, set, &need);
+					}
 					if(m_dSwitch > 0)
 						bswitch= true;
 					else
@@ -854,8 +865,6 @@ double timer::measure(const double actValue)
 
 			}else
 			{ // count down is running
-				switchClass::setting oldSet(set);
-
 				if(debug)
 				{
 					timeval newtime;
@@ -863,7 +872,8 @@ double timer::measure(const double actValue)
 					timersub(&m_tmStop, &tv, &newtime);
 					tout << endl;
 				}
-				if(bswitch)
+				if(	bswitch &&
+					m_bSwitchbyTime	)
 				{
 					need= calcNextTime(/*start*/false, debug, &tv);
 					if(debug)
@@ -889,7 +899,7 @@ double timer::measure(const double actValue)
 					// erase folder starting because folder run in this case needless
 					getRunningThread()->eraseActivateTime(folder, m_tmStop);
 					m_bMeasure= false;
-					switch(oldSet)
+					switch(set)
 					{
 					case WHILE:
 						identifier+= "+WHILE";
@@ -903,7 +913,7 @@ double timer::measure(const double actValue)
 						break;
 					default:// get always unset time from getMaxChangingTime()
 						identifier+= "+wrong";
-						if(oldSet == BEGIN)
+						if(set == BEGIN)
 							identifier+= "_BEGIN";
 						if(debug)
 							chtime= "(wrong definition inside timer.cpp) for ending";
@@ -938,6 +948,8 @@ double timer::measure(const double actValue)
 							if(!m_oFinished.isEmpty())
 								tout << "and or reach finish ";
 							tout << "will be changed since starting" << endl;
+							tout << "because split percent is ";
+							tout << m_tReachedTypes.inPercent << " lower then 100" << endl;
 						}
 						timersub(&m_tmWantFinish, &m_tmStart, &next);
 						substractExactFinishTime(&next, &refreshTime, &m_tmExactStop, debug);
