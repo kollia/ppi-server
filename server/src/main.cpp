@@ -51,10 +51,21 @@ int main(int argc, char* argv[])
 	params.option("folderstart", "f", "show all folder on command line which are starting");
 	params.option("subroutines", "s", "for option --configure (-s) or --folderstart (-f) show also subroutines\n"
 					"(when none of this option be set, also folder configuration will be displayed)");
-	params.option("timerdblog", "t", "logging inside database currently percent info for subroutines with type TIME\n"
-									"when taken starting time \"runnlength\" as \"|<folder>|<subroutine>|runpercent|\"\n"
-									"or estimated finish time \"reachend\" as \"|<folder>|<subroutine>|reachpercent|\"");
-	params.option("nodbbegintime", "n", "do not read beginning time from database for subroutines with type TIME");
+	params.option("nodbbegintime", "n", "do not read beginning time from database for subroutines with type TIME\n"
+					"which normally saved as:\n"
+					" - \"|folder|<folder>|runnlength|\"     for 2/3 longest folder run time\n"
+					" - \"|folder|<folder>|maxcount|\"       measure 'runnlength' always by this maximal count\n"
+					"                                      to write into database\n"
+					" - \"|<folder>|<subroutine>|reachlate\" for middle length of reaching late finish-position\n"
+					" - \"|<folder>|<subroutine>|maxcount\"  measure 'reachlate' always by this maximal count\n"
+					"                                      to write into database\n"
+					"and set this values inside database to 0");
+	params.option("timerdblog", "t", "logging inside database currently reach info for subroutines with type TIME\n"
+					" - by which cpu percent taking 'runnlength' time as \"|<folder>|<subroutine>|runpercent|\"\n"
+					" - and cpu percent taking estimated finish time 'reachend' as \"|<folder>|<subroutine>|reachpercent|\"\n"
+					" - when starting time of subroutine was to late as \"|<folder>|<subroutine>|startlate|\"\n"
+					" - reach currently late finish-position as \"|<folder>|<subroutine>|reachlate\"\n"
+					" - and wrong difference to reach finish-position dependent to 'reachend' as \"|<folder>|<subroutine>|wrongreach\"");
 	params.option("folderdebug", "d", true, "debugging from begin the following <folder>[:<subroutine>]\n"
 					               "also more subroutines can be given separated with an comma inside quotes\n"
 					               "('<folder>[:<subroutine>], <folder>[:<subroutine>]')");
@@ -183,6 +194,8 @@ int main(int argc, char* argv[])
 //#define __CHECK_THREAD_CREATION
 //#define __CHECK_WORKING_INTERLACEDPROPERTIES
 //#define __SIMPLE_SERVER_CLIENT_CONNECTION
+//#define __PARAMETER_METHOD_STRINGSTREAM
+//#define __CALENDAR_DEFINITIONS
 
 #ifdef __MAKE_CALCULATER_TESTS
 #define __MAKE_TESTS
@@ -196,6 +209,12 @@ int main(int argc, char* argv[])
 #ifdef __SIMPLE_SERVER_CLIENT_CONNECTION
 #define __MAKE_TESTS
 #endif // __SIMPLE_SERVER_CLIENT_CONNECTION
+#ifdef  __PARAMETER_METHOD_STRINGSTREAM
+#define __MAKE_TESTS
+#endif
+#ifdef  __CALENDAR_DEFINITIONS
+#define __MAKE_TESTS
+#endif
 
 #ifdef __MAKE_TESTS
 // some includes needed for tests method
@@ -210,6 +229,9 @@ int main(int argc, char* argv[])
 #include "util/properties/interlacedproperties.h"
 // for check thread creation
 #include "util/thread/CallbackTemplate.h"
+// for MethodStringStream tests
+#include "util/stream/IMethodStringStream.h"
+#include "util/stream/OMethodStringStream.h"
 #endif // __MAKE_TESTS
 
 #ifdef __CHECK_THREAD_CREATION
@@ -366,9 +388,52 @@ void tests(const string& workdir, int argc, char* argv[])
 	    return EXIT_FAILURE;
 #endif //__SIMPLE_SERVER_CLIENT_CONNECTION
 
-	#if 0
+#ifdef __PARAMETER_METHOD_STRINGSTREAM
 		IParameterStringStream reader("truego");
 		bool val;
+		IMethodStringStream first("setValue \"power_switch\" \"Raffstore\" 5 ");
+		cout << first.str(true) << endl;
+		first.createSyncID();
+		cout << first.str(true) << endl;
+		IMethodStringStream second("getValue syncID 1 \"irgendwas\"");
+		cout << second.str(true) << endl;
+		second= first;
+		cout << second.str(true) << endl;
+		OMethodStringStream third("3 45 \"neu\"");
+		cout << third.str(true) << endl;
+		third.createSyncID();
+		cout << third.str(true) << endl;
+		OMethodStringStream fourth("\"ich\"");
+		cout << fourth.str(true) << endl;
+		fourth.createSyncID();
+		cout << fourth.str(true) << endl;
+		OMethodStringStream fivethd("syncID 2 23 \"neu\"");
+		cout << fivethd.str() << endl;
+		fivethd.createSyncID();
+		cout << fivethd.str(true) << endl;
+		OMethodStringStream sixed("");
+		cout << sixed.str(true) << endl;
+		sixed.createSyncID();
+		cout << sixed.str(true) << endl;
+		OMethodStringStream seven("syncID syncID 6 23 \"neu\"");
+		cout << seven.str() << endl;
+		seven.createSyncID();
+		cout << seven.str(true) << endl;
+
+		cout << "IMethodStringStream: "<< first.str(true) << endl;
+		first.createSyncID();
+		cout << "                     "<< first.str(true) << endl;
+		cout << endl;
+		cout << "OMethodStringStream: " << second.str(true) << endl;
+		second.createSyncID();
+		cout << "                     " << second.str(true) << endl;
+		cout << "IMethodStringStream answer: " << third.str(true) << endl;
+		third.createSyncID();
+		cout << "                            " << third.str(true) << endl;
+		cout << "OMethodStringStream answer: " << fourth.str(true) << endl;
+		fourth.createSyncID();
+		cout << "                            " << fourth.str(true) << endl;
+		exit(1);
 
 		reader >> val;
 		cout << "value is " << val << endl;
@@ -376,9 +441,9 @@ void tests(const string& workdir, int argc, char* argv[])
 			cout << "an error is occured" << endl;
 		if(reader.empty())
 			cout << "reading of string is finished" << endl;
-	#endif
+#endif // __PARAMETER_METHOD_STRINGSTREAM
 
-	#if 0
+#ifdef __CALENDAR_DEFINITIONS
 		bool newer= false;
 		time_t t;
 		time(&t);
@@ -392,6 +457,9 @@ void tests(const string& workdir, int argc, char* argv[])
 		Calendar::calcDate(newer, t, 4, 'M');
 		Calendar::calcDate(newer, t, 1, 'Y');
 		Calendar::calcDate(newer, t, 2, 'Y');
-	#endif
+#endif // __CALENDAR_DEFINITIONS
 
+#ifdef __MAKE_TESTS
+		exit(0);
+#endif // __MAKE_TESTS
 }
