@@ -22,25 +22,151 @@
 #include <sstream>
 #include <string>
 
+#include "../thread/Thread.h"
+
+#include "../../pattern/util/IMethodStringStreamPattern.h"
+
 #include "IParameterStringStream.h"
 
 using namespace std;
+using namespace design_pattern_world;
 
 namespace util {
 
-class IMethodStringStream : public IParameterStringStream {
+	extern pthread_mutex_t* globalSYNCMUTEX;
+
+class IMethodStringStream : 		public IParameterStringStream,
+							virtual public IMethodStringStreamPattern
+{
 public:
 	/**
-	 * constructor to create IMethodStringStream object
+	 * content holder of MethodStringStream object
 	 */
-	IMethodStringStream(const string& method);
+	struct stringDef_t
+	{
+		/**
+		 * synchronization ID
+		 */
+		unsigned long long syncID;
+		/**
+		 * method name
+		 */
+		string method;
+		/**
+		 * all parameters
+		 */
+		string stream;
+	};
+	/**
+	 * empty constructor for object with no content
+	 */
+	IMethodStringStream()
+	:	IParameterStringStream(""),
+	 	m_nSyncID(0),
+	 	m_sMethod("")
+	{ m_sStream.str(""); };
+	/**
+	 * constructor to create IMethodStringStream object
+	 *
+	 * @param stream string to convert to object
+	 */
+	IMethodStringStream(const string& stream);
+	/**
+	 * constructor to create OMethodStringStream object
+	 *
+	 * @param obj object to convert or copy
+	 */
+	IMethodStringStream(IMethodStringStreamPattern& obj);
+	/**
+	 * copy constructor for own object
+	 *
+	 * @param obj other object to copy inside
+	 */
+	IMethodStringStream& operator = (const IMethodStringStream& obj);
+	/**
+	 * copy constructor for own object
+	 *
+	 * @param obj other object to copy inside
+	 */
+	IMethodStringStream* operator = (const IMethodStringStream* obj);
+	/**
+	 * copy constructor for normally string
+	 *
+	 * @param str string to convert into object
+	 */
+	IMethodStringStream* operator = (const string& str);
+	/**
+	 * compare operator for two objects
+	 *
+	 * @param obj other object to compare
+	 */
+	bool operator == (const IMethodStringStream& obj)
+	{ 	if(m_nSyncID != obj.m_nSyncID) return false;
+		if(m_sMethod != obj.m_sMethod) return false;
+		if(m_sStream != obj.m_sStream) return false;
+		return true;									}
+	/**
+	 * Lexicographical comparison for two objects
+	 *
+	 * @param obj other object for comparison
+	 */
+	bool operator < (const IMethodStringStream& obj)
+	{	if(	m_nSyncID < obj.m_nSyncID &&
+			m_sMethod < obj.m_sMethod &&
+			m_sStream < obj.m_sStream	) return true;
+		return false;									}
+	/**
+	 * string converter for constructors
+	 *
+	 * @param stream hole string to convert
+	 * @return structure of converted string
+	 */
+	static stringDef_t stringConvertion(const string& stream);
 	/**
 	 * output of hole method string with parameters
 	 *
 	 * @return hole string
 	 */
-	string getMethodName() const
+	virtual string getMethodName() const
 	{ return m_sMethod; };
+	/**
+	 * create intern synchronization ID for object
+	 *
+	 * @param syncID synchronization ID to implement, elsewhere when not set or 0 create one
+	 * @return whether new synchronization ID be created or otherwise take before defined
+	 */
+	virtual bool createSyncID(unsigned long long syncID= 0);
+	/**
+	 * return created synchronize ID when exist,
+	 * elsewhere 0
+	 *
+	 * @return synchronize ID
+	 */
+	virtual unsigned long long getSyncID() const;
+	/**
+	 * remove synchronization ID for object which is intern set
+	 */
+	virtual void removeSyncID();
+	/**
+	 * return current hole defined string
+	 *
+	 * @param withSync output string with syncID when exist
+	 * @param withMethod whether string should returned with method name
+	 * @return defined string
+	 */
+	virtual string str(bool withSync= false, bool withMethod= true) const;
+	/**
+	 * create synchronization ID
+	 *
+	 * @return synchronize ID
+	 */
+	static unsigned long long makeSyncID();
+	/**
+	 * remove synchronization ID
+	 *
+	 * @param syncID synchronization ID to delete
+	 */
+	static void delSyncID(unsigned long long syncID);
 	/**
 	 * virtual destructor of object
 	 */
@@ -48,10 +174,17 @@ public:
 
 private:
 	/**
+	 * synchronize ID
+	 */
+	unsigned long long m_nSyncID;
+	/**
+	 * vector of all set synchronization IDs
+	 */
+	static vector<unsigned long long> _syncIDs;
+	/**
 	 * method of object
 	 */
 	string m_sMethod;
-
 };
 
 }

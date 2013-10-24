@@ -18,10 +18,15 @@
 #include <stdio.h>
 
 #include <iostream>
+#include <utility>
 
 #include "../../pattern/server/ITransferPattern.h"
 #include "../../pattern/server/IClientHolderPattern.h"
 #include "../../pattern/server/IServerCommunicationStarterPattern.h"
+
+#include "../../util/debugtransaction.h"
+
+#include "../../util/stream/OMethodStringStream.h"
 
 #include "FileDescriptor.h"
 
@@ -236,12 +241,42 @@ namespace server
 		m_mUInt[str]= value;
 	}
 
+	void FileDescriptor::setULong(const string& str, const unsigned long value)
+	{
+		m_mULong[str]= value;
+	}
+
+	void FileDescriptor::setULongLong(const string& str, const unsigned long long value)
+	{
+		m_mULongLong[str]= value;
+	}
+
 	unsigned int FileDescriptor::getUInt(const string& str) const
 	{
 		map<string, unsigned int>::const_iterator it;
 
 		it= m_mUInt.find(str);
 		if(it == m_mUInt.end())
+			return 0;
+		return it->second;
+	}
+
+	unsigned long FileDescriptor::getULong(const string& str) const
+	{
+		map<string, unsigned long>::const_iterator it;
+
+		it= m_mULong.find(str);
+		if(it == m_mULong.end())
+			return 0;
+		return it->second;
+	}
+
+	unsigned long long FileDescriptor::getULongLong(const string& str) const
+	{
+		map<string, unsigned long long>::const_iterator it;
+
+		it= m_mULongLong.find(str);
+		if(it == m_mULongLong.end())
 			return 0;
 		return it->second;
 	}
@@ -296,7 +331,8 @@ namespace server
 		return m_nPort;
 	}
 
-	string FileDescriptor::sendToOtherClient(const string& definition, const string& str, const bool& wait, const string& endString)
+	string FileDescriptor::sendToOtherClient(const string& definition, const IMethodStringStream& str,
+												const bool& wait, const string& endString)
 	{
 		string answer;
 		IServerCommunicationStarterPattern* starter;
@@ -315,6 +351,17 @@ namespace server
 			std::cout << "no client found for " << definition << " search again for " << m_nTimeout << " seconds " << std::endl;
 			std::cout << "  to send: " << str << std::endl;
 #endif // ALLOCATEONMETHODSERVER
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+		if(getBoolean("output") == true)
+		{
+			ostringstream out;
+
+			out << "sendDescriptor " << getString("process") << "::" << getString("client");
+			out << " want send question '" << str.str(true);
+			out << "' but do not find client with definition " << definition << std::endl;
+			cout << out.str();
+		}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			time(&nt);
 			time(&t);
 			while(	client == NULL
@@ -337,43 +384,173 @@ namespace server
 				return "ERROR 001";
 			}
 		}
-		//std::cout << "sendToOtherClient found other client " << std::endl;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+		if(getBoolean("output") == true)
+		{
+			ostringstream out;
+
+			out << "sendDescriptor " << getString("process") << "::" << getString("client");
+			out << " send question '" << str.str(true);
+			out << "' to client with found definition " << definition << std::endl;
+			cout << out.str();
+		}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 		answer= client->sendString(str, wait, endString);
 		LOCK(m_THREADSAVEMETHODS);
 		return answer;
 	}
 
-	string FileDescriptor::sendString(const string& str, const bool& wait, const string& endString)
+	string FileDescriptor::sendString(const IMethodStringStream& str, const bool& wait, const string& endString)
 	{
+		typedef vector< SHAREDPTR::shared_ptr<IMethodStringStream> >::iterator MethodIter;
+		bool bRightAnswer;
 		string answer;
+		unsigned long long qSyncID(str.getSyncID());
 
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+		bool boutput(true);
+#ifndef __FOLLOW_FROMROCESS
+#ifndef __FOLLOW_FROMCLIENT
+#ifndef __FOLLOW_SENDMESSAGE
+#ifdef __FOLLOW_TOPROCESS
+		if(descriptor.getString("process") != __FOLLOW_TOPROCESS)
+			boutput= false;
+#endif // __FOLLOW_FROMPROCESS
+#ifdef __FOLLOW_TOCLIENT
+		if(descriptor.getString("client") != __FOLLOW_TOCLIENT)
+			boutput= false;
+#endif // __FOLLOW_FROMCLIENT
+#endif // __FOLLOW_SENDMESSAGE
+#endif // __FOLLOW_TOCLIENT
+#endif // __FOLLOW_TOPROCESS
+#ifdef __FOLLOW_TOPROCESS
+		if(descriptor.getString("process") != __FOLLOW_TOPROCESS)
+			boutput= false;
+#endif // __FOLLOW_TOPROCESS
+#ifdef __FOLLOW_TOCLIENT
+		if(descriptor.getString("client") != __FOLLOW_TOCLIENT)
+			boutput= false;
+#endif // __FOLLOW_TOCLIENT
+#ifdef __FOLLOW_SENDMESSAGE
+		string sendmsg(__FOLLOW_SENDMESSAGE);
+		string actmsg(str.str());
+
+		if(actmsg.substr(0, sendmsg.length()) != sendmsg)
+			boutput= false;
+#endif // __FOLLOW_SENDMASSAGE
+		if(boutput == true)
+		{
+			ostringstream out;
+
+			out << "sendDescriptor " << getString("process") << "::" << getString("client");
+			out << " try to send question '" << str.str(true);
+			out << "' to client" << std::endl;
+			cout << out.str();
+		}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 		LOCK(m_SENDSTRING);
 		if(wait)
 		{
 			while(m_sSendString != "")
 			{ // if SendString is not null,
 			  // an other client wait for answer
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(boutput == true)
+				{
+					ostringstream out;
+
+					out << "sendDescriptor " << getString("process") << "::" << getString("client");
+					out << " want send question '" << str.str(true);
+					out << "' to " << getServerObject()->getName();
+					out << ", but other question '" << m_sSendString << "' wait also for answer" << std::endl;
+					out << " so wait before until this answer was given" << std::endl;
+					cout << out.str();
+				}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				CONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING);
 			}
 			m_bWait= wait;
 			m_sEndingString= endString;
-			m_sSendString= str;
-			AROUSE(m_GETSTRINGCONDITION);
+			m_sSendString= str.str(true);
+			AROUSEALL(m_GETSTRINGCONDITION);
+
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(	boutput == true &&
+				!m_vsClientAnswer.empty()			)
+			{
+				ostringstream out;
+
+				out << "sendDescriptor " << getString("process") << "::" << getString("client");
+				out << " want send question '" << str.str(true);
+				out << "' to " << getServerObject()->getName();
+				out << ", follow answers be set:" << std::endl;
+				for(MethodIter it= m_vsClientAnswer.begin();
+								it != m_vsClientAnswer.end(); ++it)
+				{
+					out << "          '" << (*it)->str(true) << "'" << std::endl;
+				}
+				cout << out.str();
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
 			do{
 				RELTIMECONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING, 3);
 				if(eof())
 				{
-					m_sClientAnswer= "ERROR 002";
+					ostringstream answ;
+
+					if(qSyncID > 0)
+						answ << "syncID " << qSyncID << " ";
+					answ << "ERROR 002";
+					answer= answ.str();
 					break;
 				}
-			}while(m_sClientAnswer == "");
-			answer= m_sClientAnswer;
+				bRightAnswer= false;
+				if(!m_vsClientAnswer.empty())
+				{
+					for(MethodIter it= m_vsClientAnswer.begin();
+									it != m_vsClientAnswer.end(); ++it)
+					{
+						if(qSyncID == (*it)->getSyncID())
+						{
+							bRightAnswer= true;
+							answer= (*it)->str(true);
+							m_vsClientAnswer.erase(it);
+							break;
+						}
+					}
+
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					if(	!bRightAnswer &&
+						boutput == true	)
+					{
+						ostringstream out;
+
+						out << "sendDescriptor " 	<< getString("process") << "::" << getString("client");
+						out << " wait for answer with ";
+						if(qSyncID > 0)
+							out << "syncID(" << qSyncID << ") ";
+						else
+							out << "no syncID ";
+						out << "but only follow answers be set:" << std::endl;
+						for(MethodIter it= m_vsClientAnswer.begin();
+										it != m_vsClientAnswer.end(); ++it)
+						{
+							out << "          '" << (*it)->str(true) << "'" << std::endl;
+						}
+						cout << out.str();
+					}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
+				}
+			}while(!bRightAnswer);
 			m_sSendString= "";
 			AROUSE(m_SENDSTRINGCONDITION);
 		}else
-		{
+		{// write questions with need no answer only into a queue
+		 // witch can complete answer client by time
 			m_qsEndingStrings.push(endString);
-			m_qsSendStrings.push(str);
+			m_qsSendStrings.push(str.str(true));
 			AROUSE(m_GETSTRINGCONDITION);
 			answer= endString;
 		}
@@ -393,6 +570,39 @@ namespace server
 		LOCK(m_SENDSTRING);
 		if(m_sSendString == "")
 		{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(getBoolean("output") == true)
+			{
+				cout << getString("process") << "::" << getString("client");
+				cout << " no send-string for new question be set,";
+				if(m_qsSendStrings.empty())
+				{
+					cout << " and none inside queue,";
+					if(!wait)
+						cout << " and no client wait for answering";
+					else
+						cout << " wait for new string";
+					cout << std::endl;
+				}else
+				{
+					queue<string> output(m_qsSendStrings);
+
+					endString= m_qsEndingStrings.front();
+					cout << " take first string from queue as question";
+					if(!m_qsEndingStrings.empty())
+						cout << ", with end-string '" << m_qsEndingStrings.front() << "'";
+					else
+						cout << " (no end-string be set)";
+					cout << std::endl;
+					while(!output.empty())
+					{
+						cout << "       " << output.front() << std::endl;
+						output.pop();
+					}
+				}
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
 			if(m_qsSendStrings.empty())
 			{
 				count= 0;
@@ -406,6 +616,10 @@ namespace server
 				LOCK(m_THREADSAVEMETHODS);
 			}
 		}
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+		else
+			cout << "current send-string is '" << m_sSendString << "'" << std::endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 		if(	m_sSendString == ""
 			||
 			count > nDo			)	// when sending client always trigger SendString's
@@ -420,12 +634,41 @@ namespace server
 				m_bWait= false; // from the queue only no waiting strings
 				m_sEndingString= m_qsEndingStrings.front();
 				m_qsEndingStrings.pop();
+
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(getBoolean("output") == true)
+				{
+					queue<string> output(m_qsSendStrings);
+
+					cout << getString("process") << "::" << getString("client");
+					cout << " trigger from queue first string";
+					if(m_sEndingString != "")
+						cout << ", with end-string '" << m_qsEndingStrings.front() << "'";
+					else
+						cout << " (no end-string be set)";
+					cout << std::endl;
+					while(!output.empty())
+					{
+						cout << "       " << output.front() << std::endl;
+						output.pop();
+					}
+				}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
 			}else
 				m_sSendString= "";
 			count= 0;
 		}else
 			++count;
 		str= m_sSendString;
+
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(getBoolean("output") == true)
+			{
+				cout << getString("process") << "::" << getString("client");
+				cout << " take setting send-string from other client '" << str << "'" << std::endl;
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 		doWait= m_bWait;
 		endString= m_sEndingString;
 		m_sSendString= waitStr;
@@ -437,8 +680,11 @@ namespace server
 
 	void FileDescriptor::sendAnswer(const string& asw)
 	{
+		SHAREDPTR::shared_ptr<IMethodStringStream> sharedMethod;
+
+		sharedMethod= SHAREDPTR::shared_ptr<IMethodStringStream>(new IMethodStringStream(asw));
 		LOCK(m_SENDSTRING);
-		m_sClientAnswer= asw;
+		m_vsClientAnswer.push_back(sharedMethod);
 		AROUSEALL(m_SENDSTRINGCONDITION);
 		UNLOCK(m_SENDSTRING);
 	}

@@ -34,7 +34,6 @@
 #include "../../../pattern/server/IServerPattern.h"
 
 #include "../../../util/structures.h"
-#include "../../../util/debugtransaction.h"
 
 #include "ServerMethodTransaction.h"
 #include "ServerThread.h"
@@ -44,6 +43,7 @@ using namespace std;
 //using namespace user;
 //using namespace util;
 using namespace design_pattern_world::server_pattern;
+using namespace boost;
 using namespace boost::algorithm;
 
 namespace server
@@ -61,6 +61,13 @@ namespace server
 		descriptor.setString("endstring", "");
 		// last question when own client send an answer array
 		descriptor.setString("lastquestion", "");
+		// set by sending question for read answer same syncID should be set
+		descriptor.setULongLong("questionID", 0);
+
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+		descriptor.setBoolean("output", false);
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
 		return true;
 	}
 
@@ -81,6 +88,7 @@ namespace server
 			unsigned int ID;
 			string process, client;
 			ostringstream msg;
+			IMethodStringStream oInit("init");
 
 			ID= descriptor.getClientID();
 			process= descriptor.getString("process");
@@ -101,14 +109,16 @@ namespace server
 				cerr << msg.str();
 #endif // ALLOCATEONMETHODSERVER
 			descriptor.setBoolean("access", false);
-			input= descriptor.sendToOtherClient(client, "init", true, "");
+			oInit.createSyncID();
+			input= descriptor.sendToOtherClient(client, oInit, true, "");
+			oInit.removeSyncID();
 			connectionEnding(ID, process, client);
 			dissolveConnection(descriptor);
 			return false;
 		}
 		wasinput= input;
-		//trim(input, is_any_of(" \t\r\n"));
-		input= ConfigPropertyCasher::trim(input, " \t\r\n");
+		trim(input);
+		//input= ConfigPropertyCasher::trim(input, " \t\r\n");
 		//cout << "input string: '" << input << "' from " << descriptor.getString("client") << endl;
 		if(descriptor.getBoolean("asker"))
 		{
@@ -286,15 +296,61 @@ namespace server
 
 		}else if(!descriptor.getBoolean("asker"))
 		{
-#ifdef __FOLLOWSERVERCLIENTTRANSACTION
-			if(m_boutput)
-			{ // DEBUG display
-				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
-				cout << " give Answer '" << input << "'" << endl;
-			}
-#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			unsigned long long nSync;
+			IMethodStringStream ianswer(input);
+
 			bwait= descriptor.getBoolean("clientwait");
 			endString= descriptor.getString("endstring");
+			nSync= descriptor.getULongLong("questionID");
+			if(nSync > 0)
+			{
+				ianswer.createSyncID(nSync);
+				input= ianswer.str(true);
+			}
+			descriptor.setULongLong("questionID", 0);
+
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			m_boutput= true;
+#ifndef __FOLLOW_TOPROCESS
+#ifndef __FOLLOW_TOCLIENT
+#ifndef __FOLLOW_SENDMESSAGE
+#ifdef __FOLLOW_FROMPROCESS
+			//if(descriptor.getString("process") != __FOLLOW_TOPROCESS)
+				m_boutput= false;
+#endif // __FOLLOW_FROMPROCESS
+#ifdef __FOLLOW_FROMCLIENT
+			//if(descriptor.getString("client") != __FOLLOW_TOCLIENT)
+				m_boutput= false;
+#endif // __FOLLOW_FROMCLIENT
+#endif // __FOLLOW_SENDMESSAGE
+#endif // __FOLLOW_TOCLIENT
+#endif // __FOLLOW_TOPROCESS
+#ifdef __FOLLOW_TOPROCESS
+			if(descriptor.getString("process") != __FOLLOW_TOPROCESS)
+				m_boutput= false;
+#endif // __FOLLOW_TOPROCESS
+#ifdef __FOLLOW_TOCLIENT
+			if(descriptor.getString("client") != __FOLLOW_TOCLIENT)
+				m_boutput= false;
+#endif // __FOLLOW_TOCLIENT
+			descriptor.setBoolean("output", m_boutput);
+			if(m_boutput)
+			{ // DEBUG on command line
+			  // (2-3.) answer client give answer with syncID
+				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
+				cout << " (2-3.) give Answer '" << ianswer.str(true) << "'" << endl;
+				if(bwait)
+				{
+					cout << " and client waiting for ";
+					if(endString == "")
+						cout << "this normally string" << endl;
+					else
+						cout << "an array with ending string '" << endString << "'" << endl;
+				}else
+					cout << " but client do not wait for any answer" << endl;
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
 			if(bwait)
 				descriptor.sendAnswer(input);
 			if(	endString != "" &&
@@ -322,42 +378,33 @@ namespace server
 			{
 				input= descriptor.getString("lastquestion");
 			}
+
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
-			m_boutput= true;
-#ifndef __FOLLOW_TOPROCESS
-#ifndef __FOLLOW_TOCLIENT
-#ifndef __FOLLOW_SENDMESSAGE
-			m_boutput= false;
-#endif // __FOLLOW_SENDMESSAGE
-#endif // __FOLLOW_TOCLIENT
-#endif // __FOLLOW_TOPROCESS
-#ifdef __FOLLOW_TOPROCESS
-			if(descriptor.getString("process") != __FOLLOW_TOPROCESS)
-				m_boutput= false;
-#endif // __FOLLOW_TOPROCESS
-#ifdef __FOLLOW_TOCLIENT
-			if(descriptor.getString("client") != __FOLLOW_TOCLIENT)
-				m_boutput= false;
-#endif // __FOLLOW_TOCLIENT
 #ifdef __FOLLOW_SENDMESSAGE
 			string sendmsg(__FOLLOW_SENDMESSAGE);
 
 			if(input.substr(0, sendmsg.length()) != sendmsg)
 				m_boutput= false;
 #endif // __FOLLOW_SENDMASSAGE
+			descriptor.setBoolean("output", m_boutput);
 			if(m_boutput)
 			{ // DEBUG display
+				  // (2-2.) answer client get question with syncID
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
-				cout << " get question '" << input << "'" << endl;
+				cout << " (2-2.) get question '" << input << "'" << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
+
 			if(	input == ""
 				||
 				input.substr(input.size() -1) != "\n"	)
 			{
 				input+= "\n";
 			}
-			descriptor << input;
+			IMethodStringStream iquestion(input);
+
+			descriptor.setULongLong("questionID", iquestion.getSyncID());
+			descriptor << iquestion.str();
 			descriptor.flush();
 		}else if(client == descriptor.getServerObject()->getName())
 		{// question is sending to own object depend from this class
@@ -382,17 +429,24 @@ namespace server
 #endif // __FOLLOW_SENDMESSAGE
 			if(boutput)
 			{ // DEBUG display
+			  // (1-1.) send question to own client and need first no syncID
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
-				cout << " send question '" << input <<"' to " << client << endl;
+				cout << " (1-1.) send question '" << method.str(true) <<"' to own client " << client << endl;
 			}
+			descriptor.setBoolean("output", boutput);
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 			bRun= transfer(descriptor, method);
 
 		}else
 		{ // else sentence sending first question from process
+			IMethodStringStream method(input);
+
+			trim(input);
+			if(input != "")
+				method.createSyncID();
+
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			bool boutput= true;
-
 #ifdef __FOLLOW_FROMPROCESS
 			if(descriptor.getString("process") != __FOLLOW_FROMPROCESS)
 				boutput= false;
@@ -408,31 +462,56 @@ namespace server
 				boutput= false;
 #endif // __FOLLOW_SENDMESSAGE
 			if(boutput)
-			{ // DEBUG display
+			{ // DEBUG display fghdghhf
+			  // (2-1.) send question to other client with created syncID
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
-				cout << " send question '" << input <<"' to " << client;
+				cout << " (2-1.) send question '" << method.str(true) <<"' to other client " << client;
 				if(!bwait)
 					cout << " and need no answer";
 				cout << endl;
 			}
+			descriptor.setBoolean("output", boutput);
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-			input= descriptor.sendToOtherClient(client, input, bwait, endString);
+
+			input= descriptor.sendToOtherClient(client, method, bwait, endString);
+
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 #ifndef __FOLLOW_FROMPROCESS
 #ifndef __FOLLOW_FROMCLIENT
 #ifndef __FOLLOW_SENDMESSAGE
+#ifdef __FOLLOW_TOCLIENT
+			if(client != __FOLLOW_TOCLIENT)
+				boutput= false;
+#endif
+#ifdef __FOLLOW_TOPROCESS
 			boutput= false;
+#endif
 #endif // __FOLLOW_SENDMESSAGE
 #endif // __FOLLOW_FROMCLIENT
 #endif // __FOLLOW_FROMPROCESS
+
 			if(boutput)
 			{ // DEBUG display
-				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
-				cout << " send answer '" << input << "' back to client" << endl;
+			  // (2-4.) send answer back to asker and remove syncID
+				IMethodStringStream oAnswer(input);
+
+				cout << process << "::" << client;
+				cout << " (2-4.) send answer '" << oAnswer.str(true) << "' ";
+				cout << "as '" << oAnswer.str(false) << "' ";
+				cout << "back to " << descriptor.getString("process") << "::";
+				cout << descriptor.getString("client") << endl;
+				cout << " and remove synchronization ID " << method.getSyncID() << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-			if(	input == ""
-				||
+
+			IMethodStringStream oAnswer(input);
+
+			// delete now synchronization ID
+			// created by send question to own or other client
+			oAnswer.removeSyncID();
+			input= oAnswer.str();
+			trim(input);
+			if(	input == "" ||
 				input.substr(input.size() -1) != "\n"	)
 			{
 				input+= "\n";

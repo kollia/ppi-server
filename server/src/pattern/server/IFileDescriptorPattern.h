@@ -21,7 +21,10 @@
 
 #include "IServerPattern.h"
 
+#include "../../util/stream/IMethodStringStream.h"
+
 using namespace std;
+using namespace util;
 
 namespace design_pattern_world
 {
@@ -181,6 +184,34 @@ namespace design_pattern_world
 				 */
 				virtual unsigned int getUInt(const string& str) const= 0;
 				/**
+				 * read value of unsigned long integer
+				 *
+				 * @param str name of unsigned long integer
+				 * @return value of unsigned long integer
+				 */
+				virtual unsigned long getULong(const string& str) const= 0;
+				/**
+				 * read value of unsigned double long integer
+				 *
+				 * @param str name of unsigned double long integer
+				 * @return value of unsigned long integer
+				 */
+				virtual unsigned long long getULongLong(const string& str) const= 0;
+				/**
+				 * set unsigned long integer into object
+				 *
+				 * @param str name of unsigned long integer
+				 * @param value value of unsigned long integer
+				 */
+				virtual void setULong(const string& str, const unsigned long value)= 0;
+				/**
+				 * set unsigned double long integer into object
+				 *
+				 * @param str name of unsigned double long integer
+				 * @param value value of unsigned double long integer
+				 */
+				virtual void setULongLong(const string& str, const unsigned long long value)= 0;
+				/**
 				 * set float into object
 				 *
 				 * @param str name of float
@@ -250,7 +281,7 @@ namespace design_pattern_world
 				 * @param endString if sending client want an array, this is the last string for ending
 				 * @return answer from client
 				 */
-				virtual string sendString(const string& str, const bool& wait, const string& endString)= 0;
+				virtual string sendString(const IMethodStringStream& str, const bool& wait, const string& endString)= 0;
 				/**
 				 * method ask for string from other client
 				 *
@@ -275,7 +306,7 @@ namespace design_pattern_world
 				 * @param endString string for ending by read an array
 				 * @return answer from other client
 				 */
-				virtual string sendToOtherClient(const string& definition, const string& str, const bool& wait, const string& endString)= 0;
+				virtual string sendToOtherClient(const string& definition, const IMethodStringStream& str, const bool& wait, const string& endString)= 0;
 				/**
 				 * return factory of ServerCommunicationStarter
 				 *

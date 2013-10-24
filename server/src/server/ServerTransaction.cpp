@@ -1010,7 +1010,9 @@ namespace server
 	#endif
 							bWait= false;
 						}else
+						{
 							nExist= db->existEntry(values[0], values[1], "value", 0);
+						}
 
 						if(nExist == 5)
 						{

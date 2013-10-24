@@ -22,18 +22,73 @@
 #include <sstream>
 #include <string>
 
+#include "../../pattern/util/IMethodStringStreamPattern.h"
+
 #include "OParameterStringStream.h"
 
 using namespace std;
+using namespace design_pattern_world;
 
 namespace util {
 
-class OMethodStringStream : public OParameterStringStream {
+class OMethodStringStream 	: 			public OParameterStringStream,
+								virtual public IMethodStringStreamPattern
+{
 public:
 	/**
-	 * constructor to create OMethodStringStream object
+	 * empty constructor for object with no content
 	 */
-	explicit OMethodStringStream(const string& method);
+	OMethodStringStream()
+	:	m_nSyncID(0),
+	 	m_sMethod("")
+	{ m_sStream.str(""); };
+	/**
+	 * constructor to create OMethodStringStream object
+	 *
+	 * @param stream string to convert to object
+	 */
+	OMethodStringStream(const string& stream);
+	/**
+	 * constructor to create OMethodStringStream object
+	 *
+	 * @param obj <code>IMethodStringStream</code> object to convert
+	 */
+	OMethodStringStream(const IMethodStringStreamPattern& obj);
+	/**
+	 * copy constructor for own object
+	 *
+	 * @param obj other object to copy inside
+	 */
+	OMethodStringStream* operator = (const OMethodStringStream& obj);
+	/**
+	 * copy constructor for normally string
+	 */
+	OMethodStringStream* operator = (const string& str);
+	/**
+	 * output of hole method string with parameters
+	 *
+	 * @return hole string
+	 */
+	virtual string getMethodName() const
+	{ return m_sMethod; };
+	/**
+	 * create intern synchronization ID for object
+	 *
+	 * @param syncID synchronization ID to implement, elsewhere when not set or 0 create one
+	 * @return whether new synchronization ID be created or otherwise take before defined
+	 */
+	virtual bool createSyncID(unsigned long long syncID= 0);
+	/**
+	 * return created synchronize ID when exist,
+	 * elsewhere 0
+	 *
+	 * @return synchronize ID
+	 */
+	virtual unsigned long long getSyncID() const;
+	/**
+	 * remove synchronization ID for object which is intern set
+	 */
+	virtual void removeSyncID();
 	/**
 	 * constructor to create OMethodStringStream object from new object.<br>
 	 * New object overwrite method name and parameter stream
@@ -44,9 +99,11 @@ public:
 	/**
 	 * output of hole method string with parameters
 	 *
+	 * @param withSync output string with syncID when exist
+	 * @param withMethod whether string should returned with method name
 	 * @return hole string
 	 */
-	string str() const;
+	virtual string str(bool withSync= false, bool withMethod= true) const;
 	/**
 	 * output of all parameters in object
 	 *
@@ -59,6 +116,10 @@ public:
 	virtual ~OMethodStringStream();
 
 private:
+	/**
+	 * synchronize ID
+	 */
+	unsigned long long m_nSyncID;
 	/**
 	 * method of object
 	 */

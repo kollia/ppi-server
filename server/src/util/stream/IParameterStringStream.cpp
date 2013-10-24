@@ -26,11 +26,18 @@ using namespace boost::algorithm;
 namespace util {
 
 IParameterStringStream::IParameterStringStream(const string& stream)
-:	m_sStream(stream),
-	m_bFail(false),
-	m_bNull(false)
 {
+	m_sStream.str(stream);
+	m_bFail= false;
+	m_bNull= false;
+}
 
+IParameterStringStream& IParameterStringStream::operator = (const IParameterStringStream& obj)
+{
+	m_sStream.str(obj.m_sStream.str());
+	m_bFail= obj.m_bFail;
+	m_bNull= obj.m_bNull;
+	return *this;
 }
 
 void IParameterStringStream::operator >> ( bool& value)

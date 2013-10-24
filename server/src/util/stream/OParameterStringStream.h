@@ -188,11 +188,11 @@ public:
 	 */
 	virtual ~OParameterStringStream();
 
-private:
+protected:
 	/**
 	 * created string stream
 	 */
-	ostringstream m_sStream;
+	stringstream m_sStream;
 
 };
 

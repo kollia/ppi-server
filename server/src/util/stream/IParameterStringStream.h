@@ -33,6 +33,12 @@ public:
 	 */
 	IParameterStringStream(const string& stream);
 	/**
+	 * copy constructor for own object
+	 *
+	 * @param obj other object to copy inside
+	 */
+	IParameterStringStream& operator = (const IParameterStringStream& obj);
+	/**
 	 * operator for bool
 	 *
 	 * @param value bool variable
@@ -109,6 +115,13 @@ public:
 	 */
 	void getString(string& value);
 	/**
+	 * return current hole defined string
+	 *
+	 * @return defined string
+	 */
+	virtual string str() const
+	{ return m_sStream.str(); };
+	/**
 	 * whether the parameter stream is empty or reach end of string
 	 *
 	 * @return true if the stream is empty
@@ -139,7 +152,7 @@ protected:
 	/**
 	 * created string stream
 	 */
-	istringstream m_sStream;
+	stringstream m_sStream;
 
 private:
 	/**

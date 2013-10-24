@@ -10,7 +10,10 @@
 
 #include <string>
 
+#include "../../util/stream/IMethodStringStream.h"
+
 using namespace std;
+using namespace util;
 
 namespace design_pattern_world {
 
@@ -55,7 +58,7 @@ namespace design_pattern_world {
 			 * @param endString if sending client want an array, this is the last string for ending
 			 * @return answer from client
 			 */
-			virtual string sendString(const string& str, const bool& wait, const string& endString)= 0;
+			virtual string sendString(const IMethodStringStream& str, const bool& wait, const string& endString)= 0;
 			/**
 			 * dummy destructor of pattern
 			 */

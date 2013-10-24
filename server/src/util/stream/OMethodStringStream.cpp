@@ -16,17 +16,106 @@
  */
 
 #include "OMethodStringStream.h"
+#include "IMethodStringStream.h"
 
 namespace util {
 
-OMethodStringStream::OMethodStringStream(const string& method)
-:	m_sMethod(method)
+OMethodStringStream::OMethodStringStream(const string& stream)
 {
+	IMethodStringStream::stringDef_t content;
+
+	content= IMethodStringStream::stringConvertion(stream);
+	m_nSyncID= content.syncID;
+	m_sMethod= content.method;
+	m_sStream.str("");
+	m_sStream << content.stream;
 }
 
-string OMethodStringStream::str() const
+OMethodStringStream::OMethodStringStream(const IMethodStringStreamPattern& obj)
 {
-	return m_sMethod + " " + OParameterStringStream::str();
+	m_sMethod= obj.getMethodName();
+	m_nSyncID= obj.getSyncID();
+	m_sStream.str("");
+	m_sStream << obj.str();
+}
+
+OMethodStringStream* OMethodStringStream::operator = (const OMethodStringStream& obj)
+{
+	m_nSyncID= obj.getSyncID();
+	m_sMethod= obj.getMethodName();
+	m_sStream.str("");
+	m_sStream << obj.str(false, false);
+	return this;
+}
+
+OMethodStringStream* OMethodStringStream::operator = (const string& str)
+{
+	IMethodStringStream::stringDef_t content;
+
+	content= IMethodStringStream::stringConvertion(str);
+	m_nSyncID= content.syncID;
+	m_sMethod= content.method;
+	m_sStream.str("");
+	m_sStream << content.stream;
+	return this;
+}
+
+bool OMethodStringStream::createSyncID(unsigned long long syncID/*= 0*/)
+{
+	if(syncID == 0)
+	{
+		if(m_nSyncID == 0)
+		{
+			m_nSyncID= IMethodStringStream::makeSyncID();
+			return true;
+		}
+	}else
+	{
+		if(m_nSyncID == 0)
+		{
+			m_nSyncID= syncID;
+			return true;
+		}
+	}
+	return false;
+}
+
+unsigned long long OMethodStringStream::getSyncID() const
+{
+	return m_nSyncID;
+}
+
+void OMethodStringStream::removeSyncID()
+{
+	IMethodStringStream::delSyncID(m_nSyncID);
+	m_nSyncID= 0;
+}
+
+string OMethodStringStream::str(bool withSync/*= false*/, bool withMethod/*= true*/) const
+{
+	string sRv, stream;
+	ostringstream oID;
+
+	if(withMethod)
+	{
+		sRv= m_sMethod;
+		if(sRv != "")
+			sRv+= " ";
+	}
+	if(	withSync &&
+		m_nSyncID != 0)
+	{
+		oID << "syncID " << m_nSyncID;
+		sRv+= oID.str();
+	}
+	stream= OParameterStringStream::str();
+	if(stream != "")
+	{
+		if(sRv != "")
+			sRv+= " ";
+		sRv+= stream;
+	}
+	return sRv;
 }
 
 string OMethodStringStream::parameters() const

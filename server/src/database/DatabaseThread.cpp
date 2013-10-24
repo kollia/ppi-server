@@ -117,7 +117,7 @@ vector<string> DatabaseThread::getDebugInfo(const unsigned short server)
 	if(client != NULL)
 	{
 		do{
-			answer= client->sendString("getinfo", true, "done");
+			answer= client->sendString(IMethodStringStream("getinfo"), true, "done");
 			err= ExternClientInputTemplate::error(answer);
 			vRv.push_back(answer);
 

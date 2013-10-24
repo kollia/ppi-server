@@ -60,6 +60,14 @@ namespace server
 
 	bool ServerDbTransaction::transfer(IFileDescriptorPattern& descriptor, IMethodStringStream& object)
 	{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+		bool bDebugOutput(descriptor.getBoolean("output"));
+		ostringstream debugSendMsg;
+
+		debugSendMsg << descriptor.getString("process") << "::";
+		debugSendMsg << descriptor.getString("client") << " ";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
 		string method(object.getMethodName());
 		ostringstream od;
 		DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
@@ -73,6 +81,10 @@ namespace server
 			descriptor.unlock();
 			db->isEntryChanged();
 			descriptor.lock();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer 'changed' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			descriptor << "changed";
 
 		}else if(method == "writeIntoDb")
@@ -84,6 +96,10 @@ namespace server
 			object >> subroutine;
 			object >> identif;
 			db->writeIntoDb(folder, subroutine, identif);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send nothing back to client, was only to set inside ppi-db-server" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "fillValue")
 		{
@@ -107,6 +123,10 @@ namespace server
 							// maybe the value was no number for double (perhaps string or boolean)
 			}
 			db->fillValue(folder, subroutine, identif, values, bNew);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send nothing back to client, was only to set inside ppi-db-server" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "existEntry")
 		{
@@ -121,26 +141,59 @@ namespace server
 			if(!object.empty())
 				object >> number;
 			nRv= db->existEntry(folder, subroutine, identif, number);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer '";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			switch(nRv)
 			{
 			case 5:
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+					debugSendMsg << "exist";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "exist";
 				break;
 			case 4:
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+					debugSendMsg << "noaccess";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "noaccess";
 				break;
 			case 3:
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+					debugSendMsg << "novalue";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "novalue";
 				break;
 			case 2:
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+					debugSendMsg << "noidentif";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "noidentif";
 				break;
 			case 1:
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+					debugSendMsg << "nosubroutine";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "nosubroutine";
 				break;
 			default: // inherit 0
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+					debugSendMsg << "nofolder";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "nofolder";
+				break;
 			}
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "debugSubroutine")
 		{
@@ -156,11 +209,61 @@ namespace server
 			command << folder;
 			if(subroutine != "")
 				command << subroutine;
-			descriptor.sendToOtherClient("ProcessChecker", command.str(), false, "");
+			IMethodStringStream sendMeth(command.str());
+
+			sendMeth.createSyncID(object.getSyncID());
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+			{
+				string::size_type nLen(0);
+
+				nLen= descriptor.getString("process").size() + 3;
+				nLen+= descriptor.getString("client").size() - 12;
+				cout << descriptor.getString("process") << "::";
+				cout << descriptor.getString("client") << " ";
+				cout << "(1-2.) get question '" << method << "'" << endl;
+				if(nLen > 0)
+					cout << string("").append(nLen, ' ');
+				cout << "and send as (2-1.) question '" << sendMeth.str(true)
+								<<"' to other client ProcessChecker" << endl;
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			descriptor.sendToOtherClient("ProcessChecker", sendMeth, false, "");
+			if(object.getSyncID() > 0)
+				sendMeth.removeSyncID();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send nothing back to client, was only to set inside ProcessChecker" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "clearFolderDebug")
 		{
-			descriptor.sendToOtherClient("ProcessChecker", "clearFolderDebug", false, "");
+			IMethodStringStream sendMeth("clearFolderDebug");
+
+			sendMeth.createSyncID(object.getSyncID());
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+			{
+				string::size_type nLen(0);
+
+				nLen= descriptor.getString("process").size() + 3;
+				nLen+= descriptor.getString("client").size() - 12;
+				cout << descriptor.getString("process") << "::";
+				cout << descriptor.getString("client") << " ";
+				cout << "(1-2.) get question '" << method << "'" << endl;
+				if(nLen > 0)
+					cout << string("").append(nLen, ' ');
+				cout << "and send as (2-1.) question '" << sendMeth.str(true)
+								<<"' to other client ProcessChecker" << endl;
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			descriptor.sendToOtherClient("ProcessChecker", sendMeth, false, "");
+			if(object.getSyncID() > 0)
+				sendMeth.removeSyncID();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send nothing back to client, was only to set inside ProcessChecker" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "getActEntry")
 		{
@@ -180,8 +283,18 @@ namespace server
 			{
 				od << *spdRv;
 				descriptor << od.str();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer '" << od.str() << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			}else
+			{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer 'NULL' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "NULL";
+			}
 
 		}else if(method == "getNearest")
 		{
@@ -194,6 +307,10 @@ namespace server
 			object >> definition;
 			object >> value;
 			vtRv= db->getNearest(subroutine, definition, value);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer ";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			for(vector<convert_t>::iterator it= vtRv.begin(); it != vtRv.end(); ++it)
 			{
 				ostringstream parameters;
@@ -201,10 +318,18 @@ namespace server
 				parameters << it->be;
 				parameters << it->bSetTime;
 				parameters << it->nMikrosec;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "'" << parameters.str() << "', ";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << parameters.str();
 				descriptor.endl();
 				descriptor.flush();
 			}
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			descriptor << "done";
 
 		}else if(method == "needSubroutines")
@@ -217,10 +342,29 @@ namespace server
 			object >> connection;
 			object >> name;
 			bRv= db->needSubroutines(connection, name);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer '" ;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			if(bRv == true)
+			{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "true";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "true";
-			else
+			}else
+			{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "false";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "false";
+			}
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "getChangedEntrys")
 		{
@@ -230,13 +374,25 @@ namespace server
 			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> connection;
 			vsRv= db->getChangedEntrys(connection);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer ";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			for(vector<string>::iterator it= vsRv.begin(); it != vsRv.end(); ++it)
 			{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "'" << *it << "', ";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << *it;
 				descriptor.endl();
 				descriptor.flush();
 				descriptor >> method;
 			}
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			descriptor << "done";
 
 		}else if(method == "changeNeededIds")
@@ -247,6 +403,10 @@ namespace server
 			object >> oldId;
 			object >> newId;
 			db->changeNeededIds(oldId, newId);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send nothing back to client, was only to set inside ppi-db-server" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "chipsDefined")
 		{
@@ -254,6 +414,10 @@ namespace server
 
 			object >> defined;
 			reader->chipsDefined(defined);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send nothing back to client, was only to set inside ppi-db-server" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "define")
 		{
@@ -262,6 +426,10 @@ namespace server
 			object >> server;
 			object >> config;
 			reader->define(server, config);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send nothing back to client, was only to set inside ppi-db-server" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "registerChip")
 		{
@@ -291,6 +459,10 @@ namespace server
 			if(object.null())
 				pdCache= NULL;
 			reader->registerChip(server, chip, pin, type, family, pdmin, pdmax, pbFloat, pdCache);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send nothing back to client, was only to set inside ppi-db-server" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "registerPortID")
 		{
@@ -304,6 +476,10 @@ namespace server
 			db->useChip(folder, subroutine, server, chip);
 			reader->registerSubroutine(subroutine, folder, server, chip);
 			descriptor << "done";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer 'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "registerSubroutine")
 		{
@@ -314,6 +490,10 @@ namespace server
 			object >> server;
 			object >> chip;
 			reader->registerSubroutine(subroutine, folder, server, chip);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send nothing back to client, was only to set inside ppi-db-server" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "useChip")
 		{
@@ -326,6 +506,10 @@ namespace server
 			object >> chip;
 			db->useChip(folder, subroutine, onServer, chip);
 			descriptor << "done";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer 'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "getRegisteredDefaultChipCache")
 		{
@@ -335,14 +519,32 @@ namespace server
 			object >> server;
 			object >> chip;
 			cache= reader->getRegisteredDefaultChipCache(server, chip);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer '";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			if(cache != NULL)
 			{
 				ostringstream oRv;
 
 				oRv << *cache;
 				descriptor << oRv.str();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << oRv.str();
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			}else
+			{
 				descriptor << "NULL";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "NULL";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			}
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method.substr(0, 24) == "getRegisteredDefaultChip")
 		{
@@ -364,6 +566,10 @@ namespace server
 				chip= reader->getRegisteredDefaultChip(server, family, type, schip, pin);
 			else
 				chip= reader->getRegisteredDefaultChip(server, schip);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer '";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			if(chip != NULL)
 			{
 				OParameterStringStream oRv;
@@ -382,8 +588,22 @@ namespace server
 				for(vector<double>::iterator it= errorcodes.begin(); it != errorcodes.end(); ++it)
 					oRv << *it;
 				descriptor << oRv.str();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << oRv.str();
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			}else
+			{
 				descriptor << "NULL";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "NULL";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			}
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "getDefaultCache")
 		{
@@ -402,22 +622,68 @@ namespace server
 
 			oRv << dRv;
 			descriptor << oRv.str();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer '" << oRv.str() << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
 		}else if(method == "existOWServer")
 		{
 			string res;
 			unsigned short max;
 			unsigned short owServer;
+			IMethodStringStream ires;
+			IMethodStringStream sendMeth("getOWMaxCount");
 
+			sendMeth.createSyncID(object.getSyncID());
 			object >> owServer;
-			res= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true, "");
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+			{
+				string::size_type nLen(0);
+
+				nLen= descriptor.getString("process").size() + 3;
+				nLen+= descriptor.getString("client").size() - 12;
+				cout << descriptor.getString("process") << "::";
+				cout << descriptor.getString("client") << " ";
+				cout << "(1-2.) get question '" << method << "'" << endl;
+				if(nLen > 0)
+					cout << string("").append(nLen, ' ');
+				cout << "and send as (2-1.) question '" << sendMeth.str(true)
+								<<"' to other client ProcessChecker" << endl;
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			ires= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+			res= ires.str();
+			if(object.getSyncID() > 0)
+				sendMeth.removeSyncID();
 
 			istringstream smax(res);
 
 			smax >> max;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer '";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			if(owServer > 0 && owServer <= max)
+			{
 				descriptor << "true";
-			else
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "true";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			}else
+			{
 				descriptor << "false";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "false";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			}
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "getStatusInfo")
 		{
@@ -436,11 +702,36 @@ namespace server
 			switch(step)
 			{
 			case 0: // get status info from main process ppi-server
+			{
 				send= auto_ptr<ostringstream>(new ostringstream);
 				(*send) << "getStatusInfo";
 				if(param != "")
 					(*send) << " \"" << param << "\"";
-				msg= descriptor.sendToOtherClient("ProcessChecker", send->str(), true, "");
+				IMethodStringStream ires;
+				IMethodStringStream sendMeth(send->str());
+
+				sendMeth.createSyncID(object.getSyncID());
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+				{
+					string::size_type nLen(0);
+
+					nLen= descriptor.getString("process").size() + 3;
+					nLen+= descriptor.getString("client").size() - 12;
+					cout << descriptor.getString("process") << "::";
+					cout << descriptor.getString("client") << " ";
+					cout << "(1-2.) get question '" << method << "'" << endl;
+					if(nLen > 0)
+						cout << string("").append(nLen, ' ');
+					cout << "and send as (2-1.) question '" << sendMeth.str(true)
+									<<"' to other client ProcessChecker" << endl;
+				}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+				ires= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+				msg= ires.str();
+				trim(msg);
+				if(object.getSyncID() > 0)
+					sendMeth.removeSyncID();
 				if(msg != "done")
 				{
 					if(ExternClientInputTemplate::error(msg))
@@ -450,10 +741,15 @@ namespace server
 					}
 					//cout << "send: " << msg << endl;
 					descriptor << msg;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer '" << msg << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 					descriptor.endl();
 					break;
 				}
 				++step;
+			}
 			case 1: // read status info from own process ppi-db-server
 				msg= Thread::getStatusInfo(param);
 				split(status, msg, is_any_of("\n"));
@@ -467,6 +763,10 @@ namespace server
 					{
 						bsend= true;
 						descriptor << *pos;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer '" << *pos << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 						descriptor.endl();
 						//cout << "send: " << *pos << endl;
 						status.erase(pos);
@@ -478,21 +778,70 @@ namespace server
 					break;
 				++step;
 			case 3: // check how much one wire reader does exist
-				msg= descriptor.sendToOtherClient("ProcessChecker", "getOWMaxCount", true, "");
+			{
+				IMethodStringStream ires;
+				IMethodStringStream sendMeth("getOWMaxCount");
+
+				sendMeth.createSyncID(object.getSyncID());
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+				{
+					string::size_type nLen(0);
+
+					nLen= descriptor.getString("process").size() + 3;
+					nLen+= descriptor.getString("client").size() - 12;
+					cout << descriptor.getString("process") << "::";
+					cout << descriptor.getString("client") << " ";
+					cout << "(1-2.) get question '" << method << "'" << endl;
+					if(nLen > 0)
+						cout << string("").append(nLen, ' ');
+					cout << "and send as (2-1.) question '" << sendMeth.str(true)
+									<<"' to other client ProcessChecker" << endl;
+				}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+				ires= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+				msg= ires.str();
+				if(object.getSyncID() > 0)
+					sendMeth.removeSyncID();
 				piOWReader= new istringstream(msg);
 				*piOWReader >> nMaxOWReader;
 				delete piOWReader;
 				++step;
+			}
 			case 4:// get status info from all one wire reader
 				while(nOWReader <= nMaxOWReader)
 				{
+					IMethodStringStream ires;
 					send= auto_ptr<ostringstream>(new ostringstream);
 					(*send) << "getStatusInfo";
 					if(param != "")
 						(*send) << " \"" << param << "\"";
 					poOWReader= auto_ptr<ostringstream>(new ostringstream);
 					(*poOWReader) << "OwServerQuestion-" << nOWReader;
-					msg= descriptor.sendToOtherClient(poOWReader->str(), send->str(), true, "");
+					IMethodStringStream sendMeth(send->str());
+
+					sendMeth.createSyncID(object.getSyncID());
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					if(bDebugOutput)
+					{
+						string::size_type nLen(0);
+
+						nLen= descriptor.getString("process").size() + 3;
+						nLen+= descriptor.getString("client").size() - 12;
+						cout << descriptor.getString("process") << "::";
+						cout << descriptor.getString("client") << " ";
+						cout << "(1-2.) get question '" << method << "'" << endl;
+						if(nLen > 0)
+							cout << string("").append(nLen, ' ');
+						cout << "and send as (2-1.) question '" << sendMeth.str(true)
+										<<"' to other client " << poOWReader->str() << endl;
+					}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+					ires= descriptor.sendToOtherClient(poOWReader->str(), sendMeth, true, "");
+					msg= ires.str();
+					trim(msg);
+					if(object.getSyncID() > 0)
+						sendMeth.removeSyncID();
 					if(ExternClientInputTemplate::error(msg))
 						msg= "no communication to  " + poOWReader->str() + " " + msg;
 					if(msg != "done")
@@ -504,6 +853,10 @@ namespace server
 						}
 						//cout << "send: " << msg << endl;
 						descriptor << msg;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer '" << msg << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 						descriptor.endl();
 						break;
 					}
@@ -514,6 +867,10 @@ namespace server
 				//cout << "all be done" << endl;
 				descriptor << "done";
 				descriptor.endl();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer '" << od.str() << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				nOWReader= 1;
 				step= 0;
 				break;
@@ -522,13 +879,39 @@ namespace server
 		{
 			unsigned short ow;
 			ostringstream def;
-			string command("getDebugInfo");
 			string res;
+			IMethodStringStream ires;
+			IMethodStringStream sendMeth("getDebugInfo");
 
+			sendMeth.createSyncID(object.getSyncID());
 			object >> ow;
 			def << "OwServerQuestion-" << ow;
-			res= descriptor.sendToOtherClient(def.str(), command, true, "");
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+			{
+				string::size_type nLen(0);
+
+				nLen= descriptor.getString("process").size() + 3;
+				nLen+= descriptor.getString("client").size() - 12;
+				cout << descriptor.getString("process") << "::";
+				cout << descriptor.getString("client") << " ";
+				cout << "(1-2.) get question '" << method << "'" << endl;
+				if(nLen > 0)
+					cout << string("").append(nLen, ' ');
+				cout << "and send as (2-1.) question '" << sendMeth.str(true)
+								<<"' to other client " << def.str() << endl;
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			ires= descriptor.sendToOtherClient(def.str(), sendMeth, true, "");
+			res= ires.str();
+			trim(res);
+			if(object.getSyncID() > 0)
+				sendMeth.removeSyncID();
 			descriptor << res;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer '" << od.str() << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "setOWDebug")
 		{
@@ -575,17 +958,53 @@ namespace server
 			if(bDo)
 			{
 				ostringstream server;
-				ostringstream command;
+				OMethodStringStream sendMeth("setDebug");
 
+				sendMeth.createSyncID(object.getSyncID());
 				server << "OwServerQuestion-" << serverID;
-				command << "setDebug " << set;
-				res= descriptor.sendToOtherClient(server.str(), command.str(), false, "");
+				sendMeth << set;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+				{
+					string::size_type nLen(0);
+
+					nLen= descriptor.getString("process").size() + 3;
+					nLen+= descriptor.getString("client").size() - 12;
+					cout << descriptor.getString("process") << "::";
+					cout << descriptor.getString("client") << " ";
+					cout << "(1-2.) get question '" << method << "'" << endl;
+					if(nLen > 0)
+						cout << string("").append(nLen, ' ');
+					cout << "and send as (2-1.) question '" << sendMeth.str(true)
+									<<"' to other client " << server.str() << endl;
+				}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+				IMethodStringStream ires;
+				IMethodStringStream method(sendMeth);
+
+				ires= descriptor.sendToOtherClient(server.str(), method, false, "");
+				res= ires.str();
+				if(object.getSyncID() > 0)
+					sendMeth.removeSyncID();
 				descriptor << res;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer '" << res << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			}else
+			{
 				descriptor << "done";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer 'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			}
 
 		}else if(method == "clearOWDebug")
 		{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			bool bDo(false);
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			bool bSend= false;
 			unsigned int connectionID;
 			list<unsigned int>::iterator conn;
@@ -608,14 +1027,46 @@ namespace server
 				if(bSend)
 				{
 					ostringstream server;
+					IMethodStringStream sendMeth("setDebug false");
 
+					sendMeth.createSyncID(object.getSyncID());
 					server << "OwServerQuestion-" << it->first;
-					descriptor.sendToOtherClient(server.str(), "setDebug false", false, "");
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					bDo= true;
+					if(bDebugOutput)
+					{
+						string::size_type nLen(0);
+
+						nLen= descriptor.getString("process").size() + 3;
+						nLen+= descriptor.getString("client").size() - 12;
+						cout << descriptor.getString("process") << "::";
+						cout << descriptor.getString("client") << " ";
+						cout << "(1-2.) get question '" << method << "'" << endl;
+						if(nLen > 0)
+							cout << string("").append(nLen, ' ');
+						cout << "and send as (2-1.) question '" << sendMeth.str(true)
+										<<"' to other client " << server.str() << endl;
+					}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+					descriptor.sendToOtherClient(server.str(), sendMeth, false, "");
+					if(object.getSyncID() == 0)
+						sendMeth.removeSyncID();
 					if(connectionID > 0)
 						break;
 				}
 			}
 			descriptor << "done";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+			{
+				debugSendMsg << "(1-";
+				if(bDo)
+					debugSendMsg << "3";
+				else
+					debugSendMsg << "2";
+				debugSendMsg << ".) send answer 'done' from ppi-db-server back to client" << endl;
+			}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "changedChip")
 		{
@@ -637,16 +1088,40 @@ namespace server
 				{
 					//cout << "  on server '" << onServer << "'  " << fit->first << ":" << *sit <<
 					//				" has new value " << value << " access " << boolalpha << device << endl;
-					command << fit->first;
-					command << *sit;
-					command << value;
-					command << device;
-					command << onServer+" "+chip;
-					descriptor.sendToOtherClient("ProcessChecker", command.str(), false, "");
+					OMethodStringStream sendMeth(fit->first);
+
+					sendMeth << *sit;
+					sendMeth << value;
+					sendMeth << device;
+					sendMeth << onServer+" "+chip;
+					sendMeth.createSyncID(object.getSyncID());
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					if(bDebugOutput)
+					{
+						string::size_type nLen(0);
+
+						nLen= descriptor.getString("process").size() + 3;
+						nLen+= descriptor.getString("client").size() - 12;
+						cout << descriptor.getString("process") << "::";
+						cout << descriptor.getString("client") << " ";
+						cout << "(1-2.) get question '" << method << "'" << endl;
+						if(nLen > 0)
+							cout << string("").append(nLen, ' ');
+						cout << "and send as (2-1.) question '" << sendMeth.str(true)
+										<<"' to other client ProcessChecker" << endl;
+					}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+					descriptor.sendToOtherClient("ProcessChecker", sendMeth, false, "");
+					if(object.getSyncID() == 0)
+						sendMeth.removeSyncID();
 				}
 			}
 
 			descriptor << "done";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer 'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "checkUnused")
 		{
@@ -657,29 +1132,76 @@ namespace server
 			for(unsigned short n= 1; n <= max; ++n)
 			{
 				ostringstream server;
+				IMethodStringStream sendMeth("checkUnused");
 
+				sendMeth.createSyncID(object.getSyncID());
 				server << "OwServerQuestion-" << n;
-				descriptor.sendToOtherClient(server.str(), "checkUnused", true, "");
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					if(bDebugOutput)
+					{
+						string::size_type nLen(0);
+
+						nLen= descriptor.getString("process").size() + 3;
+						nLen+= descriptor.getString("client").size() - 12;
+						cout << descriptor.getString("process") << "::";
+						cout << descriptor.getString("client") << " ";
+						cout << "(1-2.) get question '" << method << "'" << endl;
+						if(nLen > 0)
+							cout << string("").append(nLen, ' ');
+						cout << "and send as (2-1.) question '" << sendMeth.str(true)
+										<<"' to other client " << server.str() << endl;
+					}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+				descriptor.sendToOtherClient(server.str(), sendMeth, true, "");
+				if(object.getSyncID() == 0)
+					sendMeth.removeSyncID();
 			}
 			descriptor << "done";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer 'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "endOfInitialisation")
 		{
 			bool out;
 			unsigned short max;
-			OMethodStringStream command("endOfInitialisation");
+			OMethodStringStream sendMeth("endOfInitialisation");
 
 			object >> max;
 			object >> out;
-			command << out;
+			sendMeth << out;
 			for(unsigned short n= 1; n <= max; ++n)
 			{
 				ostringstream server;
 
 				server << "OwServerQuestion-" << n;
-				descriptor.sendToOtherClient(server.str(), command.str(), true, "");
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+				{
+					int nLen(0);
+
+					nLen= descriptor.getString("process").size() + 3;
+					nLen+= descriptor.getString("client").size() - 12;
+					cout << descriptor.getString("process") << "::";
+					cout << descriptor.getString("client") << " ";
+					cout << "(1-2.) get question '" << method << "'" << endl;
+					if(nLen > 0)
+						cout << string("").append(nLen, ' ');
+					cout << "and send as (2-1.) question '" << sendMeth.str(true)
+									<<"' to other client " << server.str() << endl;
+				}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+				sendMeth.createSyncID(object.getSyncID());
+				descriptor.sendToOtherClient(server.str(), sendMeth, true, "");
+				if(object.getSyncID() == 0)
+					sendMeth.removeSyncID();
 			}
 			descriptor << "done";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer 'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "log")
 		{
@@ -696,6 +1218,10 @@ namespace server
 			object >> log.tmnow;
 			m_pLogObject->log(log);
 			descriptor << "done";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer 'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "setThreadName")
 		{
@@ -706,6 +1232,10 @@ namespace server
 			object >> id;
 			m_pLogObject->setThreadName(name, id);
 			descriptor << "done";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer 'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "getThreadName")
 		{
@@ -715,20 +1245,49 @@ namespace server
 			object >> id;
 			m_pLogObject->getThreadName(id);
 			descriptor << name;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer '" << name << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "isDbLoaded")
 		{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer '";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			dbTh= DatabaseThread::instance();
 			if(dbTh->isDbLoaded())
+			{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "1";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "1";
-			else
+			}else
+			{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "0";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				descriptor << "0";
+			}
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
 		}else if(method == "allOwreadersInitialed")
 		{
 			static unsigned short existClients(0);
 			static unsigned short actClient(0);
+			IMethodStringStream ires;
 			string res;
 
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer ";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			if(existClients == 0)
 			{
 				existClients= getOwClientCount();
@@ -740,22 +1299,70 @@ namespace server
 			 // so call ending of initialization
 				descriptor << "done";
 				existClients= 0;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "'done', ";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			}
 			if(existClients > 0)
 			{
 				do{
 					ostringstream owclient;
+					IMethodStringStream sendMeth("finishedInitial");
+
+					sendMeth.createSyncID(object.getSyncID());
 					owclient << "OwServerQuestion-";
 					owclient << actClient;
-					res= descriptor.sendToOtherClient(owclient.str(), "finishedInitial", true, "");
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					if(bDebugOutput)
+					{
+						string::size_type nLen(0);
+
+						nLen= descriptor.getString("process").size() + 3;
+						nLen+= descriptor.getString("client").size() - 12;
+						cout << descriptor.getString("process") << "::";
+						cout << descriptor.getString("client") << " ";
+						cout << "(1-2.) get question '" << method << "'" << endl;
+						if(nLen > 0)
+							cout << string("").append(nLen, ' ');
+						cout << "and send as (2-1.) question '" << sendMeth.str(true)
+										<<"' to other client " << owclient.str() << endl;
+					}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+					ires= descriptor.sendToOtherClient(owclient.str(), sendMeth, true, "");
+					res= ires.str();
+					trim(res);
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					if(bDebugOutput)
+					{
+						cout << descriptor.getString("process") << "::";
+						cout << descriptor.getString("client") << " ";
+						cout << "(2-4.) get answer '" << ires.str(true) << "' to send back as '";
+						cout << res << "' in (1-3.)" << endl;
+					}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+					if(object.getSyncID() == 0)
+						sendMeth.removeSyncID();
 					if(	res == "done" ||
 						res == "false"	)
 					{
 						if(res == "false")
+						{
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+							if(bDebugOutput)
+								debugSendMsg << "'false', ";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 							descriptor << "false";
+						}
 						++actClient;
 					}else
+					{
 						descriptor << res;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+						if(bDebugOutput)
+							debugSendMsg << "'" << res << "', ";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+					}
 
 				}while(	res == "done" &&
 						actClient <= existClients	);
@@ -764,8 +1371,16 @@ namespace server
 				{
 					descriptor << "done";
 					existClients= 0;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					if(bDebugOutput)
+						debugSendMsg << "'done' ";
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 				}
 			}
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << " from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "isServerConfigured")
 		{
@@ -779,6 +1394,10 @@ namespace server
 			result << boolalpha << bConf << " ";
 			result << sProcess << " " << nPercent;
 			descriptor << result.str();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer '" << result.str() << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "setServerConfigureStatus")
 		{
@@ -790,6 +1409,10 @@ namespace server
 			object >> nPercent;
 			db->setServerConfigureStatus(sProcess, nPercent);
 			descriptor << "done";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer 'done' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else if(method == "stop-all")
 		{
@@ -828,11 +1451,32 @@ namespace server
 				}
 				if(client > 0)
 				{
+					IMethodStringStream sendMeth("stop-owclient");
+
+					sendMeth.createSyncID(object.getSyncID());
 					oldclient= client;
 					owclient << "OwServerQuestion-";
 					owclient << client;
 					glob::stopMessage("ServerDbTransaction::transfer(): send stop message to owreader process " + owclient.str());
-					descriptor.sendToOtherClient(owclient.str(), "stop-owclient", false, "");
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					if(bDebugOutput)
+					{
+						string::size_type nLen(0);
+
+						nLen= descriptor.getString("process").size() + 3;
+						nLen+= descriptor.getString("client").size() - 12;
+						cout << descriptor.getString("process") << "::";
+						cout << descriptor.getString("client") << " ";
+						cout << "(1-2.) get question '" << method << "'" << endl;
+						if(nLen > 0)
+							cout << string("").append(nLen, ' ');
+						cout << "and send as (2-1.) question '" << sendMeth.str(true)
+										<<"' to other client " << owclient.str() << endl;
+					}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+					descriptor.sendToOtherClient(owclient.str(), sendMeth, false, "");
+					if(object.getSyncID() == 0)
+						sendMeth.removeSyncID();
 					usleep(500000);
 					client= getOwClientCount();
 					client-= minus;
@@ -847,13 +1491,60 @@ namespace server
 				glob::stopMessage("ServerDbTransaction::transfer(): send stop message to main process ProcessChecker");
 				++stopdb;
 			case 3:
-				sRv= descriptor.sendToOtherClient("ProcessChecker", "stop-all", true, "");
+			{
+				IMethodStringStream ires;
+				IMethodStringStream sendMeth("stop-all");
+
+				sendMeth.createSyncID(object.getSyncID());
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+				if(bDebugOutput)
+				{
+					string::size_type nLen(0);
+
+					nLen= descriptor.getString("process").size() + 3;
+					nLen+= descriptor.getString("client").size() - 12;
+					cout << descriptor.getString("process") << "::";
+					cout << descriptor.getString("client") << " ";
+					cout << "(1-2.) get question '" << method << "'" << endl;
+					if(nLen > 0)
+						cout << string("").append(nLen, ' ');
+					cout << "and send as (2-1.) question '" << sendMeth.str(true)
+									<<"' to other client ProcessChecker" << endl;
+				}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+				ires= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+				sRv= ires.str();
+				trim(sRv);
+				if(object.getSyncID() == 0)
+					sendMeth.removeSyncID();
 				if(sRv == "done")
 				{
+					IMethodStringStream sendMeth("OK");
+
+					sendMeth.createSyncID(object.getSyncID());
 					++stopdb;
-					descriptor.sendToOtherClient("ProcessChecker", "OK", false, "");
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					if(bDebugOutput)
+					{
+						string::size_type nLen(0);
+
+						nLen= descriptor.getString("process").size() + 3;
+						nLen+= descriptor.getString("client").size() - 12;
+						cout << descriptor.getString("process") << "::";
+						cout << descriptor.getString("client") << " ";
+						cout << "(1-2.) get question '" << method << "'" << endl;
+						if(nLen > 0)
+							cout << string("").append(nLen, ' ');
+						cout << "and send as (2-1.) question '" << sendMeth.str(true)
+										<<"' to other client ProcessChecker" << endl;
+					}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+					descriptor.sendToOtherClient("ProcessChecker", sendMeth, false, "");
+					if(object.getSyncID() == 0)
+						sendMeth.removeSyncID();
 					sRv= "stop measure threads";
 				}
+			}
 				break;
 
 			case 4:
@@ -902,12 +1593,16 @@ namespace server
 				glob::stopMessage("ServerDbTransaction::transfer(): send stop message to own ppi-db-server thread");
 				server->stop(false);
 				// toDo: server do not stop always correctly
-#				//exit(EXIT_SUCCESS);
+				//exit(EXIT_SUCCESS);
 				glob::stopMessage("ServerDbTransaction::transfer(): stopping was performed, ending with no new transaction");
 				return false;
 				break;
 			}
 			descriptor << sRv;
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send answer '" << sRv << "' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		}else
 		{
@@ -915,9 +1610,17 @@ namespace server
 			LOG(LOG_WARNING, "get undefined question with method name '" + method + "'\n"
 							"from client " + descriptor.getString("client"));
 			descriptor << "ERROR 011";
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-2.) send answer 'ERROR 011' from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 		}
 		descriptor.endl();
 		descriptor.flush();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				cout << debugSendMsg.str() << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 		//cout << "finish work on command: " << method << endl;
 		return true;
 	}

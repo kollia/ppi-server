@@ -20,6 +20,7 @@
 #include "../../../pattern/server/ITransferPattern.h"
 
 #include "../../../util/stream/IMethodStringStream.h"
+#include "../../../util/debugtransaction.h"
 
 using namespace design_pattern_world::server_pattern;
 using namespace util;
@@ -202,7 +203,8 @@ namespace server
 	{
 		public:
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
-			ServerMethodTransaction() : m_boutput(false) {};
+			ServerMethodTransaction()
+			: m_boutput(false) {};
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 			/**
 			 * initial all values for transaction

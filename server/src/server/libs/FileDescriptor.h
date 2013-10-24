@@ -22,11 +22,13 @@
 #include <map>
 
 #include "../../pattern/server/IFileDescriptorPattern.h"
-//#include "../../pattern/server/IClientConnectArtPattern.h"
 
+#include "../../util/smart_ptr.h"
 #include "../../util/thread/Thread.h"
+#include "../../util/stream/IMethodStringStream.h"
 
 using namespace std;
+using namespace util;
 using namespace design_pattern_world::server_pattern;
 
 
@@ -197,6 +199,34 @@ namespace server
 			 */
 			virtual unsigned int getUInt(const string& str) const;
 			/**
+			 * set unsigned long integer into object
+			 *
+			 * @param str name of unsigned long integer
+			 * @param value value of unsigned long integer
+			 */
+			virtual void setULong(const string& str, const unsigned long value);
+			/**
+			 * set unsigned double long integer into object
+			 *
+			 * @param str name of unsigned double long integer
+			 * @param value value of unsigned double long integer
+			 */
+			virtual void setULongLong(const string& str, const unsigned long long value);
+			/**
+			 * read value of unsigned long integer
+			 *
+			 * @param str name of unsigned long integer
+			 * @return value of unsigned long integer
+			 */
+			virtual unsigned long getULong(const string& str) const;
+			/**
+			 * read value of unsigned double long integer
+			 *
+			 * @param str name of unsigned double long integer
+			 * @return value of unsigned long integer
+			 */
+			virtual unsigned long long getULongLong(const string& str) const;
+			/**
 			 * set float into object
 			 *
 			 * @param str name of float
@@ -268,7 +298,7 @@ namespace server
 			 * @param endString string for ending by read an array
 			 * @return answer from other client
 			 */
-			virtual string sendToOtherClient(const string& definition, const string& str, const bool& wait, const string& endString);
+			virtual string sendToOtherClient(const string& definition, const IMethodStringStream& str, const bool& wait, const string& endString);
 			/**
 			 * send an answer of getting string with <code>getOtherClientString()</code>
 			 *
@@ -336,7 +366,7 @@ namespace server
 			 * @param endString if sending client want an array, this is the last string for ending
 			 * @return answer from client
 			 */
-			virtual string sendString(const string& str, const bool& wait, const string& endString);
+			virtual string sendString(const IMethodStringStream& str, const bool& wait, const string& endString);
 
 			/**
 			 * mutex lock handle for changing or reading connection ID
@@ -401,31 +431,35 @@ namespace server
 			 */
 			map<string, bool> m_mBoolean;
 			/**
-			 * boolean values set from ITransferPattern object
+			 * short values set from ITransferPattern object
 			 */
 			map<string, short> m_mShort;
 			/**
-			 * boolean values set from ITransferPattern object
+			 * unsigned short values set from ITransferPattern object
 			 */
 			map<string, unsigned short> m_mUShort;
 			/**
-			 * boolean values set from ITransferPattern object
+			 * integer values set from ITransferPattern object
 			 */
 			map<string, int> m_mInt;
 			/**
-			 * boolean values set from ITransferPattern object
+			 * unsigned integer values set from ITransferPattern object
 			 */
 			map<string, unsigned int> m_mUInt;
 			/**
-			 * boolean values set from ITransferPattern object
+			 * long values set from ITransferPattern object
 			 */
 			map<string, long> m_mLong;
 			/**
-			 * boolean values set from ITransferPattern object
+			 * unsigned long values set from ITransferPattern object
 			 */
 			map<string, unsigned long> m_mULong;
 			/**
-			 * boolean values set from ITransferPattern object
+			 * unsigned double long values set from ITransferPattern object
+			 */
+			map<string, unsigned long long> m_mULongLong;
+			/**
+			 * float values set from ITransferPattern object
 			 */
 			map<string, float> m_mFloat;
 			/**
@@ -462,7 +496,7 @@ namespace server
 			/**
 			 * answer string to return to other client
 			 */
-			string m_sClientAnswer;
+			vector< SHAREDPTR::shared_ptr<IMethodStringStream> > m_vsClientAnswer;
 			/**
 			 * timeout in seconds for waiting if no second client thread
 			 * waiting for answers

@@ -34,7 +34,7 @@ namespace server
 {
 	/**
 	 * representing communication threads
-	 * whitch are wating for client how connecting on server.
+	 * which are waiting for client how connecting on server.
 	 */
 	class Communication :			public Thread,
 							virtual public ICommunicationPattern
@@ -132,7 +132,7 @@ namespace server
 		 * @param endString if sending client want an array, this is the last string for ending
 		 * @return answer from client
 		 */
-		virtual string sendString(const string& str, const bool& wait, const string& endString)
+		virtual string sendString(const IMethodStringStream& str, const bool& wait, const string& endString)
 		{ return m_hFileAccess->sendString(str, wait, endString); };
 		/**
 		 * destroy instance of communication thread
