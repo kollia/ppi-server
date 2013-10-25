@@ -34,6 +34,7 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include "Database.h"
 
@@ -468,6 +469,7 @@ namespace ppi_database
 				{
 					vector<db_t>::iterator found;
 
+					cout << "try to write " << fc->first << ":" << sc->first << " with identif " << ic->first << endl;
 					found= find(m_vtDbValues.begin(), m_vtDbValues.end(), &ic->second);
 					if(found != m_vtDbValues.end())
 						writeDb(ic->second, &dbFile);
@@ -478,6 +480,7 @@ namespace ppi_database
 		{
 			writeDb(*ci, &dbFile);
 		}
+		dbFile << "#-------------------------------------------------------------------------------------------------------" << endl;
 		UNLOCK(m_DBCURRENTENTRY);
 
 		dbFile.close();
@@ -499,6 +502,9 @@ namespace ppi_database
 		entry.device= true;
 		if(count > 0)
 		{
+			trim(columns[0]);
+			if(line[0] == '#')
+				return entry;
 			entry.measureHost= columns[0];
 			if(count > 1)
 			{
@@ -1550,7 +1556,8 @@ namespace ppi_database
 				}
 			}
 		}
-		createNewDbFile(/*check whether*/true);
+		if(m_pChipReader->chipsAreDefined())
+			createNewDbFile(/*check whether*/true);
 		return 0;
 	}
 

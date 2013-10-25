@@ -456,6 +456,9 @@ namespace ppi_database
 		entry.device= true;
 		if(count > 0)
 		{
+			trim(columns[0]);
+			if(line[0] == '#')
+				return entry;
 			entry.measureHost= columns[0];
 			if(count > 1)
 			{
@@ -464,6 +467,7 @@ namespace ppi_database
 				vector<string>::size_type nLen;
 				timeval tv;
 
+				trim(columns[1]);
 				split(timespl, columns[1], is_any_of(":"));
 				nLen= timespl.size();
 				if(nLen > 0)
@@ -538,12 +542,15 @@ namespace ppi_database
 				}
 				if(count > 2)
 				{
+					trim(columns[2]);
 					entry.folder= columns[2];
 					if(count > 3)
 					{
+						trim(columns[3]);
 						entry.subroutine= columns[3];
 						if(count > 4)
 						{
+							trim(columns[4]);
 							entry.identif= columns[4];
 							if(count > 5)
 							{
