@@ -440,7 +440,7 @@ void Shell::setDebug(bool bDebug)
 	string command;
 	vector<string> result;
 
-	portBase::setDebug(bDebug);
+	switchClass::setDebug(bDebug);
 	m_oMicroseconds.doOutput(bDebug);
 	m_oMilliseconds.doOutput(bDebug);
 	m_oSeconds.doOutput(bDebug);
