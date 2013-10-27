@@ -1031,6 +1031,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			msg+= "             so make no measure-instance for it";
 			LOG(LOG_WARNING, msg);
 			cout << msg << endl;
+			aktFolder->runThread= SHAREDPTR::shared_ptr<IMeasurePattern>();
 		}else
 		{
 			if(bFolderStart)
@@ -1065,6 +1066,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			}
 			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name, args, nServerSearchSequence, bNoDbRead, folderCPUlength));
 			pCurrentMeasure->pMeasure->start(&bSubroutines);
+			aktFolder->runThread= pCurrentMeasure->pMeasure;
 		}
 		aktFolder= aktFolder->next;
 		db->setServerConfigureStatus("folder_start", 100 / nFolders * ++nFolderCount);

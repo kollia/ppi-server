@@ -59,6 +59,10 @@ namespace ports
 		 */
 		vector<string>::size_type m_nValueObserver;
 		/**
+		 * no pos for nValueObserver (last vector size -1)
+		 */
+		const vector<string>::size_type vector_npos;
+		/**
 		 * all values which can be set as content
 		 */
 		vector<ListCalculator*> m_vpoValues;
@@ -71,6 +75,10 @@ namespace ports
 		 * higher or lower then value count of m_vdValues
 		 */
 		double m_ddefaultValue;
+		/**
+		 * mutex to lock folder observation
+		 */
+		pthread_mutex_t * m_OBSERVERVALUEMUTEX;
 
 	public:
 		/**
@@ -83,7 +91,11 @@ namespace ports
 		: portBase("VALUE", folderName, subroutineName),
 		  m_dLastValue(0),
 		  m_bSetValueObserver(false),
-		  m_oWhile(folderName, subroutineName, "while", false, false)
+		  m_poObserver(NULL),
+		  m_nValueObserver(-1),
+		  vector_npos(-1),
+		  m_oWhile(folderName, subroutineName, "while", false, false),
+		  m_OBSERVERVALUEMUTEX(Thread::getMutex("OBSERVERVALUEMUTEX"))
 		{ };
 		/**
 		 * create object of class ValueHolder.<br />
@@ -97,6 +109,9 @@ namespace ports
 		: portBase(type, folderName, subroutineName),
 		  m_dLastValue(0),
 		  m_bSetValueObserver(false),
+		  m_poObserver(NULL),
+		  m_nValueObserver(-1),
+		  vector_npos(-1),
 		  m_oWhile(folderName, subroutineName, "while", false, false)
 		{ };
 		/**

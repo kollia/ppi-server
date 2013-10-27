@@ -123,6 +123,15 @@ namespace ports
 	{
 		m_poObserver= observer;
 		m_oWhile.activateObserver(observer);
+		LOCK(m_OBSERVERVALUEMUTEX);
+		if(	m_vpoValues.size() > 0 &&
+			m_nValueObserver != vector_npos &&
+			!m_bSetValueObserver				)
+		{
+			m_vpoValues[m_nValueObserver]->activateObserver(m_poObserver);
+			m_bSetValueObserver= true;
+		}
+		UNLOCK(m_OBSERVERVALUEMUTEX);
 		portBase::setObserver(observer);
 	}
 
@@ -262,15 +271,21 @@ namespace ports
 				else if(value > s-1)
 					value= s - 1;
 				count= static_cast<vector<string>::size_type >(value);
-				if(m_bSetValueObserver)
-					content[m_nValueObserver]->removeObserver(m_poObserver);
-				if(	!m_bSetValueObserver ||
+				LOCK(m_OBSERVERVALUEMUTEX);
+				if(	m_bSetValueObserver &&
 					count != m_nValueObserver	)
+				{
+					m_bSetValueObserver= false;
+					content[m_nValueObserver]->removeObserver(m_poObserver);
+				}
+				if(	!m_bSetValueObserver &&
+					m_poObserver != NULL	)
 				{
 					content[count]->activateObserver(m_poObserver);
 					m_bSetValueObserver= true;
-					m_nValueObserver= count;
 				}
+				m_nValueObserver= count;
+				UNLOCK(m_OBSERVERVALUEMUTEX);
 				if(debug)
 				{
 					tout << "select " << dec << count+1 << ". string from value parameters" << endl;
@@ -318,5 +333,6 @@ namespace ports
 
 		for(it= m_vpoValues.begin(); it != m_vpoValues.end(); ++it)
 			delete *it;
+		DESTROYMUTEX(m_OBSERVERVALUEMUTEX);
 	}
 }

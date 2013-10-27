@@ -81,6 +81,7 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	DbInterface *db= DbInterface::instance();
 
 	m_dValue= 0;
+	m_pFolders= pStartFolder;
 	m_bInfo= !properties->haveAction("noinfo");
 	m_sPermission= properties->getValue("perm", /*warning*/false);
 	m_bWriteDb= properties->haveAction("db");
@@ -244,20 +245,44 @@ void portBase::setObserver(IMeasurePattern* observer)
 
 void portBase::informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
 {
+	typedef map<IMeasurePattern*, vector<string> > measureMap;
+
 	string inform(folder+":"+subroutine+" "+parameter);
 	vector<string> vec;
 	vector<string>::iterator found;
+	measureMap::iterator fObs;
 
-	if(	folder == getFolderName() &&
-		observer->getActCount(subroutine) > m_nCount	)
-	{// do not inform subroutine from own folder list, which running after own
+	try{
+		if(	folder == getFolderName() &&
+			(	subroutine == getSubroutineName() ||
+				observer->getActCount(subroutine) < m_nCount	)	)
+		{// do not inform subroutine from own folder list, which running after own
+			return;
+		}
+	}catch(SignalException& ex)
+	{
+		string err;
+
+		ex.addMessage("subroutine " + getFolderName() + ":" + getSubroutineName() +
+						" should inform "+inform+", maybe observer is undefined");
+		err= ex.getTraceString();
+		cerr << err << endl;
+		LOG(LOG_ERROR, err);
 		return;
 	}
 	LOCK(m_OBSERVERLOCK);
-	vec= m_mvObservers[observer];
-	found= find(vec.begin(), vec.end(), inform);
-	if(found == vec.end())
-		m_mvObservers[observer].push_back(inform);
+	fObs= m_mvObservers.find(observer);
+	if(fObs != m_mvObservers.end())
+	{
+		vec= m_mvObservers[observer];
+		found= find(vec.begin(), vec.end(), inform);
+		if(found == vec.end())
+			m_mvObservers[observer].push_back(inform);
+	}else
+	{
+		vec.push_back(inform);
+		m_mvObservers.insert(measureMap::value_type(observer, vec));
+	}
 	UNLOCK(m_OBSERVERLOCK);
 }
 

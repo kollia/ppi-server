@@ -23,6 +23,7 @@
 
 //#include "../ports/portbaseclass.h"
 #include "../pattern/util/IListObjectPattern.h"
+#include "../pattern/util/imeasurepattern.h"
 
 #include "../util/smart_ptr.h"
 
@@ -83,6 +84,7 @@ struct measurefolder_t
 	//set<portBase::Pins> afterContactPins;
 	//set<portBase::Pins> needInPorts;
 	vector<sub> subroutines;
+	SHAREDPTR::shared_ptr<IMeasurePattern> runThread;
 	SHAREDPTR::shared_ptr<measurefolder_t> next;
 };
 

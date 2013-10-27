@@ -221,7 +221,7 @@ bool ListCalculator::variable(const string& var, double& dResult)
 void ListCalculator::activateObserver(IMeasurePattern* observer)
 {
 	vector<string> inform;
-	IListObjectPattern* found;
+	IListObjectPattern *found, *own;
 
 	if(isEmpty())
 		return;
@@ -229,6 +229,19 @@ void ListCalculator::activateObserver(IMeasurePattern* observer)
 	for(vector<string>::const_iterator it= inform.begin(); it != inform.end(); ++it)
 	{
 		found= getSubroutine(*it, /*own folder*/false);
+		if(!found)
+		{	// when other subroutine in same folder defined after this subroutine
+			// changing should also inform own folder
+			// because otherwise the case can be that own subroutine
+			// do not know from any changes or to late
+			found= getSubroutine(*it, /*own folder*/true);
+			if(found)
+			{
+				own= getSubroutine(m_sFolder+":"+m_sSubroutine, /*own folder*/true);
+				if(own->getActCount() < found->getActCount())
+					found= NULL;
+			}
+		}
 		if(found)
 			found->informObserver(observer, m_sFolder, m_sSubroutine, m_sParameter);
 	}
