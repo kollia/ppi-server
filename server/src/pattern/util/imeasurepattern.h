@@ -30,6 +30,12 @@ namespace design_pattern_world
 {
 	namespace util_pattern
 	{
+		struct folderSpecNeed_t
+		{
+			bool needRun;
+			bool fromCalc;
+			bool isRun;
+		};
 		/**
 		 * pattern class for MeasureThread to activate new pass by changed value
 		 *
@@ -125,17 +131,19 @@ namespace design_pattern_world
 					 */
 					short maxVal;
 					/**
-					 * whether percent was saved into database
-					 */
-					//bool percentDB;
-					/**
 					 * percent to which can differ
 					 */
 					short inPercent;
 					/**
-					 * map of time structures to calculate longest or middle time consider by CPU time
+					 * synchronization ID of all running folder,
+					 * implement for reading 'reachend' time
 					 */
-					map<short, timeLen_t> percentDiff;
+					string synchroID;
+					/**
+					 * map of time structures to calculate longest or middle time consider by CPU time,
+					 * differ between synchronization ID of folders
+					 */
+					map< string, map<short, timeLen_t> > percentSyncDiff;
 					/**
 					 * preview idle time from last CPU creation
 					 */
@@ -162,11 +170,30 @@ namespace design_pattern_world
 				};
 
 				/**
+				 * method returning name of folder
+				 *
+				 * @return name of folder
+				 */
+				virtual string getFolderName() const= 0;
+				/**
 				 * returning thread id in which thread folder object running
 				 *
 				 * @return thread id
 				 */
 				virtual pid_t getRunningThreadID()= 0;
+				/**
+				 * return run specification of folder
+				 *
+				 * @return all specification needed
+				 */
+				virtual vector<string> getAllSpecs() const= 0;
+				/**
+				 * check whether this folder is running for work
+				 *
+				 * @param specs all specifications are allowed
+				 * @return whether folder running
+				 */
+				virtual folderSpecNeed_t isFolderRunning(const vector<string>& specs)= 0;
 				/**
 				 * returning true if an client set this measurethread to debug
 				 *

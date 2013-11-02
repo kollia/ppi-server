@@ -928,47 +928,25 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		db->setServerConfigureStatus("database", 100);
 	}
 	// ------------------------------------------------------------------------------------------------------------
-
-	bool bConfigure, bFolderStart, bSubroutines;
-
 	LOG(LOG_DEBUG, "after knowing database was loaded, starting to configure all control list's to measure");
-	bConfigure= commands->hasOption("configure");
-	bFolderStart= commands->hasOption("folderstart");
-	bSubroutines= commands->hasOption("subroutines");
-	if(	!bConfigure &&
-		!bFolderStart &&
-		bSubroutines	)
-	{// when no option --configure/--folderstart be set, also folder configuration should be displayed
-		bConfigure= true;
-	}
-	configurePortObjects(bConfigure, bSubroutines);
-	TERMINALEND;
-	if(!bFolderStart)// when no folder should be displayed by starting
-		bSubroutines= false; // also no subroutines should be shown
 
-	--nServerID;
-	OWInterface::checkUnused(nServerID);
-	OWInterface::endOfInitialisation(nServerID, commands->hasOption("configure"));
-
-	//checkAfterContact();
-
-	bool createThread= false;
+	// define first all measureThread's ---------------------------------------------------------------------------
+	// because some TIMER subroutines need class definition
+	bool bFolderStart;
 	short nFolderCount(0);
 	float nFolders(0); // define nFolders as float, otherwise percent calculation can be fault
 	MeasureArgArray args;
+	SHAREDPTR::shared_ptr<measurefolder_t> aktFolder;
 	SHAREDPTR::shared_ptr<meash_t> pFirstMeasureThreads;
 	SHAREDPTR::shared_ptr<meash_t> pCurrentMeasure;
+	SHAREDPTR::shared_ptr<meash_t> pLastMeasure;
 	map<string, vector<string> > folderDebug;
 	map<string, bool> vFolderFound;
 
-	meash_t::clientPath= URL::addPath(m_sWorkdir, PPICLIENTPATH, /*always*/false);
-	LOG(LOG_INFO, "Read layout content for clients from " + meash_t::clientPath);
-	SHAREDPTR::shared_ptr<measurefolder_t> aktFolder= m_tFolderStart;
-	args.ports= ports;
-	cout << endl;
+	bFolderStart= commands->hasOption("folderstart");
 	if(bFolderStart)
-		cout << "### start folder thread(s) from measure.conf" << endl;
-
+		cout << "### define folder objects from measure.conf" << endl;
+	aktFolder= m_tFolderStart;
 	if(commands->hasOption("folderdebug"))
 	{
 		string result(commands->getOptionContent("folderdebug"));
@@ -1018,8 +996,85 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		nFolders= nFolders + 1;
 		aktFolder= aktFolder->next;
 	}
-	db->setServerConfigureStatus("folder_start", 0);
+	db->setServerConfigureStatus("folder_define", 0);
 	aktFolder= m_tFolderStart;
+	while(aktFolder != NULL)
+	{
+		if(bFolderStart)
+			cout << "                     " << aktFolder->name << endl;
+		if(pFirstMeasureThreads == NULL)
+		{
+			pFirstMeasureThreads= SHAREDPTR::shared_ptr<meash_t>(new meash_t);
+			pCurrentMeasure= pFirstMeasureThreads;
+			meash_t::firstInstance= pCurrentMeasure;
+		}else
+		{
+			pCurrentMeasure->next= SHAREDPTR::shared_ptr<meash_t>(new meash_t);
+			pCurrentMeasure= pCurrentMeasure->next;
+		}
+		args.subroutines= &aktFolder->subroutines;
+
+		if(!folderDebug.empty())
+		{
+			map<string, vector<string> >::iterator itFound;
+
+			args.debugSubroutines.clear();
+			// set debug output for defined folder
+			// or specific subroutine also by starting
+			itFound= folderDebug.find(aktFolder->name);
+			if(itFound != folderDebug.end())
+			{
+				vFolderFound[aktFolder->name]= true;
+				for(vector<string>::iterator it= itFound->second.begin(); it != itFound->second.end(); ++it)
+					args.debugSubroutines.push_back(*it);
+			}
+		}
+		pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(
+						new MeasureThread(aktFolder->name, args, m_tFolderStart,
+										nServerSearchSequence, bNoDbRead, folderCPUlength));
+		aktFolder->runThread= pCurrentMeasure->pMeasure;
+
+		aktFolder= aktFolder->next;
+		db->setServerConfigureStatus("folder_define", 100 / nFolders * ++nFolderCount);
+	}
+	db->setServerConfigureStatus("folder_define", 100);
+	if(bFolderStart)
+		cout << endl;
+	// ------------------------------------------------------------------------------------------------------------
+	bool bConfigure, bSubroutines;
+	bool createThread= false;
+
+	bConfigure= commands->hasOption("configure");
+	bSubroutines= commands->hasOption("subroutines");
+	if(	!bConfigure &&
+		!bFolderStart &&
+		bSubroutines	)
+	{// when no option --configure/--folderstart be set, also folder configuration should be displayed
+		bConfigure= true;
+	}
+	// initial now all subroutines in folders
+	configurePortObjects(bConfigure, bSubroutines);
+	TERMINALEND;
+	if(!bFolderStart)// when no folder should be displayed by starting
+		bSubroutines= false; // also no subroutines should be shown
+
+	--nServerID;
+	OWInterface::checkUnused(nServerID);
+	OWInterface::endOfInitialisation(nServerID, commands->hasOption("configure"));
+
+	meash_t::clientPath= URL::addPath(m_sWorkdir, PPICLIENTPATH, /*always*/false);
+	LOG(LOG_INFO, "Read layout content for clients from " + meash_t::clientPath);
+
+	args.ports= ports;
+	if(bFolderStart)
+		cout << endl;
+	if(bFolderStart)
+		cout << "### start folder thread(s) from measure.conf" << endl;
+
+	db->setServerConfigureStatus("folder_start", 0);
+	nFolderCount= 0;
+	aktFolder= m_tFolderStart;
+	pCurrentMeasure= pFirstMeasureThreads;
 	while(aktFolder != NULL)
 	{
 		if(!aktFolder->bCorrect)
@@ -1031,44 +1086,24 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			msg+= "             so make no measure-instance for it";
 			LOG(LOG_WARNING, msg);
 			cout << msg << endl;
+			pCurrentMeasure->pMeasure= SHAREDPTR::shared_ptr<MeasureThread>();
+			if(pLastMeasure == NULL)
+			{// remove first measure from list
+				pFirstMeasureThreads= pCurrentMeasure->next;
+				meash_t::firstInstance= pFirstMeasureThreads;
+			}else // remove current measure from list
+				pLastMeasure->next= pCurrentMeasure->next;
 			aktFolder->runThread= SHAREDPTR::shared_ptr<IMeasurePattern>();
 		}else
 		{
 			if(bFolderStart)
 				cout << "                     " << aktFolder->name << endl;
 			createThread= true;
-			if(pFirstMeasureThreads == NULL)
-			{
-				pFirstMeasureThreads= SHAREDPTR::shared_ptr<meash_t>(new meash_t);
-				pCurrentMeasure= pFirstMeasureThreads;
-				meash_t::firstInstance= pCurrentMeasure;
-			}else
-			{
-				pCurrentMeasure->next= SHAREDPTR::shared_ptr<meash_t>(new meash_t);
-				pCurrentMeasure= pCurrentMeasure->next;
-			}
-			args.subroutines= &aktFolder->subroutines;
-
-			if(!folderDebug.empty())
-			{
-				map<string, vector<string> >::iterator itFound;
-
-				args.debugSubroutines.clear();
-				// set debug output for defined folder
-				// or specific subroutine also by starting
-				itFound= folderDebug.find(aktFolder->name);
-				if(itFound != folderDebug.end())
-				{
-					vFolderFound[aktFolder->name]= true;
-					for(vector<string>::iterator it= itFound->second.begin(); it != itFound->second.end(); ++it)
-						args.debugSubroutines.push_back(*it);
-				}
-			}
-			pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(new MeasureThread(aktFolder->name, args, nServerSearchSequence, bNoDbRead, folderCPUlength));
 			pCurrentMeasure->pMeasure->start(&bSubroutines);
-			aktFolder->runThread= pCurrentMeasure->pMeasure;
 		}
 		aktFolder= aktFolder->next;
+		pLastMeasure= pCurrentMeasure;
+		pCurrentMeasure= pCurrentMeasure->next;
 		db->setServerConfigureStatus("folder_start", 100 / nFolders * ++nFolderCount);
 	}
 	if(bFolderStart)
@@ -1091,11 +1126,11 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		cout << "    does not start server" << endl;
 		exit(EXIT_FAILURE);
 	}
-	db->setServerConfigureStatus("folder_start", 100);
 
 	// after creating all threads and objects
 	// all chips should be defined in DefaultChipConfigReader
 	db->chipsDefined(true);
+	db->setServerConfigureStatus("folder_start", 100);
 
 	//logprocess= auto_ptr<ProcessStarter>();
 	//process= auto_ptr<ProcessStarter>();
@@ -1303,19 +1338,28 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
 	DbInterface* db= DbInterface::instance();
 	string property("defaultSleep");
-	string sMeasureFile;
+	//string sMeasureFile;
 	unsigned short nDefaultSleep= m_oServerFileCasher.getUShort(property, /*warning*/false);
 
 	db->setServerConfigureStatus("folder_conf", 0);
 	while(aktualFolder != NULL)
 	{
 		nSubroutines+= aktualFolder->subroutines.size();
+		// set first all folder flags to correct configured,
+		// because creation of synchronization folder ID
+		// for TIMER subroutines do otherwise not found all folders
+		aktualFolder->bCorrect= true;
+		for(vector<sub>::iterator it= aktualFolder->subroutines.begin();
+						it != aktualFolder->subroutines.end(); ++it)
+		{
+			it->portClass->setRunningThread(aktualFolder->runThread.get());
+		}
 		aktualFolder= aktualFolder->next;
 	}
 	aktualFolder= m_tFolderStart;
 	if(property == "#ERROR")
 		nDefaultSleep= 2;
-	sMeasureFile= URL::addPath(m_sConfPath, "measure.conf");
+	//sMeasureFile= URL::addPath(m_sConfPath, "measure.conf");
 	while(aktualFolder != NULL)
 	{
 		bool correctFolder= false;
@@ -1583,6 +1627,9 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 					aktualFolder->bCorrect= false;
 				}
 			}
+			pProperty= new ActionProperties;
+			*pProperty= *dynamic_cast<ActionProperties*>(*fit);
+			aktualFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
 			subSections= (*fit)->getSections();
 			for(secIt sit= subSections.begin(); sit != subSections.end(); ++sit)
 			{

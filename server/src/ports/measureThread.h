@@ -29,6 +29,8 @@
 #include "../util/thread/Thread.h"
 #include "../util/thread/Terminal.h"
 
+#include "ListCalculator.h"
+
 using namespace design_pattern_world::util_pattern;
 
 struct MeasureArgArray
@@ -50,11 +52,14 @@ class MeasureThread : 	public Thread,
 		 *
 		 * @param threadname name of running folder
 		 * @param tArg structure of subroutine and ports
+		 * @param pFolderStart all starting folders found in measure.conf
 		 * @param how long thread should waiting to start folder list again when an external server wasn't found
 		 * @param bNoDbRead whether should thread reading folder running length time from database
 		 * @param folderCPUtime on which CPU time should differ by database writing for folder length
 		 */
-		MeasureThread(const string& threadname, const MeasureArgArray& tArg, const time_t& nServerSearch,
+		MeasureThread(const string& threadname, const MeasureArgArray& tArg,
+						const SHAREDPTR::shared_ptr<measurefolder_t> pFolderStart,
+						const time_t& nServerSearch,
 						bool bNoDbRead, short folderCPUlenth);
 		/**
 		 * return class of subroutine from this folder
@@ -64,12 +69,38 @@ class MeasureThread : 	public Thread,
 		 */
 		SHAREDPTR::shared_ptr<IListObjectPattern> getPortClass(const string subroutine, bool &bCorrect) const;
 		/**
+		 * method returning name of folder,
+		 * is same as thread name
+		 *
+		 * @return name of folder
+		 */
+		virtual string getFolderName() const
+		{ return getThreadName(); };
+		/**
 		 * returning thread id in which thread folder object running
 		 *
 		 * @return thread id
 		 */
 		virtual pid_t getRunningThreadID()
 		{ return Thread::getThreadID(); };
+		/**
+		 * return run specification of folder
+		 *
+		 * @return all specification needed
+		 */
+		virtual vector<string> getAllSpecs() const
+		{ return m_vsFolderSecs; };
+		/**
+		 * check whether this folder is running for work.<br />
+		 * when first value <code>specs</code> has no content,
+		 * method meaning that caller now that folder need.
+		 * Otherwise method checking also whether one specification
+		 * is also defined for own folder
+		 *
+		 * @param specs all specifications are allowed
+		 * @return whether folder running
+		 */
+		virtual folderSpecNeed_t isFolderRunning(const vector<string>& specs);
 		/**
 		 * set debug session in subroutine or hole folder when subroutine not given
 		 *
@@ -166,7 +197,7 @@ class MeasureThread : 	public Thread,
 		 * @param debug whether call run in debug session
 		 * @return longest measured length of folder time
 		 */
-		static timeval getLengthedTime(const timetype_t& timelength, short *percent,
+		static timeval getLengthedTime(timetype_t* timelength, short *percent,
 										const bool& logPercent, const bool& debug);
 		/**
 		 * sleep microseconds by consider stopping of running thread
@@ -223,7 +254,18 @@ class MeasureThread : 	public Thread,
 		  * @param length longer time of reached or starting late time
 		  * @param debug whether subroutine running inside debug session
 		  */
-		 static void calcLengthDiff(timetype_t* timelength, timeval length, const bool& debug);
+		 static void calcLengthDiff(timetype_t* timelength,
+						 timeval length, const bool& debug);
+		 /**
+		  * search inside timetype_t for correct map with synchronization ID
+		  * and set also the nearest one by new creation to define the default value
+		  *
+		  * @param timelength all variables to measure CPU time
+		  * @param nearest nearest map of syncronization ID for default value
+		  * @param debug whether subroutine running inside debug session
+		  */
+		 static map<short, timeLen_t>* getPercentDiff(timetype_t *timelength,
+						 	 map<short, timeLen_t>* nearest, const bool&debug);
 		/**
 		 * set into given timetype the CPU times to begin measuring for <code>getCpuPercent</code>
 		 *
@@ -337,6 +379,15 @@ class MeasureThread : 	public Thread,
 		 */
 		pid_t m_tRunThread;
 		/**
+		 * Calculator whether thread running
+		 */
+		ListCalculator m_oRunnThread;
+		/**
+		 * all folder ID specifications which are defined for running folders
+		 * to differ between reach time
+		 */
+		vector<string> m_vsFolderSecs;
+		/**
 		 * actually count number of set subroutine
 		 */
 		unsigned short m_nActCount;
@@ -356,6 +407,16 @@ class MeasureThread : 	public Thread,
 		 * start time of folder
 		 */
 		timeval m_tvStartTime;
+		/**
+		 * whether folder need to know whether folder is running.<br />
+		 * this variable will be defined by initialization and need no mutex lock
+		 * to be atomic
+		 */
+		bool m_bNeedFolderRunning;
+		/**
+		 * whether this folder running
+		 */
+		bool m_bFolderRunning;
 		/**
 		 * on which CPU time should differ by database writing for folder length
 		 */
@@ -391,6 +452,10 @@ class MeasureThread : 	public Thread,
 		 * mutex for fill or erase new activate time
 		 */
 		pthread_mutex_t *m_ACTIVATETIME;
+		/**
+		 * mutex for check whether folder is running
+		 */
+		pthread_mutex_t *m_FOLDERRUNMUTEX;
 		/**
 		 * mutex by setting debug output
 		 * or lengthed time of folder running

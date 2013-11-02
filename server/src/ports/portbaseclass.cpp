@@ -887,6 +887,62 @@ string portBase::getFolderName()
 	return m_sFolder;
 }
 
+string portBase::getFolderRunningID()
+{
+	folderSpecNeed_t res;
+	vector<string> specs;
+	string sRv;
+	SHAREDPTR::shared_ptr<measurefolder_t> pCurrent;
+
+	specs= getRunningThread()->getAllSpecs();
+	if(specs.size() == 0)
+		return string("");
+	if(m_vpFolderSpecs.size() == 0)
+	{
+		pCurrent= m_pFolders;
+		while(pCurrent)
+		{
+			if(	pCurrent->runThread &&
+				pCurrent->bCorrect		)
+			{
+				if(getFolderName() == pCurrent->runThread->getFolderName())
+				{// own folder is always running by question
+					res.needRun= true;
+					res.isRun= true;
+				}else
+					res= pCurrent->runThread->isFolderRunning(specs);
+				if(res.needRun)
+				{
+					m_vpFolderSpecs.push_back(pCurrent->runThread);
+					if(res.isRun)
+						sRv+= "1";
+					else
+						sRv+= "0";
+				}
+			}
+			pCurrent= pCurrent->next;
+		}
+	}else
+	{
+		typedef vector<SHAREDPTR::shared_ptr<IMeasurePattern> >::iterator thIt;
+
+		for(thIt it= m_vpFolderSpecs.begin(); it != m_vpFolderSpecs.end(); ++it)
+		{
+			if(getFolderName() == (*it)->getFolderName())
+			{// own folder is always running by question
+				res.needRun= true;
+				res.isRun= true;
+			}else
+				res= (*it)->isFolderRunning(specs);
+			if(res.isRun)
+				sRv+= "1";
+			else
+				sRv+= "0";
+		}
+	}
+	return sRv;
+}
+
 string portBase::getSubroutineName()
 {
 	return m_sSubroutine;

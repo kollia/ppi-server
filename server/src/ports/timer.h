@@ -120,12 +120,6 @@ public:
 	 */
 	virtual void setDebug(bool bDebug);
 	/**
-	 * set measure thread which run this object with method <code>measure()</code>
-	 *
-	 * @param thread measure thread
-	 */
-	virtual void setRunningThread(IMeasurePattern* thread);
-	/**
 	 * destructor
 	 */
 	virtual ~timer();
@@ -174,6 +168,11 @@ protected:
 	 * whether activation of folder should be performed with length time of folder run
 	 */
 	bool m_bExactTime;
+	/**
+	 * pull parameter 'reachlate' from database with follow
+	 * running folder synchronization ID
+	 */
+	string m_sSyncID;
 	/**
 	 * log inside database for starting earlier or estimate possible finish time
 	 * by which CPU percent time length be taken

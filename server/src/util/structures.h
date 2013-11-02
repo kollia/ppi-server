@@ -85,6 +85,7 @@ struct measurefolder_t
 	//set<portBase::Pins> needInPorts;
 	vector<sub> subroutines;
 	SHAREDPTR::shared_ptr<IMeasurePattern> runThread;
+	SHAREDPTR::shared_ptr<IActionPropertyPattern> folderProperties;
 	SHAREDPTR::shared_ptr<measurefolder_t> next;
 };
 

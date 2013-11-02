@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 	params.option("configure", "c", "display which folder configure by starting\n"
 							"(can be set by longer starting time to know what server is doing)\n"
 							"and show after configuration all first values of defined ports from external readers");
-	params.option("folderstart", "f", "show all folder on command line which are starting");
+	params.option("folderstart", "f", "show all folder on command line which are defining and starting");
 	params.option("subroutines", "s", "for option --configure (-s) or --folderstart (-f) show also subroutines\n"
 					"(when none of this option be set, also folder configuration will be displayed)");
 	params.option("nodbbegintime", "n", "do not read beginning time from database for subroutines with type TIME\n"

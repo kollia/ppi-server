@@ -31,6 +31,7 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include "../util/debug.h"
 #include "../util/exception.h"
@@ -48,11 +49,12 @@ using namespace std;
 using namespace ports;
 using namespace ppi_database;
 using namespace boost;
+using namespace boost::algorithm;
 
 // output on command line also this statistics
 // to calculate middle length of folder or reach finish
 // when definition __showStatitic be defined and debug set
-//#define __showStatistic
+#define __showStatistic
 
 SHAREDPTR::shared_ptr<meash_t> meash_t::firstInstance= SHAREDPTR::shared_ptr<meash_t>();
 string meash_t::clientPath= "";
@@ -64,16 +66,24 @@ string meash_t::clientPath= "";
 pthread_mutex_t *globalCPUMUTEX= Thread::getMutex("globalCPUMUTEX");
 
 MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tArg,
+				const SHAREDPTR::shared_ptr<measurefolder_t> pFolderStart,
 				const time_t& nServerSearch, bool bNoDbRead, short folderCPUtime) :
-Thread(threadname, true)
+Thread(threadname, true),
+m_oRunnThread(threadname, "parameter_run", "run", false, true)
 {
+	string run;
+	SHAREDPTR::shared_ptr<measurefolder_t> pCurrent;
+
 #ifdef DEBUG
 	cout << "constructor of measurethread for folder " << getThreadName() << endl;
 #endif // DEBUG
+	m_bNeedFolderRunning= false;
+	m_bFolderRunning= false;
 	m_nServerSearchSeconds= nServerSearch;
 	m_DEBUGLOCK= Thread::getMutex("DEBUGLOCK");
 	m_VALUE= Thread::getMutex("VALUE");
 	m_ACTIVATETIME= Thread::getMutex("ACTIVATETIME");
+	m_FOLDERRUNMUTEX= Thread::getMutex("FOLDERRUNMUTEX");
 	m_VALUECONDITION= Thread::getCondition("VALUECONDITION");
 	m_bDebug= false;
 	m_nActCount= 0;
@@ -84,6 +94,30 @@ Thread(threadname, true)
 	m_bNeedLength= false;
 	m_bNoDbReading= bNoDbRead;
 	m_nFolderCPUtime= folderCPUtime;
+	pCurrent= pFolderStart;
+	while(pCurrent)
+	{
+		if(pCurrent->name == threadname)
+		{
+			run= pCurrent->folderProperties->getValue("run");
+			if(run != "")
+			{
+				size_t pos;
+
+				pos= run.find(":");
+				if(pos != string::npos)
+				{// define calculation whether folder is running
+					m_oRunnThread.init(pFolderStart, run.substr(pos+1));
+					run= run.substr(0, pos);
+				}
+				split(m_vsFolderSecs, run, is_any_of(" "));
+				for(vector<string>::iterator it= m_vsFolderSecs.begin(); it != m_vsFolderSecs.end(); ++it)
+					trim(*it);
+			}
+			break;
+		}
+		pCurrent= pCurrent->next;
+	}
 }
 
 bool MeasureThread::setDebug(bool bDebug, const string& subroutine)
@@ -251,7 +285,9 @@ int MeasureThread::init(void *arg)
 				cout << "      subroutine " << (*m_pvtSubroutines)[n].name << endl;
 			}
 			port= (*m_pvtSubroutines)[n].portClass;
-			port->setRunningThread(this);
+			// set now running folder shortly before subroutine
+			// will be initialed (it's before folder starting)
+			//port->setRunningThread(this);
 			port->setDebug(false);
 			if(port->needObserver())
 				port->setObserver(this);
@@ -299,14 +335,14 @@ int MeasureThread::init(void *arg)
 				if(	exist &&
 					dLength > 0	)
 				{
-					m_tLengthType.percentDiff[n].actValue= dLength;
-					m_tLengthType.percentDiff[n].reachedPercent[0]= pair<short, double>(1, dLength);
+					m_tLengthType.percentSyncDiff["none"][n].actValue= dLength;
+					m_tLengthType.percentSyncDiff["none"][n].reachedPercent[0]= pair<short, double>(1, dLength);
 					dLength= db->getActEntry(exist, "folder", folder, maxcount.str());
 					if(!exist)
 						dLength= 1;
-					m_tLengthType.percentDiff[n].maxCount= static_cast<short>(dLength);
-					m_tLengthType.percentDiff[n].stype= dbstr.str();
-					m_tLengthType.percentDiff[n].scount= maxcount.str();
+					m_tLengthType.percentSyncDiff["none"][n].maxCount= static_cast<short>(dLength);
+					m_tLengthType.percentSyncDiff["none"][n].stype= dbstr.str();
+					m_tLengthType.percentSyncDiff["none"][n].scount= maxcount.str();
 				}
 			}else
 			{
@@ -354,7 +390,7 @@ void MeasureThread::needChangingTime(const string& subroutine, const string& fro
 	vector<string>::iterator sfound;
 	vector<timeval*>::iterator tmfound;
 
-	split(spl, from, algorithm::is_any_of(":"));
+	split(spl, from, is_any_of(":"));
 	if(spl.size() == 1)
 	{
 		fsub= spl[0];
@@ -506,6 +542,52 @@ string MeasureThread::getTimevalString(const timeval& tvtime, const bool& bDate,
 	return sRv.str();
 }
 
+folderSpecNeed_t MeasureThread::isFolderRunning(const vector<string>& specs)
+{
+	typedef vector<string>::const_iterator specIt;
+	folderSpecNeed_t tRv;
+	specIt found;
+	double nRun;
+
+	if(specs.size() > 0)
+	{
+		tRv.needRun= false;
+		tRv.fromCalc= false;
+		tRv.isRun= false;
+		for(specIt it= m_vsFolderSecs.begin(); it != m_vsFolderSecs.end(); ++it)
+		{
+			found= find(specs.begin(), specs.end(), *it);
+			if(found != specs.end())
+			{
+				tRv.needRun= true;
+				break;
+			}
+		}
+		if(!tRv.needRun)
+			return tRv;
+	}else
+		tRv.needRun= true;
+	if(!m_oRunnThread.isEmpty())
+	{
+		m_oRunnThread.calculate(nRun);
+		tRv.fromCalc= true;
+		if(	nRun < 0 ||
+			nRun > 0	)
+		{
+			tRv.isRun= true;
+		}else
+			tRv.isRun= false;
+		return tRv;
+	}
+	if(!m_bNeedFolderRunning)// first initialization of any TIMER subroutine and stay always on same value
+		m_bNeedFolderRunning= true; // so variable need no mutex lock to be atomic
+	tRv.fromCalc= false;
+	LOCK(m_FOLDERRUNMUTEX);
+	tRv.isRun= m_bFolderRunning;
+	UNLOCK(m_FOLDERRUNMUTEX);
+	return tRv;
+}
+
 int MeasureThread::execute()
 {
 	bool debug(isDebug());
@@ -532,7 +614,7 @@ int MeasureThread::execute()
 	measure();
 	//Debug info behind measure routine to stop by right folder
 	/*folder= getThreadName();
-	if(folder == "display_settings")
+	if(folder == "Raff1_Zeit")
 	{
 		cout << __FILE__ << __LINE__ << endl;
 		cout << "starting folder " << folder << endl;
@@ -673,7 +755,19 @@ int MeasureThread::execute()
 				UNLOCK(m_ACTIVATETIME);
 				while(m_vFolder.empty())
 				{
+					if(m_bNeedFolderRunning)
+					{
+						LOCK(m_FOLDERRUNMUTEX);
+						m_bFolderRunning= false;
+						UNLOCK(m_FOLDERRUNMUTEX);
+					}
 					condRv= TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm);
+					if(m_bNeedFolderRunning)
+					{
+						LOCK(m_FOLDERRUNMUTEX);
+						m_bFolderRunning= true;
+						UNLOCK(m_FOLDERRUNMUTEX);
+					}
 					if(condRv == ETIMEDOUT)
 					{
 						if(!bSearchServer)
@@ -707,7 +801,19 @@ int MeasureThread::execute()
 			UNLOCK(m_ACTIVATETIME);
 			while(m_vFolder.empty())
 			{
+				if(m_bNeedFolderRunning)
+				{
+					LOCK(m_FOLDERRUNMUTEX);
+					m_bFolderRunning= false;
+					UNLOCK(m_FOLDERRUNMUTEX);
+				}
 				CONDITION(m_VALUECONDITION, m_VALUE);
+				if(m_bNeedFolderRunning)
+				{
+					LOCK(m_FOLDERRUNMUTEX);
+					m_bFolderRunning= true;
+					UNLOCK(m_FOLDERRUNMUTEX);
+				}
 				if(m_vFolder.empty())
 				{
 					if(stopping())
@@ -732,6 +838,7 @@ int MeasureThread::execute()
 	{
 		string msg("### DEBUGGING for folder ");
 
+		folder= getFolderName();
 		msg+= folder + " is aktivated!\n";
 		msg+= "    ERROR: cannot calculate time of beginning";
 		TIMELOG(LOG_ERROR, folder, msg);
@@ -892,7 +999,7 @@ bool MeasureThread::measure()
 			{
 				string err;
 
-				ex.addMessage("by running subroutine " + it->name + " inside folder " + getThreadName());
+				ex.addMessage("running subroutine " + it->name + " inside folder " + getThreadName());
 				err= ex.getTraceString();
 				cerr << err << endl;
 				LOG(LOG_ERROR, err);
@@ -1133,42 +1240,58 @@ timeval MeasureThread::getLengthedTime(const bool& logPercent, const bool& debug
 	timeval tvRv;
 
 	LOCK(m_DEBUGLOCK);
-	tvRv= getLengthedTime(m_tLengthType, &percent, logPercent, debug);
+	tvRv= getLengthedTime(&m_tLengthType, &percent, logPercent, debug);
 	UNLOCK(m_DEBUGLOCK);
 	return tvRv;
 }
 
-timeval MeasureThread::getLengthedTime(const timetype_t& timelength, short *percent,
+timeval MeasureThread::getLengthedTime(timetype_t* timelength, short *percent,
 										const bool& logPercent, const bool& debug)
 {
 	short nPercent(100);
 	int prev_idle, prev_total;
 	double dRv;
+	map<short, timeLen_t>* percentDiff;
+	map<short, timeLen_t>* nearestPercentDiff(NULL);
 	map<short, timeLen_t>::const_iterator it, last;
 
-	last= timelength.percentDiff.end();
-	if(	timelength.inPercent < 100
+	percentDiff= getPercentDiff(timelength, nearestPercentDiff, debug);
+	if(	percentDiff->size() == 0 &&
+		nearestPercentDiff != NULL	)
+	{
+		percentDiff= nearestPercentDiff;
+	}
+	last= percentDiff->end();
+	if(	timelength->inPercent < 100
 		|| debug
 		|| logPercent 				)
 	{
-		prev_idle= timelength.prev_idle;
-		prev_total= timelength.prev_total;
-		nPercent= static_cast<short>(getCpuPercent(0, &prev_idle, &prev_total, timelength.old_usage, debug));
+		prev_idle= timelength->prev_idle;
+		prev_total= timelength->prev_total;
+		nPercent= static_cast<short>(getCpuPercent(0, &prev_idle, &prev_total, timelength->old_usage, debug));
 	}
 
 #ifdef __showStatistic
 	if(debug)
-		tout << "      percentDiff has " << timelength.percentDiff.size()
+		tout << "      percentDiff has " << percentDiff->size()
 					<< " different percent calculations" << endl;
 #endif // __showStatistic
 
-	for(it= timelength.percentDiff.begin(); it != timelength.percentDiff.end(); ++it)
+	for(it= percentDiff->begin(); it != percentDiff->end(); ++it)
 	{
 
 #ifdef __showStatistic
 		if(debug)
+		{
 			tout << "      found " << it->first << "% with act " << it->second.actValue << " read " <<
-											it->second.readValue << endl;
+											it->second.readValue;
+			if(	!timelength->runlength &&
+				timelength->synchroID == ""	)
+			{
+				tout << " for running folders " << timelength->synchroID;
+			}
+			tout << endl;
+		}
 #endif // __showStatistic
 
 		if(it->first >= nPercent)
@@ -1191,9 +1314,9 @@ timeval MeasureThread::getLengthedTime(const timetype_t& timelength, short *perc
 		}
 		last= it;
 	}
-	if(it == timelength.percentDiff.end())
+	if(it == percentDiff->end())
 	{
-		if(!timelength.percentDiff.empty())
+		if(!percentDiff->empty())
 		{
 			*percent= last->first;
 			if(it->second.actValue != 0)
@@ -1205,7 +1328,7 @@ timeval MeasureThread::getLengthedTime(const timetype_t& timelength, short *perc
 			if(debug)
 			{
 				tout << "     return last time " << dRv;
-				if(timelength.runlength)
+				if(timelength->runlength)
 					tout << " as 10% more";
 				tout << " from " << last->first << "% for " << nPercent << "%";
 				tout << endl;
@@ -1229,29 +1352,29 @@ timeval MeasureThread::getLengthedTime(const timetype_t& timelength, short *perc
 		string dbentry;
 		DbInterface *db= DbInterface::instance();
 
-		if(timelength.runlength)
+		if(timelength->runlength)
 			dbentry= "runpercent";
 		else
 			dbentry= "reachpercent";
-		db->fillValue(timelength.folder, timelength.subroutine, dbentry,
+		db->fillValue(timelength->folder, timelength->subroutine, dbentry,
 						static_cast<double>(nPercent), /*new*/true);
 	}
-	if(	timelength.inPercent > 1 &&
+	if(	timelength->inPercent > 1 &&
 		nPercent != *percent &&
-		(	(nPercent + timelength.inPercent - 1) < *percent ||
+		(	(nPercent + timelength->inPercent - 1) < *percent ||
 			nPercent > *percent									)	)
 	{// returning correct percent for writing, because reachend time
 	 // calculate for this value new length
-		if(	timelength.inPercent >= 10 &&
+		if(	timelength->inPercent >= 10 &&
 			nPercent >= 10					)
 		{
 			*percent= static_cast<short>(ceil(static_cast<double>(nPercent) / 10) * 10);
 		}else
 			*percent= nPercent;
-		if(*percent % timelength.inPercent)
-			*percent-= (*percent % timelength.inPercent) +  timelength.inPercent;
+		if(*percent % timelength->inPercent)
+			*percent-= (*percent % timelength->inPercent) +  timelength->inPercent;
 		if(*percent == 0)
-			*percent= timelength.inPercent;
+			*percent= timelength->inPercent;
 
 #ifdef __showStatistic
 		if(debug)
@@ -1263,17 +1386,88 @@ timeval MeasureThread::getLengthedTime(const timetype_t& timelength, short *perc
 	return calcResult(dRv, /*seconds*/false);;
 }
 
-void MeasureThread::calcLengthDiff(timetype_t *timelength, timeval length, const bool& debug)
+map<short, IMeasurePattern::timeLen_t>* MeasureThread::getPercentDiff(timetype_t *timelength, map<short, timeLen_t>* nearest, const bool&debug)
 {
+	typedef map<string, map<short, timeLen_t> >::iterator percentSyncIt;
 
+	map<short, timeLen_t>* percentDiff(NULL);
+
+	nearest= NULL;
+	if(	timelength->runlength ||
+		timelength->synchroID == ""	)
+	{
+		percentDiff= &timelength->percentSyncDiff["none"];
+	}else
+	{
+
+		if(timelength->percentSyncDiff.find(timelength->synchroID) ==
+						timelength->percentSyncDiff.end()				)
+		{ // by new map of synchronization ID creation
+		  // search also for the nearest to take this as default value
+			size_t calcBit, ownBit, beforeBit, lastBit;
+			map<short, timeLen_t> *before, *last;
+			string id;
+			id= timelength->synchroID;
+			for(string::reverse_iterator sit= id.rbegin(); sit != id.rend(); ++sit)
+			{
+				if(*sit == '1')
+					++ownBit;
+			}
+			beforeBit= 0;
+			lastBit= 0;
+			for(percentSyncIt sIt= timelength->percentSyncDiff.begin();
+							sIt != timelength->percentSyncDiff.end(); ++sIt)
+			{
+				id= sIt->first;
+				for(string::reverse_iterator sit= id.rbegin(); sit != id.rend(); ++sit)
+				{
+					if(*sit == '1')
+						++calcBit;
+				}
+				if(	calcBit > lastBit &&
+					sIt->second.size() > 0	)
+				{
+					before= &sIt->second;
+					beforeBit= calcBit;
+					if(beforeBit > ownBit)
+						break;
+					last= before;
+					lastBit= beforeBit;
+					beforeBit= 0;
+				}
+			}
+			if(	beforeBit > 0 &&
+				lastBit > 0 	)
+			{
+				if(beforeBit - ownBit < ownBit -lastBit)
+					nearest= before;
+				else
+					nearest= last;
+			}else if(beforeBit > 0)
+				nearest= before;
+			else if(lastBit > 0)
+				nearest= last;
+
+		}
+		percentDiff= &timelength->percentSyncDiff[timelength->synchroID];
+	}
+	return percentDiff;
+}
+
+void MeasureThread::calcLengthDiff(timetype_t *timelength,
+				timeval length, const bool& debug)
+{
 	bool bSave(false);
 	short nPercent;
 	int prev_idle, prev_total;
 	double value;
 	DbInterface *db;
 	timeLen_t* timevec;
+	map<short, timeLen_t>* percentDiff;
+	map<short, timeLen_t>* nearestPercentDiff(NULL);
 	map<short, timeLen_t>::iterator it;
 
+	percentDiff= getPercentDiff(timelength, nearestPercentDiff, debug);
 	prev_idle= timelength->prev_idle;
 	prev_total= timelength->prev_total;
 	if(timelength->inPercent < 100)
@@ -1290,40 +1484,61 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength, timeval length, const
 			nPercent= timelength->inPercent;
 		if(nPercent % timelength->inPercent)
 			nPercent-= (nPercent % timelength->inPercent) +  timelength->inPercent;
-		it= timelength->percentDiff.find(nPercent);
-		if(it == timelength->percentDiff.end())
+		it= percentDiff->find(nPercent);
+		if(it == percentDiff->end())
 		{// create new entry
 			ostringstream dbstr, maxcount;
 
 #ifdef __showStatistic
 			if(debug)
-				tout << "     create new object for " << nPercent << "%" << endl;
+			{
+				tout << "     create new object for " << nPercent << "%";
+				if(	!timelength->runlength &&
+					timelength->synchroID != ""	)
+				{
+					tout << " by running folders " << timelength->synchroID;
+				}
+				tout << endl;
+			}
 #endif // __showStatistic
 
 			if(timelength->runlength)
 				dbstr << "runlength";
 			else
 				dbstr << "reachend";
+			maxcount << "maxcount";
+			if(	!timelength->runlength &&
+				timelength->synchroID != ""	)
+			{
+				dbstr << timelength->synchroID << "-";
+				maxcount << timelength->synchroID << "-";
+			}
 			dbstr << nPercent;
-			maxcount << "maxcount" << nPercent;
-			timelength->percentDiff[nPercent].stype= dbstr.str();
-			timelength->percentDiff[nPercent].scount= maxcount.str();
-			timelength->percentDiff[nPercent].maxCount= 0;
-			timevec= &timelength->percentDiff[nPercent];
+			maxcount << nPercent;
+			(*percentDiff)[nPercent].stype= dbstr.str();
+			(*percentDiff)[nPercent].scount= maxcount.str();
+			(*percentDiff)[nPercent].maxCount= 0;
+			timevec= &(*percentDiff)[nPercent];
 		}else
 			timevec= &it->second;
 	}else
 	{// timelength->inPercent == 100
-		if(timelength->percentDiff.empty())
+		if(percentDiff->empty())
 		{
 			if(timelength->runlength)
-				timelength->percentDiff[100].stype= "runlength";
+				(*percentDiff)[100].stype= "runlength";
 			else
-				timelength->percentDiff[100].stype= "reachend";
-			timelength->percentDiff[100].scount= "maxcount";
-			timelength->percentDiff[100].maxCount= 0;
+				(*percentDiff)[100].stype= "reachend";
+			(*percentDiff)[100].scount= "maxcount";
+			if(	!timelength->runlength &&
+				timelength->synchroID != ""	)
+			{
+				(*percentDiff)[100].stype+= timelength->synchroID;
+				(*percentDiff)[100].scount+= timelength->synchroID;
+			}
+			(*percentDiff)[100].maxCount= 0;
 		}
-		timevec= &timelength->percentDiff[100];
+		timevec= &(*percentDiff)[100];
 	}
 	if(timelength->runlength)
 	{// measure begin of CPU time always only from last ending folder
@@ -1362,7 +1577,13 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength, timeval length, const
 			timevec->read < timelength->maxVal	)
 		{
 			tout << "  >> calculate middle length for " << timevec->stype << " "
-							<< timevec->read << ". value" << endl;
+							<< timevec->read << ". value";
+			if(	!timelength->runlength &&
+				timelength->synchroID != ""	)
+			{
+				tout << " by running folders " << timelength->synchroID;
+			}
+			tout << endl;
 			tout << "     read " << value << " actual ";
 			if(timelength->runlength)
 				tout << "max ";
@@ -1688,5 +1909,6 @@ MeasureThread::~MeasureThread()
 	DESTROYMUTEX(m_DEBUGLOCK);
 	DESTROYMUTEX(m_VALUE);
 	DESTROYMUTEX(m_ACTIVATETIME);
+	DESTROYMUTEX(m_FOLDERRUNMUTEX);
 	DESTROYCOND(m_VALUECONDITION);
 }

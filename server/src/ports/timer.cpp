@@ -224,83 +224,6 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		bEnd= true;
 		m_bSwitchbyTime= true;
 	}
-	m_bExactTime= false;
-	m_bFinished= true;
-	if(	m_nCaseNr == 3 ||	// case 3: count the time down to 0
-		m_nCaseNr == 4	)	// case 4: count the time down to 0, or up to full time
-	{
-		string folder(getFolderName()), subroutine(getSubroutineName());
-		DbInterface *db= DbInterface::instance();
-
-		m_bExactTime= properties->haveAction("exact");
-		if(	m_bExactTime &&
-			m_bLogPercent	)
-		{
-			db->writeIntoDb("folder", folder, "runpercent");
-			db->writeIntoDb(folder, subroutine, "startlate");
-			db->fillValue("folder", folder, "runpercent", 0, /*new*/true);
-			db->fillValue("folder", folder, "startlate", 0, /*new*/true);
-			m_tReachedTypes.runlength= false;
-			m_tReachedTypes.folder= folder;
-			m_tReachedTypes.subroutine= subroutine;
-			m_tReachedTypes.maxVal= 5;
-			m_tReachedTypes.inPercent= m_nFinishedCPUtime;
-		}
-		if(	m_bExactTime &&
-			m_nCaseNr == 3	) // case 3: count the time down to 0
-		{
-			smtime= properties->getValue("finished", /*warning*/false);
-			if(smtime != "")
-			{
-				if(m_bLogPercent)
-				{
-					db->writeIntoDb(folder, subroutine, "reachpercent");
-					db->writeIntoDb(folder, subroutine, "reachlate");
-					db->writeIntoDb(folder, subroutine, "wrongreach");
-					db->fillValue(folder, subroutine, "reachpercent", 0, /*new*/true);
-					db->fillValue(folder, subroutine, "reachlate", 0, /*new*/true);
-					db->fillValue(folder, subroutine, "wrongreach", 0, /*new*/true);
-				}
-				properties->notAllowedAction("noinfo");
-				m_oFinished.init(pStartFolder, smtime);
-				for(short n= m_nFinishedCPUtime; n <= 100; n+= m_nFinishedCPUtime)
-				{
-					bool exist;
-					ostringstream dbstr, maxcount;
-
-					dbstr << "reachend";
-					maxcount << "maxcount";
-					if(m_nFinishedCPUtime < 100)
-					{
-						dbstr << n;
-						maxcount << n;
-					}
-					db->writeIntoDb(folder, subroutine, dbstr.str());
-					db->writeIntoDb(folder, subroutine, maxcount.str());
-					if(!m_bNoDbRead)
-					{
-						dDefault= db->getActEntry(exist, folder, subroutine, dbstr.str());
-						if(	exist &&
-							dDefault > 0	)
-						{
-							m_tReachedTypes.percentDiff[n].actValue= dDefault;
-							m_tReachedTypes.percentDiff[n].reachedPercent[0]= pair<short, double>(1, dDefault);
-							dDefault= db->getActEntry(exist, folder, subroutine, maxcount.str());
-							if(!exist)
-								dDefault= 1;
-							m_tReachedTypes.percentDiff[n].maxCount= static_cast<short>(dDefault);
-							m_tReachedTypes.percentDiff[n].stype= dbstr.str();
-							m_tReachedTypes.percentDiff[n].scount= maxcount.str();
-						}
-					}else
-					{
-						db->fillValue(folder, subroutine, dbstr.str(), 0, /*new*/true);
-						db->fillValue(folder, subroutine, maxcount.str(), 0, /*new*/true);
-					}
-				}
-			}
-		}
-	}
 	if(	(bBegin && bEnd) ||
 		bWhile				)
 	{
@@ -345,14 +268,175 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		if(!initLinks("TIMER", properties, pStartFolder))
 			bOk= false;
 	}
-	return bOk;
-}
+	if(bOk)
+	{
+		m_bExactTime= false;
+		m_bFinished= true;
+		if(	m_nCaseNr == 3 ||	// case 3: count the time down to 0
+			m_nCaseNr == 4	)	// case 4: count the time down to 0, or up to full time
+		{
+			string folder(getFolderName()), subroutine(getSubroutineName());
+			DbInterface *db= DbInterface::instance();
 
-void timer::setRunningThread(IMeasurePattern* thread)
-{
-	if(m_bExactTime)
-		thread->calculateLengthTime();
-	portBase::setRunningThread(thread);
+			m_bExactTime= properties->haveAction("exact");
+			if(m_bExactTime)
+			{
+				getRunningThread()->calculateLengthTime();
+				if(m_bLogPercent)
+				{
+					db->writeIntoDb("folder", folder, "runpercent");
+					db->writeIntoDb(folder, subroutine, "startlate");
+					db->fillValue("folder", folder, "runpercent", 0, /*new*/true);
+					db->fillValue("folder", folder, "startlate", 0, /*new*/true);
+					m_tReachedTypes.runlength= false;
+					m_tReachedTypes.folder= folder;
+					m_tReachedTypes.subroutine= subroutine;
+					m_tReachedTypes.maxVal= 5;
+					m_tReachedTypes.inPercent= m_nFinishedCPUtime;
+				}
+				if(m_nCaseNr == 3) // case 3: count the time down to 0
+				{
+					smtime= properties->getValue("finished", /*warning*/false);
+					if(smtime != "")
+					{
+						bool bAll1;
+						long cur, n, s;
+						size_t bit, set(0);
+						string specID;
+
+						if(m_bLogPercent)
+						{// allow database writing for start option --timerdblog
+							db->writeIntoDb(folder, subroutine, "reachpercent");
+							db->writeIntoDb(folder, subroutine, "reachlate");
+							db->writeIntoDb(folder, subroutine, "wrongreach");
+							db->fillValue(folder, subroutine, "reachpercent", 0, /*new*/true);
+							db->fillValue(folder, subroutine, "reachlate", 0, /*new*/true);
+							db->fillValue(folder, subroutine, "wrongreach", 0, /*new*/true);
+						}
+						properties->notAllowedAction("noinfo");
+						m_oFinished.init(pStartFolder, smtime);
+
+						// define bitmask for all possibility's of folder running
+						bit= sizeof(long) * 8;
+						specID= getFolderRunningID();
+						//cout << "   ID for " << subroutine << ":" << folder << " is " << specID << endl;
+						if(specID.size() > bit)
+						{
+							vector<string> specs;
+							ostringstream out1, out2, out3;
+
+							specs= getRunningThread()->getAllSpecs();
+							out1 << "for folder " << folder << " and subroutine " << subroutine << " with specification '";
+							for(vector<string>::iterator it= specs.begin(); it != specs.end(); ++it)
+								out1 << *it << " ";
+							out1 << "'" << endl;
+							out2 << "same folder specifications are defined for " << specID.size() << " folders" << endl;
+							out3 << "but for database writing only " << bit << " folders allowed";
+							cerr << "WARNING: " << out1.str();
+							cerr << "         " << out2.str();
+							cerr << "         " << out3.str() << endl;
+							LOG(LOG_WARNING, out1.str()+out2.str()+out3.str());
+						}else
+							bit= specID.size();
+
+						// search on which position is own folder
+						for(string::reverse_iterator i= specID.rbegin(); i != specID.rend(); ++i)
+						{
+							if(*i == '1')
+								break;
+							++set;
+						}
+
+						// define bitmask
+						n= 0;
+						set= (1 << set);
+						do{
+							specID= "";
+							cur= 0b01;
+							bAll1= true;
+							if((n & set) || bit <= 1)
+							{
+								if(bit > 1)
+								{
+									for(size_t c= 0; c < bit; ++c)
+									{
+										s= n;
+										s|= set;
+										if(s & cur)
+											specID= "1" + specID;
+										else
+										{
+											specID= "0" + specID;
+											bAll1= false;
+										}
+										cur<<= 1;
+									}
+								}else
+									specID= "none";
+					// -------------------------------------------------------------------------------------
+					// -------------------------------------------------------------------------------------
+								// differ also between CPU time percents
+								for(short n= m_nFinishedCPUtime; n <= 100; n+= m_nFinishedCPUtime)
+								{
+									bool exist;
+									ostringstream dbstr, maxcount;
+
+									dbstr << "reachend";
+									maxcount << "maxcount";
+									if(bit > 1)
+									{
+										dbstr << specID;
+										maxcount << specID;
+									}
+									if(m_nFinishedCPUtime < 100)
+									{
+										if(bit > 1)
+										{
+											dbstr << "-";
+											maxcount << "-";
+										}
+										dbstr << n;
+										maxcount << n;
+									}
+									db->writeIntoDb(folder, subroutine, dbstr.str());
+									db->writeIntoDb(folder, subroutine, maxcount.str());
+									if(!m_bNoDbRead)
+									{
+										dDefault= db->getActEntry(exist, folder, subroutine, dbstr.str());
+										if(	exist &&
+											dDefault > 0	)
+										{
+											m_tReachedTypes.percentSyncDiff[specID][n].actValue= dDefault;
+											m_tReachedTypes.percentSyncDiff[specID][n].reachedPercent[0]= pair<short, double>(1, dDefault);
+											dDefault= db->getActEntry(exist, folder, subroutine, maxcount.str());
+											if(!exist)
+												dDefault= 1;
+											m_tReachedTypes.percentSyncDiff[specID][n].maxCount= static_cast<short>(dDefault);
+											m_tReachedTypes.percentSyncDiff[specID][n].stype= dbstr.str();
+											m_tReachedTypes.percentSyncDiff[specID][n].scount= maxcount.str();
+										}
+									}else
+									{
+										db->fillValue(folder, subroutine, dbstr.str(), 0, /*new*/true);
+										db->fillValue(folder, subroutine, maxcount.str(), 0, /*new*/true);
+									}
+								}//for(short n= m_nFinishedCPUtime; n <= 100; n+= m_nFinishedCPUtime)
+					// -------------------------------------------------------------------------------------
+					// -------------------------------------------------------------------------------------
+							}else
+								bAll1= false;
+							if(bAll1)
+								break;
+							if(n == LONG_MAX)
+								break;
+							++n;
+						}while(!bAll1);
+					}
+				}
+			} // if(m_bExactTime)
+		}
+	}
+	return bOk;
 }
 
 bool timer::range(bool& bfloat, double* min, double* max)
@@ -768,6 +852,7 @@ double timer::measure(const double actValue)
 				}
 				if(debug)
 				{
+					string syncID;
 					timeval diff, tv2;
 
 					tv2= tv;
@@ -780,6 +865,9 @@ double timer::measure(const double actValue)
 					was.tv_sec= m_tmSec;
 					was.tv_usec= m_tmMicroseconds;
 					tout << "reach END of time measuring" << endl;
+					syncID= getFolderRunningID();
+					if(syncID != "")
+						tout << "stop time BY RUNNING FOLDER ID " << syncID << endl;
 					tout << "folder was refreshed because time of " << MeasureThread::calcResult(was, m_bSeconds);
 					tout << " seconds was reached" << endl;
 					tout << "  start time (" << MeasureThread::getTimevalString(m_tmStart, /*as date*/true, debug) << ")" << endl;
@@ -938,30 +1026,38 @@ double timer::measure(const double actValue)
 				}else
 				{
 					if(	m_bExactTime &&
-						m_tReachedTypes.inPercent < 100	)
-					{
+						(	m_tReachedTypes.inPercent < 100	||
+							m_sSyncID != "" 					)	)	// syncID is not null
+					{													// when also need reachend
 						timeval refreshTime;
 
-						if(debug)
+						if(m_sSyncID != "") // search only for new time when synchronization ID was changed
+							m_tReachedTypes.synchroID= getFolderRunningID(); // or differ between more percents
+						if(	m_sSyncID != m_tReachedTypes.synchroID ||
+							m_tReachedTypes.inPercent < 100				)
 						{
-							tout << "check whether exact stop ";
-							if(!m_oFinished.isEmpty())
-								tout << "and or reach finish ";
-							tout << "will be changed since starting" << endl;
-							tout << "because split percent is ";
-							tout << m_tReachedTypes.inPercent << " lower then 100" << endl;
-						}
-						timersub(&m_tmWantFinish, &m_tmStart, &next);
-						substractExactFinishTime(&next, &refreshTime, &m_tmExactStop, debug);
-						if(timercmp(&m_tmStop, &refreshTime, !=))
-						{
-							getRunningThread()->changeActivationTime(folder, m_tmStop, refreshTime);
-							m_tmStop= refreshTime;
+							m_sSyncID= m_tReachedTypes.synchroID;
 							if(debug)
-								tout << "changing of folder refresh time will be done" << endl;
+							{
+								tout << "check whether exact stop ";
+								if(!m_oFinished.isEmpty())
+									tout << "and or reach finish ";
+								tout << "will be changed since starting" << endl;
+								tout << "because split percent is ";
+								tout << m_tReachedTypes.inPercent << " lower then 100" << endl;
+							}
+							timersub(&m_tmWantFinish, &m_tmStart, &next);
+							substractExactFinishTime(&next, &refreshTime, &m_tmExactStop, debug);
+							if(timercmp(&m_tmStop, &refreshTime, !=))
+							{
+								getRunningThread()->changeActivationTime(folder, m_tmStop, refreshTime);
+								m_tmStop= refreshTime;
+								if(debug)
+									tout << "changing of folder refresh time will be done" << endl;
 
-						}else if(debug)
-							tout << "no changing have to do" << endl;
+							}else if(debug)
+								tout << "no changing have to do" << endl;
+						}
 					}
 					need= calcNextTime(/*start*/false, debug, &tv);
 				}
@@ -1409,8 +1505,11 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 		//var next is for starting defined as actual value
 		need= calcNextTime(/*start*/true, debug, next);
 		if(m_bExactTime)
+		{
+			m_tReachedTypes.synchroID= getFolderRunningID();
+			m_sSyncID= m_tReachedTypes.synchroID;
 			calc= substractExactFinishTime(next, &m_tmStop, &m_tmExactStop, debug);
-		else
+		}else
 		{
 			calc= MeasureThread::calcResult(*next, m_bSeconds);
 			timeradd(&m_tmStart, next, &m_tmExactStop);
@@ -1452,7 +1551,7 @@ double timer::substractExactFinishTime(timeval* nextTime, timeval* refreshTime, 
 	{
 
 		timeradd(&m_tmStart, nextTime, &m_tmWantFinish);
-		tmReachEnd= MeasureThread::getLengthedTime(m_tReachedTypes, &m_nLengthPercent,
+		tmReachEnd= MeasureThread::getLengthedTime(&m_tReachedTypes, &m_nLengthPercent,
 													m_bLogPercent, debug);
 		if(debug)
 		{

@@ -436,6 +436,12 @@ namespace ports
 			virtual void setRunningThread(IMeasurePattern* thread)
 			{ m_poMeasurePattern= thread; };
 			/**
+			 * check how much folder are running
+			 *
+			 * @return count of folder running
+			 */
+			string getFolderRunningID();
+			/**
 			 * return measure thread which run this object with method <code>measure()</code>
 			 *
 			 * @return measure thread
@@ -510,6 +516,14 @@ namespace ports
 			 * all links to share with other subroutines
 			 */
 			vector<ListCalculator*> m_vpoLinks;
+			/**
+			 * pointer to first folder
+			 */
+			SHAREDPTR::shared_ptr<measurefolder_t> m_pFolders;
+			/**
+			 * all folder thread which need to create running folder ID specification
+			 */
+			vector<SHAREDPTR::shared_ptr<IMeasurePattern> > m_vpFolderSpecs;
 			/**
 			 * while expression to set link from m_vsLinks
 			 */
