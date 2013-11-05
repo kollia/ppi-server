@@ -99,7 +99,7 @@ m_oRunnThread(threadname, "parameter_run", "run", false, true)
 	{
 		if(pCurrent->name == threadname)
 		{
-			run= pCurrent->folderProperties->getValue("run");
+			run= pCurrent->folderProperties->getValue("run", /*warning*/false);
 			if(run != "")
 			{
 				size_t pos;
@@ -965,8 +965,8 @@ bool MeasureThread::measure()
 			double result, oldResult;
 
 			//Debug info to stop always by right folder or subroutine
-			/*string stopfolder("TRANSMIT_SONY");
-			string stopsub("correct_group");
+		/*	string stopfolder("Raff1_Zeit");
+			string stopsub("grad_timer");
 			if(	getThreadName() == stopfolder &&
 				( 	stopsub == "" ||
 					it->name == stopsub	)	)
