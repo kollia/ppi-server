@@ -20,11 +20,13 @@
 
 #include <string>
 
+#include "../../../pattern/server/IExternClientInput.h"
 #include "../../../pattern/server/IClientConnectArtPattern.h"
 
 #include "../../../util/stream/OMethodStringStream.h"
 
 #include "OutsideClientTransaction.h"
+#include "NoAnswerSender.h"
 
 
 namespace util
@@ -32,9 +34,10 @@ namespace util
 	using namespace std;
 	using namespace server;
 	using namespace design_pattern_world::util_pattern;
+	using namespace design_pattern_world::client_pattern;
 	using namespace design_pattern_world::server_pattern;
 
-	class ExternClientInputTemplate
+	class ExternClientInputTemplate : public IExternClientInput
 	{
 		public:
 			/**
@@ -238,6 +241,27 @@ namespace util
 			 */
 			IClientConnectArtPattern* getGetConnection()
 			{ return m_oGetConnect; };
+			/**
+			 * send message to given server in constructor
+			 * or write into queue when no answer be needed
+			 *
+			 * @param toProcess for which process the method should be
+			 * @param method object of method which is sending to server
+			 * @param answer whether client should wait for answer
+			 * @return backward send return value from server if answer is true, elsewhere returning null string
+			 */
+			virtual string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true);
+			/**
+			 * send message to given server in constructor
+			 * or write into queue when no answer be needed
+			 *
+			 * @param toProcess for which process the method should be
+			 * @param method object of method which is sending to server
+			 * @param done on which getting string the answer should ending. Ending also when an ERROR or warning occurs
+			 * @param answer whether client should wait for answer
+			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
+			 */
+			virtual vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
 			/*
 			 * close sending connection to server
 			 *
@@ -306,25 +330,6 @@ namespace util
 			virtual ~ExternClientInputTemplate();
 
 		protected:
-			/**
-			 * send message to given server in constructor
-			 *
-			 * @param toProcess for which process the method should be
-			 * @param method object of method which is sending to server
-			 * @param answer whether client should wait for answer
-			 * @return backward send return value from server if answer is true, elsewhere returning null string
-			 */
-			virtual string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true);
-			/**
-			 * send message to given server in constructor
-			 *
-			 * @param toProcess for which process the method should be
-			 * @param method object of method which is sending to server
-			 * @param done on which getting string the answer should ending. Ending also when an ERROR or warning occurs
-			 * @param answer whether client should wait for answer
-			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
-			 */
-			virtual vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
 			/**
 			 * ask server for question from any client
 			 *
@@ -395,6 +400,15 @@ namespace util
 			 */
 			vector<string> m_vSendAnswer;
 			/**
+			 * running thread which sending questions which need no answers
+			 */
+			NoAnswerSender m_oAnswerSender;
+			/**
+			 * whether sending questions with no answer inside extern thread
+			 * is possible
+			 */
+			bool m_bNoAnswerSend;
+			/**
 			 * lock for sending method
 			 */
 			pthread_mutex_t* m_SENDMETHODLOCK;
@@ -409,6 +423,16 @@ namespace util
 			bool m_boutput;
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 
+			/**
+			 * send message to given server in constructor
+			 *
+			 * @param toProcess for which process the method should be
+			 * @param method object of method which is sending to server
+			 * @param done on which getting string the answer should ending. Ending also when an ERROR or warning occurs
+			 * @param answer whether client should wait for answer
+			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
+			 */
+			virtual vector<string> sendMethodD(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
 			/**
 			 * close given sending or get connection to server
 			 *

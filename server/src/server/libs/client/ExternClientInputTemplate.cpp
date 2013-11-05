@@ -20,6 +20,8 @@
 #include "../../../util/debugtransaction.h"
 #include "../../../util/thread/Thread.h"
 
+#include "../../../pattern/util/LogHolderPattern.h"
+
 #include "ExternClientInputTemplate.h"
 
 namespace util
@@ -34,13 +36,29 @@ namespace util
 		m_sOpenGetCommand(process + ":" + client + " GET"),
 		m_sEndingGetCommand("ending"),
 		m_pSendTransaction(NULL),
-		m_pGetTransaction(NULL)
+		m_pGetTransaction(NULL),
+		m_oAnswerSender(client, this)
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 		,m_boutput(false)
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 	{
+		int res;
+
 		m_SENDMETHODLOCK= Thread::getMutex("SENDMETHODLOCK");
 		m_GETQUESTIONLOCK= Thread::getMutex("GETQUESTIONLOCK");
+		res= m_oAnswerSender.start();
+		if(res)
+		{
+			string err("ExternClientInputTemplate can not send questions which need no answer over the external thread '");
+
+			m_bNoAnswerSend= false;
+			err+= m_oAnswerSender.getThreadName() + client + "'\n";
+			cerr << "### WARNING: " << err;
+			cerr << "              so send this messages directly which has more bad performance" << endl;
+			LOG(LOG_WARNING, err +"so send this messages directly which has more bad performance");
+		}else
+			m_bNoAnswerSend= true;
+		//m_bNoAnswerSend= false;
 	}
 
 	int ExternClientInputTemplate::openSendConnection(string toopen/*= ""*/)
@@ -108,10 +126,23 @@ namespace util
 		vector<string> result;
 
 		result= sendMethod(toProcess, method, "", answer);
+		if(result.size() == 0)
+			return "";
 		return result[0];
 	}
 
 	vector<string> ExternClientInputTemplate::sendMethod(const string& toProcess, const OMethodStringStream& method,
+															const string& done, const bool answer/*= true*/)
+	{
+		if(	!answer &&
+			m_bNoAnswerSend	)
+		{
+			return m_oAnswerSender.sendMethod(toProcess, method, done);
+		}
+		return sendMethodD(toProcess, method, done, answer);
+	}
+
+	vector<string> ExternClientInputTemplate::sendMethodD(const string& toProcess, const OMethodStringStream& method,
 															const string& done, const bool answer/*= true*/)
 	{
 		bool bsend;
@@ -626,6 +657,7 @@ namespace util
 
 	ExternClientInputTemplate::~ExternClientInputTemplate()
 	{
+		m_oAnswerSender.stop(true);
 		closeSendConnection();
 		closeGetConnection();
 		if(m_oSendConnect)

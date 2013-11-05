@@ -1,6 +1,7 @@
 
 
 set(serverlibclientSrcs ExternClientInputTemplate.cpp
+						NoAnswerSender.cpp
 						ProcessInterfaceTemplate.cpp
         				OutsideClientTransaction.cpp
         		        SocketClientConnection.cpp      )

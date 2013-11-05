@@ -317,7 +317,7 @@ namespace ppi_database
 		string sRv;
 		OMethodStringStream command("isEntryChanged");
 
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -363,7 +363,7 @@ namespace ppi_database
 		command << chip;
 		command << value;
 		command << device;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -392,7 +392,7 @@ namespace ppi_database
 		command << subroutine;
 		command << identif;
 		command << number;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -538,7 +538,7 @@ namespace ppi_database
 		command << subroutine;
 		command << identif;
 		command << number;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -619,7 +619,7 @@ namespace ppi_database
 
 		command << connection;
 		command << name;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -680,7 +680,7 @@ namespace ppi_database
 
 		command << oldId;
 		command << newId;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -797,7 +797,7 @@ namespace ppi_database
 		command << subroutine;
 		command << onServer;
 		command << chip;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
 		err= error(sRv);
 		if(err != 0)
 		{
