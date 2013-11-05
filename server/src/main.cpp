@@ -43,6 +43,9 @@ int main(int argc, char* argv[])
 	MainParams params(argc, argv, /*read path for parent dirs*/1);
 	const ICommandStructPattern* commands;
 
+	// method has only content by debugging when need
+	tests(params.getPath(), argc, argv);
+
 	params.setDescription("start or stop ppi-server to reading external sensors and devices");
 
 	params.option("configure", "c", "display which folder configure by starting\n"
@@ -84,9 +87,6 @@ int main(int argc, char* argv[])
 	commands= params.getCommands();
 	command= commands->command();
 	server.setWorkingDirectory(params.getPath());
-
-	// method has only content by debugging when need
-	tests(params.getPath(), argc, argv);
 
 	try
 	{
@@ -350,11 +350,14 @@ void tests(const string& workdir, int argc, char* argv[])
 	    			(*descriptor) << " heute?";
 	    			descriptor->endl();
 	    			descriptor->flush();
-	    			(*descriptor) >> value;
-	    			cout << value << endl;
-	    			return EXIT_SUCCESS;
+	    			if(!descriptor->eof())
+	    			{
+						(*descriptor) >> value;
+						cout << value << endl;
+						descriptor->closeConnection();
+	    			}else
+	    				cout << "server close to early connection" << endl;
 	    		}
-	    		return EXIT_FAILURE;
 
 	    	}else if(command == "server")
 	    	{
@@ -367,25 +370,32 @@ void tests(const string& workdir, int argc, char* argv[])
 	    		{
 	    			if(!connection.accept())
 	    			{
+	    				short count(1), maxcount(3);
+
 	    				descriptor= connection.getDescriptor();
-	    				while(!descriptor->eof())
+	    				while(	!descriptor->eof() &&
+	    						count < maxcount		)
 	    				{
 	    					(*descriptor) >> value;
 	    					cout << "Server get message " << value << endl;
+	    					++count;
 	    				}
-	    				(*descriptor) << "Server got message";
-	    				descriptor->endl();
-	    				descriptor->unlock();
-	    				descriptor->closeConnection();
-	    				return EXIT_SUCCESS;
+	    				if(!descriptor->eof())
+	    				{
+							cout << "server send back: Server got message" << endl;
+							(*descriptor) << "Server got message";
+							descriptor->endl();
+							descriptor->unlock();
+							descriptor->closeConnection();
+	    				}else
+	    					cout << "client close to early connection" << endl;
 	    			}
 	    		}
-	    		return EXIT_FAILURE;
-	    	}
-	    }
+	    	}else
+	    		fprintf(stderr,"usage %s [server|client]\n", argv[0]);
+	    }else
+	    	fprintf(stderr,"usage %s [server|client]\n", argv[0]);
 
-	    fprintf(stderr,"usage %s [server|client]\n", argv[0]);
-	    return EXIT_FAILURE;
 #endif //__SIMPLE_SERVER_CLIENT_CONNECTION
 
 #ifdef __PARAMETER_METHOD_STRINGSTREAM
