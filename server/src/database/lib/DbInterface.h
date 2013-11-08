@@ -163,6 +163,27 @@ namespace ppi_database
 		 */
 		static void deleteAll();
 		/**
+		 * sending method parameter directly to database process
+		 *
+		 * @param toProcess for which process the method should be
+		 * @param method object of method which is sending to server
+		 * @param answer whether client should wait for answer
+		 * @return backward send return value from server if answer is true, elsewhere returning null string
+		 */
+		virtual string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true)
+		{ return ExternClientInputTemplate::sendMethod(toProcess, method, answer); };
+		/**
+		 * sending method parameter directly to database process
+		 *
+		 * @param toProcess for which process the method should be
+		 * @param method object of method which is sending to server
+		 * @param done on which getting string the answer should ending. Ending also when an ERROR or warning occurs
+		 * @param answer whether client should wait for answer
+		 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
+		 */
+		virtual vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true)
+		{ return ExternClientInputTemplate::sendMethod(toProcess, method, done, answer); };
+		/**
 		 * method to ask database whether database file is loaded
 		 *
 		 * @return whether file is loaded
@@ -216,7 +237,8 @@ namespace ppi_database
 		 * @param value value which should write into database
 		 * @param bNew whether database should actualize value for client default= false
 		 */
-		void fillValue(string folder, string subroutine, string identif, double value, bool bNew= false);
+		void fillValue(const string& folder, const string& subroutine, const string& identif,
+						double value, bool bNew= false);
 		/**
 		 * fill double values into database
 		 *
@@ -226,7 +248,7 @@ namespace ppi_database
 		 * @param values vector of value which should write into database
 		 * @param bNew whether database should actualize value for client default= false
 		 */
-		void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= false);
+		void fillValue(const string& folder, const string& subroutine, const string& identif, const vector<double>& values, bool bNew= false);
 		/**
 		 * ask whether entry of folder:subroutine exist
 		 *
@@ -471,16 +493,6 @@ namespace ppi_database
 		: LogInterface("ppi-db-server", identifwait, true),
 		  ProcessInterfaceTemplate(process, "DbInterface", "DatabaseServer", connection, NULL)
 		{ };
-		/**
-		 * send message to given server in constructor
-		 *
-		 * @param toProcess for which process the method should be
-		 * @param method object of method which is sending to server
-		 * @param answer whether client should wait for answer
-		 * @return backward send return value from server if answer is true, elsewhere returning null string
-		 */
-		virtual string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true)
-		{ return ExternClientInputTemplate::sendMethod(toProcess, method, answer); };
 
 	private:
 		/**

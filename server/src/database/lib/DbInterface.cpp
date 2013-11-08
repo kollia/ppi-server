@@ -259,7 +259,7 @@ namespace ppi_database
 		return true;
 	}
 
-	void DbInterface::fillValue(string folder, string subroutine, string identif, double value, bool bNew/*= true*/)
+	void DbInterface::fillValue(const string& folder, const string& subroutine, const string& identif, double value, bool bNew/*= true*/)
 	{
 		vector<double> values;
 
@@ -267,7 +267,8 @@ namespace ppi_database
 		fillValue(folder, subroutine, identif, values, bNew);
 	}
 
-	void DbInterface::fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew/*= true*/)
+	void DbInterface::fillValue(const string& folder, const string& subroutine, const string& identif,
+					const vector<double>& values, bool bNew/*= true*/)
 	{
 		int err;
 		string sRv;
@@ -277,7 +278,7 @@ namespace ppi_database
 		command << subroutine;
 		command << identif;
 		command << bNew;
-		for(vector<double>::iterator o= values.begin(); o != values.end(); ++o)
+		for(vector<double>::const_iterator o= values.begin(); o != values.end(); ++o)
 			command << *o;
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// output on command line to set new value
