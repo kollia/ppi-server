@@ -31,7 +31,7 @@
 #include <algorithm>
 #include <vector>
 
-
+#include "../../util/GlobalStaticMethods.h"
 #include "../../util/stream/OMethodStringStream.h"
 #include "../../util/stream/IMethodStringStream.h"
 
@@ -364,7 +364,7 @@ namespace ppi_database
 		command << chip;
 		command << value;
 		command << device;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -681,7 +681,7 @@ namespace ppi_database
 
 		command << oldId;
 		command << newId;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -798,7 +798,7 @@ namespace ppi_database
 		command << subroutine;
 		command << onServer;
 		command << chip;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
