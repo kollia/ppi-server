@@ -325,9 +325,13 @@ namespace ppi_database
 		 */
 		bool m_bDbStop;
 		/**
-		 * vector with all new entrys
+		 * vector with all new entry's without values
 		 */
 		std::auto_ptr<vector<db_t> > m_sptEntrys;
+		/**
+		 * vector with only value entry's
+		 */
+		std::auto_ptr<map<string, map<string, db_t> > > m_apmmtValueEntrys;
 		/*
 		 * subroutines which should be written into database
 		 */

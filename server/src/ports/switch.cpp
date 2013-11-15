@@ -33,9 +33,6 @@
 #include "../util/thread/Terminal.h"
 #include "../util/CalculatorContainer.h"
 
-#include "../database/lib/DbInterface.h"
-
-using namespace ppi_database;
 using namespace util;
 using namespace boost;
 

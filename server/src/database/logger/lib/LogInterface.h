@@ -30,15 +30,18 @@
 
 #include "../../../pattern/util/ILogPattern.h"
 #include "../../../pattern/util/ILogInterfacePattern.h"
+#include "../../../pattern/server/IClientSendMethods.h"
 
 #include "../../../util/stream/OMethodStringStream.h"
 
-using namespace std;
-using namespace util;
-using namespace design_pattern_world::util_pattern;
 
 namespace logger
 {
+	using namespace std;
+	using namespace util;
+	using namespace design_pattern_world::util_pattern;
+	using namespace design_pattern_world::client_pattern;
+
 	class LogInterface :	public ILogPattern,
 							public ILogInterfacePattern
 	{
@@ -55,15 +58,17 @@ namespace logger
 			 * set for all process or thread an name to identify in log-messages
 			 *
 			 * @param name specified name
+			 * @param sendDevice sending object over which logging should running
 			 */
-			virtual void setThreadName(const string& threadName);
+			virtual void setThreadName(const string& threadName, IClientSendMethods* sendDevice= NULL);
 			/**
 			 * return name of thread from given thread-id.<br />
 			 * When no parameter of thread id is given, method take actual thread.
 			 *
 			 * @param threadID id of thread
+			 * @param sendDevice sending object over which logging should running
 			 */
-			virtual string getThreadName(const pthread_t threadID= 0);
+			virtual string getThreadName(const pthread_t threadID= 0, IClientSendMethods* sendDevice= NULL);
 			/**
 			 * callback method to inform when logging object destroy or can be used
 			 *
@@ -78,8 +83,10 @@ namespace logger
 			 * @param type defined type of log-message (<code>LOG_DEBUG, LOG_INFO, ...</code>)
 			 * @param message string witch should written into log-files
 			 * @param sTimeLogIdentif if this identifier be set, the message will be write only in an defined time
+			 * @param sendDevice sending object over which logging should running
 			 */
-			virtual void log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif= "");
+			virtual void log(const string& file, const int line, const int type, const string& message,
+							const string& sTimeLogIdentif= "", IClientSendMethods* sendDevice= NULL);
 			/**
 			 * write vector log and threadNames which was read
 			 * before get connection

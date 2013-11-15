@@ -18,6 +18,7 @@
 #define DEBUGTRANSCATION_H_
 
 
+// follow some transaction from process to process
 //#define __FOLLOWSERVERCLIENTTRANSACTION
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 /********************************************+
@@ -35,13 +36,18 @@
  *					ProcessChecker
  */
 //#define __FOLLOW_FROMPROCESS "ppi-internet-server"
-//#define __FOLLOW_FROMCLIENT "LogInterface"
+//#define __FOLLOW_FROMCLIENT "OwServerQuestion-1"
 //#define __FOLLOW_TOPROCESS "LogServer"
-//#define __FOLLOW_TOCLIENT "ppi-internet-server"
+//#define __FOLLOW_TOCLIENT "OwServerQuestion-1"
 // sending message -> need only the beginning string
-#define __FOLLOW_SENDMESSAGE "clearOWDebug"
+//#define __FOLLOW_SENDMESSAGE "getValue"
 // ---------------------------------------------------------------------------------------------------
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
+
+// display on command line when any thread inside ppi-server
+// sending some messages directly or over NoAnswerSending pool
+// which cost performance
+//#define __WRONGPPISERVERSENDING
 
 #endif /*DEBUGTRANSCATION_H_*/
 

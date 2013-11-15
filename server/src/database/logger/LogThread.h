@@ -73,23 +73,26 @@ class LogThread : 	public Thread,
 		 * set name of thread to running thread-id
 		 *
 		 * @param threadName name of thread
+		 * @param sendDevice sending object over which logging should running
 		 */
-		virtual void setThreadName(const string& threadName)
-		{ setThreadName(threadName, pthread_self()); };
+		virtual void setThreadName(const string& threadName, IClientSendMethods* sendDevice= NULL)
+		{ setThreadName(threadName, pthread_self(), sendDevice); };
 		/**
 		 * set name of thread to specified thread-id
 		 *
 		 * @param threadName name of thread
 		 * @param threadID id of thread
+		 * @param sendDevice sending object over which logging should running (dummy parameter, because own class hold result)
 		 */
-		void setThreadName(const string& threadName, const pthread_t threadID);
+		void setThreadName(const string& threadName, const pthread_t threadID, IClientSendMethods* sendDevice= NULL);
 		/**
 		 * return name of thread from given thread-id.<br />
 		 * If no threadID is given, it returning the name of the actual running thread.
 		 *
 		 * @param threadID id of thread
+		 * @param sendDevice sending object over which logging should running (dummy parameter, because own class hold result)
 		 */
-		virtual string getThreadName(const pthread_t threadID= 0);
+		virtual string getThreadName(const pthread_t threadID= 0, IClientSendMethods* sendDevice= NULL);
 		bool ownThread(string threadName, pid_t currentPid);
 		/**
 		 * beginning to write log files after calling this command.<br />
@@ -104,8 +107,10 @@ class LogThread : 	public Thread,
 		 * @param line the line of the source file
 		 * @param type which type of message should be written
 		 * @param sTimeLogIdentif identification for messages whitch are not be write by every call (default= "" -> write every call)
+		 * @param sendDevice sending object over which logging should running (dummy parameter, because own class hold result)
 		 */
-		virtual void log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif= "");
+		virtual void log(const string& file, const int line, const int type, const string& message,
+						const string& sTimeLogIdentif= "", IClientSendMethods* sendDevice= NULL);
 		/**
 		 * write log message into files
 		 *

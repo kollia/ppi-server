@@ -21,7 +21,6 @@
 #include <sys/time.h>
 
 #include "timer.h"
-#include "measureThread.h"
 
 #include "../util/Calendar.h"
 #include "../util/thread/Terminal.h"
@@ -584,19 +583,18 @@ double timer::measure(const double actValue)
 				if(m_bLogPercent)
 				{
 					double seconds(MeasureThread::calcResult(changed, /*seconds*/false));
-					DbInterface *db= DbInterface::instance();
 
 					if(less)
 						seconds*= -1;
-					db->fillValue(folder, subroutine, "reachlate", seconds, /*new*/true);
+					getRunningThread()->fillValue(folder, subroutine, "reachlate", seconds);
 					seconds= MeasureThread::calcResult(wrong, /*seconds*/false);
 					if(wless)
 						seconds*= -1;
-					db->fillValue(folder, subroutine, "wrongreach", seconds, /*new*/true);
+					getRunningThread()->fillValue(folder, subroutine, "wrongreach", seconds);
 				}
 			}else
 				timersub(&changed, &m_tmExactStop, &changed);// <- timersub made also inside debug mode
-			MeasureThread::calcLengthDiff(&m_tReachedTypes, changed, debug);
+			getRunningThread()->calcLengthDiff(&m_tReachedTypes, changed, debug);
 		}else
 			return 0;
 	}
@@ -840,9 +838,7 @@ double timer::measure(const double actValue)
 							}
 							if(m_bLogPercent)
 							{
-								DbInterface *db= DbInterface::instance();
-
-								db->fillValue(folder, subroutine, "startlate",
+								getRunningThread()->fillValue(folder, subroutine, "startlate",
 												MeasureThread::calcResult(tvWait, /*seconds*/false));
 							}
 						}
@@ -1551,7 +1547,7 @@ double timer::substractExactFinishTime(timeval* nextTime, timeval* refreshTime, 
 	{
 
 		timeradd(&m_tmStart, nextTime, &m_tmWantFinish);
-		tmReachEnd= MeasureThread::getLengthedTime(&m_tReachedTypes, &m_nLengthPercent,
+		tmReachEnd= getRunningThread()->getLengthedTime(&m_tReachedTypes, &m_nLengthPercent,
 													m_bLogPercent, debug);
 		if(debug)
 		{

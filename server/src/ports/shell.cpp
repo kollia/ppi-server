@@ -26,13 +26,10 @@
 #include "../util/exception.h"
 #include "../util/thread/Terminal.h"
 
-#include "../database/lib/DbInterface.h"
-
 #include "../pattern/util/LogHolderPattern.h"
 
 #include "shell.h"
 
-using namespace ppi_database;
 using namespace boost;
 
 bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
@@ -278,7 +275,7 @@ int Shell::system(const string& action, string command)
 		msg= "make " + action + " '" + command + "'";
 	}else
 		msg= "read command results from one of last pass";
-	TIMELOG(LOG_DEBUG, folder+":"+subroutine+action, msg);
+	TIMELOGEX(LOG_DEBUG, folder+":"+subroutine+action, msg, getRunningThread()->getExternSendDevice());
 	if(bDebug)
 		tout << msg << endl;
 	if(m_sGUI != "")
@@ -324,7 +321,8 @@ int Shell::system(const string& action, string command)
 
 		}else
 		{
-			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError));
+			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError,
+							getRunningThread()->getExternSendDevice()));
 			thread->setFor(folder, subroutine);
 		}
 
@@ -394,9 +392,10 @@ int Shell::system(const string& action, string command)
 				{
 					if(bDebug)
 						tout << " ### ERROR: cannot read correctly PPI-SET command" << endl;
-					TIMELOG(LOG_WARNING, "shell_setValue"+command+*it, "SHELL subroutine " + folder + ":" + subroutine
+					TIMELOGEX(LOG_WARNING, "shell_setValue"+command+*it, "SHELL subroutine " + folder + ":" + subroutine
 									+ "\nby command: " + command + "\noutput string '" + *it
-									+ "'\n               ### ERROR: cannot read correctly PPI-SET command"               );
+									+ "'\n               ### ERROR: cannot read correctly PPI-SET command",
+									getRunningThread()->getExternSendDevice()               );
 				}
 			}
 		}

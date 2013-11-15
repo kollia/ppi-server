@@ -55,7 +55,7 @@ namespace ppi_database
 		n= _instance.size();
 		pdb= new DbInterface(process, connection, identifwait);
 		if(n == 0)
-			LogHolderPattern::init(pdb);
+			LogHolderPattern::init((ILogPattern*)pdb);
 		ret= pdb->openSendConnection();
 		if(ret > 0 && ret != 35)
 		{

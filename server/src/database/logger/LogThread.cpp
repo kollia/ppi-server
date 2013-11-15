@@ -112,7 +112,8 @@ bool LogThread::ownThread(string threadName, pid_t currentPid)
 	return false;
 }
 
-void LogThread::setThreadName(const string& threadName, const pthread_t threadID)
+void LogThread::setThreadName(const string& threadName, const pthread_t threadID,
+				IClientSendMethods* sendDevice/*= NULL*/)
 {
 	unsigned int nCount= 0;
 	unsigned int nSize;
@@ -134,11 +135,12 @@ void LogThread::setThreadName(const string& threadName, const pthread_t threadID
 	tThread.count= ++nCount;
 	tThread.thread= threadID;
 	tThread.name= threadName;
+	tThread.otherSendDevice= sendDevice;
 	m_vtThreads.push_back(tThread);
 	UNLOCK(m_READTHREADS);
 }
 
-string LogThread::getThreadName(const pthread_t threadID/*= 0*/)
+string LogThread::getThreadName(const pthread_t threadID/*= 0*/, IClientSendMethods* sendDevice/*= NULL*/)
 {
 	string sThreadName("");
 	unsigned int nSize;
@@ -167,7 +169,8 @@ string LogThread::getThreadName(const pthread_t threadID/*= 0*/)
 	return sThreadName;
 }
 
-void LogThread::log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif/*= ""*/)
+void LogThread::log(const string& file, const int line, const int type, const string& message,
+				const string& sTimeLogIdentif/*= ""*/, IClientSendMethods* sendDevice/*= NULL*/)
 {
 	struct log_t logMessage;
 

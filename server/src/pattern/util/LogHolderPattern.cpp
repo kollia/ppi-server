@@ -37,11 +37,12 @@ void LogHolderPattern::init(ILogPattern* loggingobject)
 	loggingobject->callback(LogHolderPattern::usable);
 }
 
-void LogHolderPattern::log(string file, int line, int type, string message, string sTimeLogIdentif/*= ""*/)
+void LogHolderPattern::log(const string& file, int line, int type, const string& message,
+				const string& sTimeLogIdentif/*= ""*/, IClientSendMethods* sendDevice/*= NULL*/)
 {
 	if(m_bExists)
 	{
-		m_oLogging->log(file, line, type, message, sTimeLogIdentif);
+		m_oLogging->log(file, line, type, message, sTimeLogIdentif, sendDevice);
 		return;
 	}
 

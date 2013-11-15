@@ -19,43 +19,21 @@
 #ifndef IEXTERNCLIENTINPUT_H_
 #define IEXTERNCLIENTINPUT_H_
 
-//#include <iostream>
 #include <string>
-#include <vector>
 
-#include "../../util/stream/OMethodStringStream.h"
+#include "IClientSendMethods.h"
 
 using namespace std;
-using namespace util;
 
 namespace design_pattern_world
 {
 	namespace client_pattern
 	{
-		class IExternClientInput
+		class IExternClientInput : public IClientSendMethods
 		{
 		public:
-			/**
-			 * send message to given server in constructor
-			 * or write into queue when no answer be needed
-			 *
-			 * @param toProcess for which process the method should be
-			 * @param method object of method which is sending to server
-			 * @param answer whether client should wait for answer
-			 * @return backward send return value from server if answer is true, elsewhere returning null string
-			 */
-			virtual string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true)= 0;
-			/**
-			 * send message to given server in constructor
-			 * or write into queue when no answer be needed
-			 *
-			 * @param toProcess for which process the method should be
-			 * @param method object of method which is sending to server
-			 * @param done on which getting string the answer should ending. Ending also when an ERROR or warning occurs
-			 * @param answer whether client should wait for answer
-			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
-			 */
-			virtual vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true)= 0;
+
+			virtual vector<string> sendMethodD(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true)= 0;
 			/**
 			 * return string describing error number
 			 *

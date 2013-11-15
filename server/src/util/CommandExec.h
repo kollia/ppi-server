@@ -24,9 +24,12 @@
 #include <deque>
 
 #include "../pattern/util/IMeasureSet.h"
+#include "../pattern/server/IClientSendMethods.h"
 
 #include "../util/smart_ptr.h"
 #include "../util/thread/Thread.h"
+
+using namespace design_pattern_world::client_pattern;
 
 class CommandExec : public Thread
 {
@@ -35,13 +38,16 @@ public:
 	 * constructor of CommandExec to run some commands on shell
 	 *
 	 * @param port Interface to set value in an subroutine
+	 * @param logError whether ending script should write error return value (!= 0) into log file
+	 * @param sendDevice sending object over which logging should running
 	 */
-	CommandExec(IMeasureSet* port, bool logError)
-	: Thread("CommandExec", true),
+	CommandExec(IMeasureSet* port, bool logError, IClientSendMethods* sendDevice= NULL)
+	: Thread("CommandExec", true, /*default policy*/-1, /*default priority*/-9999, sendDevice),
 	  m_bStarted(false),
 	  m_bLogging(false),
 	  m_bLogError(logError),
 	  m_pPort(port),
+	  m_pSendLog(sendDevice),
 	  m_tScriptPid(0),
 	  m_nStopSignal(0),
 	  m_bWait(false),
@@ -192,6 +198,10 @@ private:
 	 * output for logging
 	 */
 	deque<string> m_qLog;
+	/**
+	 * sending device for external logging
+	 */
+	IClientSendMethods* m_pSendLog;
 	/**
 	 * process id of own current pid
 	 */

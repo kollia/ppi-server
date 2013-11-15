@@ -21,6 +21,8 @@
 
 #include <string>
 
+#include "../server/IClientSendMethods.h"
+
 #ifndef LOG_DEBUG
 #define LOG_DEBUG 0x000 // 00000000
 #endif // LOG_DEBUG
@@ -43,12 +45,14 @@ namespace design_pattern_world
 {
 	namespace util_pattern
 	{
-	/**
-	 * pattern class for an logging object
-	 *
-	 * @autor Alexander Kolli
-	 * @version 1.0.0
-	 */
+		using namespace design_pattern_world::client_pattern;
+
+		/**
+		 * pattern class for an logging object
+		 *
+		 * @autor Alexander Kolli
+		 * @version 1.0.0
+		 */
 		class ILogPattern
 		{
 		public:
@@ -56,16 +60,18 @@ namespace design_pattern_world
 			 * set for all process or thread an name to identify in log-messages
 			 *
 			 * @param name specified name
+			 * @param sendDevice sending object over which logging should running
 			 */
-			virtual void setThreadName(const string& threadName)= 0;
+			virtual void setThreadName(const string& threadName, IClientSendMethods* sendDevice= NULL)= 0;
 			/**
 			 * return name of thread from given thread-id.<br />
 			 * When no parameter of thread id is given, method take actual thread.
 			 * If no logging process is given, it returning the string that no logging process exists.
 			 *
 			 * @param threadID id of thread
+			 * @param sendDevice sending object over which logging should running
 			 */
-			virtual string getThreadName(const pthread_t threadID= 0)= 0;
+			virtual string getThreadName(const pthread_t threadID= 0, IClientSendMethods* sendDevice= NULL)= 0;
 			/**
 			 * to log an message
 			 *
@@ -74,8 +80,10 @@ namespace design_pattern_world
 			 * @param type defined type of log-message (<code>LOG_DEBUG, LOG_INFO, ...</code>)
 			 * @param message string witch should written into log-files
 			 * @param sTimeLogIdentif if this identifier be set, the message will be write only in an defined time
+			 * @param sendDevice sending object over which logging should running
 			 */
-			virtual void log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif= "")= 0;
+			virtual void log(const string& file, const int line, const int type, const string& message,
+							const string& sTimeLogIdentif= "", IClientSendMethods* sendDevice= NULL)= 0;
 			/**
 			 * callback method to inform when logging object destroy or can be used
 			 *

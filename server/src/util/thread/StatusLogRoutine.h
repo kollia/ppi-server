@@ -27,11 +27,13 @@
 
 #include "../debug.h"
 
+#include "../../pattern/server/IClientSendMethods.h"
 #include "../../pattern/util/ithreadpattern.h"
 #include "../../pattern/util/IStatusLogPattern.h"
 
 using namespace design_pattern_world;
 using namespace design_pattern_world::util_pattern;
+using namespace design_pattern_world::client_pattern;
 using namespace std;
 
 /**
@@ -180,8 +182,9 @@ class StatusLogRoutine : public virtual IStatusLogPattern
 		 * this method defining the name whitch be showen in the log-files.
 		 *
 		 * @param threadName name which should be showen
+		 * @param sendDevice sending object over which logging should running
 		 */
-		void setThreadLogName(string threadName);
+		void setThreadLogName(string threadName, IClientSendMethods* sendDevice);
 
 
 

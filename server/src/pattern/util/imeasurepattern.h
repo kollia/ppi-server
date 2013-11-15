@@ -23,13 +23,16 @@
 #include <vector>
 #include <map>
 
-using namespace std;
+#include "../server/IClientSendMethods.h"
 
 
 namespace design_pattern_world
 {
 	namespace util_pattern
 	{
+		using namespace std;
+		using namespace design_pattern_world::client_pattern;
+
 		struct folderSpecNeed_t
 		{
 			bool needRun;
@@ -182,6 +185,12 @@ namespace design_pattern_world
 				 */
 				virtual pid_t getRunningThreadID()= 0;
 				/**
+				 * returning external send device
+				 *
+				 * @return sending device
+				 */
+				virtual IClientSendMethods* getExternSendDevice()= 0;
+				/**
 				 * return run specification of folder
 				 *
 				 * @return all specification needed
@@ -214,6 +223,31 @@ namespace design_pattern_world
 				 * @return longest measured length of folder time
 				 */
 				virtual timeval getLengthedTime(const bool& logPercent, const bool& debug)= 0;
+				/**
+				 * length time of given map by actual CPU time.<br />
+				 * when get unset time back (<code>= !timerisset(<returnvalue>)</code>)
+				 * no measuring be set for folder
+				 *
+				 * @param timelength all variables to calculate CPU time
+				 * @param lengthRun time map differ by CPU time
+				 * @param percent out comming percent of CPU from return value
+				 * @param logPercent whether logging original percent into database
+				 * @param debug whether call run in debug session
+				 * @return longest measured length of folder time
+				 */
+				virtual timeval getLengthedTime(timetype_t* timelength, short *percent,
+												const bool& logPercent, const bool& debug)= 0;
+				 /**
+				  * calculating length time for reached finished or starting late
+				  * taking into account any outliers, save into database
+				  * and consider also CPU time
+				  *
+				  * @param timelength all variables to measure CPU time
+				  * @param length longer time of reached or starting late time
+				  * @param debug whether subroutine running inside debug session
+				  */
+				 virtual void calcLengthDiff(timetype_t* timelength,
+								 timeval length, const bool& debug)= 0;
 				/**
 				 * set into given timetype the CPU times to begin measuring for <code>getCpuPercent</code>
 				 *
@@ -293,6 +327,28 @@ namespace design_pattern_world
 				 * @param id chip id searched inside server
 				 */
 				virtual void foundPortServer(const bool bfound, const string& server, const string& id)= 0;
+				/**
+				 * fill double value over an queue into database
+				 *
+				 * @param folder folder name from the running thread
+				 * @param subroutine name of the subroutine in the folder
+				 * @param identif identification of which value be set
+				 * @param value value which should write into database
+				 * @param bNew whether database should actualize value for client default= false
+				 */
+				virtual void fillValue(const string& folder, const string& subroutine, const string& identif,
+								double value, bool bNew= false)= 0;
+				/**
+				 * fill double value over an queue into database
+				 *
+				 * @param folder folder name from the running thread
+				 * @param subroutine name of the subroutine in the folder
+				 * @param identif identification of which value be set
+				 * @param dvalues vector of more values which should write into database
+				 * @param bNew whether database should actualize value for client default= false
+				 */
+				virtual void fillValue(const string& folder, const string& subroutine, const string& identif,
+								const vector<double>& dvalues, bool bNew= false)= 0;
 				/**
 				 * dummy destructor for pattern
 				 */

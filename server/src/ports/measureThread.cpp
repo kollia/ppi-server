@@ -67,15 +67,17 @@ pthread_mutex_t *globalCPUMUTEX= Thread::getMutex("globalCPUMUTEX");
 
 MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tArg,
 				const SHAREDPTR::shared_ptr<measurefolder_t> pFolderStart,
-				const time_t& nServerSearch, bool bNoDbRead, short folderCPUtime) :
-Thread(threadname, true),
-m_oRunnThread(threadname, "parameter_run", "run", false, true)
+				const time_t& nServerSearch, bool bNoDbRead, short folderCPUtime)
+: Thread(threadname, true),
+  m_oRunnThread(threadname, "parameter_run", "run", false, true),
+  m_oDbFiller(threadname)
 {
+	int res;
 	string run;
 	SHAREDPTR::shared_ptr<measurefolder_t> pCurrent;
 
 #ifdef DEBUG
-	cout << "constructor of measurethread for folder " << getThreadName() << endl;
+	cout << "constructor of measurethread for folder " << getFolderName() << endl;
 #endif // DEBUG
 	m_bNeedFolderRunning= false;
 	m_bFolderRunning= false;
@@ -86,6 +88,7 @@ m_oRunnThread(threadname, "parameter_run", "run", false, true)
 	m_FOLDERRUNMUTEX= Thread::getMutex("FOLDERRUNMUTEX");
 	m_VALUECONDITION= Thread::getCondition("VALUECONDITION");
 	m_bDebug= false;
+	m_sFolder= threadname;
 	m_nActCount= 0;
 	m_tRunThread= Thread::getThreadID();
 	m_pvlPorts= tArg.ports;
@@ -118,6 +121,17 @@ m_oRunnThread(threadname, "parameter_run", "run", false, true)
 		}
 		pCurrent= pCurrent->next;
 	}
+	res= m_oDbFiller.start();
+	if(res)
+	{
+		string err("measuring thread for folder '" + threadname +
+						"' can not send questions which need no answer over external thread '");
+
+		err+= m_oDbFiller.getThreadName() + "'\n";
+		cerr << "### WARNING: " << err;
+		cerr << "              so send this messages directly which has more bad performance" << endl;
+		LOG(LOG_WARNING, err +"so send this messages directly which has more bad performance");
+	}
 }
 
 bool MeasureThread::setDebug(bool bDebug, const string& subroutine)
@@ -148,7 +162,7 @@ bool MeasureThread::setDebug(bool bDebug, const string& subroutine)
 		}
 	}
 	out << "-------------------------------------------------------------------" << endl;
-	out << " set debug to " << boolalpha << bDebug << " from folder " << getThreadName() << endl;
+	out << " set debug to " << boolalpha << bDebug << " from folder " << getFolderName() << endl;
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
 		if(	it->bCorrect &&			// set first all subroutines to debug
@@ -271,7 +285,7 @@ int MeasureThread::init(void *arg)
 	double dLength;
 	SHAREDPTR::shared_ptr<IListObjectPattern> port;
 	vector<string>::iterator found;
-	string sFault, folder(getThreadName());
+	string sFault, folder(getFolderName());
 	DbInterface *db= DbInterface::instance();
 
 	nMuch= m_pvtSubroutines->size();
@@ -300,7 +314,7 @@ int MeasureThread::init(void *arg)
 	}
 	if(sFault != "")
 	{
-		cout << "### WARNING: cannot find follow subroutine(s) inside folder " << getThreadName() << ":" << endl;
+		cout << "### WARNING: cannot find follow subroutine(s) inside folder " << getFolderName() << ":" << endl;
 		cout << sFault;
 	}
 	if(	pbSubroutines &&
@@ -312,7 +326,7 @@ int MeasureThread::init(void *arg)
 	{
 		m_tLengthType.runlength= true;
 		m_tLengthType.folder= "folder";
-		m_tLengthType.subroutine= getThreadName();
+		m_tLengthType.subroutine= getFolderName();
 		m_tLengthType.maxVal= 20;
 		m_tLengthType.inPercent= m_nFolderCPUtime;
 		for(short n= m_nFolderCPUtime; n <= 100; n+= m_nFolderCPUtime)
@@ -371,7 +385,7 @@ void MeasureThread::changedValue(const string& folder, const string& from)
 			string msg("ERROR: cannot get time of day,\n");
 
 			msg+= "       so cannot measure time for TIMER function in folder ";
-			msg+= getThreadName() + " for method changedValue()";
+			msg+= getFolderName() + " for method changedValue()";
 			TIMELOG(LOG_ALERT, "changedValue", msg);
 		}else
 		{
@@ -396,7 +410,7 @@ void MeasureThread::needChangingTime(const string& subroutine, const string& fro
 		fsub= spl[0];
 	}
 	if(	spl.size() == 2 &&
-		spl[0] == getThreadName()	)
+		spl[0] == getFolderName()	)
 	{
 		fsub= spl[1];
 	}
@@ -472,14 +486,14 @@ int MeasureThread::stop(const bool* bWait/*=NULL*/)
 			{
 				string err;
 
-				ex.addMessage("by stopping subroutine " + it->name + " inside folder " + getThreadName());
+				ex.addMessage("by stopping subroutine " + it->name + " inside folder " + getFolderName());
 				err= ex.getTraceString();
 				cerr << err << endl;
 				LOG(LOG_ERROR, err);
 
 			}catch(std::exception& ex)
 			{
-				string err("std exception by stopping subroutine " + it->name + " inside folder " + getThreadName());
+				string err("std exception by stopping subroutine " + it->name + " inside folder " + getFolderName());
 
 				err+= "\n" + string(ex.what());
 				cerr << "ERROR: " << err << endl;
@@ -487,7 +501,7 @@ int MeasureThread::stop(const bool* bWait/*=NULL*/)
 
 			}catch(...)
 			{
-				string err("undefined exception by stopping subroutine " + it->name + " inside folder " + getThreadName());
+				string err("undefined exception by stopping subroutine " + it->name + " inside folder " + getFolderName());
 				cerr << "ERROR: " << err << endl;
 				LOG(LOG_ERROR, err);
 			}
@@ -597,7 +611,7 @@ int MeasureThread::execute()
 	vector<timeval>::iterator akttime, lasttime;
 
 	//Debug info before measure routine to stop by right folder
-	/*folder= getThreadName();
+	/*folder= getFolderName();
 	if(folder == "display_settings")
 	{
 		cout << __FILE__ << __LINE__ << endl;
@@ -613,7 +627,7 @@ int MeasureThread::execute()
 	}
 	measure();
 	//Debug info behind measure routine to stop by right folder
-	/*folder= getThreadName();
+	/*folder= getFolderName();
 	if(folder == "Raff1_Zeit")
 	{
 		cout << __FILE__ << __LINE__ << endl;
@@ -624,7 +638,7 @@ int MeasureThread::execute()
 	{
 		string err("ERROR: cannot calculate ending time of hole folder list from '");
 
-		err+= getThreadName() + "'";
+		err+= getFolderName() + "'";
 		if(debug)
 		{
 			tout << "--------------------------------------------------------------------" << endl;
@@ -662,7 +676,7 @@ int MeasureThread::execute()
 				timerclear(&m_tvSleepLength);
 			}
 		}
-		folder= getThreadName();
+		folder= getFolderName();
 		tout << "--------------------------------------------------------------------" << endl;
 		tout << " folder '" << folder << "' STOP (";
 		tout << getTimevalString(end_tv, /*as date*/true, debug) << ")" ;
@@ -738,7 +752,7 @@ int MeasureThread::execute()
 						string msg("ALERT: cannot get time of day,\n");
 
 						msg+= "       so cannot measure time for next start of folder ";
-						msg+= getThreadName() + " to search for external port server\n";
+						msg+= getFolderName() + " to search for external port server\n";
 						msg+= "       waiting only for 10 seconds !!!";
 						TIMELOG(LOG_ALERT, "gettimeofday", msg);
 						if(debug)
@@ -780,7 +794,7 @@ int MeasureThread::execute()
 					{
 						if(stopping())
 							break;
-						cout << "WARNING: condition for folder list " << getThreadName()
+						cout << "WARNING: condition for folder list " << getFolderName()
 										<< " get's an spurious wakeup" << endl;
 					}
 				}
@@ -818,7 +832,7 @@ int MeasureThread::execute()
 				{
 					if(stopping())
 						break;
-					cout << "WARNING: condition for folder list " << getThreadName()
+					cout << "WARNING: condition for folder list " << getFolderName()
 									<< " get's an spurious wakeup" << endl;
 				}else
 					break;
@@ -841,7 +855,7 @@ int MeasureThread::execute()
 		folder= getFolderName();
 		msg+= folder + " is aktivated!\n";
 		msg+= "    ERROR: cannot calculate time of beginning";
-		TIMELOG(LOG_ERROR, folder, msg);
+		TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
 		if(isDebug())
 			tout << " ERROR: cannot calculate time of beginning" << endl;
 
@@ -946,7 +960,7 @@ void MeasureThread::ending()
 bool MeasureThread::measure()
 {
 	bool debug(isDebug()), notime(false), classdebug(false);
-	string folder(getThreadName());
+	string folder(getFolderName());
 	timeval tv, tv_start, tv_end;
 
 	if(debug)
@@ -967,7 +981,7 @@ bool MeasureThread::measure()
 			//Debug info to stop always by right folder or subroutine
 		/*	string stopfolder("Raff1_Zeit");
 			string stopsub("grad_timer");
-			if(	getThreadName() == stopfolder &&
+			if(	getFolderName() == stopfolder &&
 				( 	stopsub == "" ||
 					it->name == stopsub	)	)
 			{
@@ -999,14 +1013,14 @@ bool MeasureThread::measure()
 			{
 				string err;
 
-				ex.addMessage("running subroutine " + it->name + " inside folder " + getThreadName());
+				ex.addMessage("running subroutine " + it->name + " inside folder " + getFolderName());
 				err= ex.getTraceString();
 				cerr << err << endl;
 				LOG(LOG_ERROR, err);
 
 			}catch(std::exception& ex)
 			{
-				string err("std exception by running subroutine " + it->name + " inside folder " + getThreadName());
+				string err("std exception by running subroutine " + it->name + " inside folder " + getFolderName());
 
 				err+= "\n" + string(ex.what());
 				cerr << "ERROR: " << err << endl;
@@ -1014,7 +1028,7 @@ bool MeasureThread::measure()
 
 			}catch(...)
 			{
-				string err("undefined exception by running subroutine " + it->name + " inside folder " + getThreadName());
+				string err("undefined exception by running subroutine " + it->name + " inside folder " + getFolderName());
 				cerr << "ERROR: " << err << endl;
 				LOG(LOG_ERROR, err);
 			}
@@ -1032,12 +1046,12 @@ bool MeasureThread::measure()
 						string msg("ERROR: cannot get time of day,\n");
 
 						msg+= "       so cannot measure time for TIMER function in folder ";
-						msg+= getThreadName() + " for changing value in subroutine " + *found;
+						msg+= getFolderName() + " for changing value in subroutine " + *found;
 						TIMELOG(LOG_ALERT, "changedValueMeasureThread", msg);
 						timerclear(&tv_end);
 					}
 					LOCK(m_VALUE);
-					if(	getThreadName() == "Raff1_Zeit" &&
+					if(	getFolderName() == "Raff1_Zeit" &&
 						*found == "port2_status")
 					{
 						tout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
@@ -1105,93 +1119,140 @@ int MeasureThread::getCpuPercent(const vector<int>::size_type& processor, int *p
 	string line;
 	vector<int>::size_type actProcessor(0);
 
-	file.open(filename.c_str());
-	if(file.is_open())
-	{
-		while(getline(file, line))
-		{
-			istringstream oline(line);
-
-			oline >> cpu;
-			if(	cpu.size() < 3 ||
-				cpu.substr(0, 3) != "cpu"	)
+	try{
+		try{
+			file.open(filename.c_str());
+			if(file.is_open())
 			{
-				ostringstream err1, err2;
+				while(getline(file, line))
+				{
+					istringstream oline(line);
 
-				err1 << "on computer exist only " << (actProcessor -1) << " processor" << endl;
-				err2 << "asking with getCpuPercent for processor " << processor << endl;
+					oline >> cpu;
+					if(	cpu.size() < 3 ||
+						cpu.substr(0, 3) != "cpu"	)
+					{
+						ostringstream err1, err2;
+
+						err1 << "on computer exist only " << (actProcessor -1) << " processor" << endl;
+						err2 << "asking with getCpuPercent for processor " << processor << endl;
+						if(debug)
+						{
+							tout << "### ERROR: " << err1.str();
+							tout << "           " << err2.str();
+						}
+						TIMELOG(LOG_ERROR, "processor_count", err1.str() + err2.str());
+						return 0;
+					}
+					if(processor == actProcessor)
+					{
+						for(short i= 0; i < 10; ++i)
+						{
+							oline >> value;
+							total+= value;
+							if(i == 3)
+								idle= value;
+						}
+						break;
+					}
+					++actProcessor;
+				}
+			}else
+			{
+				string err("cannot read " + filename + " to create CPU time, take old one");
+
 				if(debug)
-				{
-					tout << "### ERROR: " << err1.str();
-					tout << "           " << err2.str();
-				}
-				TIMELOG(LOG_ERROR, "processor_count", err1.str() + err2.str());
-				return 0;
+					tout << err << endl;
+				TIMELOG(LOG_ERROR, "cpu_creation", err);
+				return old_usage;
 			}
-			if(processor == actProcessor)
-			{
-				for(short i= 0; i < 10; ++i)
-				{
-					oline >> value;
-					total+= value;
-					if(i == 3)
-						idle= value;
-				}
-				break;
-			}
-			++actProcessor;
-		}
-	}else
-	{
-		string err("cannot read " + filename + " to create CPU time, take old one");
-
-		if(debug)
-			tout << err << endl;
-		TIMELOG(LOG_ERROR, "cpu_creation", err);
-		return old_usage;
-	}
-	file.close();
-	//LOCK(globalCPUMUTEX);
-	diff_idle= idle - *prev_idle;
-	diff_total= total - *prev_total;
-	if(diff_total == 0) // method was called to quickly after each other
-	{
-		//UNLOCK(globalCPUMUTEX);
-		return old_usage;
-	}
-	diff_usage= (1000 * (diff_total - diff_idle) / diff_total + 5) / 10;
-	if(diff_usage <= 0)
-	{
-		vector<ostringstream> err;
-
-		err[0] << "cannot create correct CPU time:" << endl;
-		err[1] << "   diff_idle(" << diff_idle << ") = idle(" << idle << ")"
-						" - prev_idle(" << prev_idle << ")" << endl;
-		err[2] << "  diff_total(" << diff_total << ") = total(" << total << ")"
-						" - prev_total(" << prev_total << ")" << endl;
-		err[3] << "  diff_usage(" << diff_usage << ") = (1000 * ("
-						"diff_total(" << diff_total << ")"
-						" - diff_idle(" << diff_idle << ")) / "
-						"diff_total(" << diff_total << ") + 5) / 10" << endl;
-		err[4] << "so return back old usage " << old_usage << "%";
-		if(debug)
+			file.close();
+		}catch(SignalException& ex)
 		{
-			tout << "     " << err[0].str();
-			tout << "     " << err[1].str();
-			tout << "     " << err[2].str();
-			tout << "     " << err[3].str();
-			tout << "     " << err[4].str() << endl;;
+			string err;
+
+			ex.addMessage("getCpuPercent try to read");
+			throw(ex);
 		}
-		TIMELOG(LOG_WARNING, "cputimecreation",
-						err[0].str() + err[1].str() +
-						err[2].str() + err[3].str() + err[4].str());
+
+		diff_idle= idle - *prev_idle;
+		diff_total= total - *prev_total;
+		if(diff_total <= 0) // method was called to quickly after each other
+		{
+			//UNLOCK(globalCPUMUTEX);
+			return old_usage;
+		}
+
+		try{
+			diff_usage= (1000 * (diff_total - diff_idle) / diff_total + 5) / 10;
+		}catch(SignalException& ex)
+		{
+			string err;
+			ostringstream calc;
+
+			calc << "(1000 * (" << diff_total << " - " << diff_idle << ") / " << diff_total << " + 5) / 10";
+			ex.addMessage("getCpuPercent calc " + calc.str());
+			throw(ex);
+		}
+
+		if(diff_usage <= 0)
+		{
+			ostringstream oerr;
+			vector<string> err(5);
+
+			oerr << "cannot create correct CPU time:" << endl;
+			err.push_back(oerr.str());
+			oerr.str("");
+			oerr << "   diff_idle(" << diff_idle << ") = idle(" << idle << ")"
+							" - prev_idle(" << prev_idle << ")" << endl;
+			err.push_back(oerr.str());
+			oerr.str("");
+			oerr << "  diff_total(" << diff_total << ") = total(" << total << ")"
+							" - prev_total(" << prev_total << ")" << endl;
+			err.push_back(oerr.str());
+			oerr.str("");
+			oerr << "  diff_usage(" << diff_usage << ") = (1000 * ("
+							"diff_total(" << diff_total << ")"
+							" - diff_idle(" << diff_idle << ")) / "
+							"diff_total(" << diff_total << ") + 5) / 10" << endl;
+			err.push_back(oerr.str());
+			oerr.str("");
+			oerr << "so return back old usage " << old_usage << "%";
+			err.push_back(oerr.str());
+			if(debug)
+			{
+				tout << "     " << err[0];
+				tout << "     " << err[1];
+				tout << "     " << err[2];
+				tout << "     " << err[3];
+				tout << "     " << err[4] << endl;
+			}
+			TIMELOG(LOG_WARNING, "cputimecreation",
+							err[0] + err[1] +
+							err[2] + err[3] + err[4]);
+			return old_usage;
+		}
+		*prev_total= total;
+		*prev_idle= idle;
+		old_usage= diff_usage;
+		//cout << cpu << " " << diff_usage << "%" << endl;
+
+	}catch(SignalException& ex)
+	{
+		string err;
+
+		ex.addMessage("try to actually CPU percent with getCpuPercent()");
+		err= ex.getTraceString();
+		cerr << endl << err << endl;
+		try{
+			LOG(LOG_ALERT, err);
+		}catch(...)
+		{
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl << endl;
+		}
 		return old_usage;
+
 	}
-	*prev_total= total;
-	*prev_idle= idle;
-	old_usage= diff_usage;
-	//UNLOCK(globalCPUMUTEX);
-	//cout << cpu << " " << diff_usage << "%" << endl;
 	return diff_usage;
 }
 
@@ -1350,14 +1411,12 @@ timeval MeasureThread::getLengthedTime(timetype_t* timelength, short *percent,
 		nPercent >= 0	)
 	{
 		string dbentry;
-		DbInterface *db= DbInterface::instance();
-
 		if(timelength->runlength)
 			dbentry= "runpercent";
 		else
 			dbentry= "reachpercent";
-		db->fillValue(timelength->folder, timelength->subroutine, dbentry,
-						static_cast<double>(nPercent), /*new*/true);
+		fillValue(timelength->folder, timelength->subroutine, dbentry,
+						static_cast<double>(nPercent));
 	}
 	if(	timelength->inPercent > 1 &&
 		nPercent != *percent &&
@@ -1461,7 +1520,6 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 	short nPercent;
 	int prev_idle, prev_total;
 	double value;
-	DbInterface *db;
 	timeLen_t* timevec;
 	map<short, timeLen_t>* percentDiff;
 	map<short, timeLen_t>* nearestPercentDiff(NULL);
@@ -1832,9 +1890,8 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 									<< " with value " << timevec->maxCount << " into database" << endl;
 	#endif // __showStatistic
 
-							db= DbInterface::instance();
-							db->fillValue(timelength->folder, timelength->subroutine,
-											timevec->scount, timevec->maxCount, true);
+							fillValue(timelength->folder, timelength->subroutine,
+											timevec->scount, timevec->maxCount);
 					}else
 					{
 						timevec->reachedPercent.clear();
@@ -1868,8 +1925,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 	}
 	if(bSave)
 	{
-		db= DbInterface::instance();
-		db->fillValue(timelength->folder, timelength->subroutine, timevec->stype, timevec->actValue, true);
+		fillValue(timelength->folder, timelength->subroutine, timevec->stype, timevec->actValue);
 #ifdef __showStatistic
 		if(debug)
 		{
@@ -1903,9 +1959,10 @@ SHAREDPTR::shared_ptr<IListObjectPattern> MeasureThread::getPortClass(const stri
 MeasureThread::~MeasureThread()
 {
 #ifdef DEBUG
-	cout << "destructure of measureThread for folder "<< getThreadName() << endl;
+	cout << "destructure of measureThread for folder "<< getFolderName() << endl;
 #endif // DEBUG
 
+	m_oDbFiller.stop(/*wait*/true);
 	DESTROYMUTEX(m_DEBUGLOCK);
 	DESTROYMUTEX(m_VALUE);
 	DESTROYMUTEX(m_ACTIVATETIME);

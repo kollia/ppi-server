@@ -20,6 +20,8 @@
 
 #include "NoAnswerSender.h"
 
+#include "../../../util/GlobalStaticMethods.h"
+
 using namespace std;
 
 namespace util
@@ -61,7 +63,7 @@ namespace util
 
 			// this NoAnswer thread waiting for answer,
 			// because otherwise sending running in an loop
-			answer= m_pExternClient->sendMethod(msgPos->toProcess, method, msgPos->done, /*answer*/true);
+			answer= m_pExternClient->sendMethodD(msgPos->toProcess, method, msgPos->done, /*answer*/true);
 			for(vector<string>::iterator answ= answer.begin(); answ != answer.end(); ++answ)
 			{
 				err= error(*answ);
@@ -79,8 +81,8 @@ namespace util
 		LOCK(m_SENDQUEUELOCK);
 		if(sError != "")
 		{
-			cout << "NoAnswer method: " << msgPos->method << endl;
-			cout << " get Error code: " << sError << endl << endl;
+			cerr << "NoAnswer method: " << msgPos->method << endl;
+			cerr << " get Error code: " << sError << endl << endl;
 			m_sNoWaitError= sError; // fill back into queue all sending methods from error
 			m_vsSendingQueue.insert(m_vsSendingQueue.begin(), msgPos, messages.end());
 		}else

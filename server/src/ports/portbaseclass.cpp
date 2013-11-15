@@ -212,7 +212,6 @@ string portBase::getPermissionGroups()
 void portBase::setDeviceAccess(bool access)
 {
 	bool same= false;
-	DbInterface* db;
 
 	LOCK(m_CORRECTDEVICEACCESS);
 	if(m_pbCorrectDevice.get())
@@ -232,8 +231,7 @@ void portBase::setDeviceAccess(bool access)
 	UNLOCK(m_CORRECTDEVICEACCESS);
 	if(same)
 		return;
-	db= DbInterface::instance();
-	db->fillValue(m_sFolder, m_sSubroutine, "access", (double)access);
+	getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "access", (double)access);
 }
 
 void portBase::setObserver(IMeasurePattern* observer)
@@ -344,7 +342,6 @@ void portBase::setValue(double value, const string& from)
 		double invalue(value);
 		double dbvalue(value);
 		double oldMember(m_dValue);
-		DbInterface* db;
 
 		LOCK(m_VALUELOCK);
 		if(!m_bDefined)// if device not found by starting in init method
@@ -499,8 +496,8 @@ void portBase::setValue(double value, const string& from)
 #ifdef __moreOutput
 			cout << "            fill new value:" << dec << dbvalue << " into database" << endl;
 #endif // __moreOutput
-				db= DbInterface::instance();
-				db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
+
+				getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
 			}
 
 		}else if(	invalue != value &&
@@ -513,8 +510,8 @@ void portBase::setValue(double value, const string& from)
 #ifdef __moreOutput
 			cout << "             correct value:" << dec << dbvalue << " inside database to inform all clients" << endl;
 #endif // __moreOutput
-			db= DbInterface::instance();
-			db->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*update to old value*/true);
+
+			getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*update to old value*/true);
 		}
 #ifdef __moreOutput
 		cout << "       last state of value:" << dec << m_dValue;
@@ -558,7 +555,8 @@ bool portBase::setValue(const string& folder, const string& subroutine, double v
 		msg << "cannot set value " << value << " into given ";
 		msg << "folder:subroutine " << foldersub << " ";
 		msg << "set from '" << account << "'";
-		TIMELOG(LOG_ERROR, "setValue"+folder+":"+subroutine, msg.str());
+		TIMELOGEX(LOG_ERROR, "setValue"+folder+":"+subroutine, msg.str(),
+						getRunningThread()->getExternSendDevice());
 		return false;
 	}
 	port->setValue(value, "i:"+account);

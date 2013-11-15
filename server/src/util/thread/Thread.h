@@ -30,7 +30,7 @@
 #include "../debug.h"
 
 #include "../../pattern/util/ithreadpattern.h"
-#include "../../pattern/util/ILogPattern.h"
+#include "../../pattern/server/IClientSendMethods.h"
 
 // reading in c't extra programmieren
 // article: Tauziehen (Programmieren mit POSIX-Threads) under side 62
@@ -44,6 +44,7 @@
 
 using namespace design_pattern_world;
 using namespace design_pattern_world::util_pattern;
+using namespace design_pattern_world::client_pattern;
 using namespace std;
 
 struct mutexnames_t
@@ -120,8 +121,10 @@ class Thread :	public virtual IThreadPattern,
 		 * @param waitInit if flag is true (default), starting thread waiting until this thread initial with method init()
 		 * @param policy thread policy for scheduling
 		 * @param priority new other scheduling priority for thread
+		 * @param logger sending object over which logging should running
 		 */
-		Thread(const string& threadName, bool waitInit= true, const int policy= -1, const int priority= -9999);
+		Thread(const string& threadName, bool waitInit= true, const int policy= -1,
+						const int priority= -9999, IClientSendMethods* logger= NULL);
 		/**
 		 * start method to running the thread paralell
 		 *
@@ -396,27 +399,37 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		int getErrorCode();
 		/**
+		 * possible to set other logging application than standard from LogHolderPattern
+		 *
+		 * @param log other logging object
+		 */
+		void setOtherLogger(IClientSendMethods* log)
+		{ m_pExtLogger= log; };
+		/**
 		 * creating an new mutex to lock the thread or an hole part
 		 *
 		 * @param name name of mutex for logging information
+		 * @param logger other extern logger than LogHolderPattern
 		 * @return mutex variable
 		 */
-   		static pthread_mutex_t* getMutex(string name);
+   		static pthread_mutex_t* getMutex(const string& name, IClientSendMethods* logger= NULL);
    		/**
    		 * creating an new condition to wait for an other thread
    		 *
 		 * @param name name of condition for logging information
+		 * @param logger other extern logger than LogHolderPattern
 		 * @return mutex variable
 		 */
-   		static pthread_cond_t* getCondition(string name);
+   		static pthread_cond_t* getCondition(const string& name, IClientSendMethods* logger= NULL);
    		/**
    		 * locking thread
    		 *
    		 * @param file in which file this method be called
    		 * @param line on which line in the file this method be called
    		 * @param mutex mutex variable which should be locked
+		 * @param logger other extern logger than LogHolderPattern
    		 */
-   		static int mutex_lock(string file, int line, pthread_mutex_t *mutex);
+   		static int mutex_lock(const string& file, int line, pthread_mutex_t *mutex, IClientSendMethods* logger= NULL);
    		/**
    		 * try to lock an thread.<br />
    		 * If THE LOCK IS successful, returnvalue is 0, by locking from an other thread,
@@ -425,18 +438,20 @@ class Thread :	public virtual IThreadPattern,
    		 * @param file in which file this method be called
    		 * @param line on which line in the file this method be called
    		 * @param mutex mutex variable which should be unlocked
+		 * @param logger other extern logger than LogHolderPattern
    		 * @return 0 if successful, all other is an ERROR or EBUSY
    		 */
-   		static int mutex_trylock(string file, int line, pthread_mutex_t *mutex);
+   		static int mutex_trylock(const string& file, int line, pthread_mutex_t *mutex, IClientSendMethods* logger= NULL);
    		/**
    		 * unlock thread
    		 *
    		 * @param file in which file this method be called
    		 * @param line on which line in the file this method be called
    		 * @param mutex mutex variable which should be unlocked
+		 * @param logger other extern logger than LogHolderPattern
    		 * @return 0 if successful, all other is an ERROR
    		 */
-   		static int mutex_unlock(string file, int line, pthread_mutex_t *mutex);
+   		static int mutex_unlock(const string& file, int line, pthread_mutex_t *mutex, IClientSendMethods* logger= NULL);
    		/**
    		 * method should wait to get condition
    		 *
@@ -446,9 +461,11 @@ class Thread :	public virtual IThreadPattern,
    		 * @param mutex pointer to mutex in witch he should wait
    		 * @param time how much time the method maximal should wait if set
    		 * @param absolute if time be set, this parameter define whether the time is relative or absolute (default:true)
+		 * @param logger other extern logger than LogHolderPattern
    		 * @return 0 if successful, ETIMEDOUT if end of time reached, otherwise an error occured
    		 */
-   		static int conditionWait(string file, int line, pthread_cond_t* cond, pthread_mutex_t* mutex, const struct timespec *time= NULL, const bool absolute= true);
+   		static int conditionWait(const string& file, int line, pthread_cond_t* cond, pthread_mutex_t* mutex,
+   						const struct timespec *time= NULL, const bool absolute= true, IClientSendMethods* logger= NULL);
    		/**
    		 * method should wait to get condition
    		 *
@@ -458,35 +475,40 @@ class Thread :	public virtual IThreadPattern,
    		 * @param mutex pointer to mutex in witch he should wait
    		 * @param sec how much seconds the method maximal should wait if set
    		 * @param absolute if time be set, this parameter define whether the time is relative or absolute (default:true)
+		 * @param logger other extern logger than LogHolderPattern
    		 * @return 0 if successful, ETIMEDOUT if end of time reached, otherwise an error occured
    		 */
-   		static int conditionWait(string file, int line, pthread_cond_t* cond, pthread_mutex_t* mutex, const time_t sec, const bool absolute= true);
+   		static int conditionWait(const string& file, int line, pthread_cond_t* cond, pthread_mutex_t* mutex,
+   						const time_t sec, const bool absolute= true, IClientSendMethods* logger= NULL);
    		/**
    		 * arose one or more threads which wating for given condition
    		 *
    		 * @param file in which file this method be called
    		 * @param line on which line in the file this method be called
    		 * @param cond pointer to condition
+		 * @param logger other extern logger than LogHolderPattern
    		 * @return 0 if successful, otherwise an error occured
    		 */
-   		static int arouseCondition(string file, int line, pthread_cond_t *cond);
+   		static int arouseCondition(const string& file, int line, pthread_cond_t *cond, IClientSendMethods* logger= NULL);
    		/**
    		 * arose all threads which waiting for the given condition
    		 *
    		 * @param file in which file this method be called
    		 * @param line on which line in the file this method be called
    		 * @param cond pointer to condition
+		 * @param logger other extern logger than LogHolderPattern
    		 * @return 0 if successful, otherwise an error occured
    		 */
-   		static int arouseAllCondition(string file, int line, pthread_cond_t *cond);
+   		static int arouseAllCondition(const string& file, int line, pthread_cond_t *cond, IClientSendMethods* logger= NULL);
    		/**
    		 * destroy mutex in the map vector and give it free to hold it petit for performance
    		 *
    		 * @param file in which file this method be called
    		 * @param line on which line in the file this method be called
    		 * @param mutex mutex variable which should deleted
+		 * @param logger other extern logger than LogHolderPattern
    		 */
-   		static void destroyMutex(string file, int line, pthread_mutex_t *mutex);
+   		static void destroyMutex(const string& file, int line, pthread_mutex_t *mutex, IClientSendMethods* logger= NULL);
    		static void destroyAllMutex();
    		/**
    		 * destroy condition in map vector and give it free
@@ -494,23 +516,26 @@ class Thread :	public virtual IThreadPattern,
    		 * @param file in which file this method be called
    		 * @param line on which line in the file this method be called
    		 * @param cpmd pointer of condition which should deleted
+		 * @param logger other extern logger than LogHolderPattern
    		 */
-   		static void destroyCondition(string file, int line, pthread_cond_t *cond);
+   		static void destroyCondition(const string& file, int line, pthread_cond_t *cond, IClientSendMethods* logger= NULL);
    		static void destroyAllConditions();
    		/**
    		 * return name of mutex
    		 *
    		 * @param mutex pointer of mutex
+		 * @param logger other extern logger than LogHolderPattern
    		 * @return name of mutex
    		 */
-   		static string getMutexName(pthread_mutex_t *mutex);
+   		static string getMutexName(pthread_mutex_t *mutex, IClientSendMethods* logger= NULL);
    		/**
    		 * return name of condition
    		 *
    		 * @param cond pointer of condition
+		 * @param logger other extern logger than LogHolderPattern
    		 * @return name of condition
    		 */
-   		static string getConditionName(pthread_cond_t *cond);
+   		static string getConditionName(pthread_cond_t *cond, IClientSendMethods* logger= NULL);
    		/**
    		 * set the running application flag to false.
 		 * This flag is set for destroyMutex or destroyCondition
@@ -666,6 +691,10 @@ class Thread :	public virtual IThreadPattern,
 		 * the last destroy is done. So it gives an "Segmentation fault"
 		 */
 		static bool m_bAppRun;
+		/**
+		 * other logging tool when nessasary
+		 */
+		IClientSendMethods* m_pExtLogger;
 
 		/**
 		 * private copy constructor for not allowed copy
@@ -686,14 +715,23 @@ class Thread :	public virtual IThreadPattern,
 };
 
 #define LOCK(mutex) Thread::mutex_lock(__FILE__, __LINE__, mutex)
+#define LOCKEX(mutex, logger) Thread::mutex_lock(__FILE__, __LINE__, mutex, logger)
 #define TRYLOCK(mutex) Thread::mutex_trylock(__FILE__, __LINE__, mutex)
+#define TRYLOCKEX(mutex, logger) Thread::mutex_trylock(__FILE__, __LINE__, mutex, logger)
 #define UNLOCK(mutex) Thread::mutex_unlock(__FILE__, __LINE__, mutex)
+#define UNLOCKEX(mutex, logger) Thread::mutex_unlock(__FILE__, __LINE__, mutex, logger)
 #define CONDITION(cond, mutex) Thread::conditionWait(__FILE__, __LINE__, cond, mutex)
+#define CONDITIONEX(cond, mutex, logger) Thread::conditionWait(__FILE__, __LINE__, cond, mutex, (const struct timespec*)NULL, true, logger)
 #define TIMECONDITION(cond, mutex, time) Thread::conditionWait(__FILE__, __LINE__, cond, mutex, time, true)
+#define TIMECONDITIONEX(cond, mutex, time, logger) Thread::conditionWait(__FILE__, __LINE__, cond, mutex, time, true, logger)
 #define RELTIMECONDITION(cond, mutex, time) Thread::conditionWait(__FILE__, __LINE__, cond, mutex, time, false)
+#define RELTIMECONDITIONEX(cond, mutex, time, logger) Thread::conditionWait(__FILE__, __LINE__, cond, mutex, time, false, logger)
 #define AROUSE(cond) Thread::arouseCondition(__FILE__, __LINE__, cond)
+#define AROUSEEX(cond, logger) Thread::arouseCondition(__FILE__, __LINE__, cond, logger)
 #define AROUSEALL(cond) Thread::arouseAllCondition(__FILE__, __LINE__, cond)
 #define DESTROYMUTEX(mutex) Thread::destroyMutex(__FILE__, __LINE__, mutex)
+#define DESTROYMUTEXEX(mutex, logger) Thread::destroyMutex(__FILE__, __LINE__, mutex, logger)
 #define DESTROYCOND(cond) Thread::destroyCondition(__FILE__, __LINE__, cond)
+#define DESTROYCONDEX(cond, logger) Thread::destroyCondition(__FILE__, __LINE__, cond, logger)
 
 #endif /*THREAD_H_*/

@@ -246,7 +246,7 @@ namespace ports
 				msg+= "ID ";
 				msg+= m_sChipID + " for owserver ";
 				msg+= m_sServer + " cannot read correctly";
-				LOG(LOG_ERROR, msg);
+				LOGEX(LOG_ERROR, msg, getRunningThread()->getExternSendDevice());
 				if(debug)
 					tout << msg << endl;
 			}

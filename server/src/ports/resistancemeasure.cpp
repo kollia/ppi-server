@@ -71,7 +71,7 @@ namespace ports
 				warningOut+= getSubroutineName();
 				warningOut+= "\n             on set parameter 'out' and 'in', ";
 				warningOut+= warning + "will be ignored.";
-				LOG(LOG_INFO, warningOut);
+				LOGEX(LOG_INFO, warningOut, getRunningThread()->getExternSendDevice());
 				tout << warningOut << endl;
 			}
 			properties->notAllowedAction("binary");
@@ -116,7 +116,7 @@ namespace ports
 			warningOut+= "\n             if not set both parameter 'out' and 'in', RESISTANCE do not measure own time";
 			warningOut+= "\n             so parameters ";
 			warningOut+= warning + " will be ignored";
-			LOG(LOG_INFO, warningOut);
+			LOGEX(LOG_INFO, warningOut, getRunningThread()->getExternSendDevice());
 			tout << warningOut << endl;
 		}
 		sMValue= properties->needValue("mvalue");
@@ -141,7 +141,7 @@ namespace ports
 		msg= "measured resistance:";
 		msg+= buf;
 		msg+=" Ohm";
-		TIMELOG(LOG_INFO, getFolderName(), msg);
+		TIMELOGEX(LOG_INFO, getFolderName(), msg, getRunningThread()->getExternSendDevice());
 		if(isDebug())
 			tout << msg << endl;
 		return dResistance;

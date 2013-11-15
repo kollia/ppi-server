@@ -262,6 +262,8 @@ namespace util
 			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
 			 */
 			virtual vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
+			virtual vector<string> sendMethodD(const string& toProcess, const OMethodStringStream& method,
+							const string& done, const bool answer= true);
 			/*
 			 * close sending connection to server
 			 *
@@ -432,7 +434,7 @@ namespace util
 			 * @param answer whether client should wait for answer
 			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
 			 */
-			virtual vector<string> sendMethodD(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
+			//virtual vector<string> sendMethodD(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
 			/**
 			 * close given sending or get connection to server
 			 *

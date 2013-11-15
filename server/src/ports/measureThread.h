@@ -29,8 +29,10 @@
 #include "../util/thread/Thread.h"
 #include "../util/thread/Terminal.h"
 
+#include "DbFiller.h"
 #include "ListCalculator.h"
 
+using namespace util;
 using namespace design_pattern_world::util_pattern;
 
 struct MeasureArgArray
@@ -75,7 +77,7 @@ class MeasureThread : 	public Thread,
 		 * @return name of folder
 		 */
 		virtual string getFolderName() const
-		{ return getThreadName(); };
+		{ return m_sFolder; };
 		/**
 		 * returning thread id in which thread folder object running
 		 *
@@ -83,6 +85,13 @@ class MeasureThread : 	public Thread,
 		 */
 		virtual pid_t getRunningThreadID()
 		{ return Thread::getThreadID(); };
+		/**
+		 * returning external send device
+		 *
+		 * @return sending device
+		 */
+		virtual IClientSendMethods* getExternSendDevice()
+		{ return &m_oDbFiller; };
 		/**
 		 * return run specification of folder
 		 *
@@ -108,6 +117,29 @@ class MeasureThread : 	public Thread,
 		 * @param subroutine name of subroutine
 		 */
 		bool setDebug(bool bDebug, const string& subroutine= "");
+		/**
+		 * fill double value over an queue into database
+		 *
+		 * @param folder folder name from the running thread
+		 * @param subroutine name of the subroutine in the folder
+		 * @param identif identification of which value be set
+		 * @param value value which should write into database
+		 * @param bNew whether database should actualize value for client default= false
+		 */
+		virtual void fillValue(const string& folder, const string& subroutine, const string& identif, double value, bool bNew= false)
+		{ m_oDbFiller.fillValue(folder, subroutine, identif, value, bNew); };
+		/**
+		 * fill double value over an queue into database
+		 *
+		 * @param folder folder name from the running thread
+		 * @param subroutine name of the subroutine in the folder
+		 * @param identif identification of which value be set
+		 * @param dvalues vector of more values which should write into database
+		 * @param bNew whether database should actualize value for client default= false
+		 */
+		virtual void fillValue(const string& folder, const string& subroutine, const string& identif,
+						const vector<double>& dvalues, bool bNew= false)
+		{ m_oDbFiller.fillValue(folder, subroutine, identif, dvalues, bNew); };
 		/**
 		 * return actually count of current subroutine
 		 *
@@ -197,7 +229,7 @@ class MeasureThread : 	public Thread,
 		 * @param debug whether call run in debug session
 		 * @return longest measured length of folder time
 		 */
-		static timeval getLengthedTime(timetype_t* timelength, short *percent,
+		virtual timeval getLengthedTime(timetype_t* timelength, short *percent,
 										const bool& logPercent, const bool& debug);
 		/**
 		 * sleep microseconds by consider stopping of running thread
@@ -254,7 +286,7 @@ class MeasureThread : 	public Thread,
 		  * @param length longer time of reached or starting late time
 		  * @param debug whether subroutine running inside debug session
 		  */
-		 static void calcLengthDiff(timetype_t* timelength,
+		 virtual void calcLengthDiff(timetype_t* timelength,
 						 timeval length, const bool& debug);
 		 /**
 		  * search inside timetype_t for correct map with synchronization ID
@@ -264,7 +296,7 @@ class MeasureThread : 	public Thread,
 		  * @param nearest nearest map of syncronization ID for default value
 		  * @param debug whether subroutine running inside debug session
 		  */
-		 static map<short, timeLen_t>* getPercentDiff(timetype_t *timelength,
+		 map<short, timeLen_t>* getPercentDiff(timetype_t *timelength,
 						 	 map<short, timeLen_t>* nearest, const bool&debug);
 		/**
 		 * set into given timetype the CPU times to begin measuring for <code>getCpuPercent</code>
@@ -366,6 +398,10 @@ class MeasureThread : 	public Thread,
 		 */
 		bool m_bDebug;
 		/**
+		 * name of folder
+		 */
+		string m_sFolder;
+		/**
 		 * whether thread should reading running length time from database
 		 */
 		bool m_bNoDbReading;
@@ -465,6 +501,10 @@ class MeasureThread : 	public Thread,
 		 * condition for wait for new changing of any subroutine
 		 */
 		pthread_cond_t *m_VALUECONDITION;
+		/**
+		 * database filler pool
+		 */
+		DbFiller m_oDbFiller;
 
 		/**
 		 * private copy constructor for no allowed copy

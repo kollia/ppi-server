@@ -198,7 +198,7 @@ double Output::measure(const double actValue)
 			tout << out.str() << endl;
 		}
 		if(m_nLogLevel > -1)
-			LOG(m_nLogLevel, out.str());
+			LOGEX(m_nLogLevel, out.str(), getRunningThread()->getExternSendDevice());
 		output= 1;
 	}else
 		output= 0;

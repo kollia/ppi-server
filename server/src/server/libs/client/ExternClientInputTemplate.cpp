@@ -18,6 +18,7 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include "../../../util/debugtransaction.h"
+#include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/thread/Thread.h"
 
 #include "../../../pattern/util/LogHolderPattern.h"
@@ -49,10 +50,10 @@ namespace util
 		res= m_oAnswerSender.start();
 		if(res)
 		{
-			string err("ExternClientInputTemplate can not send questions which need no answer over the external thread '");
+			string err("ExternClientInputTemplate can not send questions which need no answer over external thread '");
 
 			m_bNoAnswerSend= false;
-			err+= m_oAnswerSender.getThreadName() + client + "'\n";
+			err+= m_oAnswerSender.getThreadName() + "'\n";
 			cerr << "### WARNING: " << err;
 			cerr << "              so send this messages directly which has more bad performance" << endl;
 			LOG(LOG_WARNING, err +"so send this messages directly which has more bad performance");
@@ -137,8 +138,26 @@ namespace util
 		if(	!answer &&
 			m_bNoAnswerSend	)
 		{
+#ifdef __WRONGPPISERVERSENDING
+			if(glob::getProcessName() == "ppi-server")
+			{
+				ostringstream out;
+				out << glob::getProcessName() << " send over NoAnswerSender pool" << endl;
+				out << "  '" << method.str() << "'" << endl;
+				cerr << out.str();
+			}
+#endif // __WRONGPPISERVERSENDING
 			return m_oAnswerSender.sendMethod(toProcess, method, done);
 		}
+#ifdef __WRONGPPISERVERSENDING
+		if(glob::getProcessName() == "ppi-server")
+		{
+			ostringstream out;
+			out << "Sending directly from " << glob::getProcessName() << "(" << m_sName << ") command " << endl;
+			out << "  '" << method.str() << "'" << endl;
+			cerr << out.str();
+		}
+#endif // __WRONGPPISERVERSENDING
 		return sendMethodD(toProcess, method, done, answer);
 	}
 
@@ -150,7 +169,6 @@ namespace util
 		string command;
 		vector<string> result, fresult;
 		vector<string>::iterator it;
-
 
 		LOCK(m_SENDMETHODLOCK);
 		if(m_oSendConnect == NULL)

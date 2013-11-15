@@ -28,7 +28,6 @@
 
 #include <memory>
 #include <iostream>
-//#include <sstream>
 #include <fstream>
 #include <map>
 
@@ -40,6 +39,7 @@
 
 #include "../../util/URL.h"
 #include "../../util/Calendar.h"
+#include "../../util/exception.h"
 #include "../../util/properties/configpropertycasher.h"
 
 #include "../../pattern/util/LogHolderPattern.h"
@@ -72,6 +72,7 @@ namespace ppi_database
 		else
 			m_sMeasureName= string(pHostN);
 		m_sptEntrys= auto_ptr<vector<db_t> >(new vector<db_t>());
+		m_apmmtValueEntrys= auto_ptr<map<string, map<string, db_t> > >(new map<string, map<string, db_t> > ());
 		m_SERVERSTARTINGMUTEX= Thread::getMutex("SERVERSTARTINGMUTEX");
 		m_DBENTRYITEMSCOND= Thread::getCondition("DBENTRYITEMSCOND");
 		m_DBENTRYITEMS= Thread::getMutex("DBENTRYITEMS");
@@ -984,6 +985,7 @@ namespace ppi_database
 		}
 		cout << "-- search for " << (number+1) << ". value in " << folder << ":" << subroutine << " with identifier " << identif << endl;
 	#endif
+
 		pfEntrys= &m_mCurrent[folder];
 		if(pfEntrys->size() == 0)
 		{
@@ -1000,8 +1002,10 @@ namespace ppi_database
 		UNLOCK(m_DBCURRENTENTRY);
 		if(tvalue.folder == "")
 			return spnRv;
-
-		spnRv= auto_ptr<double>(new double(tvalue.values[number]));
+		if(number >= tvalue.values.size())
+			spnRv= auto_ptr<double>(new double(0));
+		else
+			spnRv= auto_ptr<double>(new double(tvalue.values[number]));
 		return spnRv;
 	}
 
@@ -1460,6 +1464,7 @@ namespace ppi_database
 
 	void Database::fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew/*=false*/)
 	{
+		map<string, db_t>::iterator foundSub;
 		db_t newEntry;
 
 		if(gettimeofday(&newEntry.tm, NULL))
@@ -1486,25 +1491,52 @@ namespace ppi_database
 		}
 
 		LOCK(m_DBENTRYITEMS);
-		m_sptEntrys->push_back(newEntry);
+		if(identif == "value")
+		{
+			foundSub= (*m_apmmtValueEntrys)[folder].find(subroutine);
+			if(foundSub != (*m_apmmtValueEntrys)[folder].end())
+			{
+				foundSub->second.tm.tv_sec= newEntry.tm.tv_sec;
+				foundSub->second.tm.tv_usec= newEntry.tm.tv_usec;
+				foundSub->second.values= values;
+				foundSub->second.bNew= bNew;
+			}else
+				(*m_apmmtValueEntrys)[folder][subroutine]= newEntry;
+		}else
+			m_sptEntrys->push_back(newEntry);
 		AROUSE(m_DBENTRYITEMSCOND);
 		UNLOCK(m_DBENTRYITEMS);
 	}
 
 	std::auto_ptr<vector<db_t> > Database::getDbEntryVector()
 	{
+		typedef map<string, map<string, db_t> >::iterator folderIt;
+		typedef map<string, db_t>::iterator subIt;
+		bool foundValues(false);
 		int conderror= 0;
 		std::auto_ptr<vector<db_t> > pRv(new vector<db_t>());
 
 		do{
 			conderror= 0;
 			LOCK(m_DBENTRYITEMS);
-			if(m_sptEntrys->size() != 0)
+			if(	m_sptEntrys->size() != 0 ||
+				m_apmmtValueEntrys->size() != 0	)
 			{
 				pRv= m_sptEntrys;
 				m_sptEntrys= std::auto_ptr<vector<db_t> >(new vector<db_t>());
-
-			}else
+				for(folderIt fIt= m_apmmtValueEntrys->begin(); fIt != m_apmmtValueEntrys->end(); ++fIt)
+				{
+					for(subIt sIt= fIt->second.begin(); sIt != fIt->second.end(); ++sIt)
+					{
+						foundValues= true;
+						pRv->push_back(sIt->second);
+					}
+				}
+				if(foundValues)
+					m_apmmtValueEntrys=
+									auto_ptr<map<string, map<string, db_t> > >(new map<string, map<string, db_t> >());
+			}
+			if(pRv->size() == 0)
 				conderror= CONDITION(m_DBENTRYITEMSCOND, m_DBENTRYITEMS);
 			UNLOCK(m_DBENTRYITEMS);
 			if(conderror)
@@ -1533,7 +1565,8 @@ namespace ppi_database
 				{
 					fillMeasureCurve(*i);
 					bNewValue= true;
-				}else
+
+				}else //if(i->identif != "value")
 					bNewValue= setActEntry(*i);
 
 				if(	bNewValue

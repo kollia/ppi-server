@@ -20,38 +20,41 @@
 
 #include <string>
 
+#include "../../../pattern/server/IClientSendMethods.h"
+
 using namespace std;
+using namespace design_pattern_world::client_pattern;
 
 #ifndef LOG_DEBUG
-#define LOG_DEBUG 0x000 // 00000000
+#define LOG_DEBUG 0b00000000
 #endif // LOG_DEBUG
 #ifndef LOG_INFO
-#define LOG_INFO 0x001 // 00000001
+#define LOG_INFO 0b00000001
 #endif // LOG_INFO
 #ifndef LOG_WARNING
-#define LOG_WARNING 0x002 // 00000010
+#define LOG_WARNING 0b00000010
 #endif // LOG_WARNING
 #ifndef LOG_ERROR
-#define LOG_ERROR 0x003 // 00000011
+#define LOG_ERROR 0b00000011
 #endif // LOG_ERROR
 #ifndef LOG_ALERT
-#define LOG_ALERT 0x004 // 00000100
+#define LOG_ALERT 0b00000100
 #endif // LOG_ALERT
 
 #ifndef LOG_SERVERDEBUG
-#define LOG_SERVERDEBUG 0x008 // 00001000
+#define LOG_SERVERDEBUG 0b00001000
 #endif // LOG_SERVERDEBUG
 #ifndef LOG_SERVERINFO
-#define LOG_SERVERINFO 0x009 // 00001001
+#define LOG_SERVERINFO 0b00001001
 #endif // LOG_SERVERINFO
 #ifndef LOG_SERVERWARNING
-#define LOG_SERVERWARNING 0x00A // 00001010
+#define LOG_SERVERWARNING 0b00001010
 #endif // LOG_SERVERWARNING
 #ifndef LOG_SERVERERROR
-#define LOG_SERVERERROR 0x00B // 00001011
+#define LOG_SERVERERROR 0b00001011
 #endif // LOG_SERVERERROR
 #ifndef LOG_SERVERALERT
-#define LOG_SERVERALERT 0x00C // 00001100
+#define LOG_SERVERALERT 0b00001100
 #endif // LOG_SERVERALERT
 
 struct log_t
@@ -65,6 +68,7 @@ struct log_t
 	int type;
 	string message;
 	string identif;
+	IClientSendMethods* otherSendDevice;
 };
 
 struct timelog_t
@@ -81,6 +85,7 @@ struct threadNames
 	unsigned int count;
 	pthread_t thread;
 	string name;
+	IClientSendMethods* otherSendDevice;
 };
 
 #endif /* LOGSTRUCTURES_H_ */

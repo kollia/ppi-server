@@ -117,12 +117,21 @@ namespace logger
 		return write;
 	}
 
-	void LogInterface::setThreadName(const string& threadName)
+	void LogInterface::setThreadName(const string& threadName, IClientSendMethods* sendDevice/*= NULL*/)
 	{
 		threadNames tName;
 
 		tName.name= threadName;
 		tName.thread= pthread_self();
+		if(sendDevice != NULL)
+		{
+			OMethodStringStream command("setThreadName");
+
+			command << threadName;
+			command << tName.thread;
+			sendDevice->sendMethod(/*LogServer*/m_sToProcess, command, /*answer*/false);
+			return;
+		}
 		if(!openedConnection())
 		{
 			LOCK(m_WRITELOOP);
@@ -132,13 +141,15 @@ namespace logger
 			writethread(tName);
 	}
 
-	string LogInterface::getThreadName(const pthread_t threadID/*= 0*/)
+	string LogInterface::getThreadName(const pthread_t threadID/*= 0*/, IClientSendMethods* sendDevice/*= NULL*/)
 	{
 		OMethodStringStream command("getThreadName");
 
 		if(!openedConnection())
 			return "no connection to logging client";
 		command << threadID;
+		if(sendDevice != NULL)
+			return sendDevice->sendMethod(/*LogServer*/m_sToProcess, command, true);
 		return sendMethod(/*LogServer*/m_sToProcess, command, true);
 
 	}
@@ -157,7 +168,8 @@ namespace logger
 		sendMethod(/*LogServer*/m_sToProcess, command, false);
 	}
 
-	void LogInterface::log(const string& file, const int line, const int type, const string& message, const string& sTimeLogIdentif/*= ""*/)
+	void LogInterface::log(const string& file, const int line, const int type, const string& message,
+					const string& sTimeLogIdentif/*= ""*/, IClientSendMethods* sendDevice/*= NULL*/)
 	{
 		log_t log;
 
@@ -170,6 +182,22 @@ namespace logger
 		log.pid= getpid();
 		log.tid= Thread::gettid();
 		time(&log.tmnow);
+		if(sendDevice != NULL)
+		{
+			OMethodStringStream command("log");
+
+			command << file;
+			command << line;
+			command << type;
+			command << message;
+			command << log.pid;
+			command << log.tid;
+			command << log.thread;
+			command << sTimeLogIdentif;
+			command << log.tmnow;
+			sendDevice->sendMethod(/*LogServer*/m_sToProcess, command, /*answer*/false);
+			return;
+		}
 		if(!openedConnection())
 		{
 			LOCK(m_WRITELOOP);

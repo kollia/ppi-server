@@ -83,7 +83,7 @@ int CommandExec::init(void* args)
 	}
 	if(m_sCommand == "")
 	{
-		TIMELOG(LOG_ERROR, "msCommandInitial", "CommandExec object will be create without command string");
+		TIMELOGEX(LOG_ERROR, "msCommandInitial", "CommandExec object will be create without command string", m_pSendLog);
 		return -1;
 	}
 	return 0;
@@ -254,7 +254,7 @@ int CommandExec::stop(const bool *bWait/*= NULL*/)
 				msg+= "    ( please do not start the same command in more than one SHELL subroutine\n";
 				msg+= "                                        maybe only with different parameters )";
 				cerr << msg << endl;
-				LOG(LOG_ERROR, msg);
+				LOGEX(LOG_ERROR, msg, m_pSendLog);
 
 			}else if(vlastPid.size() == 1)
 			{
@@ -365,7 +365,7 @@ vector<string> CommandExec::grepPS(pid_t pid) const
 		sline+=           *strerror(errno) + "\n";
 		sline+= "       >> do not stop process !!! <<";
 		cerr << sline << endl;
-		LOG(LOG_ERROR, sline);
+		LOGEX(LOG_ERROR, sline, m_pSendLog);
 		return vsRv;
 	};
 	sline= "";
@@ -416,7 +416,7 @@ int CommandExec::execute()
 			sline= "ERROR by writing command on folder subroutine " + m_sCommand + " on command line\n";
 			sline+= "ERRNO: " + *strerror(errno);
 			cerr << sline << endl;
-			LOG(LOG_ERROR, sline);
+			LOGEX(LOG_ERROR, sline, m_pSendLog);
 			return -1;
 		};
 		LOCK(m_WAITMUTEX);
@@ -522,7 +522,7 @@ int CommandExec::execute()
 						msg << "    " << *it;
 				}else
 					msg << "    no output from script";
-				TIMELOG(LOG_ERROR, sLastErrorlevel, msg.str());
+				TIMELOGEX(LOG_ERROR, sLastErrorlevel, msg.str(), m_pSendLog);
 			}
 			if(	bWait ||
 				bDebug	)
@@ -645,8 +645,9 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 				m_tScriptPid= 0;
 				UNLOCK(m_WAITMUTEX);
 				command= " ### WARNING: cannot recognize process-id as correct running process";
-				TIMELOG(LOG_WARNING, "shell_stopsignal"+sline, "for SHELL command inside subroutine " + m_sFolder + ":" + m_sSubroutine
-								+ "\ncannot recognize shell-output as correct running process-id\noutput string '" + sline + "'"        );
+				TIMELOGEX(LOG_WARNING, "shell_stopsignal"+sline, "for SHELL command inside subroutine " + m_sFolder + ":" + m_sSubroutine
+								+ "\ncannot recognize shell-output as correct running process-id\noutput string '"
+								+ sline + "'", m_pSendLog        );
 			}
 
 		}else if(msg == "stop")
@@ -696,8 +697,9 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 			if(bok == false)
 			{
 				command= " ### WARNING: cannot recognize output as stopping signal";
-				TIMELOG(LOG_WARNING, "shell_stopsignal"+sline, "for SHELL command inside subroutine " + m_sFolder + ":" + m_sSubroutine
-								+ "\ncannot recognize shell-output as stopping signal\noutput string '" + sline + "'"        );
+				TIMELOGEX(LOG_WARNING, "shell_stopsignal"+sline, "for SHELL command inside subroutine " + m_sFolder + ":" + m_sSubroutine
+								+ "\ncannot recognize shell-output as stopping signal\noutput string '"
+								+ sline + "'", m_pSendLog        );
 			}else
 				command= "";
 
@@ -732,7 +734,7 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 						msg+= *it + "\n";
 					trim(msg);
 					//cout << "sending msg to logger: '" << msg << "'" << endl;
-					LOG(m_nLogLevel, msg);
+					LOGEX(m_nLogLevel, msg, m_pSendLog);
 					m_qLog.clear();
 				}
 				m_bLogging= false;
@@ -758,7 +760,7 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 						msg.length() > npos)
 					{
 						msg= msg.substr(npos);
-						LOG(m_nLogLevel, msg);
+						LOGEX(m_nLogLevel, msg, m_pSendLog);
 						command= "";
 					}else
 						command= "-  #ERROR: logging command has no string";
@@ -779,8 +781,9 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 		}else
 		{
 			command= " ### WARNING: cannot recognize PPI-DEF line as any correct definition";
-			TIMELOG(LOG_WARNING, "shell_ppi-def"+sline, "for SHELL command inside subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\ncannot recognize PPI-DEF shell-output as any correct definition\noutput string '" + sline + "'" );
+			TIMELOGEX(LOG_WARNING, "shell_ppi-def"+sline, "for SHELL command inside subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\ncannot recognize PPI-DEF shell-output as any correct definition\noutput string '"
+							+ sline + "'", m_pSendLog );
 		}
 	}
 	if(!bWait)
@@ -884,9 +887,9 @@ void CommandExec::setValue(const string& command, bool bLog)
 			if(m_qLog.size() > 1000)
 				m_qLog.pop_front();
 		}
-		TIMELOG(LOG_ALERT, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+		TIMELOGEX(LOG_ALERT, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
 							+ "\nby command: " + m_sCommand + "\noutput string '" + command
-							+ "'\n               no setValue interface be set"               );
+							+ "'\n               no setValue interface be set", m_pSendLog               );
 		return;
 	}
 	icommand >> outstr; // string of PPI-SET (not needed)
@@ -908,9 +911,9 @@ void CommandExec::setValue(const string& command, bool bLog)
 			if(m_qLog.size() > 1000)
 				m_qLog.pop_front();
 		}
-		TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+		TIMELOGEX(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
 							+ "\nby command: " + m_sCommand + "\noutput string '" + command
-							+ "'\n               ### ERROR: cannot read correctly PPI-SET command"               );
+							+ "'\n               ### ERROR: cannot read correctly PPI-SET command", m_pSendLog               );
 		return;
 	}
 	icommand >> outstr; // folder:subroutine string
@@ -932,9 +935,9 @@ void CommandExec::setValue(const string& command, bool bLog)
 			if(m_qLog.size() > 1000)
 				m_qLog.pop_front();
 		}
-		TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+		TIMELOGEX(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
 							+ "\nby command: " + m_sCommand + "\noutput string '" + command
-							+ "'\n               cannot read definition of <folder>:<subroutine>"			               );
+							+ "'\n               cannot read definition of <folder>:<subroutine>", m_pSendLog			               );
 		return;
 	}
 	split(spl, outstr, is_any_of(":"));
@@ -955,9 +958,9 @@ void CommandExec::setValue(const string& command, bool bLog)
 			if(m_qLog.size() > 1000)
 				m_qLog.pop_front();
 		}
-		TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+		TIMELOGEX(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
 							+ "\nby command: " + m_sCommand + "\noutput string '" + command
-							+ "'\n               cannot read definition of <folder>:<subroutine>"			               );
+							+ "'\n               cannot read definition of <folder>:<subroutine>", m_pSendLog			               );
 		return;
 	}
 	icommand >> value;
@@ -978,9 +981,9 @@ void CommandExec::setValue(const string& command, bool bLog)
 			if(m_qLog.size() > 1000)
 				m_qLog.pop_front();
 		}
-		TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+		TIMELOGEX(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
 							+ "\nby command: " + m_sCommand + "\noutput string '" + command
-							+ "'\n               cannot read definition of value"			               );
+							+ "'\n               cannot read definition of value", m_pSendLog			               );
 		return;
 	}
 	LOCK(m_externWRITTENVALUES);
@@ -1032,9 +1035,9 @@ void CommandExec::setValue(const string& command, bool bLog)
 				if(m_qLog.size() > 1000)
 					m_qLog.pop_front();
 			}
-			TIMELOG(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+			TIMELOGEX(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
 								+ "\nby command: " + m_sCommand + "\noutput string '" + command
-								+ "'\n               cannot write correctly PPI-SET command over interface to folder-list"      );
+								+ "'\n               cannot write correctly PPI-SET command over interface to folder-list", m_pSendLog      );
 		}
 	}
 }

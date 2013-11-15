@@ -345,7 +345,7 @@ unsigned long TimeMeasure::getNewMikroseconds(vector<ohm> *elkoCorrection)
 #endif // DEBUG
 	logString+= "\n";
 	logString+= logString2;
-	LOG(LOG_INFO, logString);
+	LOGEX(LOG_INFO, logString, getRunningThread()->getExternSendDevice());
 	return time;
 }
 
@@ -469,7 +469,7 @@ correction_t TimeMeasure::getNewCorrection(correction_t tCorrection, vector<ohm>
 
 	logString+= "\n";
 	logString+= logString2;
-	LOG(LOG_INFO, logString);
+	LOGEX(LOG_INFO, logString, getRunningThread()->getExternSendDevice());
 	tRv.be= tCorrection.be;
 	tRv.nMikrosec= time;
 	tRv.correction= correction;
@@ -493,7 +493,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 #ifndef DEBUG
 	tout << logString << endl;
 #endif // DEBUUG
-	LOG(LOG_INFO, logString);
+	LOGEX(LOG_INFO, logString, getRunningThread()->getExternSendDevice());
 
 	m_nMeasuredness= 1;
 	maxtime= 0;
@@ -553,7 +553,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 		}
 		sleep(sleeptime);
 	}
-	LOG(LOG_INFO, endlog);
+	LOGEX(LOG_INFO, endlog, getRunningThread()->getExternSendDevice());
 #ifdef DEBUG
 	tout << endlog << endl << endl;
 #endif // DEBUG
@@ -585,7 +585,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 	sprintf(res, "%lu", (maxtime-mintime));
 	logString+= res;
 	logString+= ".\n";
-	LOG(LOG_INFO, logString);
+	LOGEX(LOG_INFO, logString, getRunningThread()->getExternSendDevice());
 #ifndef DEBUG
 	tout << logString << endl;
 #endif //DEBUG

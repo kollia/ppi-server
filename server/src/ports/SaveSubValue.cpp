@@ -19,11 +19,8 @@
 
 #include "SaveSubValue.h"
 
-#include "../database/lib/DbInterface.h"
-
 #include "../pattern/util/iactionpropertypattern.h"
 
-using namespace ppi_database;
 using namespace design_pattern_world;
 
 namespace ports
@@ -77,7 +74,6 @@ namespace ports
 	{
 		double value= 0;
 		vector<double> vValues;
-		DbInterface* db= DbInterface::instance();
 
 		m_dSwitch= switchClass::measure(m_dSwitch);
 		if(m_dSwitch > 0)
@@ -97,7 +93,7 @@ namespace ports
 				||
 				m_sIdentif.substr(0, 6) == "clear:"	)
 			{
-				db->fillValue(folder, subroutine, m_sIdentif, vValues, /*only new values*/false);
+				getRunningThread()->fillValue(folder, subroutine, m_sIdentif, vValues, /*only new values*/false);
 			}
 			return 1;
 		}
