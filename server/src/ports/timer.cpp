@@ -307,7 +307,6 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 						{// allow database writing for start option --timerdblog
 							db->writeIntoDb(folder, subroutine, "reachpercent");
 							db->writeIntoDb(folder, subroutine, "reachlate");
-							db->writeIntoDb(folder, subroutine, "wrongreach");
 							db->fillValue(folder, subroutine, "reachpercent", 0, /*new*/true);
 							db->fillValue(folder, subroutine, "reachlate", 0, /*new*/true);
 							db->fillValue(folder, subroutine, "wrongreach", 0, /*new*/true);
@@ -378,27 +377,38 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 								for(short n= m_nFinishedCPUtime; n <= 100; n+= m_nFinishedCPUtime)
 								{
 									bool exist;
-									ostringstream dbstr, maxcount;
+									// drop set of maxcount
+									// because after new starting of hardware
+									// and new starting of ppi-server
+									// counting should begin from start
+									// maybe the application running in other better time
+									ostringstream dbstr, wrongreach;//, maxcount;
 
 									dbstr << "reachend";
-									maxcount << "maxcount";
+									wrongreach << "wrongreach";
+									//maxcount << "maxcount";
 									if(bit > 1)
 									{
 										dbstr << specID;
-										maxcount << specID;
+										wrongreach << specID;
+										//maxcount << specID;
 									}
 									if(m_nFinishedCPUtime < 100)
 									{
 										if(bit > 1)
 										{
 											dbstr << "-";
-											maxcount << "-";
+											wrongreach << "-";
+											//maxcount << "-";
 										}
 										dbstr << n;
-										maxcount << n;
+										wrongreach << n;
+										//maxcount << n;
 									}
 									db->writeIntoDb(folder, subroutine, dbstr.str());
-									db->writeIntoDb(folder, subroutine, maxcount.str());
+									//db->writeIntoDb(folder, subroutine, maxcount.str());
+									if(m_bLogPercent)
+										db->writeIntoDb(folder, subroutine, wrongreach.str());
 									if(!m_bNoDbRead)
 									{
 										dDefault= db->getActEntry(exist, folder, subroutine, dbstr.str());
@@ -407,17 +417,19 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 										{
 											m_tReachedTypes.percentSyncDiff[specID][n].actValue= dDefault;
 											m_tReachedTypes.percentSyncDiff[specID][n].reachedPercent[0]= pair<short, double>(1, dDefault);
-											dDefault= db->getActEntry(exist, folder, subroutine, maxcount.str());
-											if(!exist)
-												dDefault= 1;
-											m_tReachedTypes.percentSyncDiff[specID][n].maxCount= static_cast<short>(dDefault);
+											//dDefault= db->getActEntry(exist, folder, subroutine, maxcount.str());
+											//if(!exist)
+											//	dDefault= 1;
+											m_tReachedTypes.percentSyncDiff[specID][n].maxCount= 1;//static_cast<short>(dDefault);
 											m_tReachedTypes.percentSyncDiff[specID][n].stype= dbstr.str();
-											m_tReachedTypes.percentSyncDiff[specID][n].scount= maxcount.str();
+											//m_tReachedTypes.percentSyncDiff[specID][n].scount= maxcount.str();
 										}
 									}else
 									{
 										db->fillValue(folder, subroutine, dbstr.str(), 0, /*new*/true);
-										db->fillValue(folder, subroutine, maxcount.str(), 0, /*new*/true);
+										//db->fillValue(folder, subroutine, maxcount.str(), 0, /*new*/true);
+										if(m_bLogPercent)
+											db->fillValue(folder, subroutine, wrongreach.str(), /*new*/true);
 									}
 								}//for(short n= m_nFinishedCPUtime; n <= 100; n+= m_nFinishedCPUtime)
 					// -------------------------------------------------------------------------------------
@@ -590,8 +602,9 @@ double timer::measure(const double actValue)
 					seconds= MeasureThread::calcResult(wrong, /*seconds*/false);
 					if(wless)
 						seconds*= -1;
-					getRunningThread()->fillValue(folder, subroutine, "wrongreach", seconds);
+					getRunningThread()->fillValue(folder, subroutine, "wrongreach"+m_sSyncID, seconds);
 				}
+				m_sSyncID= "";
 			}else
 				timersub(&changed, &m_tmExactStop, &changed);// <- timersub made also inside debug mode
 			getRunningThread()->calcLengthDiff(&m_tReachedTypes, changed, debug);
@@ -1523,7 +1536,8 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 
 				err << "calculated minus time (" << calc << ") to refresh folder by ";
 				err << getFolderName() << ":" << getSubroutineName();
-				TIMELOG(LOG_ALERT, getSubroutineName(), err.str());
+				TIMELOGEX(LOG_WARNING, getSubroutineName(), err.str(),
+								getRunningThread()->getExternSendDevice());
 				if(debug)
 					tout << "###ERROR: " << err.str() << endl;
 			}else
@@ -1609,7 +1623,7 @@ double timer::substractExactFinishTime(timeval* nextTime, timeval* refreshTime, 
 				timersub(&finishedNext, &tmReachEnd, &tvLength);
 			else
 				tvLength= finishedNext;
-			tout << "          to reach subroutine after ";
+			tout << "       to reach subroutine after ";
 			tout << MeasureThread::getTimevalString(tvLength, /*as date*/false, debug);
 			tout << " seconds, by ";
 			tout <<  MeasureThread::getTimevalString(*exactStop, /*as date*/true, debug);
@@ -1617,7 +1631,7 @@ double timer::substractExactFinishTime(timeval* nextTime, timeval* refreshTime, 
 		}
 		if(!m_oFinished.isEmpty())
 		{
-			tout << "          which should be finished after ";
+			tout << "  which should be finished after ";
 			tout << MeasureThread::getTimevalString(finishedNext, /*as date*/false, debug);
 			tout << " seconds, by ";
 			tout << MeasureThread::getTimevalString(m_tmWantFinish, /*as date*/true, debug);

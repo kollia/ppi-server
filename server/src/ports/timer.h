@@ -169,7 +169,7 @@ protected:
 	 */
 	bool m_bExactTime;
 	/**
-	 * pull parameter 'reachlate' from database with follow
+	 * pull parameter 'reachend'/'wrongreach' from database with follow
 	 * running folder synchronization ID
 	 */
 	string m_sSyncID;

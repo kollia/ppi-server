@@ -339,17 +339,22 @@ int MeasureThread::init(void *arg)
 		for(short n= m_nFolderCPUtime; n <= 100; n+= m_nFolderCPUtime)
 		{
 			bool exist;
-			ostringstream dbstr, maxcount;
+			// drop set of maxcount
+			// because after new starting of hardware
+			// and new starting of ppi-server
+			// counting should begin from start
+			// maybe the application running in other better time
+			ostringstream dbstr;//, maxcount;
 
 			dbstr << "runlength";
-			maxcount << "maxcount";
+			//maxcount << "maxcount";
 			if(m_nFolderCPUtime < 100)
 			{
 				dbstr << n;
-				maxcount << n;
+				//maxcount << n;
 			}
 			db->writeIntoDb("folder", folder, dbstr.str());
-			db->writeIntoDb("folder", folder, maxcount.str());
+			//db->writeIntoDb("folder", folder, maxcount.str());
 			if(!m_bNoDbReading)
 			{
 				dLength= db->getActEntry(exist, "folder", folder, dbstr.str());
@@ -358,17 +363,17 @@ int MeasureThread::init(void *arg)
 				{
 					m_tLengthType.percentSyncDiff["none"][n].actValue= dLength;
 					m_tLengthType.percentSyncDiff["none"][n].reachedPercent[0]= pair<short, double>(1, dLength);
-					dLength= db->getActEntry(exist, "folder", folder, maxcount.str());
-					if(!exist)
-						dLength= 1;
-					m_tLengthType.percentSyncDiff["none"][n].maxCount= static_cast<short>(dLength);
+					//dLength= db->getActEntry(exist, "folder", folder, maxcount.str());
+					//if(!exist)
+					//	dLength= 1;
+					m_tLengthType.percentSyncDiff["none"][n].maxCount= 1;//static_cast<short>(dLength);
 					m_tLengthType.percentSyncDiff["none"][n].stype= dbstr.str();
-					m_tLengthType.percentSyncDiff["none"][n].scount= maxcount.str();
+					//m_tLengthType.percentSyncDiff["none"][n].scount= maxcount.str();
 				}
 			}else
 			{
 				db->fillValue("folder", folder, dbstr.str(), 0, /*new*/true);
-				db->fillValue("folder", folder, maxcount.str(), 0, /*new*/true);
+				//db->fillValue("folder", folder, maxcount.str(), 0, /*new*/true);
 			}
 		}
 	}
@@ -1552,7 +1557,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 		it= percentDiff->find(nPercent);
 		if(it == percentDiff->end())
 		{// create new entry
-			ostringstream dbstr, maxcount;
+			ostringstream dbstr;//, maxcount;
 
 #ifdef __showStatistic
 			if(debug)
@@ -1571,17 +1576,17 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 				dbstr << "runlength";
 			else
 				dbstr << "reachend";
-			maxcount << "maxcount";
+			//maxcount << "maxcount";
 			if(	!timelength->runlength &&
 				timelength->synchroID != ""	)
 			{
 				dbstr << timelength->synchroID << "-";
-				maxcount << timelength->synchroID << "-";
+				//maxcount << timelength->synchroID << "-";
 			}
 			dbstr << nPercent;
-			maxcount << nPercent;
+			//maxcount << nPercent;
 			(*percentDiff)[nPercent].stype= dbstr.str();
-			(*percentDiff)[nPercent].scount= maxcount.str();
+			//(*percentDiff)[nPercent].scount= maxcount.str();
 			(*percentDiff)[nPercent].maxCount= 0;
 			timevec= &(*percentDiff)[nPercent];
 		}else
