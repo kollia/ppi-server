@@ -54,7 +54,7 @@ using namespace boost::algorithm;
 // output on command line also this statistics
 // to calculate middle length of folder or reach finish
 // when definition __showStatitic be defined and debug set
-#define __showStatistic
+//#define __showStatistic
 
 SHAREDPTR::shared_ptr<meash_t> meash_t::firstInstance= SHAREDPTR::shared_ptr<meash_t>();
 string meash_t::clientPath= "";
@@ -298,6 +298,13 @@ int MeasureThread::init(void *arg)
 			{
 				cout << "      subroutine " << (*m_pvtSubroutines)[n].name << endl;
 			}
+			// debugging output for different folders, subroutines
+			/*if(	m_sFolder == "Raff1_Zeit" &&
+				(*m_pvtSubroutines)[n].name == "grad"	)
+			{
+				cout << "stopping by set observer for " << m_sFolder << ":" << (*m_pvtSubroutines)[n].name << endl;
+				cout << __FILE__ << __LINE__ << endl;
+			}*/
 			port= (*m_pvtSubroutines)[n].portClass;
 			// set now running folder shortly before subroutine
 			// will be initialed (it's before folder starting)

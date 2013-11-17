@@ -86,6 +86,7 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	m_sPermission= properties->getValue("perm", /*warning*/false);
 	m_bWriteDb= properties->haveAction("db");
 	m_bSwitch= properties->haveAction("binary");
+	m_nCount= getRunningThread()->getActCount();
 	dDef= properties->getDouble(prop, /*warning*/false);
 	if(prop != "#ERROR")
 		m_dValue= dDef;
@@ -236,8 +237,6 @@ void portBase::setDeviceAccess(bool access)
 
 void portBase::setObserver(IMeasurePattern* observer)
 {
-	if(m_nCount == 0) // set actually count number of subroutine inside folder
-		m_nCount= observer->getActCount();
 	m_oLinkWhile.activateObserver(observer);
 }
 
@@ -253,8 +252,8 @@ void portBase::informObserver(IMeasurePattern* observer, const string& folder, c
 	try{
 		if(	folder == getFolderName() &&
 			(	subroutine == getSubroutineName() ||
-				observer->getActCount(subroutine) < m_nCount	)	)
-		{// do not inform subroutine from own folder list, which running after own
+				m_nCount < observer->getActCount(subroutine)	)	)
+		{// do not inform other subroutine from same folder list, which running after own (higher count)
 			return;
 		}
 	}catch(SignalException& ex)

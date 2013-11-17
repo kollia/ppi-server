@@ -230,15 +230,16 @@ void ListCalculator::activateObserver(IMeasurePattern* observer)
 	{
 		found= getSubroutine(*it, /*own folder*/false);
 		if(!found)
-		{	// when other subroutine in same folder defined after this subroutine
-			// changing should also inform own folder
+		{	// when own subroutine (has lower count)
+			// defined before the other (higher count) in same folder
+			// changing from other should also inform own subroutine
 			// because otherwise the case can be that own subroutine
-			// do not know from any changes or to late
+			// do not know from any changes from the other, or to late
 			found= getSubroutine(*it, /*own folder*/true);
 			if(found)
 			{
 				own= getSubroutine(m_sFolder+":"+m_sSubroutine, /*own folder*/true);
-				if(own->getActCount() < found->getActCount())
+				if(own->getActCount() > found->getActCount())
 					found= NULL;
 			}
 		}
