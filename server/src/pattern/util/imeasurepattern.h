@@ -23,6 +23,8 @@
 #include <vector>
 #include <map>
 
+#include "../../util/smart_ptr.h"
+
 #include "../server/IClientSendMethods.h"
 
 
@@ -32,6 +34,8 @@ namespace design_pattern_world
 	{
 		using namespace std;
 		using namespace design_pattern_world::client_pattern;
+
+		typedef map<short, pair<short, double> > percenttable_t;
 
 		struct folderSpecNeed_t
 		{
@@ -85,19 +89,23 @@ namespace design_pattern_world
 					 */
 					double readValue;
 					/**
-					 * actual value which is 100%
+					 * value which was written actually into database
+					 */
+					double dbValue;
+					/**
+					 * actual value which is more flexible than dbValue
 					 */
 					double actValue;
 					/**
 					 * how much values differ from the act Value
 					 * and how often
 					 */
-					map<short, pair<short, double> > reachedPercent;
+					SHAREDPTR::shared_ptr<percenttable_t> reachedPercent;
 					/**
 					 * same as reachedPercent but only the last 10 value for runlength
 					 * or last 3 for reachend
 					 */
-					map<short, pair<short, double> > newReachedPercent;
+					SHAREDPTR::shared_ptr<percenttable_t> newReachedPercent;
 
 					/**
 					 * constructor to set default values
@@ -107,7 +115,10 @@ namespace design_pattern_world
 					  count(0),
 					  maxCount(1),
 					  readValue(0),
-					  actValue(0)
+					  dbValue(0),
+					  actValue(0),
+					  reachedPercent(SHAREDPTR::shared_ptr<percenttable_t>(new percenttable_t)),
+					  newReachedPercent(SHAREDPTR::shared_ptr<percenttable_t>(new percenttable_t))
 					{};
 				};
 				/**

@@ -26,7 +26,6 @@
 #include <string>
 #include <vector>
 #include <iostream>
-//#include <sstream>
 #include <fstream>
 
 #include <boost/algorithm/string/classification.hpp>
@@ -54,7 +53,7 @@ using namespace boost::algorithm;
 // output on command line also this statistics
 // to calculate middle length of folder or reach finish
 // when definition __showStatitic be defined and debug set
-//#define __showStatistic
+#define __showStatistic
 
 SHAREDPTR::shared_ptr<meash_t> meash_t::firstInstance= SHAREDPTR::shared_ptr<meash_t>();
 string meash_t::clientPath= "";
@@ -339,41 +338,36 @@ int MeasureThread::init(void *arg)
 		for(short n= m_nFolderCPUtime; n <= 100; n+= m_nFolderCPUtime)
 		{
 			bool exist;
-			// drop set of maxcount
-			// because after new starting of hardware
-			// and new starting of ppi-server
-			// counting should begin from start
-			// maybe the application running in other better time
-			ostringstream dbstr;//, maxcount;
+			ostringstream dbstr, maxcount;
 
 			dbstr << "runlength";
-			//maxcount << "maxcount";
+			maxcount << "maxcount";
 			if(m_nFolderCPUtime < 100)
 			{
 				dbstr << n;
-				//maxcount << n;
+				maxcount << n;
 			}
 			db->writeIntoDb("folder", folder, dbstr.str());
-			//db->writeIntoDb("folder", folder, maxcount.str());
+			db->writeIntoDb("folder", folder, maxcount.str());
 			if(!m_bNoDbReading)
 			{
 				dLength= db->getActEntry(exist, "folder", folder, dbstr.str());
 				if(	exist &&
 					dLength > 0	)
 				{
-					m_tLengthType.percentSyncDiff["none"][n].actValue= dLength;
-					m_tLengthType.percentSyncDiff["none"][n].reachedPercent[0]= pair<short, double>(1, dLength);
-					//dLength= db->getActEntry(exist, "folder", folder, maxcount.str());
-					//if(!exist)
-					//	dLength= 1;
-					m_tLengthType.percentSyncDiff["none"][n].maxCount= 1;//static_cast<short>(dLength);
+					m_tLengthType.percentSyncDiff["none"][n].dbValue= dLength;
+					(*m_tLengthType.percentSyncDiff["none"][n].reachedPercent)[0]= pair<short, double>(1, dLength);
+					dLength= db->getActEntry(exist, "folder", folder, maxcount.str());
+					if(!exist)
+						dLength= 1;
+					m_tLengthType.percentSyncDiff["none"][n].maxCount= static_cast<short>(dLength);
 					m_tLengthType.percentSyncDiff["none"][n].stype= dbstr.str();
-					//m_tLengthType.percentSyncDiff["none"][n].scount= maxcount.str();
+					m_tLengthType.percentSyncDiff["none"][n].scount= maxcount.str();
 				}
 			}else
 			{
 				db->fillValue("folder", folder, dbstr.str(), 0, /*new*/true);
-				//db->fillValue("folder", folder, maxcount.str(), 0, /*new*/true);
+				db->fillValue("folder", folder, maxcount.str(), 0, /*new*/true);
 			}
 		}
 	}
@@ -1356,7 +1350,7 @@ timeval MeasureThread::getLengthedTime(timetype_t* timelength, short *percent,
 #ifdef __showStatistic
 		if(debug)
 		{
-			tout << "      found " << it->first << "% with act " << it->second.actValue << " read " <<
+			tout << "      found " << it->first << "% with act " << it->second.dbValue << " read " <<
 											it->second.readValue;
 			if(	!timelength->runlength &&
 				timelength->synchroID == ""	)
@@ -1372,6 +1366,8 @@ timeval MeasureThread::getLengthedTime(timetype_t* timelength, short *percent,
 			*percent= it->first;
 			if(it->second.actValue != 0)
 				dRv= it->second.actValue;
+			else if(it->second.dbValue != 0)
+				dRv= it->second.dbValue;
 			else
 				dRv= it->second.readValue;
 
@@ -1392,8 +1388,8 @@ timeval MeasureThread::getLengthedTime(timetype_t* timelength, short *percent,
 		if(!percentDiff->empty())
 		{
 			*percent= last->first;
-			if(it->second.actValue != 0)
-				dRv= last->second.actValue;
+			if(it->second.dbValue != 0)
+				dRv= last->second.dbValue;
 			else
 				dRv= last->second.readValue;
 
@@ -1557,7 +1553,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 		it= percentDiff->find(nPercent);
 		if(it == percentDiff->end())
 		{// create new entry
-			ostringstream dbstr;//, maxcount;
+			ostringstream dbstr, maxcount;
 
 #ifdef __showStatistic
 			if(debug)
@@ -1573,10 +1569,12 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 #endif // __showStatistic
 
 			if(timelength->runlength)
+			{
 				dbstr << "runlength";
-			else
+				maxcount << "maxcount";
+				maxcount << nPercent;
+			}else
 				dbstr << "reachend";
-			//maxcount << "maxcount";
 			if(	!timelength->runlength &&
 				timelength->synchroID != ""	)
 			{
@@ -1584,9 +1582,8 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 				//maxcount << timelength->synchroID << "-";
 			}
 			dbstr << nPercent;
-			//maxcount << nPercent;
 			(*percentDiff)[nPercent].stype= dbstr.str();
-			//(*percentDiff)[nPercent].scount= maxcount.str();
+			(*percentDiff)[nPercent].scount= maxcount.str();
 			(*percentDiff)[nPercent].maxCount= 0;
 			timevec= &(*percentDiff)[nPercent];
 		}else
@@ -1623,12 +1620,15 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 	{
 		++timevec->read;
 		timevec->maxCount= 1;
+		timevec->dbValue= value;
 		timevec->actValue= value;
 		timevec->readValue= value;
-		timevec->reachedPercent[0]= pair<short, double>(1, value);
+		(*timevec->reachedPercent)[0]= pair<short, double>(1, value);
 		bSave= true;
 	}else
 	{
+		if(timevec->actValue == 0)
+			timevec->actValue= timevec->dbValue;
 		++timevec->read;
 		if(timelength->runlength)
 		{// value is for folder length
@@ -1646,7 +1646,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 			timelength->runlength &&
 			timevec->read < timelength->maxVal	)
 		{
-			tout << "  >> calculate middle length for " << timevec->stype << " "
+			tout << "  >> calculate 7/8 length for " << timevec->stype << " "
 							<< timevec->read << ". value";
 			if(	!timelength->runlength &&
 				timelength->synchroID != ""	)
@@ -1656,17 +1656,17 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 			tout << endl;
 			tout << "     read " << value << " actual ";
 			if(timelength->runlength)
-				tout << "max ";
+				tout << "7/8 ";
 			else
 				tout << "middle ";
 			tout << "value is " << timevec->readValue << " by "
 							<< timevec->maxRadCount << " count" << endl;
-			tout << "     calculated actual middle length of ";
+			tout << "     calculated actual ";
 			if(timelength->runlength)
-				tout << "folder running ";
+				tout << "7/8 length of folder running ";
 			else
-				tout << "reaching result ";
-			tout << "is " << timevec->actValue << endl;
+				tout << "middle length of reaching result ";
+			tout << "is " << timevec->actValue << ", last written into db " << timevec->dbValue << endl;
 		}
 #endif // __showStatistic
 
@@ -1676,13 +1676,13 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 			timevec->read >= timelength->maxVal	)
 		{
 			++timevec->count;
-			nPercent= 100 / timevec->actValue * timevec->readValue - 100;
+			nPercent= 100 / timevec->dbValue * timevec->readValue - 100;
 
 #ifdef __showStatistic
 			if(debug)
 			{
-				tout << "  >> calculate middle length for " << timevec->stype << endl;
-				tout << "  >> 100 / " << timevec->actValue << " * " << timevec->readValue
+				tout << "  >> calculate percent position for " << timevec->stype << endl;
+				tout << "  >> 100 / " << timevec->dbValue << " * " << timevec->readValue
 								<< " - 100 = " << nPercent << " = ";
 			}
 #endif // __showStatistic
@@ -1696,44 +1696,44 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 				tout << nPercent << "%" << endl;
 #endif // __showStatistic
 
-			if(timevec->reachedPercent.find(nPercent) != timevec->reachedPercent.end())
+			if(timevec->reachedPercent->find(nPercent) != timevec->reachedPercent->end())
 			{
-				timevec->reachedPercent[nPercent].first+= 1;
+				(*timevec->reachedPercent)[nPercent].first+= 1;
 				if(timelength->runlength)
 				{// value is for folder length
-					if(	timevec->reachedPercent[nPercent].second < timevec->readValue	)
-						timevec->reachedPercent[nPercent].second= timevec->readValue;
+					if(	(*timevec->reachedPercent)[nPercent].second < timevec->readValue	)
+						(*timevec->reachedPercent)[nPercent].second= timevec->readValue;
 				}else
 				{// value is for middle value to reach finish of result
-					timevec->reachedPercent[nPercent].second+= timevec->readValue;
-					timevec->reachedPercent[nPercent].second/= 2;
+					(*timevec->reachedPercent)[nPercent].second+= timevec->readValue;
+					(*timevec->reachedPercent)[nPercent].second/= 2;
 				}
 			}else
 			{
-				timevec->reachedPercent[nPercent].first= 1;
-				timevec->reachedPercent[nPercent].second= timevec->readValue;
+				(*timevec->reachedPercent)[nPercent].first= 1;
+				(*timevec->reachedPercent)[nPercent].second= timevec->readValue;
 			}
 			if(	(	timelength->runlength &&
 					timevec->count > 10			) ||
 				(	!timelength->runlength &&
 					timevec->count > 2			)	)
 			{
-				if(timevec->newReachedPercent.find(nPercent) != timevec->newReachedPercent.end())
+				if(timevec->newReachedPercent->find(nPercent) != timevec->newReachedPercent->end())
 				{
-					timevec->newReachedPercent[nPercent].first+= 1;
+					(*timevec->newReachedPercent)[nPercent].first+= 1;
 					if(timelength->runlength)
 					{// value is for folder length
-						if(	timevec->newReachedPercent[nPercent].second < timevec->readValue	)
-							timevec->newReachedPercent[nPercent].second= timevec->readValue;
+						if(	(*timevec->newReachedPercent)[nPercent].second < timevec->readValue	)
+							(*timevec->newReachedPercent)[nPercent].second= timevec->readValue;
 					}else
 					{// value is for middle value to reach finish of result
-						timevec->newReachedPercent[nPercent].second+= timevec->readValue;
-						timevec->newReachedPercent[nPercent].second/= 2;
+						(*timevec->newReachedPercent)[nPercent].second+= timevec->readValue;
+						(*timevec->newReachedPercent)[nPercent].second/= 2;
 					}
 				}else
 				{
-					timevec->newReachedPercent[nPercent].first= 1;
-					timevec->newReachedPercent[nPercent].second= timevec->readValue;
+					(*timevec->newReachedPercent)[nPercent].first= 1;
+					(*timevec->newReachedPercent)[nPercent].second= timevec->readValue;
 				}
 			}
 			timevec->read= 0;
@@ -1742,15 +1742,15 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 #ifdef __showStatistic
 			if(debug)
 			{
-				for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent.begin();
-								it != timevec->reachedPercent.end(); ++it							)
+				for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent->begin();
+								it != timevec->reachedPercent->end(); ++it							)
 				{
 					tout << "       " << it->second.first << " values are " << it->first << "%"
 									<< " value " << it->second.second << endl;
 				}
 				if(timevec->count < timevec->maxCount)
 				{
-					tout << "     making new actual value after "
+					tout << "     making new actual value for DB after "
 						<< timevec->maxCount - timevec->count
 						<< " calculation" << endl;
 				}else
@@ -1758,127 +1758,214 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 			}
 #endif // __showStatistic
 
-			if(timevec->count >= timevec->maxCount)
+			bool found(false), next(false);
+			short count(0), fcount(0), diff(0), mod;
+			double lastActValue(timevec->actValue);
+
+			nPercent= 0;
+			// count values inside vector
+			for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent->begin();
+							it != timevec->reachedPercent->end(); ++it							)
 			{
-				bool found(false);
-				short count(0), diff(0);
+				count+= it->second.first;
+			}
 
-				nPercent= 0;
-				for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent.begin();
-								it != timevec->reachedPercent.end(); ++it							)
+			if(!timelength->runlength)
+			{
+				diff= count / 2;
+				mod= count % 2;
+				diff+= mod;
+			}else
+				diff= static_cast<short>(static_cast<float>(count) / 8 * 7);
+
+			for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent->begin();
+							it != timevec->reachedPercent->end(); ++it							)
+			{
+				if(next == true)
 				{
-					count+= it->second.first;
+					timevec->actValue+= it->second.second;
+					timevec->actValue/= 2;
+					break;
 				}
-
+				fcount+= it->second.first;
+				if(fcount >= diff)
+				{
+					timevec->actValue= it->second.second;
+					if(	!timelength->runlength &&
+						mod == 0 &&
+						fcount == diff				)
+					{
+						next= true;
+					}
+					nPercent= it->first;
+					found= true;
+					if(next == false)
+						break;
+				}
+			}
 #ifdef __showStatistic
-				if(debug)
-				{
-					tout << "     count " << count << " values inside vector and take percent by ";
-					if(timelength->runlength)
-						tout << "3/4" << endl;
-					else
-						tout << "half" << endl;
-				}
+			if(debug)
+			{
+				ostringstream out;
+				out << "     count " << count << " values inside vector and take the ";
+				if(next)
+					out << "half of " << diff << ". and " << (diff+1);
+				else
+					out << diff;
+				out << ". value which is ";
+				if(timelength->runlength)
+					out << "7/8";
+				else
+					out << "the average";
+				out << " (" << timevec->actValue << ")" << endl;
+				tout << out.str();
+			}
 #endif // __showStatistic
 
-				if(timelength->runlength)
-					diff= count / 4 * 3;
-				else
-					diff= count / 2;
-				count= 0;
-				for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent.begin();
-								it != timevec->reachedPercent.end(); ++it							)
-				{
-					count+= it->second.first;
-					if(count >= diff)
-					{
-						nPercent= it->first;
-						found= true;
-						break;
-					}
-				}
+			if(found)
+			{
+
 #ifdef __showStatistic
 				if( debug &&
-					nPercent		)
+					nPercent	)
 				{
-					tout << "     found new ";
+					ostringstream out;
+					out << "     found new ";
 					if(timelength->runlength)
-						tout << "3/4 ";
+						out << "7/8 ";
 					else
-						tout << "middle ";
-					tout << "value of " << nPercent << "%" << endl;
+						out << "middle ";
+					out << "value";
+					out << " of " << nPercent << "%";
+					out << endl;
+					tout << out.str();
 				}
 #endif // __showStatistic
-				if(found)
+
+				if(timevec->count >= timevec->maxCount)
 				{
-					map<short, pair<short, double> > newMap;
+					SHAREDPTR::shared_ptr<percenttable_t> newMap(
+									SHAREDPTR::shared_ptr<percenttable_t>(new percenttable_t));
 
 					if(nPercent == 0)
 						found= false;
-					timevec->actValue= timevec->reachedPercent[nPercent].second;
 					if(nPercent)
 					{
-						// new organizing of timevec->reachedPercent
-						for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent.begin();
-										it != timevec->reachedPercent.end(); ++it							)
-						{
-							nPercent= 100 / timevec->actValue * it->second.second - 100;
-							nPercent= static_cast<short>(round(static_cast<float>(nPercent) / 10) * 10);
+						percenttable_t::reverse_iterator lastEntry(timevec->reachedPercent->rend());
 
-#ifdef __showStatistic
-							if(debug)
-								tout << "       set value " << it->second.second << " to new "
-											<< nPercent << "%" << endl;
-#endif // __showStatistic
-
-							if(newMap.find(nPercent) != newMap.end())
-							{
-								newMap[nPercent].first+= it->second.first;
-								if(nPercent >= 0)
-								{
-									if(newMap[nPercent].second < it->second.second)
-										newMap[nPercent].second= it->second.second;
-								}else
-								{
-									if(newMap[nPercent].second > it->second.second)
-										newMap[nPercent].second= it->second.second;
-
-								}
-							}else
-							{
-								newMap[nPercent].first= it->second.first;
-								newMap[nPercent].second= it->second.second;
-							}
-						}
-						timevec->reachedPercent= newMap;
-
-						if(!timevec->newReachedPercent.empty())
-						{
-							newMap.clear();
-							// new organizing of timevec->newReachedPercent
-							for(map<short, pair<short, double> >::iterator it= timevec->newReachedPercent.begin();
-											it != timevec->newReachedPercent.end(); ++it							)
+						if(timevec->maxCount < timelength->maxVal)
+						{// new organizing of timevec->reachedPercent
+						 // only when maxCount do not reache maxVal
+						 // because otherwise will be taken the newReachedPercent map
+							for(percenttable_t::iterator it= timevec->reachedPercent->begin();
+											it != timevec->reachedPercent->end(); ++it			)
 							{
 								nPercent= 100 / timevec->actValue * it->second.second - 100;
 								nPercent= static_cast<short>(round(static_cast<float>(nPercent) / 10) * 10);
-								if(newMap.find(nPercent) != newMap.end())
-								{
-									newMap[nPercent].first+= it->second.first;
-									if(nPercent >= 0)
+
+#ifdef __showStatistic
+								if(debug)
+									tout << "       set by " << nPercent << "% value of "
+																<< it->second.second << endl;
+#endif // __showStatistic
+
+								if(	lastEntry != timevec->reachedPercent->rend() &&
+									lastEntry->first == nPercent					)
+								{// when two keys has the same percent value merge them
+#ifdef __showStatistic
+									if(debug)
+										tout << "     found two same results and merge" << endl;
+#endif // __showStatistic
+									(*newMap)[nPercent].first+= it->second.first;
+									if(timelength->runlength)
 									{
-										if(newMap[nPercent].second < it->second.second)
-											newMap[nPercent].second= it->second.second;
+										if(nPercent >= 0)
+										{
+											if((*newMap)[nPercent].second < it->second.second)
+												(*newMap)[nPercent].second= it->second.second;
+										}else
+										{
+											if((*newMap)[nPercent].second > it->second.second)
+												(*newMap)[nPercent].second= it->second.second;
+										}
 									}else
 									{
-										if(newMap[nPercent].second > it->second.second)
-											newMap[nPercent].second= it->second.second;
-
+										(*newMap)[nPercent].second+= it->second.second;
+										(*newMap)[nPercent].second/= 2;
 									}
 								}else
-								{
-									newMap[nPercent].first= it->second.first;
-									newMap[nPercent].second= it->second.second;
+								{// otherwise only fill in new value
+									(*newMap)[nPercent].first= it->second.first;
+									(*newMap)[nPercent].second= it->second.second;
 								}
+								lastEntry= newMap->rbegin();
+							}
+							timevec->reachedPercent= newMap;
+						}// end of if(timevec->maxCount < timelength->maxVal)
+#ifdef __showStatistic
+						else
+						{
+							if(debug)
+							{
+								tout << "     take now new lower vector with only "
+												<< timevec->newReachedPercent->size() << " values" << endl;
+							}
+						}
+#endif // __showStatistic
+
+						if(!timevec->newReachedPercent->empty())
+						{
+							// new organizing of timevec->newReachedPercent
+							newMap= SHAREDPTR::shared_ptr<percenttable_t>(new percenttable_t);
+							lastEntry= timevec->newReachedPercent->rend();
+
+							for(percenttable_t::iterator it= timevec->newReachedPercent->begin();
+											it != timevec->newReachedPercent->end(); ++it			)
+							{
+								nPercent= 100 / timevec->actValue * it->second.second - 100;
+								nPercent= static_cast<short>(round(static_cast<float>(nPercent) / 10) * 10);
+
+#ifdef __showStatistic
+								if(	debug &&
+									timevec->maxCount >= timelength->maxVal	)
+								{
+									tout << "       set by " << nPercent << "% value of "
+																<< it->second.second << endl;
+								}
+#endif // __showStatistic
+								if(	lastEntry != timevec->newReachedPercent->rend() &&
+									lastEntry->first == nPercent						)
+								{// when two keys has the same percent value merge them
+#ifdef __showStatistic
+									if(	debug &&
+										timevec->maxCount >= timelength->maxVal	)
+									{
+										tout << "     found two same results and merge" << endl;
+									}
+#endif // __showStatistic
+									(*newMap)[nPercent].first+= it->second.first;
+									if(timelength->runlength)
+									{
+										if(nPercent >= 0)
+										{
+											if((*newMap)[nPercent].second < it->second.second)
+												(*newMap)[nPercent].second= it->second.second;
+										}else
+										{
+											if((*newMap)[nPercent].second > it->second.second)
+												(*newMap)[nPercent].second= it->second.second;
+										}
+									}else
+									{
+										(*newMap)[nPercent].second+= it->second.second;
+										(*newMap)[nPercent].second/= 2;
+									}
+								}else
+								{// otherwise only fill in new value
+									(*newMap)[nPercent].first= it->second.first;
+									(*newMap)[nPercent].second= it->second.second;
+								}
+								lastEntry= newMap->rbegin();
 							}
 							timevec->newReachedPercent= newMap;
 						} // if(!timevec->newReachedPercent.empty())
@@ -1895,53 +1982,176 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 						else
 							timevec->maxCount+= 10;
 
-	#ifdef __showStatistic
-							if(debug)
-								tout << "     write new maximal count as " << timelength->folder
+#ifdef __showStatistic
+							if(	debug &&
+								timelength->runlength	)
+							{
+								ostringstream out;
+								out << "     write new maximal count as " << timelength->folder
 									<< ":" << timelength->subroutine << " " << timevec->scount
 									<< " with value " << timevec->maxCount << " into database" << endl;
-	#endif // __showStatistic
+								tout << out.str();
+							}
+#endif // __showStatistic
 
-							fillValue(timelength->folder, timelength->subroutine,
-											timevec->scount, timevec->maxCount);
-					}else
+							if(timelength->runlength)
+							{
+								fillValue(timelength->folder, timelength->subroutine,
+												timevec->scount, timevec->maxCount);
+							}
+					}else // of if(timevec->maxCount < timelength->maxVal)
 					{
-						timevec->reachedPercent.clear();
 						timevec->reachedPercent= timevec->newReachedPercent;
-						timevec->newReachedPercent.clear();
-						timevec->reachedPercent[0]= pair<short, double>(1, timevec->actValue);
-					}
+						timevec->newReachedPercent= SHAREDPTR::shared_ptr<percenttable_t>(new percenttable_t);
+						(*timevec->newReachedPercent)[0]= pair<short, double>(1, timevec->dbValue);
+					}// end of if(timevec->maxCount < timelength->maxVal)
 
 #ifdef __showStatistic
 					if(debug)
 					{
 						if(found)
-							tout << "  >> set new actual value " << timevec->actValue << endl;
+							tout << "  >> write new actual value " << timevec->dbValue << " and also into database" << endl;
 						else
 							tout << "     found same difference since last check, do not save into database" << endl;
 					}
 #endif // __showStatistic
-
-				}else
-				{
-					bSave= false;
+					if(timevec->reachedPercent->size() == 2)
+					{
+						count= 0;
+						for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent->begin();
+										it != timevec->reachedPercent->end(); ++it							)
+						{
+							count+= it->second.first;
+						}
+						if(count == 2)
+						{
+							timevec->actValue= 0;
+							for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent->begin();
+											it != timevec->reachedPercent->end(); ++it							)
+							{
+								if(timelength->runlength)// by runlength take the second higher
+									timevec->actValue= it->second.second;
+								else
+									timevec->actValue+= it->second.second;
+							}
+							if(!timelength->runlength)
+								timevec->actValue/= 2;
 
 #ifdef __showStatistic
-					if(debug)
-						tout << "     do not found unique percent, make by next calculation again" << endl;
+							if(debug)
+							{
+								ostringstream out;
+
+								if(timelength->runlength)
+									out << "     but set the second higher of both ";
+								else
+									out << "     but set the new actual value to half of both ";
+								out << "(" << timevec->actValue << ") to actual value" << endl;
+								out << "     because there are only two values measured" << endl;
+								tout << out.str();
+							}
+						}// end of if(count == 2)
 #endif // __showStatistic
 
-				}
-			}//if(timevec->count > 5
-		}//if(	!timevec->runlength || timevec->read >= nMaxVal)
+					} // end of if(timevec->reachedPercent->size() == 2)
+					if(found)
+						timevec->dbValue= timevec->actValue;
+
+				}else // from if(timevec->count >= timevec->maxCount)
+				{
+					bSave= false;
+					if(	count == 2 &&
+						timevec->reachedPercent->size() == 2)
+					{
+						timevec->actValue= 0;
+						for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent->begin();
+										it != timevec->reachedPercent->end(); ++it							)
+						{
+							if(timelength->runlength)// by runlength take the second higher
+								timevec->actValue= it->second.second;
+							else
+								timevec->actValue+= it->second.second;
+						}
+						if(!timelength->runlength)
+							timevec->actValue/= 2;
+
+	#ifdef __showStatistic
+						if(debug)
+						{
+							ostringstream out;
+
+							if(timelength->runlength)
+								out << "     but set the second higher of both ";
+							else
+								out << "     but set the new actual value to half of both ";
+							out << "(" << timevec->actValue << ") to actual value" << endl;
+							out << "     because there are only two values measured" << endl;
+							tout << out.str();
+						}
+	#endif // __showStatistic
+
+					}else // from if(count == 2 && timevec->reachedPercent->size() == 2)
+					{
+						if(	timelength->runlength &&
+							timevec->actValue < timevec->dbValue	)
+						{
+#ifdef __showStatistic
+							if(debug)
+							{
+								ostringstream out;
+
+								out << "     but write the new actual value to DB value "
+												<< timevec->dbValue << endl;
+								out << "     because " << timevec->actValue
+												<< " is lower" << endl;
+								tout << out.str();
+							}
+#endif // __showStatistic
+
+							timevec->actValue= timevec->dbValue;
+						}// end of if(	!timelength->runlength || timevec->actValue < timevec->dbValue)
+#ifdef __showStatistic
+						else
+						{
+							if(debug)
+							{
+								ostringstream out;
+
+								if(timevec->actValue != lastActValue)
+								{
+									out << "     and write the new actual value to "
+												<< timevec->actValue << endl;
+								}else
+								{
+									out << "     and let the actaul value "
+												<< timevec->actValue << " by same" << endl;
+								}
+								tout << out.str();
+							}
+						}
+#endif // __showStatistic
+					}// end of if(count == 2 && timevec->reachedPercent->size() == 2)
+				}// end of if(timevec->count >= timevec->maxCount)
+
+			}else // from if(found)
+			{
+				bSave= false;
+
+#ifdef __showStatistic
+				if(debug)
+					tout << "     do not found unique percent, make by next calculation again" << endl;
+#endif // __showStatistic
+
+			} // end of if(found)
+		}// end of if(	!timevec->runlength || timevec->read >= nMaxVal)
 	}
 	if(bSave)
 	{
-		fillValue(timelength->folder, timelength->subroutine, timevec->stype, timevec->actValue);
+		fillValue(timelength->folder, timelength->subroutine, timevec->stype, timevec->dbValue);
 #ifdef __showStatistic
 		if(debug)
 		{
-			tout << "  >> write new value " << timevec->actValue
+			tout << "  >> write new value " << timevec->dbValue
 							<< " into database" << endl;
 			tout << "     as " << timelength->folder << ":" << timelength->subroutine << " "
 							<< timevec->stype << endl;

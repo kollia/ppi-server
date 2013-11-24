@@ -309,7 +309,6 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 							db->writeIntoDb(folder, subroutine, "reachlate");
 							db->fillValue(folder, subroutine, "reachpercent", 0, /*new*/true);
 							db->fillValue(folder, subroutine, "reachlate", 0, /*new*/true);
-							db->fillValue(folder, subroutine, "wrongreach", 0, /*new*/true);
 						}
 						properties->notAllowedAction("noinfo");
 						m_oFinished.init(pStartFolder, smtime);
@@ -415,8 +414,8 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 										if(	exist &&
 											dDefault > 0	)
 										{
-											m_tReachedTypes.percentSyncDiff[specID][n].actValue= dDefault;
-											m_tReachedTypes.percentSyncDiff[specID][n].reachedPercent[0]= pair<short, double>(1, dDefault);
+											m_tReachedTypes.percentSyncDiff[specID][n].dbValue= dDefault;
+											(*m_tReachedTypes.percentSyncDiff[specID][n].reachedPercent)[0]= pair<short, double>(1, dDefault);
 											//dDefault= db->getActEntry(exist, folder, subroutine, maxcount.str());
 											//if(!exist)
 											//	dDefault= 1;
@@ -429,7 +428,7 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 										db->fillValue(folder, subroutine, dbstr.str(), 0, /*new*/true);
 										//db->fillValue(folder, subroutine, maxcount.str(), 0, /*new*/true);
 										if(m_bLogPercent)
-											db->fillValue(folder, subroutine, wrongreach.str(), /*new*/true);
+											db->fillValue(folder, subroutine, wrongreach.str(), 0, /*new*/true);
 									}
 								}//for(short n= m_nFinishedCPUtime; n <= 100; n+= m_nFinishedCPUtime)
 					// -------------------------------------------------------------------------------------
@@ -580,17 +579,20 @@ double timer::measure(const double actValue)
 				}
 				if(debug)
 				{
-					tout << "          need " << MeasureThread::getTimevalString(diff, /*as date*/false, debug) << " seconds "<< endl;
+					tout << "          need " << MeasureThread::getTimevalString(diff, /*as date*/false, debug)
+										<< " seconds from starting to finished end"<< endl;
 					tout << "          need " << MeasureThread::getTimevalString(changed, /*as date*/false, debug);
 					if(less)
-						tout << " less seconds" << endl;
+						tout << " less ";
 					else
-						tout << " more seconds " << endl;
+						tout << " more ";
+					tout << "seconds after exact stopping subroutine before" << endl;
 					tout << "          need " << MeasureThread::getTimevalString(wrong, /*as date*/false, debug);
 					if(wless)
-						tout << " less than want" << endl;
+						tout << " less ";
 					else
-						tout << " more than want" << endl;
+						tout << " more ";
+					tout << "seconds than estimated" << endl;
 				}
 				if(m_bLogPercent)
 				{
@@ -786,7 +788,7 @@ double timer::measure(const double actValue)
 				if(need == -1)
 				{
 					if(m_nDirection > -2)
-						need= actValue;
+						need= dbValue;
 					m_bMeasure= false;
 				}else
 					m_bMeasure= true;*/
