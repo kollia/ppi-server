@@ -69,6 +69,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 				const time_t& nServerSearch, bool bNoDbRead, short folderCPUtime)
 : Thread(threadname, true),
   m_oRunnThread(threadname, "parameter_run", "run", false, true),
+  m_oInformer(threadname, this),
   m_oDbFiller(threadname)
 {
 	int res;
@@ -130,6 +131,17 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 		cerr << "### WARNING: " << err;
 		cerr << "              so send this messages directly which has more bad performance" << endl;
 		LOG(LOG_WARNING, err +"so send this messages directly which has more bad performance");
+	}
+	res= m_oInformer.start();
+	if(res)
+	{
+		string err("measuring thread for folder '" + threadname +
+						"' can not activate external thread '");
+
+		err+= m_oInformer.getThreadName() + "' to inform other folders\n";
+		cerr << "### WARNING: " << err;
+		cerr << "              so folder list inform directly other folders, which has more bad performance" << endl;
+		LOG(LOG_WARNING, err +"so folder list inform directly other folders, which has more bad performance");
 	}
 }
 
@@ -608,6 +620,12 @@ folderSpecNeed_t MeasureThread::isFolderRunning(const vector<string>& specs)
 	return tRv;
 }
 
+void MeasureThread::informFolders(const folders_t& folders, const string& from,
+										const string& as, const bool debug, pthread_mutex_t *lock)
+{
+	m_oInformer.informFolders(folders, from, as, debug, lock);
+}
+
 int MeasureThread::execute()
 {
 	bool debug(isDebug());
@@ -673,6 +691,8 @@ int MeasureThread::execute()
 
 	if(debug)
 	{
+		ostringstream out;
+
 		if(!timerisset(&diff_tv))
 		{
 			timersub(&end_tv, &m_tvStartTime, &diff_tv);
@@ -683,11 +703,12 @@ int MeasureThread::execute()
 			}
 		}
 		folder= getFolderName();
-		tout << "--------------------------------------------------------------------" << endl;
-		tout << " folder '" << folder << "' STOP (";
-		tout << getTimevalString(end_tv, /*as date*/true, debug) << ")" ;
-		tout << "  running time (" << getTimevalString(diff_tv, /*as date*/false, debug) << ")" << endl;
-		tout << "--------------------------------------------------------------------" << endl;
+		out << "--------------------------------------------------------------------" << endl;
+		out << " folder '" << folder << "' STOP (";
+		out << getTimevalString(end_tv, /*as date*/true, debug) << ")" ;
+		out << "  running time (" << getTimevalString(diff_tv, /*as date*/false, debug) << ")" << endl;
+		out << "--------------------------------------------------------------------" << endl;
+		tout << out.str();
 		TERMINALEND;
 	}
 	LOCK(m_VALUE);
@@ -867,38 +888,40 @@ int MeasureThread::execute()
 
 	}else if(isDebug())
 	{
+		ostringstream out;
 		string msg("### DEBUGGING for folder ");
 
 		msg+= folder + " is aktivated!";
 		TIMELOG(LOG_INFO, folder, msg);
 
-		tout << "--------------------------------------------------------------------" << endl;
-		tout << " folder '" << folder << "' START (";
-		tout << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
+		out << "--------------------------------------------------------------------" << endl;
+		out << " folder '" << folder << "' START (";
+		out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
 		for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
 		{
 			if(i->substr(0, 15) == "#timecondition ")
 			{
-				tout << "      awaked from setting time " << i->substr(15) << endl;
+				out << "      awaked from setting time " << i->substr(15) << endl;
 
 			}else if(i->substr(0, 13) == "#searchserver")
 			{
-				tout << "      awaked to search again for external port server (owserver)" << endl;
+				out << "      awaked to search again for external port server (owserver)" << endl;
 			}else
 			{
-				tout << "    informed ";
+				out << "    informed ";
 				if(i->substr(0, 1) == "|")
 				{
 					if(i->substr(1, 1) == "|")
-						tout << "from ppi-reader '" << i->substr(2) << "'" << endl;
+						out << "from ppi-reader '" << i->substr(2) << "'" << endl;
 					else
-						tout << "over Internet connection account '" << i->substr(1) << "'" << endl;
+						out << "over Internet connection account '" << i->substr(1) << "'" << endl;
 				}else
-					tout << "from " << *i << " because value was changed" << endl;
+					out << "from " << *i << " because value was changed" << endl;
 			}
 
 		}
-		tout << "--------------------------------------------------------------------" << endl;
+		out << "--------------------------------------------------------------------" << endl;
+		tout << out.str();
 		TERMINALEND;
 	}
 	UNLOCK(m_VALUE);
@@ -998,19 +1021,22 @@ bool MeasureThread::measure()
 			if( debug &&
 				it->portClass->isDebug())
 			{
+				ostringstream out;
+
 				classdebug= true;
-				tout << "--------------------------------------------------------------------" << endl;
-				tout << "execute '" << folder << ":" << it->name;
-				tout << "' with value " << oldResult << " and type " << it->portClass->getType() << " ";
+				out << "--------------------------------------------------------------------" << endl;
+				out << "execute '" << folder << ":" << it->name;
+				out << "' with value " << oldResult << " and type " << it->portClass->getType() << " ";
 				if(notime || gettimeofday(&tv_start, NULL))
 				{
-					tout << " (cannot calculate length)" << endl;
+					out << " (cannot calculate length)" << endl;
 					notime= true;
 				}else
 				{
 					timersub(&tv_start, &tv, &tv_end);
-					tout << " (" << getTimevalString(tv_end, /*as date*/false, /*debug*/true) << ")" << endl;
+					out << " (" << getTimevalString(tv_end, /*as date*/false, /*debug*/true) << ")" << endl;
 				}
+				tout << out.str();
 			}
 			try{
 				result= it->portClass->measure(oldResult);
@@ -1057,14 +1083,6 @@ bool MeasureThread::measure()
 						timerclear(&tv_end);
 					}
 					LOCK(m_VALUE);
-					if(	getFolderName() == "Raff1_Zeit" &&
-						*found == "port2_status")
-					{
-						tout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
-						tout << __FILE__ << __LINE__ << endl;
-						tout << "last changed time from Raff1_Zeit:port2_status is " << getTimevalString(tv_end, true, debug) << endl;
-						tout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
-					}
 					m_tChangedTimes.subroutines[*found]= tv_end;
 					UNLOCK(m_VALUE);
 				}
@@ -1097,7 +1115,7 @@ bool MeasureThread::measure()
 			tout << "Subroutine " << it->name << " is not correct initialized" << endl;
 		if(classdebug)
 		{
-			tout << "--------------------------------------------------------------------" << endl;
+			tout << "--------------------------------------------------------------------\n";
 			TERMINALEND;
 		}
 		if(stopping())

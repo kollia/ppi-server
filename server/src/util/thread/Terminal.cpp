@@ -74,9 +74,9 @@ SHAREDPTR::shared_ptr<ostringstream> Terminal::out()
 	return oRv;
 }*/
 #ifdef TERMINALOUTPUT_ONLY_THRADIDS
-SHAREDPTR::shared_ptr<ostringstream> Terminal::out(string file, int line)
+SHAREDPTR::shared_ptr<ostringstream> Terminal::out(string file, int line, const pid_t& threadID/*= 0*/)
 #else
-SHAREDPTR::shared_ptr<ostringstream> Terminal::out()
+SHAREDPTR::shared_ptr<ostringstream> Terminal::out(const pid_t& threadID/*= 0*/)
 #endif
 {
 	pid_t pid;
@@ -84,7 +84,10 @@ SHAREDPTR::shared_ptr<ostringstream> Terminal::out()
 	vector<SHAREDPTR::shared_ptr<ostringstream> >::iterator it;
 	map<pid_t, vector<SHAREDPTR::shared_ptr<ostringstream> > >::iterator found;
 
-	pid= Thread::gettid();
+	if(threadID == 0)
+		pid= Thread::gettid();
+	else
+		pid= threadID;
 	oRv= SHAREDPTR::shared_ptr<ostringstream>(new ostringstream);
 	LOCK(m_PRINT);
 	found= m_mqRunStrings.find(pid);
@@ -129,12 +132,15 @@ SHAREDPTR::shared_ptr<ostringstream> Terminal::out()
 	return oRv;
 }
 
-bool Terminal::isRegistered()
+bool Terminal::isRegistered(const pid_t& threadID/*= 0*/)
 {
 	bool reg(false);
+	pid_t pid(threadID);
 
+	if(pid == 0)
+		pid= Thread::gettid();
 	LOCK(m_PRINT);
-	if(find(m_qOrder.begin(), m_qOrder.end(), Thread::gettid()) != m_qOrder.end())
+	if(find(m_qOrder.begin(), m_qOrder.end(), pid) != m_qOrder.end())
 		reg= true;
 	UNLOCK(m_PRINT);
 	return reg;
@@ -187,9 +193,9 @@ bool Terminal::isRegistered()
 	UNLOCK(m_PRINT);
 }*/
 #ifdef TERMINALOUTPUT_ONLY_THRADIDS
-void Terminal::end(string file, int line)
+void Terminal::end(string file, int line, const pid_t& threadID/*= 0*/)
 #else
-void Terminal::end()
+void Terminal::end(const pid_t& threadID/*= 0*/)
 #endif
 {
 	pid_t pid;
@@ -197,7 +203,10 @@ void Terminal::end()
 	vector<SHAREDPTR::shared_ptr<ostringstream> >::iterator it;
 	map<pid_t, vector<SHAREDPTR::shared_ptr<ostringstream> > >::iterator found;
 
-	pid= Thread::gettid();
+	if(threadID == 0)
+		pid= Thread::gettid();
+	else
+		pid= threadID;
 	LOCK(m_PRINT);
 	found= m_mqRunStrings.find(pid);
 #ifdef TERMINALOUTPUT_ONLY_THRADIDS

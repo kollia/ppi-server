@@ -190,6 +190,18 @@ namespace design_pattern_world
 				 */
 				virtual string getFolderName() const= 0;
 				/**
+				 * inform other folders and also own when necessary
+				 * that an specific subroutine was changed
+				 *
+				 * @param folders map of folders which should informed
+				 * @param from which subroutine (other or own) changing value
+				 * @param as from which subroutine be informed
+				 * @param debug whether subroutine which inform folders, running in debug session
+				 * @param lock locking mutex for observers
+				 */
+				virtual void informFolders(const map<IMeasurePattern*, vector<string> >& folders,
+								const string& from, const string& as, const bool debug, pthread_mutex_t *lock)= 0;
+				/**
 				 * returning thread id in which thread folder object running
 				 *
 				 * @return thread id

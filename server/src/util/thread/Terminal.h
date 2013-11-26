@@ -63,12 +63,13 @@ public:
 	/**
 	 * get ostringstream object which should written on right time
 	 *
+	 * @param threadID which thread ID should be registered, otherwise when 0, actual thread ID will be allocated
 	 * @return string stream for writing by next pass or call end() method
 	 */
 #ifndef TERMINALOUTPUT_ONLY_THRADIDS
-	SHAREDPTR::shared_ptr<ostringstream> out();
+	SHAREDPTR::shared_ptr<ostringstream> out(const pid_t& threadID= 0);
 #else
-	SHAREDPTR::shared_ptr<ostringstream> out(string file, int line);
+	SHAREDPTR::shared_ptr<ostringstream> out(string file, int line, const pid_t& threadID= 0);
 #endif
 	/**
 	 * write this string between all string blocks.<br />
@@ -84,16 +85,19 @@ public:
 	 * This can be used to know whether an thread is known in order.
 	 * Elsewhere it have to show end of block with <code>TERMINALEND</code>
 	 *
+	 * @param threadID which thread ID should be registered, otherwise when 0, actual thread ID will be allocated
 	 * @return whether the thread was registered before
 	 */
-	bool isRegistered();
+	bool isRegistered(const pid_t& threadID= 0);
 	/**
 	 * define end of field, where can write out also content of other threads
+	 *
+	 * @param threadID which thread ID should be registered, otherwise when 0, actual thread ID will be allocated
 	 */
 #ifndef TERMINALOUTPUT_ONLY_THRADIDS
-	void end();
+	void end(const pid_t& threadID= 0);
 #else
-	void end(string file, int line);
+	void end(string file, int line, const pid_t& threadID= 0);
 #endif
 	/**
 	 * deleting of object

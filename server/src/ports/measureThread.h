@@ -29,6 +29,7 @@
 #include "../util/thread/Thread.h"
 #include "../util/thread/Terminal.h"
 
+#include "Informer.h"
 #include "DbFiller.h"
 #include "ListCalculator.h"
 
@@ -110,6 +111,18 @@ class MeasureThread : 	public Thread,
 		 * @return whether folder running
 		 */
 		virtual folderSpecNeed_t isFolderRunning(const vector<string>& specs);
+		/**
+		 * inform other folders and also own when necessary
+		 * that an specific subroutine was changed
+		 *
+		 * @param folders map of folders which should informed
+		 * @param from which subroutine (other or own) changing value
+		 * @param as from which subroutine be informed
+		 * @param debug whether subroutine which inform folders, running in debug session
+		 * @param lock locking mutex for observers
+		 */
+		virtual void informFolders(const folders_t& folders, const string& from,
+											const string& as, const bool debug, pthread_mutex_t *lock);
 		/**
 		 * set debug session in subroutine or hole folder when subroutine not given
 		 *
@@ -501,6 +514,10 @@ class MeasureThread : 	public Thread,
 		 * condition for wait for new changing of any subroutine
 		 */
 		pthread_cond_t *m_VALUECONDITION;
+		/**
+		 * thread to inform other and own folder when one subroutine changing
+		 */
+		Informer m_oInformer;
 		/**
 		 * database filler pool
 		 */

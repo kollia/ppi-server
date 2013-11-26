@@ -342,6 +342,14 @@ void portBase::setValue(double value, const string& from)
 		double dbvalue(value);
 		double oldMember(m_dValue);
 
+		// debug stopping
+		/*if(	getFolderName() == "Raff1" &&
+			getSubroutineName() == "Up"		)
+		{
+			cout << "stopping inside method setValue from subroutine"
+							<< getFolderName() << ":" << getSubroutineName() << endl;
+			cout << __FILE__ << __LINE__ << endl;
+		}*/
 		LOCK(m_VALUELOCK);
 		if(!m_bDefined)// if device not found by starting in init method
 			defineRange(); // try again, maybe device was found meantime
@@ -425,69 +433,14 @@ void portBase::setValue(double value, const string& from)
 			}
 
 			split(spl, from, is_any_of(":"));
-			LOCK(m_OBSERVERLOCK);
-
-			if(	m_poMeasurePattern &&
-				spl[0] == "i" &&
-				(	spl[1] != m_sFolder ||
-					(	spl[1] == m_sFolder &&
-						m_nCount < m_poMeasurePattern->getActCount(spl[2])	)	)	)
-			{// inform own folder to restart
-			 // when setting was from other folder
-			 // or in same folder, subroutine was from an later one
-				m_poMeasurePattern->changedValue(m_sFolder, from.substr(2));
-			}
-			if(debug)
+			if(	m_mvObservers.size() ||
+				(	spl[0] == "i" &&
+					(	spl[1] != m_sFolder ||
+						(	spl[1] == m_sFolder &&
+							m_nCount < m_poMeasurePattern->getActCount(spl[2])	)	)	)	)
 			{
-				if(m_mvObservers.size() > 0)
-				{
-					output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
-					output << "  " << sOwn << " was changed to " << m_dValue << endl;
-					if(	spl[0] != "i" ||
-						from.substr(2) != sOwn		)
-					{
-						output << "  was informed from";
-						if(from.substr(0, 1) == "e")
-							output << " internet account ";
-						else
-							output << ": ";
-						output << from.substr(2) << endl;
-					}
-				}
+				getRunningThread()->informFolders(m_mvObservers, from, getSubroutineName(), debug, m_OBSERVERLOCK);
 			}
-			for(map<IMeasurePattern*, vector<string> >::iterator it= m_mvObservers.begin(); it != m_mvObservers.end(); ++it)
-			{
-				for(vector<string>::iterator fit= it->second.begin(); fit != it->second.end(); ++fit)
-				{
-					string::size_type pos;
-
-					pos= fit->find(" ");
-					if(	from.substr(0, 1) != "i" ||
-						(	(	pos != string::npos &&
-								from.substr(2) != fit->substr(0, pos)	) ||
-							(	pos == string::npos &&
-								from.substr(2) != *fit	) 					)	)
-					{
-						if(debug)
-							output << "    inform " << *fit << endl;
-						it->first->changedValue(*fit, sOwn);
-
-					}else if(debug)
-						output << "    do not inform " << *fit << " back" << endl;
-					break;
-				}
-			}
-			if(debug && m_mvObservers.size() > 0)
-			{
-				bool registeredThread;
-
-				output << "////////////////////////////////////////" << endl;
-				registeredThread= Terminal::instance()->isRegistered();
-				tout << output.str();
-				if(!registeredThread)
-					TERMINALEND;
-			}
-			UNLOCK(m_OBSERVERLOCK);
 			if(	dbvalue != oldMember &&
 				(	m_bWriteDb ||
 					m_sPermission != ""	)	)

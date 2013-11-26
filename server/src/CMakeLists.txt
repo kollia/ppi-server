@@ -4,6 +4,7 @@ set(mainSrcs 	main.cpp
 		        starter.cpp				
 		        
 		        ports/ListCalculator.cpp
+		        ports/Informer.cpp
 		        ports/DbFiller.cpp
         		ports/measureThread.cpp
 		        ports/counter.cpp
