@@ -1778,7 +1778,9 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 
 			bool found(false), next(false);
 			short count(0), fcount(0), diff(0), mod;
+#ifdef __showStatistic
 			double lastActValue(timevec->actValue);
+#endif // __showStatistic
 
 			nPercent= 0;
 			// count values inside vector
@@ -2068,8 +2070,8 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 								out << "     because there are only two values measured" << endl;
 								tout << out.str();
 							}
-						}// end of if(count == 2)
 #endif // __showStatistic
+						}// end of if(count == 2)
 
 					} // end of if(timevec->reachedPercent->size() == 2)
 					if(found)
