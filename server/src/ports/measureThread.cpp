@@ -53,7 +53,7 @@ using namespace boost::algorithm;
 // output on command line also this statistics
 // to calculate middle length of folder or reach finish
 // when definition __showStatitic be defined and debug set
-#define __showStatistic
+//#define __showStatistic
 
 SHAREDPTR::shared_ptr<meash_t> meash_t::firstInstance= SHAREDPTR::shared_ptr<meash_t>();
 string meash_t::clientPath= "";
@@ -132,7 +132,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 		cerr << "              so send this messages directly which has more bad performance" << endl;
 		LOG(LOG_WARNING, err +"so send this messages directly which has more bad performance");
 	}
-	res= m_oInformer.start();
+	res= 0;//m_oInformer.start();
 	if(res)
 	{
 		string err("measuring thread for folder '" + threadname +
