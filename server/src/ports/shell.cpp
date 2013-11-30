@@ -35,7 +35,7 @@ using namespace boost;
 bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
 	bool bRv= true;
-	string user;
+	string user, folder(getFolderName()), subroutine(getSubroutineName());
 
 	properties->notAllowedParameter("default");
 	properties->notAllowedParameter("perm");
@@ -100,19 +100,49 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		cerr << msg << endl;
 		bRv= false;
 	}
-	if(bRv && m_sUserAccount != "")
+	if(bRv)
 	{
-		m_pOWServer= OWInterface::getServer("SHELL", m_sUserAccount);
-		if(!m_pOWServer)
+		if(m_sUserAccount == "")
 		{
-			string msg;
+			short count(0);
+			SHAREDPTR::shared_ptr<CommandExec> thread;
 
-			msg= properties->getMsgHead(/*error message*/false);
-			msg+= "cannot find OWServer for user account " + m_sUserAccount;
-			LOG(LOG_ERROR, msg);
-			cerr << msg << endl;
-			setDeviceAccess(false);
-			bRv= false;
+			if(m_sBeginCom != "")
+				++count;
+			if(m_sWhileCom != "")
+				++count;
+			if(m_sEndCom != "")
+				++count;
+			for(short n= 0; n < count; ++n)
+			{
+				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError,
+												getRunningThread()->getExternSendDevice()));
+				thread->setFor(folder, subroutine);
+				if(thread->start() != 0)
+				{
+					ostringstream msg;
+
+					msg << "ERROR: by trying to start CommandExec thread for beginning\n";
+					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
+					cerr << msg.str() << endl;
+					LOG(LOG_ERROR, msg.str());
+				}else
+					m_vCommandThreads.push_back(thread);
+			}
+		}else
+		{
+			m_pOWServer= OWInterface::getServer("SHELL", m_sUserAccount);
+			if(!m_pOWServer)
+			{
+				string msg;
+
+				msg= properties->getMsgHead(/*error message*/false);
+				msg+= "cannot find OWServer for user account " + m_sUserAccount;
+				LOG(LOG_ERROR, msg);
+				cerr << msg << endl;
+				setDeviceAccess(false);
+				bRv= false;
+			}
 		}
 	}
 	return bRv;
@@ -309,22 +339,106 @@ int Shell::system(const string& action, string command)
 	}else
 	{
 		bool bchangedVec(false);
+		short count(0), runCount(0);
 		SHAREDPTR::shared_ptr<CommandExec> thread;
 		typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
 
-
-		if(	action == "read" &&
-			!m_vCommandThreads.empty()	)
+		if(m_sBeginCom != "")
+			++count;
+		if(m_sWhileCom != "")
+			++count;
+		if(m_sEndCom != "")
+			++count;
+		LOCK(m_EXECUTEMUTEX);
+		if(action == "read")
 		{// when action is defined with read, m_bBlock is true
-		 // and variable m_vCommandThread has only one thread inside
-			thread= m_vCommandThreads[0];
+			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
+			{
+				if(	!(*it)->stopping() &&
+					!(*it)->wait()			)
+				{
+					thread= *it;
+					break;
+				}
+			}
+			if(thread == NULL)
+			{
+				for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
+				{
+					if(!(*it)->stopping())
+					{
+						thread= *it;
+						break;
+					}
+				}
+				if(	thread == NULL &&
+					!m_vCommandThreads.empty()	)
+				{
+					thread= m_vCommandThreads[0];
+				}
+			}
 
 		}else
 		{
-			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError,
-							getRunningThread()->getExternSendDevice()));
-			thread->setFor(folder, subroutine);
+			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
+			{
+				if(	!(*it)->stopping() &&
+					(*it)->wait()			)
+				{
+					thread= *it;
+					break;
+				}
+			}
+			if(thread == NULL)
+			{
+/*				typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::size_type vSize;
+
+				vSize nLen(m_vCommandThreads.size());
+				ostringstream out;*/
+
+				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError,
+								getRunningThread()->getExternSendDevice()));
+				thread->setFor(folder, subroutine);
+/*				out << "start one CommandExec thread for " << folder << ":" << subroutine << endl;
+				if(nLen > 0)
+				{
+					for(vSize i= 0; i < nLen; ++i)
+					{
+						if(i == 0)
+							out << "   because ";
+						else
+							out << "           ";
+						out << (i+1) << ". ";
+						if(!m_vCommandThreads[i]->running())
+							out << "do not running" << endl;
+						else if(m_vCommandThreads[i]->stopping())
+							out << "will be stopping" << endl;
+						else if(!m_vCommandThreads[i]->wait())
+							out << "do working" << endl;
+						else if(m_vCommandThreads[i]->wait())
+							out << "thread maybe before by asking working, but not now" << endl;
+						else
+							out << "thread has an undefined status" << endl;
+					}
+				}else
+					out << "   because no thread is running" << endl;
+				cerr << out.str();
+				LOGEX(LOG_INFO, out.str(), getRunningThread()->getExternSendDevice());*/
+				if(thread->start() != 0)
+				{
+					ostringstream msg;
+
+					msg << "ERROR: by trying to start CommandExec thread for command '" << command << "'\n";
+					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
+					cerr << msg.str() << endl;
+					LOG(LOG_ALERT, msg.str());
+					UNLOCK(m_EXECUTEMUTEX);
+					return -2;
+				}else
+					m_vCommandThreads.push_back(thread);
+			}
 		}
+		UNLOCK(m_EXECUTEMUTEX);
 
 		if(	m_bBlock &&
 			!thread->running())
@@ -340,8 +454,16 @@ int Shell::system(const string& action, string command)
 			bchangedVec= false;
 			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
 			{
+				if(	runCount >= count &&
+					!(*it)->stopping() &&
+					(*it)->wait()			)
+				{
+					(*it)->stop(false);
+				}
 				if((*it)->stopping())
 				{
+					//cout << "remove one CommandExec thread for " << folder << ":" << subroutine;
+					//cout << " because " << m_vCommandThreads.size() << " are running" << endl;
 					if((*it)->running())
 					{// when thread should stopping,
 					 // waiting for finished
@@ -350,17 +472,10 @@ int Shell::system(const string& action, string command)
 					m_vCommandThreads.erase(it);
 					bchangedVec= true;
 					break;
-				}
+				}else
+					++runCount;
 			}
 		}while(bchangedVec);
-		if(	m_bWait == false ||
-			m_bBlock == true ||
-			thread->running()	)
-		{// give CommandExec inside queue and delete object by next pass
-		 // when he was stopping between
-			if(action != "read")
-				m_vCommandThreads.push_back(thread);
-		}
 		UNLOCK(m_EXECUTEMUTEX);
 	}
 	if(m_bWait)

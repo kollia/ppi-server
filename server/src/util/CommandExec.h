@@ -53,7 +53,8 @@ public:
 	  m_bWait(false),
 	  m_bBlock(false)
 	{ m_RESULTMUTEX= getMutex("RESULTMUTEX");
-	  m_WAITMUTEX= getMutex("WAITMUTEX");     };
+	  m_WAITMUTEX= getMutex("WAITMUTEX");
+	  m_WAITFORRUNGCONDITION= getCondition("WAITFORRUNCONDITION"); };
 	/**
 	 * writing command on shell
 	 *
@@ -81,6 +82,12 @@ public:
 	 */
 	virtual int start(void *args= NULL, bool bHold= false)
 	{ m_bStarted= true; return Thread::start(args, bHold); };
+	/**
+	 * whether thread waiting for new command to run
+	 *
+	 * @return whether thread waiting
+	 */
+	bool wait();
 	/**
 	 *  external command to stop thread
 	 *
@@ -141,7 +148,8 @@ public:
 	virtual ~CommandExec()
 	{ stop(true);
 	  DESTROYMUTEX(m_RESULTMUTEX);
-	  DESTROYMUTEX(m_WAITMUTEX);   };
+	  DESTROYMUTEX(m_WAITMUTEX);
+	  DESTROYCOND(m_WAITFORRUNGCONDITION); };
 
 private:
 	/**
@@ -157,6 +165,10 @@ private:
 	 * extern mutex for last written values
 	 */
 	pthread_mutex_t* m_externWRITTENVALUES;
+	/**
+	 * condition to wait for working
+	 */
+	pthread_cond_t* m_WAITFORRUNGCONDITION;
 	/**
 	 * whether thread was started
 	 */

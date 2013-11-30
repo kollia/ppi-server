@@ -200,10 +200,33 @@ namespace ports
 		}
 		if(block == false)
 		{
-			db= DbInterface::instance();
-			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError));
-			thread->setFor(folder, subroutine);
-			m_vCommandThreads.push_back(thread);
+			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
+			{
+				if(	!(*it)->stopping() &&
+					(*it)->wait()			)
+				{
+					thread= *it;
+					break;
+				}
+			}
+			if(thread == NULL)
+			{
+				db= DbInterface::instance();
+				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError));
+				thread->setFor(folder, subroutine);
+				if(thread->start() != 0)
+				{
+					ostringstream msg;
+
+					msg << "ERROR: by trying to start CommandExec thread "
+									"inside SchellWriter for command '" << execute << "'\n";
+					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
+					cerr << msg.str() << endl;
+					LOG(LOG_ALERT, msg.str());
+					return -2;
+				}else
+					m_vCommandThreads.push_back(thread);
+			}
 		}else
 		{// when subroutine defined with action property block
 		 // variable m_vCommandThread should have only one thread inside
@@ -217,7 +240,18 @@ namespace ports
 				db= DbInterface::instance();
 				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError));
 				thread->setFor(folder, subroutine);
-				m_msoBlockThreads[foldsub]= thread;
+				if(thread->start() != 0)
+				{
+					ostringstream msg;
+
+					msg << "ERROR: by trying to start CommandExec thread "
+									"inside SchellWriter for command '" << execute << "'\n";
+					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
+					cerr << msg.str() << endl;
+					LOG(LOG_ALERT, msg.str());
+					return -2;
+				}else
+					m_msoBlockThreads[foldsub]= thread;
 
 			}else
 				thread= pfound->second;

@@ -81,11 +81,11 @@ int CommandExec::init(void* args)
 			return -2;
 		}
 	}
-	if(m_sCommand == "")
+/*	if(m_sCommand == "")
 	{
 		TIMELOGEX(LOG_ERROR, "msCommandInitial", "CommandExec object will be create without command string", m_pSendLog);
 		return -1;
-	}
+	}*/
 	return 0;
 }
 
@@ -118,40 +118,49 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 	UNLOCK(thread->m_WAITMUTEX);
 	if(command == "info")
 		return 0;
-	if(!thread->running())
+	if(	!thread->running() ||
+		thread->wait()			)
 	{
 		result= thread->getOutput();
+		if(!wait)// when wait is false, result can be from last activation
+			result.clear(); // which is not needed
 		if(result.size() == 0)
 		{
-			const char* ccCommand;
-			char* cCommand;
-			string::size_type nLen;
-
-			nLen= command.length();
-			cCommand= new char[nLen + 2];
-			ccCommand= command.c_str();
-			strncpy(cCommand, ccCommand, nLen + 1);
-			if(thread->start(cCommand, thwait) != 0)
+			if(!thread->running())
 			{
-				ostringstream msg;
-
-				if(	thread->getErrorType() == Thread::INIT &&
-					thread->getErrorCode() == -2				)
+				if(thread->start() != 0)
 				{
-					msg << "ERROR: exception caused by writing command ";
-					msg << "'" << command << "' into CommandExec object";
+					ostringstream msg;
+
+					if(	thread->getErrorType() == Thread::INIT &&
+						thread->getErrorCode() == -2				)
+					{
+						msg << "ERROR: exception caused by writing command ";
+						msg << "'" << command << "' into CommandExec object";
+						cerr << msg.str() << endl;
+						LOG(LOG_ERROR, msg.str());
+						return -3;
+					}
+					msg << "ERROR: by starting unused CommandExec thread for shell command '" << command << "'\n";
+					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
 					cerr << msg.str() << endl;
 					LOG(LOG_ERROR, msg.str());
-					return -3;
+					return -2;
 				}
-				msg << "ERROR: by starting unused CommandExec thread for shell command '" << command << "'\n";
-				msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
-				cerr << msg.str() << endl;
-				LOG(LOG_ERROR, msg.str());
-				delete[] cCommand;
-				return -2;
 			}
-			delete[] cCommand;
+			LOCK(thread->m_WAITMUTEX);
+			thread->m_sCommand= command;
+			AROUSEALL(thread->m_WAITFORRUNGCONDITION);// <- starting thread
+			if(thwait)
+			{// and wait for answer with the same condition
+			 // when subroutine has action wait and no block
+				while(	thread->m_sCommand != "" &&
+						!thread->stopping()			)
+				{
+					CONDITION(thread->m_WAITFORRUNGCONDITION, thread->m_WAITMUTEX);
+				}
+			}
+			UNLOCK(thread->m_WAITMUTEX);
 			if(	wait == false ||
 				block == true	)
 			{
@@ -282,6 +291,7 @@ int CommandExec::stop(const bool *bWait/*= NULL*/)
 		m_nStopSignal= 0;
 		m_tScriptPid= 0;
 	}
+	AROUSEALL(m_WAITFORRUNGCONDITION);
 	UNLOCK(m_WAITMUTEX);
 	if(	bWait != NULL &&
 		*bWait			)
@@ -379,21 +389,48 @@ vector<string> CommandExec::grepPS(pid_t pid) const
 	return vsRv;
 }
 
+bool CommandExec::wait()
+{
+	bool bWait(false);
+
+	LOCK(m_WAITMUTEX);
+	if(m_sCommand == "")
+		bWait= true;
+	UNLOCK(m_WAITMUTEX);
+	return bWait;
+}
+
 int CommandExec::execute()
 {
 	bool bWaitMutex(false), bResultMutex(false), bOpenShell(false);
 	bool bWait, bDebug;
 	char line[1024];
 	string sline;
-	string command;
+	string command, orgCommand;
 	string sLastErrorlevel;
 	vector<string> spl;
 	deque<string> qLastRows;
 	string::size_type nLen;
 	FILE *fp;
 
+	LOCK(m_WAITMUTEX);
+/*	if(	m_sCommand == "" &&
+		m_sFolder == "power_switch" &&
+		m_sSubroutine == "space")
+	{
+		cout << m_sFolder << ":" << m_sSubroutine << " go into wait status" << endl;
+	}*/
+	while(	m_sCommand == "" &&
+			!stopping()			)
+	{
+		CONDITION(m_WAITFORRUNGCONDITION, m_WAITMUTEX);
+	}
+	orgCommand= m_sCommand;
+	UNLOCK(m_WAITMUTEX);
+	if(stopping())
+		return 0;
 	try{
-		split(spl, m_sCommand, is_any_of(";"));
+		split(spl, orgCommand, is_any_of(";"));
 		for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
 		{
 			command+= *it;
@@ -413,10 +450,13 @@ int CommandExec::execute()
 		bOpenShell= true;
 		if(fp == NULL)
 		{
-			sline= "ERROR by writing command on folder subroutine " + m_sCommand + " on command line\n";
+			sline= "ERROR by writing command on folder subroutine " + orgCommand + " on command line\n";
 			sline+= "ERRNO: " + *strerror(errno);
 			cerr << sline << endl;
 			LOGEX(LOG_ERROR, sline, m_pSendLog);
+			LOCK(m_WAITMUTEX);
+			m_sCommand= "";
+			UNLOCK(m_WAITMUTEX);
 			return -1;
 		};
 		LOCK(m_WAITMUTEX);
@@ -507,13 +547,12 @@ int CommandExec::execute()
 				setErrorlevel << nRv;
 				setValue(setErrorlevel.str(), bDebug);
 			}
-			stop(false);
 			if(	m_bLogError &&
 				nRv != 0		)
 			{
 				ostringstream msg;
 
-				msg << "shell script \"" << m_sCommand << "\"" << endl;
+				msg << "shell script \"" << orgCommand << "\"" << endl;
 				msg << "from folder '" << m_sFolder << "' and subroutine '" << m_sSubroutine << "'";
 				msg << " ending with error " << nRv << endl << endl;
 				if(!qLastRows.empty())
@@ -538,7 +577,7 @@ int CommandExec::execute()
 	{
 		string err;
 
-		ex.addMessage("running shell command '" + m_sCommand + "' for folder '"
+		ex.addMessage("running shell command '" + orgCommand + "' for folder '"
 						+ m_sFolder + "' and subroutine '" + m_sSubroutine + "'");
 		err= ex.getTraceString();
 		cerr << endl << err << endl;
@@ -559,7 +598,7 @@ int CommandExec::execute()
 	{
 		string err;
 
-		err=  "ERROR: STD exception by running shell command '" + m_sCommand + "' for folder '"
+		err=  "ERROR: STD exception by running shell command '" + orgCommand + "' for folder '"
 						+ m_sFolder + "' and subroutine '" + m_sSubroutine + "'\n";
 		err+= "what(): " + string(ex.what());
 		cerr << err << endl;
@@ -580,7 +619,7 @@ int CommandExec::execute()
 	{
 		string error;
 
-		error+= "ERROR: catching UNKNOWN exception running shell command '" + m_sCommand + "' for folder '"
+		error+= "ERROR: catching UNKNOWN exception running shell command '" + orgCommand + "' for folder '"
 						+ m_sFolder + "' and subroutine '" + m_sSubroutine + "'";
 		cerr << error << endl;
 		try{
@@ -596,7 +635,11 @@ int CommandExec::execute()
 		if(bOpenShell)
 			pclose(fp);
 	}
-	return 1;
+	LOCK(m_WAITMUTEX);
+	m_sCommand= "";
+	AROUSEALL(m_WAITFORRUNGCONDITION);
+	UNLOCK(m_WAITMUTEX);
+	return 0;
 }
 
 void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
@@ -887,8 +930,11 @@ void CommandExec::setValue(const string& command, bool bLog)
 			if(m_qLog.size() > 1000)
 				m_qLog.pop_front();
 		}
-		TIMELOGEX(LOG_ALERT, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\nby command: " + m_sCommand + "\noutput string '" + command
+		LOCK(m_WAITMUTEX);
+		outstr= m_sCommand;
+		UNLOCK(m_WAITMUTEX);
+		TIMELOGEX(LOG_ALERT, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\nby command: " + outstr + "\noutput string '" + command
 							+ "'\n               no setValue interface be set", m_pSendLog               );
 		return;
 	}
@@ -911,8 +957,11 @@ void CommandExec::setValue(const string& command, bool bLog)
 			if(m_qLog.size() > 1000)
 				m_qLog.pop_front();
 		}
-		TIMELOGEX(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\nby command: " + m_sCommand + "\noutput string '" + command
+		LOCK(m_WAITMUTEX);
+		outstr= m_sCommand;
+		UNLOCK(m_WAITMUTEX);
+		TIMELOGEX(LOG_WARNING, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\nby command: " + outstr + "\noutput string '" + command
 							+ "'\n               ### ERROR: cannot read correctly PPI-SET command", m_pSendLog               );
 		return;
 	}
@@ -935,8 +984,11 @@ void CommandExec::setValue(const string& command, bool bLog)
 			if(m_qLog.size() > 1000)
 				m_qLog.pop_front();
 		}
-		TIMELOGEX(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\nby command: " + m_sCommand + "\noutput string '" + command
+		LOCK(m_WAITMUTEX);
+		outstr= m_sCommand;
+		UNLOCK(m_WAITMUTEX);
+		TIMELOGEX(LOG_WARNING, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\nby command: " + outstr + "\noutput string '" + command
 							+ "'\n               cannot read definition of <folder>:<subroutine>", m_pSendLog			               );
 		return;
 	}
@@ -958,8 +1010,11 @@ void CommandExec::setValue(const string& command, bool bLog)
 			if(m_qLog.size() > 1000)
 				m_qLog.pop_front();
 		}
-		TIMELOGEX(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\nby command: " + m_sCommand + "\noutput string '" + command
+		LOCK(m_WAITMUTEX);
+		outstr= m_sCommand;
+		UNLOCK(m_WAITMUTEX);
+		TIMELOGEX(LOG_WARNING, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\nby command: " + outstr + "\noutput string '" + command
 							+ "'\n               cannot read definition of <folder>:<subroutine>", m_pSendLog			               );
 		return;
 	}
@@ -981,8 +1036,11 @@ void CommandExec::setValue(const string& command, bool bLog)
 			if(m_qLog.size() > 1000)
 				m_qLog.pop_front();
 		}
-		TIMELOGEX(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\nby command: " + m_sCommand + "\noutput string '" + command
+		LOCK(m_WAITMUTEX);
+		outstr= m_sCommand;
+		UNLOCK(m_WAITMUTEX);
+		TIMELOGEX(LOG_WARNING, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+							+ "\nby command: " + outstr + "\noutput string '" + command
 							+ "'\n               cannot read definition of value", m_pSendLog			               );
 		return;
 	}
@@ -1035,8 +1093,11 @@ void CommandExec::setValue(const string& command, bool bLog)
 				if(m_qLog.size() > 1000)
 					m_qLog.pop_front();
 			}
-			TIMELOGEX(LOG_WARNING, "shell_setValue"+m_sCommand+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-								+ "\nby command: " + m_sCommand + "\noutput string '" + command
+			LOCK(m_WAITMUTEX);
+			outstr= m_sCommand;
+			UNLOCK(m_WAITMUTEX);
+			TIMELOGEX(LOG_WARNING, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
+								+ "\nby command: " + outstr + "\noutput string '" + command
 								+ "'\n               cannot write correctly PPI-SET command over interface to folder-list", m_pSendLog      );
 		}
 	}
