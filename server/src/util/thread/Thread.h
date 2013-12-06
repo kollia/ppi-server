@@ -585,8 +585,8 @@ class Thread :	public virtual IThreadPattern,
 		/**
 		 * abstract method to running thread
 		 * in the extended class.<br />
-		 * This method starting again when ending without an sleeptime
-		 * if the method stop() isn't call.
+		 * This method starting again when ending when method ending with return value 0
+		 * and the method stop() isn't called.
 		 *
 		 * @return defined error code from extended class
 		 */

@@ -34,236 +34,288 @@ Terminal* Terminal::instance()
 	return _instance;
 }
 
-/*
-SHAREDPTR::shared_ptr<ostringstream> Terminal::out()
+SHAREDPTR::shared_ptr<ostringstream> Terminal::out(pid_t threadID/*= 0*/)
 {
-	pid_t pid;
-	SHAREDPTR::shared_ptr<ostringstream> oRv;
-	vector<pid_t>::iterator ending;
-	vector<SHAREDPTR::shared_ptr<ostringstream> >::iterator it;
-	map<pid_t, vector<SHAREDPTR::shared_ptr<ostringstream> > >::iterator found;
-
-	pid= Thread::gettid();
-	oRv= SHAREDPTR::shared_ptr<ostringstream>(new ostringstream);
-	LOCK(m_PRINT);
-	cout << "[make " << pid << " msg] ";
-	if(!m_qOrder.empty() && pid != m_qOrder.front())
-		cout << m_qOrder.front() << " blocks";
-	cout << endl;
-	found= m_mqRunStrings.find(pid);
-	if(found != m_mqRunStrings.end())
-	{
-		if(	m_qOrder.empty() ||
-			pid == m_qOrder.front()	)
-		{// if actual pid is same than first of order (m_qOrder)
-		 // write out existing old strings
-			for(it= found->second.begin(); it != found->second.end(); ++it)
-				cout << (*it)->str();
-			found->second.clear();
-		}
-
-	}
-	if(find(m_qOrder.begin(), m_qOrder.end(), pid) == m_qOrder.end())
-		m_qOrder.push_back(pid);
-	ending= find(m_vEnding.begin(), m_vEnding.end(), pid);
-	if(ending != m_vEnding.end())
-		m_vEnding.erase(ending);
-
-	m_mqRunStrings[pid].push_back(oRv);
-	UNLOCK(m_PRINT);
-	return oRv;
-}*/
-#ifdef TERMINALOUTPUT_ONLY_THRADIDS
-SHAREDPTR::shared_ptr<ostringstream> Terminal::out(string file, int line, const pid_t& threadID/*= 0*/)
-#else
-SHAREDPTR::shared_ptr<ostringstream> Terminal::out(const pid_t& threadID/*= 0*/)
-#endif
-{
-	pid_t pid;
-	SHAREDPTR::shared_ptr<ostringstream> oRv;
-	vector<SHAREDPTR::shared_ptr<ostringstream> >::iterator it;
-	map<pid_t, vector<SHAREDPTR::shared_ptr<ostringstream> > >::iterator found;
+	SHAREDPTR::shared_ptr<ostringstream> pRv;
+	map<pid_t, SHAREDPTR::shared_ptr<ostringstream> >::iterator found;
 
 	if(threadID == 0)
-		pid= Thread::gettid();
-	else
-		pid= threadID;
-	oRv= SHAREDPTR::shared_ptr<ostringstream>(new ostringstream);
+		threadID= Thread::gettid();
 	LOCK(m_PRINT);
-	found= m_mqRunStrings.find(pid);
-	if(found != m_mqRunStrings.end())
-	{// if thread is in m_mqRunStrings, also m_qOrder is not empty
-
-		if(pid == m_qOrder.front())
-		{// if aktual pid is same than first of order (m_qOrder)
-		 // write out existing old strings
-			for(it= found->second.begin(); it != found->second.end(); ++it)
-				write(pid, (*it)->str());
-			found->second.clear();
-		}
-
-	}else
+	if(m_pWorker.get() == NULL)
 	{
-		if(found == m_mqRunStrings.end())
-			m_qOrder.push_back(pid);
-	}
-#ifdef TERMINALOUTPUT_ONLY_THRADIDS
-	if(pid == m_qOrder.front())
-	{
-		if(s != pid)
-			cout << "show [" << pid << "] " << file << " " << line << endl;
-		s= pid;
-	}else
-	{
-		if(b != pid)
+		m_pWorker= std::auto_ptr<Terminal>(new Terminal());
+		if(m_pWorker->start() != 0)
 		{
-			cout << "block [" << pid << "]" << file << " " << line << endl;
-			cout << "actual order:" << endl;
-			for(vector<pid_t>::iterator o= m_qOrder.begin(); o != m_qOrder.end(); ++o)
-				cout << *o << endl;
-			cout << "------------------" << endl;
-		}
-		b= pid;
-	}
-#endif // TERMINALOUTPUT_ONLY_THRADIDS
+			string err("cannot create Terminal thread to write output strings\n");
 
-	m_mqRunStrings[pid].push_back(oRv);
+			cerr << "### WARNING: " << err;
+			cerr << "              so writing strings directly, which cost by using more bad performance" << endl;
+			TIMELOG(LOG_WARNING, "terminal", err +"so writing strings directly, which cost by using more bad performance");
+		}
+	}
+	found= m_sLastMsgStream.find(threadID);
+	if(found != m_sLastMsgStream.end())
+	{
+		if(	m_pWorker.get() != NULL &&
+			m_pWorker->running()		)
+		{
+			m_pWorker->read(threadID, found->second->str());
+			found->second->str("");
+			UNLOCK(m_PRINT);
+			return found->second;
+		}else
+		{
+			string lastString(found->second->str());
+
+			found->second->str("");
+			if(lastString != "")
+			{
+				UNLOCK(m_PRINT);
+				read(threadID, lastString);
+				execute();
+				LOCK(m_PRINT);
+			}
+		}
+	}else
+		m_sLastMsgStream[threadID]= SHAREDPTR::shared_ptr<ostringstream>(new ostringstream);
+	pRv= m_sLastMsgStream[threadID];
 	UNLOCK(m_PRINT);
-	return oRv;
+	return pRv;
 }
 
-bool Terminal::isRegistered(const pid_t& threadID/*= 0*/)
+void Terminal::read(const pid_t& threadID, const string& msg)
+{
+	vector<string>::iterator it;
+	map<pid_t, SHAREDPTR::shared_ptr<vector<string> > >::iterator found;
+
+	if(	threadID == 0 ||
+		msg == ""		)
+	{
+		return;
+	}
+	LOCK(m_PRINT);
+	found= m_mqRunStrings.find(threadID);
+	if(found == m_mqRunStrings.end())
+	{
+		m_mqRunStrings[threadID]= SHAREDPTR::shared_ptr<vector<string> >(new vector<string>());
+		m_mqRunStrings[threadID]->push_back(msg);
+	}else
+		found->second->push_back(msg);
+	if(find(m_qOrder.begin(), m_qOrder.end(), threadID) == m_qOrder.end())
+		m_qOrder.push_back(threadID);
+	if(m_qOrder.front() == threadID)
+	{
+		if(m_nActThreadID == 0)
+			m_nActThreadID= threadID;
+		AROUSE(m_WORKINGCONDITION);
+	}
+	UNLOCK(m_PRINT);
+}
+
+int Terminal::execute()
+{
+	pid_t threadID(0);
+	finishedPtr_temp finished;
+	SHAREDPTR::shared_ptr<vector<string> > pmsgs;
+
+	LOCK(m_PRINT);
+	while(	!stopping() &&
+			m_pvFinishedStrings.get() == NULL &&
+			(	m_qOrder.empty() ||
+				m_mqRunStrings[m_qOrder.front()]->empty()	)	)
+	{
+		CONDITION(m_WORKINGCONDITION, m_PRINT);
+	}
+	if(	m_pvFinishedStrings.get() != NULL &&
+		m_pvFinishedStrings->front().first == m_nActThreadID	)
+	{
+		finished= m_pvFinishedStrings;
+		m_pvFinishedStrings= finishedPtr_temp();
+		m_nActThreadID= 0;
+	}
+	if(!m_qOrder.empty())
+	{
+		threadID= m_qOrder.front();
+		pmsgs= m_mqRunStrings[threadID];
+		m_mqRunStrings[threadID]= SHAREDPTR::shared_ptr<vector<string> >(new vector<string>);
+	}
+	UNLOCK(m_PRINT);
+
+	if(finished.get() != NULL)
+	{
+		for(finishedStrVec_temp::iterator it= finished->begin(); it != finished->end(); ++it)
+		{
+			for(vector<string>::iterator vit= it->second->begin(); vit != it->second->end(); ++vit)
+				write(it->first, *vit);
+			write(0, "");
+		}
+	}
+	if(pmsgs.get() != NULL)
+	{
+		for(vector<string>::iterator it= pmsgs->begin(); it != pmsgs->end(); ++it)
+			write(threadID, *it);
+	}
+	return 0;
+}
+
+void Terminal::ending()
+{
+	if(	!m_mqRunStrings.empty() ||
+		m_pvFinishedStrings.get() != NULL	)
+	{
+		map<pid_t, SHAREDPTR::shared_ptr<vector<string> > >::iterator ths;
+
+		cout << "--------------------------------------------------------------------------" << endl;
+		cout << "  WARNING: for Terminal object, some string exists inside buffer" << endl;
+		cout << "--------------------------------------------------------------------------" << endl;
+		if(m_pvFinishedStrings.get() != NULL)
+		{
+			for(finishedStrVec_temp::iterator it= m_pvFinishedStrings->begin(); it != m_pvFinishedStrings->end(); ++it)
+			{
+				for(vector<string>::iterator vit= it->second->begin(); vit != it->second->end(); ++vit)
+					write(it->first, *vit);
+				write(0, "");
+			}
+			if(!m_mqRunStrings.empty())
+			{
+				cout << endl;
+				cout << "--------------------------------------------------------------------------" << endl;
+			}
+		}
+		for(ths= m_mqRunStrings.begin(); ths != m_mqRunStrings.end(); ++ths)
+			for(vector<string>::iterator it= ths->second->begin(); it != ths->second->end(); ++it)
+				write(ths->first, *it);
+		cout << endl;
+		cout << "--------------------------------------------------------------------------" << endl;
+		cout << "--------------------------------------------------------------------------" << endl;
+	}
+}
+
+bool Terminal::isRegistered(pid_t threadID/*= 0*/)
 {
 	bool reg(false);
-	pid_t pid(threadID);
 
-	if(pid == 0)
-		pid= Thread::gettid();
+	if(threadID == 0)
+		threadID= Thread::gettid();
 	LOCK(m_PRINT);
-	if(find(m_qOrder.begin(), m_qOrder.end(), pid) != m_qOrder.end())
+	if(	m_pWorker.get() != NULL &&
+		m_pWorker->running()		)
+	{
+		reg= m_pWorker->isRegistered(threadID);
+		UNLOCK(m_PRINT);
+		return reg;
+	}
+	if(find(m_qOrder.begin(), m_qOrder.end(), threadID) != m_qOrder.end())
 		reg= true;
 	UNLOCK(m_PRINT);
 	return reg;
 }
 
-/*void Terminal::end()
-{
-	pid_t pid, fpid;
-	vector<pid_t>::iterator ending;
-	vector<SHAREDPTR::shared_ptr<ostringstream> >::iterator it;
-	map<pid_t, vector<SHAREDPTR::shared_ptr<ostringstream> > >::iterator found;
-
-	pid= Thread::gettid();
-	LOCK(m_PRINT);
-	found= m_mqRunStrings.find(pid);
-	cout << "[ending " << pid << " msgs] " << endl;
-	if(found != m_mqRunStrings.end())
-	{
-		if(	m_qOrder.empty() ||
-			pid == m_qOrder.front()	)
-		{// if actual pid is same than first of order (m_qOrder)
-		 // write out existing old strings
-			for(it= found->second.begin(); it != found->second.end(); ++it)
-				cout << (*it)->str();
-			m_mqRunStrings.erase(found);
-			if(!m_qOrder.empty())
-				m_qOrder.erase(m_qOrder.begin());
-			ending= find(m_vEnding.begin(), m_vEnding.end(), pid);
-			if(ending != m_vEnding.end())
-				m_vEnding.erase(ending);
-
-		}else if(find(m_vEnding.begin(), m_vEnding.end(), pid) == m_vEnding.end())
-			m_vEnding.push_back(pid);
-	}
-	if(!m_qOrder.empty())
-	{
-		fpid= m_qOrder.front();
-		found= m_mqRunStrings.find(fpid);
-		while(	found != m_mqRunStrings.end()	)
-		{
-			for(it= found->second.begin(); it != found->second.end(); ++it)
-				cout << (*it)->str();
-			m_mqRunStrings.erase(found);
-			ending= find(m_vEnding.begin(), m_vEnding.end(), fpid);
-			if(ending == m_vEnding.end())
-				break;
-			m_vEnding.erase(ending);
-		}
-	}
-	UNLOCK(m_PRINT);
-}*/
 #ifdef TERMINALOUTPUT_ONLY_THRADIDS
 void Terminal::end(string file, int line, const pid_t& threadID/*= 0*/)
 #else
-void Terminal::end(const pid_t& threadID/*= 0*/)
+void Terminal::end(pid_t threadID/*= 0*/)
 #endif
 {
-	pid_t pid;
-	pair<pid_t, string> buf;
-	vector<SHAREDPTR::shared_ptr<ostringstream> >::iterator it;
-	map<pid_t, vector<SHAREDPTR::shared_ptr<ostringstream> > >::iterator found;
+	bool bexec(false);
+	map<pid_t, SHAREDPTR::shared_ptr<ostringstream> >::iterator it;
+	map<pid_t, SHAREDPTR::shared_ptr<vector<string> > >::iterator found;
+	vector<pid_t>::iterator foundTH;
 
 	if(threadID == 0)
-		pid= Thread::gettid();
-	else
-		pid= threadID;
+		threadID= Thread::gettid();
 	LOCK(m_PRINT);
-	found= m_mqRunStrings.find(pid);
-#ifdef TERMINALOUTPUT_ONLY_THRADIDS
-	cout << "ending [" << pid << "] " << file << " " << line << endl;
-#endif
-	if(found != m_mqRunStrings.end())
-	{// if thread is in m_mqRunStrings, also m_qOrder is not empty
-		if(pid == m_qOrder.front())
-		{// if actual pid is same than first of order (m_qOrder)
-		 // write out existing old strings
-#ifdef TERMINALOUTPUT_ONLY_THRADIDS
-			cout << "write last strings of [" << pid << "]" << endl;
-#endif
-			for(it= found->second.begin(); it != found->second.end(); ++it)
-				write(pid, (*it)->str());
-			write(0, "");
-			m_mqRunStrings.erase(found);
-			m_qOrder.erase(m_qOrder.begin());
-#ifdef TERMINALOUTPUT_ONLY_THRADIDS
-			cout << "new order:" << endl;
-			for(vector<pid_t>::iterator o= m_qOrder.begin(); o != m_qOrder.end(); ++o)
-				cout << *o << endl;
-			cout << "------------------" << endl;
-			pid= 0;
-			cout << "write blocked buffer" << endl;
-#endif
-			s= 0;
-			b= 0;
-			// write now all strings which are finished in meantime
-			while(!m_qStrings.empty())
-			{
-				buf= m_qStrings.front();
-#ifdef TERMINALOUTPUT_ONLY_THRADIDS
-				if(buf.first != 0 && pid != buf.first)
-					cout << "show [" << buf.first << "] block" << endl;
-				pid= buf.first;
-#endif
-				write(buf.first, buf.second);
-				m_qStrings.pop();
-			}
-#ifdef TERMINALOUTPUT_ONLY_THRADIDS
-			cout << "--------------" << endl;
-#endif
-
-		}else
+	if(	m_pWorker.get() != NULL &&
+		m_pWorker->running()		)
+	{
+		it= m_sLastMsgStream.find(threadID);
+		if(it != m_sLastMsgStream.end())
 		{
-#ifdef TERMINALOUTPUT_ONLY_THRADIDS
-			cout << "write [" << pid << "] into blocked buffer" << endl;
-#endif
-			for(it= found->second.begin(); it != found->second.end(); ++it)
-				m_qStrings.push(pair<pid_t, string>(pid, (*it)->str()));
-			m_qStrings.push(pair<pid_t, string>(0, ""));
-			m_mqRunStrings.erase(found);
-			m_qOrder.erase(find(m_qOrder.begin(), m_qOrder.end(), pid));
+			string msg(it->second->str());
+
+			it->second->str("");
+			if(msg != "")
+				m_pWorker->read(threadID, msg);
+		}
+		m_pWorker->end(threadID);
+		UNLOCK(m_PRINT);
+		return;
+	}
+	found= m_mqRunStrings.find(threadID);
+	it= m_sLastMsgStream.find(threadID);
+	if(it != m_sLastMsgStream.end())
+	{// can be only when no working thread created
+		string msg(it->second->str());
+
+		it->second->str("");
+		if(msg != "")
+		{
+			if(found == m_mqRunStrings.end())
+			{
+				m_mqRunStrings[threadID]= SHAREDPTR::shared_ptr<vector<string> >(new vector<string>());
+				found= m_mqRunStrings.find(threadID);
+			}
+			found->second->push_back(msg);
 		}
 	}
+	if(found != m_mqRunStrings.end())
+	{
+		if(m_pvFinishedStrings.get() == NULL)
+			m_pvFinishedStrings= finishedPtr_temp(new finishedStrVec_temp);
+		if(	threadID == m_nActThreadID &&
+			!m_pvFinishedStrings->empty() &&
+			m_pvFinishedStrings->front().first != m_nActThreadID	)
+		{
+			// insert actual block on beginning
+			m_pvFinishedStrings->push_front(
+							pair<	pid_t,
+								SHAREDPTR::shared_ptr<vector<string> > >
+												(threadID, found->second)	);
+		}else
+		{
+			m_pvFinishedStrings->push_back(
+							pair<	pid_t,
+								SHAREDPTR::shared_ptr<vector<string> > >
+												(threadID, found->second)	);
+		}
+		m_mqRunStrings.erase(threadID);
+		foundTH= find(m_qOrder.begin(), m_qOrder.end(), threadID);
+		if(foundTH != m_qOrder.end())
+			m_qOrder.erase(foundTH);
+	}
+	if(	_instance == this &&
+		m_pvFinishedStrings.get() != NULL &&
+		!m_qOrder.empty() &&
+		!m_mqRunStrings[m_qOrder.front()]->empty()	)
+	{// when no working thread created
+		bexec= true;
+	}
+	if(	bexec == false &&
+		m_nActThreadID == threadID	)
+	{
+		AROUSE(m_WORKINGCONDITION);
+	}
 	UNLOCK(m_PRINT);
+	if(bexec)
+		execute();// when no working thread created
+}
+
+int Terminal::stop(const bool *bWait/*= NULL*/)
+{
+	int res;
+
+	res= Thread::stop(false);
+	LOCK(m_PRINT);
+	AROUSE(m_WORKINGCONDITION);
+	UNLOCK(m_PRINT);
+	if(	res != 0 ||
+		bWait == NULL ||
+		*bWait == false	)
+	{
+		return res;
+	}
+	return Thread::stop(bWait);
 }
 
 string Terminal::output_prefix(const pid_t& pid)
@@ -324,32 +376,9 @@ void Terminal::deleteObj()
 {
 	if(_instance)
 	{
-		if(	!_instance->m_mqRunStrings.empty() ||
-			!_instance->m_qStrings.empty()			)
-		{
-			vector<SHAREDPTR::shared_ptr<ostringstream> >::iterator it;
-			map<pid_t, vector<SHAREDPTR::shared_ptr<ostringstream> > >::iterator ths;
-
-			cout << "--------------------------------------------------------------------------" << endl;
-			cout << "  WARNING: for Terminal object, some string exists inside buffer" << endl;
-			cout << "--------------------------------------------------------------------------" << endl;
-			while(!_instance->m_qStrings.empty())
-			{
-				pair<pid_t, string> buf;
-
-				buf= _instance-> m_qStrings.front();
-				cout << buf.second;
-				_instance->m_qStrings.pop();
-			}
-			cout << endl;
-			cout << "--------------------------------------------------------------------------" << endl;
-			for(ths= _instance->m_mqRunStrings.begin(); ths != _instance->m_mqRunStrings.end(); ++ths)
-				for(it= ths->second.begin(); it != ths->second.end(); ++it)
-					cout << (*it)->str();
-			cout << endl;
-			cout << "--------------------------------------------------------------------------" << endl;
-			cout << "--------------------------------------------------------------------------" << endl;
-		}
+		if(_instance->m_pWorker.get() != NULL)
+			_instance->m_pWorker->stop(true);
+		_instance->ending();
 		delete _instance;
 		_instance= NULL;
 	}
