@@ -131,20 +131,21 @@ namespace ports
 		return true;
 	}
 
-	double ResistanceMeasure::measure(const double actValue)
+	valueHolder_t ResistanceMeasure::measure(const double actValue)
 	{
 		char buf[150];
 		string msg;
-		double dResistance= getResistance();
+		valueHolder_t oRv;
 
-		sprintf(buf, "%.2lf", dResistance);
+		oRv.value= getResistance();
+		sprintf(buf, "%.2lf", oRv.value);
 		msg= "measured resistance:";
 		msg+= buf;
 		msg+=" Ohm";
 		TIMELOGEX(LOG_INFO, getFolderName(), msg, getRunningThread()->getExternSendDevice());
 		if(isDebug())
 			tout << msg << endl;
-		return dResistance;
+		return oRv;
 	}
 
 	void ResistanceMeasure::setDebug(bool bDebug)

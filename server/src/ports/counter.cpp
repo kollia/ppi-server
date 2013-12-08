@@ -49,19 +49,22 @@ namespace ports
 		portBase::setDebug(bDebug);
 	}
 
-	double Counter::measure(const double actValue)
+	valueHolder_t Counter::measure(const double actValue)
 	{
 		bool bSetNull;
 		double dResult;
 		double value= actValue;
+		valueHolder_t oRv;
 
 		if(!m_oSetNull.isEmpty())
 		{
 			if(m_oSetNull.calculate(dResult))
 			{
 				if(dResult < 0 || dResult > 0)
+				{
+					oRv.lastChanging= m_oSetNull.getLastChanging();
 					bSetNull= true;
-				else
+				}else
 					bSetNull= false;
 			}else
 				bSetNull= false;
@@ -74,7 +77,8 @@ namespace ports
 
 		}else
 			++value;
-		return value;
+		oRv.value= value;
+		return oRv;
 	}
 
 	bool Counter::range(bool& bfloat, double* min, double* max)

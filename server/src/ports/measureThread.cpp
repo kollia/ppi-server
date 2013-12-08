@@ -390,88 +390,10 @@ int MeasureThread::init(void *arg)
 
 void MeasureThread::changedValue(const string& folder, const string& from)
 {
-	timeval tv;
-	map<string, timeval>::iterator found;
-
 	LOCK(m_VALUE);
 	m_vFolder.push_back(from);
-	found= m_tChangedTimes.subroutines.find(from);
-	if(found != m_tChangedTimes.subroutines.end())
-	{
-		if(gettimeofday(&tv, NULL))
-		{
-			string msg("ERROR: cannot get time of day,\n");
-
-			msg+= "       so cannot measure time for TIMER function in folder ";
-			msg+= getFolderName() + " for method changedValue()";
-			TIMELOG(LOG_ALERT, "changedValue", msg);
-		}else
-		{
-			found->second= tv;
-		}
-	}
 	AROUSE(m_VALUECONDITION);
 	UNLOCK(m_VALUE);
-}
-
-void MeasureThread::needChangingTime(const string& subroutine, const string& from)
-{
-	string fsub;
-	timeval nulltime;
-	vector<string> spl;
-	vector<string>::iterator sfound;
-	vector<timeval*>::iterator tmfound;
-
-	split(spl, from, is_any_of(":"));
-	if(spl.size() == 1)
-	{
-		fsub= spl[0];
-	}
-	if(	spl.size() == 2 &&
-		spl[0] == getFolderName()	)
-	{
-		fsub= spl[1];
-	}
-	if(fsub != "")
-	{
-		sfound= find(m_tChangedTimes.ownSubs.begin(), m_tChangedTimes.ownSubs.end(), fsub);
-		if(sfound == m_tChangedTimes.ownSubs.end())
-			m_tChangedTimes.ownSubs.push_back(fsub);
-	}else
-		fsub= from;
-	timerclear(&nulltime);
-	m_tChangedTimes.subroutines[fsub]= nulltime;
-	m_tChangedTimes.subSubs[subroutine].push_back(pair<string, timeval*>(from, &m_tChangedTimes.subroutines[fsub]));
-}
-
-timeval MeasureThread::getMaxChangingTime(const string& subroutine, const string& desc)
-{
-	bool debug(false);
-	string from;
-	timeval tmRv;
-	vector<pair<string, timeval*> >* times;
-
-	if(desc != "")
-		debug= true;
-	timerclear(&tmRv);
-	LOCK(m_VALUE);
-	times= &m_tChangedTimes.subSubs[subroutine];
-	for(vector<pair<string, timeval*> >::iterator it= times->begin(); it != times->end(); ++it)
-	{
-		if(timercmp(it->second, &tmRv, >))
-		{
-			tmRv= *it->second;
-			if(debug)
-				from= it->first;
-		}
-	}
-	UNLOCK(m_VALUE);
-	if(debug)
-	{
-		tout << "     take last changing time from subroutine '" << from << "' ";
-		tout << "from parameter " << desc << endl;
-	}
-	return tmRv;
 }
 
 bool MeasureThread::usleep(timeval time)
@@ -990,7 +912,7 @@ bool MeasureThread::measure()
 {
 	bool debug(isDebug()), notime(false), classdebug(false);
 	string folder(getFolderName());
-	timeval tv, tv_start, tv_end;
+	ppi_time tv, tv_start, tv_end;
 
 	if(debug)
 	{
@@ -1005,7 +927,8 @@ bool MeasureThread::measure()
 		classdebug= false;
 		if(it->bCorrect)
 		{
-			double result, oldResult;
+			ppi_value oldResult;
+			valueHolder_t result;
 
 			//Debug info to stop always by right folder or subroutine
 		/*	string stopfolder("Raff1_Zeit");
@@ -1017,7 +940,7 @@ bool MeasureThread::measure()
 				cout << __FILE__ << __LINE__ << endl;
 				cout << stopfolder << ":" << it->name << endl;
 			}*/
-			oldResult= it->portClass->getValue("i:"+folder);
+			oldResult= it->portClass->getValue("i:"+folder).value;
 			if( debug &&
 				it->portClass->isDebug())
 			{
@@ -1033,7 +956,7 @@ bool MeasureThread::measure()
 					notime= true;
 				}else
 				{
-					timersub(&tv_start, &tv, &tv_end);
+					tv_end= tv_start - tv;
 					out << " (" << getTimevalString(tv_end, /*as date*/false, /*debug*/true) << ")" << endl;
 				}
 				tout << out.str();
@@ -1064,50 +987,58 @@ bool MeasureThread::measure()
 				cerr << "ERROR: " << err << endl;
 				LOG(LOG_ERROR, err);
 			}
-			timerclear(&tv_end);
-			if(result != oldResult)
+			if(	classdebug &&
+				result.value != oldResult &&
+				!result.lastChanging.isSet()	)
+			{
+				// when subroutine defined for debug output
+				// and measure method from subroutine give no time back,
+				// write end time into subroutine to can display for debug output,
+				// otherwise end time will be created shorter before value
+				// set definitely inside subroutine
+				if(gettimeofday(&result.lastChanging, NULL))
+				{
+					string msg("ERROR: cannot get time of day,\n");
+
+					msg+= "       so cannot measure time for TIMER function in folder ";
+					msg+= folder + " to set subroutine modification time for debug output";
+					TIMELOG(LOG_ALERT, "changedValueMeasureThread", msg);
+					result.lastChanging.clear();
+				}
+			}
+			if(result.value != oldResult)
 			{
 				vector<string>::iterator found;
 
-				it->portClass->setValue(result, "i:"+folder+":"+it->name);
-				found= find(m_tChangedTimes.ownSubs.begin(), m_tChangedTimes.ownSubs.end(), it->portClass->getSubroutineName());
-				if(found != m_tChangedTimes.ownSubs.end())
-				{
-					if(gettimeofday(&tv_end, NULL))
-					{
-						string msg("ERROR: cannot get time of day,\n");
-
-						msg+= "       so cannot measure time for TIMER function in folder ";
-						msg+= getFolderName() + " for changing value in subroutine " + *found;
-						TIMELOG(LOG_ALERT, "changedValueMeasureThread", msg);
-						timerclear(&tv_end);
-					}
-					LOCK(m_VALUE);
-					m_tChangedTimes.subroutines[*found]= tv_end;
-					UNLOCK(m_VALUE);
-				}
+				it->portClass->setValue(result.value, "i:"+folder+":"+it->name, result.lastChanging);
 			}
 			if(classdebug)
 			{
-				if(!timerisset(&tv_end))
-				{
-					if(notime || gettimeofday(&tv_end, NULL))
-					{
-						tout << " (cannot calculate length running subroutine)" << endl;
-						timerclear(&tv_end);
-					}
-				}
-				if(timerisset(&tv_end))
-				{
-					timeval length;
+				ppi_time length;
+				ostringstream out;
 
-					timersub(&tv_end, &tv_start, &length);
-					tout << " subroutine running ";
-					tout << getTimevalString(length, /*as date*/false, /*debug*/true);
-					tout << " seconds, ending by ";
-					tout << getTimevalString(tv_end, /*as date*/true, /*debug*/true);
-					tout << endl;
+				if(gettimeofday(&tv_end, NULL))
+				{
+					string msg("ERROR: cannot get time of day,\n");
+
+					msg+= "       so cannot measure time for TIMER function in folder ";
+					msg+= getFolderName() + " for changing length time running of subroutine";
+					TIMELOG(LOG_ALERT, "changedValueMeasureThread2", msg);
+					tv_end.clear();
 				}
+				length= tv_end - tv_start;
+				out << " subroutine running ";
+				out << getTimevalString(length, /*as date*/false, /*debug*/true);
+				out << " seconds, ending by ";
+				out << getTimevalString(tv_end, /*as date*/true, /*debug*/true);
+				out << endl;
+				if(result.lastChanging.isSet())
+				{
+					out << "            was last modified by ";
+					out << getTimevalString(result.lastChanging, /*as date*/true, /*debug*/true);
+					out << endl;
+				}
+				tout << out.str();
 			}
 
 

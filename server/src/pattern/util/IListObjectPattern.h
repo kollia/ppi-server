@@ -30,6 +30,101 @@ namespace design_pattern_world
 	namespace util_pattern
 	{
 		/**
+		 * type of handled value inside ppi-server
+		 */
+		typedef double ppi_value;
+		/**
+		 * type of handled time inside ppi-server
+		 * source:LogHolderPattern.cpp
+		 */
+		class ppi_time : public timeval
+		{
+		public:
+			/**
+			 * null type of timeval
+			 */
+			static timeval ntime;
+
+			/**
+			 * constructor to initial timeval with 0
+			 */
+			ppi_time()
+			{ tv_sec= 0; tv_usec= 0; };
+			/**
+			 * copy constructor to initial object with new timeval
+			 */
+			ppi_time(const timeval& time)
+			{ tv_sec= time.tv_sec; tv_usec= time.tv_usec; };
+			/**
+			 * copy operator
+			 */
+			ppi_time& operator = (const timeval& time);
+			/**
+			 * equal operator
+			 */
+			bool operator == (const ppi_time& time);
+			/**
+			 * unequal operator
+			 */
+			bool operator != (const ppi_time& time);
+			/**
+			 * lower operator
+			 */
+			bool operator < (const ppi_time& time);
+			/**
+			 * greater operator
+			 */
+			bool operator > (const ppi_time& time);
+			/**
+			 * lower equal operator
+			 */
+			bool operator <= (const ppi_time& time);
+			/**
+			 * greater equal operator
+			 */
+			bool operator >= (const ppi_time& time);
+			/**
+			 * addition operator
+			 */
+			ppi_time operator + (const ppi_time& time);
+			/**
+			 * addition operator to own object
+			 */
+			ppi_time& operator += (const ppi_time& time);
+			/**
+			 * subtraction operator
+			 */
+			ppi_time operator - (const ppi_time& time);
+			/**
+			 * subtraction operator to own object
+			 */
+			ppi_time& operator -= (const ppi_time& time);
+			/**
+			 * check whether time is set
+			 */
+			bool isSet();
+			/**
+			 * set own timer object to 0
+			 */
+			void clear();
+		};
+		/**
+		 * structure to define handled value
+		 * with last changing time
+		 */
+		struct valueHolder_t
+		{
+			/**
+			 * main handled value inside ppi-server
+			 */
+			ppi_value value;
+			/**
+			 * last changed time of value
+			 */
+			ppi_time lastChanging;
+		};
+
+		/**
 		 * pattern class for all threads
 		 *
 		 * @autor Alexander Kolli
@@ -151,17 +246,17 @@ namespace design_pattern_world
 			 * measure new value for subroutine
 			 *
 			 * @param actValue current value
-			 * @return return measured value
+			 * @return measured value with last changing time when not changed by self
 			 */
-			virtual double measure(const double actValue)=0;
+			virtual valueHolder_t measure(const double actValue)=0;
 			/**
 			 * get value from subroutine
 			 *
 			 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
 			 * 				This time only defined for external reading over OwPort's.
-			 * @return current value
+			 * @return current value with last changing time
 			 */
-			virtual double getValue(const string& who)= 0;
+			virtual valueHolder_t getValue(const string& who)= 0;
 			/**
 			 * set value in subroutine.<br />
 			 * All strings from parameter 'from' beginning with an one character type,
@@ -170,8 +265,9 @@ namespace design_pattern_world
 			 *
 			 * @param value value which should be set
 			 * @param from which folder:subroutine or account changing the value
+			 * @param changed last changing time when set, otherwise method create own time
 			 */
-			virtual void setValue(const double value, const string& from)= 0;
+			virtual void setValue(const ppi_value value, const string& from, ppi_time changed= ppi_time())= 0;
 			/**
 			 * set measure thread which run this object with method <code>measure()</code>
 			 *

@@ -78,7 +78,7 @@ namespace ports
 		 * @param actValue current value
 		 * @return return measured value
 		 */
-		virtual double measure(const double actValue);
+		virtual valueHolder_t measure(const double actValue);
 		/**
 		 * destructor do nothing
 		 */

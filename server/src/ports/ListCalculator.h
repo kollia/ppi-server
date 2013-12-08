@@ -97,6 +97,12 @@ public:
 	 */
 	IListObjectPattern* getSubroutine(const string& var, bool own);
 	/**
+	 * return latest changing time of any variable in calculation
+	 *
+	 * @return changing time
+	 */
+	ppi_time getLastChanging();
+	/**
 	 * activate information for given measure thread (observer)
 	 * in all folder:subroutines from
 	 *
@@ -155,6 +161,10 @@ protected:
 	 * variables which should not read from other list object
 	 */
 	map<string, double> m_msSubVars;
+	/**
+	 * latest changing time of any variable after calculation
+	 */
+	ppi_time m_nLastChange;
 
 	/**
 	 * creating of new objects of CalculatorContainer

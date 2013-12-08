@@ -135,11 +135,12 @@ TimeMeasure::~TimeMeasure()
 	//setPin(m_tOut, false);
 }
 
-double TimeMeasure::measure(const double actValue)
+valueHolder_t TimeMeasure::measure(const double actValue)
 {
 	char buf[150];
 	string msg;
 	unsigned long nLightValue= getMeasuredTime();
+	valueHolder_t oRv;
 
 	if(isDebug())
 	{
@@ -150,7 +151,8 @@ double TimeMeasure::measure(const double actValue)
 		TIMELOG(LOG_INFO, getFolderName(), msg);
 		tout << msg << endl;
 	}
-	return (double)nLightValue;
+	oRv.value= (double)nLightValue;
+	return oRv;
 }
 
 unsigned long TimeMeasure::getMeasuredTime()

@@ -466,51 +466,28 @@ bool timer::range(bool& bfloat, double* min, double* max)
 
 void timer::setObserver(IMeasurePattern* observer)
 {
-	string subroutine(getSubroutineName());
-	vector<string> vars;
-	IMeasurePattern* measureThread= getRunningThread();
-
 	if(!m_oFinished.isEmpty())
 	{
 		m_oFinished.activateObserver(observer);
-		vars= m_oFinished.getVariables();
-		for(vector<string>::iterator it= vars.begin(); it != vars.end(); ++it)
-			measureThread->needChangingTime(subroutine, *it);
-	}
-	if(!m_oBegin.isEmpty())
-	{
-		vars= m_oBegin.getVariables();
-		for(vector<string>::iterator it= vars.begin(); it != vars.end(); ++it)
-			measureThread->needChangingTime(subroutine + "+BEGIN", *it);
-	}
-	if(!m_oWhile.isEmpty())
-	{
-		vars= m_oWhile.getVariables();
-		for(vector<string>::iterator it= vars.begin(); it != vars.end(); ++it)
-			measureThread->needChangingTime(subroutine + "+WHILE", *it);
-	}
-	if(!m_oEnd.isEmpty())
-	{
-		vars= m_oEnd.getVariables();
-		for(vector<string>::iterator it= vars.begin(); it != vars.end(); ++it)
-			measureThread->needChangingTime(subroutine + "+END", *it);
 	}
 	switchClass::setObserver(observer);
 }
 
-double timer::measure(const double actValue)
+valueHolder_t timer::measure(const double actValue)
 {
 	bool bswitch;
 	bool bEndCount(false);
 	bool debug= isDebug();
 	double need, nBeginTime(0);
 	string subroutine(getSubroutineName()), folder(getFolderName());
-	timeval tv;
+	ppi_time tv;
 	switchClass::setting set= NONE;
+	ppi_time tmLastSwitchChanged;
+	valueHolder_t oRv;
 
 	//Debug info to stop by right subroutine
-	/*if(	folder == "display_settings" &&
-		subroutine == "activate"					)
+	/*if(	folder == "Raff1_Zeit" &&
+		subroutine == "grad_time"					)
 	{
 		cout << folder << ":" << subroutine << endl;
 		cout << __FILE__ << __LINE__ << endl;
@@ -528,7 +505,8 @@ double timer::measure(const double actValue)
 			need= 0;
 		else
 			need= -1;
-		return need;
+		oRv.value= need;
+		return oRv;
 	}
 	if(m_bExactTime)
 		getRunningThread()->setCpuMeasureBegin(&m_tReachedTypes);
@@ -539,42 +517,39 @@ double timer::measure(const double actValue)
 		m_oFinished.calculate(need);
 		if(need != 0)
 		{
-			string chtime;
-			timeval changed;
+			ppi_time changed;
 
-			if(debug)
-				chtime= "FINISHED";
 			m_bFinished= true;
-			changed= getRunningThread()->getMaxChangingTime(subroutine, chtime);
+			changed= m_oFinished.getLastChanging();
 			if(	debug ||
 				m_bLogPercent	)
 			{
 				bool less, wless;
-				timeval diff, wrong;
+				ppi_time diff, wrong;
 
 				if(debug)
 				{
 					tout << "   start time: " << MeasureThread::getTimevalString(m_tmStart, /*as date*/true, debug) << endl;
 					tout << "     end time: " << MeasureThread::getTimevalString(m_tmExactStop, /*as date*/true, debug) << endl;
 					tout << "real finished: " << MeasureThread::getTimevalString(changed, /*as date*/true, debug) << endl;
-					timersub(&changed, &m_tmStart, &diff);
+					diff= changed - m_tmStart;
 				}
-				if(timercmp(&m_tmWantFinish, &changed, >))
+				if(m_tmWantFinish > changed)
 				{
-					timersub(&m_tmWantFinish, &changed, &wrong);
+					wrong= m_tmWantFinish - changed;
 					wless= true;
 				}else
 				{
-					timersub(&changed, &m_tmWantFinish, &wrong);
+					wrong= changed - m_tmWantFinish;
 					wless= false;
 				}
-				if(timercmp(&m_tmExactStop, &changed, >))
+				if(m_tmExactStop > changed)
 				{
-					timersub(&m_tmExactStop, &changed, &changed);
+					changed= m_tmExactStop - changed;
 					less= true;
 				}else
 				{
-					timersub(&changed, &m_tmExactStop, &changed);
+					changed-= m_tmExactStop;
 					less= false;
 				}
 				if(debug)
@@ -608,10 +583,13 @@ double timer::measure(const double actValue)
 				}
 				m_sSyncID= "";
 			}else
-				timersub(&changed, &m_tmExactStop, &changed);// <- timersub made also inside debug mode
+				changed-= m_tmExactStop;// <- subtraction made also inside debug mode
 			getRunningThread()->calcLengthDiff(&m_tReachedTypes, changed, debug);
 		}else
-			return 0;
+		{
+			oRv.value= 0;
+			return oRv;
+		}
 	}
 	if(debug)
 	{
@@ -672,7 +650,11 @@ double timer::measure(const double actValue)
 			// 4 (count down to 0 or up to full time)
 			// switch is making inside working branch
 			// for ending or during on
-			m_dSwitch= switchClass::measure(m_dSwitch, set);
+			valueHolder_t oval;
+
+			oval= switchClass::measure(m_dSwitch, set);
+			m_dSwitch= oval.value;
+			tmLastSwitchChanged= oval.lastChanging;
 		}
 
 	}else if(debug)
@@ -690,7 +672,8 @@ double timer::measure(const double actValue)
 	if(	m_nCaseNr == 1 || // folder should polling all seconds, minutes, hours, ...
 		m_nCaseNr == 2	) // time count down to setting date time
 	{
-		return polling_or_countDown(bswitch, tv, debug);
+		oRv.value= polling_or_countDown(bswitch, tv, debug);
+		return oRv;
 	}
 	// case 3: count the time down to 0
 	// case 4: count the time down to 0, or up to full time
@@ -702,7 +685,7 @@ double timer::measure(const double actValue)
 		{ // case 3: count the time down to 0
 		  // case 4: count the time down to 0, or up to full time
 			bool bNewDirection= false;
-			timeval next;
+			ppi_time next;
 
 			if(	bswitch &&
 				m_nCaseNr == 4	) // count the time down to 0, or up to full time
@@ -728,8 +711,6 @@ double timer::measure(const double actValue)
 					set == BEGIN		)	)
 			{// BEGIN to measure
 
-				string identifier(subroutine), chtime;
-
 				if(debug)
 				{
 					tout << "BEGIN time measuring ";
@@ -747,31 +728,11 @@ double timer::measure(const double actValue)
 					}else
 						tout << "for count down" << endl;
 				}
-				switch(set)
-				{
-				case BEGIN:
-					identifier+= "+BEGIN";
-					if(debug)
-						chtime= "BEGIN to start";
-					break;
-				case WHILE:
-					identifier+= "+WHILE";
-					if(debug)
-						chtime= "WHILE to start";
-					break;
-				default:// get always unset time from getMaxChangingTime()
-					identifier+= "+wrong";
-					if(set == END)
-						identifier+= "_END";
-					if(debug)
-						chtime= "(wrong definition inside timer.cpp) for start";
-					break;
-				}
-				next= getRunningThread()->getMaxChangingTime(identifier, chtime);
-				if(!timerisset(&next))
+				next= tmLastSwitchChanged;
+				if(!next.isSet())
 				{
 					if(debug)
-						tout << "get no starting time (from " << identifier
+						tout << "get no starting time (from begin/while/end parameters"
 								<< ") take TIMER subroutine start" << endl;
 					next= tv;
 				}
@@ -783,6 +744,11 @@ double timer::measure(const double actValue)
 				m_tmStart= next;
 				m_dStartValue= actValue;
 				need= calcStartTime(debug, actValue, &tv);
+				if(	debug &&
+					m_sSyncID != ""	)
+				{
+					tout << "calculated BY RUNNING FOLDER ID " << m_sSyncID << endl;
+				}
 			/* alex 29/8/2013
 			 * set m_bMeasure now inside calcStartTime()
 				if(need == -1)
@@ -798,14 +764,14 @@ double timer::measure(const double actValue)
 					need= actValue;
 				}
 
-			}else if( timercmp(&m_tmStop, &tv, <) )
+			}else if(m_tmStop < tv)
 			{ // reaching end of count down
 			  // now end polling, or begin with new time
-				timeval was;
+				ppi_time was;
 
 				if(	m_bExactTime)
 				{
-					timeval tv2;
+					ppi_time tv2;
 
 					tv2= tv;
 					if(gettimeofday(&tv, NULL))
@@ -820,11 +786,11 @@ double timer::measure(const double actValue)
 							tout << msg << endl;
 						tv= tv2;
 					}
-					if(timercmp(&m_tmExactStop, &tv, >))
+					if(m_tmExactStop > tv)
 					{// waiting microseconds/seconds for exact time
-						timeval tvWait;
+						ppi_time tvWait;
 
-						timersub(&m_tmExactStop, &tv, &tvWait);
+						tvWait= m_tmExactStop - tv;
 						if(debug)
 						{
 							tout << "subroutine waiting ";
@@ -832,18 +798,20 @@ double timer::measure(const double actValue)
 							tout << " seconds for exact time" << endl;
 						}
 						if(!getRunningThread()->usleep(tvWait))
-							return 0;// folder should be stopping
-						tv.tv_sec= m_tmExactStop.tv_sec;
-						tv.tv_usec= m_tmExactStop.tv_usec;
+						{
+							oRv.value= 0;
+							return oRv;// folder should be stopping
+						}
+						tv= m_tmExactStop;
 
 					}else
 					{
 						if(	debug ||
 							m_bLogPercent	)
 						{
-							timeval tvWait;
+							ppi_time tvWait;
 
-							timersub(&tv, &m_tmExactStop, &tvWait);
+							tvWait= tv - m_tmExactStop;
 							if(debug)
 							{
 								tout << "subroutine do not need to wait for exact time," << endl;
@@ -857,14 +825,13 @@ double timer::measure(const double actValue)
 												MeasureThread::calcResult(tvWait, /*seconds*/false));
 							}
 						}
-						m_tmExactStop.tv_sec= tv.tv_sec;
-						m_tmExactStop.tv_usec= tv.tv_usec;
+						m_tmExactStop= tv;
 					}
 				}
 				if(debug)
 				{
 					string syncID;
-					timeval diff, tv2;
+					ppi_time diff, tv2;
 
 					tv2= tv;
 					if(gettimeofday(&tv, NULL))
@@ -872,13 +839,12 @@ double timer::measure(const double actValue)
 						tv= tv2;
 					}
 
-					timersub(&m_tmExactStop, &m_tmStart, &diff);
+					diff= m_tmExactStop - m_tmStart;
 					was.tv_sec= m_tmSec;
 					was.tv_usec= m_tmMicroseconds;
 					tout << "reach END of time measuring" << endl;
-					syncID= getFolderRunningID();
-					if(syncID != "")
-						tout << "stop time BY RUNNING FOLDER ID " << syncID << endl;
+					if(m_sSyncID != "")
+						tout << "stop time BY RUNNING FOLDER ID " << m_sSyncID << endl;
 					tout << "folder was refreshed because time of " << MeasureThread::calcResult(was, m_bSeconds);
 					tout << " seconds was reached" << endl;
 					tout << "  start time (" << MeasureThread::getTimevalString(m_tmStart, /*as date*/true, debug) << ")" << endl;
@@ -896,9 +862,13 @@ double timer::measure(const double actValue)
 						need= calcNextTime(/*start*/false, debug, &tv);
 					if(m_bSwitchbyTime)
 					{
+						valueHolder_t oval;
+
 						if(debug)
 							tout << "look whether should polling time again" << endl;
-						m_dSwitch= switchClass::measure(m_dSwitch, set, &need);
+						oval= switchClass::measure(m_dSwitch, set, &need);
+						m_dSwitch= oval.value;
+						tmLastSwitchChanged= oval.lastChanging;
 					}
 					if(m_dSwitch > 0)
 						bswitch= true;
@@ -917,7 +887,7 @@ double timer::measure(const double actValue)
 							tout << "is reached, polling again" << endl;
 						}
 
-						timeval next;
+						ppi_time next;
 
 						if( m_nDirection == 0 ||
 							m_nDirection == -2	)
@@ -966,14 +936,16 @@ double timer::measure(const double actValue)
 			{ // count down is running
 				if(debug)
 				{
-					timeval newtime;
+					ppi_time newtime;
 
-					timersub(&m_tmStop, &tv, &newtime);
+					newtime= m_tmStop - tv;
 					tout << endl;
 				}
 				if(	bswitch &&
 					m_bSwitchbyTime	)
 				{
+					valueHolder_t oval;
+
 					need= calcNextTime(/*start*/false, debug, &tv);
 					if(debug)
 					{
@@ -984,7 +956,9 @@ double timer::measure(const double actValue)
 							tout << "count down ";
 						tout << "should during on" << endl;
 					}
-					m_dSwitch= switchClass::measure(m_dSwitch, set, &need);
+					oval= switchClass::measure(m_dSwitch, set, &need);
+					m_dSwitch= oval.value;
+					tmLastSwitchChanged= oval.lastChanging;
 					if(m_dSwitch > 0)
 						bswitch= true;
 					else
@@ -998,68 +972,54 @@ double timer::measure(const double actValue)
 					// erase folder starting because folder run in this case needless
 					getRunningThread()->eraseActivateTime(folder, m_tmStop);
 					m_bMeasure= false;
-					switch(set)
-					{
-					case WHILE:
-						identifier+= "+WHILE";
-						if(debug)
-							chtime= "WHILE for ending";
-						break;
-					case END:
-						identifier+= "+END";
-						if(debug)
-							chtime= "END for ending";
-						break;
-					default:// get always unset time from getMaxChangingTime()
-						identifier+= "+wrong";
-						if(set == BEGIN)
-							identifier+= "_BEGIN";
-						if(debug)
-							chtime= "(wrong definition inside timer.cpp) for ending";
-						break;
-					}
-					next= getRunningThread()->getMaxChangingTime(identifier, chtime);
-					if(debug)
-						tout << "get for identifier '" << identifier << "' " <<
-							MeasureThread::getTimevalString(next, /*as date*/true, debug) << " seconds" << endl;
-					if(timerisset(&next))
+					next= tmLastSwitchChanged;
+					if(next.isSet())
 						tv= next;
-					else if(debug)
-							tout << "get no ending time (from " << identifier
-								<< ") take TIMER subroutine start" << endl;
 					if(m_nDirection == -2)
 						need= 0;
 					else
 						need= calcNextTime(/*start*/false, debug, &tv);
-					if(debug)
-						tout << "get for identifier '" << identifier << "' " <<
-							MeasureThread::getTimevalString(tv, /*as date*/true, debug) << " seconds" << endl;
 				}else
 				{
 					if(	m_bExactTime &&
 						(	m_tReachedTypes.inPercent < 100	||
 							m_sSyncID != "" 					)	)	// syncID is not null
-					{													// when also need reachend
-						timeval refreshTime;
+					{													// so need new reachend
+						ppi_time refreshTime;
 
 						if(m_sSyncID != "") // search only for new time when synchronization ID was changed
 							m_tReachedTypes.synchroID= getFolderRunningID(); // or differ between more percents
 						if(	m_sSyncID != m_tReachedTypes.synchroID ||
 							m_tReachedTypes.inPercent < 100				)
 						{
-							m_sSyncID= m_tReachedTypes.synchroID;
 							if(debug)
 							{
-								tout << "check whether exact stop ";
+								ostringstream out;
+
+								out << "check whether exact stop ";
 								if(!m_oFinished.isEmpty())
-									tout << "and or reach finish ";
-								tout << "will be changed since starting" << endl;
-								tout << "because split percent is ";
-								tout << m_tReachedTypes.inPercent << " lower then 100" << endl;
+									out << "and or reach finish ";
+								out << "will be changed since starting" << endl;
+								if(m_tReachedTypes.inPercent < 100)
+								{
+									out << "because split percent is ";
+									out << m_tReachedTypes.inPercent << " lower then 100" << endl;
+								}
+								if(m_sSyncID != m_tReachedTypes.synchroID)
+								{
+									if(m_tReachedTypes.inPercent < 100)
+										out << "and";
+									else
+										out << "because";
+									out << " running folders ID " << m_sSyncID;
+									out << " was changed to " << m_tReachedTypes.synchroID << endl;
+								}
+								tout << out.str();
 							}
-							timersub(&m_tmWantFinish, &m_tmStart, &next);
+							m_sSyncID= m_tReachedTypes.synchroID;
+							next= m_tmWantFinish - m_tmStart;
 							substractExactFinishTime(&next, &refreshTime, &m_tmExactStop, debug);
-							if(timercmp(&m_tmStop, &refreshTime, !=))
+							if(m_tmStop != refreshTime)
 							{
 								getRunningThread()->changeActivationTime(folder, m_tmStop, refreshTime);
 								m_tmStop= refreshTime;
@@ -1083,14 +1043,14 @@ double timer::measure(const double actValue)
 						tout << "    by time (" << MeasureThread::getTimevalString(m_tmStop, /*as date*/true, debug) << ")" << endl;
 					}else
 					{
-						timeval newtime;
+						ppi_time newtime;
 
-						timersub(&m_tmExactStop, &tv, &newtime);
+						newtime= m_tmExactStop - tv;
 						tout << "WHILE: reach END of time measuring before finished" << endl;
 						tout << "subroutine of timer stops " << MeasureThread::getTimevalString(newtime, /*as date*/false, debug) << " seconds before" << endl;
 						tout << "  start time (" << MeasureThread::getTimevalString(m_tmStart, /*as date*/true, debug) << ")" << endl;
 						tout << "    end time (" << MeasureThread::getTimevalString(tv, /*as date*/true, debug) << ")" << endl;
-						timersub(&tv, &m_tmStart, &newtime);
+						newtime= tv - m_tmStart;
 						tout << "         need " << MeasureThread::getTimevalString(newtime, /*as date*/false, debug) << " seconds "<< endl;
 					}
 				}
@@ -1118,10 +1078,13 @@ double timer::measure(const double actValue)
 				}
 			}else
 			{ // while or end measure
+				valueHolder_t oval;
 
-				timersub(&tv, &m_tmStart, &tv);
+				tv-= m_tmStart;
 				need= MeasureThread::calcResult(tv, m_bSeconds);
-				m_dSwitch= switchClass::measure(m_dSwitch, set, &need);
+				oval= switchClass::measure(m_dSwitch, set, &need);
+				m_dSwitch= oval.value;
+				tmLastSwitchChanged= oval.lastChanging;
 				if(m_dSwitch > 0)
 				{ // while measure
 					if(debug)
@@ -1179,8 +1142,12 @@ double timer::measure(const double actValue)
 
 	if(m_bHasLinks)
 	{
-		if(getLinkedValue("TIMER", need, nBeginTime))
+		valueHolder_t oval;
+
+		oval.value= need;
+		if(getLinkedValue("TIMER", oval, nBeginTime))
 		{
+			need= oval.value;
 			if(debug)
 				tout << "result of time from linked subroutine is " << dec << need << " seconds" << endl;
 
@@ -1189,10 +1156,11 @@ double timer::measure(const double actValue)
 	}else if(debug)
 		tout << "result of time is " << dec << need << " seconds" << endl;
 	m_dTimeBefore= need;
-	return need;
+	oRv.value= need;
+	return oRv;
 }
 
-double timer::polling_or_countDown(const bool bswitch, timeval tv, const bool debug)
+double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool debug)
 {
 	double need= -1;
 	time_t actTime, thisTime;
@@ -1386,7 +1354,7 @@ double timer::polling_or_countDown(const bool bswitch, timeval tv, const bool de
 	return static_cast<double>(actTime);
 }
 
-double timer::calcStartTime(const bool& debug, const double actValue, timeval* next)
+double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* next)
 {
 	bool bneed(false);
 	double calc, need;
@@ -1523,7 +1491,7 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 		}else
 		{
 			calc= MeasureThread::calcResult(*next, m_bSeconds);
-			timeradd(&m_tmStart, next, &m_tmExactStop);
+			m_tmExactStop= m_tmStart + *next;
 			m_tmStop= m_tmExactStop;
 		}
 		if(calc > 0)
@@ -1555,14 +1523,13 @@ double timer::calcStartTime(const bool& debug, const double actValue, timeval* n
 	return need;
 }
 
-double timer::substractExactFinishTime(timeval* nextTime, timeval* refreshTime, timeval* exactStop, const bool& debug)
+double timer::substractExactFinishTime(ppi_time* nextTime, ppi_time* refreshTime, ppi_time* exactStop, const bool& debug)
 {
-	timeval tvLength, finishedNext, tmReachEnd;
+	ppi_time tvLength, finishedNext, tmReachEnd;
 
 	if(!m_oFinished.isEmpty())
 	{
-
-		timeradd(&m_tmStart, nextTime, &m_tmWantFinish);
+		m_tmWantFinish= m_tmStart + *nextTime;
 		tmReachEnd= getRunningThread()->getLengthedTime(&m_tReachedTypes, &m_nLengthPercent,
 													m_bLogPercent, debug);
 		if(debug)
@@ -1570,12 +1537,12 @@ double timer::substractExactFinishTime(timeval* nextTime, timeval* refreshTime, 
 			finishedNext.tv_sec= nextTime->tv_sec;
 			finishedNext.tv_usec= nextTime->tv_usec;
 		}
-		if(timerisset(&tmReachEnd))
+		if(tmReachEnd.isSet())
 		{
 			// subtract calculated finished time
-			if(timercmp(nextTime, &tmReachEnd, >))
+			if(*nextTime > tmReachEnd)
 			{
-				timersub(nextTime, &tmReachEnd, nextTime);
+				*nextTime-= tmReachEnd;
 
 			}else
 			{
@@ -1590,20 +1557,20 @@ double timer::substractExactFinishTime(timeval* nextTime, timeval* refreshTime, 
 		}
 	}
 
-	timeradd(&m_tmStart, nextTime, exactStop);
+	*exactStop= m_tmStart + *nextTime;
 	// Subtract length of folder run, because subroutine should reached before
 	// to wait inside this subroutine for exact time
 	tvLength= getRunningThread()->getLengthedTime(m_bLogPercent, debug);
-	if(timercmp(nextTime, &tvLength, >))
+	if(*nextTime > tvLength)
 	{
-		timersub(exactStop, &tvLength, refreshTime);
-		timersub(nextTime, &tvLength, nextTime);
+		*refreshTime= *exactStop - tvLength;
+		*nextTime-= tvLength;
 
 	}else
 	{
 		nextTime->tv_sec= 0;
 		nextTime->tv_usec= 000001;
-		timeradd(&m_tmStart, nextTime, refreshTime);
+		*refreshTime= m_tmStart + *nextTime;
 	}
 	if(debug)
 	{
@@ -1622,7 +1589,7 @@ double timer::substractExactFinishTime(timeval* nextTime, timeval* refreshTime, 
 		if(m_bExactTime)
 		{
 			if(!m_oFinished.isEmpty())
-				timersub(&finishedNext, &tmReachEnd, &tvLength);
+				tvLength= finishedNext - tmReachEnd;
 			else
 				tvLength= finishedNext;
 			tout << "       to reach subroutine after ";
@@ -1643,10 +1610,10 @@ double timer::substractExactFinishTime(timeval* nextTime, timeval* refreshTime, 
 	return MeasureThread::calcResult(*nextTime, m_bSeconds);
 }
 
-double timer::calcNextTime(const bool& start, const bool& debug, timeval* actTime)
+double timer::calcNextTime(const bool& start, const bool& debug, ppi_time* actTime)
 {
 	double newTime;
-	timeval endTime;
+	ppi_time endTime;
 
 	if(debug)
 	{
@@ -1667,7 +1634,7 @@ double timer::calcNextTime(const bool& start, const bool& debug, timeval* actTim
 		{
 			endTime.tv_sec= m_tmSec;
 			endTime.tv_usec= m_tmMicroseconds;
-			if(timercmp(actTime, &endTime, >))
+			if(*actTime > endTime)
 			{
 				actTime->tv_sec= m_tmSec;
 				actTime->tv_usec= m_tmMicroseconds;
@@ -1682,7 +1649,7 @@ double timer::calcNextTime(const bool& start, const bool& debug, timeval* actTim
 			}
 			if(m_nDirection == 1)
 			{ // direction defined to count to full time
-				timersub(&endTime, actTime, actTime);
+				*actTime= endTime - *actTime;
 //				if(m_bExactTime)
 //					newTime+= MeasureThread::calcResult(gone, m_bSeconds);
 			}else
@@ -1703,11 +1670,11 @@ double timer::calcNextTime(const bool& start, const bool& debug, timeval* actTim
 	endTime.tv_usec= m_tmMicroseconds;
 	if(m_nDirection == 1)
 	{//measure up to full time
-		timersub(actTime, &m_tmStart, &endTime);
+		endTime= *actTime - m_tmStart;
 
 	}else
 	{// direction is defined to calculating to 0 or make count down
-		timersub(&m_tmExactStop, actTime, &endTime);
+		endTime= m_tmExactStop - *actTime;
 	}
 	newTime= MeasureThread::calcResult(endTime, m_bSeconds);
 	if(debug)
@@ -1717,24 +1684,24 @@ double timer::calcNextTime(const bool& start, const bool& debug, timeval* actTim
 	return newTime;
 }
 
-double timer::getValue(const string& who)
+valueHolder_t timer::getValue(const string& who)
 {
 	long nval;
-	double val(switchClass::getValue(who));
+	valueHolder_t val(switchClass::getValue(who));
 
 	// secure method to calculate only with seconds
 	// or microseconds and no more decimal places behind
 	if(!m_bSeconds)
-		val*= (1000 * 1000);
-	nval= static_cast<long>(val);
-	val= static_cast<double>(nval);
+		val.value*= (1000 * 1000);
+	nval= static_cast<long>(val.value);
+	val.value= static_cast<double>(nval);
 	if(!m_bSeconds)
-		val/= (1000 * 1000);
+		val.value/= (1000 * 1000);
 	return val;
 }
 
 #if 0
-void timer::setValue(double value, const string& from)
+void timer::setValue(double value, const string& from, ppi_time changed/*= ppi_time()*/)
 {
 	if(	!m_bTimeMeasure &&
 		value > 0 &&

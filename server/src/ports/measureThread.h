@@ -192,21 +192,6 @@ class MeasureThread : 	public Thread,
 		 */
 		virtual void changedValue(const string& folder, const string& from);
 		/**
-		 * inform measure thread of folder that needing changing time of subroutine
-		 *
-		 * @param subroutine name of subroutine which need info
-		 * @param from name of [folder:]<subroutine> which was changed
-		 */
-		virtual void needChangingTime(const string& subroutine, const string& from);
-		/**
-		 * return actual maximal changing time from before defined [folder:]<subroutine>
-		 *
-		 * @param subroutine name of subroutine which need information
-		 * @param desc description of taking time by debug session otherwise null string
-		 * @return highest time from changed subroutine value
-		 */
-		virtual timeval getMaxChangingTime(const string& subroutine, const string& desc);
-		/**
 		 * from witch folder:subroutine thread was informed for new value
 		 *
 		 * @return vector of folder:subroutine which informed
@@ -479,10 +464,6 @@ class MeasureThread : 	public Thread,
 		 * which should subtract from running length
 		 */
 		timeval m_tvSleepLength;
-		/**
-		 * changed times from subrotines which needed exact time
-		 */
-		tChangedTimes m_tChangedTimes;
 		/**
 		 * object with server type's an id's for unknown server,
 		 * to know whether folder list should starting all pre-defined seconds

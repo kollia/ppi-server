@@ -153,54 +153,54 @@ namespace ports
 		return true;
 	}
 
-	double ValueHolder::measure(const double actValue)
+	valueHolder_t ValueHolder::measure(const double actValue)
 	{
 		bool isdebug(isDebug()), bChanged(false), bOutside(false);
-		double value;
+		valueHolder_t value;
 
 		//Debug info to stop by right subroutine
-		/*if(	getFolderName() == "TRANSMIT_SONY_choice" &&
-			getSubroutineName() == "after"	)
+		/*if(	getFolderName() == "kalibrierung1" &&
+			getSubroutineName() == "calctime_grad"	)
 		{
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
 		}*/
-		value= actValue;
+		value.value= actValue;
 		if(	isdebug &&
-			m_dLastValue != value	)
+			m_dLastValue != value.value	)
 		{// boolean only needed for debug session
 			bOutside= true;
 		}
 		getWhileStringResult(getFolderName(), getSubroutineName(),
 										m_oWhile, m_vpoValues, m_ddefaultValue, value, isdebug);
 		if(	isdebug &&
-			(	value > actValue ||
-				value < actValue	)	)
+			(	value.value > actValue ||
+				value.value < actValue	)	)
 		{// boolean only needed for debug session
 			bChanged= true;
 		}
 		if(getLinkedValue("VALUE", value))
 		{
 			if(isdebug)
-				tout << "VALUE be set from foreign subroutine to " << dec << value << endl;
+				tout << "VALUE be set from foreign subroutine to " << dec << value.value << endl;
 
 		}else
 		{
 			if(isdebug)
 			{
 				if(bChanged)
-					tout << "new value " << dec << value << " be changed from own subroutine" << endl;
+					tout << "new value " << dec << value.value << " be changed from own subroutine" << endl;
 				else if(bOutside)
-					tout << "own value was changed from outside to value " << dec << value << endl;
+					tout << "own value was changed from outside to value " << dec << value.value << endl;
 				else
-					tout << "current value is " << dec << value << endl;
+					tout << "current value is " << dec << value.value << endl;
 			}
 		}
-		m_dLastValue= value;
+		m_dLastValue= value.value;
 		return value;
 	}
 
-	double ValueHolder::getValue(const string& who)
+	valueHolder_t ValueHolder::getValue(const string& who)
 	{
 		// this time if an link be set the own value have the same value then the link
 		// maybe it's better if only the linked value be changed
@@ -222,7 +222,7 @@ namespace ports
 
 	}
 
-	void ValueHolder::setValue(const double value, const string& who)
+	void ValueHolder::setValue(const double value, const string& who, ppi_time changed/*= ppi_time()*/)
 	{
 		// this time if an link be set the own value have the same value then the link
 		// maybe it's better if only the linked value be changed
@@ -240,22 +240,23 @@ namespace ports
 			port= switchClass::getPort(m_pStartFolder, getFolderName(), getSubroutineName(), m_vsLinks[m_nLinkObserver], "");
 			if(port != NULL)
 			{
-				port->setValue(value, who);
+				port->setValue(value, who, changed);
 				return;
 			}
 		}*/
-		portBase::setValue(value, who);
+		portBase::setValue(value, who, changed);
 	}
 
 	bool ValueHolder::getWhileStringResult(const string& folder, const string& subroutine,
 											ListCalculator& oWhile, vector<ListCalculator*>& content,
-											const double defaultVal, double& value, const bool debug)
+											const double defaultVal, valueHolder_t& ovalue, const bool debug)
 	{
 		bool bOk;
+		double rvalue;
 
 		if(oWhile.isEmpty())
 			return false;
-		bOk= oWhile.calculate(value);
+		bOk= oWhile.calculate(rvalue);
 
 		if(bOk)
 		{
@@ -266,11 +267,11 @@ namespace ports
 			{
 				vector<string>::size_type count;
 
-				if(value < 0)
-					value= 0;
-				else if(value > s-1)
-					value= s - 1;
-				count= static_cast<vector<string>::size_type >(value);
+				if(rvalue < 0)
+					rvalue= 0;
+				else if(rvalue > s-1)
+					rvalue= s - 1;
+				count= static_cast<vector<string>::size_type >(rvalue);
 				LOCK(m_OBSERVERVALUEMUTEX);
 				if(	m_bSetValueObserver &&
 					count != m_nValueObserver	)
@@ -292,7 +293,7 @@ namespace ports
 					for(vector<ListCalculator*>::const_iterator it= content.begin(); it != content.end(); ++it)
 						tout << "               " << (*it)->getStatement() << endl;
 				}
-				if(!content[count]->calculate(value))
+				if(!content[count]->calculate(ovalue.value))
 				{
 					ostringstream msg;
 					ostringstream def;
@@ -304,12 +305,17 @@ namespace ports
 					msg << "in folder " + folder + " and subroutine " + subroutine;
 					def << "ValueHolderCalcVal" << count << folder << ":" << subroutine;
 					TIMELOG(LOG_WARNING, def.str(), msg.str());
-					value= defaultVal;
+					ovalue.value= defaultVal;
 					if(debug)
 						tout << "### WARNING: " << msg.str() << endl;
-				}
+				}else
+					ovalue.lastChanging= content[count]->getLastChanging();
 				if(debug)
-					tout << "value be set from value paramter to " << value << endl;
+					tout << "value be set from value paramter to " << ovalue.value << endl;
+			}else
+			{// no value parameter exists, so take while result
+				ovalue.value= rvalue;
+				ovalue.lastChanging= oWhile.getLastChanging();
 			}
 
 		}else
@@ -321,7 +327,7 @@ namespace ports
 			TIMELOG(LOG_ERROR, "ValueHoldeCalc"+folder+":"+subroutine, msg);
 			if(debug)
 				tout << "### ERROR: " << msg << endl;
-			value= defaultVal;
+			ovalue.value= defaultVal;
 			return false;
 		}
 		return true;

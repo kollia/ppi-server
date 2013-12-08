@@ -106,13 +106,13 @@ int ProcessChecker::execute()
 
 				}else if(bCorrect)
 				{
-					double oldVal;
+					ppi_value oldVal;
 
 #ifdef __DEBUGPROCESSGETCHANGES
 					out << endl;
 					cout << out.str();
 #endif // __DEBUGPROCESSGETCHANGES
-					oldVal= port->getValue("i:"+folder);
+					oldVal= port->getValue("i:"+folder).value;
 					if(value != oldVal)
 					{
 						port->setValue(value, "e:"+from);
@@ -137,7 +137,7 @@ int ProcessChecker::execute()
 	}else if(method == "getValue")
 	{
 		bool bCorrect;
-		double value;
+		valueHolder_t value;
 		string folder, subroutine, account;
 		ostringstream sval;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
@@ -163,7 +163,7 @@ int ProcessChecker::execute()
 					if(bCorrect)
 					{
 						value= port->getValue(account);
-						sval << value;
+						sval << value.value;
 						m_sAnswer= sval.str();
 					}else
 						m_sAnswer= "nochipaccess";

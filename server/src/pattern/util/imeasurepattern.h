@@ -298,21 +298,6 @@ namespace design_pattern_world
 				 */
 				virtual void changedValue(const string& folder, const string& from)= 0;
 				/**
-				 * inform measure thread of folder that needing changing time of subroutine
-				 *
-				 * @param subroutine name of subroutine which need info
-				 * @param from name of [folder]:<subroutine> which was changed
-				 */
-				virtual void needChangingTime(const string& subroutine, const string& from)= 0;
-				/**
-				 * return actual maximal changing time from before defined [folder:]<subroutine>
-				 *
-				 * @param subroutine name of subroutine which need information
-				 * @param desc description of taking time by debug session otherwise null string
-				 * @return highest time from changed subroutine value
-				 */
-				virtual timeval getMaxChangingTime(const string& subroutine, const string& desc)= 0;
-				/**
 				 * from witch folder:subroutine thread was informed for new value
 				 *
 				 * @return vector of folder:subroutine which informed

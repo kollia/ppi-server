@@ -17,7 +17,6 @@
 
 #include "LogHolderPattern.h"
 
-
 LogHolderPattern* LogHolderPattern::_instance= NULL;
 
 void LogHolderPattern::init(const int loglevel)

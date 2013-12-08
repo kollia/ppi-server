@@ -175,6 +175,11 @@ sub* ListCalculator::getSubroutinePointer(const string& var, bool own)
 	return NULL;
 }
 
+ppi_time ListCalculator::getLastChanging()
+{
+	return m_nLastChange;
+}
+
 bool ListCalculator::variable(const string& var, double& dResult)
 {
 	sub* oSub;
@@ -182,6 +187,7 @@ bool ListCalculator::variable(const string& var, double& dResult)
 	vector<string> spl;
 	map<string, double>::iterator foundSub;
 	map<string, sub*>::iterator found;
+	valueHolder_t result;
 
 	if(m_msSubVars.size())
 	{
@@ -205,13 +211,19 @@ bool ListCalculator::variable(const string& var, double& dResult)
 			m_msoVars[var]= oSub;
 			if(oSub->bCorrect)
 			{
-				dResult= oSub->portClass->getValue("i:"+m_sFolder);
+				result= oSub->portClass->getValue("i:"+m_sFolder);
+				if(result.lastChanging > m_nLastChange)
+					m_nLastChange= result.lastChanging;
+				dResult= result.value;
 				return true;
 			}
 		}
 	}else if(found->second->bCorrect)
 	{
-		dResult= found->second->portClass->getValue("i:"+m_sFolder);
+		result= found->second->portClass->getValue("i:"+m_sFolder);
+		if(result.lastChanging > m_nLastChange)
+			m_nLastChange= result.lastChanging;
+		dResult= result.value;
 		return true;
 	}
 	dResult= 0;

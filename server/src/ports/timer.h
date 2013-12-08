@@ -104,7 +104,7 @@ public:
 	 * @param actValue current value
 	 * @return return measured value
 	 */
-	virtual double measure(const double actValue);
+	virtual valueHolder_t measure(const double actValue);
 	/**
 	 * get value from subroutine
 	 *
@@ -112,7 +112,7 @@ public:
 	 * 				This time only defined for external reading over OwPort's.
 	 * @return current value
 	 */
-	virtual double getValue(const string& who);
+	virtual valueHolder_t getValue(const string& who);
 	/**
 	 * set subroutine for output doing actions
 	 *
@@ -267,21 +267,21 @@ protected:
 	 * start on this time the measuring when m_bTimeMeasure set to measure,
 	 * otherwise start the hole folder again on this time
 	 */
-	timeval m_tmStart;
+	ppi_time m_tmStart;
 	/**
 	 * when m_bTimeMeasure not set, ending the time measure after this time
 	 * which is subtracted from length folder time
 	 */
-	timeval m_tmStop;
+	ppi_time m_tmStop;
 	/**
 	 * when m_bTimeMeasure not set, ending the time measure on this exact time
 	 */
-	timeval m_tmExactStop;
+	ppi_time m_tmExactStop;
 	/**
 	 * full ending time when finished should be reached.<br />
 	 * only defined when parameter finished in subroutine be set
 	 */
-	timeval m_tmWantFinish;
+	ppi_time m_tmWantFinish;
 	/**
 	 * string of options whether set value to 0
 	 */
@@ -390,7 +390,7 @@ private:
 	 * @param debug whether subroutine is inside debug modus
 	 * @return new value of subroutine
 	 */
-	double polling_or_countDown(const bool bswitch, timeval tv, const bool debug);
+	double polling_or_countDown(const bool bswitch, ppi_time tv, const bool debug);
 	/**
 	 * calculate next needed time
 	 *
@@ -400,7 +400,7 @@ private:
 	 *                otherwise when parameter start is false it should be actual calculated time and come unchanged back
 	 * @return calculated new value
 	 */
-	double calcNextTime(const bool& start, const bool& debug, timeval* actTime);
+	double calcNextTime(const bool& start, const bool& debug, ppi_time* actTime);
 	/**
 	 * calculating how long time should running for count down or time measure
 	 *
@@ -408,12 +408,12 @@ private:
 	 * @param actValue actual value of subroutine
 	 * @param next give back calculated time to stopping
 	 */
-	double calcStartTime(const bool& debug, const double actValue, timeval* next);
+	double calcStartTime(const bool& debug, const double actValue, ppi_time* next);
 	/**
 	 * substract from time seconds for exact starting
 	 *
 	 */
-	double substractExactFinishTime(timeval* nextTime, timeval* refreshTime, timeval* exactStop, const bool& debug);
+	double substractExactFinishTime(ppi_time* nextTime, ppi_time* refreshTime, ppi_time* exactStop, const bool& debug);
 };
 
 #endif /*TIMER_H_*/

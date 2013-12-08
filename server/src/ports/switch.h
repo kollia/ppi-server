@@ -86,9 +86,9 @@ public:
 		 * measure whether switch value is set or not
 		 *
 		 * @param actValue current value
-		 * @return return measured value
+		 * @return measured value with last changing time
 		 */
-		virtual double measure(const double actValue);
+		virtual valueHolder_t measure(const double actValue);
 		/**
 		 * measure also whether switch value is set or not,
 		 * but show in second parameter, maybe for decided class need,
@@ -99,7 +99,7 @@ public:
 		 * @param newValue new value when changed and is not the same than content inside
 		 * @return return measured value
 		 */
-		double measure(const double actValue, setting& set, const double* newValue= NULL);
+		valueHolder_t measure(const double actValue, setting& set, const double* newValue= NULL);
 		/**
 		 * destructor
 		 */
@@ -126,7 +126,7 @@ public:
 		 * 				This time only defined for external reading over OwPort's.
 		 * @return current value
 		 */
-		virtual double getValue(const string& who);
+		virtual valueHolder_t getValue(const string& who);
 		/**
 		 * set value in subroutine.<br />
 		 * All strings from parameter 'from' beginning with an one character type,
@@ -136,7 +136,7 @@ public:
 		 * @param value value which should be set
 		 * @param from which folder:subroutine or account changing the value
 		 */
-		virtual void setValue(const double value, const string& from);
+		virtual void setValue(const double value, const string& from, ppi_time changed= ppi_time());
 #endif
 
 	protected:

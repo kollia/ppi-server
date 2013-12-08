@@ -154,7 +154,7 @@ namespace ports
 		return true;
 	}
 
-	double Set::measure(const double actValue)
+	valueHolder_t Set::measure(const double actValue)
 	{
 		bool bOk, isdebug= isDebug();
 		double value, nRv;
@@ -163,6 +163,7 @@ namespace ports
 		vector<string>::size_type startSet(0), endSet(m_vsSet.size()-1);
 		vector<ListCalculator*>::size_type nFrom(m_vpoFrom.size());
 		IListObjectPattern* port;
+		valueHolder_t oRv;
 
 		//Debug info to stop by right subroutine
 		/*if(	getFolderName() == "set_probe" &&
@@ -171,7 +172,7 @@ namespace ports
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
 		}*/
-		nRv= switchClass::measure(actValue);
+		nRv= switchClass::measure(actValue).value;
 		if(	nRv > 0 ||
 			nRv < 0		)
 		{
@@ -195,7 +196,7 @@ namespace ports
 									tout << folder << ":";
 								tout << m_vsSet[s] << "'" << endl;
 							}
-							port->setValue(value, "i:"+folder+":"+subroutine);
+							port->setValue(value, "i:"+folder+":"+subroutine, m_vpoFrom[n]->getLastChanging());
 						}else
 						{
 							ostringstream msg;
@@ -237,7 +238,8 @@ namespace ports
 				tout << "FALSE";
 			tout << endl;
 		}
-		return nRv;
+		oRv.value= nRv;
+		return oRv;
 	}
 
 	void Set::setDebug(bool bDebug)

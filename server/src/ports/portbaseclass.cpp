@@ -64,7 +64,7 @@ portBase::portBase(const string& type, const string& folderName, const string& s
 	m_sFolder= folderName;
 	m_sSubroutine= subroutineName;
 	m_bWriteDb= false;
-	m_dValue= 0;
+	m_dValue.value= 0;
 	// do not know access from database
 	m_pbCorrectDevice= auto_ptr<bool>();
 	m_VALUELOCK= Thread::getMutex("VALUELOCK");
@@ -80,7 +80,7 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	string prop("default");
 	DbInterface *db= DbInterface::instance();
 
-	m_dValue= 0;
+	m_dValue.value= 0;
 	m_pFolders= pStartFolder;
 	m_bInfo= !properties->haveAction("noinfo");
 	m_sPermission= properties->getValue("perm", /*warning*/false);
@@ -89,7 +89,7 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	m_nCount= getRunningThread()->getActCount();
 	dDef= properties->getDouble(prop, /*warning*/false);
 	if(prop != "#ERROR")
-		m_dValue= dDef;
+		m_dValue.value= dDef;
 	if(m_bWriteDb)
 	{
 		db->writeIntoDb(m_sFolder, m_sSubroutine);
@@ -104,10 +104,10 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	 // also when no permission be set and db not need for user
 	 // because otherwise root can not set subroutine with no db and no permission
 	 // set to DEBUG
-		db->fillValue(m_sFolder, m_sSubroutine, "value", m_dValue);
+		db->fillValue(m_sFolder, m_sSubroutine, "value", m_dValue.value);
 
 	}else
-		m_dValue= ddv;
+		m_dValue.value= ddv;
 	m_sErrorHead= properties->getMsgHead(/*error message*/true);
 	m_sWarningHead= properties->getMsgHead(/*error message*/false);
 	m_sMsgHead= properties->getMsgHead();// without error identification
@@ -334,13 +334,13 @@ string portBase::switchBinStr(double value)
 	return sRv;
 }
 
-void portBase::setValue(double value, const string& from)
+void portBase::setValue(ppi_value value, const string& from, ppi_time changed/*= ppi_time()*/)
 {
 //#define __moreOutput
 	try{
-		double invalue(value);
-		double dbvalue(value);
-		double oldMember(m_dValue);
+		ppi_value invalue(value);
+		ppi_value dbvalue(value);
+		ppi_value oldMember(m_dValue.value);
 
 		// debug stopping
 		/*if(	getFolderName() == "Raff1" &&
@@ -387,10 +387,10 @@ void portBase::setValue(double value, const string& from)
 				else if(svalue == 0b10) // only when svalue is 2 and not 6, 14, ...
 					svalue= 0b10;
 				else
-					svalue= static_cast<short>(m_dValue) & 0b10;
+					svalue= static_cast<short>(m_dValue.value) & 0b10;
 				value= static_cast<double>(svalue);
 				dbvalue= svalue & 0b01 ? 1 : 0;
-				oldMember= ((int)m_dValue & 0b01) ? 1 : 0;
+				oldMember= ((int)m_dValue.value & 0b01) ? 1 : 0;
 
 			}else
 			{
@@ -404,7 +404,7 @@ void portBase::setValue(double value, const string& from)
 				if(!m_bFloat)
 					value= (double)((long)value);
 				dbvalue= value;
-				oldMember= m_dValue;
+				oldMember= m_dValue.value;
 			}
 #ifdef __moreOutput
 			cout << "          old member value:" << dec << oldMember;
@@ -418,14 +418,27 @@ void portBase::setValue(double value, const string& from)
 			cout << "       new defined dbvalue:" << dec << dbvalue << endl;
 #endif // __moreOutput
 		}
-		if(value != m_dValue)
+		if(value != m_dValue.value)
 		{
 			bool debug(isDebug());
 			string sOwn(m_sFolder+":"+m_sSubroutine);
 			ostringstream output;
 			vector<string> spl;
 
-			m_dValue= value;
+			if(!timerisset(&changed))
+			{
+				if(gettimeofday(&changed, NULL))
+				{
+					string msg("ERROR: cannot get time of day,\n");
+
+					msg+= "       so cannot measure time for TIMER function in folder ";
+					msg+= getFolderName() + " for changing value in subroutine " + getSubroutineName();
+					TIMELOG(LOG_ALERT, "changedValueMeasureThread", msg);
+					timerclear(&changed);
+				}
+			}
+			m_dValue.value= value;
+			m_dValue.lastChanging= changed;
 			if(m_bSwitch)
 			{
 				for(map<string, short>::iterator it= m_mdValue.begin(); it != m_mdValue.end(); ++it)
@@ -515,10 +528,10 @@ bool portBase::setValue(const string& folder, const string& subroutine, double v
 	return true;
 }
 
-double portBase::getValue(const string& who)
+valueHolder_t portBase::getValue(const string& who)
 {
 	short nValue;
-	double dValue;
+	valueHolder_t dValue;
 	map<string, short>::iterator found;
 
 	LOCK(m_VALUELOCK);
@@ -533,7 +546,7 @@ double portBase::getValue(const string& who)
 	if(	m_bSwitch &&
 		who.substr(0, 2) == "e:"	)
 	{
-		nValue= static_cast<short>(m_dValue);
+		nValue= static_cast<short>(m_dValue.value);
 		found= m_mdValue.find(who);
 		if(found == m_mdValue.end())
 		{
@@ -546,7 +559,7 @@ double portBase::getValue(const string& who)
 				dValue= m_dValue;
 			else
 			{
-				dValue= static_cast<double>(found->second);
+				dValue.value= static_cast<ppi_value>(found->second);
 				found->second&= 0b01;
 			}
 		}
@@ -617,7 +630,7 @@ bool portBase::initLinks(const string& type, IPropertyPattern* properties, const
 	return bOk;
 }
 
-bool portBase::getLinkedValue(const string& type, double& val, const double& maxCountDownValue/*=0*/)
+bool portBase::getLinkedValue(const string& type, valueHolder_t& val, const double& maxCountDownValue/*=0*/)
 {
 	bool bOk, isdebug;
 	double lvalue, linkvalue;
@@ -728,7 +741,8 @@ bool portBase::getLinkedValue(const string& type, double& val, const double& max
 						link->activateObserver( m_poMeasurePattern);
 					m_nLinkObserver= pos;
 					//defineRange();
-					val= linkvalue;
+					val.value= linkvalue;
+					val.lastChanging= link->getLastChanging();
 					bOk= true;
 
 				}else if(	maxCountDownValue &&
@@ -745,13 +759,14 @@ bool portBase::getLinkedValue(const string& type, double& val, const double& max
 							tout << " new begin (" << linkvalue << ")";
 						tout << " time" << endl;
 					}
-					val= linkvalue;
+					val.value= linkvalue;
+					val.lastChanging= link->getLastChanging();
 					bOk= true;
 
-				}else if(	m_dLastSetValue != val &&
+				}else if(	m_dLastSetValue != val.value &&
 							(	maxCountDownValue == 0 || // <- no timer count down set
-								val < linkvalue || // by count down wins the lower or max value
-								val == maxCountDownValue	)	)
+								val.value < linkvalue || // by count down wins the lower or max value
+								val.value == maxCountDownValue	)	)
 				{ // value is changed inside own subroutine
 				  // write new value inside foreign subroutine
 					port= link->getSubroutine(slink, /*own folder*/true);
@@ -760,9 +775,9 @@ bool portBase::getLinkedValue(const string& type, double& val, const double& max
 						if(isdebug)
 						{
 							tout << "value was changed in own subroutine," << endl;
-							tout << "set foreign subroutine " << slink << " to " << dec << val << endl;
+							tout << "set foreign subroutine " << slink << " to " << dec << val.value << endl;
 						}
-						port->setValue(val, "i:"+foldersub);
+						port->setValue(val.value, "i:"+foldersub, val.lastChanging);
 						port->getRunningThread()->changedValue(slink, foldersub);
 					}else
 					{
@@ -778,11 +793,12 @@ bool portBase::getLinkedValue(const string& type, double& val, const double& max
 
 				}else if(	linkvalue != m_dLastSetValue &&
 							(	maxCountDownValue == 0 ||
-								linkvalue < val				)		)
+								linkvalue < val.value			)		)
 				{// linked value from other subroutine was changed
 					if(isdebug)
 						tout << "take changed value " << linkvalue << " from foreign subroutine " << slink << endl;
-					val= linkvalue;
+					val.value= linkvalue;
+					val.lastChanging= link->getLastChanging();
 					bOk= true;
 
 				}else
@@ -822,7 +838,7 @@ bool portBase::getLinkedValue(const string& type, double& val, const double& max
 	}else // if(links > 0)
 		bOk= false;
 
-	m_dLastSetValue= val;
+	m_dLastSetValue= val.value;
 	if(	!bOk ||
 		slink == m_sSubroutine ||
 		slink == foldersub			)

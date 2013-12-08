@@ -148,8 +148,9 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	return bRv;
 }
 
-double Shell::measure(const double actValue)
+valueHolder_t Shell::measure(const double actValue)
 {
+	valueHolder_t oRv;
 	bool bDebug(isDebug());
 	bool bswitch(false);
 	bool bMaked(false);
@@ -173,7 +174,7 @@ double Shell::measure(const double actValue)
 		dLastSwitch= 1;
 	else
 		dLastSwitch= 0;
-	if(switchClass::measure(dLastSwitch))
+	if(switchClass::measure(dLastSwitch).value)
 		bswitch= true;
 	if(m_bMore)
 	{// command was sending in the last pass
@@ -276,7 +277,8 @@ double Shell::measure(const double actValue)
 			tout << endl;
 		}
 	}
-	return dRv;
+	oRv.value= dRv;
+	return oRv;
 }
 
 bool Shell::range(bool& bfloat, double* min, double* max)

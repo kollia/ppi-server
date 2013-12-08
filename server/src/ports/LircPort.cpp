@@ -59,9 +59,9 @@ namespace ports
 		ExternPort::setDebug(bDebug);
 	}
 
-	double LircPort::measure(const double actValue)
+	valueHolder_t LircPort::measure(const double actValue)
 	{
-		double res;
+		valueHolder_t res;
 
 		//Debug info to stop by right subroutine
 		/*if(	getFolderName() == "SONY_CMT_MINUS_CP100_KEY_CHANNELUP" &&

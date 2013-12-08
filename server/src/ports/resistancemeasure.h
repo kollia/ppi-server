@@ -65,7 +65,7 @@ namespace ports
 			 * @param actValue current value
 			 * @return return measured value
 			 */
-			virtual double measure(const double actValue);
+			virtual valueHolder_t measure(const double actValue);
 			/**
 			 * set subroutine for output doing actions
 			 *

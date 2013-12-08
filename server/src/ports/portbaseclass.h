@@ -152,9 +152,10 @@ namespace ports
 			 */
 			bool m_bWriteDb;
 			/**
-			 * value which hold this subroutine
+			 * value which hold this subroutine,
+			 * with time from last changing
 			 */
-			double m_dValue;
+			valueHolder_t m_dValue;
 			/**
 			 * all clients with values to know whether
 			 * switch subroutine was active between the last request
@@ -390,17 +391,17 @@ namespace ports
 			 * measure new value for subroutine
 			 *
 			 * @param actValue current value
-			 * @return return measured value
+			 * @return measured value with last changing time when not changed by self
 			 */
-			virtual double measure(const double actValue)=0;
+			virtual valueHolder_t measure(const double actValue)=0;
 			/**
 			 * get value from subroutine
 			 *
 			 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
 			 * 				This time only defined for external reading over OwPort's.
-			 * @return current value
+			 * @return current value with last changing time
 			 */
-			virtual double getValue(const string& who);
+			virtual valueHolder_t getValue(const string& who);
 			/**
 			 * set value in subroutine.<br />
 			 * All strings from parameter 'from' beginning with an one character type,
@@ -409,8 +410,9 @@ namespace ports
 			 *
 			 * @param value value which should be set
 			 * @param from which folder:subroutine or account changing the value
+			 * @param changed last changing time when set, otherwise method create own time
 			 */
-			virtual void setValue(const double value, const string& from);
+			virtual void setValue(const double value, const string& from, ppi_time changed= ppi_time());
 			/**
 			 * set double value into measure list
 			 *
@@ -498,7 +500,7 @@ namespace ports
 			 * @param bCountDown whether getting linked value is an count down (only for TIMER subroutines) do not inform liked values
 			 * @return true when the value is from an other subroutine, else false
 			 */
-			bool getLinkedValue(const string& type, double& val, const double& maxCountDownValue= 0);
+			bool getLinkedValue(const string& type, valueHolder_t& val, const double& maxCountDownValue= 0);
 			/**
 			 * return message header with folder and subroutine name
 			 * and also error or warning type when parameter be set

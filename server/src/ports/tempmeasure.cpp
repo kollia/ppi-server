@@ -22,13 +22,15 @@
 
 #include "../util/thread/Terminal.h"
 
-double TempMeasure::measure(const double actValue)
+valueHolder_t TempMeasure::measure(const double actValue)
 {
+	valueHolder_t oRv;
 	float nTemperature= getTemperature();
 
 	if(isDebug())
 		tout << "Temperature:" << m_nTemperature << endl;
-	return (double)nTemperature;
+	oRv.value= (double)nTemperature;
+	return oRv;
 }
 
 float TempMeasure::getTemperature()

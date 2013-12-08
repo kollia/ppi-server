@@ -148,18 +148,19 @@ bool Output::isDebug()
 	return bRv;							// debug session and should know whether this object was set to debug
 }
 
-double Output::measure(const double actValue)
+valueHolder_t Output::measure(const double actValue)
 {
 	bool bDebug(isDebug()), ownDebug;
-	double output(0);
+	valueHolder_t output;
 
+	output.value= 0;
 	LOCK(m_DEBUG);
 	ownDebug= m_bDebug;
 	UNLOCK(m_DEBUG);
 	if(m_bNeedSwitch)
 		output= switchClass::measure(actValue);
-	if(	output > 0 ||
-		output < 0 ||
+	if(	output.value > 0 ||
+		output.value < 0 ||
 		(	ownDebug &&
 			!m_bNeedSwitch	)	)
 	{
@@ -199,14 +200,14 @@ double Output::measure(const double actValue)
 		}
 		if(m_nLogLevel > -1)
 			LOGEX(m_nLogLevel, out.str(), getRunningThread()->getExternSendDevice());
-		output= 1;
+		output.value= 1;
 	}else
-		output= 0;
+		output.value= 0;
 	if(bDebug)
 	{
-		if(!output)
+		if(!output.value)
 			tout << "do not write any output" << endl;
-		tout << "result of DEBUG output is " << output << endl;
+		tout << "result of DEBUG output is " << output.value << endl;
 	}
 	return output;
 }

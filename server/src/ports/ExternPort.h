@@ -85,7 +85,7 @@ namespace ports
 		 * @param actValue current value
 		 * @return return measured value
 		 */
-		virtual double measure(const double actValue);
+		virtual valueHolder_t measure(const double actValue);
 		/**
 		 * write chip id and value to port server.<br />
 		 * This method is called from method <code>measure()</code>
@@ -112,9 +112,9 @@ namespace ports
 		 * if value defined for switching between 0 and 1
 		 *
 		 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request
-		 * @return current value
+		 * @return current value with last changing time
 		 */
-		virtual double getValue(const string who);
+		virtual valueHolder_t getValue(const string who);
 		/**
 		 * check whether subroutine need an external owreader server
 		 *

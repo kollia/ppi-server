@@ -134,9 +134,9 @@ namespace ports
 		 * measure new value for subroutine
 		 *
 		 * @param actValue current value
-		 * @return return measured value
+		 * @return return measured value with last changed time
 		 */
-		virtual double measure(const double actValue);
+		virtual valueHolder_t measure(const double actValue);
 		/**
 		 * get value from subroutine
 		 *
@@ -144,7 +144,7 @@ namespace ports
 		 * 				This time only defined for external reading over OwPort's.
 		 * @return current value
 		 */
-		virtual double getValue(const string& who);
+		virtual valueHolder_t getValue(const string& who);
 		/**
 		 * set value in subroutine.<br />
 		 * All strings from parameter 'from' beginning with an one character type,
@@ -153,8 +153,9 @@ namespace ports
 		 *
 		 * @param value value which should be set
 		 * @param who which folder:subroutine or account changing the value
+		 * @param changed last changing time when set, otherwise method create own time
 		 */
-		virtual void setValue(const double value, const string& who);
+		virtual void setValue(const double value, const string& who, ppi_time changed= ppi_time());
 		/**
 		 * calculate while string and set to value result or content of parameter content if exist.<br/>
 		 * Method write error or warning string into log-file and on command line if debug flag be set
@@ -170,7 +171,7 @@ namespace ports
 		 */
 		bool getWhileStringResult(const string& folder, const string& subroutine,
 									ListCalculator& oWhile, vector<ListCalculator*>& content,
-									const double defaultVal, double& value, const bool debug);
+									const double defaultVal, valueHolder_t& value, const bool debug);
 		/**
 		 * set subroutine for output doing actions
 		 *
