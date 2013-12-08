@@ -380,14 +380,14 @@ namespace ports
 		{
 			if(bfRead)
 			{
-				disconnect();
+				//disconnect();
 				if(connect())
 				{
 					short nRv;
 					ostringstream oid;
 
 					oid << m_nID;
-					LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ oid.str() + " by writing channels");
+					LOG(LOG_INFO, "reconnect successfully vellemann port "+ oid.str() + " by writing channels");
 					bfRead= false;
 					nRv= write(id, value, addinfo);
 					bfRead= true;
