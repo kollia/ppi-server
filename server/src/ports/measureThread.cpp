@@ -132,7 +132,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 		cerr << "              so send this messages directly which has more bad performance" << endl;
 		LOG(LOG_WARNING, err +"so send this messages directly which has more bad performance");
 	}
-	res= 0;//m_oInformer.start();
+	res= m_oInformer.start();
 	if(res)
 	{
 		string err("measuring thread for folder '" + threadname +
