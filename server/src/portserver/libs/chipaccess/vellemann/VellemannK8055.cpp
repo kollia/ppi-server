@@ -431,13 +431,13 @@ namespace ports
 				//cout << "read pin " << id << " is single result " << res << endl;
 				if(res < 0)
 				{
-					disconnect();
+					//disconnect();
 					if(connect())
 					{
 						ostringstream id;
 
 						id << m_nID;
-						LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ id.str() + " by reading digital channels");
+						LOG(LOG_INFO, "reconnect successfully vellemann port "+ id.str() + " by reading digital channels");
 						res= ReadDigitalChannel(pin);
 					}
 					if(res < 0)
@@ -507,13 +507,13 @@ namespace ports
 				value= (double)ReadAnalogChannel(channel);
 				if(value < 0)
 				{
-					disconnect();
+					//disconnect();
 					if(connect())
 					{
 						ostringstream id;
 
 						id << m_nID;
-						LOG(LOG_DEBUG, "reconnect successfully vellemann port "+ id.str() + " by reading analog channels");
+						LOG(LOG_INFO, "reconnect successfully vellemann port "+ id.str() + " by reading analog channels");
 						value= (double)ReadAnalogChannel(channel);
 					}
 					if(value < 0)
