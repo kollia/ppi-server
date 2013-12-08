@@ -62,6 +62,14 @@ public:
 	 */
 	virtual bool render();
 	/**
+	 * calculate string of statement
+	 * and set last change time to 0
+	 *
+	 * @param dResult result of calculation
+	 * @return whether the calculation was correct
+	 */
+	virtual bool calculate(double& dResult);
+	/**
 	 * return folder in which calculation string be defined
 	 *
 	 * @return folder name

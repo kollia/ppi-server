@@ -83,6 +83,12 @@ bool ListCalculator::render()
 	return bRv;
 }
 
+bool ListCalculator::calculate(double& dResult)
+{
+	m_nLastChange= ppi_time();
+	return CalculatorContainer::calculate(dResult);
+}
+
 void ListCalculator::output(bool bError, const string& file, const int line, const string& msg)
 {
 	if(!isRendered())
