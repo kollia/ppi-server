@@ -109,7 +109,7 @@ vector<string> DatabaseThread::getDebugInfo(const unsigned short server)
 	int err;
 	IClientPattern* client;
 	ostringstream definition;
-	vector<string> vRv;
+	vector<string> vRv, vanswer;
 	string answer;
 
 	definition << "OwServerQuestion-" << server;
@@ -117,7 +117,11 @@ vector<string> DatabaseThread::getDebugInfo(const unsigned short server)
 	if(client != NULL)
 	{
 		do{
-			answer= client->sendString(IMethodStringStream("getinfo"), true, "done");
+			vanswer= client->sendString(IMethodStringStream("getinfo"), true, "done");
+			if(vanswer.size())
+				answer= vanswer.front();
+			else
+				answer= "";
 			err= ExternClientInputTemplate::error(answer);
 			vRv.push_back(answer);
 

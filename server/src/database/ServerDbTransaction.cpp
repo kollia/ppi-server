@@ -14,6 +14,7 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #include <stdlib.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -69,12 +70,13 @@ namespace server
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 		string method(object.getMethodName());
+		vector<string> answer;
 		ostringstream od;
 		DefaultChipConfigReader *reader= DefaultChipConfigReader::instance();
 		DatabaseThread* dbTh= NULL;
 		IPPIDatabasePattern* db= NULL;
 
-		//cout << "work on command: " << method << endl;
+		//cout << "---------- ppi-db-server work on command: " << method << endl;
 		if(method == "isEntryChanged")
 		{
 			db= DatabaseThread::instance()->getDatabaseObj();
@@ -387,7 +389,7 @@ namespace server
 				descriptor << *it;
 				descriptor.endl();
 				descriptor.flush();
-				descriptor >> method;
+				//descriptor >> method;
 			}
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			if(bDebugOutput)
@@ -653,8 +655,13 @@ namespace server
 								<<"' to other client ProcessChecker" << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-			ires= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
-			res= ires.str();
+			answer= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+			if(answer.size())
+			{
+				ires= answer.front();
+				res= ires.str();
+			}else
+				res= "";
 			if(object.getSyncID() > 0)
 				sendMeth.removeSyncID();
 
@@ -698,6 +705,7 @@ namespace server
 			istringstream *piOWReader;
 			string param, msg;
 
+			// toDo: check whether answer should send with more rows
 			object >> param;
 			switch(step)
 			{
@@ -727,8 +735,13 @@ namespace server
 									<<"' to other client ProcessChecker" << endl;
 				}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-				ires= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
-				msg= ires.str();
+				answer= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+				if(answer.size())
+				{
+					ires= answer.front();
+					msg= ires.str();
+				}else
+					msg= "";
 				trim(msg);
 				if(object.getSyncID() > 0)
 					sendMeth.removeSyncID();
@@ -799,8 +812,13 @@ namespace server
 									<<"' to other client ProcessChecker" << endl;
 				}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-				ires= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
-				msg= ires.str();
+				answer= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+				if(answer.size())
+				{
+					ires= answer.front();
+					msg= ires.str();
+				}else
+					msg= "";
 				if(object.getSyncID() > 0)
 					sendMeth.removeSyncID();
 				piOWReader= new istringstream(msg);
@@ -837,8 +855,13 @@ namespace server
 										<<"' to other client " << poOWReader->str() << endl;
 					}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-					ires= descriptor.sendToOtherClient(poOWReader->str(), sendMeth, true, "");
-					msg= ires.str();
+					answer= descriptor.sendToOtherClient(poOWReader->str(), sendMeth, true, "");
+					if(answer.size())
+					{
+						ires= answer.front();
+						msg= ires.str();
+					}else
+						msg= "";
 					trim(msg);
 					if(object.getSyncID() > 0)
 						sendMeth.removeSyncID();
@@ -902,12 +925,22 @@ namespace server
 								<<"' to other client " << def.str() << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-			ires= descriptor.sendToOtherClient(def.str(), sendMeth, true, "");
-			res= ires.str();
-			trim(res);
+			// toDo: check whether answer for more rows is right made
+			answer= descriptor.sendToOtherClient(def.str(), sendMeth, true, "");
+			if(answer.size())
+			{
+				for(vector<string>::iterator it= answer.begin(); it != answer.end(); ++it)
+				{
+					ires= answer.front();
+					res= ires.str();
+					trim(res);
+					descriptor << res;
+					descriptor.endl();
+				}
+			}else
+				descriptor.endl();
 			if(object.getSyncID() > 0)
 				sendMeth.removeSyncID();
-			descriptor << res;
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			if(bDebugOutput)
 				debugSendMsg << "(1-3.) send answer '" << od.str() << "' from ppi-db-server back to client" << endl;
@@ -982,8 +1015,13 @@ namespace server
 				IMethodStringStream ires;
 				IMethodStringStream method(sendMeth);
 
-				ires= descriptor.sendToOtherClient(server.str(), method, false, "");
-				res= ires.str();
+				answer= descriptor.sendToOtherClient(server.str(), method, false, "");
+				if(answer.size())
+				{
+					ires= answer.front();
+					res= ires.str();
+				}else
+					res= "";
 				if(object.getSyncID() > 0)
 					sendMeth.removeSyncID();
 				descriptor << res;
@@ -1329,8 +1367,13 @@ namespace server
 										<<"' to other client " << owclient.str() << endl;
 					}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-					ires= descriptor.sendToOtherClient(owclient.str(), sendMeth, true, "");
-					res= ires.str();
+					answer= descriptor.sendToOtherClient(owclient.str(), sendMeth, true, "");
+					if(answer.size())
+					{
+						ires= answer.front();
+						res= ires.str();
+					}else
+						res= "";
 					trim(res);
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 					if(bDebugOutput)
@@ -1512,8 +1555,13 @@ namespace server
 									<<"' to other client ProcessChecker" << endl;
 				}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-				ires= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
-				sRv= ires.str();
+				answer= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+				if(answer.size())
+				{
+					ires= answer.front();
+					sRv= ires.str();
+				}else
+					sRv= "";
 				trim(sRv);
 				if(object.getSyncID() == 0)
 					sendMeth.removeSyncID();

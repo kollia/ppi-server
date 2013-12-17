@@ -128,6 +128,7 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 		{
 			if(!thread->running())
 			{
+				cout << "start thread for this command" << endl;
 				if(thread->start() != 0)
 				{
 					ostringstream msg;
@@ -446,6 +447,7 @@ int CommandExec::execute()
 		m_tScriptPid= 0;
 		UNLOCK(m_WAITMUTEX);
 		bWaitMutex= false;
+		cout << "start shell command '" << command << "'" << endl;
 		fp= popen(command.c_str(), "r");
 		bOpenShell= true;
 		if(fp == NULL)
@@ -496,6 +498,7 @@ int CommandExec::execute()
 				sline= "";
 			}
 		}
+		cout << "ending shell command with " << sLastErrorlevel << endl;
 		if(stopping())
 		{
 			pclose(fp);
@@ -1076,6 +1079,7 @@ void CommandExec::setValue(const string& command, bool bLog)
 	if(	bwrite &&
 		!stopping()	)
 	{
+		cout << "try to SET " << spl[0] << ":" << spl[1] << " " << value << endl;
 		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
 		{
 			outstr= "  ### ERROR: cannot write correctly PPI-SET command over interface to folder-list";

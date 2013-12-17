@@ -132,8 +132,17 @@ namespace server
 		 * @param endString if sending client want an array, this is the last string for ending
 		 * @return answer from client
 		 */
-		virtual string sendString(const IMethodStringStream& str, const bool& wait, const string& endString)
+		virtual vector<string> sendString(const IMethodStringStream& str, const bool& wait, const string& endString)
 		{ return m_hFileAccess->sendString(str, wait, endString); };
+		/**
+		 * read setting answers from last question, when an end string be defined
+		 *
+		 * @param syncID string which should be sending
+		 * @param endString string for ending by read an array
+		 * @return answer from other client
+		 */
+		virtual vector<string> getMoreAnswers(const unsigned long long syncID, const string& endString)
+		{ return m_hFileAccess->getMoreAnswers(syncID, endString); };
 		/**
 		 * destroy instance of communication thread
 		 */

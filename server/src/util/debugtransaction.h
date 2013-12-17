@@ -18,6 +18,16 @@
 #define DEBUGTRANSCATION_H_
 
 
+/*************************************************************************
+ * write all client allocations to exist server
+ * allowed server	"ppi-db-server"
+ * 					"ppi-internet-server"
+ * 					"" - for all server
+ */
+#ifndef ALLOCATEONMETHODSERVER
+//#define ALLOCATEONMETHODSERVER ""
+#endif // ALLOCATEONMETHODSERVER
+
 // follow some transaction from process to process
 //#define __FOLLOWSERVERCLIENTTRANSACTION
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
@@ -35,14 +45,20 @@
  *					OwInterface
  *					ProcessChecker
  */
-//#define __FOLLOW_FROMPROCESS "ppi-internet-server"
+#define __FOLLOW_FROMPROCESS "ppi-internet-server"
 //#define __FOLLOW_FROMCLIENT "OwServerQuestion-1"
-//#define __FOLLOW_TOPROCESS "LogServer"
+//#define __FOLLOW_TOPROCESS "ppi-owreader"
 //#define __FOLLOW_TOCLIENT "OwServerQuestion-1"
 // sending message -> need only the beginning string
-//#define __FOLLOW_SENDMESSAGE "getValue"
+#define __FOLLOW_SENDMESSAGE "existEntry"
 // ---------------------------------------------------------------------------------------------------
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
+
+// show all sending over tcp/ip
+// from internet server
+#ifndef SERVERDEBUG
+//#define SERVERDEBUG
+#endif // SERVERDEBUG
 
 // display on command line when any thread inside ppi-server
 // sending some messages directly or over NoAnswerSending pool

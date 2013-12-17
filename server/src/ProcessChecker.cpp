@@ -48,9 +48,9 @@ int ProcessChecker::execute()
 
 	if(!bfirst)
 	{
-		cout << "--------------------------------------------------------------------------------------" << endl;
-		cout << "running first execute of ProcessChecker to set server status to finished" << endl;
-		cout << "--------------------------------------------------------------------------------------" << endl;
+		//cout << "--------------------------------------------------------------------------------------" << endl;
+		//cout << "running first execute of ProcessChecker to set server status to finished" << endl;
+		//cout << "--------------------------------------------------------------------------------------" << endl;
 		ppi_database::DbInterface::instance()->setServerConfigureStatus("finished", -1);
 		bfirst= true;
 	}

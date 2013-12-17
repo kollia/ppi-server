@@ -37,38 +37,81 @@ namespace server
 {
 	bool OutsideClientTransaction::transfer(IFileDescriptorPattern& descriptor)
 	{
+		/**
+		 * error number when connection be failt
+		 */
 		int err;
+		/**
+		 * current answer of server
+		 */
 		string answer;
+		/**
+		 * get answer with more rows
+		 * where this variable should be
+		 * the ending string
+		 */
+		string endString;
+		/**
+		 * length of command
+		 * when object not be setting
+		 * for answering
+		 */
 		string::size_type len= m_sCommand.size();
 
 		m_vAnswer.clear();
 		if(m_bHold)
 		{
-			if(len > 0)
-			{
-				if(m_sCommand.substr(len -1) != "\n")
-					m_sCommand+= "\n";
-			}else
-				m_sCommand= "\n";
-			do{
-				if(descriptor.eof())
+			if(m_vsAnswerBlock.size())
+			{// client is defined for answering question
+				for(vector<string>::iterator it= m_vsAnswerBlock.begin(); it != m_vsAnswerBlock.end(); ++it)
 				{
-					m_vAnswer.push_back("ERROR 001");
-					return false;
+					if(descriptor.eof())
+					{
+						m_vAnswer.push_back("ERROR 001");
+						return false;
+					}
+					descriptor << *it;
+					if((*it).substr((*it).size(), -1) != "\n")
+						descriptor.endl();
+					descriptor.flush();
 				}
+			}else
+			{// client is defined to send questions
+				string::size_type pos, start;
+
+				// look first whether client get an answer
+				// over more rows
+				pos= m_sCommand.find(" ");
+				if(pos != string::npos)
+				{
+					pos= m_sCommand.find(" ", pos + 1);
+					if(pos != string::npos)
+					{
+						if(m_sCommand.substr(pos + 1, 4) == "true")
+						{
+							start= pos + 6;
+							pos= m_sCommand.find(" ", start);
+							if(pos != string::npos)
+								endString= m_sCommand.substr(start, pos - start);
+						}
+					}
+				}
+				if(len > 0)
+				{
+					if(m_sCommand.substr(len -1) != "\n")
+						m_sCommand+= "\n";
+				}else
+					m_sCommand= "\n";
 				descriptor << m_sCommand;
-				descriptor.flush();
+			}
+			do{ // while(endString != "")
+
 				if(descriptor.eof())
 				{
 					m_vAnswer.push_back("ERROR 001");
 					return false;
 				}
 				descriptor >> answer;
-				if(descriptor.eof())
-				{
-					m_vAnswer.push_back("ERROR 001");
-					return false;
-				}
 				boost::trim(answer);
 				err= ExternClientInputTemplate::error(answer);
 				if(err != 0)
@@ -77,12 +120,14 @@ namespace server
 					answer= ExternClientInputTemplate::error(err);
 				}
 				m_vAnswer.push_back(answer);
-
-			}while(	m_sAnswerEnding != ""
-					&&
-					answer != m_sAnswerEnding
-					&&
-					err == 0					);
+				if(err > 0)
+					break;
+				if(	endString != "" &&
+					endString == answer	)
+				{
+					endString= "";
+				}
+			}while(endString != "");
 			m_sCommand= "";
 			m_bHold= true;
 		}else
@@ -99,6 +144,12 @@ namespace server
 			return false;
 		}
 		return true;
+	}
+
+	void OutsideClientTransaction::setAnswer(const vector<string>& answer)
+	{
+		m_sCommand= "";
+		m_vsAnswerBlock= answer;
 	}
 
 	string OutsideClientTransaction::strerror(int error) const

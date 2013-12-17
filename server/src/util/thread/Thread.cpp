@@ -1404,7 +1404,7 @@ int Thread::conditionWait(const string& file, int line, pthread_cond_t* cond, pt
 		msg << "   on LINE: " << dec << line << " from FILE:" << file << endl;
 		msg << "   is not locked" << endl;
 		cerr << msg.str();
-		LOGEX(LOG_ERROR, msg.str(), m_pExtLogger);
+		LOGEX(LOG_ERROR, msg.str(), logger);
 	}
 	pthread_mutex_unlock(&g_READMUTEX);
 #endif // CONDITIONSDEBUG

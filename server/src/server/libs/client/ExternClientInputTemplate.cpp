@@ -18,6 +18,7 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include "../../../util/debugtransaction.h"
+#include "../../../util/exception.h"
 #include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/thread/Thread.h"
 
@@ -305,7 +306,14 @@ namespace util
 		int nRv;
 
 		LOCK(m_SENDMETHODLOCK);
-		nRv= closeConnection(m_oSendConnect, m_pSendTransaction, m_sEndingSendCommand);
+		try{
+			nRv= closeConnection(m_oSendConnect, m_pSendTransaction, m_sEndingSendCommand);
+		}catch(SignalException& ex)
+		{
+			ex.addMessage("try to close send connection for Interface " + m_sProcess + "::" + m_sName);
+			ex.printTrace();
+			LOG(LOG_WARNING, ex.getTraceString());
+		}
 		m_pSendTransaction= NULL;
 		UNLOCK(m_SENDMETHODLOCK);
 		return nRv;
@@ -319,7 +327,14 @@ namespace util
 			return 1;
 		if(transaction == NULL)
 			return 2;
-		transaction->closeConnection(command);
+		try{
+			transaction->closeConnection(command);
+		}catch(SignalException& ex)
+		{
+			ex.addMessage("try to close transaction connection for Interface " + m_sProcess + "::" + m_sName);
+			ex.printTrace();
+			LOG(LOG_WARNING, ex.getTraceString());
+		}
 		if(!connection->init())
 			nRv= 3;
 		connection->close();
@@ -374,9 +389,32 @@ namespace util
 		UNLOCK(m_GETQUESTIONLOCK);
 		return 0;
 	}
+
 	string ExternClientInputTemplate::getQuestion(const string& lastAnswer)
 	{
+		static string lastQuestion;
+		static vector<string> answer;
+
+		answer.push_back(lastAnswer);
+		if(	m_sAnswerEndString != "")
+			cout << m_sProcess << ":" << m_sName << "get answer: '" << lastAnswer << endl;
+		if(	m_sAnswerEndString != "" &&
+			m_sAnswerEndString != lastAnswer	)
+		{
+			return lastQuestion;
+		}
+		lastQuestion= getQuestion(answer);
+		answer.clear();
+		if(	m_sAnswerEndString != "")
+			cout << m_sProcess << ":" << m_sName << "get question: '" << lastQuestion
+				<< "' which need answer with more rows to end-string '" << m_sAnswerEndString << "'" << endl;
+		return lastQuestion;
+	}
+
+	string ExternClientInputTemplate::getQuestion(const vector<string>& lastAnswer)
+	{
 		int err;
+		string question;
 		vector<string> answer;
 
 		LOCK(m_GETQUESTIONLOCK);
@@ -394,7 +432,7 @@ namespace util
 				return error(err);
 			}
 		}
-		m_pGetTransaction->setCommand(lastAnswer);
+		m_pGetTransaction->setAnswer(lastAnswer);
 		err= m_oGetConnect->init();
 		if(err != 0)
 		{
@@ -428,6 +466,36 @@ namespace util
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 #endif
 		answer= m_pGetTransaction->getReturnedString();
+		if(answer.size())
+		{
+			IMethodStringStream oQuestion(answer.front());
+
+			if(oQuestion.getMethodName() == "blockA")
+			{
+				OMethodStringStream setingBlockCommand("blockA");
+				bool block;
+
+				oQuestion >> block;
+				setingBlockCommand << block;
+				if(block)
+				{// question need's an answer over more rows
+
+					oQuestion >> m_sAnswerEndString;
+					setingBlockCommand << m_sAnswerEndString;
+				}else
+					m_sAnswerEndString= "";
+				question= answer.front().substr(setingBlockCommand.str().length());
+
+			}else
+			{
+				question= answer.front();
+				m_sAnswerEndString= "";
+			}
+		}else
+		{
+			question= "";
+			m_sAnswerEndString= "";
+		}
 #if 0
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 		m_boutput= true;
@@ -460,14 +528,14 @@ namespace util
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 #endif
 		UNLOCK(m_GETQUESTIONLOCK);
-		err= error(answer[0]);
+		err= error(question);
 		if(err != 0)
 		{
 			err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
 			err+= (err > 0 ? m_oGetConnect->getMaxErrorNums(true) : (m_oGetConnect->getMaxErrorNums(false) * -1));
 			return error(err);
 		}
-		return answer[0];
+		return question;
 	}
 
 	int ExternClientInputTemplate::closeGetConnection()
@@ -475,7 +543,14 @@ namespace util
 		int nRv;
 
 		LOCK(m_GETQUESTIONLOCK);
-		nRv= closeConnection(m_oGetConnect, m_pGetTransaction, m_sEndingGetCommand);
+		try{
+			nRv= closeConnection(m_oGetConnect, m_pGetTransaction, m_sEndingGetCommand);
+		}catch(SignalException& ex)
+		{
+			ex.addMessage("try to close get connection for Interface " + m_sProcess + "::" + m_sName);
+			ex.printTrace();
+			LOG(LOG_WARNING, ex.getTraceString());
+		}
 		m_pGetTransaction= NULL;
 		UNLOCK(m_GETQUESTIONLOCK);
 		return nRv;

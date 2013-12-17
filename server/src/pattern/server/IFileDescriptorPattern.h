@@ -281,7 +281,7 @@ namespace design_pattern_world
 				 * @param endString if sending client want an array, this is the last string for ending
 				 * @return answer from client
 				 */
-				virtual string sendString(const IMethodStringStream& str, const bool& wait, const string& endString)= 0;
+				virtual vector<string> sendString(const IMethodStringStream& str, const bool& wait, const string& endString)= 0;
 				/**
 				 * method ask for string from other client
 				 *
@@ -296,9 +296,10 @@ namespace design_pattern_world
 				 *
 				 * @param asw answer of getting string
 				 */
-				virtual void sendAnswer(const string& asw)= 0;
+				virtual void sendAnswer(const vector<string>& asw)= 0;
 				/**
 				 * send string to other client with defined definition name
+				 * and return answer
 				 *
 				 * @param definition defined name from other client
 				 * @param str string which should be sending
@@ -306,7 +307,23 @@ namespace design_pattern_world
 				 * @param endString string for ending by read an array
 				 * @return answer from other client
 				 */
-				virtual string sendToOtherClient(const string& definition, const IMethodStringStream& str, const bool& wait, const string& endString)= 0;
+				virtual vector<string> sendToOtherClient(const string& definition, const IMethodStringStream& str, const bool& wait, const string& endString)= 0;
+				/**
+				 * read setting answers from other client, when an end string be defined
+				 *
+				 * @param syncID string which should be sending
+				 * @param endString string for ending by read an array
+				 * @return answer from other client
+				 */
+				virtual vector<string> getMoreFromOtherClient(const unsigned long long syncID, const string& endString)= 0;
+				/**
+				 * read setting answers from last question, when an end string be defined
+				 *
+				 * @param syncID string which should be sending
+				 * @param endString string for ending by read an array
+				 * @return answer from other client
+				 */
+				virtual vector<string> getMoreAnswers(const unsigned long long syncID, const string& endString)= 0;
 				/**
 				 * return factory of ServerCommunicationStarter
 				 *

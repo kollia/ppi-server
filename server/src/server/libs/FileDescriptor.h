@@ -298,13 +298,29 @@ namespace server
 			 * @param endString string for ending by read an array
 			 * @return answer from other client
 			 */
-			virtual string sendToOtherClient(const string& definition, const IMethodStringStream& str, const bool& wait, const string& endString);
+			virtual vector<string> sendToOtherClient(const string& definition, const IMethodStringStream& str, const bool& wait, const string& endString);
+			/**
+			 * read setting answers from other client, when an end string be defined
+			 *
+			 * @param syncID string which should be sending
+			 * @param endString string for ending by read an array
+			 * @return answer from other client
+			 */
+			virtual vector<string> getMoreFromOtherClient(const unsigned long long syncID, const string& endString);
+			/**
+			 * read setting answers from last question, when an end string be defined
+			 *
+			 * @param syncID string which should be sending
+			 * @param endString string for ending by read an array
+			 * @return answer from other client
+			 */
+			virtual vector<string> getMoreAnswers(const unsigned long long syncID, const string& endString);
 			/**
 			 * send an answer of getting string with <code>getOtherClientString()</code>
 			 *
 			 * @param asw answer of getting string
 			 */
-			virtual void sendAnswer(const string& asw);
+			virtual void sendAnswer(const vector<string>& asw);
 			/**
 			 * set ID for client
 			 *
@@ -359,16 +375,6 @@ namespace server
 
 		private:
 			/**
-			 * send string to actual <code>ITransferPattern</code>
-			 *
-			 * @param str string which should send to client
-			 * @param wait whether method should wait for an answer
-			 * @param endString if sending client want an array, this is the last string for ending
-			 * @return answer from client
-			 */
-			virtual string sendString(const IMethodStringStream& str, const bool& wait, const string& endString);
-
-			/**
 			 * mutex lock handle for changing or reading connection ID
 			 */
 			pthread_mutex_t *m_CONNECTIONIDACCESS;
@@ -396,6 +402,10 @@ namespace server
 			 * factory of all produced clients
 			 */
 			IServerPattern* m_poServer;
+			/**
+			 * other hearing client by server communication
+			 */
+			IClientPattern* m_pHearingClient;
 			/**
 			 * connection ID of communicattion thread.<br />
 			 * This ID can be chanced, if the client have more then one
@@ -514,6 +524,22 @@ namespace server
 			 */
 			void initial(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address,
 					const unsigned short port);
+			/**
+			 * search other client which hearing to give answer
+			 *
+			 * @param definition defined name from other client
+			 * @return client
+			 */
+			IClientPattern* getOtherHearingClient(const string& definition);
+			/**
+			 * send string to actual <code>ITransferPattern</code>
+			 *
+			 * @param str string which should send to client
+			 * @param wait whether method should wait for an answer
+			 * @param endString if sending client want an array, this is the last string for ending
+			 * @return answer from client
+			 */
+			virtual vector<string> sendString(const IMethodStringStream& str, const bool& wait, const string& endString);
 	};
 
 }

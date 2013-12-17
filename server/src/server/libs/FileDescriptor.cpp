@@ -20,6 +20,8 @@
 #include <iostream>
 #include <utility>
 
+#include <boost/algorithm/string/trim.hpp>
+
 #include "../../pattern/server/ITransferPattern.h"
 #include "../../pattern/server/IClientHolderPattern.h"
 #include "../../pattern/server/IServerCommunicationStarterPattern.h"
@@ -32,6 +34,7 @@
 
 using namespace std;
 using namespace design_pattern_world::server_pattern;
+using namespace boost;
 
 namespace server
 {
@@ -40,6 +43,7 @@ namespace server
 	{
 		m_pTransfer= transfer;
 		m_poServer= server;
+		m_pHearingClient= NULL;
 		m_unConnID= 0;
 		m_bFileAccess= true;
 		m_sAddress= address;
@@ -331,17 +335,14 @@ namespace server
 		return m_nPort;
 	}
 
-	string FileDescriptor::sendToOtherClient(const string& definition, const IMethodStringStream& str,
-												const bool& wait, const string& endString)
+	IClientPattern* FileDescriptor::getOtherHearingClient(const string& definition)
 	{
-		string answer;
 		IServerCommunicationStarterPattern* starter;
 		IClientHolderPattern* holder= m_poServer->getCommunicationFactory();
 		IClientPattern* client;
 
 		//std::cout << "sendToOtherClient search other client " << definition << std::endl;
 		starter= dynamic_cast<IServerCommunicationStarterPattern*>(holder);
-		UNLOCK(m_THREADSAVEMETHODS);
 		client= starter->getClient(definition, this);
 		if(client == NULL)
 		{
@@ -349,19 +350,7 @@ namespace server
 
 #ifdef ALLOCATEONMETHODSERVER
 			std::cout << "no client found for " << definition << " search again for " << m_nTimeout << " seconds " << std::endl;
-			std::cout << "  to send: " << str << std::endl;
 #endif // ALLOCATEONMETHODSERVER
-#ifdef __FOLLOWSERVERCLIENTTRANSACTION
-		if(getBoolean("output") == true)
-		{
-			ostringstream out;
-
-			out << "sendDescriptor " << getString("process") << "::" << getString("client");
-			out << " want send question '" << str.str(true);
-			out << "' but do not find client with definition " << definition << std::endl;
-			cout << out.str();
-		}
-#endif // __FOLLOWSERVERCLIENTTRANSACTION
 			time(&nt);
 			time(&t);
 			while(	client == NULL
@@ -378,11 +367,24 @@ namespace server
 				time(&t);
 			}
 			if(client == NULL)
-			{
-				//std::cout << "found no client, return message ERROR 001" << std::endl;
-				LOCK(m_THREADSAVEMETHODS);
-				return "ERROR 001";
-			}
+				return NULL;
+		}
+		return client;
+	}
+
+	vector<string> FileDescriptor::sendToOtherClient(const string& definition, const IMethodStringStream& str,
+												const bool& wait, const string& endString)
+	{
+		vector<string> answer;
+
+		UNLOCK(m_THREADSAVEMETHODS);
+		m_pHearingClient= getOtherHearingClient(definition);
+		if(m_pHearingClient == NULL)
+		{
+			//std::cout << "found no client, return message ERROR 001" << std::endl;
+			LOCK(m_THREADSAVEMETHODS);
+			answer.push_back("ERROR 001");
+			return answer;
 		}
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 		if(getBoolean("output") == true)
@@ -395,17 +397,15 @@ namespace server
 			cout << out.str();
 		}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-		answer= client->sendString(str, wait, endString);
+		answer= m_pHearingClient->sendString(str, wait, endString);
 		LOCK(m_THREADSAVEMETHODS);
 		return answer;
 	}
 
-	string FileDescriptor::sendString(const IMethodStringStream& str, const bool& wait, const string& endString)
+	vector<string> FileDescriptor::sendString(const IMethodStringStream& str, const bool& wait, const string& endString)
 	{
 		typedef vector< SHAREDPTR::shared_ptr<IMethodStringStream> >::iterator MethodIter;
-		bool bRightAnswer;
-		string answer;
-		unsigned long long qSyncID(str.getSyncID());
+		vector<string> answer;
 
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 		bool boutput(true);
@@ -413,22 +413,22 @@ namespace server
 #ifndef __FOLLOW_FROMCLIENT
 #ifndef __FOLLOW_SENDMESSAGE
 #ifdef __FOLLOW_TOPROCESS
-		if(descriptor.getString("process") != __FOLLOW_TOPROCESS)
+		if(getString("process") != __FOLLOW_TOPROCESS)
 			boutput= false;
 #endif // __FOLLOW_FROMPROCESS
 #ifdef __FOLLOW_TOCLIENT
-		if(descriptor.getString("client") != __FOLLOW_TOCLIENT)
+		if(getString("client") != __FOLLOW_TOCLIENT)
 			boutput= false;
 #endif // __FOLLOW_FROMCLIENT
 #endif // __FOLLOW_SENDMESSAGE
 #endif // __FOLLOW_TOCLIENT
 #endif // __FOLLOW_TOPROCESS
 #ifdef __FOLLOW_TOPROCESS
-		if(descriptor.getString("process") != __FOLLOW_TOPROCESS)
+		if(getString("process") != __FOLLOW_TOPROCESS)
 			boutput= false;
 #endif // __FOLLOW_TOPROCESS
 #ifdef __FOLLOW_TOCLIENT
-		if(descriptor.getString("client") != __FOLLOW_TOCLIENT)
+		if(getString("client") != __FOLLOW_TOCLIENT)
 			boutput= false;
 #endif // __FOLLOW_TOCLIENT
 #ifdef __FOLLOW_SENDMESSAGE
@@ -493,71 +493,84 @@ namespace server
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 
-			do{
-				RELTIMECONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING, 3);
-				if(eof())
-				{
-					ostringstream answ;
-
-					if(qSyncID > 0)
-						answ << "syncID " << qSyncID << " ";
-					answ << "ERROR 002";
-					answer= answ.str();
-					break;
-				}
-				bRightAnswer= false;
-				if(!m_vsClientAnswer.empty())
-				{
-					for(MethodIter it= m_vsClientAnswer.begin();
-									it != m_vsClientAnswer.end(); ++it)
-					{
-						if(qSyncID == (*it)->getSyncID())
-						{
-							bRightAnswer= true;
-							answer= (*it)->str(true);
-							m_vsClientAnswer.erase(it);
-							break;
-						}
-					}
-
-#ifdef __FOLLOWSERVERCLIENTTRANSACTION
-					if(	!bRightAnswer &&
-						boutput == true	)
-					{
-						ostringstream out;
-
-						out << "sendDescriptor " 	<< getString("process") << "::" << getString("client");
-						out << " wait for answer with ";
-						if(qSyncID > 0)
-							out << "syncID(" << qSyncID << ") ";
-						else
-							out << "no syncID ";
-						out << "but only follow answers be set:" << std::endl;
-						for(MethodIter it= m_vsClientAnswer.begin();
-										it != m_vsClientAnswer.end(); ++it)
-						{
-							out << "          '" << (*it)->str(true) << "'" << std::endl;
-						}
-						cout << out.str();
-					}
-#endif // __FOLLOWSERVERCLIENTTRANSACTION
-
-				}
-			}while(!bRightAnswer);
+			UNLOCK(m_SENDSTRING);
+			answer= getMoreAnswers(str.getSyncID(), endString);
+			LOCK(m_SENDSTRING);
 			m_sSendString= "";
 			AROUSE(m_SENDSTRINGCONDITION);
 		}else
 		{// write questions with need no answer only into a queue
 		 // witch can complete answer client by time
+			m_bWait= wait;
 			m_qsEndingStrings.push(endString);
 			m_qsSendStrings.push(str.str(true));
 			AROUSE(m_GETSTRINGCONDITION);
-			answer= endString;
+			answer.push_back(endString);
 		}
 
 		UNLOCK(m_SENDSTRING);
 		return answer;
 	}
+
+	vector<string> FileDescriptor::getMoreFromOtherClient(const unsigned long long syncID, const string& endString)
+	{
+		return m_pHearingClient->getMoreAnswers(syncID, endString);
+	}
+
+	vector<string> FileDescriptor::getMoreAnswers(const unsigned long long syncID, const string& endString)
+	{
+		typedef vector< SHAREDPTR::shared_ptr<IMethodStringStream> >::iterator MethodIter;
+		bool bRightAnswer;
+		string answer;
+		vector<string> answers;
+
+		LOCK(m_SENDSTRING);
+		do{
+			bRightAnswer= false;
+			if(!m_vsClientAnswer.empty())
+			{
+				bool bErase;
+
+				do{
+					bErase= false;
+					for(MethodIter it= m_vsClientAnswer.begin();
+									it != m_vsClientAnswer.end(); ++it)
+					{
+						if(syncID == (*it)->getSyncID())
+						{
+							bRightAnswer= true;
+							answers.push_back((*it)->str(true));
+							answer= (*it)->str();
+							trim(answer);
+							m_vsClientAnswer.erase(it);
+							bErase= true;
+							break;
+						}
+					}
+					if(	endString == "" ||
+						endString == answer	)
+					{
+						break;
+					}
+				}while(bErase);
+			}
+			if(eof())
+			{
+				ostringstream answ;
+
+				if(syncID > 0)
+					answ << "syncID " << syncID << " ";
+				answ << "ERROR 002";
+				answers.push_back(answ.str());
+				break;
+			}
+			if(!bRightAnswer)
+				RELTIMECONDITION(m_SENDSTRINGCONDITION, m_SENDSTRING, 3);
+		}while(!bRightAnswer);
+		UNLOCK(m_SENDSTRING);
+		return answers;
+	}
+
 
 	string FileDescriptor::getOtherClientString(bool& doWait, string& endString, const bool wait/*= true*/)
 	{
@@ -678,13 +691,16 @@ namespace server
 		return str;
 	}
 
-	void FileDescriptor::sendAnswer(const string& asw)
+	void FileDescriptor::sendAnswer(const vector<string>& asw)
 	{
 		SHAREDPTR::shared_ptr<IMethodStringStream> sharedMethod;
 
-		sharedMethod= SHAREDPTR::shared_ptr<IMethodStringStream>(new IMethodStringStream(asw));
 		LOCK(m_SENDSTRING);
-		m_vsClientAnswer.push_back(sharedMethod);
+		for(vector<string>::const_iterator it= asw.begin(); it != asw.end(); ++it)
+		{
+			sharedMethod= SHAREDPTR::shared_ptr<IMethodStringStream>(new IMethodStringStream(*it));
+			m_vsClientAnswer.push_back(sharedMethod);
+		}
 		AROUSEALL(m_SENDSTRINGCONDITION);
 		UNLOCK(m_SENDSTRING);
 	}

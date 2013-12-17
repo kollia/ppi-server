@@ -64,6 +64,13 @@ namespace server
 			void setCommand(const string& command, const string& ending= "")
 			{ m_sCommand= command; m_sAnswerEnding= ending; };
 			/**
+			 * set answer block from outside the transaction object
+			 *
+			 * @param answer vector which should send to server
+			 * @param ending on which string the answer should ending
+			 */
+			void setAnswer(const vector<string>& answer);
+			/**
 			 * client transaction should ending by next <code>init()</code>
 			 *
 			 * @param endcommand send before ending this command
@@ -116,6 +123,11 @@ namespace server
 			 * command which should send to server
 			 */
 			string m_sCommand;
+			/**
+			 * answer block sending back when set
+			 * otherwise when m_sCommand not null, sending command
+			 */
+			vector<string> m_vsAnswerBlock;
 			/**
 			 * on which string the answer should ending
 			 */

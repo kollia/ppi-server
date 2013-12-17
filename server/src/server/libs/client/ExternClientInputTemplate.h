@@ -340,6 +340,13 @@ namespace util
 			 */
 			string getQuestion(const string& lastAnswer);
 			/**
+			 * ask server for question from any client
+			 *
+			 * @param lastAnswer vector of answer for last question with more rows
+			 * @return guestion from client
+			 */
+			string getQuestion(const vector<string>& lastAnswer);
+			/**
 			 * send answer back to server
 			 *
 			 * @param answer string of answer for server
@@ -387,6 +394,11 @@ namespace util
 			 * and the connection is only cutting
 			 */
 			string m_sEndingGetCommand;
+			/**
+			 * when the question need's an answer over more rows
+			 * inside this string is set the ending string
+			 */
+			string m_sAnswerEndString;
 			/**
 			 * transaction to server to send methods.<br />
 			 * If not exist create an new one

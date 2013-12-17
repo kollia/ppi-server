@@ -14,6 +14,7 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #include <stdlib.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -34,6 +35,7 @@
 
 #include "../server/libs/client/SocketClientConnection.h"
 
+#include "../util/debugtransaction.h"
 #include "../util/structures.h"
 
 #include "../util/GlobalStaticMethods.h"
@@ -222,6 +224,9 @@ namespace server
 		string username(descriptor.getString("username"));
 
 		POS("#client#wait-forQuestion");
+#ifdef SERVERDEBUG
+			cout << "Server waiting for new command ..." << endl;
+#endif // SERVERDEBUG
 		descriptor >> input;
 		if(descriptor.eof())
 		{
@@ -1147,9 +1152,9 @@ namespace server
 					LOG(LOG_SERVERDEBUG, msg);
 					sendmsg= "ERROR 003 1\n";
 					descriptor << sendmsg;
-	#ifdef SERVERDEBUG
+#ifdef SERVERDEBUG
 					cout << "send: ERROR 003 1" << endl;
-	#endif
+#endif
 				}else
 				{
 					unsigned short nExist;
@@ -1162,6 +1167,9 @@ namespace server
 							if(db->needSubroutines(descriptor.getClientID(), entry))
 							{
 								sendmsg= "done\n";
+#ifdef SERVERDEBUG
+								cout << "send: done" << endl;
+#endif
 								descriptor << sendmsg;
 							}else
 								descriptor << DEBUGERROR(descriptor, 5, input, "cannot found given folder or subroutine");

@@ -14,6 +14,7 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #include <stdlib.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -33,6 +34,7 @@
 #include "../../../pattern/server/IClientHolderPattern.h"
 #include "../../../pattern/server/IServerPattern.h"
 
+#include "../../../util/debugtransaction.h"
 #include "../../../util/structures.h"
 
 #include "ServerMethodTransaction.h"
@@ -87,6 +89,7 @@ namespace server
 		{
 			unsigned int ID;
 			string process, client;
+			vector<string> answer;
 			ostringstream msg;
 			IMethodStringStream oInit("init");
 
@@ -105,19 +108,23 @@ namespace server
 			LOG(LOG_INFO, msg.str());
 #ifdef ALLOCATEONMETHODSERVER
 			msg << endl;
-			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
+			if(	string(ALLOCATEONMETHODSERVER) == "" ||
+				descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
+			{
+				cerr << "connection to server " << descriptor.getServerObject()->getName() << endl;
 				cerr << msg.str();
+			}
 #endif // ALLOCATEONMETHODSERVER
 			descriptor.setBoolean("access", false);
 			oInit.createSyncID();
-			input= descriptor.sendToOtherClient(client, oInit, true, "");
+			answer= descriptor.sendToOtherClient(client, oInit, true, "");
 			oInit.removeSyncID();
 			connectionEnding(ID, process, client);
 			dissolveConnection(descriptor);
 			return false;
 		}
-		wasinput= input;
 		trim(input);
+		wasinput= input;
 		//input= ConfigPropertyCasher::trim(input, " \t\r\n");
 		//cout << "input string: '" << input << "' from " << descriptor.getString("client") << endl;
 		if(descriptor.getBoolean("asker"))
@@ -206,8 +213,10 @@ namespace server
 			descriptor.flush();
 			allocateConnection(descriptor);
 #ifdef ALLOCATEONMETHODSERVER
-			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
+			if(	string(ALLOCATEONMETHODSERVER) == "" ||
+				descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
 			{
+				cout << "connection to server " << descriptor.getServerObject()->getName() << endl;
 				cout << "allocate ";
 				if(descriptor.getBoolean("asker"))
 					cout << "sending ";
@@ -226,8 +235,10 @@ namespace server
 			input == "ending"			)
 		{
 #ifdef ALLOCATEONMETHODSERVER
-			if(descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
+			if(	string(ALLOCATEONMETHODSERVER) == "" ||
+				descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
 			{
+				cout << "connection to server " << descriptor.getServerObject()->getName() << endl;
 				cout << "finish connection with ID " << descriptor.getClientID();
 				cout << "  from client " << descriptor.getString("client");
 				cout << " in process " << descriptor.getString("process") << endl;
@@ -297,6 +308,7 @@ namespace server
 		}else if(!descriptor.getBoolean("asker"))
 		{
 			unsigned long long nSync;
+			vector<string> answer;
 			IMethodStringStream ianswer(input);
 
 			bwait= descriptor.getBoolean("clientwait");
@@ -338,23 +350,94 @@ namespace server
 			{ // DEBUG on command line
 			  // (2-3.) answer client give answer with syncID
 				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
-				cout << " (2-3.) give Answer '" << ianswer.str(true) << "'" << endl;
 				if(bwait)
 				{
-					cout << " and client waiting for ";
+					cout << " Client waiting for ";
 					if(endString == "")
 						cout << "this normally string" << endl;
 					else
 						cout << "an array with ending string '" << endString << "'" << endl;
 				}else
-					cout << " but client do not wait for any answer" << endl;
+					cout << " Client do not wait for any answer" << endl;
+				cout << descriptor.getString("process") << "::" << descriptor.getString("client");
+				cout << " (2-3.) give Answer '" << ianswer.str(true) << "'" << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 			if(bwait)
-				descriptor.sendAnswer(input);
+			{
+				answer.push_back(input);
+				descriptor.sendAnswer(answer);
+				answer.clear();
+			}
+			while(	endString != "" &&
+					endString != wasinput	)
+			{
+				descriptor >> input;
+				if(descriptor.eof())
+				{
+					unsigned int ID;
+					string process, client;
+					vector<string> answer;
+					ostringstream msg;
+					IMethodStringStream oInit("init");
+
+					ID= descriptor.getClientID();
+					process= descriptor.getString("process");
+					client= descriptor.getString("client");
+					msg << "WARNING: conection " << ID;
+					msg << " in " << descriptor.getServerObject()->getName();
+					msg << " from client " << client;
+					msg << " in process " << process << " is broken by";
+					if(descriptor.error())
+						msg << " an undefined ERROR";
+					else
+						msg << " ending of stream";
+					msg << endl << "         so close connection";
+					LOG(LOG_INFO, msg.str());
+#ifdef ALLOCATEONMETHODSERVER
+					msg << endl;
+					if(	string("") == ALLOCATEONMETHODSERVER ||
+						descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER	)
+					{
+						cerr << "connection to server " << descriptor.getServerObject()->getName() << endl;
+						cerr << msg.str();
+					}
+#endif // ALLOCATEONMETHODSERVER
+					descriptor.setBoolean("access", false);
+					oInit.createSyncID();
+					answer= descriptor.sendToOtherClient(client, oInit, true, "");
+					oInit.removeSyncID();
+					connectionEnding(ID, process, client);
+					dissolveConnection(descriptor);
+					return false;
+				}
+				trim(input);
+				wasinput= input;
+				if(nSync > 0)
+				{
+					IMethodStringStream ianswer(input);
+
+					ianswer.createSyncID(nSync);
+					input= ianswer.str(true);
+				}
+				if(bwait)
+				{
+					answer.push_back(input);
+					descriptor.sendAnswer(answer);
+					answer.clear();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+					if(m_boutput)
+					{ // DEBUG on command line
+					  // (2-3.) answer client give answer with syncID
+						cout << descriptor.getString("process") << "::" << descriptor.getString("client");
+						cout << " (2-3.) give Answer '" << input << "'" << endl;
+					}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+				}
+			} // end of while( endString != "" && endString != wasinput )
 			if(	endString != "" &&
-				endString == input	)
+				endString == wasinput	)
 			{
 				bwait= false;
 				endString= "";
@@ -401,11 +484,20 @@ namespace server
 			{
 				input+= "\n";
 			}
+			OMethodStringStream block("blockA");
 			IMethodStringStream iquestion(input);
 
+			if(endString != "")
+			{
+				block << true;
+				block << endString;
+			}else
+				block << false;
 			descriptor.setULongLong("questionID", iquestion.getSyncID());
-			descriptor << iquestion.str();
+			input= block.str() + " " + input;
+			descriptor << input;
 			descriptor.flush();
+
 		}else if(client == descriptor.getServerObject()->getName())
 		{// question is sending to own object depend from this class
 			IMethodStringStream method(input);
@@ -437,9 +529,10 @@ namespace server
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 			bRun= transfer(descriptor, method);
 
-		}else
+		}else // if(client == descriptor.getServerObject()->getName())
 		{ // else sentence sending first question from process
 			IMethodStringStream method(input);
+			vector<string> answer;
 
 			trim(input);
 			if(input != "")
@@ -468,56 +561,87 @@ namespace server
 				cout << " (2-1.) send question '" << method.str(true) <<"' to other client " << client;
 				if(!bwait)
 					cout << " and need no answer";
+				else if(endString != "")
+					cout << " and wait for an answer with more rows to end string " << endString;
 				cout << endl;
 			}
 			descriptor.setBoolean("output", boutput);
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 
-			input= descriptor.sendToOtherClient(client, method, bwait, endString);
+			answer= descriptor.sendToOtherClient(client, method, bwait, endString);
+			do{ //while(endString != "")
+				if(answer.size())
+				{
+					for(vector<string>::iterator it= answer.begin(); it != answer.end(); ++it)
+					{
+						input= *it;
 
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 #ifndef __FOLLOW_FROMPROCESS
 #ifndef __FOLLOW_FROMCLIENT
 #ifndef __FOLLOW_SENDMESSAGE
 #ifdef __FOLLOW_TOCLIENT
-			if(client != __FOLLOW_TOCLIENT)
-				boutput= false;
+						if(client != __FOLLOW_TOCLIENT)
+							boutput= false;
 #endif
 #ifdef __FOLLOW_TOPROCESS
-			boutput= false;
+						boutput= false;
 #endif
 #endif // __FOLLOW_SENDMESSAGE
 #endif // __FOLLOW_FROMCLIENT
 #endif // __FOLLOW_FROMPROCESS
 
+						if(boutput)
+						{ // DEBUG display
+						  // (2-4.) send answer back to asker and remove syncID
+							IMethodStringStream oAnswer(input);
+
+							cout << process << "::" << client;
+							cout << " (2-4.) send answer '" << oAnswer.str(true) << "' ";
+							cout << "as '" << oAnswer.str(false) << "' ";
+							cout << "back to " << descriptor.getString("process") << "::";
+							cout << descriptor.getString("client") << endl;
+						}
+
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
+						IMethodStringStream oAnswer(input);
+
+						input= oAnswer.str();
+						trim(input);
+						if(	endString != "" &&
+							endString == input	)
+						{
+							endString= "";
+						}
+						descriptor << input;
+						descriptor.endl();
+						descriptor.flush();
+					}// for(vector<string>::iterator it= answer.begin(); it != answer.end(); ++it)
+				}else // if(!answer.size())
+				{
+					descriptor << "\n";
+					descriptor.flush();
+				}
+				if(endString != "")
+					answer= descriptor.getMoreFromOtherClient(method.getSyncID(), endString);
+
+			}while(endString != "");
+
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			if(boutput)
 			{ // DEBUG display
 			  // (2-4.) send answer back to asker and remove syncID
 				IMethodStringStream oAnswer(input);
 
 				cout << process << "::" << client;
-				cout << " (2-4.) send answer '" << oAnswer.str(true) << "' ";
-				cout << "as '" << oAnswer.str(false) << "' ";
-				cout << "back to " << descriptor.getString("process") << "::";
-				cout << descriptor.getString("client") << endl;
-				cout << " and remove synchronization ID " << method.getSyncID() << endl;
+				cout << " (2-4.) remove synchronization ID " << method.getSyncID() << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 
-			IMethodStringStream oAnswer(input);
-
 			// delete now synchronization ID
 			// created by send question to own or other client
-			oAnswer.removeSyncID();
-			input= oAnswer.str();
-			trim(input);
-			if(	input == "" ||
-				input.substr(input.size() -1) != "\n"	)
-			{
-				input+= "\n";
-			}
-			descriptor << input;
-			descriptor.flush();
+			method.removeSyncID();
 		}
 		return bRun;
 	}
