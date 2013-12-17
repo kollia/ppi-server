@@ -41,26 +41,24 @@ inline int ProcessChecker::init(void *args)
 int ProcessChecker::execute()
 {
 	static bool bfirst(false);
-	static unsigned long long syncID(0);
 	int nRv= 0;
 	string method;
 	string question;
 	string from;
-	ostringstream oAnswer;
 
 	if(!bfirst)
 	{
+		cout << "--------------------------------------------------------------------------------------" << endl;
+		cout << "running first execute of ProcessChecker to set server status to finished" << endl;
+		cout << "--------------------------------------------------------------------------------------" << endl;
 		ppi_database::DbInterface::instance()->setServerConfigureStatus("finished", -1);
 		bfirst= true;
 	}
-	if(syncID != 0)
-		oAnswer << "syncID " << syncID << " ";
-	oAnswer << m_sAnswer;
-	question= getQuestion(oAnswer.str());
+	question= getQuestion(m_sAnswer);
 	IMethodStringStream object(question);
 
-	syncID= object.getSyncID();
 	method= object.getMethodName();
+	//cout << "get question '" << method << "'" << endl;
 	if(	method == "setValue"
 		||
 		method == "changedChip"	)
