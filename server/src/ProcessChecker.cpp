@@ -104,18 +104,11 @@ int ProcessChecker::execute()
 
 				}else if(bCorrect)
 				{
-					ppi_value oldVal;
-
 #ifdef __DEBUGPROCESSGETCHANGES
 					out << endl;
 					cout << out.str();
 #endif // __DEBUGPROCESSGETCHANGES
-					oldVal= port->getValue("i:"+folder).value;
-					if(value != oldVal)
-					{
-						port->setValue(value, "e:"+from);
-						pCurMeas->pMeasure->changedValue(folder, "|"+from);
-					}
+					port->setValue(value, "e:"+from);
 					m_sAnswer= "done";
 
 				}else

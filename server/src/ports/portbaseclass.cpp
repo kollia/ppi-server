@@ -447,11 +447,13 @@ void portBase::setValue(ppi_value value, const string& from, ppi_time changed/*=
 
 			split(spl, from, is_any_of(":"));
 			if(	m_mvObservers.size() ||
+				spl[0] == "e" ||
 				(	spl[0] == "i" &&
 					(	spl[1] != m_sFolder ||
 						(	spl[1] == m_sFolder &&
 							m_nCount < m_poMeasurePattern->getActCount(spl[2])	)	)	)	)
 			{
+				//cout << m_sFolder << ":" << m_sSubroutine << " was changed from " << from << endl;
 				getRunningThread()->informFolders(m_mvObservers, from, getSubroutineName(), debug, m_OBSERVERLOCK);
 			}
 			if(	dbvalue != oldMember &&

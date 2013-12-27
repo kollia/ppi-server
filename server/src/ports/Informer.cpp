@@ -71,12 +71,13 @@ namespace util
 
 		split(spl, from, is_any_of(":"));
 		LOCK(lock);
-		if(	spl[0] == "i" &&
-			(	spl[1] != m_sFolder ||
-				(	spl[1] == m_sFolder &&
-					count < m_poMeasurePattern->getActCount(spl[2])	)	)	)
+		if(	spl[0] == "e" ||
+			(	spl[0] == "i" &&
+				(	spl[1] != m_sFolder ||
+					(	spl[1] == m_sFolder &&
+						count < m_poMeasurePattern->getActCount(spl[2])	)	)	)	)
 		{// inform own folder to restart
-		 // when setting was from other folder
+		 // when setting was from other folder, outside any folder,
 		 // or in same folder, subroutine was from an later one
 			m_poMeasurePattern->changedValue(m_sFolder, from.substr(2));
 		}
