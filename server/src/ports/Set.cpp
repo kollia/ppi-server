@@ -44,8 +44,8 @@ namespace ports
 		ostringstream seterr;
 
 		//Debug info to stop by right subroutine
-		/*if(	getFolderName() == "TRANSMIT_SONY_receive" &&
-			getSubroutineName() == "stop"	)
+		/*if(	getFolderName() == "weather_timecheck" &&
+			getSubroutineName() == "set_back"	)
 		{
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
@@ -102,14 +102,14 @@ namespace ports
 			if(	nFrom != 1 &&
 				nFrom != m_vsSet.size()	)
 			{
-				string msg;
+				ostringstream msg;
 
-				msg+= "by setting more 'from' parameter than one, same count of 'set' ";
-				msg+= "parameter have to exist. Set subroutine to incorrect!";
-				LOG(LOG_ERROR, properties->getMsgHead(/*error*/true) + msg);
+				msg << "by setting more 'from' parameter (" << nFrom << ") than one, same count of 'set' ";
+				msg << "parameter (" << m_vsSet.size() << ") have to exist. Set subroutine to incorrect!";
+				LOG(LOG_ERROR, properties->getMsgHead(/*error*/true) + msg.str());
 				if(seterr.str() != "")
 					seterr << "           ";
-				seterr << msg << endl;
+				seterr << msg.str() << endl;
 				nFrom= 0;
 				nSet= 0;
 				bAllFault= true;

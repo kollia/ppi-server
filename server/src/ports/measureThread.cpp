@@ -828,6 +828,11 @@ int MeasureThread::execute()
 			}else if(i->substr(0, 13) == "#searchserver")
 			{
 				out << "      awaked to search again for external port server (owserver)" << endl;
+
+			}else if(i->substr(0, 15) == "|SHELL-command_")
+			{
+				out << "    informed over SHELL script " << i->substr(15) << endl;
+
 			}else
 			{
 				out << "    informed ";
