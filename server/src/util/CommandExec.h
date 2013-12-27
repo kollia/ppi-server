@@ -51,7 +51,9 @@ public:
 	  m_tScriptPid(0),
 	  m_nStopSignal(0),
 	  m_bWait(false),
-	  m_bBlock(false)
+	  m_bBlock(false),
+	  m_bDebug(false),
+	  m_bWriteChanged(false)
 	{ m_RESULTMUTEX= getMutex("RESULTMUTEX");
 	  m_WAITMUTEX= getMutex("WAITMUTEX");
 	  m_WAITFORRUNGCONDITION= getCondition("WAITFORRUNCONDITION"); };
@@ -122,8 +124,9 @@ public:
 	 *
 	 * @param pointer of map
 	 * @param WRITTENVALUES extern defined mutex for all written values
+	 * @param nCommand command to set by starting value from subroutine
 	 */
-	void setWritten(map<string, double>* written, pthread_mutex_t* WRITTENVALUES);
+	void setWritten(map<string, double>* written, pthread_mutex_t* WRITTENVALUES, const short& nCommand);
 	/**
 	 * get child process from given process
 	 *
@@ -195,6 +198,11 @@ private:
 	 */
 	string m_sCommand;
 	/**
+	 * type of command (1)begincommand, (2)whilecommand, (3)endcommand
+	 * to set before script starting
+	 */
+	short m_nStartCommand;
+	/**
 	 * for which folder shell command running
 	 */
 	string m_sFolder;
@@ -241,6 +249,10 @@ private:
 	 * whether subroutine is in debugging mode
 	 */
 	bool m_bDebug;
+	/**
+	 * write only new changed values to server
+	 */
+	bool m_bWriteChanged;
 	/**
 	 * map container of all last written values inside folder list
 	 */

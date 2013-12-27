@@ -113,8 +113,8 @@ int OwServerQuestions::execute()
 			m_vAnswer.push_back(errorlevel.str());
 			m_vAnswer.push_back("done");
 			m_nPos= 0;
-			//for(vector<string>::iterator it= m_vAnswer.begin(); it != m_vAnswer.end(); ++it)
-			//	cout << "want send >> " << *it << endl;
+//			for(vector<string>::iterator it= m_vAnswer.begin(); it != m_vAnswer.end(); ++it)
+//				cout << "want send >> " << *it << endl;
 			m_sAnswer= m_vAnswer[m_nPos];
 		}else
 			m_sAnswer= m_vAnswer[m_nPos];

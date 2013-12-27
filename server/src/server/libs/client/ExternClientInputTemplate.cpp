@@ -396,8 +396,6 @@ namespace util
 		static vector<string> answer;
 
 		answer.push_back(lastAnswer);
-		if(	m_sAnswerEndString != "")
-			cout << m_sProcess << ":" << m_sName << "get answer: '" << lastAnswer << endl;
 		if(	m_sAnswerEndString != "" &&
 			m_sAnswerEndString != lastAnswer	)
 		{
@@ -405,9 +403,6 @@ namespace util
 		}
 		lastQuestion= getQuestion(answer);
 		answer.clear();
-		if(	m_sAnswerEndString != "")
-			cout << m_sProcess << ":" << m_sName << "get question: '" << lastQuestion
-				<< "' which need answer with more rows to end-string '" << m_sAnswerEndString << "'" << endl;
 		return lastQuestion;
 	}
 

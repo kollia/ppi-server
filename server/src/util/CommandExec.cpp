@@ -128,7 +128,7 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 		{
 			if(!thread->running())
 			{
-				cout << "start thread for this command" << endl;
+				//cout << "start thread for this command" << endl;
 				if(thread->start() != 0)
 				{
 					ostringstream msg;
@@ -156,7 +156,8 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 			{// and wait for answer with the same condition
 			 // when subroutine has action wait and no block
 				while(	thread->m_sCommand != "" &&
-						!thread->stopping()			)
+						!thread->stopping() &&
+						!thread->wait()				)
 				{
 					CONDITION(thread->m_WAITFORRUNGCONDITION, thread->m_WAITMUTEX);
 				}
@@ -177,12 +178,14 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 	nLen= result.size();
 	if(	block == true &&
 		thread->running() &&
+		!thread->wait() &&
 		(	nLen == 0 ||						// when end of output has an ERRORLEVEL command
 			result[nLen-1].length() <= 19 ||    // thread should stopping the next time
 			result[nLen-1].substr(0, 19) != "PPI-DEF ERRORLEVEL "))
 	{
 		more= true;
-	}
+	}else
+		more= false;
 	if(	more == false ||
 		bNoWaitResult == true	)
 	{
@@ -193,6 +196,7 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 			{
 				istringstream errorlevel(result[nLen-1].substr(19));
 
+				more= false;
 				errorlevel >> nRv;
 				result.pop_back();
 				if(	nLen > 1 &&
@@ -404,15 +408,16 @@ bool CommandExec::wait()
 int CommandExec::execute()
 {
 	bool bWaitMutex(false), bResultMutex(false), bOpenShell(false);
-	bool bWait, bDebug;
+	bool bWait, bDebug, bCloseError(false);
 	char line[1024];
 	string sline;
 	string command, orgCommand;
 	string sLastErrorlevel;
-	vector<string> spl;
+	vector<string> spl, ispl;
 	deque<string> qLastRows;
 	string::size_type nLen;
 	FILE *fp;
+	map<string, double>::iterator found;
 
 	LOCK(m_WAITMUTEX);
 /*	if(	m_sCommand == "" &&
@@ -434,9 +439,15 @@ int CommandExec::execute()
 		split(spl, orgCommand, is_any_of(";"));
 		for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
 		{
-			command+= *it;
-			if(it->find('>', 0) == string::npos)
-				command+= " 2>&1";
+			split(ispl, *it, is_any_of("|")); // pipe
+			for(vector<string>::iterator iit= ispl.begin(); iit != ispl.end(); ++iit)
+			{
+				command+= *iit;
+				if(iit->find('>', 0) == string::npos)
+					command+= " 2>&1";
+				command+= " | ";
+			}
+			command= command.substr(0, command.length() - 3);
 			command+= ";";
 		}
 		command+= "ERRORLEVEL=$?;echo;echo ERRORLEVEL $ERRORLEVEL";
@@ -447,7 +458,7 @@ int CommandExec::execute()
 		m_tScriptPid= 0;
 		UNLOCK(m_WAITMUTEX);
 		bWaitMutex= false;
-		cout << "start shell command '" << command << "'" << endl;
+		//cout << "start shell command '" << command << "'" << endl;
 		fp= popen(command.c_str(), "r");
 		bOpenShell= true;
 		if(fp == NULL)
@@ -467,10 +478,18 @@ int CommandExec::execute()
 		bDebug= m_bDebug;
 		UNLOCK(m_WAITMUTEX);
 		bWaitMutex= false;
-		if(!bWait) // when wait not be set and thread do not starting the first time, the own subroutine can having
-			setValue("PPI-SET " + m_sFolder + ":" + m_sSubroutine + " 0", bDebug);// the ERRORLEVEL result from the last pass
-		while(fgets(line, sizeof line, fp))                               // when now the script fail with the same ERRORLEVEL
-		{														  // the subroutine will be not informed
+/*		if(!bWait) // when wait not be set and thread do not starting directly
+		{ // and the script before running has the same ERRORLEVEL than this now will be have
+			ostringstream startCommand;// the subroutine will be not informed for an new value
+
+			startCommand << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
+			LOCK(m_externWRITTENVALUES);
+			startCommand << m_nStartCommand;
+			UNLOCK(m_externWRITTENVALUES);
+			setValue(startCommand.str(), bDebug);
+		}*/
+		while(fgets(line, sizeof line, fp))
+		{
 			if(stopping())
 				break;
 			sline+= line;
@@ -498,7 +517,6 @@ int CommandExec::execute()
 				sline= "";
 			}
 		}
-		cout << "ending shell command with " << sLastErrorlevel << endl;
 		if(stopping())
 		{
 			pclose(fp);
@@ -510,7 +528,12 @@ int CommandExec::execute()
 		m_tScriptPid= 0;
 		UNLOCK(m_WAITMUTEX);
 		bWaitMutex= false;
-		pclose(fp);
+		if( pclose(fp) != 0 &&
+			(	sLastErrorlevel == "ERRORLEVEL 0" ||
+				sLastErrorlevel == ""				)	)
+		{
+			bCloseError= true;
+		}
 		bOpenShell= false;
 		if(sline != "")
 		{
@@ -519,7 +542,8 @@ int CommandExec::execute()
 				qLastRows.pop_front();
 			readLine(bWait, bDebug, sline);
 		}
-		if(sLastErrorlevel != "")
+		if(	sLastErrorlevel != "" ||
+			bCloseError				)
 		{
 			int nRv;
 			istringstream oline(sLastErrorlevel);
@@ -536,8 +560,18 @@ int CommandExec::execute()
 					m_qOutput.pop_back();
 				}
 			}
-			oline >> sline; // string of 'ERRORLEVEL' not needed
-			oline >> nRv;
+			if(sLastErrorlevel != "")
+			{
+				oline >> sline; // string of 'ERRORLEVEL' not needed
+				oline >> nRv;
+				if(	nRv == 0 &&
+					bCloseError	)
+				{
+					nRv= -127;
+				}else// all error levels be lower than 0
+					nRv*= -1;
+			}else
+				nRv= -127;
 			iline << "PPI-DEF ERRORLEVEL " << nRv;
 			m_qOutput.push_back(iline.str());
 			UNLOCK(m_RESULTMUTEX);
@@ -564,7 +598,7 @@ int CommandExec::execute()
 						msg << "    " << *it;
 				}else
 					msg << "    no output from script";
-				TIMELOGEX(LOG_ERROR, sLastErrorlevel, msg.str(), m_pSendLog);
+				LOGEX(LOG_ERROR, msg.str(), m_pSendLog);
 			}
 			if(	bWait ||
 				bDebug	)
@@ -1047,39 +1081,49 @@ void CommandExec::setValue(const string& command, bool bLog)
 							+ "'\n               cannot read definition of value", m_pSendLog			               );
 		return;
 	}
-	LOCK(m_externWRITTENVALUES);
-	it= m_msdWritten->find(outstr);
-	if(	it == m_msdWritten->end() ||
-		it->second != value			)
+	if(m_bWriteChanged)
 	{
-		(*m_msdWritten)[outstr]= value;
-		bwrite= true;
-	}else
-	{
-		ostringstream oValue;
+		if(	m_sFolder != spl[0] ||		// when subroutine is own,
+			m_sSubroutine != spl[1]	)	// write EERRORLEVEL every time again,
+		{								// because by passing subroutine normally inside list,
+			LOCK(m_externWRITTENVALUES);// list set to running value (1 for begincommand, 2 .. 3)
+			it= m_msdWritten->find(outstr);
+			if(	it == m_msdWritten->end() ||
+				it->second != value			)
+			{
+				(*m_msdWritten)[outstr]= value;
+				bwrite= true;
+			}else
+			{
+				if(bLog)
+				{
+					ostringstream oValue;
 
-		oValue << value;
-		if(bLog)
-		{
-			LOCK(m_RESULTMUTEX);
-			outstr= "  ### do not write value " + oValue.str() + " into subroutine because value is same as before";
-			m_qOutput.push_back("- " + outstr);
-			if(m_qOutput.size() > 1000)
-				m_qOutput.pop_front();
-			UNLOCK(m_RESULTMUTEX);
-		}
-		if(m_bLogging)
-		{
-			m_qLog.push_back(outstr);
-			if(m_qLog.size() > 1000)
-				m_qLog.pop_front();
-		}
-	}
-	UNLOCK(m_externWRITTENVALUES);
+					oValue << fixed << value;
+					LOCK(m_RESULTMUTEX);
+					outstr= "  ### do not write value " + oValue.str() + " into subroutine because value is same as before";
+					m_qOutput.push_back("- " + outstr);
+					if(m_qOutput.size() > 1000)
+						m_qOutput.pop_front();
+					UNLOCK(m_RESULTMUTEX);
+				}
+				if(m_bLogging)
+				{
+					m_qLog.push_back(outstr);
+					if(m_qLog.size() > 1000)
+						m_qLog.pop_front();
+				}
+			}
+			UNLOCK(m_externWRITTENVALUES);
+
+		}else // if(m_sFolder != spl[0] || m_sSubroutine != spl[1])
+			bwrite= true;
+	}else
+		bwrite= true;
 	if(	bwrite &&
 		!stopping()	)
 	{
-		cout << "try to SET " << spl[0] << ":" << spl[1] << " " << value << endl;
+		//cout << "try to SET " << spl[0] << ":" << spl[1] << " " << fixed << value << endl;
 		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
 		{
 			outstr= "  ### ERROR: cannot write correctly PPI-SET command over interface to folder-list";
@@ -1107,11 +1151,12 @@ void CommandExec::setValue(const string& command, bool bLog)
 	}
 }
 
-void CommandExec::setWritten(map<string, double>* written, pthread_mutex_t* WRITTENVALUES)
+void CommandExec::setWritten(map<string, double>* written, pthread_mutex_t* WRITTENVALUES, const short& nCommand)
 {
 	LOCK(WRITTENVALUES);
 	m_msdWritten= written;
 	m_externWRITTENVALUES= WRITTENVALUES;
+	m_nStartCommand= nCommand;
 	UNLOCK(WRITTENVALUES);
 }
 

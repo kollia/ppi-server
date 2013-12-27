@@ -158,6 +158,7 @@ namespace ports
 
 	int ShellWriter::command_exec(const string& command, vector<string>& result, bool& more)
 	{
+		short nCommand(0);
 		int nRv;
 		bool bchangedVec(false);
 		bool wait(false), block(false), debug(false), bLogError;
@@ -183,6 +184,12 @@ namespace ports
 		if(	sline != "read" &&
 			sline != "info"		)
 		{
+			if(sline == "begincommand")
+				nCommand= 1;
+			else if(sline == "whilecommand")
+				nCommand= 2;
+			else if(sline == "endcommand")
+				nCommand= 3;
 			execute= pSub->getValue(sline);
 		}else
 			execute= sline;
@@ -262,7 +269,7 @@ namespace ports
 				UNLOCK(m_WRITTENVALUES);
 			}
 		}
-		thread->setWritten(&m_msdWritten, m_WRITTENVALUES);
+		thread->setWritten(&m_msdWritten, m_WRITTENVALUES, nCommand);
 		nRv= CommandExec::command_exec(thread, execute, result, more, wait, block, debug);
 		try{
 			do{// remove all not needed threads from vector

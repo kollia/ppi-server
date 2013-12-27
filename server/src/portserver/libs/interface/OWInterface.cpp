@@ -201,16 +201,14 @@ int OWInterface::command_exec(const bool wait, const string& command, vector<str
 
 	method << command;
 	result= sendMethod(m_stoClient, method, "done", wait);
-	nSize= result.size();
-	if(	nSize == 1 &&
-		result[0] == "done"	&&
-		wait == false			)
+	if(wait == false)
 	{
 		result.clear();
 		more= false;
 		return 0;
 
 	}
+	nSize= result.size();
 	if(	nSize > 0 &&
 		result[nSize-1] == "done"	)
 	{

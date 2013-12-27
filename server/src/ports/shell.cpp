@@ -159,35 +159,32 @@ valueHolder_t Shell::measure(const double actValue)
 	double dLastSwitch;
 
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "Raff1_Zeit" &&
-		getSubroutineName() == "port"	)
+	/*if(	getFolderName() == "log_weather" &&
+		getSubroutineName() == "logging"	)
 	{
 		cout << __FILE__ << __LINE__ << endl;
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 	}*/
-	if(	!m_bWait &&
-		!m_bLastRes	)
-	{
+	if(!m_bLastRes)
 		dRv= 0;
-	}
 	if(m_bLastValue)
 		dLastSwitch= 1;
 	else
 		dLastSwitch= 0;
 	if(switchClass::measure(dLastSwitch).value)
 		bswitch= true;
-	if(m_bMore)
+/*	if(m_bMore)
 	{// command was sending in the last pass
 	 // and should get now only results
 	 // no command be necessary
 		res= system("read", "need_no_command");
 		m_bLastValue= bswitch;
-		if(	m_bWait	)
+		if(res < 0)
 		{
 			dRv= static_cast<double>(res);
 		}
 
-	}else // if(m_bMore)
+	}else // if(m_bMore)*/
 	{
 		if(bswitch)
 		{
@@ -197,7 +194,7 @@ valueHolder_t Shell::measure(const double actValue)
 				if(m_sBeginCom != "")
 				{
 					res= system("begincommand", m_sBeginCom);
-					dRv= 1; // need when m_bWait is false
+					dRv= 1;	// doing begin command
 					bMaked= true;
 				}
 			}
@@ -206,12 +203,13 @@ valueHolder_t Shell::measure(const double actValue)
 				if(m_sWhileCom != "")
 				{
 					res= system("whilecommand", m_sWhileCom);
-					dRv= 2; // need when m_bWait is false
+					dRv= 2;	// doing while command
 					bMaked= true;
 				}
 			}
 			m_bLastValue= true;
-			if(	m_bWait	)
+			if(	m_bWait ||
+				res < 0		)
 			{
 				dRv= static_cast<double>(res);
 			}
@@ -223,12 +221,13 @@ valueHolder_t Shell::measure(const double actValue)
 				if(m_sEndCom != "")
 				{
 					res= system("endcommand", m_sEndCom);
-					dRv= 3; // need when m_bWait is false
+					dRv= 3; // doing end command
 					bMaked= true;
 				}
 			}
 			m_bLastValue= false;
-			if(	m_bWait	)
+			if(	m_bWait ||
+				res < 0 	)
 			{
 				dRv= static_cast<double>(res);
 			}
@@ -236,48 +235,56 @@ valueHolder_t Shell::measure(const double actValue)
 	} // else branch if(m_bMore)
 	if(bDebug)
 	{
-		tout << "result of subroutine is " << dRv;
-		if(!m_bWait)
-		{
-			tout << " for ";
+		ostringstream out;
+
+		out << "result of subroutine is " << dRv;
+//		if(!m_bWait)
+//		{
+			out << " for ";
 			switch(static_cast<int>(dRv))
 			{
 			case 0:
-				tout << "do nothing" << endl;
+				out << "do nothing";
 				break;
 			case 1:
 				if(bMaked)
-					tout << "making ";
+					out << "making ";
 				else
-					tout << "last command ";
-				tout << "'begincommand'" << endl;
+					out << "last command ";
+				out << "'begincommand'";
 				break;
 			case 2:
 				if(bMaked)
-					tout << "making ";
+					out << "making ";
 				else
-					tout << "last command ";
-				tout << "'whilecommand'" << endl;
+					out << "last command ";
+				out << "'whilecommand'";
 				break;
 			case 3:
 				if(bMaked)
-					tout << "making ";
+					out << "making ";
 				else
-					tout << "last command ";
-				tout << "'endcommand'" << endl;
+					out << "last command ";
+				out << "'endcommand'";
 				break;
 			default:
-				tout << "ERROR - take a look in LOG file!" << endl;
+				out << "ERROR - take a look into LOG file!";
 				break;
 			}
-		}else
+			tout << out.str() << endl;
+/*		}else
 		{
 			if(dRv == -1 || dRv == 127)
 				tout << " for ERROR - take a look in LOG file!";
 			tout << endl;
-		}
+		}*/
 	}
-	oRv.value= dRv;
+/*	if(	!bDebug &&
+		!m_bWait	)
+	{// when wait and debug is false, subroutine will be set from external
+		oRv.value= actValue;// thread before starting shell command
+	}else*/
+		oRv.value= dRv;
 	return oRv;
 }
 
@@ -293,6 +300,7 @@ int Shell::system(const string& action, string command)
 {
 	bool wait(m_bWait);
 	bool bDebug(isDebug());
+	short nCommand;
 	int res(0);
 	vector<string> result;
 	string msg, nocorrread, folder(getFolderName()), subroutine(getSubroutineName());
@@ -449,7 +457,15 @@ int Shell::system(const string& action, string command)
 			m_msdWritten.clear();
 			UNLOCK(m_WRITTENVALUES);
 		}
-		thread->setWritten(&m_msdWritten, m_WRITTENVALUES);
+		if(action == "begincommand")
+			nCommand= 1;
+		else if(action == "whilecommand")
+			nCommand= 2;
+		else if(action == "endcommand")
+			nCommand= 3;
+		else
+			nCommand= 0;
+		thread->setWritten(&m_msdWritten, m_WRITTENVALUES, nCommand);
 		LOCK(m_EXECUTEMUTEX);
 		res= CommandExec::command_exec(thread, command, result, m_bMore, m_bWait, m_bBlock, bDebug);
 		do{// remove all not needed threads from vector
@@ -553,7 +569,19 @@ void Shell::stop(const bool* bWait/*= NULL*/)
 
 void Shell::setDebug(bool bDebug)
 {
+	/**
+	 * return value for writing command_exec,
+	 * but do not need for any case by command info
+	 */
+	bool bMore;
+	/**
+	 * command to writing to command_exec
+	 */
 	string command;
+	/**
+	 * result strings for writing command_exes,
+	 * but do not need for any case by command info
+	 */
 	vector<string> result;
 
 	switchClass::setDebug(bDebug);
@@ -577,7 +605,7 @@ void Shell::setDebug(bool bDebug)
 				command+= " wait";
 			if(m_bBlock)
 				command+= " block";
-			m_pOWServer->command_exec(false, command, result, m_bMore);
+			m_pOWServer->command_exec(false, command, result, bMore);
 
 		}else
 		{
@@ -585,7 +613,7 @@ void Shell::setDebug(bool bDebug)
 
 			LOCK(m_EXECUTEMUTEX);
 			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
-				CommandExec::command_exec(*it, "info", result, m_bMore, m_bWait, m_bBlock, bDebug);
+				CommandExec::command_exec(*it, "info", result, bMore, m_bWait, m_bBlock, bDebug);
 			UNLOCK(m_EXECUTEMUTEX);
 		}
 	}
