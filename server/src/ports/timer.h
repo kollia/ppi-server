@@ -33,11 +33,33 @@
 enum which_time
 {
 	notype= 0,
+	/**
+	 * set seconds since 1.1.1970 into subroutine value
+	 */
+	pass,
+	/**
+	 * set actual second (0-59) into subroutine value
+	 */
 	seconds,
+	/**
+	 * set actual minute (0-59) into subroutine value
+	 */
 	minutes,
+	/**
+	 * set actual hour (0-59) into subroutine value
+	 */
 	hours,
+	/**
+	 * set actual day (1-31) into subroutine value
+	 */
 	days,
+	/**
+	 * set actual month (1-12) into subroutine value
+	 */
 	months,
+	/**
+	 * set actual year (4 numbers) into subroutine value
+	 */
 	years
 };
 
@@ -60,6 +82,8 @@ public:
 	  m_nFinishedCPUtime(finishedCPUtime),
 	  m_bNoDbRead(bNoDbRead),
 	  m_bSwitchbyTime(false),
+	  m_bPassSecs(false),
+	  m_eWhich(notype),
 	  m_bMeasure(false),
 	  m_bSeconds(true),
 	  m_bFinished(true),
@@ -191,7 +215,11 @@ protected:
 	 */
 	bool m_bSwitchbyTime;
 	/**
-	 * for m_bTime which type of time be shown in result
+	 * whether should shown time since 1.1.1970 inside result
+	 */
+	bool m_bPassSecs;
+	/**
+	 * for result, which type of time be shown
 	 */
 	which_time m_eWhich;
 	/**

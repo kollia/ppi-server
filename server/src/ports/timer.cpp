@@ -57,6 +57,11 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 
 	// -----------------------------------------------------------------------
 	// case 1: folder should polling all seconds, minutes, hours, ...
+	if(properties->haveAction("unixtime"))
+	{
+		m_eWhich= pass;
+		m_bPassSecs= true;
+	}
 	if(properties->haveAction("seconds"))
 		m_eWhich= seconds;
 	else if(properties->haveAction("minutes"))
@@ -69,8 +74,6 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		m_eWhich= months;
 	else if(properties->haveAction("years"))
 		m_eWhich= years;
-	else
-		m_eWhich= notype;
 
 	if(m_eWhich != notype)
 		m_nCaseNr= 1;
@@ -593,53 +596,62 @@ valueHolder_t timer::measure(const double actValue)
 	}
 	if(debug)
 	{
-		tout << "routine running in case of " << m_nCaseNr << " (";
+		ostringstream out;
+
+		out << "routine running in case of " << m_nCaseNr << " (";
 		switch(m_nCaseNr)
 		{
 		case 1:
-			tout << "folder polling all ";
-			switch(m_eWhich)
+			if(m_eWhich != pass)
 			{
-			case seconds:
-				tout << "seconds";
-				break;
-			case minutes:
-				tout << "minutes";
-				break;
-			case hours:
-				tout << "hours";
-				break;
-			case days:
-				tout << "days";
-				break;
-			case months:
-				tout << "months";
-				break;
-			case years:
-				tout << "years";
-				break;
-			default:
-				tout << "(no correct ACTION be set)";
-				break;
-			}
+				out << "folder polling all ";
+				switch(m_eWhich)
+				{
+				case seconds:
+					out << "seconds";
+					break;
+				case minutes:
+					out << "minutes";
+					break;
+				case hours:
+					out << "hours";
+					break;
+				case days:
+					out << "days";
+					break;
+				case months:
+					out << "months";
+					break;
+				case years:
+					out << "years";
+					break;
+				default:
+					out << "no correct ACTION be set";
+					break;
+				}
+				if(m_bPassSecs)
+					out << " and ";
+			} // end of if(m_eWhich != pass)
+			if(m_bPassSecs)
+				out << "writing by every pass current seconds since 1970.01.01";
 			break;
 		case 2:
 			char timeString[21];
 
 			strftime(timeString, 20, "%Y.%m.%d %H:%M:%S", gmtime(&m_tmStop.tv_sec));
-			tout << "time count down to setting date time " << timeString;
+			out << "time count down to setting date time " << timeString;
 			break;
 		case 3:
-			tout << "count the time down to 0";
+			out << "count the time down to 0";
 			break;
 		case 4:
-			tout << "count the time down to 0, or up to full time";
+			out << "count the time down to 0, or up to full time";
 			break;
 		case 5:
-			tout << "measure time inside case of begin/while/end";
+			out << "measure time inside case of begin/while/end";
 			break;
 		}
-		tout << ")" << endl;
+		tout << out.str() << ")" << endl;
 	}
 	if(m_bSwitchbyTime)
 	{
@@ -1176,7 +1188,10 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 		if(	!m_bSwitchbyTime ||
 			bswitch				)
 		{
-			tout << "subroutine is defined to measure time of date" << endl;
+			if(m_eWhich != pass)
+				tout << "subroutine is defined to measure time of date" << endl;
+			else
+				tout << "subroutine is only defined to write seconds every passing" << endl;
 		}else
 			tout << "subroutine is this time inside begin/while/end not defined for measure" << endl;
 	}
@@ -1187,7 +1202,7 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 			return -1;
 	}
 	actTime= tv.tv_sec;
-	if(m_eWhich > notype)
+	if(m_eWhich > pass)
 		if(localtime_r(&actTime, &local) == NULL)
 		{
 			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
@@ -1195,7 +1210,8 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 		}
 	if(debug)
 		tout << "measuring is defined for ";
-	if(m_tmStop.tv_sec > actTime)
+	if(	m_tmStop.tv_sec > actTime ||
+		m_eWhich == pass			)
 	{
 		switch(m_eWhich)
 		{
@@ -1203,35 +1219,45 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 			if(debug)
 				tout << "seconds" << endl;
 			break;
+		case pass:
+			if(debug)
+				tout << " write seconds since 1970.01.01" << endl;
+			break;
 		case seconds:
 			if(debug)
 				tout << "seconds" << endl;
-			actTime= local.tm_sec;
+			if(!m_bPassSecs)
+				actTime= local.tm_sec;
 			break;
 		case minutes:
 			if(debug)
 				tout << "minutes" << endl;
-			actTime= local.tm_min;
+			if(!m_bPassSecs)
+				actTime= local.tm_min;
 			break;
 		case hours:
 			if(debug)
 				tout << "hours" << endl;
-			actTime= local.tm_hour;
+			if(!m_bPassSecs)
+				actTime= local.tm_hour;
 			break;
 		case days:
 			if(debug)
 				tout << "days" << endl;
-			actTime= local.tm_mday;
+			if(!m_bPassSecs)
+				actTime= local.tm_mday;
 			break;
 		case months:
 			if(debug)
 				tout << "months" << endl;
-			actTime= local.tm_mon + 1;
+			if(!m_bPassSecs)
+				actTime= local.tm_mon + 1;
 			break;
 		case years:
 			if(debug)
 				tout << "years" << endl;
-			actTime= local.tm_year + 1900;
+			if(!m_bPassSecs)
+				actTime= local.tm_year + 1900;
 			break;
 		}
 		if(debug)
@@ -1243,11 +1269,15 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
 			}
 			tout << "              actual time is " << asctime(&l);
-			if(localtime_r(&m_tmStop.tv_sec, &l) == NULL)
+			if(m_eWhich != pass)
 			{
-				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+				if(localtime_r(&m_tmStop.tv_sec, &l) == NULL)
+				{
+					TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+				}
+				tout << "folder was set to refresh at " << asctime(&l);
 			}
-			tout << "folder was set to refresh at " << asctime(&l);
+			tout << "result of subroutine is " << actTime << endl;
 		}
 		return static_cast<double>(actTime);
 	}
@@ -1286,6 +1316,7 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 		if(m_tmSec == 0)
 			m_tmStop.tv_sec+= 1;
 		break;
+	case pass:
 	case seconds:
 		if(debug)
 			tout << "seconds" << endl;
@@ -1348,6 +1379,7 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct local time");
 		}
 		tout << "folder should be refreshed at " << asctime(&l);
+		tout << "result of subroutine is " << actTime << endl;
 	}
 	// toDo: measure to correct time
 	getRunningThread()->nextActivateTime(getFolderName(), m_tmStop);
