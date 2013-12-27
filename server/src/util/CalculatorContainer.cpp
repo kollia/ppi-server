@@ -653,9 +653,21 @@ bool CalculatorContainer::calculateI(double& dResult)
 			if(m_bOutput)
 			{
 				ostringstream str;
+				string out;
+				string::size_type nLen, n;
 
-				str << m_dValue << " ";
-				outputF(false, __FILE__, __LINE__, str.str());
+				str << fixed << m_dValue;
+				out= str.str();
+				nLen= out.length();
+				for(n= nLen - 1; n > 0; --n)
+				{
+					if(out[n] != '0')
+						break;
+				}
+				if(out[n] == '.')
+					--n;
+				++n;
+				outputF(false, __FILE__, __LINE__, out.substr(0, n));
 			}
 			++itValue;
 			break;
@@ -669,8 +681,22 @@ bool CalculatorContainer::calculateI(double& dResult)
 			if(m_bOutput)
 			{
 				ostringstream str;
+				string out;
+				string::size_type nLen, n;
 
-				str << "[" << *itVariable << "=" << m_dValue << "] ";
+				str << fixed << m_dValue;
+				out= str.str();
+				nLen= out.length();
+				for(n= nLen - 1; n > 0; --n)
+				{
+					if(out[n] != '0')
+						break;
+				}
+				if(out[n] == '.')
+					--n;
+				++n;
+				str.str("");
+				str << "[" << *itVariable << "=" << out.substr(0, n) << "] ";
 				outputF(false, __FILE__, __LINE__, str.str());
 			}
 			++itVariable;
