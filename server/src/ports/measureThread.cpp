@@ -634,6 +634,8 @@ int MeasureThread::execute()
 		TERMINALEND;
 	}
 	LOCK(m_VALUE);
+	timerclear(&m_tvStartTime);
+	timerclear(&diff_tv);
 	m_vInformed.clear();
 	if(1) //m_vFolder.empty())
 	{
@@ -724,7 +726,24 @@ int MeasureThread::execute()
 						m_bFolderRunning= false;
 						UNLOCK(m_FOLDERRUNMUTEX);
 					}
+					// set timevec (nanoseconds) into timeval (microsecons)
+					// for wanted awake time
+					diff_tv.tv_sec= waittm.tv_sec;
+					diff_tv.tv_usec= waittm.tv_nsec / 1000;
 					condRv= TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm);
+					if(gettimeofday(&m_tvStartTime, NULL))
+					{
+						string msg("### DEBUGGING for folder ");
+
+						folder= getFolderName();
+						msg+= folder + " is aktivated!\n";
+						msg+= "    ERROR: cannot calculate time of beginning";
+						TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
+						if(isDebug())
+							tout << " ERROR: cannot calculate time of beginning" << endl;
+						timerclear(&m_tvStartTime);
+
+					}
 					if(m_bNeedFolderRunning)
 					{
 						LOCK(m_FOLDERRUNMUTEX);
@@ -771,6 +790,18 @@ int MeasureThread::execute()
 					UNLOCK(m_FOLDERRUNMUTEX);
 				}
 				CONDITION(m_VALUECONDITION, m_VALUE);
+				if(gettimeofday(&m_tvStartTime, NULL))
+				{
+					string msg("### DEBUGGING for folder ");
+
+					folder= getFolderName();
+					msg+= folder + " is aktivated!\n";
+					msg+= "    ERROR: cannot calculate time of beginning";
+					TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
+					if(isDebug())
+						tout << " ERROR: cannot calculate time of beginning" << endl;
+
+				}
 				if(m_bNeedFolderRunning)
 				{
 					LOCK(m_FOLDERRUNMUTEX);
@@ -797,18 +828,7 @@ int MeasureThread::execute()
 	}
 	m_vInformed= m_vFolder;
 	m_vFolder.clear();
-	if(gettimeofday(&m_tvStartTime, NULL))
-	{
-		string msg("### DEBUGGING for folder ");
-
-		folder= getFolderName();
-		msg+= folder + " is aktivated!\n";
-		msg+= "    ERROR: cannot calculate time of beginning";
-		TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
-		if(isDebug())
-			tout << " ERROR: cannot calculate time of beginning" << endl;
-
-	}else if(isDebug())
+	if(isDebug())
 	{
 		ostringstream out;
 		string msg("### DEBUGGING for folder ");
@@ -817,8 +837,28 @@ int MeasureThread::execute()
 		TIMELOG(LOG_INFO, folder, msg);
 
 		out << "--------------------------------------------------------------------" << endl;
-		out << " folder '" << folder << "' START (";
-		out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
+		out << " folder '" << folder << "' ";
+		if(timerisset(&m_tvStartTime))
+		{
+			out << "AWAKED after (";
+			out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
+			if(timerisset(&diff_tv))
+			{
+				string::size_type nLen;
+				string space;
+
+				m_tvStartTime= diff_tv;
+				nLen= string(" folder '" + folder + "' AWAKED after ").length();
+				nLen-= string("wanted AWAKE by ").length();
+				out << "wanted AWAKE by (";
+				out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
+			}
+		}else
+		{
+			m_tvStartTime= end_tv;
+			out << "running after STOP (";
+			out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
+		}
 		for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
 		{
 			if(i->substr(0, 15) == "#timecondition ")
@@ -847,9 +887,33 @@ int MeasureThread::execute()
 			}
 
 		}
+		if(gettimeofday(&end_tv, NULL))
+		{
+			string msg("### DEBUGGING for folder ");
+
+			folder= getFolderName();
+			msg+= folder + " is aktivated!\n";
+			msg+= "    ERROR: cannot calculate time of beginning";
+			TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
+			if(isDebug())
+				tout << " ERROR: cannot calculate time of beginning" << endl;
+			timerclear(&m_tvStartTime);
+
+		}
+		out << " folder START by (";
+		out << getTimevalString(end_tv, /*as date*/true, /*debug*/true) << ")" << endl;
 		out << "--------------------------------------------------------------------" << endl;
 		tout << out.str();
 		TERMINALEND;
+
+	}else
+	{// by debug session when StartTime not set, StartTime will be set inside debug output block
+		if(timerisset(&m_tvStartTime))
+		{
+			if(timerisset(&diff_tv))
+				m_tvStartTime= diff_tv;
+		}else
+			m_tvStartTime= end_tv;
 	}
 	UNLOCK(m_VALUE);
 	return 0;
