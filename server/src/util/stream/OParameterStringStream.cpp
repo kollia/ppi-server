@@ -66,7 +66,7 @@ OParameterStringStream* OParameterStringStream::operator << (const short value)
 {
 	if(!m_sStream.eof())
 		m_sStream << " ";
-	m_sStream << value;
+	m_sStream << fixed << value;
 	return this;
 }
 
@@ -74,7 +74,7 @@ OParameterStringStream* OParameterStringStream::operator << (const unsigned shor
 {
 	if(!m_sStream.eof())
 		m_sStream << " ";
-	m_sStream << value;
+	m_sStream << fixed << value;
 	return this;
 }
 
@@ -85,7 +85,7 @@ OParameterStringStream* OParameterStringStream::operator << (const short* value)
 	if(value == NULL)
 		m_sStream << "NULL";
 	else
-		m_sStream << *value;
+		m_sStream << fixed << *value;
 	return this;
 }
 
@@ -96,7 +96,7 @@ OParameterStringStream* OParameterStringStream::operator << (const unsigned shor
 	if(value == NULL)
 		m_sStream << "NULL";
 	else
-		m_sStream << *value;
+		m_sStream << fixed << *value;
 	return this;
 }
 
@@ -104,7 +104,7 @@ OParameterStringStream* OParameterStringStream::operator << (const int value)
 {
 	if(!m_sStream.eof())
 		m_sStream << " ";
-	m_sStream << value;
+	m_sStream << fixed << value;
 	return this;
 }
 
@@ -112,7 +112,7 @@ OParameterStringStream* OParameterStringStream::operator << (const unsigned int 
 {
 	if(!m_sStream.eof())
 		m_sStream << " ";
-	m_sStream << value;
+	m_sStream << fixed << value;
 	return this;
 }
 
@@ -123,7 +123,7 @@ OParameterStringStream* OParameterStringStream::operator << (const int* value)
 	if(value == NULL)
 		m_sStream << "NULL";
 	else
-		m_sStream << *value;
+		m_sStream << fixed << *value;
 	return this;
 }
 
@@ -134,7 +134,7 @@ OParameterStringStream* OParameterStringStream::operator << (const unsigned int*
 	if(value == NULL)
 		m_sStream << "NULL";
 	else
-		m_sStream << *value;
+		m_sStream << fixed << *value;
 	return this;
 }
 
@@ -142,7 +142,7 @@ OParameterStringStream* OParameterStringStream::operator << (const long value)
 {
 	if(!m_sStream.eof())
 		m_sStream << " ";
-	m_sStream << value;
+	m_sStream << fixed << value;
 	return this;
 }
 
@@ -150,7 +150,7 @@ OParameterStringStream* OParameterStringStream::operator << (const unsigned long
 {
 	if(!m_sStream.eof())
 		m_sStream << " ";
-	m_sStream << value;
+	m_sStream << fixed << value;
 	return this;
 }
 
@@ -161,7 +161,7 @@ OParameterStringStream* OParameterStringStream::operator << (const long* value)
 	if(value == NULL)
 		m_sStream << "NULL";
 	else
-		m_sStream << *value;
+		m_sStream << fixed << *value;
 	return this;
 }
 
@@ -172,26 +172,34 @@ OParameterStringStream* OParameterStringStream::operator << (const unsigned long
 	if(value == NULL)
 		m_sStream << "NULL";
 	else
-		m_sStream << *value;
+		m_sStream << fixed << *value;
 	return this;
 }
 
 OParameterStringStream* OParameterStringStream::operator << (const double value)
 {
+	ostringstream str;
+
 	if(!m_sStream.eof())
 		m_sStream << " ";
-	m_sStream << value;
+	str << fixed << value;
+	m_sStream << removeAfterDecimal(str.str());
 	return this;
 }
 
 OParameterStringStream* OParameterStringStream::operator << (const double* value)
 {
+	ostringstream str;
+
 	if(!m_sStream.eof())
 		m_sStream << " ";
-	if(value == NULL)
+	if(value != NULL)
+	{
+		str << fixed << *value;
+		m_sStream << removeAfterDecimal(str.str());
+
+	}else
 		m_sStream << "NULL";
-	else
-		m_sStream << *value;
 	return this;
 }
 
@@ -227,6 +235,22 @@ OParameterStringStream* OParameterStringStream::operator << (string* value)
 	replace_all(*value, "\\", "\\\\");
 	m_sStream << "\"" << *value << "\" ";
 	return this;
+}
+
+string OParameterStringStream::removeAfterDecimal(const string& number)
+{
+	string::size_type nLen, n;
+
+	nLen= number.length();
+	for(n= nLen - 1; n > 0; --n)
+	{
+		if(number[n] != '0')
+			break;
+	}
+	if(number[n] == '.')
+		--n;
+	++n;
+	return number.substr(0, n);
 }
 
 OParameterStringStream::~OParameterStringStream() {}

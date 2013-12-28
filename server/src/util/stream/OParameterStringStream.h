@@ -194,6 +194,14 @@ protected:
 	 */
 	stringstream m_sStream;
 
+	/**
+	 * remove position after decimal point when 0
+	 *
+	 * @param number value to remove decimal points
+	 * @return string with removed points
+	 */
+	string removeAfterDecimal(const string& number);
+
 };
 
 }
