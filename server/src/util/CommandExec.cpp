@@ -225,18 +225,20 @@ int CommandExec::stop(const bool *bWait/*= NULL*/)
 	LOCK(m_WAITMUTEX);
 	if(m_nStopSignal > 0)
 	{
-		split(spl, m_sCommand, is_any_of(";"));
+		//cout << "stopping commands on bash with signal " << m_nStopSignal << endl;
+		split(spl, m_sCommand, is_any_of(";|&"));
 		if(m_tScriptPid > 0)
 		{
 			ostringstream opid;
 
+			//cout << "stopping commands on bash with pid [" << m_tScriptPid << "]" << endl;
 			result= grepPS(m_tScriptPid);
 			for(vector<string>::iterator res= result.begin(); res != result.end(); ++res)
 			{
 				//cout << "search in result '" << *res << "' (" << res->length() << " chars)" << endl;
 				for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
 				{
-					cout << "      for '" << *it << "'" << endl;
+					//cout << "      for '" << *it << "'" << endl;
 					if(res->find(*it) != string::npos)
 					{
 						bFound= true;
@@ -303,6 +305,7 @@ int CommandExec::stop(const bool *bWait/*= NULL*/)
 	{
 		return Thread::stop(bWait);
 	}
+	//cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 	return 0;
 }
 
@@ -318,12 +321,12 @@ vector<pid_t> CommandExec::getChildProcess(pid_t actPid, vector<string>* command
 		{
 			vector<string>::iterator itDel;
 
-			//cout << "found ambigius processes" << endl;
-			//cout << "search again for next command" << endl;
+			cerr << "found ambigius processes" << endl;
+			cerr << "search again for next command" << endl;
 			itDel= commands->begin();
 			commands->erase(itDel);
 			vRv.clear();
-			//cout << "-----------------------------------------------" << endl;
+			cerr << "-----------------------------------------------" << endl;
 		}
 		//cout << "search last pid for '" << m_sCommand << "'" << endl;
 		result= grepPS(actPid);
@@ -345,12 +348,16 @@ vector<pid_t> CommandExec::getChildProcess(pid_t actPid, vector<string>* command
 					{
 						if(it->find(*co) != string::npos)
 						{
+							//cout << "implement this for kill" << endl;
 							vRv.push_back(pid);
 							break;
 						}
 					}
 				}else
+				{
+					//cout << "implement this for kill" << endl;
 					vRv.push_back(pid);
+				}
 			}
 		}
 	}while(	commands != NULL &&
