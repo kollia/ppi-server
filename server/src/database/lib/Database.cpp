@@ -1438,7 +1438,24 @@ namespace ppi_database
 		}else
 		{
 			for(vector<double>::const_iterator valIt= entry.values.begin(); valIt != entry.values.end(); ++valIt)
-				line << dec << *valIt << "|";
+			{
+				string number;
+				ostringstream str;
+				string::size_type nLen, n;
+
+				str << fixed << *valIt;
+				number= str.str();
+				nLen= number.length();
+				for(n= nLen - 1; n > 0; --n)
+				{
+					if(number[n] != '0')
+						break;
+				}
+				if(number[n] == '.')
+					--n;
+				++n;
+				line << dec << number.substr(0, n) << "|";
+			}
 		}
 		dbfile << line.str() << endl;
 	}
