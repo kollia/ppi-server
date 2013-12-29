@@ -620,7 +620,7 @@ namespace ppi_database
 
 		command << connection;
 		command << name;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
 		err= error(sRv);
 		if(err != 0)
 		{
@@ -631,16 +631,22 @@ namespace ppi_database
 			{
 				LOG(LOG_ERROR, msg);
 				cerr << "### " << msg << endl;
+				return false;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
 				cout << "### " << msg << endl;
 			}
-			return false;
 		}
-		if(sRv == "true")
+/*		alix: 29/12/2013
+ * 		do not need answer now
+ * 		perform HEAE command from internet-server
+ * 		for faster answer
+ */
+		return true;
+/*		if(sRv == "true")
 			return true;
-		return false;
+		return false;*/
 	}
 
 	vector<string> DbInterface::getChangedEntrys(unsigned long connection)

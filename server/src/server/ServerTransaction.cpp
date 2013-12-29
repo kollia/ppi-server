@@ -1157,6 +1157,27 @@ namespace server
 #endif
 				}else
 				{
+					if(user->hasPermission(descriptor.getString("username"), split[0], split[1], "read"))
+					{
+						if(db->needSubroutines(descriptor.getClientID(), entry))
+						{
+							sendmsg= "done\n";
+#ifdef SERVERDEBUG
+							cout << "send: done" << endl;
+#endif
+							descriptor << sendmsg;
+						}else
+							descriptor << DEBUGERROR(descriptor, 5, input, "cannot found given folder or subroutine");
+
+					}else
+					{
+						string msg;
+
+						msg= "by user '";
+						msg+= descriptor.getString("username") + "'";
+						descriptor << DEBUGERROR(descriptor, 13, input, msg);
+					}
+#if 0
 					unsigned short nExist;
 
 					nExist= db->existEntry(split[0], split[1], "value", 0);
@@ -1208,6 +1229,7 @@ namespace server
 							break;
 						}
 					}
+#endif // if 0
 				}
 			}else
 			{
