@@ -89,6 +89,7 @@ using namespace logger;
 bool Starter::execute(const IOptionStructPattern* commands)
 {
 	bool bDb, bPorts, bInternet;
+	bool bConfigure, bSubroutines;
 	int err;
 	unsigned short nDbConnectors;
 	vector<pair<string, PortTypes> > ports; // whitch ports as string are needet. Second pair object bool is whether the port is defined for pin reading with ioperm()
@@ -100,6 +101,9 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	vector<string>::size_type readercount;
 	set<string> shellstarter;
 	time_t nServerSearchSequence;
+
+	bConfigure= commands->hasOption("configure");
+	bSubroutines= commands->hasOption("subroutines");
 
 	// starting time
 	struct tm ttime;
@@ -382,14 +386,16 @@ bool Starter::execute(const IOptionStructPattern* commands)
 															new SocketClientConnection(	SOCK_STREAM,
 																						commhost,
 																						commport,
-																						10			)	));
+																						10			), bConfigure	));
 
 	if(bDb)
 	{
+		vector<string> params;
 		ostringstream oDbConnectors;
 
 		oDbConnectors << nDbConnectors;
-		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-db-server").c_str(), oDbConnectors.str().c_str(), NULL);
+		params.push_back(oDbConnectors.str());
+		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-db-server"), params);
 	}else
 		err= process->check();
 	if(err > 0)
@@ -442,12 +448,15 @@ bool Starter::execute(const IOptionStructPattern* commands)
 															new SocketClientConnection(	SOCK_STREAM,
 																						host,
 																						port,
-																						10			)	));
+																						10			), bConfigure	));
 	process->openendSendConnection("GET wait", "ending");
 
 	if(bInternet)
-		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-internet-server").c_str(), NULL);
-	else
+	{
+		vector<string> params;
+
+		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-internet-server"), params);
+	}else
 		err= process->check();
 	if(err > 0)
 	{
@@ -490,15 +499,16 @@ bool Starter::execute(const IOptionStructPattern* commands)
 																new SocketClientConnection(	SOCK_STREAM,
 																							commhost,
 																							commport,
-																							10			)	));
+																							10			), bConfigure	));
 
 		if(bPorts)
 		{
-			ostringstream oDbConnectors;
+			vector<string> params;
 
-			oDbConnectors << nDbConnectors;
-			err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
-												"SHELL", it->c_str(), NULL);
+			params.push_back(oServerID.str());
+			params.push_back("SHELL");
+			params.push_back(*it);
+			err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
 		}else
 			err= process->check();
 		if(err > 0)
@@ -547,15 +557,16 @@ bool Starter::execute(const IOptionStructPattern* commands)
 																	new SocketClientConnection(	SOCK_STREAM,
 																								commhost,
 																								commport,
-																								10			)	));
+																								10			), bConfigure	));
 
 			if(bPorts)
 			{
-				ostringstream oDbConnectors;
+				vector<string> params;
 
-				oDbConnectors << nDbConnectors;
-				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
-													"PORT", sPorts.c_str(), NULL);
+				params.push_back(oServerID.str());
+				params.push_back("PORT");
+				params.push_back(sPorts);
+				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
 			}else
 				err= process->check();
 			if(err > 0)
@@ -598,15 +609,16 @@ bool Starter::execute(const IOptionStructPattern* commands)
 																	new SocketClientConnection(	SOCK_STREAM,
 																								commhost,
 																								commport,
-																								10			)	));
+																								10			), bConfigure	));
 
 			if(bPorts)
 			{
-				ostringstream oDbConnectors;
+				vector<string> params;
 
-				oDbConnectors << nDbConnectors;
-				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
-													"MPORT", sPorts.c_str(), NULL);
+				params.push_back(oServerID.str());
+				params.push_back("MPORT");
+				params.push_back(sPorts);
+				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), params);
 			}else
 				err= process->check();
 			if(err > 0)
@@ -647,15 +659,15 @@ bool Starter::execute(const IOptionStructPattern* commands)
 																new SocketClientConnection(	SOCK_STREAM,
 																							commhost,
 																							commport,
-																							10			)	));
+																							10			), bConfigure	));
 
 		if(bPorts)
 		{
-			ostringstream oDbConnectors;
+			vector<string> params;
 
-			oDbConnectors << nDbConnectors;
-			err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
-												"LIRC", NULL);
+			params.push_back(oServerID.str());
+			params.push_back("LIRC");
+			err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
 		}else
 			err= process->check();
 		if(err > 0)
@@ -729,15 +741,17 @@ bool Starter::execute(const IOptionStructPattern* commands)
 																			new SocketClientConnection(	SOCK_STREAM,
 																										commhost,
 																										commport,
-																										10			)	));
+																										10			), bConfigure	));
 
 					if(bPorts)
 					{
-						ostringstream oDbConnectors;
+						vector<string> params;
 
-						oDbConnectors << nDbConnectors;
-						err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
-															"vellemann", "k8055", oVK8055Address.str().c_str(), NULL);
+						params.push_back(oServerID.str());
+						params.push_back("vellemann");
+						params.push_back("k8055");
+						params.push_back(oVK8055Address.str());
+						err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
 					}else
 						err= process->check();
 					if(err > 0)
@@ -816,15 +830,16 @@ bool Starter::execute(const IOptionStructPattern* commands)
 																	new SocketClientConnection(	SOCK_STREAM,
 																								commhost,
 																								commport,
-																								10			)	));
+																								10			), bConfigure	));
 
 			if(bPorts)
 			{
-				ostringstream oDbConnectors;
+				vector<string> params;
 
-				oDbConnectors << nDbConnectors;
-				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), oServerID.str().c_str(),
-													"maxim", maximinit.c_str(), NULL);
+				params.push_back(oServerID.str());
+				params.push_back("maxim");
+				params.push_back(maximinit);
+				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
 			}else
 				err= process->check();
 			if(err > 0)
@@ -1041,11 +1056,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	if(bFolderStart)
 		cout << endl;
 	// ------------------------------------------------------------------------------------------------------------
-	bool bConfigure, bSubroutines;
 	bool createThread= false;
-
-	bConfigure= commands->hasOption("configure");
-	bSubroutines= commands->hasOption("subroutines");
 	if(	!bConfigure &&
 		!bFolderStart &&
 		bSubroutines	)

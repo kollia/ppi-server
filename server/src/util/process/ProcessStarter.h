@@ -243,8 +243,9 @@ namespace util
 			 * This starts only an application with the command <code>start()</code>
 			 * and gives no message back whether the running application have some problems.
 			 */
-			ProcessStarter()
-			: Process("nocommunicate", "nocommunicate", NULL, NULL, false)
+			ProcessStarter(const bool show)
+			: Process("nocommunicate", "nocommunicate", NULL, NULL, false),
+			  m_bShowBinary(show)
 			{};
 			/**
 			 * creating instance to start external process.<br />
@@ -253,19 +254,21 @@ namespace util
 			 * @param ownProcess Name of process to identify in by server
 			 * qparam toClient Name of Client to which connect
 			 * @param sendConnection on which connection from outside the server to answer is reachable
+			 * @param show whether should display starting binary on command line
 			 * @param wait whether the starting method should wait for <code>init()</code> method
 			 */
-			ProcessStarter(const string& ownProcess, const string& toClient, IClientConnectArtPattern* sendConnection, const bool wait= true)
-			:	Process(ownProcess, toClient, sendConnection, NULL, wait)
+			ProcessStarter(const string& ownProcess, const string& toClient, IClientConnectArtPattern* sendConnection, const bool show, const bool wait= true)
+			: Process(ownProcess, toClient, sendConnection, NULL, wait),
+			  m_bShowBinary(show)
 			{};
 			/**
 			 * start external application in an fork with execev()
 			 *
-			 * @param file name of starting application with hole path
-			 * @param arg1 the first parameter ...
+			 * @param file name of starting binary with hole path
+			 * @param params vector of all parameter for binary
 			 * @return error code if not 0
 			 */
-			int start(const char* file, ...);
+			int start(const string& file, const vector<string>& params);
 			/**
 			 * return string describing error number
 			 *
@@ -291,13 +294,17 @@ namespace util
 
 		private:
 			/**
+			 * whether should display starting binary on command line
+			 */
+			bool m_bShowBinary;
+			/**
 			 * name of external application
 			 */
 			string m_sApp;
 			/**
-			 * ellipse parameters of start method
+			 * vector of binary command parameters
 			 */
-			char **m_ppEllipse;
+			vector<string> m_vParams;
 			/**
 			 * not reachable dummy method to start an process inside application
 			 *

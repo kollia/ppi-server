@@ -25,45 +25,65 @@
 namespace util
 {
 
-	//int ProcessStarter::start(const string& file, const string& arg0, ...)
-	int ProcessStarter::start(const char* file, ...)
+	int ProcessStarter::start(const string& file, const vector<string>& params)
 	{
 		int nRv;
-		size_t nFile= strlen(file);
-		unsigned short count= 0;
-		va_list list;
-		char* cfile;
-		char* value;
-		vector<char*> vList;
 
 		m_sApp= file;
-		cfile= new char[nFile+2];
-		strncpy(cfile, file, nFile+1);
-		vList.push_back(cfile);
-		va_start(list, file);
-		do{
-			value= va_arg(list, char*);
-			vList.push_back(value);
-
-		}while(value != NULL);
-		va_end(list);
-		m_ppEllipse= new char*[vList.size()];
-		for(vector<char*>::iterator it= vList.begin(); it != vList.end(); ++it)
-		{
-			m_ppEllipse[count]= *it;
-			++count;
-		}
+		m_vParams= params;
 		nRv= Process::start(NULL, false);
-		delete[] m_ppEllipse;
-		delete[] cfile;
 		return nRv;
 	}
 
 	int ProcessStarter::runprocess(void*, bool bHold)
 	{
 		int nRv;
+		unsigned short count= 0;
+		char* pstr;
+		/**
+		 * stored ellipse character strings
+		 */
+		vector<char*> vList;
+		/**
+		 * ellipse parameters of start method
+		 */
+		char **ppEllipse;
 
-		nRv= execv(m_sApp.c_str(), m_ppEllipse);
+		count= m_vParams.size() + 2;
+		ppEllipse= new char*[count];
+		pstr= new char[m_sApp.size() + 2];
+		std::copy(m_sApp.begin(), m_sApp.end(), pstr);
+		pstr[m_sApp.size()]= '\0';
+		vList.push_back(pstr);
+		ppEllipse[0]= pstr;
+		count= 1;
+		if(m_bShowBinary)
+			cout << "start inside forked process \"" << ppEllipse[0];
+		for(vector<string>::iterator it= m_vParams.begin(); it != m_vParams.end(); ++it)
+		{
+			pstr= new char[it->size() + 2];
+			std::copy(it->begin(), it->end(), pstr);
+			pstr[it->size()]= '\0';
+			vList.push_back(pstr);
+			ppEllipse[count]= pstr;
+			if(m_bShowBinary)
+				cout << " " << ppEllipse[count];
+			++count;
+		}
+		if(m_bShowBinary)
+			cout << "\"" << endl;
+		ppEllipse[count]= NULL;
+		nRv= execv(m_sApp.c_str(), ppEllipse);
+		for(vector<char*>::iterator it= vList.begin(); it != vList.end(); ++it)
+		{
+			char* p;
+
+			if(*it == NULL)
+				break;
+			p= *it;
+			delete[] p;
+		}
+		delete[] ppEllipse;
 		if(nRv != 0)
 		{
 			switch(errno)
