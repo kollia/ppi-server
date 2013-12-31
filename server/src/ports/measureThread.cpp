@@ -82,7 +82,9 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 	m_bNeedFolderRunning= false;
 	m_bFolderRunning= false;
 	m_nServerSearchSeconds= nServerSearch;
+	m_bReadInformations= true;
 	m_DEBUGLOCK= Thread::getMutex("DEBUGLOCK");
+	m_WANTINFORM= Thread::getMutex("WANTINFORM");
 	m_VALUE= Thread::getMutex("VALUE");
 	m_ACTIVATETIME= Thread::getMutex("ACTIVATETIME");
 	m_FOLDERRUNMUTEX= Thread::getMutex("FOLDERRUNMUTEX");
@@ -132,7 +134,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 		cerr << "              so send this messages directly which has more bad performance" << endl;
 		LOG(LOG_WARNING, err +"so send this messages directly which has more bad performance");
 	}
-	res= m_oInformer.start();
+	m_oInformer.start();
 	if(res)
 	{
 		string err("measuring thread for folder '" + threadname +
@@ -390,10 +392,31 @@ int MeasureThread::init(void *arg)
 
 void MeasureThread::changedValue(const string& folder, const string& from)
 {
+	ppi_time time;
+
+	if(gettimeofday(&time, NULL))
+	{
+		string msg("### DEBUGGING for folder " + getFolderName());
+
+		msg+= "\n    ERROR: cannot calculate time to informing";
+		TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
+		if(isDebug())
+			tout << " ERROR: cannot calculate time to informing" << endl;
+		time.clear();
+
+	}
 	LOCK(m_VALUE);
-	m_vFolder.push_back(from);
-	AROUSE(m_VALUECONDITION);
+	m_vFolder.push_back(pair<string, ppi_time>(from, time));
 	UNLOCK(m_VALUE);
+	if(TRYLOCK(m_WANTINFORM) == 0)
+	{// try to inform folder to start,
+	 // but when lock given to an other thread
+	 // this other one do the job
+		LOCK(m_ACTIVATETIME);
+		AROUSE(m_VALUECONDITION);
+		UNLOCK(m_ACTIVATETIME);
+		UNLOCK(m_WANTINFORM);
+	}
 }
 
 bool MeasureThread::usleep(timeval time)
@@ -551,10 +574,21 @@ void MeasureThread::informFolders(const folders_t& folders, const string& from,
 int MeasureThread::execute()
 {
 	bool debug(isDebug());
+	/**
+	 * whether thread has lock to see inside
+	 * information vector m_vFolder.
+	 * variable is 0 when lock given
+	 * otherwise, when no error, variable is EBUSY
+	 */
+	int nHasLock;
+	/**
+	 * from which folder:subroutine the thread was informed to change
+	 */
+	vector<pair<string, ppi_time> > vInformed;
 	string folder;
-	timeval end_tv, diff_tv;
+	ppi_time end_tv, diff_tv;
 	timespec waittm;
-	vector<timeval>::iterator akttime, lasttime;
+	vector<ppi_time>::iterator akttime, lasttime;
 
 	//Debug info before measure routine to stop by right folder
 	/*folder= getFolderName();
@@ -569,6 +603,22 @@ int MeasureThread::execute()
 		{
 			tout << " ERROR: cannot calculate time of beginning" << endl;
 			timerclear(&m_tvStartTime);
+		}
+	}
+	if(!m_bReadInformations)
+	{
+		short id;
+
+		if(debug)
+		{
+			// last id was predefined on last Ending
+			// written debug output for START
+			m_vStartTimes.back().second= m_tvStartTime;
+		}else
+		{
+			id= 0;
+			m_vStartTimes.clear();
+			m_vStartTimes.push_back(pair<short, ppi_time>(id, m_tvStartTime));
 		}
 	}
 	measure();
@@ -594,9 +644,9 @@ int MeasureThread::execute()
 		end_tv.tv_sec= 0;
 		end_tv.tv_usec= 0;
 	}
-	timerclear(&diff_tv);
+	diff_tv.clear();
 	if(	m_bNeedLength &&
-		timerisset(&end_tv) &&
+		end_tv.isSet() &&
 		timerisset(&m_tvStartTime)	)
 	{
 		timersub(&end_tv, &m_tvStartTime, &diff_tv);
@@ -615,7 +665,7 @@ int MeasureThread::execute()
 	{
 		ostringstream out;
 
-		if(!timerisset(&diff_tv))
+		if(!diff_tv.isSet())
 		{
 			timersub(&end_tv, &m_tvStartTime, &diff_tv);
 			if(timerisset(&m_tvSleepLength))
@@ -633,14 +683,13 @@ int MeasureThread::execute()
 		tout << out.str();
 		TERMINALEND;
 	}
-	LOCK(m_VALUE);
+	nHasLock= -1;
+	LOCK(m_ACTIVATETIME);
 	timerclear(&m_tvStartTime);
 	timerclear(&diff_tv);
-	m_vInformed.clear();
 	if(1) //m_vFolder.empty())
 	{
 		TERMINALEND;
-		LOCK(m_ACTIVATETIME);
 		if(	!m_vtmNextTime.empty() ||
 			!m_osUndefServers.empty()	)
 		{
@@ -659,7 +708,7 @@ int MeasureThread::execute()
 					if(timercmp(&end_tv, &*akttime, <))
 						break;
 					fold= true;
-					m_vFolder.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
+					m_vTimeFolder.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
 					m_vtmNextTime.erase(akttime);
 					akttime= m_vtmNextTime.begin();
 				}
@@ -717,8 +766,20 @@ int MeasureThread::execute()
 						waittm.tv_nsec= tv.tv_usec * 1000;
 					}
 				}
-				UNLOCK(m_ACTIVATETIME);
-				while(m_vFolder.empty())
+				bool bRun(false);
+
+				if(m_vTimeFolder.empty())
+				{
+					nHasLock= TRYLOCK(m_VALUE);
+					if(nHasLock == 0)
+					{// thread get lock to look whether one folder informed
+					 // to restart
+						bRun= checkToStart(debug);
+					}else // when someone has lock one want to inform
+						bRun= true; // that this folder should start
+				}else// or m_vTimeFolder has entry's own folder should also restart
+					bRun= true;
+				while(bRun == false)
 				{
 					if(m_bNeedFolderRunning)
 					{
@@ -730,7 +791,12 @@ int MeasureThread::execute()
 					// for wanted awake time
 					diff_tv.tv_sec= waittm.tv_sec;
 					diff_tv.tv_usec= waittm.tv_nsec / 1000;
-					condRv= TIMECONDITION(m_VALUECONDITION, m_VALUE, &waittm);
+					if(nHasLock == 0)
+					{
+						nHasLock= -1;
+						UNLOCK(m_VALUE);
+					}
+					condRv= TIMECONDITION(m_VALUECONDITION, m_ACTIVATETIME, &waittm);
 					if(gettimeofday(&m_tvStartTime, NULL))
 					{
 						string msg("### DEBUGGING for folder ");
@@ -750,23 +816,29 @@ int MeasureThread::execute()
 						m_bFolderRunning= true;
 						UNLOCK(m_FOLDERRUNMUTEX);
 					}
+					nHasLock= TRYLOCK(m_VALUE);
 					if(condRv == ETIMEDOUT)
 					{
 						if(!bSearchServer)
-							m_vFolder.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
+							m_vTimeFolder.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
 						else
-							m_vFolder.push_back("#searchserver");
+							m_vTimeFolder.push_back("#searchserver");
 						break;
 					}
-					if(m_vFolder.empty())
-					{
-						if(stopping())
-							break;
-						cout << "WARNING: condition for folder list " << getFolderName()
-										<< " get's an spurious wakeup" << endl;
-					}
+					if(nHasLock == 0)
+					{// thread get lock to look whether one folder informed
+					 // to restart
+						if(m_vFolder.empty())
+						{
+							if(stopping())
+								break;
+							cout << "WARNING: condition for folder list " << getFolderName()
+											<< " get's an spurious wakeup" << endl;
+						}else
+							bRun= true;
+					}else // when someone has lock one want to inform to start
+						bRun= true;
 				}
-				LOCK(m_ACTIVATETIME);
 				if(	!bSearchServer &&
 					condRv == ETIMEDOUT	)
 				{
@@ -777,11 +849,18 @@ int MeasureThread::execute()
 			//		cout << "    " << akttime->tv_sec << "." << MeasureThread::getUsecString(akttime->tv_usec) << endl;
 			}// else found only old times
 			//  and make now an new pass of older
-			UNLOCK(m_ACTIVATETIME);
 		}else
 		{
-			UNLOCK(m_ACTIVATETIME);
-			while(m_vFolder.empty())
+			bool bRun(false);
+
+			nHasLock= TRYLOCK(m_VALUE);
+			if(nHasLock == 0)
+			{// thread get lock to look whether one folder informed
+			 // to restart
+				bRun= checkToStart(debug);
+			}else // when someone has lock one want to inform
+				bRun= true; // that this folder should start
+			while(bRun == false)
 			{
 				if(m_bNeedFolderRunning)
 				{
@@ -789,7 +868,12 @@ int MeasureThread::execute()
 					m_bFolderRunning= false;
 					UNLOCK(m_FOLDERRUNMUTEX);
 				}
-				CONDITION(m_VALUECONDITION, m_VALUE);
+				if(nHasLock == 0)
+				{
+					nHasLock= -1;
+					UNLOCK(m_VALUE);
+				}
+				CONDITION(m_VALUECONDITION, m_ACTIVATETIME);
 				if(gettimeofday(&m_tvStartTime, NULL))
 				{
 					string msg("### DEBUGGING for folder ");
@@ -808,26 +892,38 @@ int MeasureThread::execute()
 					m_bFolderRunning= true;
 					UNLOCK(m_FOLDERRUNMUTEX);
 				}
-				if(m_vFolder.empty())
-				{
-					if(stopping())
-						break;
-					cout << "WARNING: condition for folder list " << getFolderName()
-									<< " get's an spurious wakeup" << endl;
-				}else
-					break;
+				nHasLock= TRYLOCK(m_VALUE);
+				if(nHasLock == 0)
+				{// thread get lock to look whether one folder informed
+				 // to restart
+					if(m_vFolder.empty())
+					{
+						if(stopping())
+							break;
+						cout << "WARNING: condition for folder list " << getFolderName()
+										<< " get's an spurious wakeup" << endl;
+					}else
+						bRun= true;
+				}else // when someone has lock one want to inform to start
+					bRun= true;
 			}
 		}
 	}
 	if(stopping())
 	{
-		UNLOCK(m_VALUE);
+		UNLOCK(m_ACTIVATETIME);
 		if(debug)
 			TERMINALEND;
 		return 0;
 	}
-	m_vInformed= m_vFolder;
-	m_vFolder.clear();
+	if(nHasLock == 0)
+	{
+		// check first before define vInformer
+		// whether inside m_vFolder are old times
+		checkToStart(debug);
+		vInformed= m_vFolder;
+		m_vFolder.clear();
+	}
 	if(isDebug())
 	{
 		ostringstream out;
@@ -837,12 +933,24 @@ int MeasureThread::execute()
 		TIMELOG(LOG_INFO, folder, msg);
 
 		out << "--------------------------------------------------------------------" << endl;
+		if(nHasLock != 0)
+		{
+			short id;
+
+			if(!m_vStartTimes.empty())
+				id= m_vStartTimes.back().first + 1;
+			else
+				id= 1;
+			m_vStartTimes.push_back(pair<short, ppi_time>(id, m_tvStartTime));
+			out << "###StartTHID_" << id << "  showing information later" << endl;
+		}else
+			out << "###StartTHID_0" << endl;
 		out << " folder '" << folder << "' ";
-		if(timerisset(&m_tvStartTime))
+		if(m_tvStartTime.isSet())
 		{
 			out << "AWAKED after (";
 			out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
-			if(timerisset(&diff_tv))
+			if(diff_tv.isSet())
 			{
 				string::size_type nLen;
 				string space;
@@ -859,7 +967,27 @@ int MeasureThread::execute()
 			out << "running after STOP (";
 			out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
 		}
-		for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
+		for(vector<pair<string, ppi_time> >::iterator i= vInformed.begin(); i != vInformed.end(); ++i)
+		{
+			if(i->first.substr(0, 15) == "|SHELL-command_")
+			{
+				out << "    informed over SHELL script " << i->first.substr(15) << endl;
+
+			}else
+			{
+				out << "    informed ";
+				if(i->first.substr(0, 1) == "|")
+				{
+					if(i->first.substr(1, 1) == "|")
+						out << "from ppi-reader '" << i->first.substr(2) << "'" << endl;
+					else
+						out << "over Internet connection account '" << i->first.substr(1) << "'" << endl;
+				}else
+					out << "from " << i->first << " because value was changed" << endl;
+			}
+
+		}
+		for(vector<string>::iterator i= m_vTimeFolder.begin(); i != m_vTimeFolder.end(); ++i)
 		{
 			if(i->substr(0, 15) == "#timecondition ")
 			{
@@ -869,22 +997,8 @@ int MeasureThread::execute()
 			{
 				out << "      awaked to search again for external port server (owserver)" << endl;
 
-			}else if(i->substr(0, 15) == "|SHELL-command_")
-			{
-				out << "    informed over SHELL script " << i->substr(15) << endl;
-
 			}else
-			{
-				out << "    informed ";
-				if(i->substr(0, 1) == "|")
-				{
-					if(i->substr(1, 1) == "|")
-						out << "from ppi-reader '" << i->substr(2) << "'" << endl;
-					else
-						out << "over Internet connection account '" << i->substr(1) << "'" << endl;
-				}else
 					out << "from " << *i << " because value was changed" << endl;
-			}
 
 		}
 		if(gettimeofday(&end_tv, NULL))
@@ -908,24 +1022,114 @@ int MeasureThread::execute()
 
 	}else
 	{// by debug session when StartTime not set, StartTime will be set inside debug output block
-		if(timerisset(&m_tvStartTime))
+		if(m_tvStartTime.isSet())
 		{
-			if(timerisset(&diff_tv))
+			if(diff_tv.isSet())
 				m_tvStartTime= diff_tv;
 		}else
 			m_tvStartTime= end_tv;
 	}
-	UNLOCK(m_VALUE);
+	m_vTimeFolder.clear();
+	if(nHasLock == 0)
+	{
+		m_bReadInformations= true;
+		m_vStartTimes.clear();
+		UNLOCK(m_VALUE);
+	}else
+	{
+		m_bReadInformations= false;
+	}
+	UNLOCK(m_ACTIVATETIME);
 	return 0;
+}
+
+bool MeasureThread::checkToStart(const bool debug)
+{
+	bool bFirst(true), bWFirstDebug(true), bWDebug(false);
+	ppi_time lastStart;
+	ostringstream out;
+	vector<pair<string, ppi_time> > newFolder;
+	vector<pair<string, ppi_time> >::iterator it;
+	vector<pair<short, ppi_time> >::iterator startTime;
+
+	if(m_vFolder.empty())
+		return false;
+	if(!m_vStartTimes.empty())
+	{
+		lastStart= m_vStartTimes.back().second;
+		if(debug)
+			startTime= m_vStartTimes.begin();
+		for(it= m_vFolder.begin(); it != m_vFolder.end(); ++it)
+		{
+			if(it->second > lastStart)
+			{
+				if(bFirst)
+					return true;
+				newFolder.push_back(*it);
+			}
+			if(debug)
+			{
+				while(	startTime != m_vStartTimes.end() &&
+						it->second > startTime->second		)
+				{
+					++startTime;
+					bWDebug= false;
+				}
+				if(	startTime != m_vStartTimes.end() &&
+					it->second <= startTime->second		)
+				{
+					if(bWFirstDebug)
+					{
+						out << "--------------------------------------------------------------------" << endl;
+						out << "STARTING reason from running sessions before" << endl;
+						bWFirstDebug= false;
+					}
+					if(bWDebug == false)
+					{
+						out << "###THID_" << startTime->first << endl;
+						bWDebug= true;
+					}
+					if(it->first.substr(0, 15) == "|SHELL-command_")
+					{
+						out << "    informed over SHELL script " << it->first.substr(15) << endl;
+
+					}else
+					{
+						out << "    informed ";
+						if(it->first.substr(0, 1) == "|")
+						{
+							if(it->first.substr(1, 1) == "|")
+								out << "from ppi-reader '" << it->first.substr(2) << "'" << endl;
+							else
+								out << "over Internet connection account '" << it->first.substr(1) << "'" << endl;
+						}else
+							out << "from " << it->first << " because value was changed" << endl;
+					}
+				}
+			}
+			bFirst= false;
+		}
+		if(	debug &&
+			bWFirstDebug == false	)
+		{
+			out << "--------------------------------------------------------------------" << endl;
+			tout << out.str();
+			TERMINALEND;
+		}
+		m_vFolder= newFolder;
+		if(m_vFolder.empty())
+			return false;
+	}
+	return true;
 }
 
 void MeasureThread::changeActivationTime(const string& folder, const timeval& time,
 				const timeval& newtime)
 {
 	LOCK(m_ACTIVATETIME);
-	for(vector<timeval>::iterator it= m_vtmNextTime.begin(); it != m_vtmNextTime.end(); ++it)
+	for(vector<ppi_time>::iterator it= m_vtmNextTime.begin(); it != m_vtmNextTime.end(); ++it)
 	{
-		if(!timercmp(it, &time, !=)) // == do not work in some systems
+		if(*it == time)
 		{
 			*it= newtime;
 			break;
@@ -937,9 +1141,9 @@ void MeasureThread::changeActivationTime(const string& folder, const timeval& ti
 void MeasureThread::eraseActivateTime(const string& folder, const timeval& time)
 {
 	LOCK(m_ACTIVATETIME);
-	for(vector<timeval>::iterator it= m_vtmNextTime.begin(); it != m_vtmNextTime.end(); ++it)
+	for(vector<ppi_time>::iterator it= m_vtmNextTime.begin(); it != m_vtmNextTime.end(); ++it)
 	{
-		if(!timercmp(it, &time, !=)) // == do not work in some systems
+		if(*it == time)
 		{
 			m_vtmNextTime.erase(it);
 			break;
@@ -952,9 +1156,10 @@ vector<string> MeasureThread::wasInformed()
 {
 	vector<string> vRv;
 
-	LOCK(m_VALUE);
+	// toDo: maybe unused
+/*	LOCK(m_VALUE);
 	vRv= m_vInformed;
-	UNLOCK(m_VALUE);
+	UNLOCK(m_VALUE);*/
 	return vRv;
 }
 
@@ -2206,6 +2411,7 @@ MeasureThread::~MeasureThread()
 
 	m_oDbFiller.stop(/*wait*/true);
 	DESTROYMUTEX(m_DEBUGLOCK);
+	DESTROYMUTEX(m_WANTINFORM);
 	DESTROYMUTEX(m_VALUE);
 	DESTROYMUTEX(m_ACTIVATETIME);
 	DESTROYMUTEX(m_FOLDERRUNMUTEX);

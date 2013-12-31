@@ -426,21 +426,22 @@ class MeasureThread : 	public Thread,
 		 */
 		unsigned short m_nActCount;
 		/**
-		 * from which folder:subroutine the thread was informed to change
-		 */
-		vector<string> m_vInformed;
-		/**
 		 * all changed folder
 		 */
-		vector<string> m_vFolder;
+		vector<pair<string, ppi_time> > m_vFolder;
+		/**
+		 * all time activation
+		 * which cannot write actualy into m_vFolder
+		 */
+		vector<string> m_vTimeFolder;
 		/**
 		 * next time to activate measure routine without any action from external client
 		 */
-		vector<timeval> m_vtmNextTime;
+		vector<ppi_time> m_vtmNextTime;
 		/**
 		 * start time of folder
 		 */
-		timeval m_tvStartTime;
+		ppi_time m_tvStartTime;
 		/**
 		 * whether folder need to know whether folder is running.<br />
 		 * this variable will be defined by initialization and need no mutex lock
@@ -456,6 +457,15 @@ class MeasureThread : 	public Thread,
 		 */
 		short m_nFolderCPUtime;
 		/**
+		 * whether can read informed folders
+		 */
+		bool m_bReadInformations;
+		/**
+		 * vector of all started times
+		 * when information folders not can be written
+		 */
+		vector<pair<short, ppi_time> > m_vStartTimes;
+		/**
 		 * structure definition to calculate length of folder running time
 		 */
 		timetype_t m_tLengthType;
@@ -463,7 +473,7 @@ class MeasureThread : 	public Thread,
 		 * sleeping time of subroutine
 		 * which should subtract from running length
 		 */
-		timeval m_tvSleepLength;
+		ppi_time m_tvSleepLength;
 		/**
 		 * object with server type's an id's for unknown server,
 		 * to know whether folder list should starting all pre-defined seconds
@@ -492,6 +502,10 @@ class MeasureThread : 	public Thread,
 		 */
 		pthread_mutex_t *m_DEBUGLOCK;
 		/**
+		 * mutex want to inform folder to running
+		 */
+		pthread_mutex_t *m_WANTINFORM;
+		/**
 		 * condition for wait for new changing of any subroutine
 		 */
 		pthread_cond_t *m_VALUECONDITION;
@@ -517,6 +531,15 @@ class MeasureThread : 	public Thread,
 		 * @return own object
 		 */
 		MeasureThread& operator=(const MeasureThread&);
+		/**
+		 * check whether inside folder is an new time to restart
+		 * only when lock is given,
+		 * and write info by debug session
+		 *
+		 * @param debug session of debug output
+		 * @return whether folder should start
+		 */
+		bool checkToStart(const bool debug);
 };
 
 
