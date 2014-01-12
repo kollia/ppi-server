@@ -54,7 +54,7 @@ namespace ports
 		portBase::setDebug(bDebug);
 	}
 
-	valueHolder_t Measuredness::measure(const double actValue)
+	IValueHolderPattern& Measuredness::measure(const ppi_value& actValue)
 	{
 		static double origValue= 0;
 		//double dBegin;
@@ -63,7 +63,6 @@ namespace ports
 		double value= actValue;
 		string sfolder= getFolderName();
 		double result;
-		valueHolder_t oRv;
 
 		if(!m_oMeasuredValue.calculate(mvalue))
 		{
@@ -74,8 +73,8 @@ namespace ports
 			msg+= getSubroutineName();
 			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"mvalue", msg);
 			mvalue= 0;
-			oRv.value= 0;
-			return oRv;
+			m_oMeasureValue.value= 0;
+			return m_oMeasureValue;
 		}
 
 		if(m_oBegin.calculate(result))
@@ -88,7 +87,7 @@ namespace ports
 				diff= mvalue - origValue;
 				if(value > diff)
 					diff= value;
-				oRv.lastChanging= m_oBegin.getLastChanging();
+				m_oMeasureValue.lastChanging= m_oBegin.getLastChanging();
 			}else
 			{
 				origValue= mvalue;
@@ -104,8 +103,8 @@ namespace ports
 			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"begin", msg);
 			value= 0;
 		}
-		oRv.value= diff;
-		return oRv;
+		m_oMeasureValue.value= diff;
+		return m_oMeasureValue;
 	}
 
 	bool Measuredness::range(bool& bfloat, double* min, double* max)

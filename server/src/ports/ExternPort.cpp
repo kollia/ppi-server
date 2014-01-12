@@ -223,9 +223,8 @@ namespace ports
 		return true;
 	}
 
-	valueHolder_t ExternPort::measure(const double actValue)
+	IValueHolderPattern& ExternPort::measure(const ppi_value& actValue)
 	{
-		valueHolder_t oRv;
 		bool access, debug, bsetNewValue(false);
 		double value(0);
 		string addinfo;
@@ -253,8 +252,9 @@ namespace ports
 			}
 			if(!m_pOWServer)
 			{
-				oRv.value= 0;
-				return oRv;
+				m_oMeasureValue.value= 0;
+				m_oMeasureValue.lastChanging.clear();
+				return m_oMeasureValue;
 			}
 			registerSubroutine();
 		}
@@ -304,7 +304,7 @@ namespace ports
 
 			if(!m_bDoSwitch)
 				m_dLastWValue= actValue;
-			m_dLastWValue= switchClass::measure(m_dLastWValue).value;
+			m_dLastWValue= switchClass::measure(m_dLastWValue).getValue();
 			if(	!m_bDoSwitch ||
 				m_dLastWValue != 0	)
 			{
@@ -339,34 +339,33 @@ namespace ports
 			}
 		}
 
-		oRv.value= value;
-		return oRv;
+		m_oMeasureValue.value= value;
+		return m_oMeasureValue;
 	}
 
-	valueHolder_t ExternPort::getValue(const string who)
+	IValueHolderPattern& ExternPort::getValue(const string who)
 	{
 		int nvalue;
 		double value;
-		valueHolder_t result;
 
 		if(!onlySwitch())
 			return portBase::getValue(who);
 		if(who.substr(0, 2) == "i:")
 		{
-			result= portBase::getValue(who);
-			if(result.value)
-				result.value= 1;
+			m_oGetValue= portBase::getValue(who);
+			if(m_oGetValue.value)
+				m_oGetValue.value= 1;
 			else
-				result.value= 0;
-			return result;
+				m_oGetValue.value= 0;
+			return m_oGetValue;
 		}
-		result= portBase::getValue(who);
-		value= (int)result.value;
+		m_oGetValue= portBase::getValue(who);
+		value= (int)m_oGetValue.value;
 		nvalue= (int)value;
 		nvalue&= 0x01;
-		portBase::setValue((double)nvalue, who, result.lastChanging);
-		result.value= (ppi_value)nvalue;
-		return result;
+		m_oGetValue.value= static_cast<ppi_value>(nvalue);
+		portBase::setValue(m_oGetValue, who);
+		return m_oGetValue;
 	}
 
 	ExternPort::~ExternPort()

@@ -203,7 +203,7 @@ class MeasureThread : 	public Thread,
 		 * @param folder name of folder
 		 * @param time next beginning run time
 		 */
-		void nextActivateTime(const string& folder, const timeval& time)
+		void nextActivateTime(const string& folder, const IPPITimePattern& time)
 		{ LOCK(m_ACTIVATETIME);m_vtmNextTime.push_back(time);UNLOCK(m_ACTIVATETIME); };
 		/**
 		 * length time of folder running, by actual CPU time.<br />
@@ -214,7 +214,7 @@ class MeasureThread : 	public Thread,
 		 * @param debug whether call run in debug session
 		 * @return longest measured length of folder time
 		 */
-		virtual timeval getLengthedTime(const bool& logPercent, const bool& debug);
+		virtual IPPITimePattern& getLengthedTime(const bool& logPercent, const bool& debug);
 		/**
 		 * length time of given map by actual CPU time.<br />
 		 * when get unset time back (<code>= !timerisset(<returnvalue>)</code>)
@@ -227,7 +227,7 @@ class MeasureThread : 	public Thread,
 		 * @param debug whether call run in debug session
 		 * @return longest measured length of folder time
 		 */
-		virtual timeval getLengthedTime(timetype_t* timelength, short *percent,
+		virtual IPPITimePattern& getLengthedTime(timetype_t* timelength, short *percent,
 										const bool& logPercent, const bool& debug);
 		/**
 		 * sleep microseconds by consider stopping of running thread
@@ -235,7 +235,7 @@ class MeasureThread : 	public Thread,
 		 * @param time sleeping time
 		 * @return whether thread should stopping
 		 */
-		virtual bool usleep(timeval time);
+		virtual bool usleep(const IPPITimePattern& time);
 		/**
 		 * set folder to calculating length of folder time
 		 */
@@ -257,15 +257,15 @@ class MeasureThread : 	public Thread,
 		 * @param time next beginning run time
 		 * @param newtime new starting time
 		 */
-		virtual void changeActivationTime(const string& folder, const timeval& time,
-													const timeval& newtime);
+		virtual void changeActivationTime(const string& folder, const IPPITimePattern& time,
+													const IPPITimePattern& newtime);
 		/**
 		 * searching whether folder was starting from an specific time condition and erase starting.
 		 *
 		 * @param folder name of folder
 		 * @param time next beginning run time
 		 */
-		virtual void eraseActivateTime(const string& folder, const timeval& time);
+		virtual void eraseActivateTime(const string& folder, const IPPITimePattern& time);
 		/**
 		 * write timeval time to display on console
 		 *
@@ -285,7 +285,7 @@ class MeasureThread : 	public Thread,
 		  * @param debug whether subroutine running inside debug session
 		  */
 		 virtual void calcLengthDiff(timetype_t* timelength,
-						 timeval length, const bool& debug);
+						 const IPPITimePattern& length, const bool& debug);
 		 /**
 		  * search inside timetype_t for correct map with synchronization ID
 		  * and set also the nearest one by new creation to define the default value
@@ -384,6 +384,18 @@ class MeasureThread : 	public Thread,
 			 */
 			map<string, vector<pair<string, timeval*> > > subSubs;
 		};
+
+		/**
+		 * time value from last <code>getLengthedTime()</code> method. inside DEBUGLOCK<br />
+		 * need to hold as reference for return value
+		 */
+		ppi_time m_oInsideTime;
+		/**
+		 * time value from last <code>getLengthedTime()</code> method. outside DEBUGLOCK<br />
+		 * need to hold as reference for return value
+		 */
+		ppi_time m_oOutsideTime;
+
 		vector<pair<string, PortTypes> > m_pvlPorts;
 		vector<sub> *m_pvtSubroutines;
 		/**

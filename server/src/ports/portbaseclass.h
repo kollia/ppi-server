@@ -24,6 +24,7 @@
 #include "../util/debug.h"
 #include "../util/structures.h"
 
+#include "../util/stream/ppivalues.h"
 #include "../util/properties/configpropertycasher.h"
 
 #include "../pattern/util/IMeasureSet.h"
@@ -155,7 +156,7 @@ namespace ports
 			 * value which hold this subroutine,
 			 * with time from last changing
 			 */
-			valueHolder_t m_dValue;
+			ValueHolder m_dValue;
 			/**
 			 * all clients with values to know whether
 			 * switch subroutine was active between the last request
@@ -393,7 +394,7 @@ namespace ports
 			 * @param actValue current value
 			 * @return measured value with last changing time when not changed by self
 			 */
-			virtual valueHolder_t measure(const double actValue)=0;
+			virtual IValueHolderPattern& measure(const ppi_value& actValue)=0;
 			/**
 			 * get value from subroutine
 			 *
@@ -401,28 +402,28 @@ namespace ports
 			 * 				This time only defined for external reading over OwPort's.
 			 * @return current value with last changing time
 			 */
-			virtual valueHolder_t getValue(const string& who);
+			virtual IValueHolderPattern& getValue(const string& who);
 			/**
 			 * set value in subroutine.<br />
 			 * All strings from parameter 'from' beginning with an one character type,
 			 * followed from an colon 'r:' by ppi-reader, 'e:' by an account connected over Internet
 			 * or 'i:' by intern folder:subroutine.
 			 *
-			 * @param value value which should be set
+			 * @param value value which should be set with last changing time when set, otherwise method create own time
 			 * @param from which folder:subroutine or account changing the value
-			 * @param changed last changing time when set, otherwise method create own time
 			 */
-			virtual void setValue(const double value, const string& from, ppi_time changed= ppi_time());
+			virtual void setValue(const IValueHolderPattern& value, const string& from);
 			/**
 			 * set double value into measure list
 			 *
 			 * @param folder folder name from the running thread
 			 * @param subroutine name of the subroutine in the folder
-			 * @param value value which should write into database
+			 * @param value value which should write into database with last changing time when set, otherwise method create own time
 			 * @param account from which account over Internet the value will be set
 			 * @return whether subroutine can be set correctly
 			 */
-			virtual bool setValue(const string& folder, const string& subroutine, double value, const string& account);
+			virtual bool setValue(const string& folder, const string& subroutine,
+							const IValueHolderPattern& value, const string& account);
 			/**
 			 * return count of subroutine in folder
 			 *
@@ -472,6 +473,17 @@ namespace ports
 			virtual bool range(bool& bfloat, double* min, double* max);
 
 		protected:
+			/**
+			 * value from last pass inside <code>measure()</code> method.<br />
+			 * need to hold as reference for return value
+			 */
+			ValueHolder m_oMeasureValue;
+			/**
+			 * value from last <code>getValue</code> method.<br />
+			 * need to hold as reference for return value
+			 */
+			ValueHolder m_oGetValue;
+
 			static void lockApplication(bool bSet);
 			/**
 			 * registration of folder and subroutine
@@ -500,7 +512,7 @@ namespace ports
 			 * @param bCountDown whether getting linked value is an count down (only for TIMER subroutines) do not inform liked values
 			 * @return true when the value is from an other subroutine, else false
 			 */
-			bool getLinkedValue(const string& type, valueHolder_t& val, const double& maxCountDownValue= 0);
+			bool getLinkedValue(const string& type, ValueHolder& val, const double& maxCountDownValue= 0);
 			/**
 			 * return message header with folder and subroutine name
 			 * and also error or warning type when parameter be set

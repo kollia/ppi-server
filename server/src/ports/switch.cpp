@@ -102,14 +102,14 @@ void switchClass::setObserver(IMeasurePattern* observer)
 	portBase::setObserver(observer);
 }
 
-valueHolder_t switchClass::measure(const double actValue)
+IValueHolderPattern& switchClass::measure(const ppi_value& actValue)
 {
 	setting set;
 
 	return measure(actValue, set);
 }
 
-valueHolder_t switchClass::measure(const double actValue, setting& set, const double* newValue/*= NULL*/)
+IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& set, const double* newValue/*= NULL*/)
 {
 	bool debug(isDebug());
 	bool bbinary(binary());
@@ -118,7 +118,6 @@ valueHolder_t switchClass::measure(const double actValue, setting& set, const do
 	double dResult(actValue);
 	const double* nullValue= NULL;
 	string subroutine(getSubroutineName());
-	valueHolder_t oRv;
 
 	//Debug info to stop by right subroutine
 	/*if(	getFolderName() == "Raff1" &&
@@ -186,7 +185,7 @@ valueHolder_t switchClass::measure(const double actValue, setting& set, const do
 
 			}else if(dResult > 0 || dResult < 0)
 			{
-				oRv.lastChanging= m_oBegin.getLastChanging();
+				m_oMeasureValue.lastChanging= m_oBegin.getLastChanging();
 				bSwitched= true;
 				set= BEGIN;
 			}
@@ -216,7 +215,7 @@ valueHolder_t switchClass::measure(const double actValue, setting& set, const do
 
 			}else if(dResult > 0 || dResult < 0)
 			{
-				oRv.lastChanging= m_oEnd.getLastChanging();
+				m_oMeasureValue.lastChanging= m_oEnd.getLastChanging();
 				bSwitched= false;
 				set= END;
 			}
@@ -244,7 +243,7 @@ valueHolder_t switchClass::measure(const double actValue, setting& set, const do
 			}else if(dResult > 0 || dResult < 0)
 			{
 				bSwitched= true;
-				oRv.lastChanging= m_oWhile.getLastChanging();
+				m_oMeasureValue.lastChanging= m_oWhile.getLastChanging();
 			}else
 				bSwitched= false;
 			set= WHILE;
@@ -266,8 +265,8 @@ valueHolder_t switchClass::measure(const double actValue, setting& set, const do
 		else
 			dResult= 0;
 	}
-	oRv.value= dResult;
-	if(getLinkedValue("SWITCH", oRv))
+	m_oMeasureValue.value= dResult;
+	if(getLinkedValue("SWITCH", m_oMeasureValue))
 	{
 		if(bbinary)
 		{
@@ -314,16 +313,16 @@ valueHolder_t switchClass::measure(const double actValue, setting& set, const do
 	if(bbinary)
 	{
 		if(bSwitched)
-			oRv.value= 0b11;
+			m_oMeasureValue.value= 0b11;
 		else
-			oRv.value= static_cast<double>(static_cast<short>(actValue) & 0b10);
-		return oRv;
+			m_oMeasureValue.value= static_cast<double>(static_cast<short>(actValue) & 0b10);
+		return m_oMeasureValue;
 	}
 	if(bSwitched)
-		oRv.value= 1;
+		m_oMeasureValue.value= 1;
 	else
-		oRv.value= 0;
-	return oRv;
+		m_oMeasureValue.value= 0;
+	return m_oMeasureValue;
 }
 
 void switchClass::setDebug(bool bDebug)

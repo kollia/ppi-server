@@ -148,144 +148,135 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	return bRv;
 }
 
-valueHolder_t Shell::measure(const double actValue)
+IValueHolderPattern& Shell::measure(const ppi_value& actValue)
 {
-	valueHolder_t oRv;
 	bool bDebug(isDebug());
 	bool bswitch(false);
 	bool bMaked(false);
-	int res;
+	int res(0);
 	double dRv(actValue);
 	double dLastSwitch;
 
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "log_weather" &&
-		getSubroutineName() == "logging"	)
+	/*if(	getFolderName() == "power_switch" &&
+		getSubroutineName() == "port2"	)
 	{
 		cout << __FILE__ << __LINE__ << endl;
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 	}*/
-	if(!m_bLastRes)
+	if(	!m_bLastRes &&
+		dRv >= 0		)
+	{
 		dRv= 0;
+	}
 	if(m_bLastValue)
 		dLastSwitch= 1;
 	else
 		dLastSwitch= 0;
-	if(switchClass::measure(dLastSwitch).value)
+	if(switchClass::measure(dLastSwitch).getValue())
 		bswitch= true;
-/*	if(m_bMore)
-	{// command was sending in the last pass
-	 // and should get now only results
-	 // no command be necessary
-		res= system("read", "need_no_command");
-		m_bLastValue= bswitch;
-		if(res < 0)
+	if(bswitch)
+	{
+
+		if(!m_bLastValue)
+		{
+			if(m_sBeginCom != "")
+			{
+				res= system("begincommand", m_sBeginCom);
+				dRv= 1;	// doing begin command
+				bMaked= true;
+			}
+		}
+		if(!bMaked)
+		{
+			if(m_sWhileCom != "")
+			{
+				res= system("whilecommand", m_sWhileCom);
+				dRv= 2;	// doing while command
+				bMaked= true;
+			}
+		}
+		m_bLastValue= true;
+		if(	m_bWait ||
+			res < 0		)
 		{
 			dRv= static_cast<double>(res);
 		}
 
-	}else // if(m_bMore)*/
+	}else // if(bswitch)
 	{
-		if(bswitch)
+		if(m_bLastValue)
 		{
-
-			if(!m_bLastValue)
+			if(m_sEndCom != "")
 			{
-				if(m_sBeginCom != "")
-				{
-					res= system("begincommand", m_sBeginCom);
-					dRv= 1;	// doing begin command
-					bMaked= true;
-				}
+				res= system("endcommand", m_sEndCom);
+				dRv= 3; // doing end command
+				bMaked= true;
 			}
-			if(!bMaked)
-			{
-				if(m_sWhileCom != "")
-				{
-					res= system("whilecommand", m_sWhileCom);
-					dRv= 2;	// doing while command
-					bMaked= true;
-				}
-			}
-			m_bLastValue= true;
-			if(	m_bWait ||
-				res < 0		)
-			{
-				dRv= static_cast<double>(res);
-			}
-
-		}else // if(bswitch)
+		}
+		m_bLastValue= false;
+		if(	m_bWait ||
+			res < 0 	)
 		{
-			if(m_bLastValue)
-			{
-				if(m_sEndCom != "")
-				{
-					res= system("endcommand", m_sEndCom);
-					dRv= 3; // doing end command
-					bMaked= true;
-				}
-			}
-			m_bLastValue= false;
-			if(	m_bWait ||
-				res < 0 	)
-			{
-				dRv= static_cast<double>(res);
-			}
-		} // else branch if(bswitch)
-	} // else branch if(m_bMore)
+			dRv= static_cast<double>(res);
+		}
+	} // else branch if(bswitch)
 	if(bDebug)
 	{
 		ostringstream out;
 
-		out << "result of subroutine is " << dRv;
-//		if(!m_bWait)
-//		{
-			out << " for ";
-			switch(static_cast<int>(dRv))
-			{
-			case 0:
-				out << "do nothing";
-				break;
-			case 1:
-				if(bMaked)
-					out << "making ";
-				else
-					out << "last command ";
-				out << "'begincommand'";
-				break;
-			case 2:
-				if(bMaked)
-					out << "making ";
-				else
-					out << "last command ";
-				out << "'whilecommand'";
-				break;
-			case 3:
-				if(bMaked)
-					out << "making ";
-				else
-					out << "last command ";
-				out << "'endcommand'";
-				break;
-			default:
-				out << "ERROR - take a look into LOG file!";
-				break;
-			}
-			tout << out.str() << endl;
-/*		}else
+		out << "result of subroutine is " << dRv << " for ";
+		switch(static_cast<int>(dRv))
 		{
-			if(dRv == -1 || dRv == 127)
-				tout << " for ERROR - take a look in LOG file!";
-			tout << endl;
-		}*/
+		case 0:
+			out << "do nothing";
+			break;
+		case 1:
+			if(bMaked)
+				out << "making ";
+			else
+				out << "last command ";
+			out << "'begincommand'";
+			break;
+		case 2:
+			if(bMaked)
+				out << "making ";
+			else
+				out << "last command ";
+			out << "'whilecommand'";
+			break;
+		case 3:
+			if(bMaked)
+				out << "making ";
+			else
+				out << "last command ";
+			out << "'endcommand'";
+			break;
+		default:
+			if(bMaked)
+				out << "ERROR - take a look into LOG file!";
+			else
+				out << "ERROR of one of last passing";
+			break;
+		}
+		if(	bMaked &&
+			!bDebug &&
+			!m_bWait &&
+			dRv > 0		)
+		{
+			out << " will be set external from shell command" << endl;
+			out << "current value is " << actValue;
+		}
+		tout << out.str() << endl;
 	}
-/*	if(	!bDebug &&
-		!m_bWait	)
+	if(	!bDebug &&
+		!m_bWait &&
+		dRv > 0		)
 	{// when wait and debug is false, subroutine will be set from external
-		oRv.value= actValue;// thread before starting shell command
-	}else*/
-		oRv.value= dRv;
-	return oRv;
+		m_oMeasureValue.value= actValue;// thread before starting shell command
+	}else                   // so do not make any changes now
+		m_oMeasureValue.value= dRv;
+	return m_oMeasureValue;
 }
 
 bool Shell::range(bool& bfloat, double* min, double* max)
@@ -467,6 +458,9 @@ int Shell::system(const string& action, string command)
 			nCommand= 0;
 		thread->setWritten(&m_msdWritten, m_WRITTENVALUES, nCommand);
 		LOCK(m_EXECUTEMUTEX);
+		// incoming more is for set subroutine to 0 when
+		// no shell command be starting (no ERROR)
+		m_bMore= !m_bLastRes;
 		res= CommandExec::command_exec(thread, command, result, m_bMore, m_bWait, m_bBlock, bDebug);
 		do{// remove all not needed threads from vector
 			bchangedVec= false;
@@ -496,7 +490,8 @@ int Shell::system(const string& action, string command)
 		}while(bchangedVec);
 		UNLOCK(m_EXECUTEMUTEX);
 	}
-	if(m_bWait)
+	if(	m_bWait ||
+		bDebug		)
 	{
 		if(bDebug)
 		{
@@ -521,21 +516,17 @@ int Shell::system(const string& action, string command)
 			if(	it->length() > 8 &&
 				it->substr(0, 8) == "-PPI-SET"	)
 			{
-				if(!setValue(true, *it))
+				if(!setValue(true, command, it->substr(1)))
 				{
 					if(bDebug)
-						tout << " ### ERROR: cannot read correctly PPI-SET command" << endl;
-					TIMELOGEX(LOG_WARNING, "shell_setValue"+command+*it, "SHELL subroutine " + folder + ":" + subroutine
-									+ "\nby command: " + command + "\noutput string '" + *it
-									+ "'\n               ### ERROR: cannot read correctly PPI-SET command",
-									getRunningThread()->getExternSendDevice()               );
+						tout << " ### ERROR: cannot read correctly PPI-SET command (look into log file)" << endl;
 				}
 			}
 		}
 		if(bDebug)
 			tout << "~~~~~~~~" << endl;
 	}
-	if(bDebug)
+/*	if(bDebug)
 	{
 		if(	action != "read" &&
 			m_bMore &&
@@ -555,7 +546,7 @@ int Shell::system(const string& action, string command)
 			}
 			tout << "~~~~~~~~" << endl;
 		}
-	}
+	}*/
 	return res;
 }
 
@@ -619,47 +610,23 @@ void Shell::setDebug(bool bDebug)
 	}
 }
 
-bool Shell::setValue(bool always, const string& command)
+bool Shell::setValue(bool always, const string& shellcommand, const string& command)
 {
-	double value;
-	string outstr;
-	vector<string> spl;
-	istringstream icommand(command);
-	map<string, double>::iterator it;
+	static bool bFirst(true);
+	static CommandExec thread(this, /*log*/false,
+					getRunningThread()->getExternSendDevice());
 
-	icommand >> outstr; // string of PPI-SET (not needed)
-	if(	icommand.eof() ||
-		icommand.fail()		)
+	if(bFirst)
 	{
+		thread.setFor(getFolderName(), getSubroutineName());
+		thread.setWritten(&m_msdWritten, m_WRITTENVALUES, /*command not need*/0);
+		bFirst= false;
+	}
+	if(!thread.setValue(command, /*log*/false))
+	{
+		thread.getOutput();// clear output inside thread
 		return false;
 	}
-	icommand >> outstr; // folder:subroutine string
-	if(	icommand.eof() ||
-		icommand.fail()		)
-	{
-		return false;
-	}
-	split(spl, outstr, is_any_of(":"));
-	if(spl.size() != 2)
-		return false;
-	icommand >> value;
-	if(icommand.fail())
-		return false;
-	if(!always)
-	{
-		LOCK(m_WRITTENVALUES);
-		it= m_msdWritten.find(outstr);
-		if(	it == m_msdWritten.end() ||
-			it->second != value			)
-		{
-			m_msdWritten[outstr]= value;
-			always= true;
-		}
-		UNLOCK(m_WRITTENVALUES);
-	}
-	if(always)
-		if(!portBase::setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
-			return false;
 	return true;
 }
 

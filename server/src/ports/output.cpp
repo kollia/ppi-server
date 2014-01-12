@@ -148,19 +148,18 @@ bool Output::isDebug()
 	return bRv;							// debug session and should know whether this object was set to debug
 }
 
-valueHolder_t Output::measure(const double actValue)
+IValueHolderPattern& Output::measure(const ppi_value& actValue)
 {
 	bool bDebug(isDebug()), ownDebug;
-	valueHolder_t output;
 
-	output.value= 0;
+	m_oMeasureValue.value= 0;
 	LOCK(m_DEBUG);
 	ownDebug= m_bDebug;
 	UNLOCK(m_DEBUG);
 	if(m_bNeedSwitch)
-		output= switchClass::measure(actValue);
-	if(	output.value > 0 ||
-		output.value < 0 ||
+		m_oMeasureValue= switchClass::measure(actValue);
+	if(	m_oMeasureValue.value > 0 ||
+		m_oMeasureValue.value < 0 ||
 		(	ownDebug &&
 			!m_bNeedSwitch	)	)
 	{
@@ -200,16 +199,16 @@ valueHolder_t Output::measure(const double actValue)
 		}
 		if(m_nLogLevel > -1)
 			LOGEX(m_nLogLevel, out.str(), getRunningThread()->getExternSendDevice());
-		output.value= 1;
+		m_oMeasureValue.value= 1;
 	}else
-		output.value= 0;
+		m_oMeasureValue.value= 0;
 	if(bDebug)
 	{
-		if(!output.value)
+		if(!m_oMeasureValue.value)
 			tout << "do not write any output" << endl;
-		tout << "result of DEBUG output is " << output.value << endl;
+		tout << "result of DEBUG output is " << m_oMeasureValue.value << endl;
 	}
-	return output;
+	return m_oMeasureValue;
 }
 
 bool Output::range(bool& bfloat, double* min, double* max)

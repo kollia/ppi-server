@@ -79,7 +79,7 @@ class Output : public switchClass
 		 * @param actValue current value
 		 * @return return measured value
 		 */
-		virtual valueHolder_t measure(const double actValue);
+		virtual IValueHolderPattern& measure(const ppi_value& actValue);
 		/**
 		 * destructor to delete all value ListCalculator
 		 */

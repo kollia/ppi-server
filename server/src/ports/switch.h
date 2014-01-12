@@ -88,7 +88,7 @@ public:
 		 * @param actValue current value
 		 * @return measured value with last changing time
 		 */
-		virtual valueHolder_t measure(const double actValue);
+		virtual IValueHolderPattern& measure(const ppi_value& actValue);
 		/**
 		 * measure also whether switch value is set or not,
 		 * but show in second parameter, maybe for decided class need,
@@ -99,7 +99,7 @@ public:
 		 * @param newValue new value when changed and is not the same than content inside
 		 * @return return measured value
 		 */
-		valueHolder_t measure(const double actValue, setting& set, const double* newValue= NULL);
+		IValueHolderPattern& measure(const ppi_value& actValue, setting& set, const double* newValue= NULL);
 		/**
 		 * destructor
 		 */
@@ -126,7 +126,7 @@ public:
 		 * 				This time only defined for external reading over OwPort's.
 		 * @return current value
 		 */
-		virtual valueHolder_t getValue(const string& who);
+		virtual IValueHolderPattern& getValue(const string& who);
 		/**
 		 * set value in subroutine.<br />
 		 * All strings from parameter 'from' beginning with an one character type,

@@ -36,10 +36,10 @@ using namespace boost::algorithm;
 
 namespace ports
 {
-	bool ValueHolder::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
+	bool ValueHolderSubroutine::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		bool bOk= true, exist= false, bWarning= false;
-		double value;
+		ValueHolder oValue;
 		vector<string>::size_type nValue;
 		string sMin("min"), sMax("max");
 		DbInterface* db= DbInterface::instance();
@@ -107,19 +107,19 @@ namespace ports
 
 		if(!bOk)
 			return false;
-		value= db->getActEntry(exist, folder, subroutine, "value");
+		oValue.value= db->getActEntry(exist, folder, subroutine, "value");
 		if(!exist)
 		{
 			if(sValue != "#ERROR")
-				value= m_ddefaultValue;
+				oValue.value= m_ddefaultValue;
 			else
-				value= 0;
+				oValue.value= 0;
 		}
-		setValue(value, "i:"+folder+":"+subroutine);
+		setValue(oValue, "i:"+folder+":"+subroutine);
 		return true;
 	}
 
-	void ValueHolder::setObserver(IMeasurePattern* observer)
+	void ValueHolderSubroutine::setObserver(IMeasurePattern* observer)
 	{
 		m_poObserver= observer;
 		m_oWhile.activateObserver(observer);
@@ -135,7 +135,7 @@ namespace ports
 		portBase::setObserver(observer);
 	}
 
-	void ValueHolder::setDebug(bool bDebug)
+	void ValueHolderSubroutine::setDebug(bool bDebug)
 	{
 		m_oWhile.doOutput(bDebug);
 		for(vector<ListCalculator*>::iterator it= m_vpoValues.begin(); it != m_vpoValues.end(); ++it)
@@ -143,7 +143,7 @@ namespace ports
 		portBase::setDebug(bDebug);
 	}
 
-	bool ValueHolder::range(bool& bfloat, double* min, double* max)
+	bool ValueHolderSubroutine::range(bool& bfloat, double* min, double* max)
 	{
 		if(portBase::range(bfloat, min, max))
 			return true;
@@ -153,10 +153,9 @@ namespace ports
 		return true;
 	}
 
-	valueHolder_t ValueHolder::measure(const double actValue)
+	IValueHolderPattern& ValueHolderSubroutine::measure(const ppi_value& actValue)
 	{
 		bool isdebug(isDebug()), bChanged(false), bOutside(false);
-		valueHolder_t value;
 
 		//Debug info to stop by right subroutine
 		/*if(	getFolderName() == "kalibrierung1" &&
@@ -165,42 +164,41 @@ namespace ports
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
 		}*/
-		value.value= actValue;
 		if(	isdebug &&
-			m_dLastValue != value.value	)
+			actValue != m_oMeasureValue.value	)
 		{// boolean only needed for debug session
 			bOutside= true;
 		}
+		m_oMeasureValue.value= actValue;
 		getWhileStringResult(getFolderName(), getSubroutineName(),
-										m_oWhile, m_vpoValues, m_ddefaultValue, value, isdebug);
+										m_oWhile, m_vpoValues, m_ddefaultValue, m_oMeasureValue, isdebug);
 		if(	isdebug &&
-			(	value.value > actValue ||
-				value.value < actValue	)	)
+			(	m_oMeasureValue.value > actValue ||
+				m_oMeasureValue.value < actValue	)	)
 		{// boolean only needed for debug session
 			bChanged= true;
 		}
-		if(getLinkedValue("VALUE", value))
+		if(getLinkedValue("VALUE", m_oMeasureValue))
 		{
 			if(isdebug)
-				tout << "VALUE be set from foreign subroutine to " << dec << value.value << endl;
+				tout << "VALUE be set from foreign subroutine to " << dec << m_oMeasureValue.value << endl;
 
 		}else
 		{
 			if(isdebug)
 			{
 				if(bChanged)
-					tout << "new value " << dec << value.value << " be changed from own subroutine" << endl;
+					tout << "new value " << dec << m_oMeasureValue.value << " be changed from own subroutine" << endl;
 				else if(bOutside)
-					tout << "own value was changed from outside to value " << dec << value.value << endl;
+					tout << "own value was changed from outside to value " << dec << m_oMeasureValue.value << endl;
 				else
-					tout << "current value is " << dec << value.value << endl;
+					tout << "current value is " << dec << m_oMeasureValue.value << endl;
 			}
 		}
-		m_dLastValue= value.value;
-		return value;
+		return m_oMeasureValue;
 	}
 
-	valueHolder_t ValueHolder::getValue(const string& who)
+	IValueHolderPattern& ValueHolderSubroutine::getValue(const string& who)
 	{
 		// this time if an link be set the own value have the same value then the link
 		// maybe it's better if only the linked value be changed
@@ -222,7 +220,7 @@ namespace ports
 
 	}
 
-	void ValueHolder::setValue(const double value, const string& who, ppi_time changed/*= ppi_time()*/)
+	void ValueHolderSubroutine::setValue(const IValueHolderPattern& value, const string& who)
 	{
 		// this time if an link be set the own value have the same value then the link
 		// maybe it's better if only the linked value be changed
@@ -244,12 +242,12 @@ namespace ports
 				return;
 			}
 		}*/
-		portBase::setValue(value, who, changed);
+		portBase::setValue(value, who);
 	}
 
-	bool ValueHolder::getWhileStringResult(const string& folder, const string& subroutine,
+	bool ValueHolderSubroutine::getWhileStringResult(const string& folder, const string& subroutine,
 											ListCalculator& oWhile, vector<ListCalculator*>& content,
-											const double defaultVal, valueHolder_t& ovalue, const bool debug)
+											const double defaultVal, ValueHolder& ovalue, const bool debug)
 	{
 		bool bOk;
 		double rvalue;
@@ -333,7 +331,7 @@ namespace ports
 		return true;
 	}
 
-	ValueHolder::~ValueHolder()
+	ValueHolderSubroutine::~ValueHolderSubroutine()
 	{
 		vector<ListCalculator*>::iterator it;
 

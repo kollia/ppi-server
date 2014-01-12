@@ -101,7 +101,14 @@ namespace design_pattern_world
 			return *this;
 		}
 
-		bool ppi_time::isSet()
+		bool ppi_time::setActTime()
+		{
+			if(gettimeofday(this, NULL))
+				return false;
+			return true;
+		}
+
+		bool ppi_time::isSet() const
 		{
 			if(timerisset(this))
 				return true;
@@ -111,6 +118,32 @@ namespace design_pattern_world
 		void ppi_time::clear()
 		{
 			timerclear(this);
+		}
+
+		string ppi_time::toString(const bool& bDate) const
+		{
+			char stime[21];
+			struct tm ttime;
+			string::size_type nLen;
+			ostringstream stream, sRv;
+
+			if(bDate)
+			{
+				if(localtime_r(&tv_sec, &ttime) != NULL)
+				{
+					strftime(stime, 20, "%d.%m.%Y %H:%M:%S", &ttime);
+					sRv << stime << " ";
+				}else
+					sRv << "xx.xx.xxxx xx:xx:xx  ";
+			}else
+				sRv << fixed << tv_sec << ".";
+
+			stream << fixed << tv_usec;
+			nLen= stream.str().length();
+			for(string::size_type o= 6; o > nLen; --o)
+				sRv << "0";
+			sRv << stream.str();
+			return sRv.str();
 		}
 	}
 }

@@ -22,14 +22,18 @@
 
 #include <cstdio>
 #include <cstring>
+#include <cmath>
 
 #include "../pattern/util/LogHolderPattern.h"
 
-#include "../util/exception.h"
+#include "exception.h"
+
+#include "stream/ppivalues.h"
 
 #include "CommandExec.h"
 
 using namespace boost;
+using namespace design_pattern_world::util_pattern;
 
 int CommandExec::init(void* args)
 {
@@ -94,7 +98,13 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 {
 	int nRv(0);
 	bool thwait;
+	/**
+	 * incoming more declare whether thread should set subroutine
+	 * to 0 by not starting any command (when shell command defined as blocking)
+	 */
+	bool bSet0(more);
 	bool bNoWaitResult(false);
+	string folder, subroutine;
 	vector<string>::size_type nLen;
 
 	result.clear();
@@ -121,59 +131,77 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 	if(	!thread->running() ||
 		thread->wait()			)
 	{
-		result= thread->getOutput();
-		if(!wait)// when wait is false, result can be from last activation
-			result.clear(); // which is not needed
-		if(result.size() == 0)
+		// clear first by starting all old output
+		if(block)
+			result= thread->getOutput();
+		else
+			thread->getOutput();
+		if(!thread->running())
 		{
-			if(!thread->running())
+			//cout << "start thread for this command" << endl;
+			if(thread->start() != 0)
 			{
-				//cout << "start thread for this command" << endl;
-				if(thread->start() != 0)
-				{
-					ostringstream msg;
+				ostringstream msg;
 
-					if(	thread->getErrorType() == Thread::INIT &&
-						thread->getErrorCode() == -2				)
-					{
-						msg << "ERROR: exception caused by writing command ";
-						msg << "'" << command << "' into CommandExec object";
-						cerr << msg.str() << endl;
-						LOG(LOG_ERROR, msg.str());
-						return -3;
-					}
-					msg << "ERROR: by starting unused CommandExec thread for shell command '" << command << "'\n";
-					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
+				if(	thread->getErrorType() == Thread::INIT &&
+					thread->getErrorCode() == -2				)
+				{
+					msg << "ERROR: exception caused by writing command ";
+					msg << "'" << command << "' into CommandExec object";
 					cerr << msg.str() << endl;
 					LOG(LOG_ERROR, msg.str());
-					return -2;
+					return -3;
 				}
+				msg << "ERROR: by starting unused CommandExec thread for shell command '" << command << "'\n";
+				msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
+				cerr << msg.str() << endl;
+				LOG(LOG_ERROR, msg.str());
+				return -2;
 			}
-			LOCK(thread->m_WAITMUTEX);
-			thread->m_sCommand= command;
-			AROUSEALL(thread->m_WAITFORRUNGCONDITION);// <- starting thread
-			if(thwait)
-			{// and wait for answer with the same condition
-			 // when subroutine has action wait and no block
-				while(	thread->m_sCommand != "" &&
-						!thread->stopping() &&
-						!thread->wait()				)
-				{
-					CONDITION(thread->m_WAITFORRUNGCONDITION, thread->m_WAITMUTEX);
-				}
-			}
-			UNLOCK(thread->m_WAITMUTEX);
-			if(	wait == false ||
-				block == true	)
+		}
+		LOCK(thread->m_WAITMUTEX);
+		thread->m_sCommand= command;
+		AROUSEALL(thread->m_WAITFORRUNGCONDITION);// <- starting thread
+		if(thwait)
+		{// and wait for answer with the same condition
+		 // when subroutine has action wait and no block
+			while(	thread->m_sCommand != "" &&
+					!thread->stopping()			)
 			{
-				if(block)
-					more= true;
-				return 0;
+				CONDITION(thread->m_WAITFORRUNGCONDITION, thread->m_WAITMUTEX);
 			}
-		}else
-			bNoWaitResult= true;
+		}
+		UNLOCK(thread->m_WAITMUTEX);
+		if(	wait == false ||
+			block == true	)
+		{
+			if(block)
+				more= true;
+			return 0;
+		}
+	}else if(bSet0)
+	{ // set subroutine to 0, because command do not start new
+		ostringstream startCommand;
+		ppi_time acttime;
+
+		startCommand << "PPI-SET ";
+		if(acttime.setActTime())
+			startCommand << "-t " << acttime.toString(/*as date*/false) << " ";
+		startCommand << thread->m_sFolder << ":" << thread->m_sSubroutine << " 0";
+		thread->setValue(startCommand.str(), /*write error into output queue*/true);
 	}
-	if(!bNoWaitResult)
+	if(!result.empty())
+	{
+		vector<string> newResult;
+
+		newResult= thread->getOutput();
+		result.push_back("");
+		result.push_back("-----------------------------------------");
+		result.push_back("     **  new starting of command  **");
+		result.push_back("~~~                                   ~~~");
+		result.push_back("");
+		result.insert(result.end(), newResult.begin(), newResult.end());
+	}else
 		result= thread->getOutput();
 	nLen= result.size();
 	if(	block == true &&
@@ -442,6 +470,7 @@ int CommandExec::execute()
 	UNLOCK(m_WAITMUTEX);
 	if(stopping())
 		return 0;
+	//cout << " --  start commandExec thread ----------------------------- " << endl;
 	try{
 		split(spl, orgCommand, is_any_of(";"));
 		for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
@@ -465,7 +494,6 @@ int CommandExec::execute()
 		m_tScriptPid= 0;
 		UNLOCK(m_WAITMUTEX);
 		bWaitMutex= false;
-		//cout << "start shell command '" << command << "'" << endl;
 		fp= popen(command.c_str(), "r");
 		bOpenShell= true;
 		if(fp == NULL)
@@ -485,22 +513,27 @@ int CommandExec::execute()
 		bDebug= m_bDebug;
 		UNLOCK(m_WAITMUTEX);
 		bWaitMutex= false;
-/*		if(!bWait) // when wait not be set and thread do not starting directly
+		if(!bWait) // when wait not be set and thread do not starting directly
 		{ // and the script before running has the same ERRORLEVEL than this now will be have
 			ostringstream startCommand;// the subroutine will be not informed for an new value
+			ppi_time acttime;
 
-			startCommand << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
+			startCommand << "PPI-SET ";
+			if(acttime.setActTime())
+				startCommand << "-t " << acttime.toString(/*as date*/false) << " ";
+			startCommand << m_sFolder << ":" << m_sSubroutine << " ";
 			LOCK(m_externWRITTENVALUES);
 			startCommand << m_nStartCommand;
 			UNLOCK(m_externWRITTENVALUES);
+			//cout << startCommand.str() << endl;
 			setValue(startCommand.str(), bDebug);
-		}*/
+		}
 		while(fgets(line, sizeof line, fp))
 		{
 			if(stopping())
 				break;
 			sline+= line;
-			//cout << ">> " << sline << flush;
+			//cout << "script>> " << sline << flush;
 			nLen= sline.length();
 			if(	nLen > 0 &&
 				sline.substr(nLen-1) == "\n")
@@ -583,7 +616,8 @@ int CommandExec::execute()
 			m_qOutput.push_back(iline.str());
 			UNLOCK(m_RESULTMUTEX);
 			bResultMutex= false;
-			if(bWait == false)
+			if(	bWait == false &&		// when subroutine not waiting for result, send error value to subroutine
+				nRv != 0			)	// 0 is no error so running command was send by starting of shell script
 			{
 				ostringstream setErrorlevel;
 
@@ -948,145 +982,207 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 	}
 }
 
-void CommandExec::setValue(const string& command, bool bLog)
+void CommandExec::defSetError(const string& command, const string& msg)
+{
+	string errstr, logstr;
+
+	errstr= "-  ### ERROR: cannot read correctly PPI-SET command";
+	logstr+= errstr +"\n";
+	LOCK(m_RESULTMUTEX);
+	m_qOutput.push_back(errstr);
+	if(m_qOutput.size() > 1000)
+		m_qOutput.pop_front();
+	UNLOCK(m_RESULTMUTEX);
+	if(m_bLogging)
+	{
+		m_qLog.push_back(errstr);
+		if(m_qLog.size() > 1000)
+			m_qLog.pop_front();
+	}
+	errstr= "              for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine;
+	logstr+= errstr +"\n";
+	LOCK(m_RESULTMUTEX);
+	m_qOutput.push_back(errstr);
+	if(m_qOutput.size() > 1000)
+		m_qOutput.pop_front();
+	UNLOCK(m_RESULTMUTEX);
+	if(m_bLogging)
+	{
+		m_qLog.push_back(errstr);
+		if(m_qLog.size() > 1000)
+			m_qLog.pop_front();
+	}
+	LOCK(m_WAITMUTEX);
+	errstr= m_sCommand;
+	UNLOCK(m_WAITMUTEX);
+	errstr= "              by command: '" + errstr + "'";
+	logstr+= errstr +"\n";
+	LOCK(m_RESULTMUTEX);
+	m_qOutput.push_back(errstr);
+	if(m_qOutput.size() > 1000)
+		m_qOutput.pop_front();
+	UNLOCK(m_RESULTMUTEX);
+	if(m_bLogging)
+	{
+		m_qLog.push_back(errstr);
+		if(m_qLog.size() > 1000)
+			m_qLog.pop_front();
+	}
+	errstr= "           output string: '" + command + "'";
+	logstr+= errstr +"\n";
+	LOCK(m_RESULTMUTEX);
+	m_qOutput.push_back(errstr);
+	if(m_qOutput.size() > 1000)
+		m_qOutput.pop_front();
+	UNLOCK(m_RESULTMUTEX);
+	if(m_bLogging)
+	{
+		m_qLog.push_back(errstr);
+		if(m_qLog.size() > 1000)
+			m_qLog.pop_front();
+	}
+	if(msg != "")
+	{
+		errstr= "                by ERROR:  " + msg;
+		logstr+= errstr +"\n";
+		LOCK(m_RESULTMUTEX);
+		m_qOutput.push_back(errstr);
+		if(m_qOutput.size() > 1000)
+			m_qOutput.pop_front();
+		UNLOCK(m_RESULTMUTEX);
+		if(m_bLogging)
+		{
+			m_qLog.push_back(errstr);
+			if(m_qLog.size() > 1000)
+				m_qLog.pop_front();
+		}
+
+	}
+	cerr << logstr << endl;
+	TIMELOGEX(LOG_ERROR, "shell_setValue"+errstr+command, logstr, m_pSendLog);
+}
+
+bool CommandExec::setValue(const string& command, bool bLog)
 {
 	bool bwrite(false);
-	double value;
 	string outstr;
+	ValueHolder value;
 	vector<string> spl;
 	istringstream icommand(command);
 	map<string, double>::iterator it;
 
 	if(m_pPort == NULL)
 	{
-		outstr= "-  ### ERROR: cannot read correctly PPI-SET command";
-		if(bLog)
-		{
-			LOCK(m_RESULTMUTEX);
-			m_qOutput.push_back(outstr);
-			if(m_qOutput.size() > 1000)
-				m_qOutput.pop_front();
-			UNLOCK(m_RESULTMUTEX);
-		}
-		if(m_bLogging)
-		{
-			m_qLog.push_back(outstr);
-			if(m_qLog.size() > 1000)
-				m_qLog.pop_front();
-		}
-		LOCK(m_WAITMUTEX);
-		outstr= m_sCommand;
-		UNLOCK(m_WAITMUTEX);
-		TIMELOGEX(LOG_ALERT, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\nby command: " + outstr + "\noutput string '" + command
-							+ "'\n               no setValue interface be set", m_pSendLog               );
-		return;
+		defSetError(command, "no setValue interface be set");
+		return false;
 	}
 	icommand >> outstr; // string of PPI-SET (not needed)
 	if(	icommand.eof() ||
-		icommand.fail()		)
+		icommand.fail() ||
+		outstr != "PPI-SET"	)
 	{
-		outstr= "-  ### ERROR: cannot read correctly PPI-SET command";
-		if(bLog)
-		{
-			LOCK(m_RESULTMUTEX);
-			m_qOutput.push_back(outstr);
-			if(m_qOutput.size() > 1000)
-				m_qOutput.pop_front();
-			UNLOCK(m_RESULTMUTEX);
-		}
-		if(m_bLogging)
-		{
-			m_qLog.push_back(outstr);
-			if(m_qLog.size() > 1000)
-				m_qLog.pop_front();
-		}
-		LOCK(m_WAITMUTEX);
-		outstr= m_sCommand;
-		UNLOCK(m_WAITMUTEX);
-		TIMELOGEX(LOG_WARNING, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\nby command: " + outstr + "\noutput string '" + command
-							+ "'\n               ### ERROR: cannot read correctly PPI-SET command", m_pSendLog               );
-		return;
+		defSetError(command, "cannot read correctly first word of command 'PPI-SET'");
+		return false;
 	}
-	icommand >> outstr; // folder:subroutine string
+	icommand >> outstr; // folder:subroutine string or time option -t
 	if(	icommand.eof() ||
 		icommand.fail()		)
 	{
-		outstr= "-  ### ERROR: cannot read correctly PPI-SET command";
-		if(bLog)
+		defSetError(command, "cannot read definition of <folder>:<subroutine> or option -t");
+		return false;
+	}
+	if(outstr == "-t")
+	{
+		int nLen;
+		long int tv_nsec;// nanoseconds
+
+		icommand >> value.lastChanging.tv_sec; // unixtime
+		if(	icommand.eof() ||
+			icommand.fail() ||
+			value.lastChanging.tv_sec == 0	)
 		{
-			LOCK(m_RESULTMUTEX);
-			m_qOutput.push_back(outstr);
-			if(m_qOutput.size() > 1000)
-				m_qOutput.pop_front();
-			UNLOCK(m_RESULTMUTEX);
+			defSetError(command, "cannot read correctly seconds of unixtime after "
+							"option -t before decimal point (when set)");
+			return false;
 		}
-		if(m_bLogging)
+		icommand >> outstr;// microseconds, nanoseconds or folder:subroutine definition
+		if(	icommand.eof() ||
+			icommand.fail() ||
+			outstr.length() == 0	)
 		{
-			m_qLog.push_back(outstr);
-			if(m_qLog.size() > 1000)
-				m_qLog.pop_front();
+			defSetError(command, "cannot read string after seconds of unixtime");
+			return false;
 		}
-		LOCK(m_WAITMUTEX);
-		outstr= m_sCommand;
-		UNLOCK(m_WAITMUTEX);
-		TIMELOGEX(LOG_WARNING, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\nby command: " + outstr + "\noutput string '" + command
-							+ "'\n               cannot read definition of <folder>:<subroutine>", m_pSendLog			               );
-		return;
+		if(outstr[0] == '.')
+		{
+			istringstream nsec;
+			stringstream snsec;
+
+			if(outstr.length() > 1)
+			{
+				int n0Count(0);
+
+				outstr= outstr.substr(1);
+				nLen= outstr.length();
+				while(outstr[n0Count] == '0')
+					++n0Count;
+				nsec.str(outstr);
+				nsec >> tv_nsec;
+				if(nsec.fail())
+				{
+					defSetError(command, "cannot read correctly milliseconds, microseconds or nanoseconds "
+									"after seconds of unixtime");
+					return false;
+				}
+				snsec << tv_nsec;
+				snsec >> outstr;
+				if(n0Count > 0)
+					outstr.insert(0, n0Count, '0');
+				if(static_cast<string::size_type>(nLen) != outstr.length())
+				{
+					defSetError(command, "cannot read correctly second string "
+									"after seconds of unixtime");
+					return false;
+				}
+				nLen= outstr.length() - 6;
+				if(nLen > 0)
+				{
+					nLen= static_cast<int>(powf(10, static_cast<float>(nLen)));
+					value.lastChanging.tv_usec= tv_nsec / nLen;
+					/*cout << "define nanoseconds " << fixed << tv_nsec << " / " << nLen
+									<< " = " << value.lastChanging.tv_usec << endl;*/
+
+				}else if(nLen < 0)
+				{
+					nLen= static_cast<int>(powf(10, static_cast<float>(nLen * -1)));
+					value.lastChanging.tv_usec= tv_nsec *  nLen;
+					cout << "define nanoseconds " << fixed << tv_nsec << " * " << nLen
+									<< "= " << value.lastChanging.tv_usec << endl;
+
+				}else // tv_nsec has the same length
+					value.lastChanging.tv_usec= tv_nsec;
+			}
+			icommand >> outstr; // folder:subroutine string or time option -t
+			if(	icommand.eof() ||
+				icommand.fail()		)
+			{
+				defSetError(command, "cannot read definition of <folder>:<subroutine> string");
+				return false;
+			}
+		}
+
 	}
 	split(spl, outstr, is_any_of(":"));
 	if(spl.size() != 2)
 	{
-		outstr= "-  ### ERROR: cannot read correctly PPI-SET command";
-		if(bLog)
-		{
-			LOCK(m_RESULTMUTEX);
-			m_qOutput.push_back(outstr);
-			if(m_qOutput.size() > 1000)
-				m_qOutput.pop_front();
-			UNLOCK(m_RESULTMUTEX);
-		}
-		if(m_bLogging)
-		{
-			m_qLog.push_back(outstr);
-			if(m_qLog.size() > 1000)
-				m_qLog.pop_front();
-		}
-		LOCK(m_WAITMUTEX);
-		outstr= m_sCommand;
-		UNLOCK(m_WAITMUTEX);
-		TIMELOGEX(LOG_WARNING, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\nby command: " + outstr + "\noutput string '" + command
-							+ "'\n               cannot read definition of <folder>:<subroutine>", m_pSendLog			               );
-		return;
+		defSetError(command, "cannot read definition of <folder>:<subroutine>");
+		return false;
 	}
-	icommand >> value;
+	icommand >> value.value;
 	if(icommand.fail())
 	{
-		outstr= "-  ### ERROR: cannot read correctly PPI-SET command";
-		if(bLog)
-		{
-			LOCK(m_RESULTMUTEX);
-			m_qOutput.push_back(outstr);
-			if(m_qOutput.size() > 1000)
-				m_qOutput.pop_front();
-			UNLOCK(m_RESULTMUTEX);
-		}
-		if(m_bLogging)
-		{
-			m_qLog.push_back(outstr);
-			if(m_qLog.size() > 1000)
-				m_qLog.pop_front();
-		}
-		LOCK(m_WAITMUTEX);
-		outstr= m_sCommand;
-		UNLOCK(m_WAITMUTEX);
-		TIMELOGEX(LOG_WARNING, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-							+ "\nby command: " + outstr + "\noutput string '" + command
-							+ "'\n               cannot read definition of value", m_pSendLog			               );
-		return;
+		defSetError(command, "cannot read definition of value");
+		return false;
 	}
 	if(m_bWriteChanged)
 	{
@@ -1096,9 +1192,9 @@ void CommandExec::setValue(const string& command, bool bLog)
 			LOCK(m_externWRITTENVALUES);// list set to running value (1 for begincommand, 2 .. 3)
 			it= m_msdWritten->find(outstr);
 			if(	it == m_msdWritten->end() ||
-				it->second != value			)
+				it->second != value.value			)
 			{
-				(*m_msdWritten)[outstr]= value;
+				(*m_msdWritten)[outstr]= value.value;
 				bwrite= true;
 			}else
 			{
@@ -1106,7 +1202,7 @@ void CommandExec::setValue(const string& command, bool bLog)
 				{
 					ostringstream oValue;
 
-					oValue << fixed << value;
+					oValue << fixed << value.value;
 					LOCK(m_RESULTMUTEX);
 					outstr= "  ### do not write value " + oValue.str() + " into subroutine because value is same as before";
 					m_qOutput.push_back("- " + outstr);
@@ -1125,37 +1221,23 @@ void CommandExec::setValue(const string& command, bool bLog)
 
 		}else // if(m_sFolder != spl[0] || m_sSubroutine != spl[1])
 			bwrite= true;
-	}else
+
+	}else // if(m_bWriteChanged)
 		bwrite= true;
 	if(	bwrite &&
 		!stopping()	)
 	{
-		//cout << "try to SET " << spl[0] << ":" << spl[1] << " " << fixed << value << endl;
+		cout << "try to SET " << spl[0] << ":" << spl[1] << " " << fixed << value.value
+						<< " on " << value.lastChanging.toString(true) << endl;
+		if(!value.lastChanging.isSet())
+			cout << "set NULL" << endl;
 		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
 		{
-			outstr= "  ### ERROR: cannot write correctly PPI-SET command over interface to folder-list";
-			if(bLog)
-			{
-				LOCK(m_RESULTMUTEX);
-				m_qOutput.push_back("- " + outstr);
-				if(m_qOutput.size() > 1000)
-					m_qOutput.pop_front();
-				UNLOCK(m_RESULTMUTEX);
-			}
-			if(m_bLogging)
-			{
-				m_qLog.push_back(outstr);
-				if(m_qLog.size() > 1000)
-					m_qLog.pop_front();
-			}
-			LOCK(m_WAITMUTEX);
-			outstr= m_sCommand;
-			UNLOCK(m_WAITMUTEX);
-			TIMELOGEX(LOG_WARNING, "shell_setValue"+outstr+command, "for SHELL subroutine " + m_sFolder + ":" + m_sSubroutine
-								+ "\nby command: " + outstr + "\noutput string '" + command
-								+ "'\n               cannot write correctly PPI-SET command over interface to folder-list", m_pSendLog      );
+			defSetError(command, "cannot write correctly PPI-SET command over interface to folder-list");
+			return false;
 		}
 	}
+	return true;
 }
 
 void CommandExec::setWritten(map<string, double>* written, pthread_mutex_t* WRITTENVALUES, const short& nCommand)

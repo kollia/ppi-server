@@ -128,7 +128,7 @@ public:
 	 * @param actValue current value
 	 * @return return measured value
 	 */
-	virtual valueHolder_t measure(const double actValue);
+	virtual IValueHolderPattern& measure(const ppi_value& actValue);
 	/**
 	 * get value from subroutine
 	 *
@@ -136,7 +136,7 @@ public:
 	 * 				This time only defined for external reading over OwPort's.
 	 * @return current value
 	 */
-	virtual valueHolder_t getValue(const string& who);
+	virtual IValueHolderPattern& getValue(const string& who);
 	/**
 	 * set subroutine for output doing actions
 	 *

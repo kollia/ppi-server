@@ -22,6 +22,8 @@
 #include <sstream>
 #include <string>
 
+#include "../../pattern/util/IPPIValuesPattern.h"
+
 using namespace std;
 
 namespace util {
@@ -182,7 +184,21 @@ public:
 	 * @param value pointer to string variable
 	 * @return own object
 	 */
-	OParameterStringStream* operator << (string* value);
+	OParameterStringStream* operator << (const string* const value);
+	/**
+	 * operator for ppi_time object
+	 *
+	 * @param time object of ppi_time
+	 * @return own object
+	 */
+	OParameterStringStream* operator << (const IPPITimePattern& time);
+	/**
+	 * operator for pointer of ppi_time object
+	 *
+	 * @param time pointer to ppi_time object
+	 * @return own object
+	 */
+	OParameterStringStream* operator << (const IPPITimePattern* ptime);
 	/**
 	 * virtual destructor of object
 	 */

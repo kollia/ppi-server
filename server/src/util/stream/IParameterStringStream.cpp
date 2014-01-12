@@ -15,6 +15,8 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <sys/time.h>
+
 #include <iostream>
 
 #include <boost/algorithm/string/replace.hpp>
@@ -494,6 +496,68 @@ void IParameterStringStream::operator >> ( double& value)
 				string::size_type npos;
 
 				npos= static_cast<string::size_type>(pos);
+				m_sStream.seekg(npos, ios::beg);
+			}else
+				m_sStream.seekg(0, ios::end);
+			m_sStream.clear();
+		}
+	}
+}
+void IParameterStringStream::operator >> (timeval& value)
+{
+	string param;
+	streampos spos= m_sStream.tellg();
+
+	m_bFail= false;
+	if(	m_bNull ||
+		m_sStream.eof() )
+	{
+		m_bNull= true;
+		m_bFail= true;
+		timerclear(&value);
+		return;
+	}
+	m_sStream >> param;
+	if(param == "")
+	{
+		timerclear(&value);
+		m_bNull= true;
+		m_bFail= true;
+		return;
+	}else
+	{
+		bool bFail;
+		string::size_type pos(param.find('.'));
+		istringstream op(param);
+
+		op >> value.tv_sec;
+		bFail= op.fail();
+		if(	!bFail &&
+			pos != string::npos	)
+		{
+			param= param.substr(pos + 1);
+			pos= param.length();
+			if(pos < 6)
+				param.append(6 - pos, '0');
+			else if(pos > 6)
+				param= param.substr(0, 6);
+			op.str(param);
+			op >> value.tv_usec;
+			bFail= op.fail();
+		}
+		param= ""; // reading param can be not defined by EOF
+		bFail= op.fail();
+		op >> param;
+		if( bFail ||
+			param != ""	)
+		{
+			timerclear(&value);
+			m_bFail= true;
+			if(spos >= 0)
+			{
+				string::size_type npos;
+
+				npos= static_cast<string::size_type>(spos);
 				m_sStream.seekg(npos, ios::beg);
 			}else
 				m_sStream.seekg(0, ios::end);

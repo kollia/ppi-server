@@ -51,7 +51,7 @@ public:
 	 * @param actValue current value
 	 * @return return measured value
 	 */
-	virtual valueHolder_t measure(const double actValue);
+	virtual IValueHolderPattern& measure(const ppi_value& actValue);
 	/**
 	 * set subroutine for output doing actions
 	 *
@@ -208,10 +208,11 @@ private:
 	 * set new value inside folder list
 	 *
 	 * @param always whether should write all values (normal behavior) or only changed (for debugging when not wait)
+	 * @param shellcommand shell command for output
 	 * @param command string beginning with 'PPI-SET' getting from output on SHELL
 	 * @return whether method can reading correctly given command from SHELL
 	 */
-	bool setValue(bool always, const string& command);
+	bool setValue(bool always, const string& shellcommand, const string& command);
 };
 
 #endif /*SHELL_H_*/

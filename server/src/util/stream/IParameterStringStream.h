@@ -109,6 +109,12 @@ public:
 	 */
 	void operator >> (string& value);
 	/**
+	 * operator to writing ppi_time value
+	 *
+	 * @param value ppi_time object or timeval variable
+	 */
+	void operator >> (timeval& value);
+	/**
 	 * get string from stream, like operaor >> (string)
 	 *
 	 * @param value string variable

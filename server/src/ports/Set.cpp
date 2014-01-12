@@ -34,7 +34,7 @@ namespace ports
 	bool Set::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
 		bool bAllFault(true);
-		double dDefault;
+		ValueHolder oDefault;
 		string prop, sFrom, sSet;
 		string folderName(getFolderName());
 		string subroutineName(getSubroutineName());
@@ -132,7 +132,7 @@ namespace ports
 		if(seterr.str() != "")
 			tout << properties->getMsgHead(/*error*/true) << seterr.str() << endl;
 		prop= "default";
-		dDefault= properties->getDouble(prop, /*warning*/false);
+		oDefault.value= properties->getDouble(prop, /*warning*/false);
 		properties->notAllowedAction("binary");
 		if(	!switchClass::init(properties, pStartFolder) ||
 			nFrom == 0 ||
@@ -142,7 +142,7 @@ namespace ports
 		}
 		if(bAllFault)
 			return false;
-		setValue(dDefault, "i:"+getFolderName()+":"+getSubroutineName());
+		setValue(oDefault, "i:"+getFolderName()+":"+getSubroutineName());
 		return true;
 	}
 
@@ -154,16 +154,16 @@ namespace ports
 		return true;
 	}
 
-	valueHolder_t Set::measure(const double actValue)
+	IValueHolderPattern& Set::measure(const ppi_value& actValue)
 	{
 		bool bOk, isdebug= isDebug();
-		double value, nRv;
+		double swRv;
+		ValueHolder oValue;
 		string folder(getFolderName());
 		string subroutine(getSubroutineName());
 		vector<string>::size_type startSet(0), endSet(m_vsSet.size()-1);
 		vector<ListCalculator*>::size_type nFrom(m_vpoFrom.size());
 		IListObjectPattern* port;
-		valueHolder_t oRv;
 
 		//Debug info to stop by right subroutine
 		/*if(	getFolderName() == "set_probe" &&
@@ -172,15 +172,22 @@ namespace ports
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
 		}*/
-		nRv= switchClass::measure(actValue).value;
-		if(	nRv > 0 ||
-			nRv < 0		)
+		swRv= switchClass::measure(actValue).getValue();
+		if(	swRv > 0 ||
+			swRv < 0		)
 		{
 			for(vector<ListCalculator*>::size_type n= 0; n<nFrom; ++n)
 			{
-				bOk= m_vpoFrom[n]->calculate(value);
+				bOk= m_vpoFrom[n]->calculate(oValue.value);
 				if(bOk)
 				{
+					oValue.lastChanging= m_vpoFrom[n]->getLastChanging();
+					if(	oValue.lastChanging.isSet() &&
+						(	!m_oMeasureValue.lastChanging.isSet() ||
+							m_oMeasureValue.lastChanging < oValue.lastChanging	)	)
+					{
+						m_oMeasureValue.lastChanging= oValue.lastChanging;
+					}
 					if(nFrom > 1)
 						startSet= endSet= n;
 					for(vector<string>::size_type s= startSet; s<=endSet; ++s)
@@ -190,18 +197,18 @@ namespace ports
 						{
 							if(isdebug)
 							{
-								tout << "set value " << value;
+								tout << "set value " << oValue.value;
 								tout << " into " << (s+1) << ". subroutine '";
 								if(m_vsSet[s].find(":") == string::npos)
 									tout << folder << ":";
 								tout << m_vsSet[s] << "'" << endl;
 							}
-							port->setValue(value, "i:"+folder+":"+subroutine, m_vpoFrom[n]->getLastChanging());
+							port->setValue(oValue, "i:"+folder+":"+subroutine);
 						}else
 						{
 							ostringstream msg;
 
-							msg << "cannot set value " << value << " into given ";
+							msg << "cannot set value " << oValue.value << " into given ";
 							msg << (s+1) << ". 'set' parameter '";
 							if(m_vsSet[s].find(":") == string::npos)
 								msg << folder << ":";
@@ -229,8 +236,8 @@ namespace ports
 		if(isdebug)
 		{
 			tout << "result of subroutine is ";
-			if(	nRv > 0 ||
-				nRv < 0		)
+			if(	swRv > 0 ||
+				swRv < 0		)
 			{
 				tout << "TRUE";
 
@@ -238,8 +245,8 @@ namespace ports
 				tout << "FALSE";
 			tout << endl;
 		}
-		oRv.value= nRv;
-		return oRv;
+		m_oMeasureValue.value= swRv;
+		return m_oMeasureValue;
 	}
 
 	void Set::setDebug(bool bDebug)

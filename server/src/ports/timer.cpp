@@ -240,7 +240,9 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 			if(	m_nCaseNr != 5 && // do not measure time inside case of begin/while/end
 				m_oDirect.isEmpty()	)
 			{
-				setValue(-1, "i:"+getFolderName()+":"+getSubroutineName());
+				ValueHolder nullValue;
+				nullValue.value= -1;
+				setValue(nullValue, "i:"+getFolderName()+":"+getSubroutineName());
 				m_dTimeBefore= -1;
 
 			}//else default value is 0
@@ -476,7 +478,7 @@ void timer::setObserver(IMeasurePattern* observer)
 	switchClass::setObserver(observer);
 }
 
-valueHolder_t timer::measure(const double actValue)
+IValueHolderPattern& timer::measure(const ppi_value& actValue)
 {
 	bool bswitch;
 	bool bEndCount(false);
@@ -486,7 +488,6 @@ valueHolder_t timer::measure(const double actValue)
 	ppi_time tv;
 	switchClass::setting set= NONE;
 	ppi_time tmLastSwitchChanged;
-	valueHolder_t oRv;
 
 	//Debug info to stop by right subroutine
 	/*if(	folder == "Raff1_Zeit" &&
@@ -508,8 +509,8 @@ valueHolder_t timer::measure(const double actValue)
 			need= 0;
 		else
 			need= -1;
-		oRv.value= need;
-		return oRv;
+		m_oMeasureValue.value= need;
+		return m_oMeasureValue;
 	}
 	if(m_bExactTime)
 		getRunningThread()->setCpuMeasureBegin(&m_tReachedTypes);
@@ -590,8 +591,8 @@ valueHolder_t timer::measure(const double actValue)
 			getRunningThread()->calcLengthDiff(&m_tReachedTypes, changed, debug);
 		}else
 		{
-			oRv.value= 0;
-			return oRv;
+			m_oMeasureValue.value= 0;
+			return m_oMeasureValue;
 		}
 	}
 	if(debug)
@@ -662,7 +663,7 @@ valueHolder_t timer::measure(const double actValue)
 			// 4 (count down to 0 or up to full time)
 			// switch is making inside working branch
 			// for ending or during on
-			valueHolder_t oval;
+			ValueHolder oval;
 
 			oval= switchClass::measure(m_dSwitch, set);
 			m_dSwitch= oval.value;
@@ -684,8 +685,8 @@ valueHolder_t timer::measure(const double actValue)
 	if(	m_nCaseNr == 1 || // folder should polling all seconds, minutes, hours, ...
 		m_nCaseNr == 2	) // time count down to setting date time
 	{
-		oRv.value= polling_or_countDown(bswitch, tv, debug);
-		return oRv;
+		m_oMeasureValue.value= polling_or_countDown(bswitch, tv, debug);
+		return m_oMeasureValue;
 	}
 	// case 3: count the time down to 0
 	// case 4: count the time down to 0, or up to full time
@@ -811,8 +812,8 @@ valueHolder_t timer::measure(const double actValue)
 						}
 						if(!getRunningThread()->usleep(tvWait))
 						{
-							oRv.value= 0;
-							return oRv;// folder should be stopping
+							m_oMeasureValue.value= 0;
+							return m_oMeasureValue;// folder should be stopping
 						}
 						tv= m_tmExactStop;
 
@@ -874,7 +875,7 @@ valueHolder_t timer::measure(const double actValue)
 						need= calcNextTime(/*start*/false, debug, &tv);
 					if(m_bSwitchbyTime)
 					{
-						valueHolder_t oval;
+						ValueHolder oval;
 
 						if(debug)
 							tout << "look whether should polling time again" << endl;
@@ -956,7 +957,7 @@ valueHolder_t timer::measure(const double actValue)
 				if(	bswitch &&
 					m_bSwitchbyTime	)
 				{
-					valueHolder_t oval;
+					ValueHolder oval;
 
 					need= calcNextTime(/*start*/false, debug, &tv);
 					if(debug)
@@ -1090,7 +1091,7 @@ valueHolder_t timer::measure(const double actValue)
 				}
 			}else
 			{ // while or end measure
-				valueHolder_t oval;
+				ValueHolder oval;
 
 				tv-= m_tmStart;
 				need= MeasureThread::calcResult(tv, m_bSeconds);
@@ -1154,7 +1155,7 @@ valueHolder_t timer::measure(const double actValue)
 
 	if(m_bHasLinks)
 	{
-		valueHolder_t oval;
+		ValueHolder oval;
 
 		oval.value= need;
 		if(getLinkedValue("TIMER", oval, nBeginTime))
@@ -1168,8 +1169,8 @@ valueHolder_t timer::measure(const double actValue)
 	}else if(debug)
 		tout << "result of time is " << dec << need << " seconds" << endl;
 	m_dTimeBefore= need;
-	oRv.value= need;
-	return oRv;
+	m_oMeasureValue.value= need;
+	return m_oMeasureValue;
 }
 
 double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool debug)
@@ -1716,20 +1717,22 @@ double timer::calcNextTime(const bool& start, const bool& debug, ppi_time* actTi
 	return newTime;
 }
 
-valueHolder_t timer::getValue(const string& who)
+IValueHolderPattern& timer::getValue(const string& who)
 {
 	long nval;
-	valueHolder_t val(switchClass::getValue(who));
 
+	// m_oGetValue will be set inside getValue from switchClass
+	// do not need define again
+	switchClass::getValue(who);
 	// secure method to calculate only with seconds
 	// or microseconds and no more decimal places behind
 	if(!m_bSeconds)
-		val.value*= (1000 * 1000);
-	nval= static_cast<long>(val.value);
-	val.value= static_cast<double>(nval);
+		m_oGetValue.value*= (1000 * 1000);
+	nval= static_cast<long>(m_oGetValue.value);
+	m_oGetValue.value= static_cast<double>(nval);
 	if(!m_bSeconds)
-		val.value/= (1000 * 1000);
-	return val;
+		m_oGetValue.value/= (1000 * 1000);
+	return m_oGetValue;
 }
 
 #if 0

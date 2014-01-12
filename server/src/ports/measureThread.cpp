@@ -419,11 +419,11 @@ void MeasureThread::changedValue(const string& folder, const string& from)
 	}
 }
 
-bool MeasureThread::usleep(timeval time)
+bool MeasureThread::usleep(const IPPITimePattern& time)
 {
 	useconds_t usWait;
 
-	timeradd(&m_tvSleepLength, &time, &m_tvSleepLength);
+	m_tvSleepLength+= time;
 	usWait= time.tv_sec * 1000000;
 	usWait+= time.tv_usec;
 	::usleep(usWait);
@@ -933,18 +933,6 @@ int MeasureThread::execute()
 		TIMELOG(LOG_INFO, folder, msg);
 
 		out << "--------------------------------------------------------------------" << endl;
-		if(nHasLock != 0)
-		{
-			short id;
-
-			if(!m_vStartTimes.empty())
-				id= m_vStartTimes.back().first + 1;
-			else
-				id= 1;
-			m_vStartTimes.push_back(pair<short, ppi_time>(id, m_tvStartTime));
-			out << "###StartTHID_" << id << "  showing information later" << endl;
-		}else
-			out << "###StartTHID_0" << endl;
 		out << " folder '" << folder << "' ";
 		if(m_tvStartTime.isSet())
 		{
@@ -967,6 +955,18 @@ int MeasureThread::execute()
 			out << "running after STOP (";
 			out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
 		}
+		if(nHasLock != 0)
+		{
+			short id;
+
+			if(!m_vStartTimes.empty())
+				id= m_vStartTimes.back().first + 1;
+			else
+				id= 1;
+			m_vStartTimes.push_back(pair<short, ppi_time>(id, m_tvStartTime));
+			out << "###StartTHID_" << id << "  showing information later" << endl;
+		}else
+			out << "###StartTHID_0" << endl;
 		for(vector<pair<string, ppi_time> >::iterator i= vInformed.begin(); i != vInformed.end(); ++i)
 		{
 			if(i->first.substr(0, 15) == "|SHELL-command_")
@@ -1123,8 +1123,8 @@ bool MeasureThread::checkToStart(const bool debug)
 	return true;
 }
 
-void MeasureThread::changeActivationTime(const string& folder, const timeval& time,
-				const timeval& newtime)
+void MeasureThread::changeActivationTime(const string& folder, const IPPITimePattern& time,
+				const IPPITimePattern& newtime)
 {
 	LOCK(m_ACTIVATETIME);
 	for(vector<ppi_time>::iterator it= m_vtmNextTime.begin(); it != m_vtmNextTime.end(); ++it)
@@ -1138,7 +1138,7 @@ void MeasureThread::changeActivationTime(const string& folder, const timeval& ti
 	UNLOCK(m_ACTIVATETIME);
 }
 
-void MeasureThread::eraseActivateTime(const string& folder, const timeval& time)
+void MeasureThread::eraseActivateTime(const string& folder, const IPPITimePattern& time)
 {
 	LOCK(m_ACTIVATETIME);
 	for(vector<ppi_time>::iterator it= m_vtmNextTime.begin(); it != m_vtmNextTime.end(); ++it)
@@ -1201,8 +1201,8 @@ bool MeasureThread::measure()
 		classdebug= false;
 		if(it->bCorrect)
 		{
-			ppi_value oldResult;
-			valueHolder_t result;
+			ValueHolder oldResult;
+			ValueHolder result;
 
 			//Debug info to stop always by right folder or subroutine
 		/*	string stopfolder("Raff1_Zeit");
@@ -1214,7 +1214,7 @@ bool MeasureThread::measure()
 				cout << __FILE__ << __LINE__ << endl;
 				cout << stopfolder << ":" << it->name << endl;
 			}*/
-			oldResult= it->portClass->getValue("i:"+folder).value;
+			oldResult= it->portClass->getValue("i:"+folder);
 			if( debug &&
 				it->portClass->isDebug())
 			{
@@ -1223,7 +1223,7 @@ bool MeasureThread::measure()
 				classdebug= true;
 				out << "--------------------------------------------------------------------" << endl;
 				out << "execute '" << folder << ":" << it->name;
-				out << "' with value " << oldResult << " and type " << it->portClass->getType() << " ";
+				out << "' with value " << oldResult.value << " and type " << it->portClass->getType() << " ";
 				if(notime || gettimeofday(&tv_start, NULL))
 				{
 					out << " (cannot calculate length)" << endl;
@@ -1236,7 +1236,7 @@ bool MeasureThread::measure()
 				tout << out.str();
 			}
 			try{
-				result= it->portClass->measure(oldResult);
+				result= it->portClass->measure(oldResult.value);
 
 			}catch(SignalException& ex)
 			{
@@ -1262,36 +1262,37 @@ bool MeasureThread::measure()
 				LOG(LOG_ERROR, err);
 			}
 			if(	classdebug &&
-				result.value != oldResult &&
-				!result.lastChanging.isSet()	)
+				result.value != oldResult.value &&
+				!result.lastChanging.isSet()		)
 			{
 				// when subroutine defined for debug output
 				// and measure method from subroutine give no time back,
 				// write end time into subroutine to can display for debug output,
 				// otherwise end time will be created shorter before value
 				// set definitely inside subroutine
-				if(gettimeofday(&result.lastChanging, NULL))
+				if(!result.lastChanging.setActTime())
 				{
 					string msg("ERROR: cannot get time of day,\n");
 
 					msg+= "       so cannot measure time for TIMER function in folder ";
-					msg+= folder + " to set subroutine modification time for debug output";
+					msg+= folder + " to set subroutine modification time for debug output\n";
+					msg+= result.lastChanging.errorStr();
 					TIMELOG(LOG_ALERT, "changedValueMeasureThread", msg);
-					result.lastChanging.clear();
 				}
 			}
-			if(result.value != oldResult)
+			if(result.value != oldResult.value)
 			{
 				vector<string>::iterator found;
 
-				it->portClass->setValue(result.value, "i:"+folder+":"+it->name, result.lastChanging);
+				it->portClass->setValue(result, "i:"+folder+":"+it->name);
 			}
 			if(classdebug)
 			{
+				string modified;
 				ppi_time length;
 				ostringstream out;
 
-				if(gettimeofday(&tv_end, NULL))
+				if(!tv_end.setActTime())
 				{
 					string msg("ERROR: cannot get time of day,\n");
 
@@ -1302,16 +1303,21 @@ bool MeasureThread::measure()
 				}
 				length= tv_end - tv_start;
 				out << " subroutine running ";
-				out << getTimevalString(length, /*as date*/false, /*debug*/true);
+				out << length.toString(/*as date*/false);
 				out << " seconds, ending by ";
-				out << getTimevalString(tv_end, /*as date*/true, /*debug*/true);
+				out << tv_end.toString(/*as date*/true);
 				out << endl;
-				if(result.lastChanging.isSet())
+				if(result.value != oldResult.value)
 				{
-					out << "            was last modified by ";
-					out << getTimevalString(result.lastChanging, /*as date*/true, /*debug*/true);
-					out << endl;
+					modified= result.lastChanging.toString(/*as date*/true);
+
+				}else if(	result.value == oldResult.value &&
+							oldResult.lastChanging.isSet()		)
+				{
+					modified= oldResult.lastChanging.toString(/*as date*/true);
 				}
+				if(modified != "")
+					out << "            was last modified by " << modified << endl;
 				tout << out.str();
 			}
 
@@ -1524,18 +1530,17 @@ double MeasureThread::calcResult(const timeval& tv, const bool& secondcalc)
 	return dRv;
 }
 
-timeval MeasureThread::getLengthedTime(const bool& logPercent, const bool& debug)
+IPPITimePattern& MeasureThread::getLengthedTime(const bool& logPercent, const bool& debug)
 {
 	short percent;
-	timeval tvRv;
 
 	LOCK(m_DEBUGLOCK);
-	tvRv= getLengthedTime(&m_tLengthType, &percent, logPercent, debug);
+	m_oOutsideTime= getLengthedTime(&m_tLengthType, &percent, logPercent, debug);
 	UNLOCK(m_DEBUGLOCK);
-	return tvRv;
+	return m_oOutsideTime;
 }
 
-timeval MeasureThread::getLengthedTime(timetype_t* timelength, short *percent,
+IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *percent,
 										const bool& logPercent, const bool& debug)
 {
 	short nPercent(100);
@@ -1673,7 +1678,8 @@ timeval MeasureThread::getLengthedTime(timetype_t* timelength, short *percent,
 
 	}else
 		*percent= nPercent;
-	return calcResult(dRv, /*seconds*/false);;
+	m_oInsideTime= calcResult(dRv, /*seconds*/false);
+	return m_oInsideTime;
 }
 
 map<short, IMeasurePattern::timeLen_t>* MeasureThread::getPercentDiff(timetype_t *timelength, map<short, timeLen_t>* nearest, const bool&debug)
@@ -1745,7 +1751,7 @@ map<short, IMeasurePattern::timeLen_t>* MeasureThread::getPercentDiff(timetype_t
 }
 
 void MeasureThread::calcLengthDiff(timetype_t *timelength,
-				timeval length, const bool& debug)
+				const IPPITimePattern& length, const bool& debug)
 {
 	bool bSave(false);
 	short nPercent;

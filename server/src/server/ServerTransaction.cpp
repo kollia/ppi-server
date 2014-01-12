@@ -37,11 +37,12 @@
 
 #include "../util/debugtransaction.h"
 #include "../util/structures.h"
-
 #include "../util/GlobalStaticMethods.h"
 #include "../util/XMLStartEndTagReader.h"
 #include "../util/usermanagement.h"
 #include "../util/URL.h"
+
+#include "../util/stream/ppivalues.h"
 
 #include "../util/properties/configpropertycasher.h"
 
@@ -1059,10 +1060,19 @@ namespace server
 									bWait= false;
 								}else
 								{
-									double value;
+									ValueHolder oValue;
 
-									ss >> value;
-									db->setValue(values[0], values[1], value, account);
+									ss >> oValue.value;
+									if(!oValue.lastChanging.setActTime())
+									{
+										string err("internet-server cannot create actual time");
+
+										err+= " for folder:" + values[0] + " subroutine:" + values[1] + "\n";
+										err+= oValue.lastChanging.errorStr() + "\n";
+										err+= "so send 0 time to server";
+										TIMELOG(LOG_WARNING, "internet-server_timecreation", err);
+									}
+									db->setValue(values[0], values[1], oValue, account);
 									sendmsg= "done";
 #ifdef SERVERDEBUG
 									cout << "send: " << sendmsg << endl;

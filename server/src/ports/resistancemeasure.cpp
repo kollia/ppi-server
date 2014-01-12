@@ -131,21 +131,20 @@ namespace ports
 		return true;
 	}
 
-	valueHolder_t ResistanceMeasure::measure(const double actValue)
+	IValueHolderPattern& ResistanceMeasure::measure(const ppi_value& actValue)
 	{
 		char buf[150];
 		string msg;
-		valueHolder_t oRv;
 
-		oRv.value= getResistance();
-		sprintf(buf, "%.2lf", oRv.value);
+		m_oMeasureValue.value= getResistance();
+		sprintf(buf, "%.2lf", m_oMeasureValue.value);
 		msg= "measured resistance:";
 		msg+= buf;
 		msg+=" Ohm";
 		TIMELOGEX(LOG_INFO, getFolderName(), msg, getRunningThread()->getExternSendDevice());
 		if(isDebug())
 			tout << msg << endl;
-		return oRv;
+		return m_oMeasureValue;
 	}
 
 	void ResistanceMeasure::setDebug(bool bDebug)

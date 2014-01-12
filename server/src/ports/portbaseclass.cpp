@@ -334,13 +334,19 @@ string portBase::switchBinStr(double value)
 	return sRv;
 }
 
-void portBase::setValue(ppi_value value, const string& from, ppi_time changed/*= ppi_time()*/)
+void portBase::setValue(const IValueHolderPattern& value, const string& from)
 {
 //#define __moreOutput
+#ifdef __moreOutput
+	bool debug(isDebug());
+#endif //__moreOutput
+
 	try{
-		ppi_value invalue(value);
-		ppi_value dbvalue(value);
+		ppi_value dValue(value.getValue());
+		ppi_value invalue(value.getValue());
+		ppi_value dbvalue(value.getValue());
 		ppi_value oldMember(m_dValue.value);
+		ppi_time changedTime(value.getTime());
 
 		// debug stopping
 		/*if(	getFolderName() == "Raff1" &&
@@ -356,39 +362,42 @@ void portBase::setValue(ppi_value value, const string& from, ppi_time changed/*=
 		if(m_bDefined)
 		{
 #ifdef __moreOutput
-			cout << "-------------------------------------------------------------------" << endl;
-			cout << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
-			if(m_bSwitch)
-				cout << " defined for binary switch";
-			cout << endl;
-			cout << "        set new value from '" << from << "'" << endl;
-			cout << "            Incoming value:" << dec << value;
-			if(m_bSwitch)
-				cout << " binary " << switchBinStr(value);
-			cout << endl;
-			cout << "value before in subroutine:" << dec << m_dValue;
-			if(m_bSwitch)
-				cout << " binary " << switchBinStr(m_dValue);
-			cout << endl;
-			if(!m_bSwitch)
+			if(debug)
 			{
-				cout << "                 min range:" << dec << m_dMin << endl;
-				cout << "                 max range:" << dec << m_dMax << endl;
+				tout << "-------------------------------------------------------------------" << endl;
+				tout << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
+				if(m_bSwitch)
+					tout << " defined for binary switch";
+				tout << endl;
+				tout << "        set new value from '" << from << "'" << endl;
+				tout << "            Incoming value:" << dec << value.getValue();
+				if(m_bSwitch)
+					tout << " binary " << switchBinStr(value.getValue());
+				tout << endl;
+				tout << "value before in subroutine:" << dec << m_dValue.value;
+				if(m_bSwitch)
+					tout << " binary " << switchBinStr(m_dValue.value);
+				tout << endl;
+				if(!m_bSwitch)
+				{
+					tout << "                 min range:" << dec << m_dMin << endl;
+					tout << "                 max range:" << dec << m_dMax << endl;
+				}
 			}
 #endif // __moreOutput
 			if(m_bSwitch)
 			{
-				short svalue(static_cast<short>(value));
+				short svalue(static_cast<short>(dValue));
 
 		//		if(from.substr(0, 1) == "e")
-		//			value= value != 0 ? 0b11 : 0b00;
+		//			dValue= dValue != 0 ? 0b11 : 0b00;
 				if(svalue & 0b01)
 					svalue= 0b11;
 				else if(svalue == 0b10) // only when svalue is 2 and not 6, 14, ...
 					svalue= 0b10;
 				else
 					svalue= static_cast<short>(m_dValue.value) & 0b10;
-				value= static_cast<double>(svalue);
+				dValue= static_cast<double>(svalue);
 				dbvalue= svalue & 0b01 ? 1 : 0;
 				oldMember= ((int)m_dValue.value & 0b01) ? 1 : 0;
 
@@ -396,53 +405,56 @@ void portBase::setValue(ppi_value value, const string& from, ppi_time changed/*=
 			{
 				if(m_dMin < m_dMax)
 				{
-					if(value < m_dMin)
-						value= m_dMin;
-					if(value > m_dMax)
-						value= m_dMax;
+					if(dValue < m_dMin)
+						dValue= m_dMin;
+					if(dValue > m_dMax)
+						dValue= m_dMax;
 				}
 				if(!m_bFloat)
-					value= (double)((long)value);
-				dbvalue= value;
+					dValue= (double)((long)dValue);
+				dbvalue= dValue;
 				oldMember= m_dValue.value;
 			}
 #ifdef __moreOutput
-			cout << "          old member value:" << dec << oldMember;
-			if(m_bSwitch)
-				cout << " binary " << switchBinStr(oldMember);
-			cout << endl;
-			cout << "         new defined value:" << dec << value;
-			if(m_bSwitch)
-				cout << " binary " << switchBinStr(value);
-			cout << endl;
-			cout << "       new defined dbvalue:" << dec << dbvalue << endl;
+			if(debug)
+			{
+				tout << "          old member value:" << dec << oldMember;
+				if(m_bSwitch)
+					tout << " binary " << switchBinStr(oldMember);
+				tout << endl;
+				tout << "         new defined value:" << dec << dValue;
+				if(m_bSwitch)
+					tout << " binary " << switchBinStr(dValue);
+				tout << endl;
+				tout << "       new defined dbvalue:" << dec << dbvalue << endl;
+			}
 #endif // __moreOutput
 		}
-		if(value != m_dValue.value)
+		if(dValue != m_dValue.value)
 		{
 			bool debug(isDebug());
 			string sOwn(m_sFolder+":"+m_sSubroutine);
 			ostringstream output;
 			vector<string> spl;
 
-			if(!timerisset(&changed))
+			if(!changedTime.isSet())
 			{
-				if(gettimeofday(&changed, NULL))
+				if(gettimeofday(&changedTime, NULL))
 				{
 					string msg("ERROR: cannot get time of day,\n");
 
 					msg+= "       so cannot measure time for TIMER function in folder ";
 					msg+= getFolderName() + " for changing value in subroutine " + getSubroutineName();
 					TIMELOG(LOG_ALERT, "changedValueMeasureThread", msg);
-					timerclear(&changed);
+					changedTime.clear();
 				}
 			}
-			m_dValue.value= value;
-			m_dValue.lastChanging= changed;
+			m_dValue.value= dValue;
+			m_dValue.lastChanging= changedTime;
 			if(m_bSwitch)
 			{
 				for(map<string, short>::iterator it= m_mdValue.begin(); it != m_mdValue.end(); ++it)
-					it->second= static_cast<short>(value);
+					it->second= static_cast<short>(dValue);
 			}
 
 			split(spl, from, is_any_of(":"));
@@ -461,31 +473,37 @@ void portBase::setValue(ppi_value value, const string& from, ppi_time changed/*=
 					m_sPermission != ""	)	)
 			{
 #ifdef __moreOutput
-			cout << "            fill new value:" << dec << dbvalue << " into database" << endl;
+				if(debug)
+					tout << "            fill new value:" << dec << dbvalue << " into database" << endl;
 #endif // __moreOutput
 
 				getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
 			}
 
-		}else if(	invalue != value &&
+		}else if(	invalue != dValue &&
 					(	m_bWriteDb ||
 						m_sPermission != ""	)	)
 		{
-			// make correction of value in database
-			// because client which set wrong value
-			// should now that value was wrong
+			// make correction of dValue in database
+			// because client which set wrong dValue
+			// should now that dValue was wrong
 #ifdef __moreOutput
-			cout << "             correct value:" << dec << dbvalue << " inside database to inform all clients" << endl;
+			if(debug)
+				tout << "             correct value:" << dec << dbvalue
+						<< " inside database to inform all clients" << endl;
 #endif // __moreOutput
 
-			getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*update to old value*/true);
+			getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*update to old dValue*/true);
 		}
 #ifdef __moreOutput
-		cout << "       last state of value:" << dec << m_dValue;
-		if(m_bSwitch)
-			cout << " binary " << switchBinStr(m_dValue);
-		cout << endl;
-		cout << "-------------------------------------------------------------------" << endl;
+		if(debug)
+		{
+			tout << "       last state of value:" << dec << m_dValue.value;
+			if(m_bSwitch)
+				tout << " binary " << switchBinStr(m_dValue.value);
+			tout << endl;
+			tout << "-------------------------------------------------------------------" << endl;
+		}
 #endif // __moreOutput
 		UNLOCK(m_VALUELOCK);
 	}catch(SignalException& ex)
@@ -493,7 +511,7 @@ void portBase::setValue(ppi_value value, const string& from, ppi_time changed/*=
 		string err;
 		ostringstream msg;
 
-		msg << "set value " << value << " from " << from;
+		msg << "set value " << value.getValue() << " from " << from;
 		ex.addMessage(msg.str());
 		err= ex.getTraceString();
 		cerr << endl << err << endl;
@@ -506,44 +524,70 @@ void portBase::setValue(ppi_value value, const string& from, ppi_time changed/*=
 		}
 
 	}
-}
-
-bool portBase::setValue(const string& folder, const string& subroutine, double value, const string& account)
-{
-	string foldersub;
-	IListObjectPattern* port;
-
-	foldersub= folder + ":" + subroutine;
-	port= m_oLinkWhile.getSubroutine(foldersub, /*own folder*/true);
-	if(port == NULL)
+	// debug stopping
+/*	if(	getFolderName() == "power_switch" &&
+		getSubroutineName() == "port2set"		)
 	{
-		ostringstream msg;
-
-		msg << "cannot set value " << value << " into given ";
-		msg << "folder:subroutine " << foldersub << " ";
-		msg << "set from '" << account << "'";
-		TIMELOGEX(LOG_ERROR, "setValue"+folder+":"+subroutine, msg.str(),
-						getRunningThread()->getExternSendDevice());
-		return false;
-	}
-	port->setValue(value, "i:"+account);
-	return true;
+		cout << "stopping inside method setValue from subroutine"
+						<< getFolderName() << ":" << getSubroutineName() << endl;
+		cout << "value be set to " << m_dValue.value << " on " << m_dValue.lastChanging.toString(true) << endl;
+		cout << __FILE__ << __LINE__ << endl;
+	}*/
 }
 
-valueHolder_t portBase::getValue(const string& who)
+bool portBase::setValue(const string& folder, const string& subroutine,
+				const IValueHolderPattern& value, const string& account)
 {
+	ostringstream msg;
+	SHAREDPTR::shared_ptr<measurefolder_t> pFolder= m_pFolders;
+
+	while(pFolder && pFolder->name != folder)
+		pFolder= pFolder->next;
+	if(pFolder)
+	{
+		for(vector<sub>::iterator it= pFolder->subroutines.begin(); it != pFolder->subroutines.end(); ++it)
+		{
+			if(	it->bCorrect &&
+				it->name == subroutine	)
+			{
+				it->portClass->setValue(value, "e:"+account);
+				return true;
+			}
+		}
+	}
+	msg << "cannot set value " << value.getValue() << " into given '";
+	msg << folder << ":" << subroutine << "'" << endl;
+	msg << "because ";
+	if(pFolder == NULL)
+		msg << "folder";
+	else
+		msg << "subroutine";
+	msg << " can not be found" << endl;
+	msg << "set from '" << account << "'";
+	TIMELOGEX(LOG_ERROR, "setValue"+folder+":"+subroutine, msg.str(),
+					getRunningThread()->getExternSendDevice());
+	return false;
+}
+
+IValueHolderPattern& portBase::getValue(const string& who)
+{
+//#undef __moreOutput
 	short nValue;
-	valueHolder_t dValue;
 	map<string, short>::iterator found;
 
 	LOCK(m_VALUELOCK);
 #ifdef __moreOutput
-		cout << "-------------------------------------------------------------------" << endl;
-		cout << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
+	bool debug(isDebug());
+
+	if(debug)
+	{
+		tout << "-------------------------------------------------------------------" << endl;
+		tout << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
 		if(m_bSwitch)
-			cout << " defined for binary switch";
-		cout << endl;
-		cout << "        will be ask from '" << who << "'" << endl;
+			tout << " defined for binary switch";
+		tout << endl;
+		tout << "        will be ask from '" << who << "'" << endl;
+	}
 #endif // __moreOutput
 	if(	m_bSwitch &&
 		who.substr(0, 2) == "e:"	)
@@ -553,29 +597,32 @@ valueHolder_t portBase::getValue(const string& who)
 		if(found == m_mdValue.end())
 		{
 			m_mdValue[who]= nValue;
-			dValue= m_dValue;
+			m_oGetValue= m_dValue;
 
 		}else
 		{
 			if(nValue & 0b01)
-				dValue= m_dValue;
+				m_oGetValue= m_dValue;
 			else
 			{
-				dValue.value= static_cast<ppi_value>(found->second);
+				m_oGetValue.value= static_cast<ppi_value>(found->second);
 				found->second&= 0b01;
 			}
 		}
 	}else
-		dValue= m_dValue;
+		m_oGetValue= m_dValue;
 #ifdef __moreOutput
-	cout << " return value " << dValue;
-	if(m_bSwitch)
-		cout << " binary " << switchBinStr(dValue);
-	cout << endl;
-	cout << "-------------------------------------------------------------------" << endl;
+	if(debug)
+	{
+		tout << " return value " << m_oGetValue.value;
+		if(m_bSwitch)
+			cout << " binary " << switchBinStr(m_oGetValue.value);
+		tout << endl;
+		tout << "-------------------------------------------------------------------" << endl;
+	}
 #endif // __moreOutput
 	UNLOCK(m_VALUELOCK);
-	return dValue;
+	return m_oGetValue;
 }
 
 bool portBase::initLinks(const string& type, IPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
@@ -632,7 +679,7 @@ bool portBase::initLinks(const string& type, IPropertyPattern* properties, const
 	return bOk;
 }
 
-bool portBase::getLinkedValue(const string& type, valueHolder_t& val, const double& maxCountDownValue/*=0*/)
+bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double& maxCountDownValue/*=0*/)
 {
 	bool bOk, isdebug;
 	double lvalue, linkvalue;
@@ -779,7 +826,7 @@ bool portBase::getLinkedValue(const string& type, valueHolder_t& val, const doub
 							tout << "value was changed in own subroutine," << endl;
 							tout << "set foreign subroutine " << slink << " to " << dec << val.value << endl;
 						}
-						port->setValue(val.value, "i:"+foldersub, val.lastChanging);
+						port->setValue(val, "i:"+foldersub);
 						port->getRunningThread()->changedValue(slink, foldersub);
 					}else
 					{

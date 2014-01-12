@@ -27,6 +27,8 @@
 
 #include "../server/IClientSendMethods.h"
 
+#include "IPPIValuesPattern.h"
+
 
 namespace design_pattern_world
 {
@@ -245,7 +247,7 @@ namespace design_pattern_world
 				 * @param debug whether call run in debug session
 				 * @return longest measured length of folder time
 				 */
-				virtual timeval getLengthedTime(const bool& logPercent, const bool& debug)= 0;
+				virtual IPPITimePattern& getLengthedTime(const bool& logPercent, const bool& debug)= 0;
 				/**
 				 * length time of given map by actual CPU time.<br />
 				 * when get unset time back (<code>= !timerisset(<returnvalue>)</code>)
@@ -258,7 +260,7 @@ namespace design_pattern_world
 				 * @param debug whether call run in debug session
 				 * @return longest measured length of folder time
 				 */
-				virtual timeval getLengthedTime(timetype_t* timelength, short *percent,
+				virtual IPPITimePattern& getLengthedTime(timetype_t* timelength, short *percent,
 												const bool& logPercent, const bool& debug)= 0;
 				 /**
 				  * calculating length time for reached finished or starting late
@@ -270,7 +272,7 @@ namespace design_pattern_world
 				  * @param debug whether subroutine running inside debug session
 				  */
 				 virtual void calcLengthDiff(timetype_t* timelength,
-								 timeval length, const bool& debug)= 0;
+								 const IPPITimePattern& length, const bool& debug)= 0;
 				/**
 				 * set into given timetype the CPU times to begin measuring for <code>getCpuPercent</code>
 				 *
@@ -283,7 +285,7 @@ namespace design_pattern_world
 				 * @param time sleeping time
 				 * @return whether thread should stopping
 				 */
-				virtual bool usleep(timeval time)= 0;
+				virtual bool usleep(const IPPITimePattern& time)= 0;
 				/**
 				 * return actually count of current subroutine
 				 *
@@ -309,7 +311,7 @@ namespace design_pattern_world
 				 * @param folder name of folder
 				 * @param time next beginning run time
 				 */
-				virtual void nextActivateTime(const string& folder, const timeval& time)= 0;
+				virtual void nextActivateTime(const string& folder, const IPPITimePattern& time)= 0;
 				/**
 				 * searching where folder was starting from an specific time condition
 				 * and change starting time
@@ -318,15 +320,15 @@ namespace design_pattern_world
 				 * @param time next beginning run time
 				 * @param newtime new starting time
 				 */
-				virtual void changeActivationTime(const string& folder, const timeval& time,
-								const timeval& newtime)= 0;
+				virtual void changeActivationTime(const string& folder, const IPPITimePattern& time,
+								const IPPITimePattern& newtime)= 0;
 				/**
 				 * searching where folder was starting from an specific time condition and erase starting.
 				 *
 				 * @param folder name of folder
 				 * @param time next beginning run time
 				 */
-				virtual void eraseActivateTime(const string& folder, const timeval& time)= 0;
+				virtual void eraseActivateTime(const string& folder, const IPPITimePattern& time)= 0;
 				/**
 				 * subroutine signal whether can find the server for external measuring
 				 *

@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "../../util/GlobalStaticMethods.h"
+#include "../../util/stream/ppivalues.h"
 #include "../../util/stream/OMethodStringStream.h"
 #include "../../util/stream/IMethodStringStream.h"
 
@@ -228,7 +229,8 @@ namespace ppi_database
 		}
 	}
 
-	bool DbInterface::setValue(const string& folder, const string& subroutine, double value, const string& account)
+	bool DbInterface::setValue(const string& folder, const string& subroutine,
+					const IValueHolderPattern& value, const string& account)
 	{
 		int err;
 		string sRv;
@@ -236,7 +238,8 @@ namespace ppi_database
 
 		command << folder;
 		command << subroutine;
-		command << value;
+		command << value.getValue();
+		command << value.getTime();
 		command << account;
 		sRv= ExternClientInputTemplate::sendMethod("ProcessChecker", command, true);
 		err= error(sRv);

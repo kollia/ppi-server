@@ -193,7 +193,7 @@ bool ListCalculator::variable(const string& var, double& dResult)
 	vector<string> spl;
 	map<string, double>::iterator foundSub;
 	map<string, sub*>::iterator found;
-	valueHolder_t result;
+	ValueHolder result;
 
 	if(m_msSubVars.size())
 	{

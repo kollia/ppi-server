@@ -28,6 +28,7 @@
 
 #include "util/GlobalStaticMethods.h"
 
+#include "util/stream/ppivalues.h"
 #include "util/stream/IMethodStringStream.h"
 
 using namespace util;
@@ -64,15 +65,17 @@ int ProcessChecker::execute()
 		method == "changedChip"	)
 	{
 		bool bCorrect, device= true;
-		double value;
+		ValueHolder oValue;
 		string folder, subroutine;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
 		SHAREDPTR::shared_ptr<IListObjectPattern> port;
 
 		object >> folder;
 		object >> subroutine;
-		object >> value;
-		if(method == "changedChip")
+		object >> oValue.value;
+		if(method != "changedChip")
+			object >> oValue.lastChanging;
+		else
 			object >> device;
 		object >> from;
 		while(pCurMeas)
@@ -98,7 +101,7 @@ int ProcessChecker::execute()
 					cout << out.str();
 #endif // __DEBUGPROCESSGETCHANGES
 					port->setDeviceAccess(device);
-					port->setValue(value, "r:"+from);
+					port->setValue(oValue, "r:"+from);
 					pCurMeas->pMeasure->changedValue(folder, "||"+from);
 					m_sAnswer= "done";
 
@@ -108,7 +111,7 @@ int ProcessChecker::execute()
 					out << endl;
 					cout << out.str();
 #endif // __DEBUGPROCESSGETCHANGES
-					port->setValue(value, "e:"+from);
+					port->setValue(oValue, "e:"+from);
 					m_sAnswer= "done";
 
 				}else
@@ -128,7 +131,7 @@ int ProcessChecker::execute()
 	}else if(method == "getValue")
 	{
 		bool bCorrect;
-		valueHolder_t value;
+		ValueHolder value;
 		string folder, subroutine, account;
 		ostringstream sval;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;

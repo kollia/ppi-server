@@ -27,13 +27,9 @@
 
 namespace ports
 {
-	class ValueHolder : public portBase
+	class ValueHolderSubroutine : public portBase
 	{
 	private:
-		/**
-		 * value from last pass
-		 */
-		double m_dLastValue;
 		/**
 		 * minimal value of holdet value
 		 */
@@ -82,14 +78,13 @@ namespace ports
 
 	public:
 		/**
-		 * create object of class ValueHolder
+		 * create object of class ValueHolderSubroutine
 		 *
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
 		 */
-		ValueHolder(const string& folderName, const string& subroutineName)
+		ValueHolderSubroutine(const string& folderName, const string& subroutineName)
 		: portBase("VALUE", folderName, subroutineName),
-		  m_dLastValue(0),
 		  m_bSetValueObserver(false),
 		  m_poObserver(NULL),
 		  m_nValueObserver(-1),
@@ -98,16 +93,15 @@ namespace ports
 		  m_OBSERVERVALUEMUTEX(Thread::getMutex("OBSERVERVALUEMUTEX"))
 		{ };
 		/**
-		 * create object of class ValueHolder.<br />
+		 * create object of class ValueHolderSubroutine.<br />
 		 * Constructor for an extendet object
 		 *
 		 * @param type type of object from extendet class
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
 		 */
-		ValueHolder(string type, string folderName, string subroutineName)
+		ValueHolderSubroutine(string type, string folderName, string subroutineName)
 		: portBase(type, folderName, subroutineName),
-		  m_dLastValue(0),
 		  m_bSetValueObserver(false),
 		  m_poObserver(NULL),
 		  m_nValueObserver(-1),
@@ -115,7 +109,7 @@ namespace ports
 		  m_oWhile(folderName, subroutineName, "while", false, false)
 		{ };
 		/**
-		 * initialing object of ValueHolder
+		 * initialing object of ValueHolderSubroutine
 		 *
 		 * @param properties the properties in file measure.conf
 		 * @param pStartFolder reference to all folder
@@ -136,7 +130,7 @@ namespace ports
 		 * @param actValue current value
 		 * @return return measured value with last changed time
 		 */
-		virtual valueHolder_t measure(const double actValue);
+		virtual IValueHolderPattern& measure(const ppi_value& actValue);
 		/**
 		 * get value from subroutine
 		 *
@@ -144,18 +138,17 @@ namespace ports
 		 * 				This time only defined for external reading over OwPort's.
 		 * @return current value
 		 */
-		virtual valueHolder_t getValue(const string& who);
+		virtual IValueHolderPattern& getValue(const string& who);
 		/**
 		 * set value in subroutine.<br />
 		 * All strings from parameter 'from' beginning with an one character type,
 		 * followed from an colon 'r:' by ppi-reader, 'e:' by an account connected over Internet
 		 * or 'i:' by intern folder:subroutine.
 		 *
-		 * @param value value which should be set
+		 * @param value value which should be set with last changing time when set, otherwise method create own time
 		 * @param who which folder:subroutine or account changing the value
-		 * @param changed last changing time when set, otherwise method create own time
 		 */
-		virtual void setValue(const double value, const string& who, ppi_time changed= ppi_time());
+		virtual void setValue(const IValueHolderPattern& value, const string& who);
 		/**
 		 * calculate while string and set to value result or content of parameter content if exist.<br/>
 		 * Method write error or warning string into log-file and on command line if debug flag be set
@@ -171,7 +164,7 @@ namespace ports
 		 */
 		bool getWhileStringResult(const string& folder, const string& subroutine,
 									ListCalculator& oWhile, vector<ListCalculator*>& content,
-									const double defaultVal, valueHolder_t& value, const bool debug);
+									const double defaultVal, ValueHolder& value, const bool debug);
 		/**
 		 * set subroutine for output doing actions
 		 *
@@ -181,7 +174,7 @@ namespace ports
 		/**
 		 * destruktor to delete objects of m_vpoValues and m_vpoLists
 		 */
-		virtual ~ValueHolder();
+		virtual ~ValueHolderSubroutine();
 
 	protected:
 		/**

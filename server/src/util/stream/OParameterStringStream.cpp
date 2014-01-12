@@ -221,8 +221,10 @@ OParameterStringStream* OParameterStringStream::operator << (string value)
 	return this;
 }
 
-OParameterStringStream* OParameterStringStream::operator << (string* value)
+OParameterStringStream* OParameterStringStream::operator << (const string* const value)
 {
+	string str;
+
 	if(!m_sStream.eof())
 		m_sStream << " ";
 	if(value == NULL)
@@ -230,10 +232,27 @@ OParameterStringStream* OParameterStringStream::operator << (string* value)
 		m_sStream << "NULL";
 		return this;
 	}
-	replace_all(*value, "\n", "\\n");
-	replace_all(*value, "\"", "\\\"");
-	replace_all(*value, "\\", "\\\\");
-	m_sStream << "\"" << *value << "\" ";
+	str= *value;
+	replace_all(str, "\n", "\\n");
+	replace_all(str, "\"", "\\\"");
+	replace_all(str, "\\", "\\\\");
+	m_sStream << "\"" << str << "\" ";
+	return this;
+}
+
+OParameterStringStream* OParameterStringStream::operator << (const IPPITimePattern& time)
+{
+	if(!m_sStream.eof())
+		m_sStream << " ";
+	m_sStream << time.toString(/*as date*/false);
+	return this;
+}
+
+OParameterStringStream* OParameterStringStream::operator << (const IPPITimePattern* const ptime)
+{
+	if(!m_sStream.eof())
+		m_sStream << " ";
+	m_sStream << ptime->toString(/*as date*/false);
 	return this;
 }
 

@@ -135,12 +135,11 @@ TimeMeasure::~TimeMeasure()
 	//setPin(m_tOut, false);
 }
 
-valueHolder_t TimeMeasure::measure(const double actValue)
+IValueHolderPattern& TimeMeasure::measure(const ppi_value& actValue)
 {
 	char buf[150];
 	string msg;
 	unsigned long nLightValue= getMeasuredTime();
-	valueHolder_t oRv;
 
 	if(isDebug())
 	{
@@ -151,8 +150,8 @@ valueHolder_t TimeMeasure::measure(const double actValue)
 		TIMELOG(LOG_INFO, getFolderName(), msg);
 		tout << msg << endl;
 	}
-	oRv.value= (double)nLightValue;
-	return oRv;
+	m_oMeasureValue.value= (double)nLightValue;
+	return m_oMeasureValue;
 }
 
 unsigned long TimeMeasure::getMeasuredTime()

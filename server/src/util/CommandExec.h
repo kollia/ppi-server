@@ -65,7 +65,8 @@ public:
 	 *               object from the last pass
 	 * @param command script or command to writing on shell
 	 * @param result output result of command
-	 * @param more returning whether method has more result content for the next time
+	 * @param more whether subroutine should be set to 0 when no shell command starting
+	 *             and returning whether method has more result content for the next time
 	 * @param wait whether method should wait for result of command
 	 * @param block whether method should'nt wait for result of command,
 	 *              but shown every next pass when not ending between
@@ -119,6 +120,14 @@ public:
 	 */
 	void setFor(const string& folder, const string& subroutine)
 	{ m_sFolder= folder; m_sSubroutine= subroutine; };
+	/**
+	 * set new value inside folder list
+	 *
+	 * @param command string beginning with 'PPI-SET' getting from output on SHELL
+	 * @param bLog whether errors should be written inside output queue
+	 * @return whether method can reading correctly given command from SHELL
+	 */
+	bool setValue(const string& command, bool bLog);
 	/**
 	 * set map of all last written values inside folder list
 	 *
@@ -280,13 +289,14 @@ private:
 	 */
 	void readLine(const bool& bWait, const bool& bDebug, string sline);
 	/**
-	 * set new value inside folder list
+	 * define error from method setValue
+	 * into result and when allowed to write into log files
+	 * also for logging queue
 	 *
-	 * @param command string beginning with 'PPI-SET' getting from output on SHELL
-	 * @param bLog whether errors should be written inside output queue
-	 * @return whether method can reading correctly given command from SHELL
+	 * @param command defined shell command
+	 * @param msg included error message when set
 	 */
-	void setValue(const string& command, bool bLog);
+	void defSetError(const string& command, const string& msg);
 	/**
 	 * This method will be called if any other or own thread
 	 * calling method stop().

@@ -28,6 +28,8 @@
 #include "../util/thread/Terminal.h"
 #include "../util/CalculatorContainer.h"
 
+#include "../util/stream/ppivalues.h"
+
 using namespace std;
 
 /**

@@ -205,6 +205,12 @@ namespace ports
 			else if(sline == "nodebug")
 				debug= false;
 		}
+		// incoming more is for set subroutine to 0 when
+		// no shell command be starting (no ERROR)
+		if(!wait)
+			more= !pSub->haveAction("last");
+		else
+			more= false;
 		if(block == false)
 		{
 			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
