@@ -56,19 +56,19 @@ int main(int argc, char* argv[])
 					"(when none of this option be set, also folder configuration will be displayed)");
 	params.option("nodbbegintime", "n", "do not read beginning time from database for subroutines with type TIME\n"
 					"which normally saved as:\n"
-					" - \"|folder|<folder>|runnlength|\"     for 2/3 longest folder run time\n"
+					" - \"|folder|<folder>|runlength|\"      for 7/8 longest folder run time\n"
 					" - \"|folder|<folder>|maxcount|\"       measure 'runnlength' always by this maximal count\n"
 					"                                      to write into database\n"
-					" - \"|<folder>|<subroutine>|reachlate\" for middle length of reaching late finish-position\n"
+					" - \"|<folder>|<subroutine>|reachend\"  for middle length of reaching late finish-position\n"
 					" - \"|<folder>|<subroutine>|maxcount\"  measure 'reachlate' always by this maximal count\n"
 					"                                      to write into database\n"
 					"and set this values inside database to 0");
 	params.option("timerdblog", "t", "logging inside database currently reach info for subroutines with type TIME\n"
-					" - by which cpu percent taking 'runnlength' time as \"|<folder>|<subroutine>|runpercent|\"\n"
-					" - and cpu percent taking estimated finish time 'reachend' as \"|<folder>|<subroutine>|reachpercent|\"\n"
-					" - when starting time of subroutine was to late as \"|<folder>|<subroutine>|startlate|\"\n"
-					" - reach currently late finish-position as \"|<folder>|<subroutine>|reachlate\"\n"
-					" - and wrong difference to reach finish-position dependent to 'reachend' as \"|<folder>|<subroutine>|wrongreach\"");
+					" - \"|<folder>|<subroutine>|runpercent|\"    by which cpu percent taking 'runlength' time\n"
+					" - \"|<folder>|<subroutine>|reachpercent|\"  cpu percent taking estimated finish time 'reachend'\n"
+					" - \"|<folder>|<subroutine>|startlate|\"     when starting time of subroutine was to late\n"
+					" - \"|<folder>|<subroutine>|reachlate\"      reach currently late finish-position\n"
+					" - \"|<folder>|<subroutine>|wrongreach\"     wrong difference to reach finish-position dependent to 'reachend'");
 	params.option("folderdebug", "d", true, "debugging from begin the following <folder>[:<subroutine>]\n"
 					               "also more subroutines can be given separated with an comma inside quotes\n"
 					               "('<folder>[:<subroutine>], <folder>[:<subroutine>]')");
