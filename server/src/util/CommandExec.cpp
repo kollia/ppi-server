@@ -620,8 +620,11 @@ int CommandExec::execute()
 				nRv != 0			)	// 0 is no error so running command was send by starting of shell script
 			{
 				ostringstream setErrorlevel;
+				ppi_time acttime;
 
 				setErrorlevel << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
+				if(acttime.setActTime())
+					setErrorlevel << "-t " << acttime.toString(/*as date*/false) << " ";
 				setErrorlevel << nRv;
 				setValue(setErrorlevel.str(), bDebug);
 			}
@@ -1156,8 +1159,8 @@ bool CommandExec::setValue(const string& command, bool bLog)
 				{
 					nLen= static_cast<int>(powf(10, static_cast<float>(nLen * -1)));
 					value.lastChanging.tv_usec= tv_nsec *  nLen;
-					cout << "define nanoseconds " << fixed << tv_nsec << " * " << nLen
-									<< "= " << value.lastChanging.tv_usec << endl;
+					/*cout << "define nanoseconds " << fixed << tv_nsec << " * " << nLen
+									<< "= " << value.lastChanging.tv_usec << endl;*/
 
 				}else // tv_nsec has the same length
 					value.lastChanging.tv_usec= tv_nsec;
@@ -1227,10 +1230,8 @@ bool CommandExec::setValue(const string& command, bool bLog)
 	if(	bwrite &&
 		!stopping()	)
 	{
-		cout << "try to SET " << spl[0] << ":" << spl[1] << " " << fixed << value.value
-						<< " on " << value.lastChanging.toString(true) << endl;
-		if(!value.lastChanging.isSet())
-			cout << "set NULL" << endl;
+	/*	cout << "try to SET " << spl[0] << ":" << spl[1] << " " << fixed << value.value
+						<< " on " << value.lastChanging.toString(true) << endl;*/
 		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
 		{
 			defSetError(command, "cannot write correctly PPI-SET command over interface to folder-list");
