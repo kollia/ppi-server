@@ -181,14 +181,14 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 				msg+= getSubroutineName();
 				TIMELOG(LOG_ERROR, "switchresolve"+getFolderName()+getSubroutineName()+"begin", msg);
 				if(debug)
-					cerr << endl << "### ERROR: " << msg.substr(11) << endl;
+					out() << endl << "### ERROR: " << msg.substr(11) << endl;
 
 			}else if(dResult > 0 || dResult < 0)
 			{
-				m_oMeasureValue.lastChanging= m_oBegin.getLastChanging();
 				bSwitched= true;
 				set= BEGIN;
 			}
+			m_oMeasureValue.lastChanging= m_oBegin.getLastChanging();
 			if(newValue)
 				m_oBegin.setSubVar(subroutine, nullValue);
 		}
@@ -211,14 +211,14 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 				msg+= getSubroutineName();
 				TIMELOG(LOG_ERROR, "switchresolve"+getFolderName()+getSubroutineName()+"end", msg);
 				if(debug)
-					cerr << endl << "### ERROR: " << msg.substr(11) << endl;
+					out() << endl << "### ERROR: " << msg.substr(11) << endl;
 
 			}else if(dResult > 0 || dResult < 0)
 			{
-				m_oMeasureValue.lastChanging= m_oEnd.getLastChanging();
 				bSwitched= false;
 				set= END;
 			}
+			m_oMeasureValue.lastChanging= m_oEnd.getLastChanging();
 			if(newValue)
 				m_oEnd.setSubVar(subroutine, nullValue);
 		}
@@ -238,14 +238,13 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 				msg+= getSubroutineName();
 				TIMELOG(LOG_ERROR, "switchresolve"+getFolderName()+getSubroutineName()+"while", msg);
 				if(debug)
-					cerr << endl << "### ERROR: " << msg.substr(11) << endl;
+					out() << endl << "### ERROR: " << msg.substr(11) << endl;
 
 			}else if(dResult > 0 || dResult < 0)
-			{
 				bSwitched= true;
-				m_oMeasureValue.lastChanging= m_oWhile.getLastChanging();
-			}else
+			else
 				bSwitched= false;
+			m_oMeasureValue.lastChanging= m_oWhile.getLastChanging();
 			set= WHILE;
 			if(newValue)
 				m_oWhile.setSubVar(subroutine, nullValue);
