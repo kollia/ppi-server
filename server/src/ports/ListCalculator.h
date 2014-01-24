@@ -215,6 +215,10 @@ protected:
 	 * @param whether found correct variable
 	 */
 	virtual bool variable(const string& var, double& dResult);
+	/**
+	 * clear time of last changes
+	 */
+	void clearTime();
 };
 
 #endif /*PORTCALCULATOR_H_*/

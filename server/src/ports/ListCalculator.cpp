@@ -85,9 +85,23 @@ bool ListCalculator::render()
 	return bRv;
 }
 
+void ListCalculator::clearTime()
+{
+	ListCalculator* container;
+	vector<ICalculatorPattern*> childs;
+
+	m_nLastChange.clear();
+	childs= getChilds();
+	for(vector<ICalculatorPattern*>::iterator it= childs.begin(); it != childs.end(); ++it)
+	{
+		container= dynamic_cast<ListCalculator*>(*it);
+		container->clearTime();
+	}
+}
+
 bool ListCalculator::calculate(double& dResult)
 {
-	m_nLastChange= ppi_time();
+	clearTime();
 	return CalculatorContainer::calculate(dResult);
 }
 
@@ -185,6 +199,22 @@ sub* ListCalculator::getSubroutinePointer(const string& var, bool own)
 
 ppi_time ListCalculator::getLastChanging()
 {
+	ppi_time lastChange;
+	ListCalculator* container;
+	vector<ICalculatorPattern*> childs;
+
+	childs= getChilds();
+	for(vector<ICalculatorPattern*>::iterator it= childs.begin(); it != childs.end(); ++it)
+	{
+		container= dynamic_cast<ListCalculator*>(*it);
+		lastChange= container->getLastChanging();
+		if(	lastChange.isSet() &&
+			(	lastChange > m_nLastChange ||
+				!m_nLastChange.isSet()			)	)
+		{
+			m_nLastChange= lastChange;
+		}
+	}
 	return m_nLastChange;
 }
 
@@ -220,8 +250,12 @@ bool ListCalculator::variable(const string& var, double& dResult)
 			if(oSub->bCorrect)
 			{
 				result= oSub->portClass->getValue("i:"+m_sFolder);
-				if(result.lastChanging > m_nLastChange)
+				if(	result.lastChanging.isSet() &&
+					(	result.lastChanging > m_nLastChange ||
+						!m_nLastChange.isSet()					)	)
+				{
 					m_nLastChange= result.lastChanging;
+				}
 				dResult= result.value;
 				return true;
 			}
@@ -229,8 +263,12 @@ bool ListCalculator::variable(const string& var, double& dResult)
 	}else if(found->second->bCorrect)
 	{
 		result= found->second->portClass->getValue("i:"+m_sFolder);
-		if(result.lastChanging > m_nLastChange)
+		if(	result.lastChanging.isSet() &&
+			(	result.lastChanging > m_nLastChange ||
+				!m_nLastChange.isSet()					)	)
+		{
 			m_nLastChange= result.lastChanging;
+		}
 		dResult= result.value;
 		return true;
 	}
