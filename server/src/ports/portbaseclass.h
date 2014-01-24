@@ -22,6 +22,7 @@
 #include <map>
 
 #include "../util/debug.h"
+#include "../util/debugsubroutines.h"
 #include "../util/structures.h"
 
 #include "../util/stream/ppivalues.h"
@@ -232,6 +233,10 @@ namespace ports
 			 * @return binary string
 			 */
 			string switchBinStr(double value);
+			/**
+			 * stream object to writing into terminal for output on command line
+			 */
+			ostringstream m_sStreamObj;
 
 
 		public:
@@ -343,6 +348,18 @@ namespace ports
 			 * @return whether subroutine do output
 			 */
 			virtual bool isDebug();
+			/**
+			 * returning ostringstream object which should written on right time
+			 * by next pass into Terminal for output on command line
+			 *
+			 * @return string stream for writing by next pass
+			 */
+			virtual ostringstream& out();
+			/**
+			 * writing into string stream into terminal
+			 * when definition WRITEDEBUGALLLINES not be set
+			 */
+			virtual void writeDebugStream();
 			/**
 			 * returning the type of the current object
 			 *

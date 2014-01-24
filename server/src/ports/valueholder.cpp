@@ -69,7 +69,7 @@ namespace ports
 
 				vl << "value[" << i << "]";
 				sValue= properties->getValue("value", i, /*warning*/true);
-				m_vpoValues.push_back(new ListCalculator(folder, subroutine, vl.str(), true, false));
+				m_vpoValues.push_back(new ListCalculator(folder, subroutine, vl.str(), true, false, this));
 				calc= m_vpoValues.back();
 				if(!calc->init(pStartFolder, sValue))
 					bOk= false;
@@ -181,18 +181,18 @@ namespace ports
 		if(getLinkedValue("VALUE", m_oMeasureValue))
 		{
 			if(isdebug)
-				tout << "VALUE be set from foreign subroutine to " << dec << m_oMeasureValue.value << endl;
+				out() << "VALUE be set from foreign subroutine to " << dec << m_oMeasureValue.value << endl;
 
 		}else
 		{
 			if(isdebug)
 			{
 				if(bChanged)
-					tout << "new value " << dec << m_oMeasureValue.value << " be changed from own subroutine" << endl;
+					out() << "new value " << dec << m_oMeasureValue.value << " be changed from own subroutine" << endl;
 				else if(bOutside)
-					tout << "own value was changed from outside to value " << dec << m_oMeasureValue.value << endl;
+					out() << "own value was changed from outside to value " << dec << m_oMeasureValue.value << endl;
 				else
-					tout << "current value is " << dec << m_oMeasureValue.value << endl;
+					out() << "current value is " << dec << m_oMeasureValue.value << endl;
 			}
 		}
 		return m_oMeasureValue;
@@ -287,9 +287,9 @@ namespace ports
 				UNLOCK(m_OBSERVERVALUEMUTEX);
 				if(debug)
 				{
-					tout << "select " << dec << count+1 << ". string from value parameters" << endl;
+					out() << "select " << dec << count+1 << ". string from value parameters" << endl;
 					for(vector<ListCalculator*>::const_iterator it= content.begin(); it != content.end(); ++it)
-						tout << "               " << (*it)->getStatement() << endl;
+						out() << "               " << (*it)->getStatement() << endl;
 				}
 				if(!content[count]->calculate(ovalue.value))
 				{
@@ -305,11 +305,11 @@ namespace ports
 					TIMELOG(LOG_WARNING, def.str(), msg.str());
 					ovalue.value= defaultVal;
 					if(debug)
-						tout << "### WARNING: " << msg.str() << endl;
+						out() << "### WARNING: " << msg.str() << endl;
 				}else
 					ovalue.lastChanging= content[count]->getLastChanging();
 				if(debug)
-					tout << "value be set from value paramter to " << ovalue.value << endl;
+					out() << "value be set from value paramter to " << ovalue.value << endl;
 			}else
 			{// no value parameter exists, so take while result
 				ovalue.value= rvalue;
@@ -324,7 +324,7 @@ namespace ports
 			msg+= "' in folder " + folder + " and subroutine " + subroutine;
 			TIMELOG(LOG_ERROR, "ValueHoldeCalc"+folder+":"+subroutine, msg);
 			if(debug)
-				tout << "### ERROR: " << msg << endl;
+				out() << "### ERROR: " << msg << endl;
 			ovalue.value= defaultVal;
 			return false;
 		}

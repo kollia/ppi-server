@@ -43,12 +43,12 @@ namespace ports
 		LircPort(string type, string folder, string subroutine) :
 			ExternPort(type, folder, subroutine),
 			m_bONCE(false),
-			m_oCount(folder, subroutine, "count", true, false)
+			m_oCount(folder, subroutine, "count", true, false, this)
 #ifdef DEBUG_ACTIVATEDLIRCOUTPUT
 		,m_bWritten(false)
 		,m_bPressed(false)
-		,after(folder, subroutine, "after", true, false)
-		,digits(folder, subroutine, "digits", true, false)
+		,after(folder, subroutine, "after", true, false, this)
+		,digits(folder, subroutine, "digits", true, false, this)
 #endif // DEBUG_ACTIVATEDLIRCOUTPUT
 		{ };
 		/**

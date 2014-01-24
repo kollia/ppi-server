@@ -33,6 +33,7 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include "../util/debug.h"
+#include "../util/debugsubroutines.h"
 #include "../util/exception.h"
 #include "../util/thread/Terminal.h"
 
@@ -50,11 +51,6 @@ using namespace ppi_database;
 using namespace boost;
 using namespace boost::algorithm;
 
-// output on command line also this statistics
-// to calculate middle length of folder or reach finish
-// when definition __showStatitic be defined and debug set
-//#define __showStatistic
-
 SHAREDPTR::shared_ptr<meash_t> meash_t::firstInstance= SHAREDPTR::shared_ptr<meash_t>();
 string meash_t::clientPath= "";
 
@@ -68,7 +64,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 				const SHAREDPTR::shared_ptr<measurefolder_t> pFolderStart,
 				const time_t& nServerSearch, bool bNoDbRead, short folderCPUtime)
 : Thread(threadname, true),
-  m_oRunnThread(threadname, "parameter_run", "run", false, true),
+  m_oRunnThread(threadname, "parameter_run", "run", false, true, pFolderStart->subroutines[0].portClass.get()),
   m_oInformer(threadname, this),
   m_oDbFiller(threadname)
 {
@@ -929,6 +925,8 @@ int MeasureThread::execute()
 		ostringstream out;
 		string msg("### DEBUGGING for folder ");
 
+		if(folder == "")
+			folder= getFolderName();
 		msg+= folder + " is aktivated!";
 		TIMELOG(LOG_INFO, folder, msg);
 
@@ -1233,7 +1231,7 @@ bool MeasureThread::measure()
 					tv_end= tv_start - tv;
 					out << " (" << getTimevalString(tv_end, /*as date*/false, /*debug*/true) << ")" << endl;
 				}
-				tout << out.str();
+				it->portClass->out() << out.str();
 			}
 			try{
 				result= it->portClass->measure(oldResult.value);
@@ -1318,15 +1316,16 @@ bool MeasureThread::measure()
 				}
 				if(modified != "")
 					out << "            was last modified by " << modified << endl;
-				tout << out.str();
+				it->portClass->out() << out.str();
 			}
 
 
 		}else if(debug)
-			tout << "Subroutine " << it->name << " is not correct initialized" << endl;
+			it->portClass->out() << "Subroutine " << it->name << " is not correct initialized" << endl;
 		if(classdebug)
 		{
-			tout << "--------------------------------------------------------------------\n";
+			it->portClass->out() << "--------------------------------------------------------------------\n";
+			it->portClass->writeDebugStream();
 			TERMINALEND;
 		}
 		if(stopping())
@@ -1543,6 +1542,11 @@ IPPITimePattern& MeasureThread::getLengthedTime(const bool& logPercent, const bo
 IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *percent,
 										const bool& logPercent, const bool& debug)
 {
+#ifdef __showStatistic
+#ifndef __WRITEDEBUGALLLINES
+	ostringstream& termout(*Terminal::instance()->out());
+#endif // __WRITEDEBUGALLLINES
+#endif // __showStatistic
 	short nPercent(100);
 	int prev_idle, prev_total;
 	double dRv;
@@ -1550,6 +1554,17 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 	map<short, timeLen_t>* nearestPercentDiff(NULL);
 	map<short, timeLen_t>::const_iterator it, last;
 
+#ifdef __showStatistic
+	if(debug)
+	{
+		termout << "----------------------------------------------------------" << endl;
+		termout << " ---   get calculation of time length for ";
+		if(timelength->runlength)
+			termout << "runlength   --- " << endl;
+		else
+			termout << "reachend    --- " << endl;
+	}
+#endif // __showStatistic
 	percentDiff= getPercentDiff(timelength, nearestPercentDiff, debug);
 	if(	percentDiff->size() == 0 &&
 		nearestPercentDiff != NULL	)
@@ -1568,7 +1583,7 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 
 #ifdef __showStatistic
 	if(debug)
-		tout << "      percentDiff has " << percentDiff->size()
+		termout << "      percentDiff has " << percentDiff->size()
 					<< " different percent calculations" << endl;
 #endif // __showStatistic
 
@@ -1578,14 +1593,14 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 #ifdef __showStatistic
 		if(debug)
 		{
-			tout << "      found " << it->first << "% with act " << it->second.dbValue << " read " <<
+			termout << "      found " << it->first << "% with act " << it->second.dbValue << " read " <<
 											it->second.readValue;
 			if(	!timelength->runlength &&
 				timelength->synchroID == ""	)
 			{
-				tout << " for running folders " << timelength->synchroID;
+				termout << " for running folders " << timelength->synchroID;
 			}
-			tout << endl;
+			termout << endl;
 		}
 #endif // __showStatistic
 
@@ -1602,9 +1617,9 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 #ifdef __showStatistic
 			if(debug)
 			{
-				tout << "     return time " << dRv;
-				tout << " from " << it->first << "% for " << nPercent << "%";
-				tout << endl;
+				termout << "     return time " << dRv;
+				termout << " from " << it->first << "% for " << nPercent << "%";
+				termout << endl;
 			}
 #endif // __showStatistic
 			break;
@@ -1624,11 +1639,11 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 #ifdef __showStatistic
 			if(debug)
 			{
-				tout << "     return last time " << dRv;
+				termout << "     return last time " << dRv;
 				if(timelength->runlength)
-					tout << " as 10% more";
-				tout << " from " << last->first << "% for " << nPercent << "%";
-				tout << endl;
+					termout << " as 10% more";
+				termout << " from " << last->first << "% for " << nPercent << "%";
+				termout << endl;
 			}
 #endif // __showStatistic
 
@@ -1638,7 +1653,7 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 			dRv= 0;
 #ifdef __showStatistic
 			if(debug)
-				tout << "     return 0 time for " << nPercent
+				termout << "     return 0 time for " << nPercent
 							<< "% because no saved value exists" << endl;
 #endif // __showStatistic
 		}
@@ -1673,12 +1688,16 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 
 #ifdef __showStatistic
 		if(debug)
-			tout << "     convert returning percent to " << *percent << "% for next calculation" << endl;
+			termout << "     convert returning percent to " << *percent << "% for next calculation" << endl;
 #endif // __showStatistic
 
 	}else
 		*percent= nPercent;
 	m_oInsideTime= calcResult(dRv, /*seconds*/false);
+#ifdef __showStatistic
+	if(debug)
+		termout << "----------------------------------------------------------" << endl;
+#endif // __showStatistic
 	return m_oInsideTime;
 }
 
@@ -1753,6 +1772,11 @@ map<short, IMeasurePattern::timeLen_t>* MeasureThread::getPercentDiff(timetype_t
 void MeasureThread::calcLengthDiff(timetype_t *timelength,
 				const IPPITimePattern& length, const bool& debug)
 {
+#ifdef __showStatistic
+#ifndef __WRITEDEBUGALLLINES
+	ostringstream& termout(*Terminal::instance()->out());
+#endif // __WRITEDEBUGALLLINES
+#endif // __showStatistic
 	bool bSave(false);
 	short nPercent;
 	int prev_idle, prev_total;
@@ -1761,7 +1785,23 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 	map<short, timeLen_t>* percentDiff;
 	map<short, timeLen_t>* nearestPercentDiff(NULL);
 	map<short, timeLen_t>::iterator it;
+	/**
+	 * calculate runlength always by this count
+	 * of lengths value
+	 */
+	const short runlengthCount(3);
 
+#ifdef __showStatistic
+	if(debug)
+	{
+		termout << "------------------------------------------------------" << endl;
+		termout << " ---   calculation of time length for ";
+		if(timelength->runlength)
+			termout << "runlength   --- " << endl;
+		else
+			termout << "reachend    --- " << endl;
+	}
+#endif // __showStatistic
 	percentDiff= getPercentDiff(timelength, nearestPercentDiff, debug);
 	prev_idle= timelength->prev_idle;
 	prev_total= timelength->prev_total;
@@ -1787,13 +1827,13 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 #ifdef __showStatistic
 			if(debug)
 			{
-				tout << "     create new object for " << nPercent << "%";
+				termout << "     create new object for " << nPercent << "%";
 				if(	!timelength->runlength &&
 					timelength->synchroID != ""	)
 				{
-					tout << " by running folders " << timelength->synchroID;
+					termout << " by running folders " << timelength->synchroID;
 				}
-				tout << endl;
+				termout << endl;
 			}
 #endif // __showStatistic
 
@@ -1873,36 +1913,36 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 #ifdef __showStatistic
 		if(	debug &&
 			timelength->runlength &&
-			timevec->read < timelength->maxVal	)
+			timevec->read < runlengthCount	)
 		{
-			tout << "  >> calculate 7/8 length for " << timevec->stype << " "
+			termout << "  >> calculate 7/8 length for " << timevec->stype << " "
 							<< timevec->read << ". value";
 			if(	!timelength->runlength &&
 				timelength->synchroID != ""	)
 			{
-				tout << " by running folders " << timelength->synchroID;
+				termout << " by running folders " << timelength->synchroID;
 			}
-			tout << endl;
-			tout << "     read " << value << " actual ";
+			termout << endl;
+			termout << "     read " << value << " actual ";
 			if(timelength->runlength)
-				tout << "7/8 ";
+				termout << "7/8 ";
 			else
-				tout << "middle ";
-			tout << "value is " << timevec->readValue << " by "
+				termout << "middle ";
+			termout << "value is " << timevec->readValue << " by "
 							<< timevec->maxRadCount << " count" << endl;
-			tout << "     calculated actual ";
+			termout << "     calculated actual ";
 			if(timelength->runlength)
-				tout << "7/8 length of folder running ";
+				termout << "7/8 length of folder running ";
 			else
-				tout << "middle length of reaching result ";
-			tout << "is " << timevec->actValue << ", last written into db " << timevec->dbValue << endl;
+				termout << "middle length of reaching result ";
+			termout << "is " << timevec->actValue << ", last written into db " << timevec->dbValue << endl;
 		}
 #endif // __showStatistic
 
 	// nPercent is now percent inside reachedPercent map
 	// ----------------------------------------------------------------
 		if(	!timelength->runlength ||
-			timevec->read >= timelength->maxVal	)
+			timevec->read >= runlengthCount	)
 		{
 			++timevec->count;
 			nPercent= 100 / timevec->dbValue * timevec->readValue - 100;
@@ -1910,8 +1950,8 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 #ifdef __showStatistic
 			if(debug)
 			{
-				tout << "  >> calculate percent position for " << timevec->stype << endl;
-				tout << "  >> 100 / " << timevec->dbValue << " * " << timevec->readValue
+				termout << "  >> calculate percent position for " << timevec->stype << endl;
+				termout << "  >> 100 / " << timevec->dbValue << " * " << timevec->readValue
 								<< " - 100 = " << nPercent << " = ";
 			}
 #endif // __showStatistic
@@ -1922,7 +1962,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 
 #ifdef __showStatistic
 			if(debug)
-				tout << nPercent << "%" << endl;
+				termout << nPercent << "%" << endl;
 #endif // __showStatistic
 
 			if(timevec->reachedPercent->find(nPercent) != timevec->reachedPercent->end())
@@ -1974,16 +2014,16 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 				for(map<short, pair<short, double> >::iterator it= timevec->reachedPercent->begin();
 								it != timevec->reachedPercent->end(); ++it							)
 				{
-					tout << "       " << it->second.first << " values are " << it->first << "%"
+					termout << "       " << it->second.first << " values are " << it->first << "%"
 									<< " value " << it->second.second << endl;
 				}
 				if(timevec->count < timevec->maxCount)
 				{
-					tout << "     making new actual value for DB after "
+					termout << "     making new actual value for DB after "
 						<< timevec->maxCount - timevec->count
 						<< " calculation" << endl;
 				}else
-					tout << "     check now after " << timevec->count << " calculations" << endl;
+					termout << "     check now after " << timevec->count << " calculations" << endl;
 			}
 #endif // __showStatistic
 
@@ -2049,7 +2089,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 				else
 					out << "the average";
 				out << " (" << timevec->actValue << ")" << endl;
-				tout << out.str();
+				termout << out.str();
 			}
 #endif // __showStatistic
 
@@ -2069,7 +2109,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 					out << "value";
 					out << " of " << nPercent << "%";
 					out << endl;
-					tout << out.str();
+					termout << out.str();
 				}
 #endif // __showStatistic
 
@@ -2096,7 +2136,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 
 #ifdef __showStatistic
 								if(debug)
-									tout << "       set by " << nPercent << "% value of "
+									termout << "       set by " << nPercent << "% value of "
 																<< it->second.second << endl;
 #endif // __showStatistic
 
@@ -2105,7 +2145,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 								{// when two keys has the same percent value merge them
 #ifdef __showStatistic
 									if(debug)
-										tout << "     found two same results and merge" << endl;
+										termout << "     found two same results and merge" << endl;
 #endif // __showStatistic
 									(*newMap)[nPercent].first+= it->second.first;
 									if(timelength->runlength)
@@ -2138,7 +2178,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 						{
 							if(debug)
 							{
-								tout << "     take now new lower vector with only "
+								termout << "     take now new lower vector with only "
 												<< timevec->newReachedPercent->size() << " values" << endl;
 							}
 						}
@@ -2160,7 +2200,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 								if(	debug &&
 									timevec->maxCount >= timelength->maxVal	)
 								{
-									tout << "       set by " << nPercent << "% value of "
+									termout << "       set by " << nPercent << "% value of "
 																<< it->second.second << endl;
 								}
 #endif // __showStatistic
@@ -2171,7 +2211,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 									if(	debug &&
 										timevec->maxCount >= timelength->maxVal	)
 									{
-										tout << "     found two same results and merge" << endl;
+										termout << "     found two same results and merge" << endl;
 									}
 #endif // __showStatistic
 									(*newMap)[nPercent].first+= it->second.first;
@@ -2221,7 +2261,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 								out << "     write new maximal count as " << timelength->folder
 									<< ":" << timelength->subroutine << " " << timevec->scount
 									<< " with value " << timevec->maxCount << " into database" << endl;
-								tout << out.str();
+								termout << out.str();
 							}
 #endif // __showStatistic
 
@@ -2241,9 +2281,9 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 					if(debug)
 					{
 						if(found)
-							tout << "  >> write new actual value " << timevec->dbValue << " and also into database" << endl;
+							termout << "  >> write new actual value " << timevec->dbValue << " and also into database" << endl;
 						else
-							tout << "     found same difference since last check, do not save into database" << endl;
+							termout << "     found same difference since last check, do not save into database" << endl;
 					}
 #endif // __showStatistic
 					if(timevec->reachedPercent->size() == 2)
@@ -2279,7 +2319,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 									out << "     but set the new actual value to half of both ";
 								out << "(" << timevec->actValue << ") to actual value" << endl;
 								out << "     because there are only two values measured" << endl;
-								tout << out.str();
+								termout << out.str();
 							}
 #endif // __showStatistic
 						}// end of if(count == 2)
@@ -2317,7 +2357,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 								out << "     but set the new actual value to half of both ";
 							out << "(" << timevec->actValue << ") to actual value" << endl;
 							out << "     because there are only two values measured" << endl;
-							tout << out.str();
+							termout << out.str();
 						}
 	#endif // __showStatistic
 
@@ -2335,7 +2375,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 												<< timevec->dbValue << endl;
 								out << "     because " << timevec->actValue
 												<< " is lower" << endl;
-								tout << out.str();
+								termout << out.str();
 							}
 #endif // __showStatistic
 
@@ -2357,7 +2397,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 									out << "     and let the actaul value "
 												<< timevec->actValue << " by same" << endl;
 								}
-								tout << out.str();
+								termout << out.str();
 							}
 						}
 #endif // __showStatistic
@@ -2370,7 +2410,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 
 #ifdef __showStatistic
 				if(debug)
-					tout << "     do not found unique percent, make by next calculation again" << endl;
+					termout << "     do not found unique percent, make by next calculation again" << endl;
 #endif // __showStatistic
 
 			} // end of if(found)
@@ -2382,13 +2422,17 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 #ifdef __showStatistic
 		if(debug)
 		{
-			tout << "  >> write new value " << timevec->dbValue
+			termout << "  >> write new value " << timevec->dbValue
 							<< " into database" << endl;
-			tout << "     as " << timelength->folder << ":" << timelength->subroutine << " "
+			termout << "     as " << timelength->folder << ":" << timelength->subroutine << " "
 							<< timevec->stype << endl;
 		}
 #endif // __showStatistic
 	}
+#ifdef __showStatistic
+	if(debug)
+		termout << "------------------------------------------------------" << endl;
+#endif // __showStatistic
 }
 
 SHAREDPTR::shared_ptr<IListObjectPattern> MeasureThread::getPortClass(const string name, bool &bCorrect) const

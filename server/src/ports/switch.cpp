@@ -38,9 +38,9 @@ using namespace boost;
 
 switchClass::switchClass(string folderName, string subroutineName)
 : portBase("SWITCH", folderName, subroutineName),
-  m_oBegin(folderName, subroutineName, "begin", false, true),
-  m_oWhile(folderName, subroutineName, "while", false, true),
-  m_oEnd(folderName, subroutineName, "end", false, true),
+  m_oBegin(folderName, subroutineName, "begin", false, true, this),
+  m_oWhile(folderName, subroutineName, "while", false, true, this),
+  m_oEnd(folderName, subroutineName, "end", false, true, this),
   m_bSwitch(true),
   m_bLastValue(false),
   m_bCurrent(false),
@@ -51,9 +51,9 @@ switchClass::switchClass(string folderName, string subroutineName)
 
 switchClass::switchClass(string type, string folderName, string subroutineName)
 : portBase(type, folderName, subroutineName),
-  m_oBegin(folderName, subroutineName, "begin", false, true),
-  m_oWhile(folderName, subroutineName, "while", false, true),
-  m_oEnd(folderName, subroutineName, "end", false, true),
+  m_oBegin(folderName, subroutineName, "begin", false, true, this),
+  m_oWhile(folderName, subroutineName, "while", false, true, this),
+  m_oEnd(folderName, subroutineName, "end", false, true, this),
   m_bLastValue(false),
   m_bCurrent(false),
   m_bAlwaysBegin(false)
@@ -149,7 +149,7 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 	 // the variable be set over the server from outside
 		bOutside= true;
 		if(debug)
-			tout << "SWITCH value was enabled from remote access" << endl;
+			out() << "SWITCH value was enabled from remote access" << endl;
 
 	}else if(	!bSwitched &&
 				m_bLastValue	)
@@ -157,7 +157,7 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 	 // but on the last session it was true
 	 // the variable be set over the server from outside
 		if(debug)
-			tout << "SWITCH value was disabled from remote access" << endl;
+			out() << "SWITCH value was disabled from remote access" << endl;
 		bOutside= true;
 	}
 
@@ -288,26 +288,29 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 	}
 	if(debug)
 	{
-		tout << "result for SWITCH is ";
+		ostringstream sout;
+
+		sout << "result for SWITCH is ";
 		if(bOutside)
-			tout << "set from outside to ";
-		tout << boolalpha << bSwitched << " (";
+			sout << "set from outside to ";
+		sout << boolalpha << bSwitched << " (";
 		switch(set)
 		{
 		case BEGIN:
-			tout << "BEGIN";
+			sout << "BEGIN";
 			break;
 		case WHILE:
-			tout << "WHILE";
+			sout << "WHILE";
 			break;
 		case END:
-			tout << "END";
+			sout << "END";
 			break;
 		case NONE:
 		default:
-			tout << "NONE";
+			sout << "NONE";
+			break;
 		}
-		tout << ")" << endl;
+		out() << sout.str() << ")" << endl;
 	}
 	m_bLastValue= bSwitched;
 	if(bbinary)

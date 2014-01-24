@@ -89,7 +89,7 @@ namespace ports
 		  m_poObserver(NULL),
 		  m_nValueObserver(-1),
 		  vector_npos(-1),
-		  m_oWhile(folderName, subroutineName, "while", false, false),
+		  m_oWhile(folderName, subroutineName, "while", false, false, this),
 		  m_OBSERVERVALUEMUTEX(Thread::getMutex("OBSERVERVALUEMUTEX"))
 		{ };
 		/**
@@ -106,7 +106,7 @@ namespace ports
 		  m_poObserver(NULL),
 		  m_nValueObserver(-1),
 		  vector_npos(-1),
-		  m_oWhile(folderName, subroutineName, "while", false, false)
+		  m_oWhile(folderName, subroutineName, "while", false, false, this)
 		{ };
 		/**
 		 * initialing object of ValueHolderSubroutine

@@ -248,7 +248,7 @@ namespace ports
 				msg+= m_sServer + " cannot read correctly";
 				LOGEX(LOG_ERROR, msg, getRunningThread()->getExternSendDevice());
 				if(debug)
-					tout << msg << endl;
+					out() << msg << endl;
 			}
 			if(!m_pOWServer)
 			{
@@ -271,35 +271,35 @@ namespace ports
 			read(&value);
 			if(debug)
 			{
-				tout << "read from chip " << m_sChipID;
+				out() << "read from chip " << m_sChipID;
 				if(m_sChipType != "")
-					tout << " with type " << m_sChipType;
-				tout << endl;
+					out() << " with type " << m_sChipType;
+				out() << endl;
 				if(hasDeviceAccess())
 				{
 					if(m_sChipFamily == "10")
 					{
-						tout << value << "° Grad Celsius" << endl;
+						out() << value << "° Grad Celsius" << endl;
 					}else
 					{
-						tout << "on unique id '" << m_sChipID << "' (" << value << ")";
+						out() << "on unique id '" << m_sChipID << "' (" << value << ")";
 
 						if(value)
-							tout << " valid input" << endl;
+							out() << " valid input" << endl;
 						else
-							tout << " no input" << endl;
+							out() << " no input" << endl;
 					}
 				}else
-					tout << "unique id '" << m_sChipID << "' do not reach correctly device for reading" << endl;
+					out() << "unique id '" << m_sChipID << "' do not reach correctly device for reading" << endl;
 			}
 		}else
 		{
 			if(debug)
 			{
-				tout << "write on chip " << m_sChipID;
+				out() << "write on chip " << m_sChipID;
 				if(m_sChipType != "")
-					tout << " with type " << m_sChipType;
-				tout << endl;
+					out() << " with type " << m_sChipType;
+				out() << endl;
 			}
 
 			if(!m_bDoSwitch)
@@ -327,15 +327,15 @@ namespace ports
 					if(	!m_bDoSwitch ||
 						m_dLastWValue != 0	)
 					{
-						tout << "write on unique id '" << m_sChipID;
-						tout << "' to output " << value;
+						out() << "write on unique id '" << m_sChipID;
+						out() << "' to output " << value;
 						if(addinfo != "")
-							tout << " with additional info '" << addinfo << "'";
+							out() << " with additional info '" << addinfo << "'";
 					}else
-						tout << " do not write on '" << m_sChipID << "'";
-					tout << endl;
+						out() << " do not write on '" << m_sChipID << "'";
+					out() << endl;
 				}else
-					tout << "unique id '" << m_sChipID << "' by the last pass, do not reach correctly device for writing" << endl;
+					out() << "unique id '" << m_sChipID << "' by the last pass, do not reach correctly device for writing" << endl;
 			}
 		}
 

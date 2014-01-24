@@ -27,7 +27,7 @@ IValueHolderPattern& TempMeasure::measure(const ppi_value& actValue)
 	float nTemperature= getTemperature();
 
 	if(isDebug())
-		tout << "Temperature:" << m_nTemperature << endl;
+		out() << "Temperature:" << m_nTemperature << endl;
 	m_oMeasureValue.value= (double)nTemperature;
 	return m_oMeasureValue;
 

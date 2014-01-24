@@ -124,6 +124,18 @@ namespace design_pattern_world
 			 */
 			virtual bool isDebug()= 0;
 			/**
+			 * returning ostringstream object which should written on right time
+			 * by next pass into Terminal for output on command line
+			 *
+			 * @return string stream for writing by next pass
+			 */
+			virtual ostringstream& out()= 0;
+			/**
+			 * writing into string stream into terminal
+			 * when definition WRITEDEBUGALLLINES not be set
+			 */
+			virtual void writeDebugStream()= 0;
+			/**
 			 * returning the type of the current object
 			 *
 			 * @return name of type of the subroutine

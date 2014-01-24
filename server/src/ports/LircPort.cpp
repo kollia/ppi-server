@@ -90,14 +90,14 @@ namespace ports
 					m_mtResult.size()	)
 				{
 					show= true;
-					tout << "-----------------------------------------------------------------------------------------" << endl;
+					out() << "-----------------------------------------------------------------------------------------" << endl;
 					for(map<double, pair<double, double> >::iterator i= m_mtResult.begin(); i != m_mtResult.end(); ++i)
 					{
 						safter= i->second.second;
-						tout << getFolderName() << ":  " << i->second.first << "  " << safter << "->" << (safter+safter/2);
-						tout << " = " << i->first << endl;
+						out() << getFolderName() << ":  " << i->second.first << "  " << safter << "->" << (safter+safter/2);
+						out() << " = " << i->first << endl;
 					}
-					tout << "-----------------------------------------------------------------------------------------" << endl;
+					out() << "-----------------------------------------------------------------------------------------" << endl;
 				}
 			}else
 				if(dbef != digbefore)
@@ -105,9 +105,9 @@ namespace ports
 					map<double, pair<double, double> >::iterator found;
 
 					digbefore= dbef;
-					tout << getFolderName() << ":       <<<<<<<<<<<<<< wrong set before" << endl;
-					tout << getFolderName() << ":  " << digbefore << "  " << setafter << "->" << (setafter+setafter/2) << " =  ";
-					tout << newtime << endl;
+					out() << getFolderName() << ":       <<<<<<<<<<<<<< wrong set before" << endl;
+					out() << getFolderName() << ":  " << digbefore << "  " << setafter << "->" << (setafter+setafter/2) << " =  ";
+					out() << newtime << endl;
 					m_mtResult[newtime]= pair<double, double>(digbefore, setafter);
 					show= false;
 				}
@@ -178,8 +178,8 @@ namespace ports
 					digits.calculate(digbefore);
 					timersub(&needtime, &m_tTime, &needtime);
 					newtime= timer::calcResult(needtime, false);
-					tout << getFolderName() << ":  " << digbefore << "  " << setafter << "->" << (setafter+setafter/2) << " =  ";
-					tout << newtime << endl;
+					out() << getFolderName() << ":  " << digbefore << "  " << setafter << "->" << (setafter+setafter/2) << " =  ";
+					out() << newtime << endl;
 					m_mtResult[newtime]= pair<double, double>(digbefore, setafter);
 					show= false;
 					timerclear(&m_tTime);

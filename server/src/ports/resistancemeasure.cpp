@@ -143,7 +143,7 @@ namespace ports
 		msg+=" Ohm";
 		TIMELOGEX(LOG_INFO, getFolderName(), msg, getRunningThread()->getExternSendDevice());
 		if(isDebug())
-			tout << msg << endl;
+			out() << msg << endl;
 		return m_oMeasureValue;
 	}
 
@@ -174,8 +174,8 @@ namespace ports
 #ifdef DEBUG
 			if(isDebug())
 			{
-				tout << "measured time is " << time << endl;
-				tout << "found no nearest given mikrosecounds," << endl;
+				out() << "measured time is " << time << endl;
+				out() << "found no nearest given mikrosecounds," << endl;
 			}
 #endif // DEBUG
 			return time;
@@ -185,10 +185,10 @@ namespace ports
 #ifdef DEBUG
 			if(isDebug())
 			{
-				tout << "measured time is " << time << endl;
-				tout << "found nearest given mikrosecounds:" << endl;
-				tout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-				tout << vNearest[0].be << " / " << vNearest[0].nMikrosec << " * " << time << endl;
+				out() << "measured time is " << time << endl;
+				out() << "found nearest given mikrosecounds:" << endl;
+				out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+				out() << vNearest[0].be << " / " << vNearest[0].nMikrosec << " * " << time << endl;
 			}
 #endif // DEBUG
 			return vNearest[0].be / vNearest[0].nMikrosec * time;
@@ -197,13 +197,13 @@ namespace ports
 	#ifdef DEBUG
 		if(isDebug())
 		{
-			tout << "measured time is " << time << endl;
-			tout << "found nearest given mikrosecounds:" << endl;
-			tout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-			tout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
-			tout << vNearest[0].be << " + ((" << vNearest[1].be << " - " << vNearest[0].be;
-			tout << ")) * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
-			tout << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
+			out() << "measured time is " << time << endl;
+			out() << "found nearest given mikrosecounds:" << endl;
+			out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+			out() << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+			out() << vNearest[0].be << " + ((" << vNearest[1].be << " - " << vNearest[0].be;
+			out() << ")) * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
+			out() << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
 		}
 	#endif // DEBUG
 		resistance= vNearest[0].be + (vNearest[1].be - vNearest[0].be) * (time - vNearest[0].nMikrosec) / (vNearest[1].nMikrosec - vNearest[0].nMikrosec);

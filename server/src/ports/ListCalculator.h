@@ -48,8 +48,10 @@ public:
 	 * @param param parameter type in the subroutine where the string
 	 * @param need whether string be set in init() method or statement() have to exist
 	 * @param boolean true if result for output should be TRUE or FALSE, otherwise result by output is an double
+	 * @param obj subroutine object for debug output
 	 */
-	ListCalculator(const string& folder, const string& subroutine, const string& param, bool need, bool boolean);
+	ListCalculator(const string& folder, const string& subroutine, const string& param,
+					bool need, bool boolean, IListObjectPattern* obj);
 	/**
 	 * initial object with all list entrys
 	 *
@@ -175,6 +177,10 @@ protected:
 	 * latest changing time of any variable after calculation
 	 */
 	ppi_time m_nLastChange;
+	/**
+	 * subroutine object to writing into terminal for output on command line
+	 */
+	IListObjectPattern* m_oOutput;
 
 	/**
 	 * creating of new objects of CalculatorContainer
@@ -198,7 +204,7 @@ protected:
 	 * @param msg output string
 	 */
 	virtual void out(const bool bError, const string& msg)
-	{ tout << msg; };
+	{ m_oOutput->out() << msg; };
 	/**
 	 * this method is only to overload by an new child
 	 * to get variables and will be called when parameter vars be set in constructor as true.<br />

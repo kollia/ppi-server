@@ -48,8 +48,8 @@ namespace ports
 		 */
 		Measuredness(string folder, string subroutine)
 		: portBase("MEASUREDNESS", folder, subroutine),
-		  m_oMeasuredValue(folder, subroutine, "mavalue", true, false),
-		  m_oBegin(folder, subroutine, "begin", true, true)
+		  m_oMeasuredValue(folder, subroutine, "mavalue", true, false, this),
+		  m_oBegin(folder, subroutine, "begin", true, true, this)
 		{ };
 		/**
 		 * create object of class Measuredness.<br />
@@ -61,8 +61,8 @@ namespace ports
 		 */
 		Measuredness(string type, string folder, string subroutine)
 		: portBase(type, folder, subroutine),
-		  m_oMeasuredValue(folder, subroutine, "mavalue", true, false),
-		  m_oBegin(folder, subroutine, "begin", true, true)
+		  m_oMeasuredValue(folder, subroutine, "mavalue", true, false, this),
+		  m_oBegin(folder, subroutine, "begin", true, true, this)
 		{ };
 		/**
 		 * initialing object of Measuredness

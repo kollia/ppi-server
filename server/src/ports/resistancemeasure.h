@@ -47,7 +47,7 @@ namespace ports
 			 */
 			ResistanceMeasure(string folderName, string subroutineName)
 			: TimeMeasure(folderName, subroutineName),
-			  m_oMeasuredSubroutine(folderName, subroutineName, "mvalue", true, false) { };
+			  m_oMeasuredSubroutine(folderName, subroutineName, "mvalue", true, false, this) { };
 			/**
 			 * initial class of saving
 			 *

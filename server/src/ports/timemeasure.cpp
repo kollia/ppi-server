@@ -148,7 +148,7 @@ IValueHolderPattern& TimeMeasure::measure(const ppi_value& actValue)
 		msg+= buf;
 		msg+=" us";
 		TIMELOG(LOG_INFO, getFolderName(), msg);
-		tout << msg << endl;
+		out() << msg << endl;
 	}
 	m_oMeasureValue.value= (double)nLightValue;
 	return m_oMeasureValue;
@@ -177,12 +177,12 @@ unsigned long TimeMeasure::getMeasuredTime()
 	time.it_value.tv_usec= 0;
 	if(isDebug())
 	{
-		tout << "maximal calculating for " << m_maxMeasuredTime << " mikroseconds" << endl;
-		tout << "beginning status: ";
+		out() << "maximal calculating for " << m_maxMeasuredTime << " mikroseconds" << endl;
+		out() << "beginning status: ";
 		res= inb(nGetPort);
 		//nPrintPin= (int)res;
 		//printBin(&nPrintPin, nGetPort);
-		tout << "wait for          ";
+		out() << "wait for          ";
 		//nPrintPin= (int)nGetPin;
 		//printBin(&nPrintPin, nGetPort);
 	}
@@ -200,7 +200,7 @@ unsigned long TimeMeasure::getMeasuredTime()
 	}else
 	{
 		outb(inb(nSetPort) | nSetPin, nSetPort);
-		//tout << flush; // flush after outb() -> maybe an bug
+		//out() << flush; // flush after outb() -> maybe an bug
 		while(	!(res= inb(nGetPort) & nGetPin)
 				&&
 				(unsigned long)getMikrotime() < m_maxMeasuredTime	);
@@ -213,7 +213,7 @@ unsigned long TimeMeasure::getMeasuredTime()
 	lockApplication(false);
 	if(isDebug())
 	{
-		tout << "result:           ";
+		out() << "result:           ";
 		//nPrintPin= (int)res;
 		//printBin(&nPrintPin, nGetPort);
 	}
@@ -258,9 +258,9 @@ unsigned long TimeMeasure::getMeasuredTime()
 #ifdef DEBUG
 	if(isDebug())
 	{
-		tout << "found nearest given mikrosecounds:" << endl;
-		tout << vCorrection[0].correction << " correction is " << vCorrection[0].nMikrosec << " mikroseconds" << endl;
-		tout << vCorrection[1].correction << " correction is " << vCorrection[1].nMikrosec << " mikroseconds" << endl;
+		out() << "found nearest given mikrosecounds:" << endl;
+		out() << vCorrection[0].correction << " correction is " << vCorrection[0].nMikrosec << " mikroseconds" << endl;
+		out() << vCorrection[1].correction << " correction is " << vCorrection[1].nMikrosec << " mikroseconds" << endl;
 		printf("is correction:%.60lf\n", vCorrection[0].correction);
 	}
 #endif // DEBUG
@@ -323,15 +323,15 @@ unsigned long TimeMeasure::getNewMikroseconds(vector<ohm> *elkoCorrection)
 	logString+= res;
 	logString+= " OHM ";
 #ifndef DEBUG
-	tout << logString << endl;
-	tout << "." << flush;
+	out() << logString << endl;
+	out() << "." << flush;
 #endif
 
 	time= getMeasuredTime();
 	for(short i= 0; i<1; ++i)
 	{
 #ifndef DEBUG
-		tout << "." << flush;
+		out() << "." << flush;
 #endif // DEBUG
 		time+= getMeasuredTime();
 		time/= 2;
@@ -341,8 +341,8 @@ unsigned long TimeMeasure::getNewMikroseconds(vector<ohm> *elkoCorrection)
 	logString2= "    measured time: ";
 	logString2+= res;
 #ifndef DEBUG
-	tout << endl;
-	tout << "measured time:" << time << endl;
+	out() << endl;
+	out() << "measured time:" << time << endl;
 #endif // DEBUG
 	logString+= "\n";
 	logString+= logString2;
@@ -403,7 +403,7 @@ correction_t TimeMeasure::getNewCorrection(correction_t tCorrection, vector<ohm>
 	logString+= res;
 	logString+= " OHM ";
 #ifndef DEBUG
-	tout << logString << endl;
+	out() << logString << endl;
 #endif
 
 	unsigned long time2;
@@ -414,58 +414,58 @@ correction_t TimeMeasure::getNewCorrection(correction_t tCorrection, vector<ohm>
 			time= (time + time2) / 2;
 		else
 			time= time2;
-		tout << "." << flush;
+		out() << "." << flush;
 		sleep(nSleep);
 	}
-	tout << endl << "measured time:" << time << endl;
+	out() << endl << "measured time:" << time << endl;
 
 	vNearest= getNearestOhm(time, vOhm);
 #ifdef DEBUG
-	tout << "found nearest given mikrosecounds:" << endl;
-	tout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-	tout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
-	tout << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
-	tout << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
-	tout << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
+	out() << "found nearest given mikrosecounds:" << endl;
+	out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+	out() << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+	out() << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
+	out() << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
+	out() << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
 #endif // DEBUG
 
 	resistance = vNearest[0].be + (vNearest[1].be - vNearest[0].be) *
 				 (double)(time - vNearest[0].nMikrosec) /
 				 (double)(vNearest[1].nMikrosec - vNearest[0].nMikrosec);
-	tout << "calculated OHM are " << resistance << endl;
-	tout << "but should be " << tCorrection.be << " Ohm" << endl;
+	out() << "calculated OHM are " << resistance << endl;
+	out() << "but should be " << tCorrection.be << " Ohm" << endl;
 
 	vNearest= getNearestOhm((unsigned long)tCorrection.be, vOhm, /*bCheckOhm*/true);
 #ifdef DEBUG
-	tout << "found nearest given OHM:" << endl;
-	tout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-	tout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+	out() << "found nearest given OHM:" << endl;
+	out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+	out() << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
 #endif
 
 	newtime= (unsigned long)(((tCorrection.be - vNearest[0].be) *
 			 (double)(vNearest[1].nMikrosec - vNearest[0].nMikrosec)) /
 			 (vNearest[1].be - vNearest[0].be) + (double)vNearest[0].nMikrosec);
-	tout << "old time was " << time << " should be now " << newtime << endl;
+	out() << "old time was " << time << " should be now " << newtime << endl;
 	correction= tCorrection.be / resistance;
 	logString2= "fill correction in configfile with ";
 	sprintf(res, "%.60lf", correction);
 	logString2+= res;
 #ifndef DEBUG
-	tout << logString2 << endl;
+	out() << logString2 << endl;
 #else // DEBUG
 
 	vNearest= getNearestOhm(newtime, vOhm);
 	resistance = vNearest[0].be + (vNearest[1].be - vNearest[0].be) *
 					 (double)(newtime - vNearest[0].nMikrosec) /
 					 (double)(vNearest[1].nMikrosec - vNearest[0].nMikrosec);
-	tout << "found nearest given mikrosecounds:" << endl;
-	tout << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-	tout << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
-	tout << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
-	tout << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
-	tout << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
-	tout << "new time with correction is " << (unsigned long)newtime << endl;
-	tout << "calculated OHM are " << resistance << endl;
+	out() << "found nearest given mikrosecounds:" << endl;
+	out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+	out() << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+	out() << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
+	out() << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
+	out() << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
+	out() << "new time with correction is " << (unsigned long)newtime << endl;
+	out() << "calculated OHM are " << resistance << endl;
 #endif // DEBUG
 
 	logString+= "\n";
@@ -492,7 +492,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 
 	//logString+= getPortName(m_tIn.nPort);
 #ifndef DEBUG
-	tout << logString << endl;
+	out() << logString << endl;
 #endif // DEBUUG
 	LOGEX(LOG_INFO, logString, getRunningThread()->getExternSendDevice());
 
@@ -502,10 +502,10 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 	{
 		time= getMeasuredTime();
 #ifndef DEBUG
-		tout << "." << flush;
+		out() << "." << flush;
 #else
 		if(n< wait)
-			tout << "." << flush;
+			out() << "." << flush;
 #endif // DEBUG
 		if(n > wait)
 		{
@@ -528,10 +528,10 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 				&&
 				n > 5			)
 			{
-				tout << endl << logString << endl;
+				out() << endl << logString << endl;
 			}
 #else // DEBUG
-			tout << logString << endl << endl;
+			out() << logString << endl << endl;
 #endif // DEBUG
 			endlog+= ".";
 			if(	diff != olddiff
@@ -556,9 +556,9 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 	}
 	LOGEX(LOG_INFO, endlog, getRunningThread()->getExternSendDevice());
 #ifdef DEBUG
-	tout << endlog << endl << endl;
+	out() << endlog << endl << endl;
 #endif // DEBUG
-	tout << endl;
+	out() << endl;
 	maxtime= 0;
 	mintime= ULONG_MAX;
 
@@ -588,7 +588,7 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 	logString+= ".\n";
 	LOGEX(LOG_INFO, logString, getRunningThread()->getExternSendDevice());
 #ifndef DEBUG
-	tout << logString << endl;
+	out() << logString << endl;
 #endif //DEBUG
 
 	maxtime= maxtime-mintime;

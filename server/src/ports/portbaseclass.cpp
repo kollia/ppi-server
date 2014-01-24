@@ -46,7 +46,7 @@ using namespace boost;
 
 portBase::portBase(const string& type, const string& folderName, const string& subroutineName)
 : m_poMeasurePattern(NULL),
-  m_oLinkWhile(folderName, subroutineName, "lwhile", false, false),
+  m_oLinkWhile(folderName, subroutineName, "lwhile", false, false, this),
   m_dLastSetValue(0),
   m_nLinkObserver(0)
 {
@@ -364,24 +364,24 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 #ifdef __moreOutput
 			if(debug)
 			{
-				tout << "-------------------------------------------------------------------" << endl;
-				tout << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
+				out() << "-------------------------------------------------------------------" << endl;
+				out() << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
 				if(m_bSwitch)
-					tout << " defined for binary switch";
-				tout << endl;
-				tout << "        set new value from '" << from << "'" << endl;
-				tout << "            Incoming value:" << dec << value.getValue();
+					out() << " defined for binary switch";
+				out() << endl;
+				out() << "        set new value from '" << from << "'" << endl;
+				out() << "            Incoming value:" << dec << value.getValue();
 				if(m_bSwitch)
-					tout << " binary " << switchBinStr(value.getValue());
-				tout << endl;
-				tout << "value before in subroutine:" << dec << m_dValue.value;
+					out() << " binary " << switchBinStr(value.getValue());
+				out() << endl;
+				out() << "value before in subroutine:" << dec << m_dValue.value;
 				if(m_bSwitch)
-					tout << " binary " << switchBinStr(m_dValue.value);
-				tout << endl;
+					out() << " binary " << switchBinStr(m_dValue.value);
+				out() << endl;
 				if(!m_bSwitch)
 				{
-					tout << "                 min range:" << dec << m_dMin << endl;
-					tout << "                 max range:" << dec << m_dMax << endl;
+					out() << "                 min range:" << dec << m_dMin << endl;
+					out() << "                 max range:" << dec << m_dMax << endl;
 				}
 			}
 #endif // __moreOutput
@@ -418,15 +418,15 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 #ifdef __moreOutput
 			if(debug)
 			{
-				tout << "          old member value:" << dec << oldMember;
+				out() << "          old member value:" << dec << oldMember;
 				if(m_bSwitch)
-					tout << " binary " << switchBinStr(oldMember);
-				tout << endl;
-				tout << "         new defined value:" << dec << dValue;
+					out() << " binary " << switchBinStr(oldMember);
+				out() << endl;
+				out() << "         new defined value:" << dec << dValue;
 				if(m_bSwitch)
-					tout << " binary " << switchBinStr(dValue);
-				tout << endl;
-				tout << "       new defined dbvalue:" << dec << dbvalue << endl;
+					out() << " binary " << switchBinStr(dValue);
+				out() << endl;
+				out() << "       new defined dbvalue:" << dec << dbvalue << endl;
 			}
 #endif // __moreOutput
 		}
@@ -474,7 +474,7 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 			{
 #ifdef __moreOutput
 				if(debug)
-					tout << "            fill new value:" << dec << dbvalue << " into database" << endl;
+					out() << "            fill new value:" << dec << dbvalue << " into database" << endl;
 #endif // __moreOutput
 
 				getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue);
@@ -489,7 +489,7 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 			// should now that dValue was wrong
 #ifdef __moreOutput
 			if(debug)
-				tout << "             correct value:" << dec << dbvalue
+				out() << "             correct value:" << dec << dbvalue
 						<< " inside database to inform all clients" << endl;
 #endif // __moreOutput
 
@@ -498,11 +498,11 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 #ifdef __moreOutput
 		if(debug)
 		{
-			tout << "       last state of value:" << dec << m_dValue.value;
+			out() << "       last state of value:" << dec << m_dValue.value;
 			if(m_bSwitch)
-				tout << " binary " << switchBinStr(m_dValue.value);
-			tout << endl;
-			tout << "-------------------------------------------------------------------" << endl;
+				out() << " binary " << switchBinStr(m_dValue.value);
+			out() << endl;
+			out() << "-------------------------------------------------------------------" << endl;
 		}
 #endif // __moreOutput
 		UNLOCK(m_VALUELOCK);
@@ -581,12 +581,12 @@ IValueHolderPattern& portBase::getValue(const string& who)
 
 	if(debug)
 	{
-		tout << "-------------------------------------------------------------------" << endl;
-		tout << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
+		out() << "-------------------------------------------------------------------" << endl;
+		out() << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
 		if(m_bSwitch)
-			tout << " defined for binary switch";
-		tout << endl;
-		tout << "        will be ask from '" << who << "'" << endl;
+			out() << " defined for binary switch";
+		out() << endl;
+		out() << "        will be ask from '" << who << "'" << endl;
 	}
 #endif // __moreOutput
 	if(	m_bSwitch &&
@@ -614,11 +614,11 @@ IValueHolderPattern& portBase::getValue(const string& who)
 #ifdef __moreOutput
 	if(debug)
 	{
-		tout << " return value " << m_oGetValue.value;
+		out() << " return value " << m_oGetValue.value;
 		if(m_bSwitch)
 			cout << " binary " << switchBinStr(m_oGetValue.value);
-		tout << endl;
-		tout << "-------------------------------------------------------------------" << endl;
+		out() << endl;
+		out() << "-------------------------------------------------------------------" << endl;
 	}
 #endif // __moreOutput
 	UNLOCK(m_VALUELOCK);
@@ -654,7 +654,7 @@ bool portBase::initLinks(const string& type, IPropertyPattern* properties, const
 				spl[0].find(" ") == string::npos &&
 				spl[1].find(" ") == string::npos	)	)
 		{
-			m_vpoLinks.push_back(new ListCalculator(m_sFolder, m_sSubroutine, lk.str(), true, false));
+			m_vpoLinks.push_back(new ListCalculator(m_sFolder, m_sSubroutine, lk.str(), true, false, this));
 			calc= m_vpoLinks.back();
 			if(!calc->init(pStartFolder, sValue))
 				bOk= false;
@@ -666,7 +666,7 @@ bool portBase::initLinks(const string& type, IPropertyPattern* properties, const
 			msg << properties->getMsgHead(/*error*/true);
 			msg << i << ". link parameter '"  << sValue << "' can only be an single [folder:]<sburoutine>, so do not set this link";
 			LOG(LOG_ERROR, msg.str());
-			tout << msg.str() << endl;
+			out() << msg.str() << endl;
 			bOk= false;
 		}
 	}
@@ -696,8 +696,8 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 		isdebug= isDebug();
 		if(isdebug)
 		{
-			tout << "  __________________" << endl;
-			tout << " << check link's >>>>" << endl;
+			out() << "  __________________" << endl;
+			out() << " << check link's >>>>" << endl;
 		}
 		foldersub= m_sFolder+":"+m_sSubroutine;
 		// create first lwhile parameter
@@ -715,14 +715,14 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 
 						msg += "             so do not create any link to foreign subroutine";
 						if(isdebug)
-							tout << "### WARNING: " << msg << endl;
+							out() << "### WARNING: " << msg << endl;
 						msg= "in folder '"+m_sFolder+"' and subroutine '"+m_sSubroutine+"'\n"+msg;
 						msg+= "\n";
 						TIMELOG(LOG_WARNING, m_sFolder+m_sSubroutine+"linkwhile", msg);
 						bOk= false; // no linked value be used
 
 					}else if(isdebug)
-						tout << "calculation of lvhile parameter is 0, so take own value" << endl;
+						out() << "calculation of lvhile parameter is 0, so take own value" << endl;
 					slink= foldersub;
 					pos= 0;
 					bOk= false;
@@ -741,7 +741,7 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 				msg+= "' in folder " + m_sFolder + " and subroutine " + m_sSubroutine;
 				TIMELOG(LOG_ERROR, "calcResult"+m_sFolder+":"+m_sSubroutine, msg);
 				if(isdebug)
-					tout << "### ERROR: " << msg << endl;
+					out() << "### ERROR: " << msg << endl;
 				bOk= false;
 			}
 		}else
@@ -761,7 +761,7 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 				msg << " in folder " << m_sFolder << " and subroutine " << m_sSubroutine;
 				TIMELOG(LOG_ERROR, "searchresult"+m_sFolder+":"+m_sSubroutine, msg.str());
 				if(isdebug)
-					tout << "### ERROR: " << msg << endl;
+					out() << "### ERROR: " << msg << endl;
 				bOk= false;
 			}else
 			{
@@ -782,7 +782,7 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 						}else
 							msg << "own link ";
 						msg << "to " << pos << ". link (" << slink << ")" << endl;
-						tout << msg.str();
+						out() << msg.str();
 					}
 					if(m_nLinkObserver)
 						m_vpoLinks[m_nLinkObserver-1]->removeObserver( m_poMeasurePattern);
@@ -801,12 +801,12 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 				{
 					if(isdebug)
 					{
-						tout << "value be set from linked subroutine to";
+						out() << "value be set from linked subroutine to";
 						if(linkvalue == 0)
-							tout << " end (0)";
+							out() << " end (0)";
 						else
-							tout << " new begin (" << linkvalue << ")";
-						tout << " time" << endl;
+							out() << " new begin (" << linkvalue << ")";
+						out() << " time" << endl;
 					}
 					val.value= linkvalue;
 					val.lastChanging= link->getLastChanging();
@@ -823,8 +823,8 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 					{
 						if(isdebug)
 						{
-							tout << "value was changed in own subroutine," << endl;
-							tout << "set foreign subroutine " << slink << " to " << dec << val.value << endl;
+							out() << "value was changed in own subroutine," << endl;
+							out() << "set foreign subroutine " << slink << " to " << dec << val.value << endl;
 						}
 						port->setValue(val, "i:"+foldersub);
 						port->getRunningThread()->changedValue(slink, foldersub);
@@ -845,7 +845,7 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 								linkvalue < val.value			)		)
 				{// linked value from other subroutine was changed
 					if(isdebug)
-						tout << "take changed value " << linkvalue << " from foreign subroutine " << slink << endl;
+						out() << "take changed value " << linkvalue << " from foreign subroutine " << slink << endl;
 					val.value= linkvalue;
 					val.lastChanging= link->getLastChanging();
 					bOk= true;
@@ -853,18 +853,18 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 				}else
 				{ // nothing was changed
 					if(isdebug)
-						tout << "no changes be necessary" << endl;
+						out() << "no changes be necessary" << endl;
 					bOk= false;
 				}
 			}
 		}else // else of if(slink own subroutine)
 		{
 			if(isdebug)
-				tout << "link is showen to owen subroutine, make no changes" << endl;
+				out() << "link is showen to owen subroutine, make no changes" << endl;
 			if(m_nLinkObserver != 0)
 			{
 				if(isdebug && bOk)
-					tout << pos << ". link value '" << slink << "' link to own subroutine" << endl;
+					out() << pos << ". link value '" << slink << "' link to own subroutine" << endl;
 				if(	m_nLinkObserver-1 < links	)
 				{
 					m_vpoLinks[m_nLinkObserver-1]->removeObserver( m_poMeasurePattern);
@@ -881,8 +881,8 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 
 		if(isdebug)
 		{
-			tout << " << end of check >>>>" << endl;
-			tout << "   --------------" << endl;
+			out() << " << end of check >>>>" << endl;
+			out() << "   --------------" << endl;
 		}
 	}else // if(links > 0)
 		bOk= false;
@@ -1036,6 +1036,35 @@ void portBase::lockApplication(bool bSet)
 bool portBase::onlySwitch()
 {
 	return m_bSwitch;
+}
+
+ostringstream& portBase::out()
+{
+#ifdef __WRITEDEBUGALLLINES
+	string output(m_sStreamObj.str());
+
+	if(output != "")
+	{
+		tout << output;
+		tout << flush;
+		m_sStreamObj.str("");
+	}
+#endif // __WRITEDEBUGALLLINES
+	return m_sStreamObj;
+}
+
+void portBase::writeDebugStream()
+{
+#ifndef __WRITEDEBUGALLLINES
+	string output(m_sStreamObj.str());
+
+	if(output.length() > 0)
+	{
+		tout << output;
+		tout << flush;
+	}
+	m_sStreamObj.str("");
+#endif // __WRITEDEBUGALLLINES
 }
 
 portBase::~portBase()

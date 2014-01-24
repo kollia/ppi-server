@@ -27,201 +27,204 @@
 
 #include "output.h"
 
-Output::Output(string folderName, string subroutineName)
-: switchClass("DEBUG", folderName, subroutineName),
-  m_nLogLevel(-1),
-  m_bCL(true)
+namespace ports
 {
-	m_DEBUG= Thread::getMutex("outputDEBUG");
-}
-
-Output::Output(string type, string folderName, string subroutineName)
-: switchClass(type, folderName, subroutineName),
-  m_nLogLevel(-1),
-  m_bCL(true)
-{
-	m_DEBUG= Thread::getMutex("outputDEBUG");
-}
-
-bool Output::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
-{
-	bool bSet(false), bSwitch;
-	string svalue;
-	string folder(getFolderName());
-	string subroutine(getSubroutineName());
-	string sLogLevel;
-	string on, sWhile, off;
-	vector<string>::size_type ncount;
-	ListCalculator* calc;
-
-	m_bNeedSwitch= false;
-	on= properties->getValue("begin", /*warning*/false);
-	sWhile= properties->getValue("while", /*warning*/false);
-	off= properties->getValue("end", /*warning*/false);
-	if(	on != "" ||
-		sWhile != "" ||
-		off != ""		)
+	Output::Output(string folderName, string subroutineName)
+	: switchClass("DEBUG", folderName, subroutineName),
+	  m_nLogLevel(-1),
+	  m_bCL(true)
 	{
-		m_bNeedSwitch= true;
+		m_DEBUG= Thread::getMutex("outputDEBUG");
 	}
-	properties->haveAction("print");// ask only because when no log property set but action 'print'
-	sLogLevel= properties->getValue("log", /*warning*/false);  // should gives no warning output
-	if(sLogLevel != "")
+
+	Output::Output(string type, string folderName, string subroutineName)
+	: switchClass(type, folderName, subroutineName),
+	  m_nLogLevel(-1),
+	  m_bCL(true)
 	{
-		m_bCL= properties->haveAction("print");
-		if(sLogLevel =="DEBUG")
-			m_nLogLevel= LOG_DEBUG;
-		else if(sLogLevel =="INFO")
-			m_nLogLevel= LOG_INFO;
-		else if(sLogLevel =="WARNING")
-			m_nLogLevel= LOG_WARNING;
-		else if(sLogLevel =="ERROR")
-			m_nLogLevel= LOG_ERROR;
-		else if(sLogLevel =="ALERT")
-			m_nLogLevel= LOG_ALERT;
-	}else
-		m_bCL= true;
-	ncount= properties->getPropertyCount("string");
-	if(ncount > 0)
-		bSet= true;
-	for(vector<string>::size_type n= 0; n<ncount; ++n)
-	{
-		svalue= properties->getValue("string", n, /*warning*/false);
-		m_vsStrings.push_back(svalue);
+		m_DEBUG= Thread::getMutex("outputDEBUG");
 	}
-	ncount= properties->getPropertyCount("value");
-	if(ncount > 0)
-		bSet= true;
-	for(vector<string>::size_type n= 0; n<ncount; ++n)
+
+	bool Output::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 	{
-		ostringstream val;
+		bool bSet(false), bSwitch;
+		string svalue;
+		string folder(getFolderName());
+		string subroutine(getSubroutineName());
+		string sLogLevel;
+		string on, sWhile, off;
+		vector<string>::size_type ncount;
+		ListCalculator* calc;
 
-		val << "value[" << (n+1) << "]";
-		svalue= properties->getValue("value", n, /*warning*/false);
-		m_voVal.push_back(new ListCalculator(folder, subroutine, val.str(), false, false));
-		calc= m_voVal.back();
-		calc->init(pStartFolder, svalue);
-	}
-	properties->notAllowedAction("binary");
-	bSwitch= switchClass::init(properties, pStartFolder);
-	if(!bSet)
-	{
-		string msg(properties->getMsgHead(/*error*/false));
-
-		msg+= "no string or value be set for output, set subroutine to incorrect";
-		LOG(LOG_WARNING, msg);
-		tout << msg << endl;
-		return false;
-	}
-	if(!bSwitch)
-		return false;
-	return true;
-}
-
-void Output::setObserver(IMeasurePattern* observer)
-{
-	for(vector<ListCalculator*>::iterator it= m_voVal.begin(); it!=m_voVal.end(); ++it)
-		(*it)->activateObserver(observer);
-	switchClass::setObserver(observer);
-}
-
-void Output::setDebug(bool bDebug)
-{
-	if(getRunningThread()->isDebug())	// when also set other subroutine(s) for debug output
-		switchClass::setDebug(bDebug);	// output also debug strings from switch class (parent objects)
-	else
-		switchClass::setDebug(false);// maybe parent object was before true
-	LOCK(m_DEBUG);
-	m_bDebug= bDebug;
-	UNLOCK(m_DEBUG);
-}
-
-bool Output::isDebug()
-{
-	bool bRv;
-
-	if(Thread::gettid() == getRunningThread()->getRunningThreadID())
-		return switchClass::isDebug();	// when own parent class ask for debug
-	LOCK(m_DEBUG);						// write debug output only when hole subroutine
-	bRv= m_bDebug;						// (also other subroutine(s) set for debug)
-	UNLOCK(m_DEBUG);					// be set. Otherwise measureThread object set from outside
-	return bRv;							// debug session and should know whether this object was set to debug
-}
-
-IValueHolderPattern& Output::measure(const ppi_value& actValue)
-{
-	bool bDebug(isDebug()), ownDebug;
-
-	m_oMeasureValue.value= 0;
-	LOCK(m_DEBUG);
-	ownDebug= m_bDebug;
-	UNLOCK(m_DEBUG);
-	if(m_bNeedSwitch)
-		m_oMeasureValue= switchClass::measure(actValue);
-	if(	m_oMeasureValue.value > 0 ||
-		m_oMeasureValue.value < 0 ||
-		(	ownDebug &&
-			!m_bNeedSwitch	)	)
-	{
-		double val;
-		ostringstream out;
-		vector<ListCalculator*>::iterator itVal;
-
-		itVal= m_voVal.begin();
-		out << "### " << getFolderName() << ":" << getSubroutineName() << " >> ";
-		for(vector<string>::iterator itStr= m_vsStrings.begin(); itStr != m_vsStrings.end(); ++itStr)
+		m_bNeedSwitch= false;
+		on= properties->getValue("begin", /*warning*/false);
+		sWhile= properties->getValue("while", /*warning*/false);
+		off= properties->getValue("end", /*warning*/false);
+		if(	on != "" ||
+			sWhile != "" ||
+			off != ""		)
 		{
-			out << *itStr << " ";
-			if(itVal != m_voVal.end())
+			m_bNeedSwitch= true;
+		}
+		properties->haveAction("print");// ask only because when no log property set but action 'print'
+		sLogLevel= properties->getValue("log", /*warning*/false);  // should gives no warning output
+		if(sLogLevel != "")
+		{
+			m_bCL= properties->haveAction("print");
+			if(sLogLevel =="DEBUG")
+				m_nLogLevel= LOG_DEBUG;
+			else if(sLogLevel =="INFO")
+				m_nLogLevel= LOG_INFO;
+			else if(sLogLevel =="WARNING")
+				m_nLogLevel= LOG_WARNING;
+			else if(sLogLevel =="ERROR")
+				m_nLogLevel= LOG_ERROR;
+			else if(sLogLevel =="ALERT")
+				m_nLogLevel= LOG_ALERT;
+		}else
+			m_bCL= true;
+		ncount= properties->getPropertyCount("string");
+		if(ncount > 0)
+			bSet= true;
+		for(vector<string>::size_type n= 0; n<ncount; ++n)
+		{
+			svalue= properties->getValue("string", n, /*warning*/false);
+			m_vsStrings.push_back(svalue);
+		}
+		ncount= properties->getPropertyCount("value");
+		if(ncount > 0)
+			bSet= true;
+		for(vector<string>::size_type n= 0; n<ncount; ++n)
+		{
+			ostringstream val;
+
+			val << "value[" << (n+1) << "]";
+			svalue= properties->getValue("value", n, /*warning*/false);
+			m_voVal.push_back(new ListCalculator(folder, subroutine, val.str(), false, false, this));
+			calc= m_voVal.back();
+			calc->init(pStartFolder, svalue);
+		}
+		properties->notAllowedAction("binary");
+		bSwitch= switchClass::init(properties, pStartFolder);
+		if(!bSet)
+		{
+			string msg(properties->getMsgHead(/*error*/false));
+
+			msg+= "no string or value be set for output, set subroutine to incorrect";
+			LOG(LOG_WARNING, msg);
+			tout << msg << endl;
+			return false;
+		}
+		if(!bSwitch)
+			return false;
+		return true;
+	}
+
+	void Output::setObserver(IMeasurePattern* observer)
+	{
+		for(vector<ListCalculator*>::iterator it= m_voVal.begin(); it!=m_voVal.end(); ++it)
+			(*it)->activateObserver(observer);
+		switchClass::setObserver(observer);
+	}
+
+	void Output::setDebug(bool bDebug)
+	{
+		if(getRunningThread()->isDebug())	// when also set other subroutine(s) for debug output
+			switchClass::setDebug(bDebug);	// output also debug strings from switch class (parent objects)
+		else
+			switchClass::setDebug(false);// maybe parent object was before true
+		LOCK(m_DEBUG);
+		m_bDebug= bDebug;
+		UNLOCK(m_DEBUG);
+	}
+
+	bool Output::isDebug()
+	{
+		bool bRv;
+
+		if(Thread::gettid() == getRunningThread()->getRunningThreadID())
+			return switchClass::isDebug();	// when own parent class ask for debug
+		LOCK(m_DEBUG);						// write debug output only when hole subroutine
+		bRv= m_bDebug;						// (also other subroutine(s) set for debug)
+		UNLOCK(m_DEBUG);					// be set. Otherwise measureThread object set from outside
+		return bRv;							// debug session and should know whether this object was set to debug
+	}
+
+	IValueHolderPattern& Output::measure(const ppi_value& actValue)
+	{
+		bool bDebug(isDebug()), ownDebug;
+
+		m_oMeasureValue.value= 0;
+		LOCK(m_DEBUG);
+		ownDebug= m_bDebug;
+		UNLOCK(m_DEBUG);
+		if(m_bNeedSwitch)
+			m_oMeasureValue= switchClass::measure(actValue);
+		if(	m_oMeasureValue.value > 0 ||
+			m_oMeasureValue.value < 0 ||
+			(	ownDebug &&
+				!m_bNeedSwitch	)	)
+		{
+			double val;
+			ostringstream outStr;
+			vector<ListCalculator*>::iterator itVal;
+
+			itVal= m_voVal.begin();
+			outStr << "### " << getFolderName() << ":" << getSubroutineName() << " >> ";
+			for(vector<string>::iterator itStr= m_vsStrings.begin(); itStr != m_vsStrings.end(); ++itStr)
+			{
+				outStr << *itStr << " ";
+				if(itVal != m_voVal.end())
+				{
+					if( !(*itVal)->isEmpty() &&
+						(*itVal)->calculate(val)	)
+					{
+						outStr << val << " ";
+					}else
+						outStr << "(## wrong value ##) ";
+					++itVal;
+				}
+			}
+			for(itVal= itVal; itVal != m_voVal.end(); ++itVal)
 			{
 				if( !(*itVal)->isEmpty() &&
 					(*itVal)->calculate(val)	)
 				{
-					out << val << " ";
+					outStr << val << " ";
 				}else
-					out << "(## wrong value ##) ";
-				++itVal;
+					outStr << "(## wrong value ##) ";
 			}
-		}
-		for(itVal= itVal; itVal != m_voVal.end(); ++itVal)
-		{
-			if( !(*itVal)->isEmpty() &&
-				(*itVal)->calculate(val)	)
+			if(	m_bCL ||
+				ownDebug	)
 			{
-				out << val << " ";
-			}else
-				out << "(## wrong value ##) ";
-		}
-		if(	m_bCL ||
-			ownDebug	)
+				out() << outStr.str() << endl;
+			}
+			if(m_nLogLevel > -1)
+				LOGEX(m_nLogLevel, outStr.str(), getRunningThread()->getExternSendDevice());
+			m_oMeasureValue.value= 1;
+		}else
+			m_oMeasureValue.value= 0;
+		if(bDebug)
 		{
-			tout << out.str() << endl;
+			if(!m_oMeasureValue.value)
+				out() << "do not write any output" << endl;
+			out() << "result of DEBUG output is " << m_oMeasureValue.value << endl;
 		}
-		if(m_nLogLevel > -1)
-			LOGEX(m_nLogLevel, out.str(), getRunningThread()->getExternSendDevice());
-		m_oMeasureValue.value= 1;
-	}else
-		m_oMeasureValue.value= 0;
-	if(bDebug)
-	{
-		if(!m_oMeasureValue.value)
-			tout << "do not write any output" << endl;
-		tout << "result of DEBUG output is " << m_oMeasureValue.value << endl;
+		return m_oMeasureValue;
 	}
-	return m_oMeasureValue;
-}
 
-bool Output::range(bool& bfloat, double* min, double* max)
-{
-	bfloat= false;
-	*min= 0;
-	*max= 1;
-	return true;
-}
+	bool Output::range(bool& bfloat, double* min, double* max)
+	{
+		bfloat= false;
+		*min= 0;
+		*max= 1;
+		return true;
+	}
 
-Output::~Output()
-{
-	for(vector<ListCalculator*>::iterator it= m_voVal.begin(); it!=m_voVal.end(); ++it)
-		delete (*it);
-	DESTROYMUTEX(m_DEBUG);
+	Output::~Output()
+	{
+		for(vector<ListCalculator*>::iterator it= m_voVal.begin(); it!=m_voVal.end(); ++it)
+			delete (*it);
+		DESTROYMUTEX(m_DEBUG);
+	}
 }

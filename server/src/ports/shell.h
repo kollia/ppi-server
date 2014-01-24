@@ -32,14 +32,14 @@ class Shell : public switchClass
 public:
 	Shell(string folderName, string subroutineName)
 	: switchClass("SHELL", folderName, subroutineName),
-	  m_oMicroseconds(folderName, subroutineName, "microsec", false, false),
-	  m_oMilliseconds(folderName, subroutineName, "millisec", false, false),
-	  m_oSeconds(folderName, subroutineName, "sec", false, false),
-	  m_oMinutes(folderName, subroutineName, "min", false, false),
-	  m_oHours(folderName, subroutineName, "hour", false, false),
-	  m_oDays(folderName, subroutineName, "day", false, false),
-	  m_oMonths(folderName, subroutineName, "month", false, false),
-	  m_oYears(folderName, subroutineName, "year", false, false),
+	  m_oMicroseconds(folderName, subroutineName, "microsec", false, false, this),
+	  m_oMilliseconds(folderName, subroutineName, "millisec", false, false, this),
+	  m_oSeconds(folderName, subroutineName, "sec", false, false, this),
+	  m_oMinutes(folderName, subroutineName, "min", false, false, this),
+	  m_oHours(folderName, subroutineName, "hour", false, false, this),
+	  m_oDays(folderName, subroutineName, "day", false, false, this),
+	  m_oMonths(folderName, subroutineName, "month", false, false, this),
+	  m_oYears(folderName, subroutineName, "year", false, false, this),
 	  m_bFixTimePoll(false),
 	  m_EXECUTEMUTEX(Thread::getMutex("EXECUTEMUTEX")),
 	  m_WRITTENVALUES(Thread::getMutex("WRITTENVALUES"))

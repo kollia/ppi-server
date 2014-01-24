@@ -58,7 +58,7 @@ namespace ports
 			nSet > 0	)
 		{
 			m_vpoFrom.push_back(
-					new ListCalculator(folderName, subroutineName, "from[1]", true, false)	);
+					new ListCalculator(folderName, subroutineName, "from[1]", true, false, this)	);
 			calc= m_vpoFrom.back();
 			calc->init(pStartFolder, sFrom);
 			for(size_t n= 0; n<nSet; ++n)
@@ -123,7 +123,7 @@ namespace ports
 					from << "from[" << (n+1) << "]";
 					sFrom= properties->getValue("from", n, /*warning*/true);
 					m_vpoFrom.push_back(
-							new ListCalculator(folderName, subroutineName, from.str(), true, false) );
+							new ListCalculator(folderName, subroutineName, from.str(), true, false, this) );
 					calc= m_vpoFrom.back();
 					calc->init(pStartFolder, sFrom);
 				}
@@ -197,11 +197,11 @@ namespace ports
 						{
 							if(isdebug)
 							{
-								tout << "set value " << oValue.value;
-								tout << " into " << (s+1) << ". subroutine '";
+								out() << "set value " << oValue.value;
+								out() << " into " << (s+1) << ". subroutine '";
 								if(m_vsSet[s].find(":") == string::npos)
-									tout << folder << ":";
-								tout << m_vsSet[s] << "'" << endl;
+									out() << folder << ":";
+								out() << m_vsSet[s] << "'" << endl;
 							}
 							port->setValue(oValue, "i:"+folder+":"+subroutine);
 						}else
@@ -214,7 +214,7 @@ namespace ports
 								msg << folder << ":";
 							msg << m_vsSet[s] << "'";
 							if(isdebug)
-								tout << "### ERROR: " << msg.str() << endl;
+								out() << "### ERROR: " << msg.str() << endl;
 							msg << endl << "do not found this subroutine from 'set' attribute" << endl;
 							msg << "from set parameter in folder " << folder << " and subroutine " << subroutine;
 							TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg.str());
@@ -228,22 +228,22 @@ namespace ports
 					msg+= "' in folder " + folder + " and subroutine " + subroutine;
 					TIMELOG(LOG_ERROR, "calcResult"+folder+":"+subroutine, msg);
 					if(isdebug)
-						tout << "### ERROR: " << msg << endl;
+						out() << "### ERROR: " << msg << endl;
 				}
 			}
 
 		}
 		if(isdebug)
 		{
-			tout << "result of subroutine is ";
+			out() << "result of subroutine is ";
 			if(	swRv > 0 ||
 				swRv < 0		)
 			{
-				tout << "TRUE";
+				out() << "TRUE";
 
 			}else
-				tout << "FALSE";
-			tout << endl;
+				out() << "FALSE";
+			out() << endl;
 		}
 		m_oMeasureValue.value= swRv;
 		return m_oMeasureValue;

@@ -51,7 +51,7 @@ namespace ports
 
 				param << "sub[" << c << "]";
 				//m_vSave.push_back(properties->getValue("sub", c));
-				m_vpSave.push_back(new ListCalculator(getFolderName(), getSubroutineName(), param.str(), true, false));
+				m_vpSave.push_back(new ListCalculator(getFolderName(), getSubroutineName(), param.str(), true, false, this));
 				calc= m_vpSave.back();
 				calc->init(pStartFolder, properties->getValue("sub", c));
 			}

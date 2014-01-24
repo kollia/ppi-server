@@ -223,40 +223,40 @@ IValueHolderPattern& Shell::measure(const ppi_value& actValue)
 	} // else branch if(bswitch)
 	if(bDebug)
 	{
-		ostringstream out;
+		ostringstream outStr;
 
-		out << "result of subroutine is " << dRv << " for ";
+		outStr << "result of subroutine is " << dRv << " for ";
 		switch(static_cast<int>(dRv))
 		{
 		case 0:
-			out << "do nothing";
+			outStr << "do nothing";
 			break;
 		case 1:
 			if(bMaked)
-				out << "making ";
+				outStr << "making ";
 			else
-				out << "last command ";
-			out << "'begincommand'";
+				outStr << "last command ";
+			outStr << "'begincommand'";
 			break;
 		case 2:
 			if(bMaked)
-				out << "making ";
+				outStr << "making ";
 			else
-				out << "last command ";
-			out << "'whilecommand'";
+				outStr << "last command ";
+			outStr << "'whilecommand'";
 			break;
 		case 3:
 			if(bMaked)
-				out << "making ";
+				outStr << "making ";
 			else
-				out << "last command ";
-			out << "'endcommand'";
+				outStr << "last command ";
+			outStr << "'endcommand'";
 			break;
 		default:
 			if(bMaked)
-				out << "ERROR - take a look into LOG file!";
+				outStr << "ERROR - take a look into LOG file!";
 			else
-				out << "ERROR of one of last passing";
+				outStr << "ERROR of one of last passing";
 			break;
 		}
 		if(	bMaked &&
@@ -264,10 +264,10 @@ IValueHolderPattern& Shell::measure(const ppi_value& actValue)
 			!m_bWait &&
 			dRv > 0		)
 		{
-			out << " will be set external from shell command" << endl;
-			out << "current value is " << actValue;
+			outStr << " will be set external from shell command" << endl;
+			outStr << "current value is " << actValue;
 		}
-		tout << out.str() << endl;
+		out() << outStr.str() << endl;
 	}
 	if(	!bDebug &&
 		!m_bWait &&
@@ -308,13 +308,13 @@ int Shell::system(const string& action, string command)
 		msg= "read command results from one of last pass";
 	TIMELOGEX(LOG_DEBUG, folder+":"+subroutine+action, msg, getRunningThread()->getExternSendDevice());
 	if(bDebug)
-		tout << msg << endl;
+		out() << msg << endl;
 	if(m_sGUI != "")
 	{
 		// toDo: sending command to client with X-Server
 		TIMELOG(LOG_ERROR, folder+":"+subroutine, "sending to client with X-Server not implemented now");
 		if(bDebug)
-			tout << "sending to client with X-Server not implemented now" << endl;
+			out() << "sending to client with X-Server not implemented now" << endl;
 		res= -1;
 
 	}
@@ -330,10 +330,10 @@ int Shell::system(const string& action, string command)
 		{
 			command+= " debug";
 			if(action == "read")
-				tout << "execute reading ";
+				out() << "execute reading ";
 			else
-				tout << "execute command ";
-			tout << "by foreign process with user account " << m_sUserAccount << endl;
+				out() << "execute command ";
+			out() << "by foreign process with user account " << m_sUserAccount << endl;
 		}
 		res= m_pOWServer->command_exec(wait, command, result, m_bMore);
 
@@ -499,32 +499,32 @@ int Shell::system(const string& action, string command)
 				m_bMore &&
 				result.empty()		)
 			{
-				tout << "~~~~~~~~" << endl;
-				tout << "no output exist by begin of blocking, get by next pass" << endl;
-				tout << "~~~~~~~~" << endl;
+				out() << "~~~~~~~~" << endl;
+				out() << "no output exist by begin of blocking, get by next pass" << endl;
+				out() << "~~~~~~~~" << endl;
 
 			}else
 			{
-				tout << "output of command:" << endl;
-				tout << "~~~~~~~~" << endl;
+				out() << "output of command:" << endl;
+				out() << "~~~~~~~~" << endl;
 			}
 		}
 		for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
 		{
 			if(bDebug)
-				tout << *it << endl;
+				out() << *it << endl;
 			if(	it->length() > 8 &&
 				it->substr(0, 8) == "-PPI-SET"	)
 			{
 				if(!setValue(true, command, it->substr(1)))
 				{
 					if(bDebug)
-						tout << " ### ERROR: cannot read correctly PPI-SET command (look into log file)" << endl;
+						out() << " ### ERROR: cannot read correctly PPI-SET command (look into log file)" << endl;
 				}
 			}
 		}
 		if(bDebug)
-			tout << "~~~~~~~~" << endl;
+			out() << "~~~~~~~~" << endl;
 	}
 /*	if(bDebug)
 	{
@@ -532,19 +532,19 @@ int Shell::system(const string& action, string command)
 			m_bMore &&
 			result.empty()		)
 		{
-			tout << "~~~~~~~~" << endl;
-			tout << "no output exist by begin of blocking, get by next pass" << endl;
-			tout << "~~~~~~~~" << endl;
+			out() << "~~~~~~~~" << endl;
+			out() << "no output exist by begin of blocking, get by next pass" << endl;
+			out() << "~~~~~~~~" << endl;
 
 		}else
 		{
-			tout << "output of command:" << endl;
-			tout << "~~~~~~~~" << endl;
+			out() << "output of command:" << endl;
+			out() << "~~~~~~~~" << endl;
 			for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
 			{
-				tout << *it << endl;
+				out() << *it << endl;
 			}
-			tout << "~~~~~~~~" << endl;
+			out() << "~~~~~~~~" << endl;
 		}
 	}*/
 	return res;

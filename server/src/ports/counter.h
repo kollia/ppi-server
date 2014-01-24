@@ -51,7 +51,7 @@ namespace ports
 		 */
 		Counter(string folder, string subroutine)
 		: portBase("COUNTER", folder, subroutine),
-		  m_oSetNull(folder, subroutine, "setnull", false, true)
+		  m_oSetNull(folder, subroutine, "setnull", false, true, this)
 		{ };
 		/**
 		 * create object of class Counter.<br />
@@ -63,7 +63,7 @@ namespace ports
 		 */
 		Counter(string type, string folder, string subroutine)
 		: portBase(type, folder, subroutine),
-		  m_oSetNull(folder, subroutine, "setnull", false, true)
+		  m_oSetNull(folder, subroutine, "setnull", false, true, this)
 		{ };
 		/**
 		 * initialing object of counter

@@ -27,11 +27,13 @@
 using namespace boost;
 using namespace design_pattern_world::util_pattern;
 
-ListCalculator::ListCalculator(const string& folder, const string& subroutine, const string& param, bool need, bool boolean)
+ListCalculator::ListCalculator(const string& folder, const string& subroutine, const string& param,
+				bool need, bool boolean, IListObjectPattern* obj)
 : CalculatorContainer(need, boolean),
   m_sFolder(folder),
   m_sSubroutine(subroutine),
-  m_sParameter(param)
+  m_sParameter(param),
+  m_oOutput(obj)
 {
 	allowComparison(true);
 	allowIfSentence(true);
@@ -65,7 +67,7 @@ CalculatorContainer* ListCalculator::newObject()
 {
 	ListCalculator* c;
 
-	c= new ListCalculator(m_sFolder, m_sSubroutine, m_sParameter, /*need*/true, false);
+	c= new ListCalculator(m_sFolder, m_sSubroutine, m_sParameter, /*need*/true, false, m_oOutput);
 	c->m_pStartFolder= m_pStartFolder;
 	for(map<string, double>::iterator it= m_msSubVars.begin(); it != m_msSubVars.end(); ++it)
 		c->setSubVar(it->first, it->second);
@@ -96,8 +98,8 @@ void ListCalculator::output(bool bError, const string& file, const int line, con
 		string err("rendering ERROR by folder '");
 
 		err+= m_sFolder + "' and subroutine '" + m_sSubroutine + "' in parameter " + m_sParameter;
-		tout << "### " << err << endl;
-		tout << "    " << msg << endl;
+		m_oOutput->out() << "### " << err << endl;
+		m_oOutput->out() << "    " << msg << endl;
 		err+= "\n" + msg;
 		LOG(LOG_ERROR, err);
 

@@ -53,7 +53,7 @@ namespace ports
 		ExternPort(string type, string folder, string subroutine) :
 		switchClass(type, folder, subroutine),
 		m_bFirstAllocate(true),
-		m_oValue(folder, subroutine, "value", true, false),
+		m_oValue(folder, subroutine, "value", true, false, this),
 		m_dLastWValue(0),
 		m_bDoSwitch(false),
 		m_bFirstRead(true)
