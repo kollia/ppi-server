@@ -270,8 +270,7 @@ protected:
 	 *
 	 * @return child containers
 	 */
-	virtual const vector<ICalculatorPattern*> getChilds() const
-				{ return m_voContainers; };
+	virtual const vector<ICalculatorPattern*> getChilds() const;
 	/**
 	 * search for all variables in any container
 	 */

@@ -587,6 +587,20 @@ bool CalculatorContainer::calculate(double& dResult)
 	return correct;
 }
 
+const vector<ICalculatorPattern*> CalculatorContainer::getChilds() const
+{
+	vector<ICalculatorPattern*> vRv;
+
+	vRv= m_voContainers;
+	if(m_poIf)
+		vRv.push_back(m_poIf);
+	if(m_poThen)
+		vRv.push_back(m_poThen);
+	if(m_poElse)
+		vRv.push_back(m_poElse);
+	return vRv;
+}
+
 bool CalculatorContainer::calculateI(double& dResult)
 {
 	bool correct;
