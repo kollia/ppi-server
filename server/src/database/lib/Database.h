@@ -293,6 +293,11 @@ namespace ppi_database
 		 */
 		pthread_mutex_t* m_SERVERSTARTINGMUTEX;
 		/**
+		 * mutex to fill in allowed database entry's
+		 * written into database-file
+		 */
+		pthread_mutex_t* m_DBWRITINGALLOWED;
+		/**
 		 * condition for new items filled in
 		 */
 		pthread_cond_t* m_DBENTRYITEMSCOND;

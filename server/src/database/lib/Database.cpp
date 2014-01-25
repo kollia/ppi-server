@@ -74,6 +74,7 @@ namespace ppi_database
 		m_sptEntrys= auto_ptr<vector<db_t> >(new vector<db_t>());
 		m_apmmtValueEntrys= auto_ptr<map<string, map<string, db_t> > >(new map<string, map<string, db_t> > ());
 		m_SERVERSTARTINGMUTEX= Thread::getMutex("SERVERSTARTINGMUTEX");
+		m_DBWRITINGALLOWED= Thread::getMutex("DBWRITINGALLOWED");
 		m_DBENTRYITEMSCOND= Thread::getCondition("DBENTRYITEMSCOND");
 		m_DBENTRYITEMS= Thread::getMutex("DBENTRYITEMS");
 		m_DBCURRENTENTRY= Thread::getMutex("DBCURRENTENTRY");
@@ -471,9 +472,14 @@ namespace ppi_database
 					vector<db_t>::iterator found;
 
 					cout << "try to write " << fc->first << ":" << sc->first << " with identif " << ic->first << endl;
+					LOCK(m_DBWRITINGALLOWED);
 					found= find(m_vtDbValues.begin(), m_vtDbValues.end(), &ic->second);
 					if(found != m_vtDbValues.end())
+					{
+						UNLOCK(m_DBWRITINGALLOWED);
 						writeDb(ic->second, &dbFile);
+					}else
+						UNLOCK(m_DBWRITINGALLOWED);
 				}
 			}
 		}
@@ -1467,8 +1473,10 @@ namespace ppi_database
 		entry.folder= folder;
 		entry.subroutine= subroutine;
 		entry.identif= identif;
+		LOCK(m_DBWRITINGALLOWED);
 		//cout << " >>>>> allow db writing for " << folder << ":" << subroutine << " '" << identif << "'"<< endl;
 		m_vtDbValues.push_back(entry);
+		UNLOCK(m_DBWRITINGALLOWED);
 	}
 
 	void Database::fillValue(string folder, string subroutine, string identif, double value, bool bNew/*=false*/)
@@ -1593,16 +1601,19 @@ namespace ppi_database
 					db_t entry= *i;
 					vector<db_t>::iterator found;
 
-					LOCK(m_CHANGINGPOOL);
-					AROUSEALL(m_CHANGINGPOOLCOND);
-					m_bAnyChanged= true;
-					UNLOCK(m_CHANGINGPOOL);
+					LOCK(m_DBWRITINGALLOWED);
 					found= find(m_vtDbValues.begin(), m_vtDbValues.end(), &entry);
 					if(found != m_vtDbValues.end())
 					{
+						UNLOCK(m_DBWRITINGALLOWED);
+						LOCK(m_CHANGINGPOOL);
+						AROUSEALL(m_CHANGINGPOOLCOND);
+						m_bAnyChanged= true;
+						UNLOCK(m_CHANGINGPOOL);
 						//cout << "write this " << entry.folder << ":" << entry.subroutine << " into database" << endl;
 						writeDb(*i);
-					}
+					}else
+						UNLOCK(m_DBWRITINGALLOWED);
 				}
 			}
 		}
@@ -1676,6 +1687,7 @@ namespace ppi_database
 	Database::~Database()
 	{
 		DESTROYMUTEX(m_SERVERSTARTINGMUTEX);
+		DESTROYMUTEX(m_DBWRITINGALLOWED);
 		DESTROYMUTEX(m_DBENTRYITEMS);
 		DESTROYMUTEX(m_DBCURRENTENTRY);
 		DESTROYMUTEX(m_DBMEASURECURVES);
