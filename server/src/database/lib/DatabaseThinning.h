@@ -55,7 +55,7 @@ namespace ppi_database
 		 * @param nSleepAfter sleep time after every reading row to hold process performance lower
 		 */
 		DatabaseThinning(const string& sWorkDir, IChipConfigReaderPattern* pChipReader, __useconds_t nSleepAfter)
-		: Thread("DatabaseThinning", false, SCHED_FIFO, 50),
+		: Thread("DatabaseThinning", false, SCHED_IDLE, 0),
 		  m_THINNINGMUTEX(getMutex("THINNINGMUTEX")),
 		  m_THINNINGWAITCONDITION(getCondition("THINNINGWAITCONDITION")),
 		  m_sWorkDir(sWorkDir),
