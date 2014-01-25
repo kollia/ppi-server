@@ -274,7 +274,7 @@ bool Thread::setSchedulingParameter(int policy, int priority)
 			int min, max;
 			ostringstream smsg2, smin, smax, opolicy;
 			string spolicy;
-			string msg1("cannot set new scheduling priority for thread ");
+			string msg1("cannot set new scheduling priority '");
 			string msg2("unknon error return number ");
 
 			min= sched_get_priority_min(policy);
@@ -306,7 +306,7 @@ bool Thread::setSchedulingParameter(int policy, int priority)
 				spolicy= "unknown policy" + opolicy.str();
 				break;
 			}
-			msg1+= getThreadName() + "\n";
+			msg1+= spolicy + "' for thread " + getThreadName() + "\n";
 			switch(res)
 			{
 			case ESRCH:
