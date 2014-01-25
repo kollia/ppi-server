@@ -130,7 +130,9 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 		cerr << "              so send this messages directly which has more bad performance" << endl;
 		LOG(LOG_WARNING, err +"so send this messages directly which has more bad performance");
 	}
-	m_oInformer.start();
+	// do not start informer
+	// because need to high performance
+	res= 0;//m_oInformer.start();
 	if(res)
 	{
 		string err("measuring thread for folder '" + threadname +
@@ -593,12 +595,13 @@ int MeasureThread::execute()
 		cout << __FILE__ << __LINE__ << endl;
 		cout << "starting folder " << folder << endl;
 	}*/
-	if(!timerisset(&m_tvStartTime))
+	if(!m_tvStartTime.isSet())
 	{
-		if(gettimeofday(&m_tvStartTime, NULL))
+		if(!m_tvStartTime.setActTime())
 		{
 			tout << " ERROR: cannot calculate time of beginning" << endl;
-			timerclear(&m_tvStartTime);
+			tout << " " << m_tvStartTime.errorStr() << endl;
+			m_tvStartTime.clear();
 		}
 	}
 	if(!m_bReadInformations)
@@ -626,11 +629,11 @@ int MeasureThread::execute()
 		cout << "starting folder " << folder << endl;
 	}*/
 
-	if(gettimeofday(&end_tv, NULL))
+	if(!end_tv.setActTime())
 	{
 		string err("ERROR: cannot calculate ending time of hole folder list from '");
 
-		err+= getFolderName() + "'";
+		err+= getFolderName() + "'\n" + end_tv.errorStr();
 		if(debug)
 		{
 			tout << "--------------------------------------------------------------------" << endl;
@@ -643,13 +646,13 @@ int MeasureThread::execute()
 	diff_tv.clear();
 	if(	m_bNeedLength &&
 		end_tv.isSet() &&
-		timerisset(&m_tvStartTime)	)
+		m_tvStartTime.isSet()	)
 	{
-		timersub(&end_tv, &m_tvStartTime, &diff_tv);
-		if(timerisset(&m_tvSleepLength))
+		diff_tv= end_tv - m_tvStartTime;
+		if(m_tvSleepLength.isSet())
 		{
-			timersub(&diff_tv, &m_tvSleepLength, &diff_tv);
-			timerclear(&m_tvSleepLength);
+			diff_tv-= m_tvSleepLength;
+			m_tvSleepLength.clear();
 		}
 		LOCK(m_DEBUGLOCK);
 		calcLengthDiff(&m_tLengthType, diff_tv, debug);
@@ -663,199 +666,115 @@ int MeasureThread::execute()
 
 		if(!diff_tv.isSet())
 		{
-			timersub(&end_tv, &m_tvStartTime, &diff_tv);
-			if(timerisset(&m_tvSleepLength))
+			diff_tv= end_tv - m_tvStartTime;
+			if(m_tvSleepLength.isSet())
 			{
-				timersub(&diff_tv, &m_tvSleepLength, &diff_tv);
-				timerclear(&m_tvSleepLength);
+				diff_tv-= m_tvSleepLength;
+				m_tvSleepLength.clear();
 			}
 		}
 		folder= getFolderName();
 		out << "--------------------------------------------------------------------" << endl;
-		out << " folder '" << folder << "' STOP (";
-		out << getTimevalString(end_tv, /*as date*/true, debug) << ")" ;
-		out << "  running time (" << getTimevalString(diff_tv, /*as date*/false, debug) << ")" << endl;
+		out << " folder '" << folder << "' STOP (" << end_tv.toString(/*as date*/true) << ")" ;
+		out << "  running time (" << diff_tv.toString(/*as date*/false) << ")" << endl;
 		out << "--------------------------------------------------------------------" << endl;
 		tout << out.str();
 		TERMINALEND;
 	}
 	nHasLock= -1;
 	LOCK(m_ACTIVATETIME);
-	timerclear(&m_tvStartTime);
-	timerclear(&diff_tv);
-	if(1) //m_vFolder.empty())
+	m_tvStartTime.clear();
+	diff_tv.clear();
+	TERMINALEND;
+	if(	!m_vtmNextTime.empty() ||
+		!m_osUndefServers.empty()	)
 	{
-		TERMINALEND;
-		if(	!m_vtmNextTime.empty() ||
-			!m_osUndefServers.empty()	)
-		{
-			bool fold(false);
+		bool fold(false);
 
-			if(!m_vtmNextTime.empty())
-			{
-				sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
-			//	cout << "exits old next starting times:" << endl;
-			//	for(akttime= m_vtmNextTime.begin(); akttime != m_vtmNextTime.end(); ++akttime)
-			//		cout << "    " << akttime->tv_sec << "." << MeasureThread::getUsecString(akttime->tv_usec) << endl;
+		if(!m_vtmNextTime.empty())
+		{
+			sort(m_vtmNextTime.begin(), m_vtmNextTime.end(), time_sort());
+		//	cout << "exits old next starting times:" << endl;
+		//	for(akttime= m_vtmNextTime.begin(); akttime != m_vtmNextTime.end(); ++akttime)
+		//		cout << "    " << akttime->tv_sec << "." << MeasureThread::getUsecString(akttime->tv_usec) << endl;
+			akttime= m_vtmNextTime.begin();
+			while(akttime != m_vtmNextTime.end())
+			{// remove all older times than actual from NextTime vector
+			 // and make no condition when any older found
+				if(timercmp(&end_tv, &*akttime, <))
+					break;
+				fold= true;
+				m_vTimeFolder.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
+				m_vtmNextTime.erase(akttime);
 				akttime= m_vtmNextTime.begin();
-				while(akttime != m_vtmNextTime.end())
-				{// remove all older times than actual from NextTime vector
-				 // and make no condition when any older found
-					if(timercmp(&end_tv, &*akttime, <))
-						break;
-					fold= true;
-					m_vTimeFolder.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
-					m_vtmNextTime.erase(akttime);
-					akttime= m_vtmNextTime.begin();
-				}
-				do{ // search for same times
-					// and erase until one on of them
-					lasttime= akttime;
-					++akttime;
-					if(	akttime == m_vtmNextTime.end() ||
-						timercmp(&*akttime, &*lasttime, !=)	)
-					{
-						akttime= lasttime;
-						break;
-					}
-					if(lasttime != m_vtmNextTime.end())
-						m_vtmNextTime.erase(lasttime);
-					akttime= m_vtmNextTime.begin();
-				}while(akttime != m_vtmNextTime.end());
-				//cout << __FILE__ << " " << __LINE__ << endl;
-				//cout << "akttime:  " << end_tv.tv_sec << " " << end_tv.tv_usec << endl;
-				//cout << "polltime: " << akttime->tv_sec << " " << akttime->tv_usec << endl;
 			}
-			if(	fold == false &&
-				(	m_vtmNextTime.empty() ||
-					akttime != m_vtmNextTime.end()	)	)
-			{// no older times be found
-			 // or folder should start again for searching external port server
-				int condRv= 0;
-				bool bSearchServer(false);
-
-				if(akttime != m_vtmNextTime.end())
+			do{ // search for same times
+				// and erase until one on of them
+				lasttime= akttime;
+				++akttime;
+				if(	akttime == m_vtmNextTime.end() ||
+					timercmp(&*akttime, &*lasttime, !=)	)
 				{
-					waittm.tv_sec= akttime->tv_sec;
-					waittm.tv_nsec= akttime->tv_usec * 1000;
+					akttime= lasttime;
+					break;
+				}
+				if(lasttime != m_vtmNextTime.end())
+					m_vtmNextTime.erase(lasttime);
+				akttime= m_vtmNextTime.begin();
+			}while(akttime != m_vtmNextTime.end());
+			//cout << __FILE__ << " " << __LINE__ << endl;
+			//cout << "akttime:  " << end_tv.tv_sec << " " << end_tv.tv_usec << endl;
+			//cout << "polltime: " << akttime->tv_sec << " " << akttime->tv_usec << endl;
+		}
+		if(	fold == false &&
+			(	m_vtmNextTime.empty() ||
+				akttime != m_vtmNextTime.end()	)	)
+		{// no older times be found
+		 // or folder should start again for searching external port server
+			int condRv= 0;
+			bool bSearchServer(false);
+
+			if(akttime != m_vtmNextTime.end())
+			{
+				waittm.tv_sec= akttime->tv_sec;
+				waittm.tv_nsec= akttime->tv_usec * 1000;
+			}else
+			{// searching for external port server
+				timeval tv;
+
+				bSearchServer= true;
+				if(gettimeofday(&tv, NULL))
+				{
+					string msg("ALERT: cannot get time of day,\n");
+
+					msg+= "       so cannot measure time for next start of folder ";
+					msg+= getFolderName() + " to search for external port server\n";
+					msg+= "       waiting only for 10 seconds !!!";
+					TIMELOG(LOG_ALERT, "gettimeofday", msg);
+					if(debug)
+						tout << msg << endl;
+					UNLOCK(m_ACTIVATETIME);
+					sleep(10);
+					LOCK(m_ACTIVATETIME);
 				}else
-				{// searching for external port server
-					timeval tv;
-
-					bSearchServer= true;
-					if(gettimeofday(&tv, NULL))
-					{
-						string msg("ALERT: cannot get time of day,\n");
-
-						msg+= "       so cannot measure time for next start of folder ";
-						msg+= getFolderName() + " to search for external port server\n";
-						msg+= "       waiting only for 10 seconds !!!";
-						TIMELOG(LOG_ALERT, "gettimeofday", msg);
-						if(debug)
-							tout << msg << endl;
-						UNLOCK(m_ACTIVATETIME);
-						sleep(10);
-						LOCK(m_ACTIVATETIME);
-					}else
-					{
-						waittm.tv_sec= tv.tv_sec + m_nServerSearchSeconds;
-						waittm.tv_nsec= tv.tv_usec * 1000;
-					}
-				}
-				bool bRun(false);
-
-				if(m_vTimeFolder.empty())
 				{
-					nHasLock= TRYLOCK(m_VALUE);
-					if(nHasLock == 0)
-					{// thread get lock to look whether one folder informed
-					 // to restart
-						bRun= checkToStart(debug);
-					}else // when someone has lock one want to inform
-						bRun= true; // that this folder should start
-				}else// or m_vTimeFolder has entry's own folder should also restart
-					bRun= true;
-				while(bRun == false)
-				{
-					if(m_bNeedFolderRunning)
-					{
-						LOCK(m_FOLDERRUNMUTEX);
-						m_bFolderRunning= false;
-						UNLOCK(m_FOLDERRUNMUTEX);
-					}
-					// set timevec (nanoseconds) into timeval (microsecons)
-					// for wanted awake time
-					diff_tv.tv_sec= waittm.tv_sec;
-					diff_tv.tv_usec= waittm.tv_nsec / 1000;
-					if(nHasLock == 0)
-					{
-						nHasLock= -1;
-						UNLOCK(m_VALUE);
-					}
-					condRv= TIMECONDITION(m_VALUECONDITION, m_ACTIVATETIME, &waittm);
-					if(gettimeofday(&m_tvStartTime, NULL))
-					{
-						string msg("### DEBUGGING for folder ");
-
-						folder= getFolderName();
-						msg+= folder + " is aktivated!\n";
-						msg+= "    ERROR: cannot calculate time of beginning";
-						TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
-						if(isDebug())
-							tout << " ERROR: cannot calculate time of beginning" << endl;
-						timerclear(&m_tvStartTime);
-
-					}
-					if(m_bNeedFolderRunning)
-					{
-						LOCK(m_FOLDERRUNMUTEX);
-						m_bFolderRunning= true;
-						UNLOCK(m_FOLDERRUNMUTEX);
-					}
-					nHasLock= TRYLOCK(m_VALUE);
-					if(condRv == ETIMEDOUT)
-					{
-						if(!bSearchServer)
-							m_vTimeFolder.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
-						else
-							m_vTimeFolder.push_back("#searchserver");
-						break;
-					}
-					if(nHasLock == 0)
-					{// thread get lock to look whether one folder informed
-					 // to restart
-						if(m_vFolder.empty())
-						{
-							if(stopping())
-								break;
-							cout << "WARNING: condition for folder list " << getFolderName()
-											<< " get's an spurious wakeup" << endl;
-						}else
-							bRun= true;
-					}else // when someone has lock one want to inform to start
-						bRun= true;
+					waittm.tv_sec= tv.tv_sec + m_nServerSearchSeconds;
+					waittm.tv_nsec= tv.tv_usec * 1000;
 				}
-				if(	!bSearchServer &&
-					condRv == ETIMEDOUT	)
-				{
-					m_vtmNextTime.erase(akttime);
-				}
-			//	cout << "exits next starting times:" << endl;
-			//	for(akttime= m_vtmNextTime.begin(); akttime != m_vtmNextTime.end(); ++akttime)
-			//		cout << "    " << akttime->tv_sec << "." << MeasureThread::getUsecString(akttime->tv_usec) << endl;
-			}// else found only old times
-			//  and make now an new pass of older
-		}else
-		{
+			}
 			bool bRun(false);
 
-			nHasLock= TRYLOCK(m_VALUE);
-			if(nHasLock == 0)
-			{// thread get lock to look whether one folder informed
-			 // to restart
-				bRun= checkToStart(debug);
-			}else // when someone has lock one want to inform
-				bRun= true; // that this folder should start
+			if(m_vTimeFolder.empty())
+			{
+				nHasLock= TRYLOCK(m_VALUE);
+				if(nHasLock == 0)
+				{// thread get lock to look whether one folder informed
+				 // to restart
+					bRun= checkToStart(debug);
+				}else // when someone has lock one want to inform
+					bRun= true; // that this folder should start
+			}else// or m_vTimeFolder has entry's own folder should also restart
+				bRun= true;
 			while(bRun == false)
 			{
 				if(m_bNeedFolderRunning)
@@ -864,12 +783,16 @@ int MeasureThread::execute()
 					m_bFolderRunning= false;
 					UNLOCK(m_FOLDERRUNMUTEX);
 				}
+				// set timevec (nanoseconds) into timeval (microsecons)
+				// for wanted awake time
+				diff_tv.tv_sec= waittm.tv_sec;
+				diff_tv.tv_usec= waittm.tv_nsec / 1000;
 				if(nHasLock == 0)
 				{
 					nHasLock= -1;
 					UNLOCK(m_VALUE);
 				}
-				CONDITION(m_VALUECONDITION, m_ACTIVATETIME);
+				condRv= TIMECONDITION(m_VALUECONDITION, m_ACTIVATETIME, &waittm);
 				if(gettimeofday(&m_tvStartTime, NULL))
 				{
 					string msg("### DEBUGGING for folder ");
@@ -880,6 +803,7 @@ int MeasureThread::execute()
 					TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
 					if(isDebug())
 						tout << " ERROR: cannot calculate time of beginning" << endl;
+					timerclear(&m_tvStartTime);
 
 				}
 				if(m_bNeedFolderRunning)
@@ -889,6 +813,14 @@ int MeasureThread::execute()
 					UNLOCK(m_FOLDERRUNMUTEX);
 				}
 				nHasLock= TRYLOCK(m_VALUE);
+				if(condRv == ETIMEDOUT)
+				{
+					if(!bSearchServer)
+						m_vTimeFolder.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
+					else
+						m_vTimeFolder.push_back("#searchserver");
+					break;
+				}
 				if(nHasLock == 0)
 				{// thread get lock to look whether one folder informed
 				 // to restart
@@ -903,6 +835,73 @@ int MeasureThread::execute()
 				}else // when someone has lock one want to inform to start
 					bRun= true;
 			}
+			if(	!bSearchServer &&
+				condRv == ETIMEDOUT	)
+			{
+				m_vtmNextTime.erase(akttime);
+			}
+		//	cout << "exits next starting times:" << endl;
+		//	for(akttime= m_vtmNextTime.begin(); akttime != m_vtmNextTime.end(); ++akttime)
+		//		cout << "    " << akttime->tv_sec << "." << MeasureThread::getUsecString(akttime->tv_usec) << endl;
+		}// else found only old times
+		//  and make now an new pass of older
+	}else
+	{
+		bool bRun(false);
+
+		nHasLock= TRYLOCK(m_VALUE);
+		if(nHasLock == 0)
+		{// thread get lock to look whether one folder informed
+		 // to restart
+			bRun= checkToStart(debug);
+		}else // when someone has lock one want to inform
+			bRun= true; // that this folder should start
+		while(bRun == false)
+		{
+			if(m_bNeedFolderRunning)
+			{
+				LOCK(m_FOLDERRUNMUTEX);
+				m_bFolderRunning= false;
+				UNLOCK(m_FOLDERRUNMUTEX);
+			}
+			if(nHasLock == 0)
+			{
+				nHasLock= -1;
+				UNLOCK(m_VALUE);
+			}
+			CONDITION(m_VALUECONDITION, m_ACTIVATETIME);
+			if(gettimeofday(&m_tvStartTime, NULL))
+			{
+				string msg("### DEBUGGING for folder ");
+
+				folder= getFolderName();
+				msg+= folder + " is aktivated!\n";
+				msg+= "    ERROR: cannot calculate time of beginning";
+				TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
+				if(isDebug())
+					tout << " ERROR: cannot calculate time of beginning" << endl;
+
+			}
+			if(m_bNeedFolderRunning)
+			{
+				LOCK(m_FOLDERRUNMUTEX);
+				m_bFolderRunning= true;
+				UNLOCK(m_FOLDERRUNMUTEX);
+			}
+			nHasLock= TRYLOCK(m_VALUE);
+			if(nHasLock == 0)
+			{// thread get lock to look whether one folder informed
+			 // to restart
+				if(m_vFolder.empty())
+				{
+					if(stopping())
+						break;
+					cout << "WARNING: condition for folder list " << getFolderName()
+									<< " get's an spurious wakeup" << endl;
+				}else
+					bRun= true;
+			}else // when someone has lock one want to inform to start
+				bRun= true;
 		}
 	}
 	if(stopping())
@@ -1023,9 +1022,9 @@ int MeasureThread::execute()
 		if(m_tvStartTime.isSet())
 		{
 			if(diff_tv.isSet())
-				m_tvStartTime= diff_tv;
+				m_tvStartTime= diff_tv; // after CONDITION
 		}else
-			m_tvStartTime= end_tv;
+			m_tvStartTime= end_tv; // after last folder end
 	}
 	m_vTimeFolder.clear();
 	if(nHasLock == 0)
