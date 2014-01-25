@@ -71,7 +71,7 @@ namespace util
 		: Thread("DbFillerThread_for_" + threadName, false),
 		  m_bisRunn(false),
 		  m_apmtValueEntrys(auto_ptr<map<string, db_t> >(new map<string, db_t>())),
-		  m_SENDQUEUELOCK(getMutex("STENDQUEUELOCK")),
+		  m_SENDQUEUELOCK(getMutex("SENDQUEUELOCK")),
 		  m_SENDQUEUECONDITION(getCondition("SENDQUEUECONDITION"))
 		{};
 		/**

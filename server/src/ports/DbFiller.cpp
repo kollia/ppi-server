@@ -68,6 +68,7 @@ namespace util
 				fillValue(folder, subroutine, identif, values, bNew);
 				LOCK(m_SENDQUEUELOCK);
 				vsRv.push_back(m_sNoWaitError);
+				m_sNoWaitError= "";
 				UNLOCK(m_SENDQUEUELOCK);
 
 			}else
@@ -78,6 +79,7 @@ namespace util
 				LOCK(m_SENDQUEUELOCK);
 				m_vsSendingQueue.push_back(sendInfo);
 				vsRv.push_back(m_sNoWaitError);
+				m_sNoWaitError= "";
 				AROUSE(m_SENDQUEUECONDITION);
 				UNLOCK(m_SENDQUEUELOCK);
 			}
@@ -161,6 +163,13 @@ namespace util
 		string sError;
 		int err;
 
+		// set scheduling back to SCHED_OTHER
+		// while thread inside SENDQUEUBLOCK
+		// because there should have the same
+		// running policy
+		// and set to SCHED_BATCH again when outside
+		// to run with lower priority
+		setSchedulingParameter(SCHED_OTHER, 0);
 		LOCK(m_SENDQUEUELOCK);
 		if(	m_vsSendingQueue.size() == 0 &&
 			m_apmtValueEntrys->size() == 0	)
@@ -172,6 +181,7 @@ namespace util
 		m_apmtValueEntrys= auto_ptr<map<string, db_t> >(new map<string, db_t>());
 		m_vsSendingQueue.clear();
 		UNLOCK(m_SENDQUEUELOCK);
+		setSchedulingParameter(SCHED_BATCH, 0);
 
 		db= DbInterface::instance();
 		// write all values with identif 'value' from command fillValue()
@@ -220,16 +230,15 @@ namespace util
 		}
 		if(stopping())
 			return 0;
-		LOCK(m_SENDQUEUELOCK);
 		if(sError != "")
 		{
+			LOCK(m_SENDQUEUELOCK);
 			cerr << "DbFiller for NoAnswer method: " << msgPos->method << endl;
 			cerr << " get Error code: " << sError << endl << endl;
 			m_sNoWaitError= sError; // fill back into queue all sending methods from error
 			m_vsSendingQueue.insert(m_vsSendingQueue.begin(), msgPos, messages.end());
-		}else
-			m_sNoWaitError= "";
-		UNLOCK(m_SENDQUEUELOCK);
+			UNLOCK(m_SENDQUEUELOCK);
+		}
 		return 0;
 	}
 
