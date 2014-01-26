@@ -71,6 +71,10 @@ PORTSERVERBUSY_database:
 Server ist im Starte-Modus: ladet Datenbank
 Server is busy: loading database
 
+PORTSERVERBUSY_folder_define:
+Server ist im Starte-Modus: definiert all Arbeits-Listen
+Server is busy: define all working list's
+
 PORTSERVERBUSY_folder_conf:
 Server ist im Starte-Modus: configuriert alle Abarbeitungs-Listen
 Server is busy: configure all working list's
