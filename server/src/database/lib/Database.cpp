@@ -1601,15 +1601,15 @@ namespace ppi_database
 					db_t entry= *i;
 					vector<db_t>::iterator found;
 
+					LOCK(m_CHANGINGPOOL);
+					AROUSEALL(m_CHANGINGPOOLCOND);
+					m_bAnyChanged= true;
+					UNLOCK(m_CHANGINGPOOL);
 					LOCK(m_DBWRITINGALLOWED);
 					found= find(m_vtDbValues.begin(), m_vtDbValues.end(), &entry);
 					if(found != m_vtDbValues.end())
 					{
 						UNLOCK(m_DBWRITINGALLOWED);
-						LOCK(m_CHANGINGPOOL);
-						AROUSEALL(m_CHANGINGPOOLCOND);
-						m_bAnyChanged= true;
-						UNLOCK(m_CHANGINGPOOL);
 						//cout << "write this " << entry.folder << ":" << entry.subroutine << " into database" << endl;
 						writeDb(*i);
 					}else
