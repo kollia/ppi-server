@@ -68,9 +68,10 @@ namespace util
 		 * @param objCaller class object of ExternClientInputTemplate which need this sender thread
 		 */
 		DbFiller(const string& threadName)
-		: Thread("DbFillerThread_for_" + threadName, false),
+		: Thread("DbFillerThread_for_" + threadName, false, SCHED_BATCH, 0),
 		  m_bisRunn(false),
-		  m_apmtValueEntrys(auto_ptr<map<string, db_t> >(new map<string, db_t>())),
+		  m_vsSendingQueue(new vector<sendingInfo_t>()),
+		  m_apmtValueEntrys(new map<string, db_t>()),
 		  m_SENDQUEUELOCK(getMutex("SENDQUEUELOCK")),
 		  m_SENDQUEUECONDITION(getCondition("SENDQUEUECONDITION"))
 		{};
@@ -181,7 +182,7 @@ namespace util
 		/**
 		 * queue of question methods which need no answer
 		 */
-		vector<sendingInfo_t> m_vsSendingQueue;
+		std::auto_ptr<vector<sendingInfo_t> > m_vsSendingQueue;
 		/**
 		 * queue of all values for database
 		 */

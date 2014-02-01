@@ -77,7 +77,7 @@ namespace util
 				sendInfo.method= method.str();
 				sendInfo.done= done;
 				LOCK(m_SENDQUEUELOCK);
-				m_vsSendingQueue.push_back(sendInfo);
+				m_vsSendingQueue->push_back(sendInfo);
 				vsRv.push_back(m_sNoWaitError);
 				m_sNoWaitError= "";
 				AROUSE(m_SENDQUEUECONDITION);
@@ -111,6 +111,19 @@ namespace util
 		if(m_bisRunn)
 		{
 			LOCK(m_SENDQUEUELOCK);
+
+//#define __showLOCK
+#ifdef __showLOCK
+			if(getThreadName() == "DbFillerThread_for_Raff1_Zeit")
+			{
+				ostringstream out;
+				out << " Raff1_Zeit LOCK for filling " << identif << " ";
+				for(vector<double>::const_iterator i= dvalues.begin(); i != dvalues.end(); ++i)
+					out << *i << " ";
+				out << " into " << folder << ":" << subroutine << endl;
+				cout << out.str();
+			}
+#endif // __showLOCK
 			if(identif == "value")
 			{
 				foundSub= m_apmtValueEntrys->find(subroutine);
@@ -141,7 +154,7 @@ namespace util
 				for(vector<double>::const_iterator it= dvalues.begin(); it != dvalues.end(); ++it)
 					command << *it;
 				sendInfo.method= command.str();
-				m_vsSendingQueue.push_back(sendInfo);
+				m_vsSendingQueue->push_back(sendInfo);
 			}
 			AROUSE(m_SENDQUEUECONDITION);
 			UNLOCK(m_SENDQUEUELOCK);
@@ -155,10 +168,12 @@ namespace util
 	int DbFiller::execute()
 	{
 		typedef map<string, db_t>::iterator subIt;
-		std::auto_ptr<map<string, db_t>  > pRv(new map<string, db_t>());
+		std::auto_ptr<vector<sendingInfo_t> > newMsgQueue(new vector<sendingInfo_t>());
+		std::auto_ptr<vector<sendingInfo_t> > pMsg;
+		std::auto_ptr<map<string, db_t>  > newValueEntrys(new map<string, db_t>());
+		std::auto_ptr<map<string, db_t>  > pEntrys;
 		DbInterface* db;
 		vector<sendingInfo_t>::iterator msgPos;
-		vector<sendingInfo_t> messages;
 		vector<string> answer;
 		string sError;
 		int err;
@@ -169,23 +184,35 @@ namespace util
 		// running policy
 		// and set to SCHED_BATCH again when outside
 		// to run with lower priority
-		setSchedulingParameter(SCHED_OTHER, 0);
+		//setSchedulingParameter(SCHED_OTHER, 0);
 		LOCK(m_SENDQUEUELOCK);
-		if(	m_vsSendingQueue.size() == 0 &&
+		if(	m_vsSendingQueue->size() == 0 &&
 			m_apmtValueEntrys->size() == 0	)
 		{
+#ifdef __showLOCK
+			if(getThreadName() == "DbFillerThread_for_Raff1_Zeit")
+				cout << " DbFiller wait for condition" << endl;
+#endif // __showLOCK
 			CONDITION(m_SENDQUEUECONDITION, m_SENDQUEUELOCK);
+#ifdef __showLOCK
+			if(getThreadName() == "DbFillerThread_for_Raff1_Zeit")
+				cout << " DbFiller wake-up for working" << endl;
+#endif // __showLOCK
 		}
-		messages= m_vsSendingQueue;
-		pRv= m_apmtValueEntrys;
-		m_apmtValueEntrys= auto_ptr<map<string, db_t> >(new map<string, db_t>());
-		m_vsSendingQueue.clear();
+#ifdef __showLOCK
+		else if(getThreadName() == "DbFillerThread_for_Raff1_Zeit")
+			cout << " DbFiller LOCK for working" << endl;
+#endif // __showLOCK
+		pMsg= m_vsSendingQueue;
+		m_vsSendingQueue= newMsgQueue;
+		pEntrys= m_apmtValueEntrys;
+		m_apmtValueEntrys= newValueEntrys;
 		UNLOCK(m_SENDQUEUELOCK);
-		setSchedulingParameter(SCHED_BATCH, 0);
+		//setSchedulingParameter(SCHED_BATCH, 0);
 
 		db= DbInterface::instance();
 		// write all values with identif 'value' from command fillValue()
-		for(subIt sIt= pRv->begin(); sIt != pRv->end(); ++sIt)
+		for(subIt sIt= pEntrys->begin(); sIt != pEntrys->end(); ++sIt)
 		{
 			OMethodStringStream command("fillValue");
 
@@ -210,7 +237,7 @@ namespace util
 		}
 		if(sError == "")
 		{
-			for(msgPos= messages.begin(); msgPos != messages.end(); ++msgPos)
+			for(msgPos= pMsg->begin(); msgPos != pMsg->end(); ++msgPos)
 			{
 				OMethodStringStream method(msgPos->method);
 
@@ -236,7 +263,7 @@ namespace util
 			cerr << "DbFiller for NoAnswer method: " << msgPos->method << endl;
 			cerr << " get Error code: " << sError << endl << endl;
 			m_sNoWaitError= sError; // fill back into queue all sending methods from error
-			m_vsSendingQueue.insert(m_vsSendingQueue.begin(), msgPos, messages.end());
+			m_vsSendingQueue->insert(m_vsSendingQueue->begin(), msgPos, pMsg->end());
 			UNLOCK(m_SENDQUEUELOCK);
 		}
 		return 0;
