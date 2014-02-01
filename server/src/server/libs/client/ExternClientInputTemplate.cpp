@@ -225,7 +225,18 @@ namespace util
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 		do{
-			m_pSendTransaction->setCommand(command, done);
+			try{
+				m_pSendTransaction->setCommand(command, done);
+			}catch(SignalException& ex)
+			{
+				ostringstream msg;
+
+				msg << "try to set command '" + command + "' with end string '";
+				msg << done << "' on OutsideClientTransaction object ";
+				msg << m_pSendTransaction;
+				ex.addMessage(msg.str());
+				throw(ex);
+			}
 			ret= m_oSendConnect->init();
 			bsend= true;
 			if(ret > 0)
