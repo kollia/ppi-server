@@ -160,7 +160,7 @@ namespace ports
 	{
 		short nCommand(0);
 		int nRv;
-		bool bchangedVec(false);
+		bool bchangedVec(false), bInfo;
 		bool wait(false), block(false), debug(false), bLogError;
 		string sline;
 		string execute;
@@ -180,6 +180,7 @@ namespace ports
 		pSub= m_oMeasure.getASection("folder", folder);
 		pSub= pSub->getASection("name", subroutine);
 		bLogError= !pSub->haveAction("noerrorlog");
+		bInfo= !pSub->haveAction("noinfo");
 		get >> sline;
 		if(	sline != "read" &&
 			sline != "info"		)
@@ -225,7 +226,7 @@ namespace ports
 			if(thread == NULL)
 			{
 				db= DbInterface::instance();
-				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError));
+				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError, bInfo));
 				thread->setFor(folder, subroutine);
 				if(thread->start() != 0)
 				{
@@ -251,7 +252,7 @@ namespace ports
 				if(execute == "info")
 					return 0;
 				db= DbInterface::instance();
-				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError));
+				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError, bInfo));
 				thread->setFor(folder, subroutine);
 				if(thread->start() != 0)
 				{

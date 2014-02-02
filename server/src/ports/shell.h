@@ -113,6 +113,11 @@ protected:
 	 * whether an polling time for shell script be set
 	 */
 	bool m_bFixTimePoll;
+	/**
+	 * whether external thread should info subroutine
+	 * for shell script will be starting correctly
+	 */
+	bool m_bInfo;
 
 	/**
 	 * this method is an dummy

@@ -42,6 +42,7 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	properties->notAllowedAction("binary");
 	if(!switchClass::init(properties, pStartFolder))
 		bRv= false;
+	m_bInfo= !properties->haveAction("noinfo");
 	m_bLastValue= 0;
 	m_bWait= properties->haveAction("wait");
 	if(!m_bWait)
@@ -115,7 +116,7 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 				++count;
 			for(short n= 0; n < count; ++n)
 			{
-				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError,
+				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError, m_bInfo,
 												getRunningThread()->getExternSendDevice()));
 				thread->setFor(folder, subroutine);
 				if(thread->start() != 0)
@@ -271,8 +272,9 @@ IValueHolderPattern& Shell::measure(const ppi_value& actValue)
 	}
 	if(	!bDebug &&
 		!m_bWait &&
+		m_bInfo &&
 		dRv > 0		)
-	{// when wait and debug is false, subroutine will be set from external
+	{// when wait, debug is false and info true, subroutine will be set from external
 		m_oMeasureValue.value= actValue;// thread before starting shell command
 	}else                   // so do not make any changes now
 		m_oMeasureValue.value= dRv;
@@ -392,39 +394,9 @@ int Shell::system(const string& action, string command)
 			}
 			if(thread == NULL)
 			{
-/*				typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::size_type vSize;
-
-				vSize nLen(m_vCommandThreads.size());
-				ostringstream out;*/
-
-				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError,
+				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError, m_bInfo,
 								getRunningThread()->getExternSendDevice()));
 				thread->setFor(folder, subroutine);
-/*				out << "start one CommandExec thread for " << folder << ":" << subroutine << endl;
-				if(nLen > 0)
-				{
-					for(vSize i= 0; i < nLen; ++i)
-					{
-						if(i == 0)
-							out << "   because ";
-						else
-							out << "           ";
-						out << (i+1) << ". ";
-						if(!m_vCommandThreads[i]->running())
-							out << "do not running" << endl;
-						else if(m_vCommandThreads[i]->stopping())
-							out << "will be stopping" << endl;
-						else if(!m_vCommandThreads[i]->wait())
-							out << "do working" << endl;
-						else if(m_vCommandThreads[i]->wait())
-							out << "thread maybe before by asking working, but not now" << endl;
-						else
-							out << "thread has an undefined status" << endl;
-					}
-				}else
-					out << "   because no thread is running" << endl;
-				cerr << out.str();
-				LOGEX(LOG_INFO, out.str(), getRunningThread()->getExternSendDevice());*/
 				if(thread->start() != 0)
 				{
 					ostringstream msg;

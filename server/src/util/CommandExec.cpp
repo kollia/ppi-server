@@ -513,8 +513,9 @@ int CommandExec::execute()
 		bDebug= m_bDebug;
 		UNLOCK(m_WAITMUTEX);
 		bWaitMutex= false;
-		if(!bWait) // when wait not be set and thread do not starting directly
-		{ // and the script before running has the same ERRORLEVEL than this now will be have
+		if(	!bWait && // when wait not be set and thread do not starting directly
+			m_bInfo		) // and the script before running has the same ERRORLEVEL than this now will be have
+		{
 			ostringstream startCommand;// the subroutine will be not informed for an new value
 			ppi_time acttime;
 
@@ -525,7 +526,6 @@ int CommandExec::execute()
 			LOCK(m_externWRITTENVALUES);
 			startCommand << m_nStartCommand;
 			UNLOCK(m_externWRITTENVALUES);
-			//cout << startCommand.str() << endl;
 			setValue(startCommand.str(), bDebug);
 		}
 		while(fgets(line, sizeof line, fp))

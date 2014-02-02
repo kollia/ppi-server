@@ -39,13 +39,15 @@ public:
 	 *
 	 * @param port Interface to set value in an subroutine
 	 * @param logError whether ending script should write error return value (!= 0) into log file
+	 * @param info whether should sending info to subroutine that shell script will be starting correctly
 	 * @param sendDevice sending object over which logging should running
 	 */
-	CommandExec(IMeasureSet* port, bool logError, IClientSendMethods* sendDevice= NULL)
+	CommandExec(IMeasureSet* port, bool logError, bool info, IClientSendMethods* sendDevice= NULL)
 	: Thread("CommandExec", true, /*default policy*/-1, /*default priority*/-9999, sendDevice),
 	  m_bStarted(false),
 	  m_bLogging(false),
 	  m_bLogError(logError),
+	  m_bInfo(info),
 	  m_pPort(port),
 	  m_pSendLog(sendDevice),
 	  m_tScriptPid(0),
@@ -194,6 +196,11 @@ private:
 	 * into log file
 	 */
 	bool m_bLogError;
+	/**
+	 * whether should sending info to subroutine
+	 * that shell script will be starting correctly
+	 */
+	bool m_bInfo;
 	/**
 	 * defined current log level from shell script
 	 */
