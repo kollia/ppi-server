@@ -66,6 +66,8 @@ int main(int argc, char* argv[])
 	params.option("timerdblog", "t", "logging inside database currently reach info for subroutines with type TIME\n"
 					" - \"|<folder>|<subroutine>|runpercent|\"    by which cpu percent taking 'runlength' time\n"
 					" - \"|<folder>|<subroutine>|reachpercent|\"  cpu percent taking estimated finish time 'reachend'\n"
+					" - \"|<folder>|<subroutine>|wanttime|\"      which time want to measure\n"
+					" - \"|<folder>|<subroutine>|informlate|\"    when subroutine was informed to late for exact calculation\n"
 					" - \"|<folder>|<subroutine>|startlate|\"     when starting time of subroutine was to late\n"
 					" - \"|<folder>|<subroutine>|reachlate\"      reach currently late finish-position\n"
 					" - \"|<folder>|<subroutine>|wrongreach\"     wrong difference to reach finish-position dependent to 'reachend'");

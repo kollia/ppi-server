@@ -331,6 +331,10 @@ protected:
 
 private:
 	/**
+	 * actual time of running subroutine
+	 */
+	ppi_time m_oActTime;
+	/**
 	 * whether parameter begin/while/end for set new value will be done before<br />
 	 * 0 is false and 1 is true
 	 */
@@ -434,14 +438,16 @@ private:
 	 *
 	 * @param debug whether subroutine should write out debug strings
 	 * @param actValue actual value of subroutine
-	 * @param next give back calculated time to stopping
+	 * @param next actual time and give back calculated time to stopping
 	 */
 	double calcStartTime(const bool& debug, const double actValue, ppi_time* next);
 	/**
-	 * substract from time seconds for exact starting
+	 * Subtract from time seconds for exact starting
 	 *
+	 * @param nextTime full waiting time need for ending
+	 * @param debug whether actual session is for debugging
 	 */
-	double substractExactFinishTime(ppi_time* nextTime, ppi_time* refreshTime, ppi_time* exactStop, const bool& debug);
+	double substractExactFinishTime(ppi_time* nextTime, const bool& debug);
 };
 
 #endif /*TIMER_H_*/
