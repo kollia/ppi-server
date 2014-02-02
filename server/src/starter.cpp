@@ -944,6 +944,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	}
 	// ------------------------------------------------------------------------------------------------------------
 	LOG(LOG_DEBUG, "after knowing database was loaded, starting to configure all control list's to measure");
+	db->writeIntoDb("ppi-server", "starting", "starting");
+	db->fillValue("ppi-server", "starting", "starting", -1);
 
 	// define first all measureThread's ---------------------------------------------------------------------------
 	// because some TIMER subroutines need class definition
@@ -1181,6 +1183,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	stimemsg= timemsg.str();
 	cout << stimemsg << " ..." << endl;
 	LOG(LOG_INFO, stimemsg);
+	db->fillValue("ppi-server", "starting", "starting", 1);
 	// ------------------------------------------------------------------------------------------------------------
 	checker.start(pFirstMeasureThreads.get(), true);
 
@@ -1273,8 +1276,9 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 
 			}else if(aktualFolder->subroutines[n].type == "VALUE")
 			{
-				auto_ptr<ValueHolder> obj= auto_ptr<ValueHolder>(new ValueHolder(	aktualFolder->name,
-																					aktualFolder->subroutines[n].name	));
+				auto_ptr<ValueHolderSubroutine> obj=
+								auto_ptr<ValueHolderSubroutine>(new ValueHolderSubroutine(	aktualFolder->name,
+																							aktualFolder->subroutines[n].name	));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "SET")
