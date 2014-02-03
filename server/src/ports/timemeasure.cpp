@@ -67,7 +67,7 @@ bool TimeMeasure::init(IActionPropertyPattern* properties, const SHAREDPTR::shar
 		errorOut+= error;
 		errorOut+= " does not be set correctly";
 		LOG(LOG_ERROR, errorOut);
-		tout << errorOut << endl;
+		out() << errorOut << endl;
 		return false;
 	}
 	m_tOut= tOut;

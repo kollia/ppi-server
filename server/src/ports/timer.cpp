@@ -261,7 +261,7 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 
 			msg+= "no right case of begin, while, end parameters be set, so do not start subroutine";
 			LOG(LOG_ERROR, msg);
-			tout << msg << endl;
+			out() << msg << endl;
 			bOk= false;
 		}
 	}

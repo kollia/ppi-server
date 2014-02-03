@@ -112,7 +112,7 @@ namespace ports
 
 			msg+= "no string or value be set for output, set subroutine to incorrect";
 			LOG(LOG_WARNING, msg);
-			tout << msg << endl;
+			out() << msg << endl;
 			return false;
 		}
 		if(!bSwitch)

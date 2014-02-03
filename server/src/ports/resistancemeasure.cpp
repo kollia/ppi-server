@@ -72,7 +72,7 @@ namespace ports
 				warningOut+= "\n             on set parameter 'out' and 'in', ";
 				warningOut+= warning + "will be ignored.";
 				LOGEX(LOG_INFO, warningOut, getRunningThread()->getExternSendDevice());
-				tout << warningOut << endl;
+				out() << warningOut << endl;
 			}
 			properties->notAllowedAction("binary");
 			return TimeMeasure::init(properties, pStartFolder);
@@ -117,7 +117,7 @@ namespace ports
 			warningOut+= "\n             so parameters ";
 			warningOut+= warning + " will be ignored";
 			LOGEX(LOG_INFO, warningOut, getRunningThread()->getExternSendDevice());
-			tout << warningOut << endl;
+			out() << warningOut << endl;
 		}
 		sMValue= properties->needValue("mvalue");
 		properties->notAllowedAction("binary");

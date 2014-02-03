@@ -130,7 +130,7 @@ namespace ports
 			}
 		}
 		if(seterr.str() != "")
-			tout << properties->getMsgHead(/*error*/true) << seterr.str() << endl;
+			out() << properties->getMsgHead(/*error*/true) << seterr.str() << endl;
 		prop= "default";
 		oDefault.value= properties->getDouble(prop, /*warning*/false);
 		properties->notAllowedAction("binary");

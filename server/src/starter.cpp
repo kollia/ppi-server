@@ -1338,7 +1338,7 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 					msg << aktualFolder->subroutines[n].property->getMsgHead(/*error*/false);
 					msg << "cannot define given type '" << aktualFolder->subroutines[n].type << "', define subroutine as incorrect!";
 				}
-				cout << msg.str() << endl;
+				tout << msg.str() << endl;
 				LOG(LOG_WARNING, msg.str());
 			}
 		}
@@ -1416,6 +1416,7 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 					correctFolder= true;
 				}else
 					aktualFolder->subroutines[n].bCorrect= false;
+				pobj->writeDebugStream();
 				//tout << "-----------" << endl;
 			}else
 			{
