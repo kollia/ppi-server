@@ -1,6 +1,7 @@
 
 set(mainSrcs 	main.cpp
                 ProcessChecker.cpp 
+                MeasureThreadCounter.cpp
 		        starter.cpp				
 		        
 		        ports/ListCalculator.cpp

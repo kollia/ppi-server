@@ -665,6 +665,7 @@ namespace server
 				IServerPattern* server= descriptor.getServerObject();
 				IClientHolderPattern* starter= server->getCommunicationFactory();
 
+				db->fillValue("ppi-server", "starting", "starting", 0);
 				glob::stopMessage("get stop or restart command from outside");
 				if(user->getRootUser() != descriptor.getString("username"))
 				{
@@ -753,6 +754,47 @@ namespace server
 				cout << "send: " << sendmsg << endl;
 	#endif // SERVERDEBUG
 				sendmsg+= "\n";
+				descriptor << sendmsg;
+
+			}else if(input.substr(0, 4) == "SHOW")
+			{
+				bool bFail(false), bClient(false);
+				int seconds;
+				istringstream action(input);
+				DbInterface* db= DbInterface::instance();
+
+				action >> sendmsg; // first output is 'SHOW' (do not need)
+				action >> seconds;
+				if(action.fail())
+				{
+					action.clear();
+					action >> sendmsg;
+					if(	action.eof() ||
+						action.fail() ||
+						sendmsg != "c"	)
+					{
+						sendmsg= INFOERROR(descriptor, 21, input, "");
+						bFail= true;
+					}else
+					{
+						bClient= true;
+						action >> seconds;
+						if(	action.fail() ||
+							seconds <= 0	)
+						{
+							sendmsg= INFOERROR(descriptor, 21, input, "");
+							bFail= true;
+						}
+					}
+				}
+				if(!bFail)
+				{
+					db->showThreads(seconds, bClient);
+					sendmsg= "done\n";
+#ifdef SERVERDEBUG
+					cout << "send: " << sendmsg;
+#endif // SERVERDEBUG
+				}
 				descriptor << sendmsg;
 
 			}else if(	input.substr(0, 5) == "DEBUG" ||
@@ -1370,6 +1412,9 @@ namespace server
 			break;
 		case 20:
 			str= "cannot load UserManagement correctly";
+			break;
+		case 21:
+			str= "unknown options after command SHOW";
 			break;
 		default:
 			if(error > 0)

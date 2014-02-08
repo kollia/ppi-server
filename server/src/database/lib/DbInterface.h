@@ -278,6 +278,13 @@ namespace ppi_database
 		 */
 		void debugSubroutine(bool debug, const string& folder, const string& subroutine= "");
 		/**
+		 * show on command line which folder threads how often running
+		 *
+		 * @param seconds how much seconds server should wait for read count
+		 * @param bClient whether server should wait before counting for client action
+		 */
+		void showThreads(int seconds, bool bClient);
+		/**
 		 * clear all debug states from any folders,
 		 * which should write output messages
 		 */

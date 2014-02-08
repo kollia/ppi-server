@@ -458,6 +458,33 @@ namespace ppi_database
 		}
 	}
 
+	void DbInterface::showThreads(int seconds, bool bClient)
+	{
+		int err;
+		string sRv;
+		OMethodStringStream command("showThreads");
+
+		command << seconds;
+		command << bClient;
+		sRv= ExternClientInputTemplate::sendMethod("ProcessChecker", command, false);
+		err= error(sRv);
+		if(err != 0)
+		{
+			string msg;
+
+			msg= strerror(err);
+			if(err > 0)
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << "### " << msg << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << "### " << msg << endl;
+			}
+		}
+	}
+
 	void DbInterface::clearFolderDebug()
 	{
 		int err;

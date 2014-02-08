@@ -88,6 +88,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 	m_bDebug= false;
 	m_sFolder= threadname;
 	m_nActCount= 0;
+	m_nRunCount= -1;
 	m_tRunThread= Thread::getThreadID();
 	m_pvlPorts= tArg.ports;
 	m_pvtSubroutines= tArg.subroutines;
@@ -517,6 +518,24 @@ string MeasureThread::getTimevalString(const timeval& tvtime, const bool& bDate,
 	return sRv.str();
 }
 
+void MeasureThread::beginCounting()
+{
+	LOCK(m_FOLDERRUNMUTEX);
+	m_nRunCount= 0;
+	UNLOCK(m_FOLDERRUNMUTEX);
+}
+
+int MeasureThread::getRunningCount()
+{
+	int nRv;
+
+	LOCK(m_FOLDERRUNMUTEX);
+	nRv= m_nRunCount;
+	m_nRunCount= -1;
+	UNLOCK(m_FOLDERRUNMUTEX);
+	return nRv;
+}
+
 folderSpecNeed_t MeasureThread::isFolderRunning(const vector<string>& specs)
 {
 	typedef vector<string>::const_iterator specIt;
@@ -620,6 +639,10 @@ int MeasureThread::execute()
 			m_vStartTimes.push_back(pair<short, ppi_time>(id, m_tvStartTime));
 		}
 	}
+	LOCK(m_FOLDERRUNMUTEX);
+	if(m_nRunCount >= 0)
+		++m_nRunCount;
+	UNLOCK(m_FOLDERRUNMUTEX);
 	measure();
 	//Debug info behind measure routine to stop by right folder
 	/*folder= getFolderName();

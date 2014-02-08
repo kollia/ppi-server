@@ -333,6 +333,16 @@ class MeasureThread : 	public Thread,
 		 */
 		static timeval calcResult(double seconds, const bool& secondcalc);
 		/**
+		 * begin counting of how much folder was running
+		 */
+		void beginCounting();
+		/**
+		 * return how often folder thread was running
+		 *
+		 * @return counting number
+		 */
+		int getRunningCount();
+		/**
 		 * destructor of MeasureThread
 		 */
 		virtual ~MeasureThread();
@@ -497,6 +507,10 @@ class MeasureThread : 	public Thread,
 		 */
 		time_t m_nServerSearchSeconds;
 		/**
+		 * count how often folder running
+		 */
+		int m_nRunCount;
+		/**
 		 * mutex by any changing of value
 		 */
 		pthread_mutex_t *m_VALUE;
@@ -506,6 +520,7 @@ class MeasureThread : 	public Thread,
 		pthread_mutex_t *m_ACTIVATETIME;
 		/**
 		 * mutex for check whether folder is running
+		 * and also for counting how often run
 		 */
 		pthread_mutex_t *m_FOLDERRUNMUTEX;
 		/**

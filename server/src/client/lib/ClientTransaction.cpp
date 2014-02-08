@@ -632,7 +632,7 @@ namespace server
 	void ClientTransaction::printError(IFileDescriptorPattern& descriptor, const string& error)
 	{
 		int nErrorNum;
-		string buffer;
+		string buffer, str;
 		stringstream ss(error);
 		ostringstream newerr;
 
@@ -666,17 +666,19 @@ namespace server
 			cerr << buffer << endl;
 			return;
 		}
+		cerr << "lost connection to server" << endl;
+		cerr << "default error string from 'src/client/lib/ClientTransaction':" << endl;
 
 		// default error strings
 		// when any go wrong on connection
 		switch(nErrorNum)
 		{
 		case 1:
-			cerr << "client beginning fault transaction" << endl;
+			str= "client beginning fault transaction";
 			return;
 
 		case 2:
-			cerr << "no correct command given" << endl;
+			str= "no correct command given";
 			return;
 
 		case 3:
@@ -684,51 +686,72 @@ namespace server
 			break;
 
 		case 4:
-			cerr << "cannot found given folder for operation" << endl;
+			str= "cannot found given folder for operation";
 			return;
 
 		case 5:
-			cerr << "cannot found given subroutine in folder for operation" << endl;
+			str= "cannot found given subroutine in folder for operation";
 			break;
 
 		case 6:
-			cerr << "Unknown value to set in subroutine" << endl;
+			str= "Unknown value to set in subroutine";
 			break;
 		case 7:
-			cerr << "no filter be set for read directory" << endl;
+			str= "no filter be set for read directory";
 			break;
 		case 8:
-			cerr << "cannot read any directory" << endl;
+			str= "cannot read any directory";
 			break;
 		case 9:
-			cerr << "cannot found given file for read content" << endl;
+			str= "cannot found given file for read content";
 			break;
 		case 10:
-			cerr << "given ID from client do not exist" << endl;
+			str= "given ID from client do not exist";
 			break;
 		case 11:
-			cerr << "wrong user or password" << endl;
+			str= "wrong user or password";
 			break;
 		case 12:
-			cerr << "do not use error number 12 now" << endl;
+			str= "do not use error number 12 now";
 			break;
 		case 13:
-			cerr << "user has no permission" << endl;
+			str= "user has no permission";
 			break;
 		case 14:
-			cerr << "subrutine isn't correct defined by the settings of config file" << endl;
+			str= "subrutine isn't correct defined by the settings of config file";
 			break;
 		case 15:
-			cerr << "user cannot login as first" << endl;
+			str= "user cannot login as first";
 			break;
 		case 16:
-			cerr << "subroutine has no correct access to device" << endl;
+			str= "subroutine has no correct access to device";
+			break;
+		case 17:
+			str= "cannot find OWServer for debugging";
+			break;
+		case 18:
+			str= "no communication thread is free for answer "
+					"(this case can behavior when the mincommunicationthreads parameter be 0)";
+			break;
+		case 19:
+			str= "server will be stopping from administrator";
+			break;
+		case 20:
+			str= "cannot load UserManagement correctly";
+			break;
+		case 21:
+			str= "unknown options after command SHOW";
 			break;
 		default:
-			cerr << "### error code '" << error << "' is not defined for default" << endl;
-			cerr << "    on file " << __FILE__ << endl;
-			cerr << "   and line " << __LINE__ << endl;
+			ostringstream ostr;
+
+			ostr << "### error code '" << error << "' is not defined for default" << endl;
+			ostr << "    on file " << __FILE__ << endl;
+			ostr << "   and line " << __LINE__;
+			str= ostr.str();
+			break;
 		}
+		cerr << str << endl;
 	}
 
 	ClientTransaction::~ClientTransaction()

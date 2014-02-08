@@ -128,6 +128,7 @@ int main(int argc, char* argv[])
 			param == "SET" ||
 			param == "CONTENT" ||
 			param == "DIR" ||
+			param == "SHOW" ||
 			param == "DEBUG" ||
 			param == "STOPDEBUG" ||
 			param == "GETMINMAXERRORNUMS" ||
@@ -237,6 +238,10 @@ void help(char* cpSelf)
 	printf("                         -     shows all files in directory ${workdir}/client which are suitable to given filter\n");
 	printf("                CONTENT <filename>\n");
 	printf("                         -     send the file content of the given filename under ${workdir}/client\n");
+	printf("                SHOW [-c] <seconds>\n");
+	printf("                         -     show on command line which folder threads how often running\n");
+	printf("                               measure the count inside given seconds\n");
+	printf("                               when option -c be set, wait until given SET command from any client\n");
 	printf("                DEBUG [-ow] <folder[:subroutine]/owreaderID>\n");
 	printf("                         -     show by running server debugging messages for given folder and subroutine\n");
 	printf("                               when no subroutine given, the hole folder is set for debugging\n");

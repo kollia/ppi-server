@@ -1473,10 +1473,6 @@ namespace server
 			dbTh= DatabaseThread::instance();
 			if(stopdb == 0)
 			{
-				vector<double> val;
-
-				val.push_back(0);
-				dbTh->getDatabaseObj()->fillValue("ppi-server", "starting", "starting", val);
 				glob::stopMessage("ServerDbTransaction::transfer(): stop database thread");
 				dbTh->stop(false);
 				++stopdb;

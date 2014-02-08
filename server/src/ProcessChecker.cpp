@@ -19,6 +19,7 @@
 #include <boost/algorithm/string/classification.hpp>
 
 #include "ProcessChecker.h"
+#include "MeasureThreadCounter.h"
 
 #include "ports/measureThread.h"
 
@@ -42,6 +43,7 @@ inline int ProcessChecker::init(void *args)
 int ProcessChecker::execute()
 {
 	static bool bfirst(false);
+	static MeasureThreadCounter* counter(NULL);
 	int nRv= 0;
 	string method;
 	string question;
@@ -107,6 +109,8 @@ int ProcessChecker::execute()
 
 				}else if(bCorrect)
 				{
+					if(counter)
+						counter->clientAction();
 #ifdef __DEBUGPROCESSGETCHANGES
 					out << endl;
 					cout << out.str();
@@ -190,6 +194,22 @@ int ProcessChecker::execute()
 		if(!bFound)
 			m_sAnswer= "nofolder";
 
+	}else if(method == "showThreads")
+	{
+		bool bClient;
+		int seconds;
+
+		object >> seconds;
+		object >> bClient;
+		if(counter)
+		{
+			counter->stop(true);
+			delete counter;
+		}
+		counter= new MeasureThreadCounter(seconds, bClient);
+		counter->initialStarting();
+		m_sAnswer= "done";
+
 	}else if(method == "clearFolderDebug")
 	{
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
@@ -214,6 +234,11 @@ int ProcessChecker::execute()
 		switch(m_nEndPos)
 		{
 		case 0:
+			if(counter)
+			{
+				counter->stop(true);
+				delete counter;
+			}
 			// ending external port list
 			cout << "stopping:" << endl;
 			cout << "measureThreads " << flush;
