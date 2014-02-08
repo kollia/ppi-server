@@ -70,6 +70,8 @@ Thread::Thread(const string& threadName, bool waitInit/*= true*/, const int poli
 	m_THREADNAME= getMutex("THREADNAME", logger);
 	m_STARTSTOPTHREAD= getMutex("STARTSTOPTHREAD", logger);
 	m_ERRORCODES= getMutex("ERRORCODES", logger);
+	m_SLEEPMUTEX= getMutex("SLEEPMUTEX", logger);
+	m_SLEEPCOND= getCondition("SLEEPCOND", logger);
 	m_STARTSTOPTHREADCOND= getCondition("STARTSTOPTHREADCOND", logger);
 }
 
@@ -1644,7 +1646,10 @@ int Thread::stop(const bool *bWait)
 	int nRv;
 //	LogInterface* log= LogInterface::instance();
 
-	LOCK(m_STARTSTOPTHREAD);
+	mutex_lock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
+	mutex_lock(__FILE__, __LINE__, m_SLEEPMUTEX, m_pExtLogger);
+	arouseAllCondition(__FILE__, __LINE__, m_SLEEPCOND, m_pExtLogger);
+	mutex_unlock(__FILE__, __LINE__, m_SLEEPMUTEX, m_pExtLogger);
 	m_bStop= true;
 	if(	bWait
 		&&
@@ -1710,14 +1715,79 @@ int Thread::running()
 	return nRv;
 }
 
+int Thread::sleep(const unsigned int wait, string file/*= ""*/, int line/*= 0*/)
+{
+	timespec req, *rem(NULL);
+
+	if(file == "")
+		file= __FILE__;
+	if(line <= 0)
+		line= __LINE__;
+	req.tv_sec= wait;
+	req.tv_nsec= 0;
+	return nanosleep(&req, rem, file, line);
+}
+
+int Thread::usleep(const useconds_t wait, string file/*= ""*/, int line/*= 0*/)
+{
+	timespec req, *rem(NULL);
+
+	if(file == "")
+		file= __FILE__;
+	if(line <= 0)
+		line= __LINE__;
+	req.tv_sec= 0;
+	req.tv_nsec= static_cast<long>(wait * 1000);
+	return nanosleep(&req, rem, file, line);
+}
+
+int Thread::nanosleep(const struct timespec *req, struct timespec *rem, string file/*= ""*/, int line/*= 0*/)
+{
+	int nRv;
+	timespec time;
+
+	if(file == "")
+		file= __FILE__;
+	if(line <= 0)
+		line= __LINE__;
+	rem= NULL;
+	mutex_lock(__FILE__, __LINE__, m_SLEEPMUTEX, m_pExtLogger);
+	if(stopping())
+	{
+		m_nRemainSecs.tv_sec= req->tv_sec;
+		m_nRemainSecs.tv_nsec= req->tv_nsec;
+		rem= &m_nRemainSecs;
+		mutex_unlock(__FILE__, __LINE__, m_SLEEPMUTEX, m_pExtLogger);
+		return 0;
+	}
+	clock_gettime(CLOCK_REALTIME, &time);
+	do{
+		nRv= conditionWait(file, line, m_SLEEPCOND, m_SLEEPMUTEX, req, /*absolute*/false, m_pExtLogger);
+	}while(nRv == 0 && !stopping());// an spurious wake-up occurred
+	if(nRv != ETIMEDOUT)
+	{
+		clock_gettime(CLOCK_REALTIME, &m_nRemainSecs);
+		m_nRemainSecs.tv_sec-= time.tv_sec;
+		if(time.tv_nsec > m_nRemainSecs.tv_nsec)
+		{
+			--m_nRemainSecs.tv_sec;
+			m_nRemainSecs.tv_nsec+= 1000000000;
+		}
+		m_nRemainSecs.tv_nsec-= time.tv_nsec;
+		rem= &m_nRemainSecs;
+	}
+	mutex_unlock(__FILE__, __LINE__, m_SLEEPMUTEX, m_pExtLogger);
+	return nRv;
+}
+
 int Thread::initialed()
 {
 	int nRv= 0;
 
-	mutex_lock(__FILE__, __LINE__, m_RUNTHREAD);
+	mutex_lock(__FILE__, __LINE__, m_RUNTHREAD, m_pExtLogger);
 	if(m_bInitialed)
 		nRv= 1;
-	mutex_unlock(__FILE__, __LINE__, m_RUNTHREAD);
+	mutex_unlock(__FILE__, __LINE__, m_RUNTHREAD, m_pExtLogger);
 	return nRv;
 }
 
@@ -1728,5 +1798,7 @@ Thread::~Thread()
 	DESTROYMUTEXEX(m_THREADNAME, m_pExtLogger);
 	DESTROYMUTEXEX(m_STARTSTOPTHREAD, m_pExtLogger);
 	DESTROYMUTEXEX(m_ERRORCODES, m_pExtLogger);
+	DESTROYMUTEXEX(m_SLEEPMUTEX, m_pExtLogger);
+	DESTROYCONDEX(m_SLEEPCOND, m_pExtLogger);
 	DESTROYCONDEX(m_STARTSTOPTHREADCOND, m_pExtLogger);
 }

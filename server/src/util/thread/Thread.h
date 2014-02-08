@@ -155,6 +155,34 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		int running();
 		/**
+		 * sleep for seconds with condition to stop
+		 *
+		 * @param wait how much seconds the method should wait
+		 * @param file file-name where method was calling
+		 * @param line line count where method was calling
+		 * @return ETIMEDOUT by success or 0 when thread should stopping
+		 */
+		int sleep(const unsigned int wait, string file= "", int line= 0);
+		/**
+		 * sleep for microseconds with condition to stop
+		 *
+		 * @param wait how much microseconds the method should wait
+		 * @param file file-name where method was calling
+		 * @param line line count where method was calling
+		 * @return ETIMEDOUT by success or 0 when thread should stopping
+		 */
+		int usleep(const useconds_t wait, string file= "", int line= 0);
+		/**
+		 * sleep for nanoseconds with condition to stop
+		 *
+		 * @param req how much nanoseconds the method should wait
+		 * @param rem return remaining nanoseconds, otherwise NULL
+		 * @param file file-name where method was calling
+		 * @param line line count where method was calling
+		 * @return ETIMEDOUT by success or 0 when thread should stopping
+		 */
+		int nanosleep(const struct timespec *req, struct timespec *rem, string file= "", int line= 0);
+		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
@@ -643,6 +671,11 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		bool m_bHold;
 		/**
+		 * remaining nanoseconds for method <code>nanosleep()</code>
+		 * when sleep method wake up earlier
+		 */
+		timespec m_nRemainSecs;
+		/**
 		 * error type of error code when not 0
 		 */
 		ERRORtype m_eErrorType;
@@ -679,6 +712,14 @@ class Thread :	public virtual IThreadPattern,
 		 * mutex lock for error codes
 		 */
 		pthread_mutex_t* m_ERRORCODES;
+		/**
+		 * mutex lock for sleeping
+		 */
+		pthread_mutex_t* m_SLEEPMUTEX;
+		/**
+		 * condition for sleeping
+		 */
+		pthread_cond_t* m_SLEEPCOND;
 		/**
 		 * condition for start or stop thread
 		 */
@@ -733,5 +774,8 @@ class Thread :	public virtual IThreadPattern,
 #define DESTROYMUTEXEX(mutex, logger) Thread::destroyMutex(__FILE__, __LINE__, mutex, logger)
 #define DESTROYCOND(cond) Thread::destroyCondition(__FILE__, __LINE__, cond)
 #define DESTROYCONDEX(cond, logger) Thread::destroyCondition(__FILE__, __LINE__, cond, logger)
+#define SLEEP(wait) sleep(wait, __FILE__, __LINE__)
+#define USLEEP(wait) usleep(wait, __FILE__, __LINE__)
+#define NANOSLEEP(wait) nanosleep(req, rem, __FILE__, __LINE__)
 
 #endif /*THREAD_H_*/
