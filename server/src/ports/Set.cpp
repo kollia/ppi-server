@@ -157,8 +157,7 @@ namespace ports
 	IValueHolderPattern& Set::measure(const ppi_value& actValue)
 	{
 		bool bOk, isdebug= isDebug();
-		double swRv;
-		ValueHolder oValue;
+		ValueHolder oValue, switchValue;
 		string folder(getFolderName());
 		string subroutine(getSubroutineName());
 		vector<string>::size_type startSet(0), endSet(m_vsSet.size()-1);
@@ -172,21 +171,24 @@ namespace ports
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
 		}*/
-		swRv= switchClass::measure(actValue).getValue();
-		if(	swRv > 0 ||
-			swRv < 0		)
+		switchValue= switchClass::measure(actValue);
+		if(	switchValue.value > 0 ||
+			switchValue.value < 0		)
 		{
 			for(vector<ListCalculator*>::size_type n= 0; n<nFrom; ++n)
 			{
 				bOk= m_vpoFrom[n]->calculate(oValue.value);
 				if(bOk)
 				{
-					oValue.lastChanging= m_vpoFrom[n]->getLastChanging();
-					if(	oValue.lastChanging.isSet() &&
-						(	!m_oMeasureValue.lastChanging.isSet() ||
-							m_oMeasureValue.lastChanging < oValue.lastChanging	)	)
+					if(needChangingTime())
 					{
-						m_oMeasureValue.lastChanging= oValue.lastChanging;
+						oValue.lastChanging= m_vpoFrom[n]->getLastChanging();
+						if(!oValue.lastChanging.isSet())
+						{
+							oValue.lastChanging= switchValue.lastChanging;
+							if(isdebug)
+								out() << "take last changing time from switch cases" << endl;
+						}
 					}
 					if(nFrom > 1)
 						startSet= endSet= n;
@@ -236,8 +238,8 @@ namespace ports
 		if(isdebug)
 		{
 			out() << "result of subroutine is ";
-			if(	swRv > 0 ||
-				swRv < 0		)
+			if(	switchValue.value > 0 ||
+				switchValue.value < 0		)
 			{
 				out() << "TRUE";
 
@@ -245,7 +247,7 @@ namespace ports
 				out() << "FALSE";
 			out() << endl;
 		}
-		m_oMeasureValue.value= swRv;
+		m_oMeasureValue= switchValue;
 		return m_oMeasureValue;
 	}
 
