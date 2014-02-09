@@ -162,6 +162,10 @@ protected:
 	 */
 	string m_sParameter;
 	/**
+	 * subroutine of taken last changing time
+	 */
+	string m_sLastChangingSub;
+	/**
 	 * first pointer to all defined folders
 	 */
 	SHAREDPTR::shared_ptr<measurefolder_t> m_pStartFolder;
@@ -219,6 +223,12 @@ protected:
 	 * clear time of last changes
 	 */
 	void clearTime();
+	/**
+	 * return latest changing time of any variable in calculation
+	 *
+	 * @return changing time
+	 */
+	ppi_time getLastChangingI();
 };
 
 #endif /*PORTCALCULATOR_H_*/

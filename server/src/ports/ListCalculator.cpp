@@ -91,6 +91,7 @@ void ListCalculator::clearTime()
 	vector<ICalculatorPattern*> childs;
 
 	m_nLastChange.clear();
+	m_sLastChangingSub= "";
 	childs= getChilds();
 	for(vector<ICalculatorPattern*>::iterator it= childs.begin(); it != childs.end(); ++it)
 	{
@@ -199,6 +200,23 @@ sub* ListCalculator::getSubroutinePointer(const string& var, bool own)
 
 ppi_time ListCalculator::getLastChanging()
 {
+	ppi_time nRv(getLastChangingI());
+
+	if(	doOutput() &&
+		m_oOutput->needChangingTime()	)
+	{
+		if(nRv.isSet())
+		{
+			m_oOutput->out() << "take last changing time " << nRv.toString(/*as date*/true);
+			m_oOutput->out() << " from " << m_sLastChangingSub << endl;
+		}else
+			m_oOutput->out() << "no last changing time be set" << endl;
+	}
+	return nRv;
+}
+
+ppi_time ListCalculator::getLastChangingI()
+{
 	ppi_time lastChange;
 	ListCalculator* container;
 	vector<ICalculatorPattern*> childs;
@@ -207,12 +225,14 @@ ppi_time ListCalculator::getLastChanging()
 	for(vector<ICalculatorPattern*>::iterator it= childs.begin(); it != childs.end(); ++it)
 	{
 		container= dynamic_cast<ListCalculator*>(*it);
-		lastChange= container->getLastChanging();
+		lastChange= container->getLastChangingI();
 		if(	lastChange.isSet() &&
 			(	lastChange > m_nLastChange ||
 				!m_nLastChange.isSet()			)	)
 		{
 			m_nLastChange= lastChange;
+			if(doOutput())
+				m_sLastChangingSub= container->m_sLastChangingSub;
 		}
 	}
 	return m_nLastChange;
@@ -255,6 +275,8 @@ bool ListCalculator::variable(const string& var, double& dResult)
 						!m_nLastChange.isSet()					)	)
 				{
 					m_nLastChange= result.lastChanging;
+					if(doOutput())
+						m_sLastChangingSub= oSub->portClass->getFolderName() + ":" + oSub->name;
 				}
 				dResult= result.value;
 				return true;
@@ -268,6 +290,8 @@ bool ListCalculator::variable(const string& var, double& dResult)
 				!m_nLastChange.isSet()					)	)
 		{
 			m_nLastChange= result.lastChanging;
+			if(doOutput())
+				m_sLastChangingSub= found->second->portClass->getFolderName() + ":" + found->second->name;
 		}
 		dResult= result.value;
 		return true;
