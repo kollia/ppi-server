@@ -150,6 +150,10 @@ namespace ports
 			 */
 			bool m_bInfo;
 			/**
+			 * whether subroutine should holding last changing time
+			 */
+			bool m_bTime;
+			/**
 			 * whether object should write changed values into database
 			 */
 			bool m_bWriteDb;
@@ -402,10 +406,6 @@ namespace ports
 			virtual void stop(const bool *bWait= NULL)
 			{ /* dummy routine can be overloaded when need*/ };
 			/**
-			 * destructor
-			 */
-			virtual ~portBase();
-			/**
 			 * measure new value for subroutine
 			 *
 			 * @param actValue current value
@@ -473,8 +473,15 @@ namespace ports
 			 *
 			 * @return type name
 			 */
-			string getType()
+			string getType() const
 			{ return m_sType; };
+			/**
+			 * return info whether subroutine need last changing time
+			 *
+			 * @return whether need time
+			 */
+			virtual bool needChangingTime() const
+			{ return m_bTime; };
 			/**
 			 * set min and max parameter to the range which can be set for this subroutine.<br />
 			 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.
@@ -488,6 +495,10 @@ namespace ports
 			 * @return whether the range is defined or can set all
 			 */
 			virtual bool range(bool& bfloat, double* min, double* max);
+			/**
+			 * destructor
+			 */
+			virtual ~portBase();
 
 		protected:
 			/**

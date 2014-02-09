@@ -1327,17 +1327,20 @@ bool MeasureThread::measure()
 				out << " seconds, ending by ";
 				out << tv_end.toString(/*as date*/true);
 				out << endl;
-				if(result.value != oldResult.value)
+				if(it->portClass->needChangingTime())
 				{
-					modified= result.lastChanging.toString(/*as date*/true);
+					if(result.value != oldResult.value)
+					{
+						modified= result.lastChanging.toString(/*as date*/true);
 
-				}else if(	result.value == oldResult.value &&
-							oldResult.lastChanging.isSet()		)
-				{
-					modified= oldResult.lastChanging.toString(/*as date*/true);
+					}else if(	result.value == oldResult.value &&
+								oldResult.lastChanging.isSet()		)
+					{
+						modified= oldResult.lastChanging.toString(/*as date*/true);
+					}
+					if(modified != "")
+						out << "            was last modified by " << modified << endl;
 				}
-				if(modified != "")
-					out << "            was last modified by " << modified << endl;
 				it->portClass->out() << out.str();
 			}
 

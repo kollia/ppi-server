@@ -202,7 +202,13 @@ namespace design_pattern_world
 			 *
 			 * @return type name
 			 */
-			virtual string getType()= 0;
+			virtual string getType() const= 0;
+			/**
+			 * return info whether subroutine need last changing time
+			 *
+			 * @return whether need time
+			 */
+			virtual bool needChangingTime() const= 0;
 			/**
 			 * set min and max parameter to the range which can be set for this subroutine.<br />
 			 * If the subroutine is set from 0 to 1 and float false, the set method sending only 0 and 1 to the database.

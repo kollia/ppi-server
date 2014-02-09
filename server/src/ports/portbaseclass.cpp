@@ -83,6 +83,7 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	m_dValue.value= 0;
 	m_pFolders= pStartFolder;
 	m_bInfo= !properties->haveAction("noinfo");
+	m_bTime= !properties->haveAction("notime");
 	m_sPermission= properties->getValue("perm", /*warning*/false);
 	m_bWriteDb= properties->haveAction("db");
 	m_bSwitch= properties->haveAction("binary");
@@ -437,7 +438,8 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 			ostringstream output;
 			vector<string> spl;
 
-			if(!changedTime.isSet())
+			if(	m_bTime &&
+				!changedTime.isSet())
 			{
 				if(gettimeofday(&changedTime, NULL))
 				{
@@ -450,7 +452,8 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 				}
 			}
 			m_dValue.value= dValue;
-			m_dValue.lastChanging= changedTime;
+			if(m_bTime)
+				m_dValue.lastChanging= changedTime;
 			if(m_bSwitch)
 			{
 				for(map<string, short>::iterator it= m_mdValue.begin(); it != m_mdValue.end(); ++it)
