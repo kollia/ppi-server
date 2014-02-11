@@ -96,6 +96,8 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 	m_bNeedLength= false;
 	m_bNoDbReading= bNoDbRead;
 	m_nFolderCPUtime= folderCPUtime;
+	m_nSchedPolicy= SCHED_OTHER;
+	m_nSchedPriority= 0;
 	pCurrent= pFolderStart;
 	while(pCurrent)
 	{
@@ -106,7 +108,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 			{
 				size_t pos;
 
-				pos= run.find(":");
+				pos= run.find(";");
 				if(pos != string::npos)
 				{// define calculation whether folder is running
 					m_oRunnThread.init(pFolderStart, run.substr(pos+1));
@@ -115,6 +117,82 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 				split(m_vsFolderSecs, run, is_any_of(" "));
 				for(vector<string>::iterator it= m_vsFolderSecs.begin(); it != m_vsFolderSecs.end(); ++it)
 					trim(*it);
+			}
+			run= pCurrent->folderProperties->getValue("policy", /*warning*/false);
+			if(run != "")
+			{
+				if(run == "SCHED_OTHER")
+					m_nSchedPolicy= SCHED_OTHER;
+				else if(run == "SCHED_BATCH")
+					m_nSchedPolicy= SCHED_BATCH;
+				else if(run == "SCHED_IDLE")
+					m_nSchedPolicy= SCHED_IDLE;
+				else if(run == "SCHED_FIFO")
+					m_nSchedPolicy= SCHED_FIFO;
+				else if(run == "SCHED_RR")
+					m_nSchedPolicy= SCHED_RR;
+				else
+				{
+					string err;
+
+					err=  "ERROR: found undefined scheduling policy for folder " + m_sFolder + "\n";
+					err+= "       only SCHED_OTHER, SCHED_BATCH, SCHED_IDLE, SCHED_FIFO or SCHED_RR are allowed\n";
+					err+= "       do not set folder thread into any other priority";
+					LOG(LOG_ERROR, err);
+					tout << err << endl;
+
+				}
+			}
+			string param("priority");
+
+			m_nSchedPriority= pCurrent->folderProperties->getInt(param, /*warning*/false);
+			if(param != "#ERROR")
+			{
+				int min, max;
+
+				min= sched_get_priority_min(m_nSchedPolicy);
+				max= sched_get_priority_max(m_nSchedPolicy);
+				if(	m_nSchedPriority < min ||
+					m_nSchedPriority > max		)
+				{
+					ostringstream warn;
+
+					if(run == "")
+						run= "SCHED_OTHER";
+					if(m_nSchedPriority < min)
+						m_nSchedPriority= min;
+					else if(m_nSchedPriority > max)
+						m_nSchedPriority= max;
+					warn << "WARNING: cannot define specific priority for " << run << " policy\n";
+					warn << "         inside folder " << m_sFolder << endl;
+					warn << "         write now priority " << m_nSchedPriority << " for defined policy";
+					LOG(LOG_WARNING, warn.str());
+					tout << warn.str() << endl;
+				}
+			}else
+				m_nSchedPriority= 0;
+			if(run != "")// run is policy
+			{
+				int min, max;
+
+				min= sched_get_priority_min(m_nSchedPolicy);
+				max= sched_get_priority_max(m_nSchedPolicy);
+				if(	m_nSchedPriority < min ||
+					m_nSchedPriority > max		)
+				{
+					ostringstream warn;
+
+					warn << "WARNING: found wrong priority " << m_nSchedPriority;
+					warn << " for " + run + " policy" << endl;
+					warn << "         inside folder " << m_sFolder << endl;
+					if(m_nSchedPriority < min)
+						m_nSchedPriority= min;
+					else if(m_nSchedPriority > max)
+						m_nSchedPriority= max;
+					warn << "         write now priority " << m_nSchedPriority << " for defined policy";
+					LOG(LOG_WARNING, warn.str());
+					tout << warn.str() << endl;
+				}
 			}
 			break;
 		}
@@ -386,6 +464,74 @@ int MeasureThread::init(void *arg)
 	}
 	timerclear(&m_tvStartTime);
 	timerclear(&m_tvSleepLength);
+	if(m_nSchedPolicy != SCHED_OTHER)
+	{
+		if(setSchedulingParameter(m_nSchedPolicy, m_nSchedPriority))
+		{
+			ostringstream info;
+
+			info << "set scheduling policy from folder " << m_sFolder << " to ";
+			switch(m_nSchedPolicy)
+			{
+			case SCHED_OTHER:
+				info << "SCHED_OTHER";
+				break;
+			case SCHED_BATCH:
+				info << "SCHED_BATCH";
+				break;
+			case SCHED_IDLE:
+				info << "SCHED_IDLE";
+				break;
+			case SCHED_RR:
+				info << "SCHED_RR";
+				break;
+			case SCHED_FIFO:
+				info << "SCHED_FIFO";
+				break;
+			default:
+				info << "unknown";
+				break;
+			}
+			info << " with priority " << m_nSchedPriority << endl;
+			if(m_nSchedPolicy == SCHED_RR)
+			{
+				timespec slice;
+
+				if(sched_rr_get_interval(gettid(), &slice) == 0)
+				{
+					ppi_time tm;
+
+					tm.tv_sec= slice.tv_sec;
+					tm.tv_usec= slice.tv_nsec / 1000;
+					info << "with real time round robin time slices of ";
+					info << tm.toString(/*as date*/false) << " seconds" << endl;
+				}
+			}
+			LOG(LOG_INFO, info.str());
+			tout << info.str() << endl;
+		}else
+		{
+			m_nSchedPolicy= SCHED_OTHER;
+			m_nSchedPriority= 0;
+		}
+		db->writeIntoDb("folder", m_sFolder, "policy");
+		db->writeIntoDb("folder", m_sFolder, "priority");
+		db->fillValue("folder", m_sFolder, "policy", m_nSchedPolicy, /*new*/true);
+		db->fillValue("folder", m_sFolder, "priority", m_nSchedPriority, /*new*/true);
+	}else
+	{
+		bool exist;
+		int value;
+
+		db->writeIntoDb("folder", m_sFolder, "policy");
+		value= static_cast<int>(db->getActEntry(exist, "folder", m_sFolder, "policy"));
+		if(exist && value != SCHED_OTHER)
+			db->fillValue("folder", m_sFolder, "policy", SCHED_OTHER);
+		db->writeIntoDb("folder", m_sFolder, "priority");
+		value= static_cast<int>(db->getActEntry(exist, "folder", m_sFolder, "priority"));
+		if(exist && value != 0)
+			db->fillValue("folder", m_sFolder, "priority", 0);
+	}
 	return 0;
 }
 
@@ -598,6 +744,8 @@ int MeasureThread::execute()
 	 * otherwise, when no error, variable is EBUSY
 	 */
 	int nHasLock;
+	int nPolicy;
+	sched_param param;
 	/**
 	 * from which folder:subroutine the thread was informed to change
 	 */
@@ -972,8 +1120,46 @@ int MeasureThread::execute()
 		}else
 		{
 			m_tvStartTime= end_tv;
-			out << "running after STOP (";
+			out << "running after ";
+			if(m_nSchedPolicy == SCHED_FIFO)
+			{
+				sched_yield();
+				out << "sched_yield ";
+			}
+			out << "STOP (";
 			out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
+		}
+		if(pthread_getschedparam(getPosixThreadID(), &nPolicy, &param))
+		{
+			nPolicy= SCHED_OTHER;
+			param.__sched_priority= -1;
+		}
+		if(	nPolicy != SCHED_OTHER ||
+			param.__sched_priority != -1	)
+		{
+			out << "  running with scheduling policy ";
+			switch(nPolicy)
+			{
+			case SCHED_OTHER:
+				out << "SCHED_OTHER";
+				break;
+			case SCHED_BATCH:
+				out << "SCHED_BATCH";
+				break;
+			case SCHED_IDLE:
+				out << "SCHED_IDLE";
+				break;
+			case SCHED_RR:
+				out << "SCHED_RR";
+				break;
+			case SCHED_FIFO:
+				out << "SCHED_FIFO";
+				break;
+			default:
+				out << "unknown";
+				break;
+			}
+			out << " and priority " << param.__sched_priority << endl;
 		}
 		if(nHasLock != 0)
 		{
@@ -1047,7 +1233,11 @@ int MeasureThread::execute()
 			if(diff_tv.isSet())
 				m_tvStartTime= diff_tv; // after CONDITION
 		}else
+		{
+			if(m_nSchedPolicy == SCHED_FIFO)
+				sched_yield();
 			m_tvStartTime= end_tv; // after last folder end
+		}
 	}
 	m_vTimeFolder.clear();
 	if(nHasLock == 0)
@@ -1251,7 +1441,8 @@ bool MeasureThread::measure()
 				}else
 				{
 					tv_end= tv_start - tv;
-					out << " (" << getTimevalString(tv_end, /*as date*/false, /*debug*/true) << ")" << endl;
+					out << " (" << tv_end.toString(/*as date*/false) << ")" << endl;
+					out << "   starting by time " << tv_start.toString(/*as date*/true) << endl;
 				}
 				it->portClass->out() << out.str();
 			}

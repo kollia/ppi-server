@@ -869,19 +869,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 #endif //_OWFSLIBRARY
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// set process id to default user
-	if(setuid(m_tDefaultUser) != 0)
-	{
-		string err;
-
-		err= "main application ppi-server has no privileges to get other userid!\n";
-		err= "ERRNO: " + string(strerror(errno)) + "\n";
-		err+= "       so hole application running as root!!";
-		LOG(LOG_ALERT, err);
-		cerr << err << endl;
-	}
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// check whether owreader processes configured
 	string aktReader, res;
 	bool fault= false;
@@ -1158,6 +1145,19 @@ bool Starter::execute(const IOptionStructPattern* commands)
 														commport,
 														5				),
 							nServerID										);
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// set process id to default user
+	if(setuid(m_tDefaultUser) != 0)
+	{
+		string err;
+
+		err= "main application ppi-server has no privileges to get other userid!\n";
+		err= "ERRNO: " + string(strerror(errno)) + "\n";
+		err+= "       so hole application running as root!!";
+		LOG(LOG_ALERT, err);
+		cerr << err << endl;
+	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// calculate starting time

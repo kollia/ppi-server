@@ -511,6 +511,14 @@ class MeasureThread : 	public Thread,
 		 */
 		int m_nRunCount;
 		/**
+		 * scheduling policy in which folder thread should running
+		 */
+		int m_nSchedPolicy;
+		/**
+		 * scheduling priority in which policy of folder thread should running
+		 */
+		int m_nSchedPriority;
+		/**
 		 * mutex by any changing of value
 		 */
 		pthread_mutex_t *m_VALUE;
