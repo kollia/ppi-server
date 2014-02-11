@@ -1761,9 +1761,7 @@ int Thread::nanosleep(const struct timespec *req, struct timespec *rem, string f
 		return 0;
 	}
 	clock_gettime(CLOCK_REALTIME, &time);
-	do{
-		nRv= conditionWait(file, line, m_SLEEPCOND, m_SLEEPMUTEX, req, /*absolute*/false, m_pExtLogger);
-	}while(nRv == 0 && !stopping());// an spurious wake-up occurred
+	nRv= conditionWait(file, line, m_SLEEPCOND, m_SLEEPMUTEX, req, /*absolute*/false, m_pExtLogger);
 	if(nRv != ETIMEDOUT)
 	{
 		clock_gettime(CLOCK_REALTIME, &m_nRemainSecs);
