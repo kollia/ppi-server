@@ -508,7 +508,7 @@ int MeasureThread::init(void *arg)
 				}
 			}
 			LOG(LOG_INFO, info.str());
-			tout << info.str() << endl;
+			//tout << info.str() << endl;
 		}else
 		{
 			m_nSchedPolicy= SCHED_OTHER;
@@ -2632,8 +2632,11 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 			} // end of if(found)
 		}// end of if(	!timevec->runlength || timevec->read >= nMaxVal)
 	}
-	if(bSave)
+	if(	bSave ||
+		timelength->log	)
 	{
+		if(timelength->log)
+			timevec->dbValue= timevec->actValue;
 		fillValue(timelength->folder, timelength->subroutine, timevec->stype, timevec->dbValue);
 #ifdef __showStatistic
 		if(debug)

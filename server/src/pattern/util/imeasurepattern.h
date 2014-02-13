@@ -173,6 +173,11 @@ namespace design_pattern_world
 					 * maybe CPU creation need when method <code>getCpuPercent()</code> was called to fast
 					 */
 					int old_usage;
+					/**
+					 * log inside database for starting earlier or estimate possible finish time
+					 * by which CPU percent time length be taken
+					 */
+					bool log;
 
 					timetype_t()
 					: runlength(false),
@@ -181,7 +186,8 @@ namespace design_pattern_world
 					  inPercent(10),
 					  prev_idle(0),
 					  prev_total(0),
-					  old_usage(0)
+					  old_usage(0),
+					  log(false)
 					{};
 				};
 

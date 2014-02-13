@@ -296,12 +296,13 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 					db->fillValue(folder, subroutine, "informlate", 0, /*new*/true);
 					db->fillValue(folder, subroutine, "startlate", 0, /*new*/true);
 					db->fillValue("folder", folder, "runpercent", 0, /*new*/true);
-					m_tReachedTypes.runlength= false;
-					m_tReachedTypes.folder= folder;
-					m_tReachedTypes.subroutine= subroutine;
-					m_tReachedTypes.maxVal= 5;
-					m_tReachedTypes.inPercent= m_nFinishedCPUtime;
 				}
+				m_tReachedTypes.runlength= false;
+				m_tReachedTypes.folder= folder;
+				m_tReachedTypes.subroutine= subroutine;
+				m_tReachedTypes.maxVal= 5;
+				m_tReachedTypes.inPercent= m_nFinishedCPUtime;
+				m_tReachedTypes.log= m_bLogPercent;
 				if(m_nCaseNr == 3) // case 3: count the time down to 0
 				{
 					smtime= properties->getValue("finished", /*warning*/false);
@@ -316,8 +317,10 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 						{// allow database writing for start option --timerdblog
 							db->writeIntoDb(folder, subroutine, "reachpercent");
 							db->writeIntoDb(folder, subroutine, "reachlate");
+							db->writeIntoDb(folder, subroutine, "wrongreach");
 							db->fillValue(folder, subroutine, "reachpercent", 0, /*new*/true);
 							db->fillValue(folder, subroutine, "reachlate", 0, /*new*/true);
+							db->fillValue(folder, subroutine, "wrongreach", 0, /*new*/true);
 						}
 						properties->notAllowedAction("noinfo");
 						m_oFinished.init(pStartFolder, smtime);
@@ -390,15 +393,13 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 									// and new starting of ppi-server
 									// counting should begin from start
 									// maybe the application running in other better time
-									ostringstream dbstr, wrongreach;//, maxcount;
+									ostringstream dbstr;
 
 									dbstr << "reachend";
-									wrongreach << "wrongreach";
 									//maxcount << "maxcount";
 									if(bit > 1)
 									{
 										dbstr << specID;
-										wrongreach << specID;
 										//maxcount << specID;
 									}
 									if(m_nFinishedCPUtime < 100)
@@ -406,17 +407,13 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 										if(bit > 1)
 										{
 											dbstr << "-";
-											wrongreach << "-";
 											//maxcount << "-";
 										}
 										dbstr << n;
-										wrongreach << n;
 										//maxcount << n;
 									}
 									db->writeIntoDb(folder, subroutine, dbstr.str());
 									//db->writeIntoDb(folder, subroutine, maxcount.str());
-									if(m_bLogPercent)
-										db->writeIntoDb(folder, subroutine, wrongreach.str());
 									if(!m_bNoDbRead)
 									{
 										dDefault= db->getActEntry(exist, folder, subroutine, dbstr.str());
@@ -436,8 +433,6 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 									{
 										db->fillValue(folder, subroutine, dbstr.str(), 0, /*new*/true);
 										//db->fillValue(folder, subroutine, maxcount.str(), 0, /*new*/true);
-										if(m_bLogPercent)
-											db->fillValue(folder, subroutine, wrongreach.str(), 0, /*new*/true);
 									}
 								}//for(short n= m_nFinishedCPUtime; n <= 100; n+= m_nFinishedCPUtime)
 					// -------------------------------------------------------------------------------------
@@ -587,7 +582,7 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 					seconds= MeasureThread::calcResult(wrong, /*seconds*/false);
 					if(wless)
 						seconds*= -1;
-					getRunningThread()->fillValue(folder, subroutine, "wrongreach"+m_sSyncID, seconds);
+					getRunningThread()->fillValue(folder, subroutine, "wrongreach", seconds);
 				}
 				m_sSyncID= "";
 			}else
