@@ -1759,15 +1759,17 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 										const bool& logPercent, const bool& debug)
 {
 #ifdef __showStatistic
-#ifndef __WRITEDEBUGALLLINES
+#ifdef __WRITEDEBUGALLLINES
 	ostringstream& termout(*Terminal::instance()->out());
+#else // __WRITEDEBUGALLLINES
+	ostringstream termout;
 #endif // __WRITEDEBUGALLLINES
 #endif // __showStatistic
+	bool nearest;
 	short nPercent(100);
 	int prev_idle, prev_total;
 	double dRv;
 	map<short, timeLen_t>* percentDiff;
-	map<short, timeLen_t>* nearestPercentDiff(NULL);
 	map<short, timeLen_t>::const_iterator it, last;
 
 #ifdef __showStatistic
@@ -1781,12 +1783,7 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 			termout << "reachend    --- " << endl;
 	}
 #endif // __showStatistic
-	percentDiff= getPercentDiff(timelength, nearestPercentDiff, debug);
-	if(	percentDiff->size() == 0 &&
-		nearestPercentDiff != NULL	)
-	{
-		percentDiff= nearestPercentDiff;
-	}
+	percentDiff= getPercentDiff(timelength, nearest, debug);
 	last= percentDiff->end();
 	if(	timelength->inPercent < 100
 		|| debug
@@ -1913,30 +1910,32 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 #ifdef __showStatistic
 	if(debug)
 		termout << "----------------------------------------------------------" << endl;
+#ifndef __WRITEDEBUGALLLINES
+	*Terminal::instance()->out() << termout.str();
+#endif // __WRITEDEBUGALLLINES
 #endif // __showStatistic
 	return m_oInsideTime;
 }
 
-map<short, IMeasurePattern::timeLen_t>* MeasureThread::getPercentDiff(timetype_t *timelength, map<short, timeLen_t>* nearest, const bool&debug)
+map<short, IMeasurePattern::timeLen_t>* MeasureThread::getPercentDiff(timetype_t *timelength, bool &nearest, const bool&debug)
 {
 	typedef map<string, map<short, timeLen_t> >::iterator percentSyncIt;
 
 	map<short, timeLen_t>* percentDiff(NULL);
 
-	nearest= NULL;
+	nearest= false;
 	if(	timelength->runlength ||
 		timelength->synchroID == ""	)
 	{
 		percentDiff= &timelength->percentSyncDiff["none"];
 	}else
 	{
-
 		if(timelength->percentSyncDiff.find(timelength->synchroID) ==
 						timelength->percentSyncDiff.end()				)
 		{ // by new map of synchronization ID creation
 		  // search also for the nearest to take this as default value
-			size_t calcBit, ownBit, beforeBit, lastBit;
-			map<short, timeLen_t> *before, *last;
+			size_t calcBit(0), ownBit(0), beforeBit(0), lastBit(0);
+			string before, last;
 			string id;
 			id= timelength->synchroID;
 			for(string::reverse_iterator sit= id.rbegin(); sit != id.rend(); ++sit)
@@ -1950,37 +1949,47 @@ map<short, IMeasurePattern::timeLen_t>* MeasureThread::getPercentDiff(timetype_t
 							sIt != timelength->percentSyncDiff.end(); ++sIt)
 			{
 				id= sIt->first;
-				for(string::reverse_iterator sit= id.rbegin(); sit != id.rend(); ++sit)
+				if(id != timelength->synchroID)
 				{
-					if(*sit == '1')
-						++calcBit;
-				}
-				if(	calcBit > lastBit &&
-					sIt->second.size() > 0	)
-				{
-					before= &sIt->second;
-					beforeBit= calcBit;
-					if(beforeBit > ownBit)
-						break;
-					last= before;
-					lastBit= beforeBit;
-					beforeBit= 0;
+					calcBit= 0;
+					for(string::reverse_iterator sit= id.rbegin(); sit != id.rend(); ++sit)
+					{
+						if(*sit == '1')
+							++calcBit;
+					}
+					if(	calcBit > lastBit &&
+						sIt->second.size() > 0	)
+					{
+						before= id;
+						beforeBit= calcBit;
+						if(beforeBit > ownBit)
+							break;
+						last= before;
+						lastBit= beforeBit;
+						beforeBit= 0;
+					}
 				}
 			}
 			if(	beforeBit > 0 &&
 				lastBit > 0 	)
 			{
 				if(beforeBit - ownBit < ownBit -lastBit)
-					nearest= before;
+					percentDiff= &timelength->percentSyncDiff[before];
 				else
-					nearest= last;
+					percentDiff= &timelength->percentSyncDiff[last];
+				nearest= true;
 			}else if(beforeBit > 0)
-				nearest= before;
-			else if(lastBit > 0)
-				nearest= last;
-
-		}
-		percentDiff= &timelength->percentSyncDiff[timelength->synchroID];
+			{
+				percentDiff= &timelength->percentSyncDiff[before];
+				nearest= true;
+			}else if(lastBit > 0)
+			{
+				percentDiff= &timelength->percentSyncDiff[last];
+				nearest= true;
+			}else
+				percentDiff= &timelength->percentSyncDiff[timelength->synchroID];
+		}else
+			percentDiff= &timelength->percentSyncDiff[timelength->synchroID];
 	}
 	return percentDiff;
 }
@@ -1989,8 +1998,10 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 				const IPPITimePattern& length, const bool& debug)
 {
 #ifdef __showStatistic
-#ifndef __WRITEDEBUGALLLINES
+#ifdef __WRITEDEBUGALLLINES
 	ostringstream& termout(*Terminal::instance()->out());
+#else // __WRITEDEBUGALLLINES
+	ostringstream termout;
 #endif // __WRITEDEBUGALLLINES
 #endif // __showStatistic
 	bool bSave(false);
@@ -1999,7 +2010,6 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 	double value;
 	timeLen_t* timevec;
 	map<short, timeLen_t>* percentDiff;
-	map<short, timeLen_t>* nearestPercentDiff(NULL);
 	map<short, timeLen_t>::iterator it;
 	/**
 	 * calculate runlength always by this count
@@ -2018,7 +2028,10 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 			termout << "reachend    --- " << endl;
 	}
 #endif // __showStatistic
-	percentDiff= getPercentDiff(timelength, nearestPercentDiff, debug);
+	if(timelength->runlength)
+		percentDiff= &timelength->percentSyncDiff["none"];
+	else
+		percentDiff= &timelength->percentSyncDiff[timelength->synchroID];
 	prev_idle= timelength->prev_idle;
 	prev_total= timelength->prev_total;
 	if(timelength->inPercent < 100)
@@ -2651,6 +2664,9 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 #ifdef __showStatistic
 	if(debug)
 		termout << "------------------------------------------------------" << endl;
+#ifndef __WRITEDEBUGALLLINES
+	*Terminal::instance()->out() << termout.str();
+#endif // __WRITEDEBUGALLLINES
 #endif // __showStatistic
 }
 

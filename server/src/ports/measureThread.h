@@ -291,11 +291,11 @@ class MeasureThread : 	public Thread,
 		  * and set also the nearest one by new creation to define the default value
 		  *
 		  * @param timelength all variables to measure CPU time
-		  * @param nearest nearest map of syncronization ID for default value
+		  * @param nearest whether result is nearest map of syncronization ID for default value
 		  * @param debug whether subroutine running inside debug session
 		  */
 		 map<short, timeLen_t>* getPercentDiff(timetype_t *timelength,
-						 	 map<short, timeLen_t>* nearest, const bool&debug);
+						 	 bool& nearest, const bool&debug);
 		/**
 		 * set into given timetype the CPU times to begin measuring for <code>getCpuPercent</code>
 		 *
