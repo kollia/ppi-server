@@ -65,6 +65,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 				const time_t& nServerSearch, bool bNoDbRead, short folderCPUtime)
 : Thread(threadname, true),
   m_oRunnThread(threadname, "parameter_run", "run", false, true, pFolderStart->subroutines[0].portClass.get()),
+  m_oInformeThread(threadname, "informe_thread", "inform", false, true, pFolderStart->subroutines[0].portClass.get()),
   m_oInformer(threadname, this),
   m_oDbFiller(threadname)
 {
@@ -118,6 +119,13 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 				for(vector<string>::iterator it= m_vsFolderSecs.begin(); it != m_vsFolderSecs.end(); ++it)
 					trim(*it);
 			}
+			run= pCurrent->folderProperties->getValue("inform", /*warning*/false);
+			if(run != "")
+			{
+				m_oInformeThread.init(pFolderStart, run);
+				if(threadname == "power_switch")
+					m_oInformeThread.doOutput(true);
+			}
 			run= pCurrent->folderProperties->getValue("policy", /*warning*/false);
 			if(run != "")
 			{
@@ -170,7 +178,14 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 					tout << warn.str() << endl;
 				}
 			}else
-				m_nSchedPriority= 0;
+			{
+				if(	m_nSchedPolicy == SCHED_FIFO ||
+					m_nSchedPolicy == SCHED_RR		)
+				{
+					m_nSchedPriority= 1;
+				}else
+					m_nSchedPriority= 0;
+			}
 			if(run != "")// run is policy
 			{
 				int min, max;
@@ -537,8 +552,15 @@ int MeasureThread::init(void *arg)
 
 void MeasureThread::changedValue(const string& folder, const string& from)
 {
+	double inform;
 	ppi_time time;
 
+	if(!m_oInformeThread.isEmpty())
+	{
+		m_oInformeThread.calculate(inform);
+		if(inform == 0)
+			return;
+	}
 	if(gettimeofday(&time, NULL))
 	{
 		string msg("### DEBUGGING for folder " + getFolderName());

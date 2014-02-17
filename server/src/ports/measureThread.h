@@ -439,6 +439,10 @@ class MeasureThread : 	public Thread,
 		 */
 		ListCalculator m_oRunnThread;
 		/**
+		 * Calculate whether folder thread should be informed to start running
+		 */
+		ListCalculator m_oInformeThread;
+		/**
 		 * all folder ID specifications which are defined for running folders
 		 * to differ between reach time
 		 */

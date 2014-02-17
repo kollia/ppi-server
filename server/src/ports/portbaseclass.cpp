@@ -460,6 +460,12 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 					it->second= static_cast<short>(dValue);
 			}
 
+			// unlock VALUELOCK before informFolder()
+			// because when folder has an inform parameter (inside measure.conf)
+			// maybe inform content want to get again own value
+			// and by method getValue() will be lock this mutex again
+			UNLOCK(m_VALUELOCK);
+
 			split(spl, from, is_any_of(":"));
 			if(	m_mvObservers.size() ||
 				spl[0] == "e" ||
@@ -487,6 +493,7 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 					(	m_bWriteDb ||
 						m_sPermission != ""	)	)
 		{
+			UNLOCK(m_VALUELOCK);
 			// make correction of dValue in database
 			// because client which set wrong dValue
 			// should now that dValue was wrong
@@ -497,18 +504,18 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 #endif // __moreOutput
 
 			getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*update to old dValue*/true);
-		}
+		}else
+			UNLOCK(m_VALUELOCK);
 #ifdef __moreOutput
 		if(debug)
 		{
-			out() << "       last state of value:" << dec << m_dValue.value;
+			out() << "       last state of value:" << dec << dValue;
 			if(m_bSwitch)
-				out() << " binary " << switchBinStr(m_dValue.value);
+				out() << " binary " << switchBinStr(dValue);
 			out() << endl;
 			out() << "-------------------------------------------------------------------" << endl;
 		}
 #endif // __moreOutput
-		UNLOCK(m_VALUELOCK);
 	}catch(SignalException& ex)
 	{
 		string err;
