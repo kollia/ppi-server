@@ -666,7 +666,10 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 
 			oval= switchClass::measure(m_dSwitch, set);
 			m_dSwitch= oval.value;
-			tmLastSwitchChanged= oval.lastChanging;
+			if(oval.lastChanging.isSet())
+				tmLastSwitchChanged= oval.lastChanging;
+			else
+				tmLastSwitchChanged= m_oActTime;
 		}
 
 	}else if(debug)
@@ -863,7 +866,10 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 							out() << "look whether should polling time again" << endl;
 						oval= switchClass::measure(m_dSwitch, set, &need);
 						m_dSwitch= oval.value;
-						tmLastSwitchChanged= oval.lastChanging;
+						if(oval.lastChanging.isSet())
+							tmLastSwitchChanged= oval.lastChanging;
+						else
+							tmLastSwitchChanged= m_oActTime;
 					}
 					if(m_dSwitch > 0)
 						bswitch= true;
@@ -946,7 +952,10 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 					}
 					oval= switchClass::measure(m_dSwitch, set, &need);
 					m_dSwitch= oval.value;
-					tmLastSwitchChanged= oval.lastChanging;
+					if(oval.lastChanging.isSet())
+						tmLastSwitchChanged= oval.lastChanging;
+					else
+						tmLastSwitchChanged= m_oActTime;
 					if(m_dSwitch > 0)
 						bswitch= true;
 					else
@@ -1074,7 +1083,10 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 				need= MeasureThread::calcResult(needTime, m_bSeconds);
 				oval= switchClass::measure(m_dSwitch, set, &need);
 				m_dSwitch= oval.value;
-				tmLastSwitchChanged= oval.lastChanging;
+				if(oval.lastChanging.isSet())
+					tmLastSwitchChanged= oval.lastChanging;
+				else
+					tmLastSwitchChanged= m_oActTime;
 				if(m_dSwitch > 0)
 				{ // while measure
 					if(debug)
