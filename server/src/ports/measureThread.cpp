@@ -2671,13 +2671,21 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 		timelength->log	)
 	{
 		if(timelength->log)
-			timevec->dbValue= timevec->actValue;
-		fillValue(timelength->folder, timelength->subroutine, timevec->stype, timevec->dbValue);
+			fillValue(timelength->folder, timelength->subroutine, timevec->stype, timevec->actValue);
+		else
+			fillValue(timelength->folder, timelength->subroutine, timevec->stype, timevec->dbValue);
 #ifdef __showStatistic
 		if(debug)
 		{
-			termout << "  >> write new value " << timevec->dbValue
-							<< " into database" << endl;
+			termout << "  >> write new ";
+			if(timelength->log)
+				termout << "actual value " << timevec->actValue;
+			else
+				termout << "value " << timevec->dbValue;
+			termout << " into database";
+			if(timelength->log)
+				termout << " for logging"
+			termout << endl;
 			termout << "     as " << timelength->folder << ":" << timelength->subroutine << " "
 							<< timevec->stype << endl;
 		}
