@@ -2684,7 +2684,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 				termout << "value " << timevec->dbValue;
 			termout << " into database";
 			if(timelength->log)
-				termout << " for logging"
+				termout << " for logging";
 			termout << endl;
 			termout << "     as " << timelength->folder << ":" << timelength->subroutine << " "
 							<< timevec->stype << endl;
