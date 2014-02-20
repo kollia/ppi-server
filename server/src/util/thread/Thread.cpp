@@ -949,7 +949,7 @@ int Thread::mutex_lock(const string& file, int line, pthread_mutex_t *mutex, ICl
 		string msg("error by mutex lock ");
 
 		msg+= getMutexName(mutex);
-		LOGEX(LOG_ERROR, msg, logger);
+		LogHolderPattern::instance()->log(file, line, LOG_ERROR, msg, "", logger);
 #ifdef MUTEXLOCKDEBUG
 		ostringstream thid;
 
@@ -1045,8 +1045,9 @@ int Thread::mutex_trylock(const string& file, int line, pthread_mutex_t *mutex, 
 		&&
 		error != EBUSY	)
 	{
-		LOGEX(LOG_ERROR, "error by try to lock mutex "
-						+ getMutexName(mutex), logger);
+		LogHolderPattern::instance()->log(file, line, LOG_ERROR,
+						"error by try to lock mutex "
+						+ getMutexName(mutex), "", logger);
 	}
 #ifdef MUTEXLOCKDEBUG
 	if(error == 0)
@@ -1156,7 +1157,7 @@ int Thread::mutex_unlock(const string& file, int line, pthread_mutex_t *mutex, I
 		string msg("error by unlock mutex ");
 
 		msg+= getMutexName(mutex);
-		LOGEX(LOG_ERROR, msg, logger);
+		LogHolderPattern::instance()->log(file, line, LOG_ERROR, msg, "", logger);
 #ifdef MUTEXLOCKDEBUG
 		ostringstream thid;
 
@@ -1219,7 +1220,8 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 	error= pthread_mutex_lock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOGEX(LOG_ERROR, "error by mutex lock READMUTEX by destroy", logger);
+		LogHolderPattern::instance()->log(file, line, LOG_ERROR,
+						"error by mutex lock READMUTEX by destroy", "", logger);
 		return;
 	}
 	if(m_bAppRun)
@@ -1231,7 +1233,8 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 	error= pthread_mutex_unlock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOGEX(LOG_ERROR, "error by mutex unlock READMUTEX by destroy", logger);
+		LogHolderPattern::instance()->log(file, line, LOG_ERROR,
+						"error by mutex unlock READMUTEX by destroy", "", logger);
 	}
 	pthread_mutex_destroy(mutex);
 	delete mutex;
@@ -1314,7 +1317,8 @@ void Thread::destroyCondition(const string& file, int line, pthread_cond_t *cond
 	error= pthread_mutex_unlock(&g_READMUTEX);
 	if(error != 0)
 	{
-		LOGEX(LOG_ERROR, "error by mutex unlock READMUTEX by destroy condition", logger);
+		LogHolderPattern::instance()->log(file, line, LOG_ERROR,
+						"error by mutex unlock READMUTEX by destroy condition", "", logger);
 	}
 	pthread_cond_destroy(cond);
 	delete cond;
@@ -1443,7 +1447,7 @@ int Thread::conditionWait(const string& file, int line, pthread_cond_t* cond, pt
 			msg << "timed ";
 			t << "timed";
 		}
-		t << dec << getgid() << errno;
+		t << dec << gettid() << errno;
 		msg << "condition ";
 		msg << getConditionName(cond, logger) << " in mutex area ";
 		msg << getMutexName(mutex);
@@ -1465,9 +1469,10 @@ int Thread::conditionWait(const string& file, int line, pthread_cond_t* cond, pt
 		else if(retcode == EINTR)
 			msg << "EINTR) condition was interrupted by an signal";
 		else msg << "UNKNOWN) unknown return code ";
-		TIMELOGEX(LOG_ERROR, msg.str(), t.str(), logger);
+		LogHolderPattern::instance()->log(file, line, LOG_ERROR, msg.str(), t.str(), logger);
 #ifdef CONDITIONSDEBUG
 		cerr << msg.str() << endl;
+		cerr << "on line " << line << " by file " << file << endl;
 #endif //CONDITIONSDEBUG
 	}
 #ifdef CONDITIONSDEBUG
@@ -1562,7 +1567,7 @@ int Thread::arouseCondition(const string& file, int line, pthread_cond_t *cond, 
 
 		msg+= getConditionName(cond) + "\n       ";
 		msg+= strerror(errno);
-		LOGEX(LOG_ERROR, msg, logger);
+		LogHolderPattern::instance()->log(file, line, LOG_ERROR, msg, "", logger);
 	}
 	return error;
 }
@@ -1617,7 +1622,7 @@ int Thread::arouseAllCondition(const string& file, int line, pthread_cond_t *con
 
 		msg+= getConditionName(cond, logger) + "\n       ";
 		msg+= strerror(errno);
-		LOGEX(LOG_ERROR, msg, logger);
+		LogHolderPattern::instance()->log(file, line, LOG_ERROR, msg, "", logger);
 	}
 	return error;
 }
@@ -1751,13 +1756,13 @@ int Thread::nanosleep(const struct timespec *req, struct timespec *rem, string f
 	if(line <= 0)
 		line= __LINE__;
 	rem= NULL;
-	mutex_lock(__FILE__, __LINE__, m_SLEEPMUTEX, m_pExtLogger);
+	mutex_lock(file, line, m_SLEEPMUTEX, m_pExtLogger);
 	if(stopping())
 	{
 		m_nRemainSecs.tv_sec= req->tv_sec;
 		m_nRemainSecs.tv_nsec= req->tv_nsec;
 		rem= &m_nRemainSecs;
-		mutex_unlock(__FILE__, __LINE__, m_SLEEPMUTEX, m_pExtLogger);
+		mutex_unlock(file, line, m_SLEEPMUTEX, m_pExtLogger);
 		return 0;
 	}
 	clock_gettime(CLOCK_REALTIME, &time);
@@ -1774,7 +1779,7 @@ int Thread::nanosleep(const struct timespec *req, struct timespec *rem, string f
 		m_nRemainSecs.tv_nsec-= time.tv_nsec;
 		rem= &m_nRemainSecs;
 	}
-	mutex_unlock(__FILE__, __LINE__, m_SLEEPMUTEX, m_pExtLogger);
+	mutex_unlock(file, line, m_SLEEPMUTEX, m_pExtLogger);
 	return nRv;
 }
 
