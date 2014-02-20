@@ -49,7 +49,7 @@ namespace ppi_database
 			if(	res != 0 &&
 				res != ETIMEDOUT	)
 			{
-				sleep(1);// by error sleeping fix second
+				SLEEP(1);// by error sleeping fix second
 			}			 // when res was 0 maybe database has finished loading
 		}				 // or thread will be stopping, so do not sleep
 		return 0;
@@ -79,7 +79,7 @@ namespace ppi_database
 			if(	nRv != 0 &&
 				nRv != ETIMEDOUT	)
 			{
-				sleep(10);	// by error sleeping fix seconds
+				SLEEP(10);	// by error sleeping fix seconds
 			}			 	// when res was 0 maybe database has finished loading
 							// or thread will be stopping, so do not sleep
 
@@ -202,7 +202,7 @@ namespace ppi_database
 			m_msNewFile.clear();
 			while(getline(file, line))
 			{
-				usleep(m_nSleepAfterRows);// sleep to holding the process activity lower
+				USLEEP(m_nSleepAfterRows);// sleep to holding the process activity lower
 				if(stopping())
 				{
 					file.close();
@@ -330,7 +330,7 @@ namespace ppi_database
 				}
 				if(nWriting >= nSleepAll)
 				{
-					usleep(m_nSleepAfterRows);// sleep to holding the process activity lower
+					USLEEP(m_nSleepAfterRows);// sleep to holding the process activity lower
 					if(stopping())
 					{
 						file.close();
@@ -361,7 +361,7 @@ namespace ppi_database
 					writeHandler << it->second << endl;
 					if(nWriting >= nSleepAll)
 					{
-						usleep(m_nSleepAfterRows);// sleep to holding the process activity lower
+						USLEEP(m_nSleepAfterRows);// sleep to holding the process activity lower
 						if(stopping())
 						{
 							file.close();

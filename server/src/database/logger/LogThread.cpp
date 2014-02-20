@@ -222,7 +222,7 @@ auto_ptr<vector<log_t> > LogThread::getLogVector()
 		}
 		UNLOCK(m_READLOGMESSAGES);
 		if(conderror)
-			usleep(500000);
+			USLEEP(500000);
 	}while(	vtRv.get() == NULL
 			&&
 			!stopping()	);

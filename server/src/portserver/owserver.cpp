@@ -492,12 +492,12 @@ namespace server
 
 		if(!m_bAllInitial)
 		{
-			usleep(500000);
+			USLEEP(500000);
 			return 0;
 		}
 		if(!m_bConnected)
 		{
-			sleep(1);
+			SLEEP(1);
 			if(stopping())
 				return 1;
 			try{
@@ -1041,7 +1041,7 @@ namespace server
 		vector<device_debug_t> debVect;
 		vector<string> vRv;
 
-		sleep(1);
+		SLEEP(1);
 #ifdef __OWSERVERREADWRITE
 		ostringstream scout;
 		scout << "~~~ want read debug info  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;

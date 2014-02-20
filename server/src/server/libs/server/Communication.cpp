@@ -179,7 +179,7 @@ namespace server
 			m_poStarter->arouseStarterThread();
 
 		}else if(conderror)
-			usleep(500000);
+			USLEEP(500000);
 		glob::threadStopMessage("Communication::execute(): ending CommunicationThread");
 		return 0;
 	}

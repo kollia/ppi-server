@@ -137,7 +137,7 @@ namespace server
 					&&
 					conderror != EINTR	)
 				{
-					sleep(1);
+					SLEEP(1);
 				}
 			}
 		}
@@ -526,7 +526,7 @@ namespace server
 					{// giving the client from outside an chance to stopping self
 						if(!pCurrentCom->running())
 							break;
-						usleep(250000);
+						USLEEP(250000);
 					}
 					if(pCurrentCom->running())
 						pCurrentCom->stop(true); // kill connection

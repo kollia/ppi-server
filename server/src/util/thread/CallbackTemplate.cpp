@@ -38,7 +38,7 @@ short CallbackTemplate::finished(bool bWait/*= false*/)
 			!stopping()	)
 		{
 			if(bWait)
-				usleep(50);
+				USLEEP(50);
 			else
 				return 0;
 		}else

@@ -264,7 +264,7 @@ int ProcessChecker::execute()
 					glob::stopMessage("ProcessChecker::execute(): thread was running, stopping again");
 					pCurrent->pMeasure->stop(/*wait*/false);
 					glob::stopMessage("ProcessChecker::execute(): thread was stopped again");
-					usleep(1000000);
+					USLEEP(1000000);
 				}else
 				{
 					pCurrent= pCurrent->next;

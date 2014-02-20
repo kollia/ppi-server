@@ -256,7 +256,7 @@ int LogProcess::execute()
 		if(m_pLogThread->running())
 		{
 			m_sAnswer= "stop logging client";
-			usleep(500000);
+			USLEEP(500000);
 		}else
 			m_sAnswer= "done";
 

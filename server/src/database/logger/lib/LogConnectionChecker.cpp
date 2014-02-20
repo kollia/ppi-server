@@ -22,7 +22,9 @@ namespace logger {
 
 int LogConnectionChecker::execute()
 {
-	sleep(1);
+	SLEEP(1);
+	if(stopping())
+		return 0;
 	if(m_poStarter->openConnection() <= 0)
 	{
 		LOCK(m_WRITELOOP);

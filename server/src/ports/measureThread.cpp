@@ -593,7 +593,7 @@ bool MeasureThread::usleep(const IPPITimePattern& time)
 	m_tvSleepLength+= time;
 	usWait= time.tv_sec * 1000000;
 	usWait+= time.tv_usec;
-	::usleep(usWait);
+	Thread::USLEEP(usWait);
 	return true;
 }
 
@@ -947,7 +947,7 @@ int MeasureThread::execute()
 					if(debug)
 						tout << msg << endl;
 					UNLOCK(m_ACTIVATETIME);
-					sleep(10);
+					SLEEP(10);
 					LOCK(m_ACTIVATETIME);
 				}else
 				{
