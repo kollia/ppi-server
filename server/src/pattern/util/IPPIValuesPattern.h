@@ -19,6 +19,8 @@
 #ifndef IPPIVALUESPATTERN_H_
 #define IPPIVALUESPATTERN_H_
 
+#include <sys/time.h>
+
 #include <string>
 
 using namespace std;
