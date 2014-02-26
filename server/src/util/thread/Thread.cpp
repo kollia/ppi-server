@@ -1219,7 +1219,7 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 
 	int error;
 	typedef map<pthread_mutex_t*, mutexnames_t>::iterator iter;
-	iter i;
+	iter i;bool bSleepMutex(false);
 
 	error= pthread_mutex_lock(&g_READMUTEX);
 	if(error != 0)
@@ -1232,7 +1232,7 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 	{
 		i= g_mMutex.find(mutex);
 		if(i->second.name == "SLEEPMUTEX")
-			LOGEX(LOG_INFO, "mutex for SLEEPMUTEX will be destroyed", logger);
+			bSleepMutex= true;
 		if(i != g_mMutex.end()) // erase mutex from map
 			g_mMutex.erase(i);
 	}
@@ -1242,6 +1242,8 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 		LogHolderPattern::instance()->log(file, line, LOG_ERROR,
 						"error by mutex unlock READMUTEX by destroy", "", logger);
 	}
+	if(bSleepMutex)
+		LOGEX(LOG_INFO, "mutex for SLEEPMUTEX will be destroyed", logger);
 	pthread_mutex_destroy(mutex);
 	delete mutex;
 }
@@ -1306,6 +1308,7 @@ void Thread::destroyCondition(const string& file, int line, pthread_cond_t *cond
 	int error;
 	typedef map<pthread_cond_t*, string>::iterator iter;
 	iter i;
+	bool bSleepCond(false);
 
 	error= pthread_mutex_lock(&g_READMUTEX);
 	if(error != 0)
@@ -1317,7 +1320,7 @@ void Thread::destroyCondition(const string& file, int line, pthread_cond_t *cond
 	{
 		i= g_mCondition.find(cond);
 		if(i->second == "SLEEPCOND")
-			LOGEX(LOG_INFO, "condition for SLEEPCOND will be destroyed", logger);
+			bSleepCond= true;
 		if(i != g_mCondition.end()) // erase mutex from map
 			g_mCondition.erase(i);
 	}
@@ -1328,6 +1331,8 @@ void Thread::destroyCondition(const string& file, int line, pthread_cond_t *cond
 		LogHolderPattern::instance()->log(file, line, LOG_ERROR,
 						"error by mutex unlock READMUTEX by destroy condition", "", logger);
 	}
+	if(bSleepCond)
+		LOGEX(LOG_INFO, "condition for SLEEPCOND will be destroyed", logger);
 	pthread_cond_destroy(cond);
 	delete cond;
 }
