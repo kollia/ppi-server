@@ -708,6 +708,8 @@ pthread_mutex_t* Thread::getMutex(const string& name, IClientSendMethods* logger
 		LOGEX(LOG_ALERT, msg, logger);
 	}else
 	{
+		if(name == "SLEEPMUTEX")
+			LOGEX(LOG_INFO, "mutex for SLEEPMUTEX will be correct initialized", logger);
 		int error= pthread_mutex_lock(&g_READMUTEX);
 		if(error != 0)
 		{
@@ -782,6 +784,8 @@ pthread_cond_t* Thread::getCondition(const string& name, IClientSendMethods* log
 		LOGEX(LOG_ALERT, msg, logger);
 	}else
 	{
+		if(name == "SLEEPCOND")
+			LOGEX(LOG_INFO, "condition for SLEEPCOND will be correct initialized", logger);
 		int error= pthread_mutex_lock(&g_READMUTEX);
 		if(error != 0)
 		{
@@ -1227,6 +1231,8 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 	if(m_bAppRun)
 	{
 		i= g_mMutex.find(mutex);
+		if(i->second == "SLEEPMUTEX")
+			LOGEX(LOG_INFO, "mutex for SLEEPMUTEX will be destroyed", logger);
 		if(i != g_mMutex.end()) // erase mutex from map
 			g_mMutex.erase(i);
 	}
@@ -1310,6 +1316,8 @@ void Thread::destroyCondition(const string& file, int line, pthread_cond_t *cond
 	if(m_bAppRun)
 	{
 		i= g_mCondition.find(cond);
+		if(i->second == "SLEEPCOND")
+			LOGEX(LOG_INFO, "condition for SLEEPCOND will be destroyed", logger);
 		if(i != g_mCondition.end()) // erase mutex from map
 			g_mCondition.erase(i);
 	}
