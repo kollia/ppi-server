@@ -1231,7 +1231,7 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 	if(m_bAppRun)
 	{
 		i= g_mMutex.find(mutex);
-		if(i->second == "SLEEPMUTEX")
+		if(i->second.name == "SLEEPMUTEX")
 			LOGEX(LOG_INFO, "mutex for SLEEPMUTEX will be destroyed", logger);
 		if(i != g_mMutex.end()) // erase mutex from map
 			g_mMutex.erase(i);
