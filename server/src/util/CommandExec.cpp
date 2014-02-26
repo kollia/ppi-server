@@ -622,10 +622,10 @@ int CommandExec::execute()
 				ostringstream setErrorlevel;
 				ppi_time acttime;
 
-				setErrorlevel << "PPI-SET " << m_sFolder << ":" << m_sSubroutine << " ";
+				setErrorlevel << "PPI-SET ";
 				if(acttime.setActTime())
 					setErrorlevel << "-t " << acttime.toString(/*as date*/false) << " ";
-				setErrorlevel << nRv;
+				setErrorlevel << m_sFolder << ":" << m_sSubroutine << " " << nRv;
 				setValue(setErrorlevel.str(), bDebug);
 			}
 			if(	m_bLogError &&
