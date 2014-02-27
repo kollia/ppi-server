@@ -708,8 +708,6 @@ pthread_mutex_t* Thread::getMutex(const string& name, IClientSendMethods* logger
 		LOGEX(LOG_ALERT, msg, logger);
 	}else
 	{
-		if(name == "SLEEPMUTEX")
-			LOGEX(LOG_INFO, "mutex for SLEEPMUTEX will be correct initialized", logger);
 		int error= pthread_mutex_lock(&g_READMUTEX);
 		if(error != 0)
 		{
@@ -784,8 +782,6 @@ pthread_cond_t* Thread::getCondition(const string& name, IClientSendMethods* log
 		LOGEX(LOG_ALERT, msg, logger);
 	}else
 	{
-		if(name == "SLEEPCOND")
-			LOGEX(LOG_INFO, "condition for SLEEPCOND will be correct initialized", logger);
 		int error= pthread_mutex_lock(&g_READMUTEX);
 		if(error != 0)
 		{
@@ -1219,7 +1215,7 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 
 	int error;
 	typedef map<pthread_mutex_t*, mutexnames_t>::iterator iter;
-	iter i;bool bSleepMutex(false);
+	iter i;
 
 	error= pthread_mutex_lock(&g_READMUTEX);
 	if(error != 0)
@@ -1231,8 +1227,6 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 	if(m_bAppRun)
 	{
 		i= g_mMutex.find(mutex);
-		if(i->second.name == "SLEEPMUTEX")
-			bSleepMutex= true;
 		if(i != g_mMutex.end()) // erase mutex from map
 			g_mMutex.erase(i);
 	}
@@ -1242,8 +1236,6 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 		LogHolderPattern::instance()->log(file, line, LOG_ERROR,
 						"error by mutex unlock READMUTEX by destroy", "", logger);
 	}
-	if(bSleepMutex)
-		LOGEX(LOG_INFO, "mutex for SLEEPMUTEX will be destroyed", logger);
 	pthread_mutex_destroy(mutex);
 	delete mutex;
 }
@@ -1308,7 +1300,6 @@ void Thread::destroyCondition(const string& file, int line, pthread_cond_t *cond
 	int error;
 	typedef map<pthread_cond_t*, string>::iterator iter;
 	iter i;
-	bool bSleepCond(false);
 
 	error= pthread_mutex_lock(&g_READMUTEX);
 	if(error != 0)
@@ -1319,8 +1310,6 @@ void Thread::destroyCondition(const string& file, int line, pthread_cond_t *cond
 	if(m_bAppRun)
 	{
 		i= g_mCondition.find(cond);
-		if(i->second == "SLEEPCOND")
-			bSleepCond= true;
 		if(i != g_mCondition.end()) // erase mutex from map
 			g_mCondition.erase(i);
 	}
@@ -1331,8 +1320,6 @@ void Thread::destroyCondition(const string& file, int line, pthread_cond_t *cond
 		LogHolderPattern::instance()->log(file, line, LOG_ERROR,
 						"error by mutex unlock READMUTEX by destroy condition", "", logger);
 	}
-	if(bSleepCond)
-		LOGEX(LOG_INFO, "condition for SLEEPCOND will be destroyed", logger);
 	pthread_cond_destroy(cond);
 	delete cond;
 }
@@ -1368,6 +1355,13 @@ int Thread::conditionWait(const string& file, int line, pthread_cond_t* cond, pt
 	string condname;
 	timespec tabsolute;
 
+	if(	time &&
+		!absolute	)
+	{
+		// measure current actual time on begin of method
+		// to get more precise relative waiting time
+		clock_gettime(CLOCK_REALTIME, &tabsolute);
+	}
 	condname= getConditionName(cond, logger);
 #ifdef CONDITIONSDEBUG
 	bool bSet= false;
@@ -1437,9 +1431,17 @@ int Thread::conditionWait(const string& file, int line, pthread_cond_t* cond, pt
 			tabsolute.tv_nsec= time->tv_nsec;
 		}else
 		{
-			clock_gettime(CLOCK_REALTIME, &tabsolute);
+			// current absolute time was measured
+			// on begin of method
 			tabsolute.tv_sec+= time->tv_sec;
 			tabsolute.tv_nsec+= time->tv_nsec;
+			if(tabsolute.tv_nsec > 999999999)
+			{
+				long int sec(tabsolute.tv_nsec / 1000000000);
+
+				tabsolute.tv_sec+= sec;
+				tabsolute.tv_nsec-= (sec * 1000000000);
+			}
 		}
 		retcode= pthread_cond_timedwait(cond, mutex, &tabsolute);
 	}else
