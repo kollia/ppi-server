@@ -58,15 +58,15 @@ void StatusLogRoutine::positionA(const string file, const int line, const string
 		UNLOCK(m_POSITIONSTATUS);
 		return;
 	}
-	m_mStatus[tid].tid= tid;
-	m_mStatus[tid].file= file;
-	m_mStatus[tid].line= line;
-	m_mStatus[tid].identif= identif;
+	t->second.tid= tid;
+	t->second.file= file;
+	t->second.line= line;
+	t->second.identif= identif;
 	if(info2)
-		m_mStatus[tid].info2= *info2;
+		t->second.info2= *info2;
 	if(ninfo2)
-		m_mStatus[tid].ninfo2= *ninfo2;
-	time(&m_mStatus[tid].time);
+		t->second.ninfo2= *ninfo2;
+	time(&t->second.time);
 	UNLOCK(m_POSITIONSTATUS);
 
 }
@@ -94,7 +94,6 @@ void StatusLogRoutine::initstatus(const string threadName, IStatusLogPattern* th
 
 void StatusLogRoutine::statusattrib(IStatusLogPattern* thread, string* info1, int* ninfo1)
 {
-	pos_t pos;
 	pid_t tid= Thread::gettid();
 	map<pid_t, pos_t>::iterator t;
 
@@ -105,14 +104,12 @@ void StatusLogRoutine::statusattrib(IStatusLogPattern* thread, string* info1, in
 		UNLOCK(m_POSITIONSTATUS);
 		return;
 	}
-	pos= m_mStatus[tid];
 	if(info1 != NULL)
-		pos.info1= *info1;
+		t->second.info1= *info1;
 	if(ninfo1 != NULL)
-		pos.ninfo1= *ninfo1;
+		t->second.ninfo1= *ninfo1;
 	if(thread != NULL)
-		pos.thread= thread;
-	m_mStatus[tid]= pos;
+		t->second.thread= thread;
 	UNLOCK(m_POSITIONSTATUS);
 }
 
