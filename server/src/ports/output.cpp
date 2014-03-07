@@ -198,6 +198,11 @@ namespace ports
 				ownDebug	)
 			{
 				out() << outStr.str() << endl;
+				if(!bDebug)
+				{
+					writeDebugStream();
+					TERMINALEND;
+				}
 			}
 			if(m_nLogLevel > -1)
 				LOGEX(m_nLogLevel, outStr.str(), getRunningThread()->getExternSendDevice());
