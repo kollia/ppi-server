@@ -126,10 +126,11 @@ class MeasureThread : 	public Thread,
 		/**
 		 * set debug session in subroutine or hole folder when subroutine not given
 		 *
-		 * @param bDebug wheter should debug session be set or unset
+		 * @param bDebug whether should debug session be set
+		 * @param bInform whether need by existing inform parameter this also by output
 		 * @param subroutine name of subroutine
 		 */
-		bool setDebug(bool bDebug, const string& subroutine= "");
+		bool setDebug(bool bDebug, bool bInform, const string& subroutine= "");
 		/**
 		 * fill double value over an queue into database
 		 *
@@ -418,6 +419,11 @@ class MeasureThread : 	public Thread,
 		 */
 		bool m_bDebug;
 		/**
+		 * whether should show by debug output
+		 * also inform parameter
+		 */
+		bool m_bInformParam;
+		/**
 		 * name of folder
 		 */
 		string m_sFolder;
@@ -438,6 +444,10 @@ class MeasureThread : 	public Thread,
 		 * Calculator whether thread running
 		 */
 		ListCalculator m_oRunnThread;
+		/**
+		 * object for informing output
+		 */
+		SHAREDPTR::shared_ptr<IListObjectPattern> m_oInformOutput;
 		/**
 		 * Calculate whether folder thread should be informed to start running
 		 */

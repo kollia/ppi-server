@@ -429,13 +429,14 @@ namespace ppi_database
 		return 0;
 	}
 
-	void DbInterface::debugSubroutine(bool debug, const string& folder, const string& subroutine/*= ""*/)
+	void DbInterface::debugSubroutine(bool debug, bool bInform, const string& folder, const string& subroutine/*= ""*/)
 	{
 		int err;
 		string sRv;
 		OMethodStringStream command("debugSubroutine");
 
 		command << debug;
+		command << bInform;
 		command << folder;
 		if(subroutine != "")
 			command << subroutine;

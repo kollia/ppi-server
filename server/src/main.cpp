@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 	params.command("start", "starting server");
 	params.command("stop", "stopping server");
 	params.command("restart", "restarting the hole server");
-	params.command("status", "get feedback whether server is running");
+//	params.command("status", "get feedback whether server is running");
 
 	params.execute();
 	commands= params.getCommands();

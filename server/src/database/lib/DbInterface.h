@@ -273,10 +273,11 @@ namespace ppi_database
 		 * set hole folder to output state meassage
 		 *
 		 * @param debug whether folder:subroutine should debug or stop debugging
+		 * @param bInform whether need by existing inform parameter this also by output
 		 * @param folder name of folder
 		 * @param subroutine name of subroutine
 		 */
-		void debugSubroutine(bool debug, const string& folder, const string& subroutine= "");
+		void debugSubroutine(bool debug, bool bInform, const string& folder, const string& subroutine= "");
 		/**
 		 * show on command line which folder threads how often running
 		 *

@@ -872,13 +872,21 @@ namespace server
 							descriptor << DEBUGERROR(descriptor, 4, input, "no folder or folder:subroutine be given");
 					}else
 					{
+						bool bInform(false);
+
+						if(sFolderSub == "-i")
+						{
+							bInform= true;
+							ss >> sFolderSub;
+							trim(sFolderSub);
+						}
 						split(spl, sFolderSub, is_any_of(":"));
 						sFolder= spl[0];
 						if(spl.size() > 1)
 							sSubroutine= spl[1];
 						if(db->existSubroutine(sFolder, sSubroutine))
 						{
-							db->debugSubroutine(bDebug, sFolder, sSubroutine);
+							db->debugSubroutine(bDebug, bInform, sFolder, sSubroutine);
 							sendmsg= "done\n";
 							descriptor << sendmsg;
 						}else

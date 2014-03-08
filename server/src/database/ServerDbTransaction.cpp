@@ -200,14 +200,17 @@ namespace server
 		}else if(method == "debugSubroutine")
 		{
 			bool debug;
+			bool bInform;
 			string folder;
 			string subroutine;
 			OMethodStringStream command("debugSubroutine");
 
 			object >> debug;
+			object >> bInform;
 			object >> folder;
 			object >> subroutine;
 			command << debug;
+			command << bInform;
 			command << folder;
 			if(subroutine != "")
 				command << subroutine;

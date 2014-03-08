@@ -39,6 +39,7 @@
 
 #include "../pattern/util/LogHolderPattern.h"
 
+#include "../ports/output.h"
 #include "../ports/ExternPort.h"
 
 #include "../database/lib/DbInterface.h"
@@ -65,7 +66,8 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 				const time_t& nServerSearch, bool bNoDbRead, short folderCPUtime)
 : Thread(threadname, true),
   m_oRunnThread(threadname, "parameter_run", "run", false, true, pFolderStart->subroutines[0].portClass.get()),
-  m_oInformeThread(threadname, "informe_thread", "inform", false, true, pFolderStart->subroutines[0].portClass.get()),
+  m_oInformOutput(new Output(threadname, threadname)),
+  m_oInformeThread(threadname, "informe_thread", "inform", false, true, m_oInformOutput.get()),
   m_oInformer(threadname, this),
   m_oDbFiller(threadname)
 {
@@ -87,6 +89,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 	m_FOLDERRUNMUTEX= Thread::getMutex("FOLDERRUNMUTEX");
 	m_VALUECONDITION= Thread::getCondition("VALUECONDITION");
 	m_bDebug= false;
+	m_bInformParam= false;
 	m_sFolder= threadname;
 	m_nActCount= 0;
 	m_nRunCount= -1;
@@ -239,7 +242,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 	}
 }
 
-bool MeasureThread::setDebug(bool bDebug, const string& subroutine)
+bool MeasureThread::setDebug(bool bDebug, bool bInform, const string& subroutine)
 {
 	bool bFound(false);
 	bool bOpen(false);
@@ -288,10 +291,17 @@ bool MeasureThread::setDebug(bool bDebug, const string& subroutine)
 	if(!bFound)
 		return false;
 	LOCK(m_DEBUGLOCK);
+	m_oInformOutput->out().str("");
+	m_oInformeThread.doOutput(isDebug);
 	if(isDebug)
+	{
 		m_bDebug= true;
-	else
+		m_bInformParam= bInform;
+	}else
+	{
 		m_bDebug= false;
+		m_bInformParam= false;
+	}
 	UNLOCK(m_DEBUGLOCK);
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{// set now subroutine(s) from type DEBUG
@@ -421,7 +431,7 @@ int MeasureThread::init(void *arg)
 	}
 	for(vector<string>::iterator it= m_vStartDebugSubs.begin(); it != m_vStartDebugSubs.end(); ++it)
 	{
-		if(!setDebug(true, *it))
+		if(!setDebug(true, false, *it))
 			sFault+= "                             " + *it + "\n";
 	}
 	if(sFault != "")
@@ -552,12 +562,30 @@ int MeasureThread::init(void *arg)
 
 void MeasureThread::changedValue(const string& folder, const string& from)
 {
+	bool debug;
 	double inform;
 	ppi_time time;
 
 	if(!m_oInformeThread.isEmpty())
 	{
+		debug= isDebug();
+		if(debug)
+		{
+			if(m_bInformParam)
+			{
+				m_oInformOutput->out() << "--------------------------------------------------------------" << endl;
+				m_oInformOutput->out() << "INFORMED folder " << getFolderName() << " from " << from << ":" << endl;
+			}else
+				debug= false;
+		}
 		m_oInformeThread.calculate(inform);
+		if(debug)
+		{
+			m_oInformOutput->out() << "--------------------------------------------------------------" << endl;
+			m_oInformOutput->writeDebugStream();
+			if(!Terminal::instance()->isRegistered(gettid()))
+				TERMINALEND;
+		}
 		if(inform == 0)
 			return;
 	}
