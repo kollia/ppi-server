@@ -394,6 +394,7 @@ int Shell::system(const string& action, string command)
 			}
 			if(thread == NULL)
 			{
+				out() << "create new CommandExec Thread for action " << action << endl;
 				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError, m_bInfo,
 								getRunningThread()->getExternSendDevice()));
 				thread->setFor(folder, subroutine);
@@ -453,6 +454,7 @@ int Shell::system(const string& action, string command)
 					 // waiting for finished
 						(*it)->stop(true);
 					}
+					//cout << "remove CommandExec Thread inside folder " << folder << ":" << subroutine << endl;
 					m_vCommandThreads.erase(it);
 					bchangedVec= true;
 					break;
