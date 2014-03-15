@@ -60,6 +60,11 @@ namespace design_pattern_world
 			 */
 			string parameter;
 			/**
+			 * parameter length
+			 * to beginning read of value
+			 */
+			string::size_type paramLen;
+			/**
 			 * value corresponding to parameter
 			 */
 			string value;
