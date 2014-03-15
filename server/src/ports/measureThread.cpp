@@ -562,10 +562,22 @@ int MeasureThread::init(void *arg)
 
 void MeasureThread::changedValue(const string& folder, const string& from)
 {
-	bool debug;
+	bool debug, bReg;
 	double inform;
 	ppi_time time;
 
+	if(!time.setActTime())
+	{
+		string msg("### DEBUGGING for folder " + getFolderName());
+
+		msg+= "\n    ERROR: cannot calculate time to informing";
+		msg+= "\n    " + time.errorStr();
+		TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
+		if(isDebug())
+			tout << " ERROR: cannot calculate time to informing" << endl;
+		time.clear();
+
+	}
 	if(!m_oInformeThread.isEmpty())
 	{
 		debug= isDebug();
@@ -573,7 +585,9 @@ void MeasureThread::changedValue(const string& folder, const string& from)
 		{
 			if(m_bInformParam)
 			{
+				bReg= Terminal::instance()->isRegistered(gettid());
 				m_oInformOutput->out() << "--------------------------------------------------------------" << endl;
+				m_oInformOutput->out() << "t:" << time.toString(/*ad date*/true) << endl;
 				m_oInformOutput->out() << "INFORMED folder " << getFolderName() << " from " << from << ":" << endl;
 			}else
 				debug= false;
@@ -583,22 +597,11 @@ void MeasureThread::changedValue(const string& folder, const string& from)
 		{
 			m_oInformOutput->out() << "--------------------------------------------------------------" << endl;
 			m_oInformOutput->writeDebugStream();
-			if(!Terminal::instance()->isRegistered(gettid()))
+			if(!bReg)
 				TERMINALEND;
 		}
 		if(inform == 0)
 			return;
-	}
-	if(gettimeofday(&time, NULL))
-	{
-		string msg("### DEBUGGING for folder " + getFolderName());
-
-		msg+= "\n    ERROR: cannot calculate time to informing";
-		TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
-		if(isDebug())
-			tout << " ERROR: cannot calculate time to informing" << endl;
-		time.clear();
-
 	}
 	LOCK(m_VALUE);
 	m_vFolder.push_back(pair<string, ppi_time>(from, time));
