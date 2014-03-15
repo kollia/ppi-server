@@ -181,6 +181,7 @@ namespace util {
 							{
 								bool fsep= false, ssep= false;
 
+								boost::trim(param.value);
 								if(path == "")
 								{
 									string::size_type  pos= filename.find_last_of("/");
@@ -279,6 +280,7 @@ namespace util {
 
 	void Properties::read(const string& line, Properties::param_t* param) const
 	{
+		bool bParam(false), bLocalisize(false);
 		param_t tRv(*param);
 		string::size_type len= line.length();
 		string read(line), docline, comment, commented;
@@ -437,6 +439,8 @@ namespace util {
 						{
 							tRv.read= true;
 							tRv.parameter= specIt->first;
+							tRv.paramLen= delem;
+							bParam= true;
 							boost::trim(vread);
 							tRv.value= vread;
 							read= vread; // tRv.value will be set later again
@@ -477,9 +481,11 @@ namespace util {
 				tRv.correct= true;
 				tRv.read= true;
 				tRv.parameter= read.substr(0, bpos);
+				bParam= true;
+				tRv.paramLen= bpos + 1;
 				boost::trim(tRv.parameter);
 				read= read.substr(bpos+1);
-				boost::trim(read);
+				//boost::trim(read);
 				if(comment != "")
 					tRv.uncommented= comment;
 			}
@@ -511,6 +517,8 @@ namespace util {
 						if(bcount == blen)
 						{
 							tRv.bcontinue= true;
+							tRv.paramLen+= count + 1;
+							space= "";
 							bcount= 0;
 						}
 
@@ -559,6 +567,8 @@ namespace util {
 							bslash= false;
 					}
 				}
+				if(tRv.bcontinue)
+					bLocalisize= true;
 				if(bOk)
 				{
 					// write spaces into 'space' variable when position outside of localization
@@ -608,12 +618,30 @@ namespace util {
 				len= read.size();
 			}
 			//cout << endl;
+			if(	bParam == false &&
+				newread.size() > tRv.paramLen	)
+			{
+				string val(newread.substr(0, tRv.paramLen));
+
+				boost::trim(val);
+				if(val == "")
+					newread= newread.substr(tRv.paramLen);
+			}
 			tRv.value+= newread;
 
 		}else if(m_sEndLocal != "")
 		{
 			string::size_type nlen(read.length() - m_sEndLocal.length());
 
+			if(	bParam == false &&
+				read.size() > tRv.paramLen	)
+			{
+				string val(read.substr(0, tRv.paramLen));
+
+				boost::trim(val);
+				if(val == "")
+					read= read.substr(tRv.paramLen);
+			}
 			if(tRv.value.substr(nlen) == m_sEndLocal)
 			{
 				tRv.value+= read.substr(0, nlen);
@@ -625,7 +653,22 @@ namespace util {
 				tRv.bcontinue= false;
 			}
 		}else
+		{
+			if(	bParam == false &&
+				read.size() > tRv.paramLen	)
+			{
+				string val(read.substr(0, tRv.paramLen));
+
+				boost::trim(val);
+				if(val == "")
+					read= read.substr(tRv.paramLen);
+			}
 			tRv.value= read;
+		}
+		if(!bLocalisize)// when value not inside an localization, cut spaces
+			boost::trim(tRv.value); // before and behind
+		if(tRv.bcontinue)
+			tRv.value+= "\n";
 		*param= tRv;
 		return;
 	}
