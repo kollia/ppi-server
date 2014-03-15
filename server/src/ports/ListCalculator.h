@@ -162,6 +162,11 @@ protected:
 	 */
 	string m_sParameter;
 	/**
+	 * original incomming statement
+	 * for debug output
+	 */
+	vector<string> m_vsStatement;
+	/**
 	 * subroutine of taken last changing time
 	 */
 	string m_sLastChangingSub;

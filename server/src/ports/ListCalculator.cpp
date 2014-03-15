@@ -42,11 +42,27 @@ ListCalculator::ListCalculator(const string& folder, const string& subroutine, c
 bool ListCalculator::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder, string calcString)
 {
 	bool bOk;
+	string inp;
+	vector<string> spl;
 	string::size_type len, newlen;
 
 	m_pStartFolder= pStartFolder;
 	if(m_pStartFolder == NULL)
 		return false;
+	inp= "calculate " + m_sParameter + " parameter ('";
+	len= inp.size();
+	split(spl, calcString, is_any_of("\n"));
+	for(vector<string>::iterator it= spl.begin(); it != spl.end(); ++it)
+	{
+		if(inp == "")
+			inp.append(len, ' ');
+		inp+= *it;
+		if((it + 1) == spl.end())
+			inp+= "')";
+		inp+= "\n";
+		m_vsStatement.push_back(inp);
+		inp= "";
+	}
 	replace_all(calcString, "\n", " ");
 	replace_all(calcString, "\r", " ");
 	replace_all(calcString, "\t", " ");
@@ -123,8 +139,11 @@ void ListCalculator::output(bool bError, const string& file, const int line, con
 		string out(msg);
 
 		if(out.substr(0, 11) == "calculate('")
-			out= "calculate " + m_sParameter + " parameter " + out.substr(9);
-		CalculatorContainer::output(bError, file, line, out);
+		{
+			for(vector<string>::iterator it= m_vsStatement.begin(); it != m_vsStatement.end(); ++it)
+				CalculatorContainer::output(bError, file, line, *it);
+		}else
+			CalculatorContainer::output(bError, file, line, out);
 	}
 }
 
