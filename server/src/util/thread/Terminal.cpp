@@ -115,27 +115,102 @@ void Terminal::read(const pid_t& threadID, const string& msg)
 
 int Terminal::execute()
 {
+//#define __showOutputCheckOnCommandLine
+	bool bFinishedBlocks(false);
 	pid_t threadID(0);
 	finishedPtr_temp finished;
 	SHAREDPTR::shared_ptr<vector<string> > pmsgs;
 
 	LOCK(m_PRINT);
-	while(	!stopping() &&
-			m_pvFinishedStrings.get() == NULL &&
-			(	m_qOrder.empty() ||
-				m_mqRunStrings[m_qOrder.front()]->empty()	)	)
+	if(	m_pvFinishedStrings.get() &&
+		!m_pvFinishedStrings->empty()	)
 	{
+		for(finishedStrVec_temp::iterator it = m_pvFinishedStrings->begin(); it != m_pvFinishedStrings->end(); ++it)
+		{
+			if(	it->second != NULL &&
+				!it->second->empty() )
+			{
+				threadID= it->first;
+				bFinishedBlocks= true;
+				break;
+			}
+		}
+	}
+	if(	!stopping() &&
+		bFinishedBlocks == false &&
+		(	m_qOrder.empty() ||
+			m_mqRunStrings[m_qOrder.front()]->empty()	)	)
+	{
+#ifdef __showOutputCheckOnCommandLine
+		cout << "WAIT ON CONDITION for thread " << m_nActThreadID << endl;
+		if(!m_qOrder.empty())
+		{
+			cout << "open threads are:" << endl;
+			for(vector<pid_t>::iterator it= m_qOrder.begin(); it != m_qOrder.end(); ++it)
+				cout << "         " << *it << endl;
+		}
+		if(	m_pvFinishedStrings.get() != NULL &&
+			!m_pvFinishedStrings->empty()		)
+		{
+			cout << "finished waiting:" << endl;
+			for(finishedStrVec_temp::iterator it= m_pvFinishedStrings->begin(); it != m_pvFinishedStrings->end(); ++it)
+			{
+				cout << "         " << it->first << " ";
+				if(it->second->empty())
+					cout << "empty";
+				else
+					cout << "with " << it->second->size() << " rows";
+				cout << endl;
+			}
+		}
+#endif // __showOutputCheckOnCommandLine
 		CONDITION(m_WORKINGCONDITION, m_PRINT);
+#ifdef __showOutputCheckOnCommandLine
+		cout << "AWAKED for beginning thread " << m_nActThreadID << endl;
+#endif // __showOutputCheckOnCommandLine
+	}
+#ifdef __showOutputCheckOnCommandLine
+	else
+		cout << "found thread's inside queue" << endl;
+	if(!m_qOrder.empty())
+	{
+		cout << "open threads are:" << endl;
+		for(vector<pid_t>::iterator it= m_qOrder.begin(); it != m_qOrder.end(); ++it)
+			cout << "         " << *it << endl;
 	}
 	if(	m_pvFinishedStrings.get() != NULL &&
-		m_pvFinishedStrings->front().first == m_nActThreadID	)
+		!m_pvFinishedStrings->empty()		)
 	{
+		cout << "finished waiting:" << endl;
+		for(finishedStrVec_temp::iterator it= m_pvFinishedStrings->begin(); it != m_pvFinishedStrings->end(); ++it)
+		{
+			cout << "         " << it->first << " ";
+			if(it->second->empty())
+				cout << "empty";
+			else
+				cout << "with " << it->second->size() << " rows";
+			cout << endl;
+		}
+	}
+#endif // __showOutputCheckOnCommandLine
+	if(	m_pvFinishedStrings.get() != NULL &&
+		!m_pvFinishedStrings->empty() &&
+		(	m_pvFinishedStrings->front().first == m_nActThreadID ||
+			m_nActThreadID == 0	||
+			m_qOrder.empty()										)	)
+	{
+#ifdef __showOutputCheckOnCommandLine
+		cout << "take finished threads" << endl;
+#endif // __showOutputCheckOnCommandLine
 		finished= m_pvFinishedStrings;
 		m_pvFinishedStrings= finishedPtr_temp();
 		m_nActThreadID= 0;
 	}
 	if(!m_qOrder.empty())
 	{
+#ifdef __showOutputCheckOnCommandLine
+		cout << "take first open thread" << endl;
+#endif // __showOutputCheckOnCommandLine
 		threadID= m_qOrder.front();
 		pmsgs= m_mqRunStrings[threadID];
 		m_mqRunStrings[threadID]= SHAREDPTR::shared_ptr<vector<string> >(new vector<string>);
@@ -263,22 +338,49 @@ void Terminal::end(pid_t threadID/*= 0*/)
 	{
 		if(m_pvFinishedStrings.get() == NULL)
 			m_pvFinishedStrings= finishedPtr_temp(new finishedStrVec_temp);
-		if(	threadID == m_nActThreadID &&
-			!m_pvFinishedStrings->empty() &&
-			m_pvFinishedStrings->front().first != m_nActThreadID	)
-		{
-			// insert actual block on beginning
-			m_pvFinishedStrings->push_front(
-							pair<	pid_t,
-								SHAREDPTR::shared_ptr<vector<string> > >
-												(threadID, found->second)	);
-		}else
+		if(	m_pvFinishedStrings->empty() ||
+			m_pvFinishedStrings->back().first != threadID	)
 		{
 			m_pvFinishedStrings->push_back(
 							pair<	pid_t,
 								SHAREDPTR::shared_ptr<vector<string> > >
 												(threadID, found->second)	);
+		}else
+		{
+			SHAREDPTR::shared_ptr<vector<string> > pLastVec;
+
+			pLastVec= m_pvFinishedStrings->back().second;
+			pLastVec->insert(pLastVec->end(), found->second->begin(), found->second->end());
 		}
+/*		if(	threadID == m_nActThreadID &&
+			!m_pvFinishedStrings->empty() &&
+			m_pvFinishedStrings->front().first != m_nActThreadID	)
+		{
+			SHAREDPTR::shared_ptr<vector<string> > pFirstVec;
+			// insert actual block on beginning
+			pFirstVec= m_pvFinishedStrings->front().second;
+			pFirstVec->insert(pFirstVec->end(), found->second->begin(), found->second->end());
+/			m_pvFinishedStrings->push_front(
+							pair<	pid_t,
+								SHAREDPTR::shared_ptr<vector<string> > >
+												(threadID, found->second)	);/
+		}else
+		{
+			finishedStrVec_temp::iterator ins;
+
+			ins= find(m_pvFinishedStrings->begin(), m_pvFinishedStrings->end(), threadID);
+			if(	ins == m_pvFinishedStrings->end() ||
+				m_pvFinishedStrings->back().first != threadID	)
+			{
+				m_pvFinishedStrings->push_back(
+								pair<	pid_t,
+									SHAREDPTR::shared_ptr<vector<string> > >
+													(threadID, found->second)	);
+			}else
+			{
+
+			}
+		}*/
 		m_mqRunStrings.erase(threadID);
 		foundTH= find(m_qOrder.begin(), m_qOrder.end(), threadID);
 		if(foundTH != m_qOrder.end())
