@@ -26,6 +26,7 @@
 
 #include "../util/GlobalStaticMethods.h"
 #include "../util/URL.h"
+#include "../util/debug.h"
 
 #include "../util/properties/interlacedproperties.h"
 
@@ -196,7 +197,26 @@ int main(int argc, char* argv[])
 	//
 	// ------------------------------------------------------------------------------
 
+	bool bGlbCondSet(false), bGlbMutSet(false);
 
+#ifdef CONDITIONSDEBUG
+	bGlbCondSet= true;
+#endif
+#ifdef MUTEXLOCKDEBUG
+	bGlbMutSet= true;
+#endif
+	if(	bGlbCondSet ||
+		bGlbMutSet		)
+	{
+		string msg("\n");
+
+		if(bGlbCondSet)
+			msg+= "Globally lock for CONDITIONSDEBUG be defined\n";
+		if(bGlbMutSet)
+			msg+= "Globally lock for MUTEXLOCKDEBUG be defined\n";
+		msg+= "\nThis locking cost performance time";
+		LOG(LOG_WARNING, msg);
+	}
 
 	LOG(LOG_DEBUG, "starting database");
 	starter= new CommunicationThreadStarter(0, nDbConnectors);
