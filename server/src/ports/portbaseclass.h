@@ -21,6 +21,8 @@
 #include <set>
 #include <map>
 
+#include <boost/regex.hpp>
+
 #include "../util/debug.h"
 #include "../util/debugsubroutines.h"
 #include "../util/structures.h"
@@ -501,6 +503,11 @@ namespace ports
 			virtual ~portBase();
 
 		protected:
+#ifdef __followSETbehaviorToFolder
+			bool m_bFollow;
+			boost::regex m_oToFolderExp;
+			boost::regex m_oToSubExp;
+#endif // __followSETbehaviorToFolder
 			/**
 			 * value from last pass inside <code>measure()</code> method.<br />
 			 * need to hold as reference for return value

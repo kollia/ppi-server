@@ -32,6 +32,7 @@
 
 #include "portbaseclass.h"
 
+#include "../util/debugsubroutines.h"
 #include "../util/exception.h"
 #include "../util/thread/Thread.h"
 #include "../util/thread/Terminal.h"
@@ -44,8 +45,12 @@ using namespace ports;
 using namespace ppi_database;
 using namespace boost;
 
-portBase::portBase(const string& type, const string& folderName, const string& subroutineName)
-: m_poMeasurePattern(NULL),
+portBase::portBase(const string& type, const string& folderName, const string& subroutineName) :
+#ifdef __followSETbehaviorToFolder
+  m_oToFolderExp(__followSETbehaviorToFolder),
+  m_oToSubExp(__followSETbehaviorToSubroutine),
+#endif
+  m_poMeasurePattern(NULL),
   m_oLinkWhile(folderName, subroutineName, "lwhile", false, false, this),
   m_dLastSetValue(0),
   m_nLinkObserver(0)
@@ -79,7 +84,16 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	double ddv, dDef;
 	string prop("default");
 	DbInterface *db= DbInterface::instance();
-
+#ifdef __followSETbehaviorToFolder
+	if(	(	string(__followSETbehaviorToFolder) == "" ||
+			boost::regex_match(m_sFolder, m_oToFolderExp)	) &&
+		(	string(__followSETbehaviorToSubroutine) == "" ||
+			boost::regex_match(m_sSubroutine, m_oToSubExp)		)	)
+	{
+		m_bFollow= true;
+	}else
+		m_bFollow= false;
+#endif // __followSETbehaviorToFolder
 	m_dValue.value= 0;
 	m_pFolders= pStartFolder;
 	m_bInfo= !properties->haveAction("noinfo");
@@ -343,6 +357,7 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 #endif //__moreOutput
 
 	try{
+		LOCK(m_VALUELOCK);
 		ppi_value dValue(value.getValue());
 		ppi_value invalue(value.getValue());
 		ppi_value dbvalue(value.getValue());
@@ -357,7 +372,14 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 							<< getFolderName() << ":" << getSubroutineName() << endl;
 			cout << __FILE__ << __LINE__ << endl;
 		}*/
-		LOCK(m_VALUELOCK);
+#ifdef __followSETbehaviorToFolder
+		if(m_bFollow)
+		{
+			cout << "folder " << m_sFolder << ":" << m_sSubroutine << " will be set to " << invalue
+							<< " where old was " << m_dValue.value << endl;
+		}
+#endif // __followSETbehaviorToFolder
+
 		if(!m_bDefined)// if device not found by starting in init method
 			defineRange(); // try again, maybe device was found meantime
 		if(m_bDefined)
@@ -474,7 +496,10 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 						(	spl[1] == m_sFolder &&
 							m_nCount < m_poMeasurePattern->getActCount(spl[2])	)	)	)	)
 			{
-				//cout << m_sFolder << ":" << m_sSubroutine << " was changed from " << from << endl;
+#ifdef __followSETbehaviorToFolder
+				if(m_bFollow)
+					cout << m_sFolder << ":" << m_sSubroutine << " was changed from " << from << endl;
+#endif // __followSETbehaviorToFolder
 				getRunningThread()->informFolders(m_mvObservers, from, getSubroutineName(), debug, m_OBSERVERLOCK);
 			}
 			if(	dbvalue != oldMember &&
@@ -560,6 +585,18 @@ bool portBase::setValue(const string& folder, const string& subroutine,
 			if(	it->bCorrect &&
 				it->name == subroutine	)
 			{
+#ifdef __followSETbehaviorToFolder
+				if(	string(__followSETbehaviorToFolder) == "" ||
+					boost::regex_match(folder, m_oToFolderExp)		)
+				{
+					if(	string(__followSETbehaviorToSubroutine) == "" ||
+						boost::regex_match(subroutine, m_oToSubExp)				)
+					{
+						cout << "write " << folder << ":" << subroutine << " into sub object" << endl;
+					}
+				}
+#endif // __followSETbehaviorToFolder
+
 				it->portClass->setValue(value, "e:"+account);
 				return true;
 			}
@@ -576,6 +613,7 @@ bool portBase::setValue(const string& folder, const string& subroutine,
 	msg << "set from '" << account << "'";
 	TIMELOGEX(LOG_ERROR, "setValue"+folder+":"+subroutine, msg.str(),
 					getRunningThread()->getExternSendDevice());
+	cerr << msg << endl;
 	return false;
 }
 

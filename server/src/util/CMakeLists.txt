@@ -25,6 +25,6 @@ set(utilSrcs	GlobalStaticMethods.cpp
 #        		process/ProcessStarter.cpp					)
 
 add_library(ppiutil ${libraries} ${utilSrcs})
-target_link_libraries(ppiutil ppipropertyutil ppistreamutil ppipattern)
+target_link_libraries(ppiutil ppipropertyutil ppistreamutil ppipattern boost_regex)
 set_target_properties(ppiutil PROPERTIES VERSION ${PPIUTIL_LIB_VERSION} SOVERSION ${PPIUTIL_LIB_SOVERSION})
 install(TARGETS ppiutil DESTINATION lib)

@@ -44,6 +44,10 @@ public:
 	 */
 	CommandExec(IMeasureSet* port, bool logError, bool info, IClientSendMethods* sendDevice= NULL)
 	: Thread("CommandExec", true, /*default policy*/-1, /*default priority*/-9999, sendDevice),
+#ifdef __followSETbehaviorToFolder
+	  m_oToFolderExp(__followSETbehaviorToFolder),
+	  m_oToSubExp(__followSETbehaviorToSubroutine),
+#endif
 	  m_bStarted(false),
 	  m_bLogging(false),
 	  m_bLogError(logError),
@@ -120,8 +124,7 @@ public:
 	 * @param folder name of folder for which started
 	 * @param subroutine name of subroutine for which started
 	 */
-	void setFor(const string& folder, const string& subroutine)
-	{ m_sFolder= folder; m_sSubroutine= subroutine; };
+	void setFor(const string& folder, const string& subroutine);
 	/**
 	 * set new value inside folder list
 	 *
@@ -166,6 +169,11 @@ public:
 	  DESTROYCOND(m_WAITFORRUNGCONDITION); };
 
 private:
+#ifdef __followSETbehaviorToFolder
+	bool m_bFollow;
+	boost::regex m_oToFolderExp;
+	boost::regex m_oToSubExp;
+#endif // __followSETbehaviorToFolder
 	/**
 	 * mutex of locking output result
 	 */

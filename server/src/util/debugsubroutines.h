@@ -50,5 +50,17 @@
 #endif // __WRITEDEBUGALLLINES
 #endif // __showStatistic
 
+/**********************************************************************************
+ * implementation to follow setting behavior
+ * from one folder:subroutine to write into folder:subroutine
+ * and inform from folder to restart
+ * for this behavior comment out the follow 4 definitions
+ * for all definitions are regular expressions allowed
+ */
+//#define __followSETbehaviorFromFolder "Raff._Zeit_timer"
+//#define __followSETbehaviorFromSubroutine ""
+//#define __followSETbehaviorToFolder "power_switch_set"
+//#define __followSETbehaviorToSubroutine ""
+
 #endif /*DEBUGSUBROUTINES_H_*/
 

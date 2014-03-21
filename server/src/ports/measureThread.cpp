@@ -65,6 +65,10 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 				const SHAREDPTR::shared_ptr<measurefolder_t> pFolderStart,
 				const time_t& nServerSearch, bool bNoDbRead, short folderCPUtime)
 : Thread(threadname, true),
+#ifdef __followSETbehaviorToFolder
+  m_oToFolderExp(__followSETbehaviorToFolder),
+  m_oToSubExp(__followSETbehaviorToSubroutine),
+#endif
   m_oRunnThread(threadname, "parameter_run", "run", false, true, pFolderStart->subroutines[0].portClass.get()),
   m_oInformOutput(new Output(threadname, threadname)),
   m_oInformeThread(threadname, "informe_thread", "inform", false, true, m_oInformOutput.get()),
@@ -403,6 +407,14 @@ int MeasureThread::init(void *arg)
 	string sFault, folder(getFolderName());
 	DbInterface *db= DbInterface::instance();
 
+#ifdef __followSETbehaviorFromFolder
+	boost::regex folderExp(__followSETbehaviorFromFolder);
+
+	if(boost::regex_match(folder, folderExp))
+		m_btimer= true;
+	else
+		m_btimer= false;
+#endif // __followSETbehaviorFromFolder
 	nMuch= m_pvtSubroutines->size();
 	for(int n= 0; n<nMuch; n++)
 	{
@@ -566,6 +578,23 @@ void MeasureThread::changedValue(const string& folder, const string& from)
 	double inform;
 	ppi_time time;
 
+#ifdef __followSETbehaviorFromFolder
+	if(	m_btimer )
+	{
+		vector<string> spl;
+
+		split(spl, from, is_any_of(":"));
+		if(	string(__followSETbehaviorFromFolder) == "" ||
+			boost::regex_match(spl[0], m_oToFolderExp)		)
+		{
+			if(	string(__followSETbehaviorFromSubroutine) == "" ||
+				boost::regex_match(spl[1], m_oToSubExp)				)
+			{
+				cout << "informing from " << from << endl;
+			}
+		}
+	}
+#endif // __followSETbehaviorFromFolder
 	if(!time.setActTime())
 	{
 		string msg("### DEBUGGING for folder " + getFolderName());
@@ -1143,6 +1172,26 @@ int MeasureThread::execute()
 		vInformed= m_vFolder;
 		m_vFolder.clear();
 	}
+#ifdef __followSETbehaviorFromFolder
+	if(m_btimer)
+	{
+		for(vector<pair<string, ppi_time> >::iterator i= vInformed.begin(); i != vInformed.end(); ++i)
+		{
+			vector<string> spl;
+
+			split(spl, i->first, is_any_of(":"));
+			if(	string(__followSETbehaviorFromFolder) == "" ||
+				boost::regex_match(spl[0], m_oToFolderExp)		)
+			{
+				if(	string(__followSETbehaviorFromSubroutine) == "" ||
+					boost::regex_match(spl[1], m_oToSubExp)				)
+				{
+					cout << "informed over " << i->first << endl;
+				}
+			}
+		}
+	}
+#endif // __followSETbehaviorFromFolder
 	if(isDebug())
 	{
 		ostringstream out;
@@ -1330,6 +1379,24 @@ bool MeasureThread::checkToStart(const bool debug)
 					return true;
 				newFolder.push_back(*it);
 			}
+#ifdef __followSETbehaviorFromFolder
+			else if(m_btimer)
+			{
+				vector<string> spl;
+
+				split(spl, it->first, is_any_of(":"));
+				if(	string(__followSETbehaviorFromFolder) == "" ||
+					boost::regex_match(spl[0], m_oToFolderExp)		)
+				{
+					if(	string(__followSETbehaviorFromSubroutine) == "" ||
+						boost::regex_match(spl[1], m_oToSubExp)				)
+					{
+						cout << "remove informing over " << it->first << endl;
+					}
+				}
+			}
+#endif // __followSETbehaviorFromFolder
+
 			if(debug)
 			{
 				while(	startTime != m_vStartTimes.end() &&

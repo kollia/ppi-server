@@ -19,6 +19,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/regex.hpp>
 
 #include <cstdio>
 #include <cstring>
@@ -26,6 +27,7 @@
 
 #include "../pattern/util/LogHolderPattern.h"
 
+#include "debugsubroutines.h"
 #include "exception.h"
 
 #include "stream/ppivalues.h"
@@ -91,6 +93,25 @@ int CommandExec::init(void* args)
 		return -1;
 	}*/
 	return 0;
+}
+
+void CommandExec::setFor(const string& folder, const string& subroutine)
+{
+#ifdef __followSETbehaviorToFolder
+	boost::regex fromFolderExp(__followSETbehaviorFromFolder);
+	boost::regex fromSubExp(__followSETbehaviorFromSubroutine);
+
+	if(	(	string(__followSETbehaviorFromFolder) == "" ||
+			boost::regex_match(folder, fromFolderExp)	) &&
+		(	string(__followSETbehaviorFromSubroutine) == "" ||
+			boost::regex_match(subroutine, fromSubExp)		)	)
+	{
+		m_bFollow= true;
+	}else
+		m_bFollow= false;
+#endif // __followSETbehaviorToFolder
+	m_sFolder= folder;
+	m_sSubroutine= subroutine;
 }
 
 int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string command, vector<string>& result,
@@ -1230,8 +1251,17 @@ bool CommandExec::setValue(const string& command, bool bLog)
 	if(	bwrite &&
 		!stopping()	)
 	{
-	/*	cout << "try to SET " << spl[0] << ":" << spl[1] << " " << fixed << value.value
-						<< " on " << value.lastChanging.toString(true) << endl;*/
+#ifdef __followSETbehaviorFromFolder
+		if(	m_bFollow ||
+			(	(	string(__followSETbehaviorToFolder) == "" ||
+					boost::regex_match(spl[0], m_oToFolderExp)		) &&
+				(	string(__followSETbehaviorToSubroutine) == "" ||
+					boost::regex_match(spl[1], m_oToSubExp)		)	)	)
+		{
+			cout << "try to SET " << spl[0] << ":" << spl[1] << " " << fixed << value.value
+								<< " on " << value.lastChanging.toString(true) << endl;
+		}
+#endif // __followSETbehaviorFromFolder
 		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
 		{
 			defSetError(command, "cannot write correctly PPI-SET command over interface to folder-list");

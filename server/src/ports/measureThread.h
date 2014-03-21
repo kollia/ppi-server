@@ -20,10 +20,12 @@
 
 #include <set>
 #include <queue>
+#include <boost/regex.hpp>
 
 #include "../pattern/util/IListObjectPattern.h"
 #include "../pattern/util/imeasurepattern.h"
 
+#include "../util/debugsubroutines.h"
 #include "../util/smart_ptr.h"
 #include "../util/structures.h"
 #include "../util/thread/Thread.h"
@@ -50,6 +52,11 @@ class MeasureThread : 	public Thread,
 						virtual public IMeasurePattern
 {
 	public:
+#ifdef __followSETbehaviorFromFolder
+		bool m_btimer;
+		boost::regex m_oToFolderExp;
+		boost::regex m_oToSubExp;
+#endif // __followSETbehaviorFromFolder
 		/**
 		 * creating instance of MeasureThread
 		 *
