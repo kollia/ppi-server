@@ -170,7 +170,6 @@ public:
 
 private:
 #ifdef __followSETbehaviorToFolder
-	bool m_bFollow;
 	boost::regex m_oToFolderExp;
 	boost::regex m_oToSubExp;
 #endif // __followSETbehaviorToFolder

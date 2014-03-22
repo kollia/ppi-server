@@ -373,9 +373,11 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 			cout << __FILE__ << __LINE__ << endl;
 		}*/
 #ifdef __followSETbehaviorToFolder
-		if(m_bFollow)
+		if(	m_bFollow &&
+			__followSETbehaviorFrom <= 2 &&
+			__followSETbehaviorTo >= 2		)
 		{
-			cout << "folder " << m_sFolder << ":" << m_sSubroutine << " will be set to " << invalue
+			cout << "[2] folder " << m_sFolder << ":" << m_sSubroutine << " will be set to " << invalue
 							<< " where old was " << m_dValue.value << endl;
 		}
 #endif // __followSETbehaviorToFolder
@@ -497,8 +499,12 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 							m_nCount < m_poMeasurePattern->getActCount(spl[2])	)	)	)	)
 			{
 #ifdef __followSETbehaviorToFolder
-				if(m_bFollow)
-					cout << m_sFolder << ":" << m_sSubroutine << " was changed from " << from << endl;
+				if(	m_bFollow &&
+					__followSETbehaviorFrom <= 3 &&
+					__followSETbehaviorTo >= 3		)
+				{
+					cout << "[3] " << m_sFolder << ":" << m_sSubroutine << " was changed from " << from << endl;
+				}
 #endif // __followSETbehaviorToFolder
 				getRunningThread()->informFolders(m_mvObservers, from, getSubroutineName(), debug, m_OBSERVERLOCK);
 			}
@@ -586,14 +592,14 @@ bool portBase::setValue(const string& folder, const string& subroutine,
 				it->name == subroutine	)
 			{
 #ifdef __followSETbehaviorToFolder
-				if(	string(__followSETbehaviorToFolder) == "" ||
-					boost::regex_match(folder, m_oToFolderExp)		)
+				if(	__followSETbehaviorFrom <= 1 &&
+					__followSETbehaviorTo >= 1 &&
+					(	string(__followSETbehaviorToFolder) == "" ||
+						boost::regex_match(folder, m_oToFolderExp)		) &&
+					(	string(__followSETbehaviorToSubroutine) == "" ||
+						boost::regex_match(subroutine, m_oToSubExp)		)	)
 				{
-					if(	string(__followSETbehaviorToSubroutine) == "" ||
-						boost::regex_match(subroutine, m_oToSubExp)				)
-					{
-						cout << "write " << folder << ":" << subroutine << " into sub object" << endl;
-					}
+					cout << "[1] write " << folder << ":" << subroutine << " into sub object" << endl;
 				}
 #endif // __followSETbehaviorToFolder
 

@@ -97,19 +97,6 @@ int CommandExec::init(void* args)
 
 void CommandExec::setFor(const string& folder, const string& subroutine)
 {
-#ifdef __followSETbehaviorToFolder
-	boost::regex fromFolderExp(__followSETbehaviorFromFolder);
-	boost::regex fromSubExp(__followSETbehaviorFromSubroutine);
-
-	if(	(	string(__followSETbehaviorFromFolder) == "" ||
-			boost::regex_match(folder, fromFolderExp)	) &&
-		(	string(__followSETbehaviorFromSubroutine) == "" ||
-			boost::regex_match(subroutine, fromSubExp)		)	)
-	{
-		m_bFollow= true;
-	}else
-		m_bFollow= false;
-#endif // __followSETbehaviorToFolder
 	m_sFolder= folder;
 	m_sSubroutine= subroutine;
 }
@@ -1251,17 +1238,17 @@ bool CommandExec::setValue(const string& command, bool bLog)
 	if(	bwrite &&
 		!stopping()	)
 	{
-#ifdef __followSETbehaviorFromFolder
-		if(	m_bFollow ||
+#ifdef __followSETbehaviorFrom
+		if(	__followSETbehaviorFrom <= 0 &&
 			(	(	string(__followSETbehaviorToFolder) == "" ||
 					boost::regex_match(spl[0], m_oToFolderExp)		) &&
 				(	string(__followSETbehaviorToSubroutine) == "" ||
 					boost::regex_match(spl[1], m_oToSubExp)		)	)	)
 		{
-			cout << "try to SET " << spl[0] << ":" << spl[1] << " " << fixed << value.value
+			cout << "[0] try to SET " << spl[0] << ":" << spl[1] << " " << fixed << value.value
 								<< " on " << value.lastChanging.toString(true) << endl;
 		}
-#endif // __followSETbehaviorFromFolder
+#endif // __followSETbehaviorFrom
 		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
 		{
 			defSetError(command, "cannot write correctly PPI-SET command over interface to folder-list");

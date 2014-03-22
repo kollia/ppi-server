@@ -54,13 +54,28 @@
  * implementation to follow setting behavior
  * from one folder:subroutine to write into folder:subroutine
  * and inform from folder to restart
- * for this behavior comment out the follow 4 definitions
+ * for this behavior comment out the __followSETbehaviorFrom directive
+ * define as integer from 0 to 6
+ * and __followSETbehaviorTo directive with same integer or higher
+ * later when now where information lost it can be made closer the output numbers
+ * 0 - get from SHELL command
+ * 1 - writing into subroutine object inside list (from SHELL or external command)
+ * 2 - subroutine get information to change
+ * 3 - subroutine want to inform other folder
+ * 4 - folder get information
+ * 5 - folder remove information because folder start running after information
+ *     before really know to should start also for this one
+ * 6 - folder start for the information
  * for all definitions are regular expressions allowed
  */
-//#define __followSETbehaviorFromFolder "Raff._Zeit_timer"
-//#define __followSETbehaviorFromSubroutine ""
-//#define __followSETbehaviorToFolder "power_switch_set"
-//#define __followSETbehaviorToSubroutine ""
+//#define __followSETbehaviorFrom 0
+#ifdef __followSETbehaviorFrom
+#define __followSETbehaviorTo 6
+#define __followSETbehaviorFromFolder "Raff._Zeit_timer"
+#define __followSETbehaviorFromSubroutine ""
+#define __followSETbehaviorToFolder "power_switch_set"
+#define __followSETbehaviorToSubroutine ""
+#endif // __followSETbehaviorFrom
 
 #endif /*DEBUGSUBROUTINES_H_*/
 

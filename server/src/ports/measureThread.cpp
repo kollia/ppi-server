@@ -579,7 +579,9 @@ void MeasureThread::changedValue(const string& folder, const string& from)
 	ppi_time time;
 
 #ifdef __followSETbehaviorFromFolder
-	if(	m_btimer )
+	if(	m_btimer &&
+		__followSETbehaviorFrom <= 4 &&
+		__followSETbehaviorTo >= 4		)
 	{
 		vector<string> spl;
 
@@ -590,7 +592,7 @@ void MeasureThread::changedValue(const string& folder, const string& from)
 			if(	string(__followSETbehaviorFromSubroutine) == "" ||
 				boost::regex_match(spl[1], m_oToSubExp)				)
 			{
-				cout << "informing from " << from << endl;
+				cout << "[4] informing from " << from << endl;
 			}
 		}
 	}
@@ -1173,8 +1175,12 @@ int MeasureThread::execute()
 		m_vFolder.clear();
 	}
 #ifdef __followSETbehaviorFromFolder
-	if(m_btimer)
+	if(	m_btimer &&
+		__followSETbehaviorFrom <= 6 &&
+		__followSETbehaviorTo >= 6		)
 	{
+		string informed;
+
 		for(vector<pair<string, ppi_time> >::iterator i= vInformed.begin(); i != vInformed.end(); ++i)
 		{
 			vector<string> spl;
@@ -1186,10 +1192,17 @@ int MeasureThread::execute()
 				if(	string(__followSETbehaviorFromSubroutine) == "" ||
 					boost::regex_match(spl[1], m_oToSubExp)				)
 				{
-					cout << "informed over " << i->first << endl;
+					if(informed != "")
+						informed+= "\n";
+					informed+= "         " + i->first;
 				}
 			}
 		}
+		cout << "[6] " << getFolderName() << " starting ";
+		if(informed != "")
+			cout << " informed over:" << endl << informed << endl;
+		else
+			cout << "without informing from right wanted folder:subroutine" << endl;
 	}
 #endif // __followSETbehaviorFromFolder
 	if(isDebug())
@@ -1380,7 +1393,9 @@ bool MeasureThread::checkToStart(const bool debug)
 				newFolder.push_back(*it);
 			}
 #ifdef __followSETbehaviorFromFolder
-			else if(m_btimer)
+			else if(	m_btimer &&
+						__followSETbehaviorFrom <= 5 &&
+						__followSETbehaviorTo >= 5		)
 			{
 				vector<string> spl;
 
@@ -1391,7 +1406,7 @@ bool MeasureThread::checkToStart(const bool debug)
 					if(	string(__followSETbehaviorFromSubroutine) == "" ||
 						boost::regex_match(spl[1], m_oToSubExp)				)
 					{
-						cout << "remove informing over " << it->first << endl;
+						cout << "[5] remove informing over " << it->first << endl;
 					}
 				}
 			}
