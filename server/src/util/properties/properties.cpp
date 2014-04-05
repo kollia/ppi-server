@@ -52,12 +52,27 @@ namespace util {
 		m_itmvActRangeDoc= m_mssDocs.end();
 	}
 
+	void Properties::add(const Properties& props)
+	{
+		typedef map<string, vector<string> >::const_iterator iterator;
+
+		m_mErrorParams.insert(props.m_mErrorParams.begin(), props.m_mErrorParams.end());
+		for(iterator x= props.m_mvPropertyMap.begin(); x != props.m_mvPropertyMap.end(); ++x)
+			m_mvPropertyMap[x->first].insert(m_mvPropertyMap[x->first].end(), x->second.begin(), x->second.end());
+		for(iterator x= props.m_mvPropertyLines.begin(); x != props.m_mvPropertyLines.end(); ++x)
+			m_mvPropertyLines[x->first].insert(m_mvPropertyLines[x->first].end(), x->second.begin(), x->second.end());
+		m_vPropOrder.insert(m_vPropOrder.end(), props.m_vPropOrder.begin(), props.m_vPropOrder.end());
+		m_oNotAllowedParams.insert(props.m_oNotAllowedParams.begin(), props.m_oNotAllowedParams.end());
+		m_mDefault.insert(props.m_mDefault.begin(), props.m_mDefault.end());
+	}
+
 	Properties& Properties::copy(const Properties& x)
 	{
 		m_bByCheck= x.m_bByCheck;
 		m_mErrorParams= x.m_mErrorParams;
 		m_nPropCount= x.m_nPropCount;
 		m_mvPropertyMap= x.m_mvPropertyMap;
+		m_mvPropertyLines= x.m_mvPropertyLines;
 		m_vPropOrder= x.m_vPropOrder;
 		m_oNotAllowedParams= x.m_oNotAllowedParams;
 		m_mDefault= x.m_mDefault;

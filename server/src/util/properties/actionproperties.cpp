@@ -51,6 +51,15 @@ namespace util {
 		return *this;
 	}
 
+	void ActionProperties::add(const ActionProperties& props)
+	{
+		typedef map<string, vector<string> >::const_iterator iterator;
+
+		for(iterator x= props.m_mvActions.begin(); x != props.m_mvActions.end(); ++x)
+			m_mvActions[x->first].insert(m_mvActions[x->first].end(), x->second.begin(), x->second.end());
+		Properties::add(props);
+	}
+
 	bool ActionProperties::readLine(const string& line)
 	{
 		Properties::param_t param;

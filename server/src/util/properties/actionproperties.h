@@ -62,6 +62,13 @@ namespace util {
 			:	Properties(x)
 			{ copy(x, /*constructor*/true); };
 			/**
+			 * add defined properties and action properties to object,
+			 * but no allowed or not allowed actions
+			 *
+			 * @param other properties from other object
+			 */
+			virtual void add(const ActionProperties& props);
+			/**
 			 * assignment operator to copy
 			 *
 			 * @param x object to copy

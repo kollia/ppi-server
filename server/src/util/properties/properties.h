@@ -49,6 +49,12 @@ namespace util {
 			 */
 			Properties(const bool byCheck= false);
 			/**
+			 * add defined properties to object
+			 *
+			 * @param other properties from other object
+			 */
+			virtual void add(const Properties& props);
+			/**
 			 * copy constructor for object
 			 *
 			 * @param x object to copy
