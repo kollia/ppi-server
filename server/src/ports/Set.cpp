@@ -86,7 +86,7 @@ namespace ports
 				{
 					IListObjectPattern* port;
 
-					port= m_vpoFrom[0]->getSubroutine(sSet, /*own folder*/true);
+					port= m_vpoFrom[0]->getSubroutine(&sSet, getObjectFolderID(), /*own folder*/true);
 					if(!port)
 					{
 						if(seterr.str() != "")
@@ -194,7 +194,7 @@ namespace ports
 						startSet= endSet= n;
 					for(vector<string>::size_type s= startSet; s<=endSet; ++s)
 					{
-						port= m_vpoFrom[0]->getSubroutine(m_vsSet[s], /*own folder*/true);
+						port= m_vpoFrom[0]->getSubroutine(&m_vsSet[s], getObjectFolderID(), /*own folder*/true);
 						if(port)
 						{
 							if(isdebug)

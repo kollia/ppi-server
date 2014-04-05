@@ -125,9 +125,10 @@ class TimeMeasure : public portBase
 		 *
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		TimeMeasure(string folderName, string subroutineName)
-		: portBase("TIMEMEASURE", folderName, subroutineName) { };
+		TimeMeasure(string folderName, string subroutineName, unsigned short objectID)
+		: portBase("TIMEMEASURE", folderName, subroutineName, objectID) { };
 		/**
 		 * create object of class TimeMeasure.<br />
 		 * Constructor for an extendet object
@@ -135,9 +136,10 @@ class TimeMeasure : public portBase
 		 * @param type type of object from extendet class
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		TimeMeasure(string type, string folderName, string subroutineName)
-		: portBase(type, folderName, subroutineName) { };
+		TimeMeasure(string type, string folderName, string subroutineName, unsigned short objectID)
+		: portBase(type, folderName, subroutineName, objectID) { };
 		/**
 		 * initial extended object to check whether write into database and define range of value.<br />
 		 * Before called this method all parameters for method range have be set.

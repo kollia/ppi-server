@@ -80,7 +80,12 @@ struct sub
 struct measurefolder_t
 {
 	string name;
+	bool bDefined;
 	bool bCorrect;
+	unsigned short nFolderID;
+	unsigned short nObjectID;
+	string sObject;
+	vector<string> vsObjFolders;
 	//set<portBase::Pins> afterContactPins;
 	//set<portBase::Pins> needInPorts;
 	vector<sub> subroutines;

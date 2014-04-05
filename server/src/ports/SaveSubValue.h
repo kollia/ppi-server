@@ -41,9 +41,10 @@ namespace ports
 		 *
 		 * @param folderName name of folder in whitch procedures are running
 		 * @param subroutineName name of subroutine inside the folder
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		SaveSubValue(string folderName, string subroutineName)
-		: switchClass(folderName, subroutineName),
+		SaveSubValue(string folderName, string subroutineName, unsigned short objectID)
+		: switchClass(folderName, subroutineName, objectID),
 		  m_dSwitch(0)
 		{ };
 		/**

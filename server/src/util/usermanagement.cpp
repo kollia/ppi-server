@@ -92,6 +92,9 @@ namespace user
 		map<string, bool>::iterator grIt;
 		map<string, string>::iterator usIt;
 
+		mproperties.allowLaterModifier(true);
+		mproperties.modifier("object");
+		mproperties.setMsgParameter("object");
 		mproperties.modifier("folder");
 		mproperties.setMsgParameter("folder");
 		mproperties.modifier("name");
@@ -393,26 +396,81 @@ namespace user
 		{
 			// read all permission groups for folder:subroutines in file measure.conf
 			typedef vector<IInterlacedPropertyPattern*>::iterator sit;
+			typedef vector<IInterlacedPropertyPattern*>::size_type ssize;
 
-			string folder, subroutine, groups;
-			vector<IInterlacedPropertyPattern*> fsection, ssection;
+			string secName, object, folder, subroutine, groups;
+			vector<IInterlacedPropertyPattern*> osection, fsection, ssection;
+			vector<IInterlacedPropertyPattern*>* pfsection;
+			map<string, string> preObject;
+			vector<string> objFolders;
+			sit ofirst;
 
-			fsection= mproperties.getSections();
-			for(sit vfit= fsection.begin(); vfit != fsection.end(); ++vfit)
+			osection= mproperties.getSections();
+			for(sit voit= osection.begin(); voit != osection.end(); ++voit)
 			{
-				ssection= (*vfit)->getSections();
-				for(sit vsit= ssection.begin(); vsit != ssection.end(); ++vsit)
+				secName= (*voit)->getSectionModifier();
+				if(secName == "object")
+				{
+					//------------------------------------------------------------------------------
+					// fill object folders with content of subroutines
+					for(vector<string>::iterator f= objFolders.begin(); f != objFolders.end(); ++f)
+					{
+				//		for(map<string, string>::iterator i= preObject.begin(); i != preObject.end(); ++i)
+				//			cout << "UM allow group '" << i->second << "' for subroutine " << *f << ":" << i->first << endl;
+						m_mmGroups[*f]= preObject;
+					}
+					//------------------------------------------------------------------------------
+					object= (*voit)->getSectionValue();
+					objFolders.clear();
+					preObject.clear();
+					fsection= (*voit)->getSections();
+					pfsection= &fsection;
+					ofirst= fsection.begin();
+
+				}else
+				{
+					object= "";
+					pfsection= &osection;
+					ofirst= voit;
+				}
+				// when not run inside obect section
+				// this for loop running only one time
+				// for ofirst (same iterator as current object section osection)
+				for(sit vfit= ofirst; vfit != pfsection->end(); ++vfit)
 				{
 					folder= (*vfit)->getSectionValue();
-					subroutine= (*vsit)->getSectionValue();
-					groups= (*vsit)->getValue("perm", /*warning*/false);
-					if(groups != "")
+					ssection= (*vfit)->getSections();
+					if(!ssection.empty())
 					{
-						m_mmGroups[folder][subroutine]= groups;
-						//cout << "allow group '" << groups << "' for subroutine " << folder << ":" << subroutine << endl;
-					}
+						for(sit vsit= ssection.begin(); vsit != ssection.end(); ++vsit)
+						{
+							subroutine= (*vsit)->getSectionValue();
+							groups= (*vsit)->getValue("perm", /*warning*/false);
+							if(groups != "")
+							{
+								if(object != folder)
+								{
+									m_mmGroups[folder][subroutine]= groups;
+									//cout << "UM allow group '" << groups << "' for subroutine " << folder << ":" << subroutine << endl;
+								}else
+									preObject[subroutine]= groups;
+							}
+						}
+					}else
+						objFolders.push_back(folder);
+					if(object == "")
+						break;
 				}
 			}
+			//------------------------------------------------------------------------------
+			// fill object folders with content of subroutines
+			for(vector<string>::iterator f= objFolders.begin(); f != objFolders.end(); ++f)
+			{
+		//		for(map<string, string>::iterator i= preObject.begin(); i != preObject.end(); ++i)
+		//			cout << "UM allow group '" << i->second << "' for subroutine " << *f << ":" << i->first << endl;
+				m_mmGroups[*f]= preObject;
+			}
+			//------------------------------------------------------------------------------
 		}
 		return true;
 	}

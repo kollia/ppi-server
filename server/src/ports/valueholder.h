@@ -82,9 +82,10 @@ namespace ports
 		 *
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		ValueHolderSubroutine(const string& folderName, const string& subroutineName)
-		: portBase("VALUE", folderName, subroutineName),
+		ValueHolderSubroutine(const string& folderName, const string& subroutineName, unsigned short objectID)
+		: portBase("VALUE", folderName, subroutineName, objectID),
 		  m_bSetValueObserver(false),
 		  m_poObserver(NULL),
 		  m_nValueObserver(-1),
@@ -99,9 +100,10 @@ namespace ports
 		 * @param type type of object from extendet class
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		ValueHolderSubroutine(string type, string folderName, string subroutineName)
-		: portBase(type, folderName, subroutineName),
+		ValueHolderSubroutine(string type, string folderName, string subroutineName, unsigned short objectID)
+		: portBase(type, folderName, subroutineName, objectID),
 		  m_bSetValueObserver(false),
 		  m_poObserver(NULL),
 		  m_nValueObserver(-1),

@@ -371,7 +371,7 @@ bool CalculatorContainer::render()
 					m_vdValues.push_back(value);
 				}else
 				{
-					if(variable(var, value))
+					if(variable(&var, value))
 					{
 						m_vndoing.push_back(2); // variable
 						m_vsVariables.push_back(var);
@@ -406,7 +406,7 @@ bool CalculatorContainer::render()
 			m_vdValues.push_back(value);
 		}else
 		{
-			if(variable(full, value))
+			if(variable(&full, value))
 			{
 				m_vndoing.push_back(2); // variable
 				m_vsVariables.push_back(full);
@@ -463,9 +463,9 @@ bool CalculatorContainer::render()
 	return true;
 }
 
-bool CalculatorContainer::variable(const string&var, double &dResult)
+bool CalculatorContainer::variable(string* var, double &dResult)
 {
-	outputF(true, __FILE__, __LINE__, "object of CalculatorContainer is not defined vor any variables (like '"+var+"')");
+	outputF(true, __FILE__, __LINE__, "object of CalculatorContainer is not defined vor any variables (like '"+*var+"')");
 	dResult= 0;
 	return false;
 }
@@ -686,7 +686,7 @@ bool CalculatorContainer::calculateI(double& dResult)
 			++itValue;
 			break;
 		case 2: // variable type
-			correct= variable(*itVariable, m_dValue);
+			correct= variable(&(*itVariable), m_dValue);
 			if(!correct)
 			{
 				outputF(true, __FILE__, __LINE__, "[cannot found var '"+(*itVariable)+"']");

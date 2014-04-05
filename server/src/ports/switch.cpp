@@ -36,8 +36,8 @@
 using namespace util;
 using namespace boost;
 
-switchClass::switchClass(string folderName, string subroutineName)
-: portBase("SWITCH", folderName, subroutineName),
+switchClass::switchClass(string folderName, string subroutineName, unsigned short objectID)
+: portBase("SWITCH", folderName, subroutineName, objectID),
   m_oBegin(folderName, subroutineName, "begin", false, true, this),
   m_oWhile(folderName, subroutineName, "while", false, true, this),
   m_oEnd(folderName, subroutineName, "end", false, true, this),
@@ -49,8 +49,8 @@ switchClass::switchClass(string folderName, string subroutineName)
 	m_VALUELOCK= Thread::getMutex("VALUELOCK");
 }
 
-switchClass::switchClass(string type, string folderName, string subroutineName)
-: portBase(type, folderName, subroutineName),
+switchClass::switchClass(string type, string folderName, string subroutineName, unsigned short objectID)
+: portBase(type, folderName, subroutineName, objectID),
   m_oBegin(folderName, subroutineName, "begin", false, true, this),
   m_oWhile(folderName, subroutineName, "while", false, true, this),
   m_oEnd(folderName, subroutineName, "end", false, true, this),

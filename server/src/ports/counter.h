@@ -48,9 +48,10 @@ namespace ports
 		 *
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		Counter(string folder, string subroutine)
-		: portBase("COUNTER", folder, subroutine),
+		Counter(string folder, string subroutine, unsigned short objectID)
+		: portBase("COUNTER", folder, subroutine, objectID),
 		  m_oSetNull(folder, subroutine, "setnull", false, true, this)
 		{ };
 		/**
@@ -60,9 +61,10 @@ namespace ports
 		 * @param type type of object from extendet class
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		Counter(string type, string folder, string subroutine)
-		: portBase(type, folder, subroutine),
+		Counter(string type, string folder, string subroutine, unsigned short objectID)
+		: portBase(type, folder, subroutine, objectID),
 		  m_oSetNull(folder, subroutine, "setnull", false, true, this)
 		{ };
 		/**

@@ -17,8 +17,10 @@
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/regex.hpp>
 
 #include <stdlib.h>
+#include <sys/types.h>
 
 #include <iostream>
 
@@ -51,10 +53,56 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		m_bLastRes= false;
 	m_bBlock= properties->haveAction("block");
 	if(!m_bBlock)
+	{
 		m_sBeginCom= properties->getValue("begincommand", /*warning*/false);
+		trim(m_sBeginCom);
+	}
 	m_sWhileCom= properties->getValue("whilecommand", /*warning*/false);
+	trim(m_sWhileCom);
 	if(!m_bBlock)
+	{
 		m_sEndCom= properties->getValue("endcommand", /*warning*/false);
+		trim(m_sEndCom);
+	}
+	if(	m_sBeginCom != "" ||
+		m_sWhileCom != "" ||
+		m_sEndCom != ""		)
+	{
+		SHAREDPTR::shared_ptr<measurefolder_t> pFolder;
+
+		pFolder= pStartFolder;
+		while(	pFolder != NULL &&
+				pFolder->name != folder	)
+		{
+			pFolder= pFolder->next;
+		}
+		if(pFolder != NULL)
+		{
+			string inp;
+			vector<string> spl;
+			vector<string>::size_type nAliasCount;
+			map<string, string> mSubroutineAlias;
+			map<string, string>::iterator found;
+
+			nAliasCount= pFolder->folderProperties->getPropertyCount("subvar");
+			for(vector<string>::size_type n= 0; n < nAliasCount; ++n)
+			{
+				inp= pFolder->folderProperties->getValue("subvar", n);
+				split(spl, inp, is_any_of("="));
+				if(spl.size() == 2)
+				{// when not set correct alias, write error inside folder configuration by starting
+					trim(spl[0]);
+					trim(spl[1]);
+					mSubroutineAlias.insert(pair<string, string>(spl[0], spl[1]));
+				}
+			}
+			replaceVars(&m_sBeginCom, mSubroutineAlias, "begincommand");
+			replaceVars(&m_sWhileCom, mSubroutineAlias, "whilecommand");
+			replaceVars(&m_sEndCom, mSubroutineAlias, "endcommand");
+		}else
+			LOG(LOG_ALERT, "shell subroutine "+folder+":"+subroutine+" do not find exact folder");
+	}
+
 	m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
 	if(!m_oYears.isEmpty())
 		m_bFixTimePoll= true;
@@ -149,6 +197,31 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	return bRv;
 }
 
+void Shell::replaceVars(string* str, const map<string, string>& aliases, const string& parameter)
+{
+	smatch what;
+	regex exp("([^${}]*(\\$\\{([^${}]+)\\})[^${}]*)+");
+
+	if(*str == "")
+		return;
+	for(map<string, string>::const_iterator it= aliases.begin(); it != aliases.end(); ++it)
+	{
+		string result;
+		regex pattern("\\$\\{[ \t]*" + it->first + "[ \t]*\\}");
+
+		*str= regex_replace(*str, pattern, it->second);
+	}
+	if(regex_match(*str, what, exp))
+	{
+		string msg;
+
+		msg= getSubroutineMsgHead(/*error message*/false);
+		msg+= "predefined subvar variable ${" + what.str(what.size() -1);
+		msg+= "} by parameter " + parameter + " isn't defined inside folder";
+		LOG(LOG_WARNING, msg);
+		cerr << msg << endl;
+	}
+}
 IValueHolderPattern& Shell::measure(const ppi_value& actValue)
 {
 	bool bDebug(isDebug());

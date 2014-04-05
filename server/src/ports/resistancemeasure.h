@@ -44,9 +44,10 @@ namespace ports
 			 *
 			 * @param folderName name of folder in whitch procedures are running
 			 * @param subroutineName name of subroutine inside the folder
+			 * @param objectID count of folder when defined inside an object, otherwise 0
 			 */
-			ResistanceMeasure(string folderName, string subroutineName)
-			: TimeMeasure(folderName, subroutineName),
+			ResistanceMeasure(string folderName, string subroutineName, unsigned short objectID)
+			: TimeMeasure(folderName, subroutineName, objectID),
 			  m_oMeasuredSubroutine(folderName, subroutineName, "mvalue", true, false, this) { };
 			/**
 			 * initial class of saving

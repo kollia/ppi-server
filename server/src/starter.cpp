@@ -1218,7 +1218,6 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 	{
 		int nMuch= aktualFolder->subroutines.size();
 
-		//cout << "  create folder: '" << aktualFolder->name << "'" << endl;
 		for(int n= 0; n<nMuch; n++)
 		{
 			//cout << "    subroutine: " << aktualFolder->subroutines[n].name;
@@ -1228,7 +1227,8 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 				SHAREDPTR::shared_ptr<switchClass> obj;
 
 				obj= SHAREDPTR::shared_ptr<switchClass>(new switchClass(aktualFolder->name,
-																		aktualFolder->subroutines[n].name));
+																		aktualFolder->subroutines[n].name,
+																		aktualFolder->nObjectID			));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "DEBUG")
@@ -1236,21 +1236,24 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 				SHAREDPTR::shared_ptr<switchClass> obj;
 
 				obj= SHAREDPTR::shared_ptr<Output>(new Output(	aktualFolder->name,
-																aktualFolder->subroutines[n].name));
+																aktualFolder->subroutines[n].name,
+																aktualFolder->nObjectID			));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "TIMER")
 			{
 				auto_ptr<timer> obj= auto_ptr<timer>(new timer(	aktualFolder->name,
 																aktualFolder->subroutines[n].name,
-																bTimerLog, bNoDbRead, finishedCPUtime	));
+																bTimerLog, bNoDbRead, finishedCPUtime,
+																aktualFolder->nObjectID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "SHELL")
 			{
 				string user;
 				auto_ptr<Shell> obj= auto_ptr<Shell>(new Shell(	aktualFolder->name,
-																aktualFolder->subroutines[n].name	));
+																aktualFolder->subroutines[n].name,
+																aktualFolder->nObjectID				));
 				aktualFolder->subroutines[n].portClass= obj;
 				user= aktualFolder->subroutines[n].property->getValue("runuser", /*warning*/false);
 				if(user != "")
@@ -1259,50 +1262,58 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 			}else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
 			{
 				auto_ptr<TimeMeasure> obj= auto_ptr<TimeMeasure>(new TimeMeasure(	aktualFolder->name,
-																					aktualFolder->subroutines[n].name	));
+																					aktualFolder->subroutines[n].name,
+																					aktualFolder->nObjectID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "RESISTANCE")
 			{
 				auto_ptr<ResistanceMeasure> obj= auto_ptr<ResistanceMeasure>(new ResistanceMeasure(	aktualFolder->name,
-																									aktualFolder->subroutines[n].name	));
+																									aktualFolder->subroutines[n].name,
+																									aktualFolder->nObjectID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "TEMP")
 			{
 				auto_ptr<TempMeasure> obj= auto_ptr<TempMeasure>(new TempMeasure(	aktualFolder->name,
-																					aktualFolder->subroutines[n].name	));
+																					aktualFolder->subroutines[n].name,
+																					aktualFolder->nObjectID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "VALUE")
 			{
 				auto_ptr<ValueHolderSubroutine> obj=
 								auto_ptr<ValueHolderSubroutine>(new ValueHolderSubroutine(	aktualFolder->name,
-																							aktualFolder->subroutines[n].name	));
+																							aktualFolder->subroutines[n].name,
+																							aktualFolder->nObjectID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "SET")
 			{
 				auto_ptr<Set> obj= auto_ptr<Set>(new Set(	aktualFolder->name,
-															aktualFolder->subroutines[n].name	));
+															aktualFolder->subroutines[n].name,
+															aktualFolder->nObjectID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "SAVE")
 			{
 				auto_ptr<SaveSubValue> obj= auto_ptr<SaveSubValue>(new SaveSubValue(aktualFolder->name,
-																					aktualFolder->subroutines[n].name));
+																					aktualFolder->subroutines[n].name,
+																					aktualFolder->nObjectID			));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "COUNTER")
 			{
 				auto_ptr<Counter> obj= auto_ptr<Counter>(new Counter(	aktualFolder->name,
-																		aktualFolder->subroutines[n].name	));
+																		aktualFolder->subroutines[n].name,
+																		aktualFolder->nObjectID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "MEASUREDNESS")
 			{
 				auto_ptr<Measuredness> obj= auto_ptr<Measuredness>(new Measuredness(aktualFolder->name,
-																					aktualFolder->subroutines[n].name));
+																					aktualFolder->subroutines[n].name,
+																					aktualFolder->nObjectID			));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(::find(m_vOWReaderTypes.begin(), m_vOWReaderTypes.end(), aktualFolder->subroutines[n].type) != m_vOWReaderTypes.end())
@@ -1314,12 +1325,14 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 				{
 					obj= auto_ptr<ExternPort>(new LircPort(	aktualFolder->subroutines[n].type,
 															aktualFolder->name,
-															aktualFolder->subroutines[n].name	));
+															aktualFolder->subroutines[n].name,
+															aktualFolder->nObjectID				));
 				}else
 				{
 					obj= auto_ptr<ExternPort>(new ExternPort(	aktualFolder->subroutines[n].type,
 																aktualFolder->name,
-																aktualFolder->subroutines[n].name	));
+																aktualFolder->subroutines[n].name,
+																aktualFolder->nObjectID				));
 				}
 				aktualFolder->subroutines[n].portClass= obj;
 				m_vOWReaderNeed.insert(aktualFolder->subroutines[n].type);
@@ -1352,6 +1365,7 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 	float nSubroutines(0);  // define nSubroutines as float, otherwise percent calculation can be fault
 	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
 	DbInterface* db= DbInterface::instance();
+	vector<string>::size_type nAliasCount;
 	string property("defaultSleep");
 	//string sMeasureFile;
 	unsigned short nDefaultSleep= m_oServerFileCasher.getUShort(property, /*warning*/false);
@@ -1384,6 +1398,40 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 		{
 			TERMINALEND;
 			cout << " configure folder: '" << aktualFolder->name << "'" << endl;
+		}
+		nAliasCount= aktualFolder->folderProperties->getPropertyCount("foldervar");
+		for(vector<string>::size_type n= 0; n < nAliasCount; ++n)
+		{
+			string alias;
+			vector<string> spl;
+
+			alias= aktualFolder->folderProperties->getValue("foldervar", n);
+			split(spl, alias, is_any_of("="));
+			if(spl.size() != 2)
+			{
+				alias= "folder alias (foldervar) '" + alias + "' for folder ";
+				alias+= aktualFolder->name + " is wrong defined";
+				tout << "### WARNING: " << alias << endl;
+				tout << "              do not make alias in object reachable!" << endl;
+				LOG(LOG_WARNING, alias+"\ndo not make alias in object reachable!");
+			}
+		}
+		nAliasCount= aktualFolder->folderProperties->getPropertyCount("subvar");
+		for(vector<string>::size_type n= 0; n < nAliasCount; ++n)
+		{
+			string alias;
+			vector<string> spl;
+
+			alias= aktualFolder->folderProperties->getValue("subvar", n);
+			split(spl, alias, is_any_of("="));
+			if(spl.size() != 2)
+			{
+				alias= "subroutine alias (subvar) '" + alias + "' for folder ";
+				alias+= aktualFolder->name + " is wrong defined";
+				tout << "### WARNING: " << alias << endl;
+				tout << "              do not make alias in object reachable!" << endl;
+				LOG(LOG_WARNING, alias+"\ndo not make alias in object reachable!");
+			}
 		}
 		for(int n= 0; n<nMuch; n++)
 		{
@@ -1569,26 +1617,131 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 {
 	typedef vector<IInterlacedPropertyPattern*>::iterator secIt;
 
-	short nFolderID= 0;
+	bool bInObj(false);
+	unsigned short nFolderID(0), nObjFolderID(0);
+	string firstObjFolder;
 	string modifier, value;
+	string curObj("NULL");
+	vector<string> objFolders;
 	auto_ptr<sub> subdir;
 	ActionProperties *pProperty;
 	InterlacedActionProperties mainprop(/*check after*/true);
+	vector<IInterlacedPropertyPattern*> objSections;
 	vector<IInterlacedPropertyPattern*> folderSections;
+	vector<IInterlacedPropertyPattern*> *pFolderSections;
 	vector<IInterlacedPropertyPattern*> subSections;
 	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
+	SHAREDPTR::shared_ptr<measurefolder_t> pFirstObjFolder;
+	SHAREDPTR::shared_ptr<IActionPropertyPattern> pHold1OBJfolderprops;
+	secIt oit, fit, defObj;
 
+	mainprop.allowLaterModifier(true);
 	mainprop.action("action");
+	// object name shouldn't be shown by error, so do not define
+	mainprop.modifier("object");// an setMsgParameter for modifier
 	mainprop.modifier("folder");
 	mainprop.setMsgParameter("folder");
 	mainprop.modifier("name");
 	mainprop.setMsgParameter("name", "subroutine");
 	mainprop.valueLocalization("\"", "\"", /*remove*/true);
 	mainprop.readFile(fileName);
-	folderSections= mainprop.getSections();
-	for(secIt fit= folderSections.begin(); fit != folderSections.end(); ++fit)
-	{
+	objSections= mainprop.getSections();
+	// first can be the folder section
+	// also be an object section
+	pFolderSections= &objSections;
+	oit= objSections.begin();
+	fit= oit;
+	do{
+		if(fit == pFolderSections->end())
+		{
+			if(!bInObj)
+				break;
+			if(curObj == "NULL")
+			{
+				++oit;
+				if(oit == objSections.end())
+					break;
+				fit= oit;
+
+			}else
+			{
+				// fill all folders from object
+				aktualFolder= m_tFolderStart;
+				while(aktualFolder->next != NULL)
+				{
+					if(aktualFolder->name == firstObjFolder)
+						break;
+					aktualFolder= aktualFolder->next;
+				}
+				//cout << "copy all folders from first object folder " << aktualFolder->name << endl;
+				pFirstObjFolder= aktualFolder;
+				pFirstObjFolder->vsObjFolders= objFolders;
+				aktualFolder= aktualFolder->next;
+				while(aktualFolder  != NULL)
+				{
+					if(aktualFolder->bDefined == false)
+					{
+						//cout << "fill object folder " << aktualFolder->name << endl;
+						aktualFolder->bCorrect= false;
+						pProperty= new ActionProperties;
+						*pProperty= *dynamic_cast<ActionProperties*>(pFirstObjFolder->folderProperties.get());
+						pProperty->add(*dynamic_cast<ActionProperties*>(aktualFolder->folderProperties.get()));
+						aktualFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
+						aktualFolder->subroutines= pFirstObjFolder->subroutines;
+						pFirstObjFolder->vsObjFolders= objFolders;
+						aktualFolder->bDefined= true;
+					}
+					aktualFolder= aktualFolder->next;
+				}
+				if(pHold1OBJfolderprops != NULL)
+				{
+					// fill now properties from 1 folder
+					// defined by reading real 1 folder
+					// into aktual 1 folder object
+					pProperty= dynamic_cast<ActionProperties*>(pFirstObjFolder->folderProperties.get());
+					pProperty->add(*dynamic_cast<ActionProperties*>(pHold1OBJfolderprops.get()));
+					pHold1OBJfolderprops= SHAREDPTR::shared_ptr<IActionPropertyPattern>();
+				}
+
+				// goto new object
+				++oit;
+				fit= oit;
+				bInObj= false;
+				curObj= "NULL";
+				modifier= (*fit)->getSectionModifier();
+				while(	modifier == "object" &&
+						(*fit)->getSectionValue() == "NULL"	)
+				{
+					folderSections= (*fit)->getSections();
+					if(folderSections.size() > 0)
+					{
+						pFolderSections= &folderSections;
+						fit= folderSections.begin();
+						bInObj= true;
+					}else
+					{
+						++oit;
+						fit= oit;
+					}
+					modifier= (*fit)->getSectionModifier();
+				}
+			}
+		}
 		modifier= (*fit)->getSectionModifier();
+		//cout << "create " << modifier << " with " << (*fit)->getSectionValue() << endl;
+		if(modifier == "object")
+		{
+			bInObj= true;
+			curObj= (*fit)->getSectionValue();
+			glob::replaceName(curObj, "object name");
+			objFolders.clear();
+			folderSections= (*oit)->getSections();
+			pFolderSections= &folderSections;
+			fit= pFolderSections->begin();
+			modifier= (*fit)->getSectionModifier();
+			firstObjFolder= (*fit)->getSectionValue();
+			nObjFolderID= 0;
+		}
 		if(modifier != "folder")
 		{
 			ostringstream out;
@@ -1602,21 +1755,31 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 			LOG(LOG_ERROR, out.str());
 		}else
 		{
-			ostringstream sFID;
-
 			// create new folder
 			++nFolderID;
-			sFID << "_folderID=" << nFolderID;
+			++nObjFolderID;
 			value= (*fit)->getSectionValue();
-			value= (*fit)->getValue("folder");
 			glob::replaceName(value, "folder name");
-			//cout << "create folder: " << value << endl;
-			if(aktualFolder==NULL)
+			if(	curObj != "NULL" &&
+				value == curObj		)
+			{
+				value= firstObjFolder;
+			}else
+				objFolders.push_back(value);
+			if(m_tFolderStart == NULL)
 			{
 				aktualFolder= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
 				m_tFolderStart= aktualFolder;
 				aktualFolder->name= value;
 				aktualFolder->bCorrect= false;
+				aktualFolder->bDefined= false;
+				aktualFolder->nFolderID= nFolderID;
+				if(curObj != "NULL")
+				{
+					aktualFolder->nObjectID= nObjFolderID;
+					aktualFolder->sObject= curObj;
+				}else
+					aktualFolder->nObjectID= 0;
 			}else
 			{
 				aktualFolder= m_tFolderStart;
@@ -1630,10 +1793,13 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 				{
 					string warn;
 
-					warn=  "### WARNING: found second folder name '" + value + "'\n";
-					warn+= "             write all subroutines into this folder!";
-					cout << warn << endl;
-					LOG(LOG_WARNING, warn);
+					if(aktualFolder->bDefined)
+					{
+						warn=  "### WARNING: found second folder name '" + value + "'\n";
+						warn+= "             and change all subroutines to new folder!";
+						cout << warn << endl;
+						LOG(LOG_WARNING, warn);
+					}
 
 				}else
 				{
@@ -1641,10 +1807,25 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 					aktualFolder= aktualFolder->next;
 					aktualFolder->name= value;
 					aktualFolder->bCorrect= false;
+					aktualFolder->bDefined= false;
+					aktualFolder->nFolderID= nFolderID;
+					if(curObj != "NULL")
+					{
+						aktualFolder->nObjectID= nObjFolderID;
+						aktualFolder->sObject= curObj;
+					}else
+						aktualFolder->nObjectID= 0;
 				}
 			}
 			pProperty= new ActionProperties;
 			*pProperty= *dynamic_cast<ActionProperties*>(*fit);
+			if(	!aktualFolder->bDefined &&
+				curObj != "NULL" &&
+				aktualFolder->folderProperties != NULL	)
+			{// folder is first folder of an object,
+			 // so hold folder properties from actual folder to fill in by filling objects
+				pHold1OBJfolderprops= aktualFolder->folderProperties;
+			}
 			aktualFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
 			subSections= (*fit)->getSections();
 			for(secIt sit= subSections.begin(); sit != subSections.end(); ++sit)
@@ -1717,10 +1898,11 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 						/************************************************************/
 						if(buse)
 						{
+							ostringstream sFID, sOID;
+
 							pProperty= new ActionProperties;
 							*pProperty= *dynamic_cast<ActionProperties*>(*sit);
 							subdir->property= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
-							subdir->property->readLine(sFID.str());
 							subdir->name= value;
 							subdir->bCorrect= true;	// set first subroutine to correct,
 													// because later by wrong initial will be set to false
@@ -1734,17 +1916,22 @@ void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
 							subdir->measuredness= 0;
 							/************************************************************/
 
-							// to get no error if the _folderID not fetched,
-							// fetch it now
-							subdir->property->getValue("_folderID");
-
 							aktualFolder->subroutines.push_back(*subdir.get());
 						}
 					}
 				}// modifier is subroutine
 			}// iterate subroutines of folder
+			if(!subSections.empty())
+				aktualFolder->bDefined= true;
+			if(aktualFolder->nFolderID != nFolderID)
+			{//first folder of object was defined, do not count object name
+				--nFolderID;//so count ID one back
+			}
 		}// modifier is folder
-	}// iterate all folder in mainprop
+		++fit;
+		if(!bInObj)
+			++oit;
+	}while(oit != objSections.end());
 
 
 #if 0

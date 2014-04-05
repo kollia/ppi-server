@@ -30,8 +30,8 @@ using namespace util;
 class Shell : public switchClass
 {
 public:
-	Shell(string folderName, string subroutineName)
-	: switchClass("SHELL", folderName, subroutineName),
+	Shell(string folderName, string subroutineName, unsigned short objectID)
+	: switchClass("SHELL", folderName, subroutineName, objectID),
 	  m_oMicroseconds(folderName, subroutineName, "microsec", false, false, this),
 	  m_oMilliseconds(folderName, subroutineName, "millisec", false, false, this),
 	  m_oSeconds(folderName, subroutineName, "sec", false, false, this),
@@ -130,6 +130,15 @@ protected:
 	 * @return whether the range is defined or can set all
 	 */
 	virtual bool range(bool& bfloat, double* min, double* max);
+	/**
+	 * replace defined parameter strings of begin-, while- or end-command
+	 * which has predefined subvar's
+	 * to correct strings
+	 *
+	 * @param str string which should be replaces
+	 * @param aliases all predefined subvar's from folder
+	 */
+	void replaceVars(string* str, const map<string, string>& aliases, const string& parameter);
 
 private:
 	/**

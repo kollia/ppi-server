@@ -97,17 +97,19 @@ public:
 	/**
 	 * search pointer to subroutine from given folder:subroutine
 	 *
-	 * @param var variable of subroutine with folder
+	 * @param var variable of subroutine with folder, can give back other correct variable name
+	 * @param nObjFolder count of folder when defined inside an object, otherwise 0
 	 * @param own whether should also get portBase Class from own folder
 	 */
-	sub* getSubroutinePointer(const string& var, bool own);
+	sub* getSubroutinePointer(string* var, unsigned short nObjFolder, bool own);
 	/**
 	 * subroutine object of given folder:subroutine
 	 *
-	 * @param var variable of subroutine with folder
+	 * @param var variable of subroutine with folder, can give back other correct variable name
+	 * @param nObjFolder count of folder when defined inside an object, otherwise 0
 	 * @param own whether should also get portBase Class from own folder
 	 */
-	IListObjectPattern* getSubroutine(const string& var, bool own);
+	IListObjectPattern* getSubroutine(string* var, unsigned short nObjFolder, bool own);
 	/**
 	 * return latest changing time of any variable in calculation
 	 *
@@ -154,9 +156,22 @@ protected:
 	 */
 	string m_sFolder;
 	/**
+	 * map of all folder aliases for actual folder
+	 */
+	map<string, string> m_mFolderAlias;
+	/**
 	 * subroutine where the string was set
 	 */
 	string m_sSubroutine;
+	/*
+	 * map of all subroutine aliases for actual folder
+	 */
+	map<string, string> m_mSubroutineAlias;
+	/**
+	 * number of folder when inside an object defined
+	 * otherwise 0
+	 */
+	unsigned short m_nObjFolderID;
 	/**
 	 * parameter type in the subroutine where the string
 	 */
@@ -219,11 +234,11 @@ protected:
 	 * to get variables and will be called when parameter vars be set in constructor as true.<br />
 	 * All created objects will be delete in destructor if own object destroy.
 	 *
-	 * @param var name of variable
+	 * @param var name of variable, can give back other correct variable name
 	 * @param dResult result of var
 	 * @param whether found correct variable
 	 */
-	virtual bool variable(const string& var, double& dResult);
+	virtual bool variable(string* var, double& dResult);
 	/**
 	 * clear time of last changes
 	 */

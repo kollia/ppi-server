@@ -45,7 +45,8 @@ using namespace ports;
 using namespace ppi_database;
 using namespace boost;
 
-portBase::portBase(const string& type, const string& folderName, const string& subroutineName) :
+portBase::portBase(const string& type, const string& folderName,
+					const string& subroutineName, unsigned short objectID	) :
 #ifdef __followSETbehaviorToFolder
   m_oToFolderExp(__followSETbehaviorToFolder),
   m_oToSubExp(__followSETbehaviorToSubroutine),
@@ -68,6 +69,7 @@ portBase::portBase(const string& type, const string& folderName, const string& s
 	m_sType= type;
 	m_sFolder= folderName;
 	m_sSubroutine= subroutineName;
+	m_nObjFolderID= objectID;
 	m_bWriteDb= false;
 	m_dValue.value= 0;
 	// do not know access from database
@@ -872,7 +874,7 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 								val.value == maxCountDownValue	)	)
 				{ // value is changed inside own subroutine
 				  // write new value inside foreign subroutine
-					port= link->getSubroutine(slink, /*own folder*/true);
+					port= link->getSubroutine(&slink, getObjectFolderID(), /*own folder*/true);
 					if(port)
 					{
 						if(isdebug)
@@ -1029,11 +1031,14 @@ void portBase::setDebug(bool bDebug)
 
 bool portBase::range(bool& bfloat, double* min, double* max)
 {
+	string var;
+
 	if(m_nLinkObserver)
 	{
 		IListObjectPattern* port;
 
-		port= m_oLinkWhile.getSubroutine(m_vpoLinks[m_nLinkObserver-1]->getStatement(), /*own folder*/true);
+		var= m_vpoLinks[m_nLinkObserver-1]->getStatement();
+		port= m_oLinkWhile.getSubroutine(&var, getObjectFolderID(), /*own folder*/true);
 		if(	port &&
 			(	port->getFolderName() != m_sFolder ||
 				port->getSubroutineName() != m_sSubroutine	)	)

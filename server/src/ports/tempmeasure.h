@@ -31,8 +31,8 @@ class TempMeasure : public ResistanceMeasure
 		float m_nTemperature;
 
 	public:
-		TempMeasure(string folderName, string subroutineName)
-		: ResistanceMeasure(folderName, subroutineName) { };
+		TempMeasure(string folderName, string subroutineName, unsigned short objectID)
+		: ResistanceMeasure(folderName, subroutineName, objectID) { };
 		/*TempMeasure(Pins tOut, Pins tIn, Pins tNegative, unsigned short measuredness, vector<ohm> *elkoCorrection, vector<unsigned short> ohmVector) :
 			ResistanceMeasure(tOut, tIn, tNegative, measuredness, elkoCorrection, ohmVector)
 			{ };*/

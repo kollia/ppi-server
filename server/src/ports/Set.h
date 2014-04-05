@@ -44,9 +44,10 @@ namespace ports
 		 *
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		Set(const string& folderName, const string& subroutineName)
-		: switchClass("SET", folderName, subroutineName)
+		Set(const string& folderName, const string& subroutineName, unsigned short objectID)
+		: switchClass("SET", folderName, subroutineName, objectID)
 		{ };
 		/**
 		 * create object of class ValueHolder.<br />
@@ -55,9 +56,10 @@ namespace ports
 		 * @param type type of object from extendet class
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		Set(const string& type, const string& folderName, const string& subroutineName)
-		: switchClass(type, folderName, subroutineName)
+		Set(const string& type, const string& folderName, const string& subroutineName, unsigned short objectID)
+		: switchClass(type, folderName, subroutineName, objectID)
 		{ };
 		/**
 		 * initialing object of ValueHolder

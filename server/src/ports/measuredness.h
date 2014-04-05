@@ -45,9 +45,10 @@ namespace ports
 		 *
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		Measuredness(string folder, string subroutine)
-		: portBase("MEASUREDNESS", folder, subroutine),
+		Measuredness(string folder, string subroutine, unsigned short objectID)
+		: portBase("MEASUREDNESS", folder, subroutine, objectID),
 		  m_oMeasuredValue(folder, subroutine, "mavalue", true, false, this),
 		  m_oBegin(folder, subroutine, "begin", true, true, this)
 		{ };
@@ -58,9 +59,10 @@ namespace ports
 		 * @param type type of object from extendet class
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		Measuredness(string type, string folder, string subroutine)
-		: portBase(type, folder, subroutine),
+		Measuredness(string type, string folder, string subroutine, unsigned short objectID)
+		: portBase(type, folder, subroutine, objectID),
 		  m_oMeasuredValue(folder, subroutine, "mavalue", true, false, this),
 		  m_oBegin(folder, subroutine, "begin", true, true, this)
 		{ };

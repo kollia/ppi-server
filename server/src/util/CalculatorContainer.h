@@ -260,11 +260,11 @@ protected:
 	 * In this case by every calculation and <code>doOutput()</code> be set calculation is written
 	 * only by this fault variable an fail message.
 	 *
-	 * @param var name of variable
+	 * @param var name of variable, can give back other correct variable name
 	 * @param dResult result of var
 	 * @param whether found correct variable
 	 */
-	virtual bool variable(const string& var, double& dResult);
+	virtual bool variable(string* var, double& dResult);
 	/**
 	 * return all defined child containers
 	 *

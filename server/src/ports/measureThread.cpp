@@ -70,7 +70,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
   m_oToSubExp(__followSETbehaviorToSubroutine),
 #endif
   m_oRunnThread(threadname, "parameter_run", "run", false, true, pFolderStart->subroutines[0].portClass.get()),
-  m_oInformOutput(new Output(threadname, threadname)),
+  m_oInformOutput(new Output(threadname, threadname, /*objectID*/0)),
   m_oInformeThread(threadname, "informe_thread", "inform", false, true, m_oInformOutput.get()),
   m_oInformer(threadname, this),
   m_oDbFiller(threadname)

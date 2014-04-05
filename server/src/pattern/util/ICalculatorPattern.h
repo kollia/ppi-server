@@ -103,11 +103,11 @@ namespace design_pattern_world
 		/**
 		 * this method will be called when any variable be used
 		 *
-		 * @param var name of variable
+		 * @param var name of variable, can give back other correct variable name
 		 * @param dResult result of var
 		 * @param whether found correct variable
 		 */
-		virtual bool variable(const string& var, double& dResult)= 0;
+		virtual bool variable(string* var, double& dResult)= 0;
 		/**
 		 * get last render error if exist
 		 */

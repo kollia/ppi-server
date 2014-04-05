@@ -39,9 +39,10 @@ namespace ports
 		 * @param type type of object from extended class
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		LircPort(string type, string folder, string subroutine) :
-			ExternPort(type, folder, subroutine),
+		LircPort(string type, string folder, string subroutine, unsigned short objectID) :
+			ExternPort(type, folder, subroutine, objectID),
 			m_bONCE(false),
 			m_oCount(folder, subroutine, "count", true, false, this)
 #ifdef DEBUG_ACTIVATEDLIRCOUTPUT

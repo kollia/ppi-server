@@ -73,9 +73,11 @@ public:
 	 * @param subroutineName name of subroutine
 	 * @param bTimerLog whether timer routine should write percent into database
 	 * @param bNoDbRead whether times for TIMER subroutines should read from database
+	 * @param objectID count of folder when defined inside an object, otherwise 0
 	 */
-	timer(string folderName, string subroutineName, bool bTimerLog, bool bNoDbRead, short finishedCPUtime)
-	: switchClass("TIMER", folderName, subroutineName),
+	timer(string folderName, string subroutineName, bool bTimerLog, bool bNoDbRead,
+					short finishedCPUtime, unsigned short objectID)
+	: switchClass("TIMER", folderName, subroutineName, objectID),
 	  m_bHasLinks(false),
 	  m_nCaseNr(0),
 	  m_bLogPercent(bTimerLog),

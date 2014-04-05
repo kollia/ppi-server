@@ -29,16 +29,16 @@
 
 namespace ports
 {
-	Output::Output(string folderName, string subroutineName)
-	: switchClass("DEBUG", folderName, subroutineName),
+	Output::Output(string folderName, string subroutineName, unsigned short objectID)
+	: switchClass("DEBUG", folderName, subroutineName, objectID),
 	  m_nLogLevel(-1),
 	  m_bCL(true)
 	{
 		m_DEBUG= Thread::getMutex("outputDEBUG");
 	}
 
-	Output::Output(string type, string folderName, string subroutineName)
-	: switchClass(type, folderName, subroutineName),
+	Output::Output(string type, string folderName, string subroutineName, unsigned short objectID)
+	: switchClass(type, folderName, subroutineName, objectID),
 	  m_nLogLevel(-1),
 	  m_bCL(true)
 	{

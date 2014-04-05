@@ -49,9 +49,10 @@ namespace ports
 		 * @param type type of object from extended class
 		 * @param folder in which folder the routine running
 		 * @param subroutine name of the routine
+		 * @param objectID count of folder when defined inside an object, otherwise 0
 		 */
-		ExternPort(string type, string folder, string subroutine) :
-		switchClass(type, folder, subroutine),
+		ExternPort(string type, string folder, string subroutine, unsigned short objectID) :
+		switchClass(type, folder, subroutine, objectID),
 		m_bFirstAllocate(true),
 		m_oValue(folder, subroutine, "value", true, false, this),
 		m_dLastWValue(0),

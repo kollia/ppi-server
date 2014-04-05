@@ -120,6 +120,11 @@ namespace ports
 			 */
 			unsigned short m_nCount;
 			/**
+			 * number of folder when inside an object defined
+			 * otherwise 0
+			 */
+			unsigned short m_nObjFolderID;
+			/**
 			 * wether access to device is correct.<br />
 			 * If pointer is <code>NULL</code> object do not know access from database
 			 */
@@ -252,8 +257,10 @@ namespace ports
 			 * @param type type of the current subroutine (extendet class)
 			 * @param folder name of the folder in which this soubroutine running
 			 * @param subroutine name from this subroutine
+			 * @param objectID count of folder when defined inside an object, otherwise 0
 			 */
-			portBase(const string& type, const string& folderName, const string& subroutineName);
+			portBase(const string& type, const string& folderName, const string& subroutineName,
+							unsigned short objectID);
 			/**
 			 * initial extended object to check whether write into database and define range of value.<br />
 			 * Before called this method all parameters for method range have be set.
@@ -450,6 +457,12 @@ namespace ports
 			 */
 			virtual unsigned short getActCount()
 			{ return m_nCount; };
+			/**
+			 * return number of folder when defined inside an object
+			 * otherwise 0
+			 */
+			unsigned short getObjectFolderID() const
+			{ return m_nObjFolderID; };
 			/**
 			 * set measure thread which run this object with method <code>measure()</code>
 			 *

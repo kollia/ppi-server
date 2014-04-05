@@ -34,8 +34,9 @@ namespace ports
 			 *
 			 * @param folder in which folder the routine running
 			 * @param subroutine name of the routine
+			 * @param objectID count of folder when defined inside an object, otherwise 0
 			 */
-			Output(string folderName, string subroutineName);
+			Output(string folderName, string subroutineName, unsigned short objectID);
 			/**
 			 * create object of class Output.<br />
 			 * Constructor for an extendet object
@@ -43,8 +44,9 @@ namespace ports
 			 * @param type type of object from extendet class
 			 * @param folder in which folder the routine running
 			 * @param subroutine name of the routine
+			 * @param objectID count of folder when defined inside an object, otherwise 0
 			 */
-			Output(string type, string folderName, string subroutineName);
+			Output(string type, string folderName, string subroutineName, unsigned short objectID);
 			/**
 			 * initialing object of Output
 			 *
