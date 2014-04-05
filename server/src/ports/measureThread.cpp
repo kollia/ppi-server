@@ -828,8 +828,6 @@ int MeasureThread::execute()
 	 * otherwise, when no error, variable is EBUSY
 	 */
 	int nHasLock;
-	int nPolicy;
-	sched_param param;
 	/**
 	 * from which folder:subroutine the thread was informed to change
 	 */
@@ -1244,16 +1242,10 @@ int MeasureThread::execute()
 			out << "STOP (";
 			out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
 		}
-		if(pthread_getschedparam(getPosixThreadID(), &nPolicy, &param))
-		{
-			nPolicy= SCHED_OTHER;
-			param.__sched_priority= -1;
-		}
-		if(	nPolicy != SCHED_OTHER ||
-			param.__sched_priority != -1	)
+		if(m_nSchedPolicy != SCHED_OTHER)
 		{
 			out << "  running with scheduling policy ";
-			switch(nPolicy)
+			switch(m_nSchedPolicy)
 			{
 			case SCHED_OTHER:
 				out << "SCHED_OTHER";
@@ -1274,7 +1266,7 @@ int MeasureThread::execute()
 				out << "unknown";
 				break;
 			}
-			out << " and priority " << param.__sched_priority << endl;
+			out << " and priority " << m_nSchedPriority << endl;
 		}
 		if(nHasLock != 0)
 		{
