@@ -102,7 +102,7 @@ public:
 	 * @param own whether should also get portBase Class from own folder
 	 * @return object of subroutine
 	 */
-	IListObjectPattern* getSubroutine(string* var, unsigned short nObjFolder, bool own);
+	SHAREDPTR::shared_ptr<IListObjectPattern> getSubroutine(string* var, unsigned short nObjFolder, bool own);
 	/**
 	 * subroutine object of given folder:subroutine
 	 *
@@ -199,7 +199,7 @@ protected:
 	/**
 	 * variables which are used in calculation
 	 */
-	map<string, IListObjectPattern* > m_msoVars;
+	map<string, SHAREDPTR::shared_ptr<IListObjectPattern> > m_msoVars;
 	/**
 	 * variables which should not read from other list object
 	 */

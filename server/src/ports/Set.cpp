@@ -84,10 +84,10 @@ namespace ports
 
 				}else
 				{
-					IListObjectPattern* port;
+					SHAREDPTR::shared_ptr<IListObjectPattern> port;
 
 					port= m_vpoFrom[0]->getSubroutine(&sSet, getObjectFolderID(), /*own folder*/true);
-					if(!port)
+					if(port == NULL)
 					{
 						if(seterr.str() != "")
 							seterr << "           ";
@@ -162,7 +162,7 @@ namespace ports
 		string subroutine(getSubroutineName());
 		vector<string>::size_type startSet(0), endSet(m_vsSet.size()-1);
 		vector<ListCalculator*>::size_type nFrom(m_vpoFrom.size());
-		IListObjectPattern* port;
+		SHAREDPTR::shared_ptr<IListObjectPattern> port;
 
 		//Debug info to stop by right subroutine
 		/*if(	getFolderName() == "set_probe" &&
@@ -195,7 +195,7 @@ namespace ports
 					for(vector<string>::size_type s= startSet; s<=endSet; ++s)
 					{
 						port= m_vpoFrom[0]->getSubroutine(&m_vsSet[s], getObjectFolderID(), /*own folder*/true);
-						if(port)
+						if(port != NULL)
 						{
 							if(isdebug)
 							{

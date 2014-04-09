@@ -809,7 +809,7 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 	vector<string>::size_type pos;
 	vector<ListCalculator*>::size_type links(m_vpoLinks.size());
 	ListCalculator* link;
-	IListObjectPattern* port;
+	SHAREDPTR::shared_ptr<IListObjectPattern> port;
 
 	if(m_sType != type)
 		return false;
@@ -941,7 +941,7 @@ bool portBase::getLinkedValue(const string& type, ValueHolder& val, const double
 				{ // value is changed inside own subroutine
 				  // write new value inside foreign subroutine
 					port= link->getSubroutine(&slink, getObjectFolderID(), /*own folder*/true);
-					if(port)
+					if(port != NULL)
 					{
 						if(isdebug)
 						{
@@ -1101,11 +1101,11 @@ bool portBase::range(bool& bfloat, double* min, double* max)
 
 	if(m_nLinkObserver)
 	{
-		IListObjectPattern* port;
+		SHAREDPTR::shared_ptr<IListObjectPattern> port;
 
 		var= m_vpoLinks[m_nLinkObserver-1]->getStatement();
 		port= m_oLinkWhile.getSubroutine(&var, getObjectFolderID(), /*own folder*/true);
-		if(	port &&
+		if(	port != NULL &&
 			(	port->getFolderName() != m_sFolder ||
 				port->getSubroutineName() != m_sSubroutine	)	)
 		{

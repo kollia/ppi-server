@@ -197,7 +197,7 @@ void ListCalculator::output(bool bError, const string& file, const int line, con
 	return NULL;
 }*/
 
-IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nObjFolder, bool own)
+SHAREDPTR::shared_ptr<IListObjectPattern> ListCalculator::getSubroutine(string* var, unsigned short nObjFolder, bool own)
 {
 	bool bHasFolder(false), bfoundSubroutine(false);
 	string sFolder, sSubroutine, sSubVar, msg;
@@ -209,7 +209,7 @@ IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nO
 	if(spl.size() < 2)
 	{
 		if(!own)
-			return NULL;
+			return SHAREDPTR::shared_ptr<IListObjectPattern>();
 		sFolder= m_sFolder;
 		sSubroutine= spl[0];
 
@@ -220,16 +220,6 @@ IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nO
 		sSubroutine= spl[1];
 	}
 	trim(sFolder);
-
-	// change folder to right name when name is an foldervar alias
-	found= m_mFolderAlias.find(sFolder);
-	if(found != m_mFolderAlias.end())
-	{
-		sFolder= found->second;
-		// create correct variable
-		if(bHasFolder)
-			*var= sFolder + ":" + sSubroutine;
-	}
 	trim(sSubroutine);
 	split(spl, sSubroutine, is_any_of("."));
 	if(spl.size() > 1)
@@ -241,6 +231,17 @@ IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nO
 	}else
 		sSubVar= "";// take value of subroutine
 
+	// change folder to right name when name is an foldervar alias
+	found= m_mFolderAlias.find(sFolder);
+	if(found != m_mFolderAlias.end())
+	{
+		sFolder= found->second;
+		// create correct variable
+		if(bHasFolder)
+			*var= sFolder + ":" + sSubroutine;
+		if(sSubVar != "")
+			*var+= "." + sSubVar;
+	}
 	// change subroutine to right name when name is an subvar alias
 	found= m_mSubroutineAlias.find(sSubroutine);
 	if(found != m_mSubroutineAlias.end())
@@ -251,11 +252,13 @@ IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nO
 			*var= sFolder + ":" + sSubroutine;
 		else
 			*var= sSubroutine;
+		if(sSubVar != "")
+			*var+= "." + sSubVar;
 	}
 	if(	!own &&
 		sFolder == getFolderName()	)
 	{
-		return NULL;
+		return SHAREDPTR::shared_ptr<IListObjectPattern>();
 	}
 
 	while(	pFolder &&
@@ -291,14 +294,14 @@ IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nO
 			{
 				bfoundSubroutine= true;
 				if(sSubVar == "")
-					return it->portClass.get();
+					return it->portClass;
 				if(it->portClass->hasSubVar(sSubVar))
 				{
 					SHAREDPTR::shared_ptr<IListObjectPattern> holder;
 
 					holder= SHAREDPTR::shared_ptr<IListObjectPattern>(new ports::SubroutineSubVarHolder(it->portClass.get(), sSubVar));
 					m_vNewSubObjs.push_back(holder);
-					return holder.get();
+					return holder;
 				}
 				break;
 			}
@@ -327,7 +330,7 @@ IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nO
 		msg+= "\ndefine value only as 0";
 		TIMELOG(LOG_WARNING, m_sFolder+" "+m_sSubroutine+" "+m_sParameter+" "+sFolder+" "+sSubroutine, msg);
 	}
-	return NULL;
+	return SHAREDPTR::shared_ptr<IListObjectPattern>();
 }
 
 ppi_time ListCalculator::getLastChanging()
@@ -372,11 +375,11 @@ ppi_time ListCalculator::getLastChangingI()
 
 bool ListCalculator::variable(string* var, double& dResult)
 {
-	IListObjectPattern* oSub;
+	SHAREDPTR::shared_ptr<IListObjectPattern> oSub;
 	string v;
 	vector<string> spl;
 	map<string, double>::iterator foundSub;
-	map<string, IListObjectPattern*>::iterator found;
+	map<string, SHAREDPTR::shared_ptr<IListObjectPattern> >::iterator found;
 	ValueHolder result;
 
 	if(m_msSubVars.size())
@@ -396,7 +399,7 @@ bool ListCalculator::variable(string* var, double& dResult)
 	if(found == m_msoVars.end())
 	{
 		oSub= getSubroutine(var, m_nObjFolderID, /*own folder*/true);
-		if(oSub)
+		if(oSub != NULL)
 		{
 			m_msoVars[*var]= oSub;
 			result= oSub->getValue("i:"+m_sFolder);
@@ -435,7 +438,7 @@ bool ListCalculator::variable(string* var, double& dResult)
 void ListCalculator::activateObserver(IMeasurePattern* observer)
 {
 	vector<string> inform;
-	IListObjectPattern *found, *own;
+	SHAREDPTR::shared_ptr<IListObjectPattern> found, own;
 
 	if(isEmpty())
 		return;
@@ -457,10 +460,10 @@ void ListCalculator::activateObserver(IMeasurePattern* observer)
 				var= m_sFolder+":"+m_sSubroutine;
 				own= getSubroutine(&var, m_nObjFolderID, /*own folder*/true);
 				if(own->getActCount() > found->getActCount())
-					found= NULL;
+					found= SHAREDPTR::shared_ptr<IListObjectPattern>();
 			}
 		}
-		if(found)
+		if(found != NULL)
 			found->informObserver(observer, m_sFolder, m_sSubroutine, m_sParameter);
 	}
 }
@@ -490,7 +493,7 @@ void ListCalculator::removeObserver(IMeasurePattern* observer)
 {
 	string var;
 	vector<string> inform;
-	IListObjectPattern* found;
+	SHAREDPTR::shared_ptr<IListObjectPattern> found;
 
 	if(isEmpty())
 		return;
@@ -499,7 +502,7 @@ void ListCalculator::removeObserver(IMeasurePattern* observer)
 	{
 		var= *it;
 		found= getSubroutine(&var, m_nObjFolderID, /*own folder*/false);
-		if(found)
+		if(found != NULL)
 			found->removeObserver(observer, m_sFolder, m_sSubroutine, m_sParameter);
 	}
 }
