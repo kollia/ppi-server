@@ -22,7 +22,8 @@ set(mainSrcs 	main.cpp
         		ports/timemeasure.cpp
         		ports/timer.cpp
         		ports/valueholder.cpp
-        		ports/Set.cpp				)
+        		ports/Set.cpp
+        		ports/SubroutineSubVarHolder.cpp )
 
 
 if(FULL_CLIENT_PATH)

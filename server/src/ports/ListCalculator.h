@@ -100,8 +100,9 @@ public:
 	 * @param var variable of subroutine with folder, can give back other correct variable name
 	 * @param nObjFolder count of folder when defined inside an object, otherwise 0
 	 * @param own whether should also get portBase Class from own folder
+	 * @return object of subroutine
 	 */
-	sub* getSubroutinePointer(string* var, unsigned short nObjFolder, bool own);
+	IListObjectPattern* getSubroutine(string* var, unsigned short nObjFolder, bool own);
 	/**
 	 * subroutine object of given folder:subroutine
 	 *
@@ -109,7 +110,7 @@ public:
 	 * @param nObjFolder count of folder when defined inside an object, otherwise 0
 	 * @param own whether should also get portBase Class from own folder
 	 */
-	IListObjectPattern* getSubroutine(string* var, unsigned short nObjFolder, bool own);
+	//IListObjectPattern* getSubroutine(string* var, unsigned short nObjFolder, bool own);
 	/**
 	 * return latest changing time of any variable in calculation
 	 *
@@ -163,6 +164,12 @@ protected:
 	 * subroutine where the string was set
 	 */
 	string m_sSubroutine;
+	/**
+	 * all new created subroutine object
+	 * for returning value of sub-variable
+	 * needed to hold reference
+	 */
+	vector<SHAREDPTR::shared_ptr<IListObjectPattern> > m_vNewSubObjs;
 	/*
 	 * map of all subroutine aliases for actual folder
 	 */
@@ -192,7 +199,7 @@ protected:
 	/**
 	 * variables which are used in calculation
 	 */
-	map<string, sub* > m_msoVars;
+	map<string, IListObjectPattern* > m_msoVars;
 	/**
 	 * variables which should not read from other list object
 	 */

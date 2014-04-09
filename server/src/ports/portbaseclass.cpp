@@ -72,6 +72,8 @@ portBase::portBase(const string& type, const string& folderName,
 	m_nObjFolderID= objectID;
 	m_bWriteDb= false;
 	m_dValue.value= 0;
+	m_dOldVar= 0;
+	m_bChanged= false;
 	// do not know access from database
 	m_pbCorrectDevice= auto_ptr<bool>();
 	m_VALUELOCK= Thread::getMutex("VALUELOCK");
@@ -106,7 +108,10 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	m_nCount= getRunningThread()->getActCount();
 	dDef= properties->getDouble(prop, /*warning*/false);
 	if(prop != "#ERROR")
+	{
 		m_dValue.value= dDef;
+		m_dOldVar= dDef;
+	}
 	if(m_bWriteDb)
 	{
 		db->writeIntoDb(m_sFolder, m_sSubroutine);
@@ -336,6 +341,54 @@ bool portBase::hasDeviceAccess() const
 	return bDevice;
 }
 
+bool portBase::hasSubVar(const string& subvar) const
+{
+	if(	subvar == "changed" ||
+		subvar == "lastvalue" ||
+		subvar == "value"		)
+	{
+		return true;
+	}
+	return false;
+}
+
+ppi_value portBase::getSubVar(const string& subvar) const
+{
+	short used(0);
+	ppi_value dRv(0);
+
+	if(subvar == "changed")
+		used= 1;
+	else if(subvar == "lastvalue")
+		used= 2;
+	else if(subvar == "value")
+		used= 3;
+	if(used)
+	{
+		LOCK(m_VALUELOCK);
+		switch(used)
+		{
+		case 1:
+			if(m_bChanged)
+				dRv= 1;
+			else
+				dRv= 0;
+			break;
+		case 2:
+			dRv= m_dOldVar;
+			break;
+		case 3:
+			dRv= m_dValue.value;
+			break;
+		default:
+			dRv= 0;
+			break;
+		}
+		UNLOCK(m_VALUELOCK);
+	}
+	return dRv;
+}
+
 string portBase::switchBinStr(double value)
 {
 	string sRv("");
@@ -349,6 +402,13 @@ string portBase::switchBinStr(double value)
 	else
 		sRv+= "0";
 	return sRv;
+}
+
+void portBase::noChange()
+{
+	LOCK(m_VALUELOCK);
+	m_bChanged= false;
+	UNLOCK(m_VALUELOCK);
 }
 
 void portBase::setValue(const IValueHolderPattern& value, const string& from)
@@ -477,7 +537,9 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 					changedTime.clear();
 				}
 			}
+			m_dOldVar= m_dValue.value;
 			m_dValue.value= dValue;
+			m_bChanged= true;
 			if(m_bTime)
 				m_dValue.lastChanging= changedTime;
 			if(m_bSwitch)
@@ -526,6 +588,7 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 					(	m_bWriteDb ||
 						m_sPermission != ""	)	)
 		{
+			m_bChanged= false;
 			UNLOCK(m_VALUELOCK);
 			// make correction of dValue in database
 			// because client which set wrong dValue
@@ -538,7 +601,10 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 
 			getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*update to old dValue*/true);
 		}else
+		{
+			m_bChanged= false;
 			UNLOCK(m_VALUELOCK);
+		}
 #ifdef __moreOutput
 		if(debug)
 		{

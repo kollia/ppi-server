@@ -23,6 +23,7 @@
 #include "../pattern/util/LogHolderPattern.h"
 
 #include "ListCalculator.h"
+#include "SubroutineSubVarHolder.h"
 
 using namespace boost;
 using namespace design_pattern_world::util_pattern;
@@ -186,7 +187,7 @@ void ListCalculator::output(bool bError, const string& file, const int line, con
 	}
 }
 
-IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nObjFolder, bool own)
+/*IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nObjFolder, bool own)
 {
 	sub* oRv;
 
@@ -194,12 +195,12 @@ IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nO
 	if(oRv != NULL)
 		return oRv->portClass.get();
 	return NULL;
-}
+}*/
 
-sub* ListCalculator::getSubroutinePointer(string* var, unsigned short nObjFolder, bool own)
+IListObjectPattern* ListCalculator::getSubroutine(string* var, unsigned short nObjFolder, bool own)
 {
-	bool bHasFolder(false);
-	string sFolder, sSubroutine, msg;
+	bool bHasFolder(false), bfoundSubroutine(false);
+	string sFolder, sSubroutine, sSubVar, msg;
 	vector<string> spl;
 	map<string, string>::iterator found;
 	SHAREDPTR::shared_ptr<measurefolder_t> pFolder= m_pStartFolder;
@@ -230,6 +231,16 @@ sub* ListCalculator::getSubroutinePointer(string* var, unsigned short nObjFolder
 			*var= sFolder + ":" + sSubroutine;
 	}
 	trim(sSubroutine);
+	split(spl, sSubroutine, is_any_of("."));
+	if(spl.size() > 1)
+	{
+		sSubroutine= spl[0];
+		sSubVar= spl[1];
+		trim(sSubroutine);
+		trim(sSubVar);
+	}else
+		sSubVar= "";// take value of subroutine
+
 	// change subroutine to right name when name is an subvar alias
 	found= m_mSubroutineAlias.find(sSubroutine);
 	if(found != m_mSubroutineAlias.end())
@@ -278,7 +289,18 @@ sub* ListCalculator::getSubroutinePointer(string* var, unsigned short nObjFolder
 					!isRendered()	) &&
 				it->name == sSubroutine	)
 			{
-				return &(*it);
+				bfoundSubroutine= true;
+				if(sSubVar == "")
+					return it->portClass.get();
+				if(it->portClass->hasSubVar(sSubVar))
+				{
+					SHAREDPTR::shared_ptr<IListObjectPattern> holder;
+
+					holder= SHAREDPTR::shared_ptr<IListObjectPattern>(new ports::SubroutineSubVarHolder(it->portClass.get(), sSubVar));
+					m_vNewSubObjs.push_back(holder);
+					return holder.get();
+				}
+				break;
 			}
 		}
 	}
@@ -288,12 +310,19 @@ sub* ListCalculator::getSubroutinePointer(string* var, unsigned short nObjFolder
 		msg+= "cannot find ";
 		if(pFolder)
 		{
-			msg+= "subroutine '" + sSubroutine + "' ";
-			msg+= "for folder '" + sFolder + "' ";
+			if(bfoundSubroutine)
+			{
+				msg+= "sub-variable '" + sSubVar + "' ";
+				msg+= "for folder:subroutine '" + sFolder + ":" + sSubroutine + "' ";
+			}else
+			{
+				msg+= "subroutine '" + sSubroutine + "' ";
+				msg+= "for folder '" + sFolder + "' ";
+			}
 		}else
 		{
 			msg+= "folder '" + sFolder + "' ";
-			msg+= "with subroutine '" + sSubroutine + "' ";
+			msg+= "where subroutine '" + sSubroutine + "' should running";
 		}
 		msg+= "\ndefine value only as 0";
 		TIMELOG(LOG_WARNING, m_sFolder+" "+m_sSubroutine+" "+m_sParameter+" "+sFolder+" "+sSubroutine, msg);
@@ -343,11 +372,11 @@ ppi_time ListCalculator::getLastChangingI()
 
 bool ListCalculator::variable(string* var, double& dResult)
 {
-	sub* oSub;
+	IListObjectPattern* oSub;
 	string v;
 	vector<string> spl;
 	map<string, double>::iterator foundSub;
-	map<string, sub*>::iterator found;
+	map<string, IListObjectPattern*>::iterator found;
 	ValueHolder result;
 
 	if(m_msSubVars.size())
@@ -366,38 +395,38 @@ bool ListCalculator::variable(string* var, double& dResult)
 	found= m_msoVars.find(*var);
 	if(found == m_msoVars.end())
 	{
-		oSub= getSubroutinePointer(var, m_nObjFolderID, /*own folder*/true);
+		oSub= getSubroutine(var, m_nObjFolderID, /*own folder*/true);
 		if(oSub)
 		{
 			m_msoVars[*var]= oSub;
-			if(oSub->bCorrect)
+			result= oSub->getValue("i:"+m_sFolder);
+			if(	result.lastChanging.isSet() &&
+				(	result.lastChanging > m_nLastChange ||
+					!m_nLastChange.isSet()					)	)
 			{
-				result= oSub->portClass->getValue("i:"+m_sFolder);
-				if(	result.lastChanging.isSet() &&
-					(	result.lastChanging > m_nLastChange ||
-						!m_nLastChange.isSet()					)	)
-				{
-					m_nLastChange= result.lastChanging;
-					if(doOutput())
-						m_sLastChangingSub= oSub->portClass->getFolderName() + ":" + oSub->name;
-				}
-				dResult= result.value;
-				return true;
+				m_nLastChange= result.lastChanging;
+				if(doOutput())
+					m_sLastChangingSub= oSub->getFolderName() + ":" + oSub->getSubroutineName();
 			}
+			dResult= result.value;
+			return true;
 		}
-	}else if(found->second->bCorrect)
+	}else
 	{
-		result= found->second->portClass->getValue("i:"+m_sFolder);
-		if(	result.lastChanging.isSet() &&
-			(	result.lastChanging > m_nLastChange ||
-				!m_nLastChange.isSet()					)	)
+		if(found->second)
 		{
-			m_nLastChange= result.lastChanging;
-			if(doOutput())
-				m_sLastChangingSub= found->second->portClass->getFolderName() + ":" + found->second->name;
+			result= found->second->getValue("i:"+m_sFolder);
+			if(	result.lastChanging.isSet() &&
+				(	result.lastChanging > m_nLastChange ||
+					!m_nLastChange.isSet()					)	)
+			{
+				m_nLastChange= result.lastChanging;
+				if(doOutput())
+					m_sLastChangingSub= found->second->getFolderName() + ":" + found->second->getSubroutineName();
+			}
+			dResult= result.value;
+			return true;
 		}
-		dResult= result.value;
-		return true;
 	}
 	dResult= 0;
 	return false;

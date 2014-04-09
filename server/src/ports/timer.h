@@ -26,6 +26,8 @@
 
 #include "../util/properties/configpropertycasher.h"
 
+#include "../util/thread/Thread.h"
+
 #include "ListCalculator.h"
 #include "switch.h"
 #include "measureThread.h"
@@ -106,7 +108,9 @@ public:
 	  m_dSwitch(0),
 	  m_bPoll(false),
 	  m_dTimeBefore(0),
-	  m_nDirection(-2)
+	  m_nDirection(-2),
+	  m_bRunTime(false),
+	  m_SUBVARLOCK(Thread::getMutex("SUBVARLOCK"))
 	  { };
 	/**
 	 * configuration of object
@@ -139,6 +143,20 @@ public:
 	 * @return current value
 	 */
 	virtual IValueHolderPattern& getValue(const string& who);
+	/**
+	 * whether subroutine has the incoming sub-variable
+	 *
+	 * @subvar name of sub-variable
+	 * @return whether subroutine has this varibale
+	 */
+	virtual bool hasSubVar(const string& subvar) const;
+	/**
+	 * return content of sub-variable from aktual subroutine
+	 *
+	 * @subvar name of sub-variable
+	 * @return value of sub-var
+	 */
+	virtual ppi_value getSubVar(const string& subvar) const;
 	/**
 	 * set subroutine for output doing actions
 	 *
@@ -406,6 +424,10 @@ private:
 	 */
 	double m_dStartValue;
 	/**
+	 * whether time measuring run
+	 */
+	bool m_bRunTime;
+	/**
 	 * percent by getting length, to write into calculation
 	 */
 	short m_nLengthPercent;
@@ -413,6 +435,10 @@ private:
 	 * static types to calculating length of reached finished time
 	 */
 	MeasureThread::timetype_t m_tReachedTypes;
+	/**
+	 * mutex lock for sub-variables
+	 */
+	pthread_mutex_t *m_SUBVARLOCK;
 
 	/**
 	 * running case 1 or 2<br />

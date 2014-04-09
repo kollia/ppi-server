@@ -17,7 +17,8 @@ set(portsSrcs 	ListCalculator.cpp
         		timemeasure.cpp
         		timer.cpp
         		valueholder.cpp
-        		Set.cpp					)
+        		Set.cpp
+        		SubroutineSubVarHolder.cpp	)
         
 add_library(ppiports ${libraries} ${portsSrcs})
 target_link_libraries(ppiports ppiutil ppithreadutil ppiserverlibclient ppidb ppiow ppipattern)

@@ -272,7 +272,7 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		if(!initLinks("TIMER", properties, pStartFolder))
 			bOk= false;
 	}
-	if(bOk)
+	//if(bOk)
 	{
 		m_bExactTime= false;
 		m_bFinished= true;
@@ -453,6 +453,50 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	return bOk;
 }
 
+bool timer::hasSubVar(const string& subvar) const
+{
+	if(	subvar == "run" ||
+		subvar == "startvalue"	)
+	{
+		return true;
+	}
+	return portBase::hasSubVar(subvar);
+}
+
+ppi_value timer::getSubVar(const string& subvar) const
+{
+	short used(0);
+	ppi_value dRv(0);
+
+	if(subvar == "run")
+		used= 1;
+	else if(subvar == "startvalue")
+		used= 2;
+	else
+		return portBase::getSubVar(subvar);
+	if(used)
+	{
+		LOCK(m_SUBVARLOCK);
+		switch(used)
+		{
+		case 1:
+			if(m_bRunTime)
+				dRv= 1;
+			else
+				dRv= 0;
+			break;
+		case 2:
+			dRv= m_dStartValue;
+			break;
+		default:
+			dRv= 0;
+			break;
+		}
+		UNLOCK(m_SUBVARLOCK);
+	}
+	return dRv;
+}
+
 bool timer::range(bool& bfloat, double* min, double* max)
 {
 	if(m_bSeconds)
@@ -508,6 +552,9 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 		else
 			need= -1;
 		m_oMeasureValue.value= need;
+		LOCK(m_SUBVARLOCK);
+		m_bRunTime= false;
+		UNLOCK(m_SUBVARLOCK);
 		return m_oMeasureValue;
 	}
 	if(m_bExactTime)
@@ -758,7 +805,10 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 					out() << "  actual time " << MeasureThread::getTimevalString(m_oActTime, /*as date*/true, debug) << endl;
 				}
 				m_tmStart= next;
+				LOCK(m_SUBVARLOCK);
+				m_bRunTime= true;
 				m_dStartValue= actValue;
+				UNLOCK(m_SUBVARLOCK);
 				tv= m_oActTime;
 				need= calcStartTime(debug, actValue, &tv);
 				if(	debug &&
@@ -802,6 +852,9 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 						if(!getRunningThread()->usleep(tvWait))
 						{
 							m_oMeasureValue.value= 0;
+							LOCK(m_SUBVARLOCK);
+							m_bRunTime= false;
+							UNLOCK(m_SUBVARLOCK);
 							return m_oMeasureValue;// folder should be stopping
 						}
 						m_oActTime= m_tmExactStop;
@@ -897,7 +950,9 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 							need= 0;
 						next= m_oActTime;
 						m_tmStart= m_oActTime;
+						LOCK(m_SUBVARLOCK);
 						m_dStartValue= need;
+						UNLOCK(m_SUBVARLOCK);
 						need= calcStartTime(debug, need, &next);
 						if(need == -1)
 						{
@@ -1162,6 +1217,9 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 	if(m_dTimeBefore != need)
 		m_oMeasureValue.lastChanging= m_oActTime;
 	m_dTimeBefore= need;
+	LOCK(m_SUBVARLOCK);
+	m_bRunTime= m_bMeasure;
+	UNLOCK(m_SUBVARLOCK);
 	return m_oMeasureValue;
 }
 
@@ -1192,13 +1250,21 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 		!bswitch			)
 	{
 		if(m_tmStop.tv_sec <= actTime)
+		{
+			LOCK(m_SUBVARLOCK);
+			m_bRunTime= false;
+			UNLOCK(m_SUBVARLOCK);
 			return -1;
+		}
 	}
 	actTime= tv.tv_sec;
 	if(m_eWhich > pass)
 		if(localtime_r(&actTime, &local) == NULL)
 		{
 			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
+			LOCK(m_SUBVARLOCK);
+			m_bRunTime= false;
+			UNLOCK(m_SUBVARLOCK);
 			return -1;
 		}
 	if(debug)
@@ -1272,6 +1338,9 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 			}
 			out() << "result of subroutine is " << actTime << endl;
 		}
+		LOCK(m_SUBVARLOCK);
+		m_bRunTime= true;
+		UNLOCK(m_SUBVARLOCK);
 		return static_cast<double>(actTime);
 	}
 	if(m_tmSec > 0)
@@ -1374,6 +1443,9 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 		out() << "folder should be refreshed at " << asctime(&l);
 		out() << "result of subroutine is " << actTime << endl;
 	}
+	LOCK(m_SUBVARLOCK);
+	m_bRunTime= true;
+	UNLOCK(m_SUBVARLOCK);
 	// toDo: measure to correct time
 	getRunningThread()->nextActivateTime(getFolderName(), m_tmStop);
 	return static_cast<double>(actTime);
@@ -1803,7 +1875,11 @@ double timer::calcNextTime(const bool& start, const bool& debug, ppi_time* actTi
 	if(debug)
 		out() << "measured actual time is " << newTime << endl;
 	if(	m_nDirection == 1)
+	{
+		LOCK(m_SUBVARLOCK);
 		newTime+= m_dStartValue;
+		UNLOCK(m_SUBVARLOCK);
+	}
 	return newTime;
 }
 
@@ -1853,5 +1929,5 @@ void timer::setDebug(bool bDebug)
 
 timer::~timer()
 {
-
+	DESTROYMUTEX(m_SUBVARLOCK);
 }

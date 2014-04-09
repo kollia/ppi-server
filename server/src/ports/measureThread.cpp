@@ -1081,13 +1081,14 @@ int MeasureThread::execute()
 					{
 						if(stopping())
 							break;
-						cout << "WARNING: condition for folder list " << getFolderName()
-										<< " get's an spurious wakeup" << endl;
+						// condition for folder list
+						// get's an spurious wake-up
+						bRun= false;
 					}else
 						bRun= true;
 				}else // when someone has lock one want to inform to start
 					bRun= true;
-			}
+			}//while(bRun == false)
 			if(	!bSearchServer &&
 				condRv == ETIMEDOUT	)
 			{
@@ -1149,8 +1150,9 @@ int MeasureThread::execute()
 				{
 					if(stopping())
 						break;
-					cout << "WARNING: condition for folder list " << getFolderName()
-									<< " get's an spurious wakeup" << endl;
+					// condition for folder list
+					// get's an spurious wake-up
+					bRun= false;
 				}else
 					bRun= true;
 			}else // when someone has lock one want to inform to start
@@ -1362,6 +1364,7 @@ int MeasureThread::execute()
 
 bool MeasureThread::checkToStart(const bool debug)
 {
+	bool bRemoved(false);
 	bool bFirst(true), bWFirstDebug(true), bWDebug(false);
 	ppi_time lastStart;
 	ostringstream out;
@@ -1383,26 +1386,31 @@ bool MeasureThread::checkToStart(const bool debug)
 				if(bFirst)
 					return true;
 				newFolder.push_back(*it);
-			}
-#ifdef __followSETbehaviorFromFolder
-			else if(	m_btimer &&
-						__followSETbehaviorFrom <= 5 &&
-						__followSETbehaviorTo >= 5		)
+			}else
 			{
-				vector<string> spl;
+				cout << "folder " << m_sFolder << " remove old informing over " << it->first << endl;
+				bRemoved= true;
 
-				split(spl, it->first, is_any_of(":"));
-				if(	string(__followSETbehaviorFromFolder) == "" ||
-					boost::regex_match(spl[0], m_oToFolderExp)		)
+#ifdef __followSETbehaviorFromFolder
+				if(	m_btimer &&
+							__followSETbehaviorFrom <= 5 &&
+							__followSETbehaviorTo >= 5		)
 				{
-					if(	string(__followSETbehaviorFromSubroutine) == "" ||
-						boost::regex_match(spl[1], m_oToSubExp)				)
+					vector<string> spl;
+
+					split(spl, it->first, is_any_of(":"));
+					if(	string(__followSETbehaviorFromFolder) == "" ||
+						boost::regex_match(spl[0], m_oToFolderExp)		)
 					{
-						cout << "[5] remove informing over " << it->first << endl;
+						if(	string(__followSETbehaviorFromSubroutine) == "" ||
+							boost::regex_match(spl[1], m_oToSubExp)				)
+						{
+							cout << "[5] remove old informing over " << it->first << endl;
+						}
 					}
 				}
-			}
 #endif // __followSETbehaviorFromFolder
+			}
 
 			if(debug)
 			{
@@ -1453,7 +1461,8 @@ bool MeasureThread::checkToStart(const bool debug)
 			tout << out.str();
 			TERMINALEND;
 		}
-		m_vFolder= newFolder;
+		if(bRemoved)
+			m_vFolder= newFolder;
 		if(m_vFolder.empty())
 			return false;
 	}
@@ -1619,11 +1628,9 @@ bool MeasureThread::measure()
 				}
 			}
 			if(result.value != oldResult.value)
-			{
-				vector<string>::iterator found;
-
 				it->portClass->setValue(result, "i:"+folder+":"+it->name);
-			}
+			else
+				it->portClass->noChange();
 			if(classdebug)
 			{
 				string modified;

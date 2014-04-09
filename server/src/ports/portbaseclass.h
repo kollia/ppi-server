@@ -49,6 +49,10 @@ namespace ports
 	#ifdef DEBUG
 			unsigned long m_count;
 	#endif //DEBUG
+			/**
+			 * exist pins for serial or parallel
+			 * external port interface
+			 */
 			enum Pin
 			{
 				NONE= 0,
@@ -169,6 +173,15 @@ namespace ports
 			 * with time from last changing
 			 */
 			ValueHolder m_dValue;
+			/**
+			 * value from holding varibale before changing
+			 */
+			ppi_value m_dOldVar;
+			/**
+			 * whether by last passing of subroutine
+			 * value was changed
+			 */
+			bool m_bChanged;
 			/**
 			 * all clients with values to know whether
 			 * switch subroutine was active between the last request
@@ -292,6 +305,20 @@ namespace ports
 			 */
 			virtual bool hasServer() const
 			{ return false; }
+			/**
+			 * whether subroutine has the incoming sub-variable
+			 *
+			 * @subvar name of sub-variable
+			 * @return whether subroutine has this varibale
+			 */
+			virtual bool hasSubVar(const string& subvar) const;
+			/**
+			 * return content of sub-variable from aktual subroutine
+			 *
+			 * @subvar name of sub-variable
+			 * @return value of sub-var
+			 */
+			virtual ppi_value getSubVar(const string& subvar) const;
 			/**
 			 * return true when subroutine need information from other subroutines by changing.<br />
 			 * otherwise false.
@@ -450,6 +477,13 @@ namespace ports
 			 */
 			virtual bool setValue(const string& folder, const string& subroutine,
 							const IValueHolderPattern& value, const string& account);
+			/**
+			 * informing that variable wasn't change.<br />
+			 * for better performance, measure-thread do not set
+			 * always value when not changed. But for sub-variable
+			 * .changed need subroutine to know when value not be changed
+			 */
+			virtual void noChange();
 			/**
 			 * return count of subroutine in folder
 			 *

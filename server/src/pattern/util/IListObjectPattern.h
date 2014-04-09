@@ -53,6 +53,20 @@ namespace design_pattern_world
 			 */
 			virtual bool hasServer() const= 0;
 			/**
+			 * whether subroutine has the incoming sub-variable
+			 *
+			 * @subvar name of sub-variable
+			 * @return whether subroutine has this varibale
+			 */
+			virtual bool hasSubVar(const string& subvar) const= 0;
+			/**
+			 * return content of sub-variable from aktual subroutine
+			 *
+			 * @subvar name of sub-variable
+			 * @return value of sub-var
+			 */
+			virtual ppi_value getSubVar(const string& subvar) const= 0;
+			/**
 			 * return count of subroutine in folder
 			 *
 			 * @return count of subroutine
@@ -185,6 +199,13 @@ namespace design_pattern_world
 			 * @param from which folder:subroutine or account changing the value
 			 */
 			virtual void setValue(const IValueHolderPattern& value, const string& from)= 0;
+			/**
+			 * informing that variable wasn't change.<br />
+			 * for better performance, measure-thread do not set
+			 * always value when not changed. But for sub-variable
+			 * .changed need subroutine to know when value not be changed
+			 */
+			virtual void noChange()= 0;
 			/**
 			 * set measure thread which run this object with method <code>measure()</code>
 			 *
