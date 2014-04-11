@@ -74,6 +74,7 @@ portBase::portBase(const string& type, const string& folderName,
 	m_dValue.value= 0;
 	m_dOldVar= 0;
 	m_bChanged= false;
+	m_bOutsideChanged= false;
 	// do not know access from database
 	m_pbCorrectDevice= auto_ptr<bool>();
 	m_VALUELOCK= Thread::getMutex("VALUELOCK");
@@ -407,7 +408,15 @@ string portBase::switchBinStr(double value)
 void portBase::noChange()
 {
 	LOCK(m_VALUELOCK);
-	m_bChanged= false;
+	if(m_bOutsideChanged)
+	{// value was changed from outside
+	 // and now by this pass nothing changed
+	 // but for other asking subroutines
+	 // value should be defined as changed
+		m_bOutsideChanged= false;
+		m_bChanged= true;
+	}else
+		m_bChanged= false;
 	UNLOCK(m_VALUELOCK);
 }
 
@@ -419,6 +428,8 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 #endif //__moreOutput
 
 	try{
+		vector<string> from_spl;
+
 		LOCK(m_VALUELOCK);
 		ppi_value dValue(value.getValue());
 		ppi_value invalue(value.getValue());
@@ -427,13 +438,23 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 		ppi_time changedTime(value.getTime());
 
 		// debug stopping
-		/*if(	getFolderName() == "Raff1" &&
-			getSubroutineName() == "Up"		)
+	/*	if(	getFolderName() == "Raff_Alle" &&
+			getSubroutineName() == "Zu"		)
 		{
 			cout << "stopping inside method setValue from subroutine"
 							<< getFolderName() << ":" << getSubroutineName() << endl;
 			cout << __FILE__ << __LINE__ << endl;
 		}*/
+
+		split(from_spl, from, is_any_of(":"));
+		if(	m_bOutsideChanged &&
+			from_spl.size() == 3 &&
+			from_spl[0] == "i" &&
+			from_spl[1] == m_sFolder &&
+			from_spl[2] == m_sSubroutine	)
+		{
+			m_bOutsideChanged= false;
+		}
 #ifdef __followSETbehaviorToFolder
 		if(	m_bFollow &&
 			__followSETbehaviorFrom <= 2 &&
@@ -522,8 +543,16 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 			bool debug(isDebug());
 			string sOwn(m_sFolder+":"+m_sSubroutine);
 			ostringstream output;
-			vector<string> spl;
 
+			if(	from_spl.size() != 3 ||
+				from_spl[0] != "i" ||
+				from_spl[1] != m_sFolder ||
+				from_spl[2] != m_sSubroutine	)
+			{// value was changed not from own subroutine,
+			 // so remember for next pass of subroutine
+			 // because then nothing will be changed, but flag m_bChanged should be set
+				m_bOutsideChanged= true;
+			}
 			if(	m_bTime &&
 				!changedTime.isSet())
 			{
@@ -554,13 +583,12 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 			// and by method getValue() will be lock this mutex again
 			UNLOCK(m_VALUELOCK);
 
-			split(spl, from, is_any_of(":"));
 			if(	m_mvObservers.size() ||
-				spl[0] == "e" ||
-				(	spl[0] == "i" &&
-					(	spl[1] != m_sFolder ||
-						(	spl[1] == m_sFolder &&
-							m_nCount < m_poMeasurePattern->getActCount(spl[2])	)	)	)	)
+				from_spl[0] == "e" ||
+				(	from_spl[0] == "i" &&
+					(	from_spl[1] != m_sFolder ||
+						(	from_spl[1] == m_sFolder &&
+							m_nCount < m_poMeasurePattern->getActCount(from_spl[2])	)	)	)	)
 			{
 #ifdef __followSETbehaviorToFolder
 				if(	m_bFollow &&

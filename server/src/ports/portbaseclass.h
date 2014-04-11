@@ -183,6 +183,11 @@ namespace ports
 			 */
 			bool m_bChanged;
 			/**
+			 * whether the value was'nt changed
+			 * from the own subroutine
+			 */
+			bool m_bOutsideChanged;
+			/**
 			 * all clients with values to know whether
 			 * switch subroutine was active between the last request
 			 */
