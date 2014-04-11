@@ -277,11 +277,18 @@ SHAREDPTR::shared_ptr<IListObjectPattern> ListCalculator::getSubroutine(string* 
 		{// search right count
 			pFolder= pFolder->next;
 		}
-		if(	pFolder &&
-			(	pFolder->sObject != sFolder ||
-				pFolder->nObjectID != nObjFolder	)	)
+		if(pFolder != NULL)
 		{
-			pFolder= SHAREDPTR::shared_ptr<measurefolder_t>();
+			if(	pFolder->sObject != sFolder ||
+				pFolder->nObjectID != nObjFolder	)
+			{
+				pFolder= SHAREDPTR::shared_ptr<measurefolder_t>();
+			}else
+			{
+				*var= pFolder->name + ":" + sSubroutine;
+				if(sSubVar != "")
+					*var+= "." + sSubVar;
+			}
 		}
 	}
 	if(pFolder)
