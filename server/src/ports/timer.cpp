@@ -763,7 +763,31 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 				if(	m_nDirection != oldDirection &&
 					oldDirection > -1				)
 				{
+					ValueHolder oval;
+
 					bNewDirection= true;
+					if(bswitch)
+					{
+						if(debug)
+							out() << "new direction set, check whether TIMER running should start new" << endl;
+						oval= switchClass::measure(m_dSwitch, set, &need);
+						m_dSwitch= oval.value;
+						if(oval.lastChanging.isSet())
+							tmLastSwitchChanged= oval.lastChanging;
+						else
+							tmLastSwitchChanged= m_oActTime;
+						if(m_dSwitch > 0)
+							bswitch= true;
+						else
+							bswitch= false;
+					}
+					if(!bswitch)
+					{// when direction be changed, but running should'nt during on
+					 // set direction back to old, because otherwise method calcNextTime
+					 // calculate wrong time.
+					 // (when running should during on, method calcStartTime make right)
+						m_nDirection= oldDirection;
+					}
 				}
 			}
 			if(	m_bMeasure == false ||
@@ -911,8 +935,9 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 						need= 0;
 					else
 						need= calcNextTime(/*start*/false, debug, &next);
-					if(m_bSwitchbyTime)
-					{
+					if(	m_bSwitchbyTime &&
+						!bNewDirection		)// when new direction set,
+					{						 // asking for during on made also there
 						ValueHolder oval;
 
 						if(debug)
