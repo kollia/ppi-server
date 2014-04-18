@@ -180,7 +180,7 @@ namespace design_pattern_world
 			 * @param actValue current value
 			 * @return measured value with last changing time when not changed by self
 			 */
-			virtual IValueHolderPattern& measure(const ppi_value& actValue)=0;
+			virtual auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue)=0;
 			/**
 			 * get value from subroutine
 			 *
@@ -188,7 +188,7 @@ namespace design_pattern_world
 			 * 				This time only defined for external reading over OwPort's.
 			 * @return current value with last changing time
 			 */
-			virtual IValueHolderPattern& getValue(const string& who)= 0;
+			virtual auto_ptr<IValueHolderPattern> getValue(const string& who)= 0;
 			/**
 			 * set value in subroutine.<br />
 			 * All strings from parameter 'from' beginning with an one character type,

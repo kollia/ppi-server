@@ -20,10 +20,13 @@
 
 namespace ports
 {
-	IValueHolderPattern& SubroutineSubVarHolder::getValue(const string& who)
+	auto_ptr<IValueHolderPattern> SubroutineSubVarHolder::getValue(const string& who)
 	{
-		m_oGetValue.value= m_oSubroutine->getSubVar(m_sSubVar);
-		return m_oGetValue;
+		auto_ptr<IValueHolderPattern> oMeasureValue;
+
+		oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
+		oMeasureValue->setValue(m_oSubroutine->getSubVar(m_sSubVar));
+		return oMeasureValue;
 	}
 }
 

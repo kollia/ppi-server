@@ -22,14 +22,16 @@
 
 #include "../util/thread/Terminal.h"
 
-IValueHolderPattern& TempMeasure::measure(const ppi_value& actValue)
+auto_ptr<IValueHolderPattern> TempMeasure::measure(const ppi_value& actValue)
 {
 	float nTemperature= getTemperature();
+	auto_ptr<IValueHolderPattern> oMeasureValue;
 
+	oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 	if(isDebug())
 		out() << "Temperature:" << m_nTemperature << endl;
-	m_oMeasureValue.value= (double)nTemperature;
-	return m_oMeasureValue;
+	oMeasureValue->setValue(static_cast<ppi_value>(nTemperature));
+	return oMeasureValue;
 
 }
 

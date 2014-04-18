@@ -521,7 +521,7 @@ void timer::setObserver(IMeasurePattern* observer)
 	switchClass::setObserver(observer);
 }
 
-IValueHolderPattern& timer::measure(const ppi_value& actValue)
+auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 {
 	bool bswitch;
 	bool bEndCount(false);
@@ -530,6 +530,7 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 	string subroutine(getSubroutineName()), folder(getFolderName());
 	switchClass::setting set= NONE;
 	ppi_time tmLastSwitchChanged;
+	auto_ptr<IValueHolderPattern> oMeasureValue;
 
 	//Debug info to stop by right subroutine
 	/*if(	folder == "Raff1_Zeit" &&
@@ -538,6 +539,7 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 		cout << folder << ":" << subroutine << endl;
 		cout << __FILE__ << __LINE__ << endl;
 	}*/
+	oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 	if(!m_oActTime.setActTime())
 	{
 		string msg("ERROR: cannot get time of day,\n");
@@ -551,11 +553,11 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 			need= 0;
 		else
 			need= -1;
-		m_oMeasureValue.value= need;
+		oMeasureValue->setValue(need);
 		LOCK(m_SUBVARLOCK);
 		m_bRunTime= false;
 		UNLOCK(m_SUBVARLOCK);
-		return m_oMeasureValue;
+		return oMeasureValue;
 	}
 	if(m_bExactTime)
 		getRunningThread()->setCpuMeasureBegin(&m_tReachedTypes);
@@ -637,8 +639,8 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 			getRunningThread()->calcLengthDiff(&m_tReachedTypes, changed, debug);
 		}else
 		{
-			m_oMeasureValue.value= 0;
-			return m_oMeasureValue;
+			oMeasureValue->setValue(0);
+			return oMeasureValue;
 		}
 	}
 	if(debug)
@@ -734,8 +736,8 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 	if(	m_nCaseNr == 1 || // folder should polling all seconds, minutes, hours, ...
 		m_nCaseNr == 2	) // time count down to setting date time
 	{
-		m_oMeasureValue.value= polling_or_countDown(bswitch, m_oActTime, debug);
-		return m_oMeasureValue;
+		oMeasureValue->setValue(polling_or_countDown(bswitch, m_oActTime, debug));
+		return oMeasureValue;
 	}
 	// case 3: count the time down to 0
 	// case 4: count the time down to 0, or up to full time
@@ -875,11 +877,11 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 						}
 						if(!getRunningThread()->usleep(tvWait))
 						{
-							m_oMeasureValue.value= 0;
+							oMeasureValue->setValue(0);
 							LOCK(m_SUBVARLOCK);
 							m_bRunTime= false;
 							UNLOCK(m_SUBVARLOCK);
-							return m_oMeasureValue;// folder should be stopping
+							return oMeasureValue;// folder should be stopping
 						}
 						m_oActTime= m_tmExactStop;
 
@@ -1222,15 +1224,13 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 		need= -1;
 	}
 
+	oMeasureValue->setValue(need);
 	if(m_bHasLinks)
 	{
-		ValueHolder oval;
-
-		oval.value= need;
-		if(getLinkedValue("TIMER", oval, nBeginTime))
+		if(getLinkedValue("TIMER", oMeasureValue, nBeginTime))
 		{
-			need= oval.value;
-			m_oActTime= oval.lastChanging;
+			m_oActTime= oMeasureValue->getTime();
+			need= oMeasureValue->getValue();
 			if(debug)
 				out() << "result of time from linked subroutine is " << dec << need << " seconds" << endl;
 
@@ -1238,14 +1238,13 @@ IValueHolderPattern& timer::measure(const ppi_value& actValue)
 				out() << "result of time is " << dec << need << " seconds" << endl;
 	}else if(debug)
 		out() << "result of time is " << dec << need << " seconds" << endl;
-	m_oMeasureValue.value= need;
 	if(m_dTimeBefore != need)
-		m_oMeasureValue.lastChanging= m_oActTime;
+		oMeasureValue->setTime(m_oActTime);
 	m_dTimeBefore= need;
 	LOCK(m_SUBVARLOCK);
 	m_bRunTime= m_bMeasure;
 	UNLOCK(m_SUBVARLOCK);
-	return m_oMeasureValue;
+	return oMeasureValue;
 }
 
 double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool debug)
@@ -1908,22 +1907,24 @@ double timer::calcNextTime(const bool& start, const bool& debug, ppi_time* actTi
 	return newTime;
 }
 
-IValueHolderPattern& timer::getValue(const string& who)
+auto_ptr<IValueHolderPattern> timer::getValue(const string& who)
 {
 	long nval;
+	ppi_value value;
+	auto_ptr<IValueHolderPattern> oGetValue;
 
-	// m_oGetValue will be set inside getValue from switchClass
-	// do not need define again
-	switchClass::getValue(who);
+	oGetValue= switchClass::getValue(who);
+	value= oGetValue->getValue();
 	// secure method to calculate only with seconds
 	// or microseconds and no more decimal places behind
 	if(!m_bSeconds)
-		m_oGetValue.value*= (1000 * 1000);
-	nval= static_cast<long>(m_oGetValue.value);
-	m_oGetValue.value= static_cast<double>(nval);
+		value*= (1000 * 1000);
+	nval= static_cast<long>(value);
+	value= static_cast<ppi_value>(nval);
 	if(!m_bSeconds)
-		m_oGetValue.value/= (1000 * 1000);
-	return m_oGetValue;
+		value/= (1000 * 1000);
+	oGetValue->setValue(static_cast<double>(value));
+	return oGetValue;
 }
 
 #if 0

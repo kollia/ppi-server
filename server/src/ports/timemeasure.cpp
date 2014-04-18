@@ -135,12 +135,14 @@ TimeMeasure::~TimeMeasure()
 	//setPin(m_tOut, false);
 }
 
-IValueHolderPattern& TimeMeasure::measure(const ppi_value& actValue)
+auto_ptr<IValueHolderPattern> TimeMeasure::measure(const ppi_value& actValue)
 {
 	char buf[150];
 	string msg;
 	unsigned long nLightValue= getMeasuredTime();
+	auto_ptr<IValueHolderPattern> oMeasureValue;
 
+	oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 	if(isDebug())
 	{
 		sprintf(buf, "%lu", nLightValue);
@@ -150,8 +152,8 @@ IValueHolderPattern& TimeMeasure::measure(const ppi_value& actValue)
 		TIMELOG(LOG_INFO, getFolderName(), msg);
 		out() << msg << endl;
 	}
-	m_oMeasureValue.value= (double)nLightValue;
-	return m_oMeasureValue;
+	oMeasureValue->setValue(static_cast<ppi_value>(nLightValue));
+	return oMeasureValue;
 }
 
 unsigned long TimeMeasure::getMeasuredTime()

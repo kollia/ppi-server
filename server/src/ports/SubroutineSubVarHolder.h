@@ -197,7 +197,7 @@ namespace ports
 		 * @param actValue current value
 		 * @return measured value with last changing time when not changed by self
 		 */
-		virtual IValueHolderPattern& measure(const ppi_value& actValue)
+		virtual auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue)
 		{ return m_oSubroutine->measure(actValue); };
 		/**
 		 * get value from subroutine
@@ -206,7 +206,7 @@ namespace ports
 		 * 				This time only defined for external reading over OwPort's.
 		 * @return current value with last changing time
 		 */
-		virtual IValueHolderPattern& getValue(const string& who);
+		virtual auto_ptr<IValueHolderPattern> getValue(const string& who);
 		/**
 		 * set value in subroutine.<br />
 		 * All strings from parameter 'from' beginning with an one character type,
@@ -297,11 +297,6 @@ namespace ports
 		 * definition of sub-variable
 		 */
 		string m_sSubVar;
-		/**
-		 * value from last <code>getValue</code> method.<br />
-		 * need to hold as reference for return value
-		 */
-		ValueHolder m_oGetValue;
 	};
 }
 

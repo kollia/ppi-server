@@ -70,12 +70,14 @@ namespace ports
 		return true;
 	}
 
-	IValueHolderPattern& SaveSubValue::measure(const ppi_value& actValue)
+	auto_ptr<IValueHolderPattern> SaveSubValue::measure(const ppi_value& actValue)
 	{
 		double value= 0;
 		vector<double> vValues;
+		auto_ptr<IValueHolderPattern> oMeasureValue;
 
-		m_dSwitch= switchClass::measure(m_dSwitch).getValue();
+		oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
+		m_dSwitch= switchClass::measure(m_dSwitch)->getValue();
 		if(m_dSwitch > 0)
 		{
 			string folder(getFolderName());
@@ -95,11 +97,11 @@ namespace ports
 			{
 				getRunningThread()->fillValue(folder, subroutine, m_sIdentif, vValues, /*only new values*/false);
 			}
-			m_oMeasureValue.value= 1;
-			return m_oMeasureValue;
+			oMeasureValue->setValue(1);
+			return oMeasureValue;
 		}
-		m_oMeasureValue.value= 0;
-		return m_oMeasureValue;
+		oMeasureValue->setValue(0);
+		return oMeasureValue;
 	}
 
 	bool SaveSubValue::range(bool& bfloat, double* min, double* max)

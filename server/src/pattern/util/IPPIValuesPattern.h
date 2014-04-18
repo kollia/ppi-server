@@ -122,6 +122,12 @@ public:
 	 */
 	virtual void setValue(const ppi_value& value)= 0;
 	/**
+	 * setter method for value with time
+	 *
+	 * @param str setting value
+	 */
+	virtual void setTimeValue(const IValueHolderPattern& str)= 0;
+	/**
 	 * getter method for value
 	 *
 	 * @return defined value

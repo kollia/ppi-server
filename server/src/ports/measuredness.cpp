@@ -54,7 +54,7 @@ namespace ports
 		portBase::setDebug(bDebug);
 	}
 
-	IValueHolderPattern& Measuredness::measure(const ppi_value& actValue)
+	auto_ptr<IValueHolderPattern> Measuredness::measure(const ppi_value& actValue)
 	{
 		static double origValue= 0;
 		//double dBegin;
@@ -63,7 +63,10 @@ namespace ports
 		double value= actValue;
 		string sfolder= getFolderName();
 		double result;
+		ValueHolder oMeasureValue;
+		auto_ptr<IValueHolderPattern> oRv;
 
+		oRv= auto_ptr<IValueHolderPattern>(new ValueHolder());
 		if(!m_oMeasuredValue.calculate(mvalue))
 		{
 			string msg("### ERROR: does not found mvalue '");
@@ -73,8 +76,9 @@ namespace ports
 			msg+= getSubroutineName();
 			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"mvalue", msg);
 			mvalue= 0;
-			m_oMeasureValue.value= 0;
-			return m_oMeasureValue;
+			oMeasureValue.value= 0;
+			(*oRv)= oMeasureValue;
+			return oRv;
 		}
 
 		if(m_oBegin.calculate(result))
@@ -87,7 +91,7 @@ namespace ports
 				diff= mvalue - origValue;
 				if(value > diff)
 					diff= value;
-				m_oMeasureValue.lastChanging= m_oBegin.getLastChanging();
+				oMeasureValue.lastChanging= m_oBegin.getLastChanging();
 			}else
 			{
 				origValue= mvalue;
@@ -103,8 +107,9 @@ namespace ports
 			TIMELOG(LOG_ERROR, "measurednessresolve"+sfolder+getSubroutineName()+"begin", msg);
 			value= 0;
 		}
-		m_oMeasureValue.value= diff;
-		return m_oMeasureValue;
+		oMeasureValue.value= diff;
+		(*oRv)= oMeasureValue;
+		return oRv;
 	}
 
 	bool Measuredness::range(bool& bfloat, double* min, double* max)

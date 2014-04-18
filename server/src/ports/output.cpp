@@ -150,18 +150,19 @@ namespace ports
 		return bRv;							// debug session and should know whether this object was set to debug
 	}
 
-	IValueHolderPattern& Output::measure(const ppi_value& actValue)
+	auto_ptr<IValueHolderPattern> Output::measure(const ppi_value& actValue)
 	{
 		bool bDebug(isDebug()), ownDebug;
+		auto_ptr<IValueHolderPattern> oMeasureValue;
 
-		m_oMeasureValue.value= 0;
+		oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 		LOCK(m_DEBUG);
 		ownDebug= m_bDebug;
 		UNLOCK(m_DEBUG);
 		if(m_bNeedSwitch)
-			m_oMeasureValue= switchClass::measure(actValue);
-		if(	m_oMeasureValue.value > 0 ||
-			m_oMeasureValue.value < 0 ||
+			oMeasureValue= switchClass::measure(actValue);
+		if(	oMeasureValue->getValue() > 0 ||
+			oMeasureValue->getValue() < 0 ||
 			(	ownDebug &&
 				!m_bNeedSwitch	)	)
 		{
@@ -206,16 +207,16 @@ namespace ports
 			}
 			if(m_nLogLevel > -1)
 				LOGEX(m_nLogLevel, outStr.str(), getRunningThread()->getExternSendDevice());
-			m_oMeasureValue.value= 1;
+			oMeasureValue->setValue(1);
 		}else
-			m_oMeasureValue.value= 0;
+			oMeasureValue->setValue(0);
 		if(bDebug)
 		{
-			if(!m_oMeasureValue.value)
+			if(!oMeasureValue->getValue())
 				out() << "do not write any output" << endl;
-			out() << "result of DEBUG output is " << m_oMeasureValue.value << endl;
+			out() << "result of DEBUG output is " << oMeasureValue->getValue() << endl;
 		}
-		return m_oMeasureValue;
+		return oMeasureValue;
 	}
 
 	bool Output::range(bool& bfloat, double* min, double* max)

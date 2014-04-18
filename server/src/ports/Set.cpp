@@ -154,7 +154,7 @@ namespace ports
 		return true;
 	}
 
-	IValueHolderPattern& Set::measure(const ppi_value& actValue)
+	auto_ptr<IValueHolderPattern> Set::measure(const ppi_value& actValue)
 	{
 		bool bOk, isdebug= isDebug();
 		ValueHolder oValue, switchValue;
@@ -163,6 +163,7 @@ namespace ports
 		vector<string>::size_type startSet(0), endSet(m_vsSet.size()-1);
 		vector<ListCalculator*>::size_type nFrom(m_vpoFrom.size());
 		SHAREDPTR::shared_ptr<IListObjectPattern> port;
+		auto_ptr<IValueHolderPattern> oMeasureValue;
 
 		//Debug info to stop by right subroutine
 		/*if(	getFolderName() == "set_probe" &&
@@ -171,6 +172,7 @@ namespace ports
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
 		}*/
+		oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 		switchValue= switchClass::measure(actValue);
 		if(	switchValue.value > 0 ||
 			switchValue.value < 0		)
@@ -247,8 +249,8 @@ namespace ports
 				out() << "FALSE";
 			out() << endl;
 		}
-		m_oMeasureValue= switchValue;
-		return m_oMeasureValue;
+		oMeasureValue->setTimeValue(switchValue);
+		return oMeasureValue;
 	}
 
 	void Set::setDebug(bool bDebug)

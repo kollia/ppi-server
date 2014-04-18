@@ -90,7 +90,7 @@ public:
 		 * @param actValue current value
 		 * @return measured value with last changing time
 		 */
-		virtual IValueHolderPattern& measure(const ppi_value& actValue);
+		virtual auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue);
 		/**
 		 * measure also whether switch value is set or not,
 		 * but show in second parameter, maybe for decided class need,
@@ -101,7 +101,7 @@ public:
 		 * @param newValue new value when changed and is not the same than content inside
 		 * @return return measured value
 		 */
-		IValueHolderPattern& measure(const ppi_value& actValue, setting& set, const double* newValue= NULL);
+		auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue, setting& set, const double* newValue= NULL);
 		/**
 		 * destructor
 		 */

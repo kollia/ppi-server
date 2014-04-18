@@ -102,14 +102,14 @@ void switchClass::setObserver(IMeasurePattern* observer)
 	portBase::setObserver(observer);
 }
 
-IValueHolderPattern& switchClass::measure(const ppi_value& actValue)
+auto_ptr<IValueHolderPattern> switchClass::measure(const ppi_value& actValue)
 {
 	setting set;
 
 	return measure(actValue, set);
 }
 
-IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& set, const double* newValue/*= NULL*/)
+auto_ptr<IValueHolderPattern> switchClass::measure(const ppi_value& actValue, setting& set, const double* newValue/*= NULL*/)
 {
 	bool debug(isDebug());
 	bool bbinary(binary());
@@ -118,6 +118,7 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 	double dResult(actValue);
 	const double* nullValue= NULL;
 	string subroutine(getSubroutineName());
+	auto_ptr<IValueHolderPattern> oMeasureValue;
 
 	//Debug info to stop by right subroutine
 	/*if(	getFolderName() == "Raff1" &&
@@ -127,6 +128,7 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 		cout << __FILE__ << __LINE__ << endl;
 	}*/
 	set= NONE;
+	oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 	if(bbinary)
 	{
 		if(static_cast<short>(actValue) & 0b01)
@@ -188,7 +190,7 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 				bSwitched= true;
 				set= BEGIN;
 			}
-			m_oMeasureValue.lastChanging= m_oBegin.getLastChanging();
+			oMeasureValue->setTime(m_oBegin.getLastChanging());
 			if(newValue)
 				m_oBegin.setSubVar(subroutine, nullValue);
 		}
@@ -218,7 +220,7 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 				bSwitched= false;
 				set= END;
 			}
-			m_oMeasureValue.lastChanging= m_oEnd.getLastChanging();
+			oMeasureValue->setTime(m_oEnd.getLastChanging());
 			if(newValue)
 				m_oEnd.setSubVar(subroutine, nullValue);
 		}
@@ -244,7 +246,7 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 				bSwitched= true;
 			else
 				bSwitched= false;
-			m_oMeasureValue.lastChanging= m_oWhile.getLastChanging();
+			oMeasureValue->setTime(m_oWhile.getLastChanging());
 			set= WHILE;
 			if(newValue)
 				m_oWhile.setSubVar(subroutine, nullValue);
@@ -264,8 +266,8 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 		else
 			dResult= 0;
 	}
-	m_oMeasureValue.value= dResult;
-	if(getLinkedValue("SWITCH", m_oMeasureValue))
+	oMeasureValue->setValue(dResult);
+	if(getLinkedValue("SWITCH", oMeasureValue))
 	{
 		if(bbinary)
 		{
@@ -315,16 +317,16 @@ IValueHolderPattern& switchClass::measure(const ppi_value& actValue, setting& se
 	if(bbinary)
 	{
 		if(bSwitched)
-			m_oMeasureValue.value= 0b11;
+			oMeasureValue->setValue(0b11);
 		else
-			m_oMeasureValue.value= static_cast<double>(static_cast<short>(actValue) & 0b10);
-		return m_oMeasureValue;
+			oMeasureValue->setValue(static_cast<double>(static_cast<short>(actValue) & 0b10));
+		return oMeasureValue;
 	}
 	if(bSwitched)
-		m_oMeasureValue.value= 1;
+		oMeasureValue->setValue(1);
 	else
-		m_oMeasureValue.value= 0;
-	return m_oMeasureValue;
+		oMeasureValue->setValue(0);
+	return oMeasureValue;
 }
 
 void switchClass::setDebug(bool bDebug)

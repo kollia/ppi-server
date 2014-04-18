@@ -132,7 +132,7 @@ namespace ports
 		 * @param actValue current value
 		 * @return return measured value with last changed time
 		 */
-		virtual IValueHolderPattern& measure(const ppi_value& actValue);
+		virtual auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue);
 		/**
 		 * get value from subroutine
 		 *
@@ -140,7 +140,7 @@ namespace ports
 		 * 				This time only defined for external reading over OwPort's.
 		 * @return current value
 		 */
-		virtual IValueHolderPattern& getValue(const string& who);
+		virtual auto_ptr<IValueHolderPattern> getValue(const string& who);
 		/**
 		 * set value in subroutine.<br />
 		 * All strings from parameter 'from' beginning with an one character type,
@@ -166,7 +166,7 @@ namespace ports
 		 */
 		bool getWhileStringResult(const string& folder, const string& subroutine,
 									ListCalculator& oWhile, vector<ListCalculator*>& content,
-									const double defaultVal, ValueHolder& value, const bool debug);
+									const double defaultVal, auto_ptr<IValueHolderPattern>& value, const bool debug);
 		/**
 		 * set subroutine for output doing actions
 		 *
@@ -192,6 +192,12 @@ namespace ports
 		 * @return whether the range is defined or can set all
 		 */
 		virtual bool range(bool& bfloat, double* min, double* max);
+
+	private:
+		/**
+		 * old value from last pass
+		 */
+		ppi_value m_dOldValue;
 	};
 }
 

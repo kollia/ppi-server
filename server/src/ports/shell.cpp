@@ -222,7 +222,7 @@ void Shell::replaceVars(string* str, const map<string, string>& aliases, const s
 		cerr << msg << endl;
 	}
 }
-IValueHolderPattern& Shell::measure(const ppi_value& actValue)
+auto_ptr<IValueHolderPattern> Shell::measure(const ppi_value& actValue)
 {
 	bool bDebug(isDebug());
 	bool bswitch(false);
@@ -230,7 +230,9 @@ IValueHolderPattern& Shell::measure(const ppi_value& actValue)
 	int res(0);
 	double dRv(actValue);
 	double dLastSwitch;
+	auto_ptr<IValueHolderPattern> oMeasureValue;
 
+	oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 	//Debug info to stop by right subroutine
 	/*if(	getFolderName() == "power_switch" &&
 		getSubroutineName() == "port2"	)
@@ -247,7 +249,7 @@ IValueHolderPattern& Shell::measure(const ppi_value& actValue)
 		dLastSwitch= 1;
 	else
 		dLastSwitch= 0;
-	if(switchClass::measure(dLastSwitch).getValue())
+	if(switchClass::measure(dLastSwitch)->getValue())
 		bswitch= true;
 	if(bswitch)
 	{
@@ -348,10 +350,10 @@ IValueHolderPattern& Shell::measure(const ppi_value& actValue)
 		m_bInfo &&
 		dRv > 0		)
 	{// when wait, debug is false and info true, subroutine will be set from external
-		m_oMeasureValue.value= actValue;// thread before starting shell command
+		oMeasureValue->setValue(actValue);// thread before starting shell command
 	}else                   // so do not make any changes now
-		m_oMeasureValue.value= dRv;
-	return m_oMeasureValue;
+		oMeasureValue->setValue(dRv);
+	return oMeasureValue;
 }
 
 bool Shell::range(bool& bfloat, double* min, double* max)
@@ -507,6 +509,7 @@ int Shell::system(const string& action, string command)
 		// incoming more is for set subroutine to 0 when
 		// no shell command be starting (no ERROR)
 		m_bMore= !m_bLastRes;
+		//cout << "--- run '" << command << "' of " << getFolderName() << ":" << getSubroutineName() << endl;
 		res= CommandExec::command_exec(thread, command, result, m_bMore, m_bWait, m_bBlock, bDebug);
 		do{// remove all not needed threads from vector
 			bchangedVec= false;

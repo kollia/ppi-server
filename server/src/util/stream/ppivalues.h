@@ -23,6 +23,8 @@
 
 #include <string>
 
+#include "../smart_ptr.h"
+
 #include "../../pattern/util/IPPIValuesPattern.h"
 
 using namespace std;
@@ -157,9 +159,35 @@ public:
 	{ value= 0; };
 	/**
 	 * copy constructor
+	 *
+	 * @param str other object
+	 * @return own object
 	 */
 	virtual IValueHolderPattern& operator = (const IValueHolderPattern& str)
-	{ value= str.getValue(); lastChanging= str.getTime(); return *this; };
+	{ setTimeValue(str); return *this; };
+	/**
+	 * copy constructor
+	 *
+	 * @param str other object
+	 * @return own object
+	 */
+	virtual IValueHolderPattern& operator = (const auto_ptr<IValueHolderPattern> str)
+	{ setTimeValue(*str.get()); return *this; };
+	/**
+	 * copy constructor
+	 *
+	 * @param str other object
+	 * @return own object
+	 */
+	virtual IValueHolderPattern& operator = (const SHAREDPTR::shared_ptr<IValueHolderPattern> str)
+	{ setTimeValue(*str.get()); return *this; };
+	/**
+	 * setter method for value with time
+	 *
+	 * @param str setting value
+	 */
+	virtual void setTimeValue(const IValueHolderPattern& str)
+	{ value= str.getValue(); lastChanging= str.getTime(); };
 	/**
 	 * setter method for value
 	 *

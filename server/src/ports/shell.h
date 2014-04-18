@@ -51,7 +51,7 @@ public:
 	 * @param actValue current value
 	 * @return return measured value
 	 */
-	virtual IValueHolderPattern& measure(const ppi_value& actValue);
+	virtual auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue);
 	/**
 	 * set subroutine for output doing actions
 	 *

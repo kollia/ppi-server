@@ -59,8 +59,13 @@ namespace ports
 		ExternPort::setDebug(bDebug);
 	}
 
-	IValueHolderPattern& LircPort::measure(const ppi_value& actValue)
+	auto_ptr<IValueHolderPattern> LircPort::measure(const ppi_value& actValue)
 	{
+		auto_ptr<IValueHolderPattern> oMeasureValue;
+
+#ifdef DEBUG_ACTIVATEDLIRCOUTPUT
+		m_bWritten= false;
+#endif // DEBUG_ACTIVATEDLIRCOUTPUT
 		//Debug info to stop by right subroutine
 		/*if(	getFolderName() == "SONY_CMT_MINUS_CP100_KEY_CHANNELUP" &&
 			getSubroutineName() == "send_once"	)
@@ -68,11 +73,8 @@ namespace ports
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
 		}*/
-#ifdef DEBUG_ACTIVATEDLIRCOUTPUT
-		m_bWritten= false;
-#endif // DEBUG_ACTIVATEDLIRCOUTPUT
 
-		ExternPort::measure(actValue);
+		oMeasureValue= ExternPort::measure(actValue);
 
 #ifdef DEBUG_ACTIVATEDLIRCOUTPUT
 		double dbef;
@@ -113,7 +115,7 @@ namespace ports
 				}
 		}
 #endif // DEBUG_ACTIVATEDLIRCOUTPUT
-		return m_oMeasureValue;
+		return oMeasureValue;
 	}
 
 	bool LircPort::write(const string& chipID, const double value, string& addinfo)

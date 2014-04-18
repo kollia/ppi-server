@@ -270,10 +270,10 @@ namespace ports
 
 		public:
 			/**
-			 * creating object of extendet class
+			 * creating object of extended class
 			 *
-			 * @param type type of the current subroutine (extendet class)
-			 * @param folder name of the folder in which this soubroutine running
+			 * @param type type of the current subroutine (extended class)
+			 * @param folder name of the folder in which this subroutine running
 			 * @param subroutine name from this subroutine
 			 * @param objectID count of folder when defined inside an object, otherwise 0
 			 */
@@ -318,7 +318,7 @@ namespace ports
 			 */
 			virtual bool hasSubVar(const string& subvar) const;
 			/**
-			 * return content of sub-variable from aktual subroutine
+			 * return content of sub-variable from actual subroutine
 			 *
 			 * @subvar name of sub-variable
 			 * @return value of sub-var
@@ -452,7 +452,7 @@ namespace ports
 			 * @param actValue current value
 			 * @return measured value with last changing time when not changed by self
 			 */
-			virtual IValueHolderPattern& measure(const ppi_value& actValue)=0;
+			virtual auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue)=0;
 			/**
 			 * get value from subroutine
 			 *
@@ -460,7 +460,7 @@ namespace ports
 			 * 				This time only defined for external reading over OwPort's.
 			 * @return current value with last changing time
 			 */
-			virtual IValueHolderPattern& getValue(const string& who);
+			virtual auto_ptr<IValueHolderPattern> getValue(const string& who);
 			/**
 			 * set value in subroutine.<br />
 			 * All strings from parameter 'from' beginning with an one character type,
@@ -560,16 +560,6 @@ namespace ports
 			boost::regex m_oToFolderExp;
 			boost::regex m_oToSubExp;
 #endif // __followSETbehaviorToFolder
-			/**
-			 * value from last pass inside <code>measure()</code> method.<br />
-			 * need to hold as reference for return value
-			 */
-			ValueHolder m_oMeasureValue;
-			/**
-			 * value from last <code>getValue</code> method.<br />
-			 * need to hold as reference for return value
-			 */
-			ValueHolder m_oGetValue;
 
 			static void lockApplication(bool bSet);
 			/**
@@ -599,7 +589,7 @@ namespace ports
 			 * @param bCountDown whether getting linked value is an count down (only for TIMER subroutines) do not inform liked values
 			 * @return true when the value is from an other subroutine, else false
 			 */
-			bool getLinkedValue(const string& type, ValueHolder& val, const double& maxCountDownValue= 0);
+			bool getLinkedValue(const string& type, auto_ptr<IValueHolderPattern>& val, const double& maxCountDownValue= 0);
 			/**
 			 * return message header with folder and subroutine name
 			 * and also error or warning type when parameter be set

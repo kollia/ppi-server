@@ -86,7 +86,7 @@ namespace ports
 		 * @param actValue current value
 		 * @return return measured value
 		 */
-		virtual IValueHolderPattern& measure(const ppi_value& actValue);
+		virtual auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue);
 		/**
 		 * write chip id and value to port server.<br />
 		 * This method is called from method <code>measure()</code>
@@ -115,7 +115,7 @@ namespace ports
 		 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request
 		 * @return current value with last changing time
 		 */
-		virtual IValueHolderPattern& getValue(const string who);
+		virtual auto_ptr<IValueHolderPattern> getValue(const string who);
 		/**
 		 * check whether subroutine need an external owreader server
 		 *

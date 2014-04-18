@@ -223,12 +223,15 @@ namespace ports
 		return true;
 	}
 
-	IValueHolderPattern& ExternPort::measure(const ppi_value& actValue)
+	auto_ptr<IValueHolderPattern> ExternPort::measure(const ppi_value& actValue)
 	{
 		bool access, debug, bsetNewValue(false);
 		double value(0);
 		string addinfo;
+		ValueHolder oMeasureValue;
+		auto_ptr<IValueHolderPattern> oRv;
 
+		oRv= auto_ptr<IValueHolderPattern>(new ValueHolder());
 		debug= isDebug();
 		//Debug info to stop by right subroutine
 		/*if(	getFolderName() == "readVellemann0" &&
@@ -252,9 +255,10 @@ namespace ports
 			}
 			if(!m_pOWServer)
 			{
-				m_oMeasureValue.value= 0;
-				m_oMeasureValue.lastChanging.clear();
-				return m_oMeasureValue;
+				oMeasureValue.value= 0;
+				oMeasureValue.lastChanging.clear();
+				(*oRv)= oMeasureValue;
+				return oRv;
 			}
 			registerSubroutine();
 		}
@@ -304,7 +308,7 @@ namespace ports
 
 			if(!m_bDoSwitch)
 				m_dLastWValue= actValue;
-			m_dLastWValue= switchClass::measure(m_dLastWValue).getValue();
+			m_dLastWValue= switchClass::measure(m_dLastWValue)->getValue();
 			if(	!m_bDoSwitch ||
 				m_dLastWValue != 0	)
 			{
@@ -339,33 +343,34 @@ namespace ports
 			}
 		}
 
-		m_oMeasureValue.value= value;
-		return m_oMeasureValue;
+		oMeasureValue.value= value;
+		(*oRv)= oMeasureValue;
+		return oRv;
 	}
 
-	IValueHolderPattern& ExternPort::getValue(const string who)
+	auto_ptr<IValueHolderPattern> ExternPort::getValue(const string who)
 	{
 		int nvalue;
 		double value;
+		auto_ptr<IValueHolderPattern> oGetValue;
 
 		if(!onlySwitch())
 			return portBase::getValue(who);
+		oGetValue= portBase::getValue(who);
 		if(who.substr(0, 2) == "i:")
 		{
-			m_oGetValue= portBase::getValue(who);
-			if(m_oGetValue.value)
-				m_oGetValue.value= 1;
+			if(oGetValue->getValue())
+				oGetValue->setValue(1);
 			else
-				m_oGetValue.value= 0;
-			return m_oGetValue;
+				oGetValue->setValue(0);
+			return oGetValue;
 		}
-		m_oGetValue= portBase::getValue(who);
-		value= (int)m_oGetValue.value;
+		value= (int)oGetValue->getValue();
 		nvalue= (int)value;
 		nvalue&= 0x01;
-		m_oGetValue.value= static_cast<ppi_value>(nvalue);
-		portBase::setValue(m_oGetValue, who);
-		return m_oGetValue;
+		oGetValue->setValue(static_cast<ppi_value>(nvalue));
+		portBase::setValue(*oGetValue.get(), who);
+		return oGetValue;
 	}
 
 	ExternPort::~ExternPort()
