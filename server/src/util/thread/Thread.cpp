@@ -107,7 +107,6 @@ int Thread::start(void *args, bool bHold)
 		mutex_unlock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
 		pthread_attr_init(&attr);
 		nRv= pthread_create (&m_nPosixThreadID, &attr, Thread::EntryPoint, this);
-		setSchedulingParameter(m_nSchedPolicy, m_nSchedPriority);
 		if(nRv != 0)
 		{
 			LOGEX(LOG_ALERT, "Error by creating thread " + threadName + "\n      -> does not start thread", m_pExtLogger);
@@ -115,6 +114,9 @@ int Thread::start(void *args, bool bHold)
 			m_eErrorType= BASIC;
 			m_nErrorCode= -1;
 			mutex_unlock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
+			mutex_lock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
+			m_bStop= true;
+			mutex_unlock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
 			return -1;
 		}
 		if(bHold)
@@ -312,7 +314,8 @@ bool Thread::setSchedulingParameter(int policy, int priority)
 			switch(res)
 			{
 			case ESRCH:
-				msg2= "No thread for given ID could be found";
+				smsg2 << m_nPosixThreadID;
+				msg2= "No thread for given ID [" + smsg2.str() + "]could be found";
 				break;
 			case EINVAL:
 				smsg2 << priority;
@@ -354,6 +357,7 @@ void Thread::run()
 	int err;
 
 	try{
+		setSchedulingParameter(m_nSchedPolicy, m_nSchedPriority);
 		m_nThreadId= gettid();
 		initstatus(thname, this);
 		startmsg+= thname + "'";
@@ -564,11 +568,11 @@ void *Thread::EntryPoint(void *pthis)
 	try{
 		pt= (Thread*)pthis;
 		pt->run();
+		//POS("###THREAD_execute_stop");
+		mutex_lock(__FILE__, __LINE__, pt->m_STARTSTOPTHREAD, pt->m_pExtLogger);
 		mutex_lock(__FILE__, __LINE__, pt->m_RUNTHREAD, pt->m_pExtLogger);
 		pt->m_bRun= false;
 		mutex_unlock(__FILE__, __LINE__, pt->m_RUNTHREAD, pt->m_pExtLogger);
-		//POS("###THREAD_execute_stop");
-		mutex_lock(__FILE__, __LINE__, pt->m_STARTSTOPTHREAD, pt->m_pExtLogger);
 		AROUSE(pt->m_STARTSTOPTHREADCOND);
 		mutex_unlock(__FILE__, __LINE__, pt->m_STARTSTOPTHREAD, pt->m_pExtLogger);
 
@@ -1666,8 +1670,10 @@ int Thread::stop(const bool *bWait)
 	int nRv;
 //	LogInterface* log= LogInterface::instance();
 
-	mutex_lock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
+	// before lock STARTSTOPTHREAD mutex lock SLEEPMUTEX
+	// because otherwise deadlock can be occured
 	mutex_lock(__FILE__, __LINE__, m_SLEEPMUTEX, m_pExtLogger);
+	mutex_lock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
 	arouseAllCondition(__FILE__, __LINE__, m_SLEEPCOND, m_pExtLogger);
 	mutex_unlock(__FILE__, __LINE__, m_SLEEPMUTEX, m_pExtLogger);
 	m_bStop= true;
