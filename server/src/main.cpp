@@ -198,6 +198,7 @@ int main(int argc, char* argv[])
 //#define __SIMPLE_SERVER_CLIENT_CONNECTION
 //#define __PARAMETER_METHOD_STRINGSTREAM
 //#define __CALENDAR_DEFINITIONS
+//#define __EXCEPTION_HANDLING
 
 #ifdef __MAKE_CALCULATER_TESTS
 #define __MAKE_TESTS
@@ -217,6 +218,9 @@ int main(int argc, char* argv[])
 #ifdef  __CALENDAR_DEFINITIONS
 #define __MAKE_TESTS
 #endif
+#ifdef __EXCEPTION_HANDLING
+#define __MAKE_TESTS
+#endif // __EXCEPTION_HANDLING
 
 #ifdef __MAKE_TESTS
 // some includes needed for tests method
@@ -234,6 +238,9 @@ int main(int argc, char* argv[])
 // for MethodStringStream tests
 #include "util/stream/IMethodStringStream.h"
 #include "util/stream/OMethodStringStream.h"
+// for checking exception handling
+#include "util/structures.h"
+#include "util/exception.h"
 #endif // __MAKE_TESTS
 
 #ifdef __CHECK_THREAD_CREATION
@@ -255,7 +262,7 @@ int main(int argc, char* argv[])
 		virtual short runnable()
 		{
 			++m_count;
-			cout << "running thread " << m_count << endl;
+			cout << "running thread " << m_count << " [" << Thread::gettid() << "]" << endl;
 			return 1;
 		};
 	};
@@ -471,6 +478,33 @@ void tests(const string& workdir, int argc, char* argv[])
 		Calendar::calcDate(newer, t, 2, 'Y');
 #endif // __CALENDAR_DEFINITIONS
 
+#ifdef __EXCEPTION_HANDLING
+
+		convert_t* var;
+
+		//abort();
+		try{
+			cout << flush;
+			cout << "time be set " << boolalpha << var->bSetTime << endl;
+		}catch(SignalException& ex)
+		{
+			ex.printTrace();
+			try{
+				int i= 3;
+				cout << "second time be set " << boolalpha << var->bSetTime << endl;
+			}catch(SignalException& ex)
+			{
+				ex.printTrace();
+			}catch(...)
+			{
+				cout << "get uncaught Exception" << endl;
+			}
+		}catch(...)
+		{
+			cout << "get uncaught Exception" << endl;
+		}
+
+#endif // __EXCEPTION_HANDLING
 #ifdef __MAKE_TESTS
 		exit(0);
 #endif // __MAKE_TESTS
