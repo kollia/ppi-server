@@ -303,6 +303,15 @@ private:
 	 */
 	void readLine(const bool& bWait, const bool& bDebug, string sline);
 	/**
+	 * generate error for subroutine
+	 *
+	 * @param errorLevelString ERRORLEVEL string from script generated on ending
+	 * @param qLastErrRows last script output rows before occurred error
+	 * @param bWait whether subroutine waiting for results
+	 * @param bDebug whether subroutine running inside debugging session
+	 */
+	void generateError(const string& errorLevelString, const deque<string>& qLastRows, bool bWait, bool bDebug);
+	/**
 	 * define error from method setValue
 	 * into result and when allowed to write into log files
 	 * also for logging queue

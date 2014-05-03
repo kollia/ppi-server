@@ -25,6 +25,7 @@
 #include <cstring>
 #include <cmath>
 
+#include "../database/logger/lib/logstructures.h"
 #include "../pattern/util/LogHolderPattern.h"
 
 #include "debugsubroutines.h"
@@ -510,10 +511,11 @@ int CommandExec::execute()
 			sline+= "ERRNO: " + *strerror(errno);
 			cerr << sline << endl;
 			LOGEX(LOG_ERROR, sline, m_pSendLog);
+			generateError(sLastErrorlevel, qLastRows, bWait, bDebug);
 			LOCK(m_WAITMUTEX);
 			m_sCommand= "";
 			UNLOCK(m_WAITMUTEX);
-			return -1;
+			return 0;
 		};
 		LOCK(m_WAITMUTEX);
 		bWaitMutex= true;
@@ -593,74 +595,7 @@ int CommandExec::execute()
 		if(	sLastErrorlevel != "" ||
 			bCloseError				)
 		{
-			int nRv;
-			istringstream oline(sLastErrorlevel);
-			ostringstream iline;
-
-			LOCK(m_RESULTMUTEX);
-			bResultMutex= true;
-			if(!m_qOutput.empty())
-			{
-				sline= m_qOutput.back();
-				if(	sline.length() >  12 &&
-					sline.substr(0, 12) == "-ERRORLEVEL "	)
-				{
-					m_qOutput.pop_back();
-				}
-			}
-			if(sLastErrorlevel != "")
-			{
-				oline >> sline; // string of 'ERRORLEVEL' not needed
-				oline >> nRv;
-				if(	nRv == 0 &&
-					bCloseError	)
-				{
-					nRv= -127;
-				}else// all error levels be lower than 0
-					nRv*= -1;
-			}else
-				nRv= -127;
-			iline << "PPI-DEF ERRORLEVEL " << nRv;
-			m_qOutput.push_back(iline.str());
-			UNLOCK(m_RESULTMUTEX);
-			bResultMutex= false;
-			if(	bWait == false &&		// when subroutine not waiting for result, send error value to subroutine
-				nRv != 0			)	// 0 is no error so running command was send by starting of shell script
-			{
-				ostringstream setErrorlevel;
-				ppi_time acttime;
-
-				setErrorlevel << "PPI-SET ";
-				if(acttime.setActTime())
-					setErrorlevel << "-t " << acttime.toString(/*as date*/false) << " ";
-				setErrorlevel << m_sFolder << ":" << m_sSubroutine << " " << nRv;
-				setValue(setErrorlevel.str(), bDebug);
-			}
-			if(	m_bLogError &&
-				nRv != 0		)
-			{
-				ostringstream msg;
-
-				msg << "shell script \"" << orgCommand << "\"" << endl;
-				msg << "from folder '" << m_sFolder << "' and subroutine '" << m_sSubroutine << "'";
-				msg << " ending with error " << nRv << endl << endl;
-				if(!qLastRows.empty())
-				{
-					for(deque<string>::iterator it= qLastRows.begin(); it != qLastRows.end(); ++it)
-						msg << "    " << *it;
-				}else
-					msg << "    no output from script";
-				LOGEX(LOG_ERROR, msg.str(), m_pSendLog);
-			}
-			if(	bWait ||
-				bDebug	)
-			{
-				LOCK(m_RESULTMUTEX);
-				bResultMutex= true;
-				m_qOutput.push_back("PPI-DEF " + sLastErrorlevel);
-				UNLOCK(m_RESULTMUTEX);
-				bResultMutex= false;
-			}
+			generateError(sLastErrorlevel, qLastRows, bWait, bDebug);
 		}
 	}catch(SignalException& ex)
 	{
@@ -682,6 +617,7 @@ int CommandExec::execute()
 			UNLOCK(m_RESULTMUTEX);
 		if(bOpenShell)
 			pclose(fp);
+		generateError(sLastErrorlevel, qLastRows, bWait, bDebug);
 
 	}catch(std::exception& ex)
 	{
@@ -703,6 +639,7 @@ int CommandExec::execute()
 			UNLOCK(m_RESULTMUTEX);
 		if(bOpenShell)
 			pclose(fp);
+		generateError(sLastErrorlevel, qLastRows, bWait, bDebug);
 
 	}catch(...)
 	{
@@ -723,12 +660,83 @@ int CommandExec::execute()
 			UNLOCK(m_RESULTMUTEX);
 		if(bOpenShell)
 			pclose(fp);
+		generateError(sLastErrorlevel, qLastRows, bWait, bDebug);
 	}
 	LOCK(m_WAITMUTEX);
 	m_sCommand= "";
 	AROUSEALL(m_WAITFORRUNGCONDITION);
 	UNLOCK(m_WAITMUTEX);
 	return 0;
+}
+
+void CommandExec::generateError(const string& errorLevelString, const deque<string>& qLastErrRows, bool bWait, bool bDebug)
+{
+	int nRv;
+	string sline;
+	istringstream oline(errorLevelString);
+	ostringstream iline;
+
+	LOCK(m_RESULTMUTEX);
+	if(!m_qOutput.empty())
+	{
+		sline= m_qOutput.back();
+		if(	sline.length() >  12 &&
+			sline.substr(0, 12) == "-ERRORLEVEL "	)
+		{
+			m_qOutput.pop_back();
+		}
+	}
+	if(errorLevelString != "")
+	{
+		oline >> sline; // string of 'ERRORLEVEL' not needed
+		oline >> nRv;
+		if(	nRv == 0 )
+		{
+			nRv= -127;
+		}else// all error levels be lower than 0
+			nRv*= -1;
+	}else
+		nRv= -127;
+	iline << "PPI-DEF ERRORLEVEL " << nRv;
+	m_qOutput.push_back(iline.str());
+	UNLOCK(m_RESULTMUTEX);
+	if(	bWait == false &&		// when subroutine not waiting for result, send error value to subroutine
+		nRv != 0			)	// 0 is no error so running command was send by starting of shell script
+	{
+		ostringstream setErrorlevel;
+		ppi_time acttime;
+
+		setErrorlevel << "PPI-SET ";
+		if(acttime.setActTime())
+			setErrorlevel << "-t " << acttime.toString(/*as date*/false) << " ";
+		setErrorlevel << m_sFolder << ":" << m_sSubroutine << " " << nRv;
+		setValue(setErrorlevel.str(), bDebug);
+	}
+	if(	m_bLogError &&
+		nRv != 0		)
+	{
+		ostringstream msg;
+
+		LOCK(m_WAITMUTEX);
+		msg << "shell script \"" << m_sCommand << "\"" << endl;
+		UNLOCK(m_WAITMUTEX);
+		msg << "from folder '" << m_sFolder << "' and subroutine '" << m_sSubroutine << "'";
+		msg << " ending with error " << nRv << endl << endl;
+		if(!qLastErrRows.empty())
+		{
+			for(deque<string>::const_iterator it= qLastErrRows.begin(); it != qLastErrRows.end(); ++it)
+				msg << "    " << *it;
+		}else
+			msg << "    no output from script";
+		LOGEX(LOG_ERROR, msg.str(), m_pSendLog);
+	}
+	if(	bWait ||
+		bDebug	)
+	{
+		LOCK(m_RESULTMUTEX);
+		m_qOutput.push_back("PPI-DEF " + errorLevelString);
+		UNLOCK(m_RESULTMUTEX);
+	}
 }
 
 void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
