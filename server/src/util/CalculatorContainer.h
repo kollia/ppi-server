@@ -122,13 +122,6 @@ public:
 	 */
 	virtual void doOutput(const bool write);
 	/**
-	 * return whether output is set
-	 *
-	 * @return whether output is set
-	 */
-	virtual bool doOutput() const
-	{ return m_bOutput; };
-	/**
 	 * calculate the two double values
 	 * with the operator
 	 *
@@ -243,6 +236,13 @@ protected:
 	 * @param msg string of message
 	 */
 	virtual void output(bool bError, const string& file, const int line, const string& msg);
+	/**
+	 * return whether output is set
+	 *
+	 * @return whether output is set
+	 */
+	virtual bool doOutput() const
+	{ return m_bOutput; };
 	/**
 	 * direct output called from method <code>output()</code>
 	 *

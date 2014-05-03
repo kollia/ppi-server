@@ -36,6 +36,7 @@ ListCalculator::ListCalculator(const string& folder, const string& subroutine, c
   m_sParameter(param),
   m_oOutput(obj)
 {
+	m_CALCUALTEMUTEX= Thread::getMutex("CALCUALTEMUTEX");
 	allowComparison(true);
 	allowIfSentence(true);
 }
@@ -134,7 +135,7 @@ bool ListCalculator::render()
 {
 	bool output, bRv;
 
-	output= doOutput();
+	output= CalculatorContainer::doOutput();
 	doOutput(true);
 	bRv= CalculatorContainer::render();
 	doOutput(output);
@@ -158,8 +159,13 @@ void ListCalculator::clearTime()
 
 bool ListCalculator::calculate(double& dResult)
 {
+	bool bRv;
+
+	LOCK(m_CALCUALTEMUTEX);
 	clearTime();
-	return CalculatorContainer::calculate(dResult);
+	bRv= CalculatorContainer::calculate(dResult);
+	UNLOCK(m_CALCUALTEMUTEX);
+	return bRv;
 }
 
 void ListCalculator::output(bool bError, const string& file, const int line, const string& msg)
@@ -342,10 +348,12 @@ SHAREDPTR::shared_ptr<IListObjectPattern> ListCalculator::getSubroutine(string* 
 
 ppi_time ListCalculator::getLastChanging()
 {
-	ppi_time nRv(getLastChangingI());
+	ppi_time nRv;
 
-	if(	doOutput() &&
-		m_oOutput->needChangingTime()	)
+	LOCK(m_CALCUALTEMUTEX);
+	nRv= getLastChangingI();
+	if(	CalculatorContainer::doOutput() &&
+		m_oOutput->needChangingTime()		)
 	{
 		if(nRv.isSet())
 		{
@@ -354,6 +362,7 @@ ppi_time ListCalculator::getLastChanging()
 		}else
 			m_oOutput->out() << "no last changing time be set" << endl;
 	}
+	UNLOCK(m_CALCUALTEMUTEX);
 	return nRv;
 }
 
@@ -373,7 +382,7 @@ ppi_time ListCalculator::getLastChangingI()
 				!m_nLastChange.isSet()			)	)
 		{
 			m_nLastChange= lastChange;
-			if(doOutput())
+			if(CalculatorContainer::doOutput())
 				m_sLastChangingSub= container->m_sLastChangingSub;
 		}
 	}
@@ -415,7 +424,7 @@ bool ListCalculator::variable(string* var, double& dResult)
 					!m_nLastChange.isSet()					)	)
 			{
 				m_nLastChange= result.lastChanging;
-				if(doOutput())
+				if(CalculatorContainer::doOutput())
 					m_sLastChangingSub= oSub->getFolderName() + ":" + oSub->getSubroutineName();
 			}
 			dResult= result.value;
@@ -431,7 +440,7 @@ bool ListCalculator::variable(string* var, double& dResult)
 					!m_nLastChange.isSet()					)	)
 			{
 				m_nLastChange= result.lastChanging;
-				if(doOutput())
+				if(CalculatorContainer::doOutput())
 					m_sLastChangingSub= found->second->getFolderName() + ":" + found->second->getSubroutineName();
 			}
 			dResult= result.value;
@@ -449,6 +458,7 @@ void ListCalculator::activateObserver(IMeasurePattern* observer)
 
 	if(isEmpty())
 		return;
+	LOCK(m_CALCUALTEMUTEX);
 	inform= getVariables();
 	for(vector<string>::const_iterator it= inform.begin(); it != inform.end(); ++it)
 	{
@@ -473,6 +483,7 @@ void ListCalculator::activateObserver(IMeasurePattern* observer)
 		if(found != NULL)
 			found->informObserver(observer, m_sFolder, m_sSubroutine, m_sParameter);
 	}
+	UNLOCK(m_CALCUALTEMUTEX);
 }
 
 void ListCalculator::setSubVar(string var, const double* val)
@@ -481,6 +492,7 @@ void ListCalculator::setSubVar(string var, const double* val)
 	ListCalculator* container;
 	vector<ICalculatorPattern*> childs;
 
+	LOCK(m_CALCUALTEMUTEX);
 	split(spl, var, is_any_of(":"));
 	if(spl.size() == 1)
 		var= m_sFolder+":"+var;
@@ -494,6 +506,7 @@ void ListCalculator::setSubVar(string var, const double* val)
 		container= dynamic_cast<ListCalculator*>(*it);
 		container->setSubVar(var, val);
 	}
+	UNLOCK(m_CALCUALTEMUTEX);
 }
 
 void ListCalculator::removeObserver(IMeasurePattern* observer)
@@ -504,6 +517,7 @@ void ListCalculator::removeObserver(IMeasurePattern* observer)
 
 	if(isEmpty())
 		return;
+	LOCK(m_CALCUALTEMUTEX);
 	inform= getVariables();
 	for(vector<string>::const_iterator it= inform.begin(); it != inform.end(); ++it)
 	{
@@ -512,4 +526,5 @@ void ListCalculator::removeObserver(IMeasurePattern* observer)
 		if(found != NULL)
 			found->removeObserver(observer, m_sFolder, m_sSubroutine, m_sParameter);
 	}
+	UNLOCK(m_CALCUALTEMUTEX);
 }

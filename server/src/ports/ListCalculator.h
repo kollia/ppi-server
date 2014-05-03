@@ -149,7 +149,24 @@ public:
 	 * clear all setting variables which set with setSubVar()
 	 */
 	void clearSubVars()
-	{ m_msSubVars.clear(); };
+	{ 	LOCK(m_CALCUALTEMUTEX);
+		m_msSubVars.clear();
+		UNLOCK(m_CALCUALTEMUTEX);	};
+	/**
+	 * write calculation output over message function getting in constructor.<br />
+	 * Default setting is <code>false</code>.
+	 *
+	 * @param write wheter should write
+	 */
+	virtual void doOutput(const bool write)
+	{ 	LOCK(m_CALCUALTEMUTEX);
+		CalculatorContainer::doOutput(write);
+		UNLOCK(m_CALCUALTEMUTEX);	};
+	/**
+	 * destructor of object
+	 */
+	virtual ~ListCalculator()
+	{ DESTROYMUTEX(m_CALCUALTEMUTEX); };
 
 protected:
 	/**
@@ -212,6 +229,10 @@ protected:
 	 * subroutine object to writing into terminal for output on command line
 	 */
 	IListObjectPattern* m_oOutput;
+	/**
+	 * mutex for thread-safe calculation
+	 */
+	pthread_mutex_t* m_CALCUALTEMUTEX;
 
 	/**
 	 * creating of new objects of CalculatorContainer
