@@ -28,6 +28,7 @@
 #include "../util/exception.h"
 #include "../util/thread/Terminal.h"
 
+#include "../database/logger/lib/logstructures.h"
 #include "../pattern/util/LogHolderPattern.h"
 
 #include "shell.h"
