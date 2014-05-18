@@ -592,8 +592,9 @@ int CommandExec::execute()
 				qLastRows.pop_front();
 			readLine(bWait, bDebug, sline);
 		}
-		if(	sLastErrorlevel != "" ||
-			bCloseError				)
+		if(	bCloseError ||
+			(	sLastErrorlevel != "" &&
+				sLastErrorlevel != "ERRORLEVEL 0"	)	)
 		{
 			generateError(sLastErrorlevel, qLastRows, bWait, bDebug);
 		}
