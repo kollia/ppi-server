@@ -612,7 +612,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 						out() << " less ";
 					else
 						out() << " more ";
-					out() << "seconds after exact stopping subroutine before" << endl;
+					out() << "seconds after want exact stopping" << endl;
 					out() << "          need " << MeasureThread::getTimevalString(wrong, /*as date*/false, debug);
 					if(wless)
 						out() << " less ";
