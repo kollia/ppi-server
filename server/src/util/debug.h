@@ -100,8 +100,14 @@
 // who is not defined with getMutex("<name>") it showes an error message
 // mutex undefined. If an mutex be set in MUTEXLOCKDEBUG which not exist
 // no mutex be showen, only if an error messages occures for any mutex or it is not defined
-//#define MUTEXLOCKDEBUG "xyz" //NEXTCOMMUNICATION THREADSAVEMETHODS"
+//#define MUTEXLOCKDEBUG "xyz" //STARTSTOPTHREAD SLEEPMUTEX"
 #endif //MUTEXLOCKDEBUG
+
+#ifndef MUTEXCREATEDEBUG
+// same behivior as MUTEXLOCKDEBUG
+// but show creation and destroying of mutex or condition
+//#define MUTEXCREATEDEBUG "STARTSTOPTHREAD SLEEPMUTEX"
+#endif // MUTEXCREATEDEBUG
 
 #ifndef _LIRCCLIENTLIBRARY
 //#define _LIRCCLIENTLIBRARY
