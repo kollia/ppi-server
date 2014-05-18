@@ -73,9 +73,10 @@ namespace ppi_database
 		/**
 		 * read database on hard disk
 		 *
+		 * @param load show loading progress on command line
 		 * @return whether can read or create database
 		 */
-		virtual bool read();
+		virtual bool read(bool load= false);
 		/**
 		 * read all actually state of subroutine inside given subroutines fromsub with value from
 		 * to subroutine tosub and value to

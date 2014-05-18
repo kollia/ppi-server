@@ -35,12 +35,14 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include "../logger/lib/logstructures.h"
 #include "Database.h"
 
 #include "../../util/URL.h"
 #include "../../util/Calendar.h"
 #include "../../util/exception.h"
 #include "../../util/properties/configpropertycasher.h"
+#include "../../util/stream/ppivalues.h"
 
 #include "../../pattern/util/LogHolderPattern.h"
 
@@ -102,9 +104,12 @@ namespace ppi_database
 			LOG(LOG_WARNING, msg);
 			nSleepAll= 1000;
 		}
-		m_oDbThinning= std::auto_ptr<DatabaseThinning>(new DatabaseThinning(m_sWorkDir,
-												chipreader, static_cast<__useconds_t>(nSleepAll)));
-		m_oDbThinning->start();
+		if(chipreader)
+		{
+			m_oDbThinning= std::auto_ptr<DatabaseThinning>(new DatabaseThinning(m_sWorkDir,
+													chipreader, static_cast<__useconds_t>(nSleepAll)));
+			m_oDbThinning->start();
+		}
 	}
 
 	void Database::setServerConfigureStatus(const string& sProcess, const short& nPercent)
@@ -144,7 +149,7 @@ namespace ppi_database
 		return bRv;
 	}
 
-	bool Database::read()
+	bool Database::read(bool load/*= false*/)
 	{
 		typedef vector<pair<pair<pair<string, string>, double>, pair<pair<string, string>, double> > >::iterator readVector;
 		char stime[16];
@@ -156,8 +161,14 @@ namespace ppi_database
 		bool bNew= false;
 		off_t size, loaded;
 		map<string, string> files;
+		ppi_time curLoad, newTime;
 
-
+		if(load)
+		{
+			curLoad.setActTime();
+			cout << endl;
+			cout << " read database " << flush;
+		}
 		m_sDbFile= getLastDbFile(m_sWorkDir, "entrys_", size);
 		LOCK(m_SERVERSTARTINGMUTEX);
 		m_nDbSize= size;
@@ -277,6 +288,16 @@ namespace ppi_database
 						}
 					}
 				}
+				if(load)
+				{
+					newTime.setActTime();
+					if(newTime > curLoad)
+					{
+						cout << "." << flush;
+						curLoad= newTime;
+						++curLoad.tv_sec;
+					}
+				}
 			}
 			file.close();
 		}
@@ -286,7 +307,8 @@ namespace ppi_database
 		}
 		line= "reading of database file " + m_sDbFile + " is finished";
 		LOG(LOG_INFO, line);
-		m_oDbThinning->startDatabaseThinning();
+		if(m_oDbThinning.get())
+			m_oDbThinning->startDatabaseThinning();
 
 //	for debugging write out current content of database before ending
 #if 0
@@ -322,6 +344,8 @@ namespace ppi_database
 		}
 		UNLOCK(m_DBCURRENTENTRY);
 #endif
+		if(load)
+			cout << " OK" << endl;
 		return true;
 	}
 
