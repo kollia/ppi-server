@@ -44,12 +44,12 @@ public:
 	 * constructor to initial timeval with 0
 	 */
 	ppi_time()
-	{ tv_sec= 0; tv_usec= 0; };
+	{ tv_sec= 0; tv_usec= 0; m_nErrno= 0; };
 	/**
 	 * copy constructor to initial object with new timeval
 	 */
 	ppi_time(const timeval& time)
-	{ tv_sec= time.tv_sec; tv_usec= time.tv_usec; };
+	{ tv_sec= time.tv_sec; tv_usec= time.tv_usec; m_nErrno= 0; };
 	/**
 	 * copy operator
 	 */
@@ -124,6 +124,17 @@ public:
 	 */
 	string toString(const bool& bDate) const;
 	/**
+	 * read a string representation of time.<br />
+	 * formating see man pages from strptime.<br />
+	 * on format string is possible to write %N
+	 * to read milliseconds and microseconds
+	 * on ending of time string
+	 *
+	 * @param str string of time definition
+	 * @param format formating of string
+	 */
+	bool read(const string& str, string format);
+	/**
 	 * sending back ERRNO definition for <code>setActTime()</code>
 	 * or <code>toString()</code> when failed
 	 *
@@ -143,6 +154,10 @@ private:
 	 * or <code>gettimeofday()</code> inside <code>setActTime()</code> fail
 	 */
 	mutable int m_nErrno;
+	/**
+	 * self setting error string when an error occurred but mo errno be set
+	 */
+	mutable string m_sError;
 };
 
 /**

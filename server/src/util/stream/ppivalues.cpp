@@ -22,6 +22,9 @@
 
 #include <sstream>
 
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/classification.hpp>
+
 #include "ppivalues.h"
 
 
@@ -114,6 +117,8 @@ bool ppi_time::setActTime()
 {
 	bool bRv(true);
 
+	m_nErrno= 0;
+	m_sError= "";
 	if(gettimeofday(this, NULL))
 	{
 		m_nErrno= errno;
@@ -143,6 +148,7 @@ string ppi_time::toString(const bool& bDate) const
 	ostringstream stream, sRv;
 
 	m_nErrno= 0;
+	m_sError= "";
 	if(bDate)
 	{
 		if(localtime_r(&tv_sec, &ttime) != NULL)
@@ -165,6 +171,88 @@ string ppi_time::toString(const bool& bDate) const
 	return sRv.str();
 }
 
+bool ppi_time::read(const string& str, string format)
+{
+	struct tm ttm;
+	const char* cstr(str.c_str());
+	char* res;
+	time_t tm_unix;
+	string::size_type found;
+
+	m_nErrno= 0;
+	m_sError= "";
+	found= format.find("%N");
+	if(found != string::npos)
+	{
+		format= format.erase(found, found+1);
+		boost::trim(format);
+	}
+	ttm.tm_isdst= -1;
+	res= strptime(cstr, format.c_str(), &ttm);
+	if(	res == NULL ||
+		res == cstr		)// first character of string
+	{
+		m_nErrno= errno;
+		if(m_nErrno == 0)
+		{
+			m_nErrno= -1;
+			m_sError= "cannot convert date from string '" + str + "'";
+		}
+		clear();
+		return false;
+	}
+	tm_unix= mktime(&ttm);
+	if(tm_unix < 0)
+	{
+		m_nErrno= errno;
+		if(m_nErrno == 0)
+		{
+			m_nErrno= -2;
+			m_sError= "mktime() cannot make correct date from tm structure";
+		}
+		clear();
+		return false;
+	}
+	tv_sec= tm_unix;
+	if(*res != '\0')
+	{
+		istringstream instr;
+		ostringstream outstr;
+		__suseconds_t usec;
+		string::size_type nLen, nCount(0);
+		const string::size_type needDigs(6);
+
+		while(	*res != '\0' &&
+				!isdigit(*res)	)
+		{
+			++res;
+		}
+		instr.str(string(res));
+		instr >> usec;
+		if(usec == 0)
+		{
+			m_nErrno= -3;
+			m_sError= "cannont read '<milliceconds[microseconds]>' after time string";
+			return false;
+		}
+		outstr << usec;
+		nLen= outstr.str().length();
+		if(nLen < needDigs)
+			nCount= needDigs - nLen;
+		else if(nLen > needDigs)
+			nCount= nLen - needDigs;
+		for(string::size_type c= 0; c < nCount; ++c)
+		{
+			if(nLen < needDigs)
+				usec*= 10;
+			else
+				usec/= 10;
+		}
+		tv_usec= usec;
+	}
+	return true;
+}
+
 int ppi_time::error() const
 {
 	return m_nErrno;
@@ -176,29 +264,37 @@ string ppi_time::errorStr() const
     char *err;
     size_t size;
 
-    size = 1024;
-    err = static_cast<char*>(malloc(size));
-    if (err != NULL)
+    if(m_sError != "")
     {
-		while (strerror_r(m_nErrno, err, size) != err && errno == ERANGE && errno != EINVAL)
+    	sRv << "ERRNO[" << -1 << "]: ";
+    	sRv << m_sError;
+
+    }else
+    {
+		size = 1024;
+		err = static_cast<char*>(malloc(size));
+		if (err != NULL)
 		{
-			size *= 2;
-			err = static_cast<char*>(realloc(err, size));
-			if (err == NULL)
-				break;
+			while (strerror_r(m_nErrno, err, size) != err && errno == ERANGE && errno != EINVAL)
+			{
+				size *= 2;
+				err = static_cast<char*>(realloc(err, size));
+				if (err == NULL)
+					break;
+			}
 		}
-    }
-	sRv << "ERRNO[" << m_nErrno << "]: ";
-	if(errno != EINVAL)
-	{
-		if(err != NULL)
+		sRv << "ERRNO[" << m_nErrno << "]: ";
+		if(errno != EINVAL)
 		{
-			sRv << *err;
-			free(err);
+			if(err != NULL)
+			{
+				sRv << err;
+				free(err);
+			}else
+				sRv << "cannot allocate enough character space for this ERROR description";
 		}else
-			sRv << "cannot allocate enough character space for this ERROR description";
-	}else
-		sRv << "The value of ERRNO is not a valid error number.";
+			sRv << "The value of ERRNO is not a valid error number.";
+    }
 	return sRv.str();
 }
 

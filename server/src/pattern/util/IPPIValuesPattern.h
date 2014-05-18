@@ -103,6 +103,17 @@ public:
 
 	virtual string toString(const bool& bDate) const= 0;
 	/**
+	 * read a string representation of time.<br />
+	 * formating see man pages from strptime.<br />
+	 * on format string is possible to write %N
+	 * to read milliseconds and microseconds
+	 * on ending of time string
+	 *
+	 * @param str string of time definition
+	 * @param format formating of string, see strptime
+	 */
+	bool read(const string& str, string format);
+	/**
 	 * dummy destructor
 	 */
 	virtual ~IPPITimePattern() {};
