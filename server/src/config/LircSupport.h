@@ -66,8 +66,7 @@ public:
 	/**
 	 * configuration for lirc settings
 	 *
-	 * @param argc count of values
-	 * @param argv values in an pointer array
+	 * @param params setting options and parameters by starting
 	 */
 	int execute(const ICommandStructPattern* params);
 	/**

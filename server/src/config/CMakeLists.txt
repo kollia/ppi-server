@@ -1,5 +1,6 @@
 
-set(configSrcs	configmain.cpp)
+set(configSrcs	configmain.cpp
+                DbTimeChecker.cpp  )
  
 if(USE_LircClient)
 	set(configSrcs ${configSrcs} LircSupport.cpp)

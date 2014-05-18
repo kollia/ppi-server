@@ -29,6 +29,7 @@
 
 #include "../pattern/util/LogHolderPattern.h"
 
+#include "DbTimeChecker.h"
 #include "LircSupport.h"
 #include "OwfsSupport.h"
 
@@ -58,6 +59,23 @@ int main(int argc, char* argv[])
 	params.option("info", "i", "show more information by writing output.");
 	params.option("debug", "d", "show debugging information by writing output.\n"
 									"also the information for option --info");
+
+	command= params.command("TIMECHECK", "check database file, created with ppi-server option --timerdblog,\n"
+					                   "whether reached precise time or different");
+	command->option("list", "l", "list all defined times inside database");
+	command->option("exactstop", "e", "make also list of times,\n"
+					"but show only time needed after exact stopping\n"
+					"and fault estimated time\n"
+					"(can be combined with option --reachend");
+	command->option("reachend", "r", "make also list of times,\n"
+					"but show only new estimated reaching end time\n"
+					"(can be combined with option --exactstop");
+	command->option("starting", "s", "show starting and ending times of server");
+	command->option("from", "f", true, "show list of times only since this given time\n"
+					"(can't be used with option --starting");
+	command->option("to", "t", true, "show list of times only to this given time\n"
+					"(can't be used with option --starting");
+	command->spaceline("");
 
 	command= params.command("LIRC", "create configuration for receiver and transmitter if set to fill in 'measure.conf'\n"
 									"and also corresponding layout files to copy into ppi-server client directory\n"
@@ -150,15 +168,20 @@ int main(int argc, char* argv[])
 	fileName= URL::addPath(sConfPath, "server.conf");
 	oServerProperties.setDelimiter("owreader", "[", "]");
 	oServerProperties.modifier("owreader");
+	oServerProperties.readLine("workdir= " + workdir);
 	if(!oServerProperties.readFile(fileName))
 	{
 		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
 		exit(EXIT_FAILURE);
 	}
-	oServerProperties.readLine("workdir= " + workdir);
 
+	if(commandname == "TIMECHECK")
+	{
+		DbTimeChecker checker(workdir);
 
-	if(commandname == "LIRC")
+		return checker.execute(commands, &oServerProperties);
+
+	}else if(commandname == "LIRC")
 	{
 		LircSupport lirc(workdir);
 
