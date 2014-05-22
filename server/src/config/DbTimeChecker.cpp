@@ -99,7 +99,7 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 		cout << "       is only allowed with option --list" << endl;
 		return EXIT_FAILURE;
 	}
-	m_bFolderSort= params->hasOption("foldersort");
+	m_bFolderSort= !params->hasOption("idsort");
 	m_bExactStopSort= params->hasOption("exacttimesort");
 	m_bEstimateTimeSort= params->hasOption("estimatetimesort");
 	if(	m_bExactStopSort &&
@@ -809,8 +809,8 @@ void DbTimeChecker::writeMinMax(const MinMaxTimes tmMinMax, bool bLast)
 					cout << "        reaching end differ from " << fixed << nMinLength << " to "
 									<< fixed << nMaxLength << " seconds " << endl;
 					cout << "            which is various differ of " << fixed << (nMaxLength - nMinLength) << " seconds" << endl;
-					if(tmMinMax.getCount() > 1)
-						cout << "            and has an average of " << tmMinMax.getAverageLength() << " seconds" << endl;
+					if(oFullTimes.getCount() > 1)
+						cout << "            and has an average of " << oFullTimes.getAverageLength() << " seconds" << endl;
 				}
 				if(	m_bListAll ||
 					m_bEstimated ||
@@ -819,8 +819,8 @@ void DbTimeChecker::writeMinMax(const MinMaxTimes tmMinMax, bool bLast)
 					cout << "        wrong estimation differ from " << fixed << nMinEstimate << " to "
 									<< nMaxEstimate << " seconds" << endl;
 					cout << "            highest wrong estimation " << fixed << oFullTimes.getLongestMiscalculated() << " seconds" << endl;
-					if(tmMinMax.getCount() > 1)
-						cout << "            and has an average of " << tmMinMax.getAverageEstimation() << " seconds" << endl;
+					if(oFullTimes.getCount() > 1)
+						cout << "            and has an average of " << oFullTimes.getAverageEstimation() << " seconds" << endl;
 				}
 			}else
 			{

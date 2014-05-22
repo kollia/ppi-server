@@ -72,8 +72,8 @@ int main(int argc, char* argv[])
 	command->option("reachend", "r", "make also list of times,\n"
 					"but filter list by new estimated reaching end time\n"
 					"(only usable with option --list)");
-	command->option("foldersort", "f", "sort output by folders with subroutines\n"
-					"otherwise sorting will be done by running folder ID");
+	command->option("idsort", "i", "sort output by running folder ID\n"
+					"otherwise as standard, sorting will be done by folders with subroutines");
 	command->option("exacttimesort", "T", "sort output by exact stopping time\n"
 					"otherwise sort by time written into database\n"
 					"(not usable with option --estimatetimesort)");
