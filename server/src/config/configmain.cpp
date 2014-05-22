@@ -60,20 +60,30 @@ int main(int argc, char* argv[])
 	params.option("debug", "d", "show debugging information by writing output.\n"
 									"also the information for option --info");
 
-	command= params.command("TIMECHECK", "check database file, created with ppi-server option --timerdblog,\n"
+	command= params.command("TIMER", "check database file, created with ppi-server option --timerdblog,\n"
 					                   "whether reached precise time or different");
 	command->option("list", "l", "list all defined times inside database");
-	command->option("exactstop", "e", "make also list of times,\n"
-					"but show only time needed after exact stopping\n"
-					"and fault estimated time\n"
-					"(can be combined with option --reachend");
+	command->option("exactstop", "E", "make also list of times,\n"
+					"but filter list by time needed after exact stopping\n"
+					"(only usable with option --list)");
+	command->option("estimated", "e", "make also list of times,\n"
+					"but filter list by fault estimated times"
+					"(only usable with option --list)");
 	command->option("reachend", "r", "make also list of times,\n"
-					"but show only new estimated reaching end time\n"
-					"(can be combined with option --exactstop");
-	command->option("starting", "s", "show starting and ending times of server");
-	command->option("from", "f", true, "show list of times only since this given time\n"
+					"but filter list by new estimated reaching end time\n"
+					"(only usable with option --list)");
+	command->option("foldersort", "f", "sort output by folders with subroutines\n"
+					"otherwise sorting will be done by running folder ID");
+	command->option("exacttimesort", "T", "sort output by exact stopping time\n"
+					"otherwise sort by time written into database\n"
+					"(not usable with option --estimatetimesort)");
+	command->option("estimatetimesort", "t", "sort output by wrong estimation time\n"
+					"otherwise sort by time written into database\n"
+					"(not usable with option --exacttimesort)");
+	command->option("startingtime", "s", "show starting and ending times of server");
+	command->option("begin", "B", true, "begin calculation of statistic by given time\n"
 					"(can't be used with option --starting");
-	command->option("to", "t", true, "show list of times only to this given time\n"
+	command->option("stop", "S", true, "stop calculation of statistic by this given time\n"
 					"(can't be used with option --starting");
 	command->spaceline("");
 
@@ -175,7 +185,7 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if(commandname == "TIMECHECK")
+	if(commandname == "TIMER")
 	{
 		DbTimeChecker checker(workdir);
 

@@ -51,7 +51,7 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 	map<string, t_runlength >::iterator itRunlength;
 
 	m_bListAll= params->hasOption("list");
-	m_bStarting= params->hasOption("starting");
+	m_bStarting= params->hasOption("startingtime");
 	if(	m_bListAll &&
 		m_bStarting		)
 	{
@@ -63,21 +63,65 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 	if(	m_bExactStop &&
 		m_bStarting		)
 	{
-		cout << "ERROR: combination ofstarting times (--starting)," << endl;
-		cout << "       and option --exactstop are not allowed" << endl;
+		cout << "ERROR: combination of starting times (--starting)" << endl;
+		cout << "       and option --exactstop is not allowed" << endl;
 		return EXIT_FAILURE;
 	}
-	if(m_bExactStop)
-		m_bStarting= false;
+	m_bEstimated= params->hasOption("estimated");
+	if(	m_bEstimated &&
+		m_bStarting		)
+	{
+		cout << "ERROR: combination of starting times (--starting)" << endl;
+		cout << "       and option --estimated is not allowed" << endl;
+		return EXIT_FAILURE;
+	}
 	m_bReachend= params->hasOption("reachend");
 	if(	m_bReachend &&
 		m_bStarting		)
 	{
-		cout << "ERROR: combination of starting times (--starting)," << endl;
-		cout << "       and list only new defined reaching end (--reachend) are not allowed" << endl;
+		cout << "ERROR: combination of starting times (--starting)" << endl;
+		cout << "       and list only new defined reaching end (--reachend) is not allowed" << endl;
 		return EXIT_FAILURE;
 	}
-	stime= params->getOptionContent("from");
+	if(	(	m_bExactStop ||
+			m_bEstimated ||
+			m_bReachend		) &&
+		!m_bListAll					)
+	{
+		cout << "ERROR: option of ";
+		if(m_bExactStop)
+			cout << "--exactstop ";
+		if(m_bEstimated)
+			cout << "--estimated ";
+		if(m_bReachend)
+			cout << "--reachend ";
+		cout << endl;
+		cout << "       is only allowed with option --list" << endl;
+		return EXIT_FAILURE;
+	}
+	m_bFolderSort= params->hasOption("foldersort");
+	m_bExactStopSort= params->hasOption("exacttimesort");
+	m_bEstimateTimeSort= params->hasOption("estimatetimesort");
+	if(	m_bExactStopSort &&
+		m_bEstimateTimeSort	)
+	{
+		cout << "ERROR: option --exacttimesort and --estimatetimesort" << endl;
+		cout << "       can't be used in same time" << endl;
+		return EXIT_FAILURE;
+	}
+	if(	(	m_bExactStopSort ||
+			m_bEstimateTimeSort	) &&
+		!m_bListAll					)
+	{
+		cout << "ERROR: option ";
+		if(m_bExactStopSort)
+			cout << "--exacttimesort ";
+		if(m_bEstimateTimeSort)
+			cout << "--estimatetimesort";
+		cout << endl;
+		cout << "       can only be used by list content (--list)" << endl;
+	}
+	stime= params->getOptionContent("begin");
 	if(stime != "")
 	{
 		m_oFromTime.read(stime, "%d.%m.%Y %H:%M:%S %N");
@@ -92,7 +136,7 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 		cout << "reading times down from " << m_oFromTime.toString(true) << endl;
 		cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 	}
-	stime= params->getOptionContent("to");
+	stime= params->getOptionContent("stop");
 	if(stime != "")
 	{
 		m_oToTime.read(stime, "%d.%m.%Y %H:%M:%S %N");
@@ -106,6 +150,15 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 		cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 		cout << "reading times down to " << m_oToTime.toString(true) << endl;
 		cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+	}
+	if(	m_bExactStop ||
+		m_bEstimated ||
+		m_bReachend		)
+	{// when one of this option be set
+	 // do not list all other content
+	 // is not same behavior then calling from user
+	 // but easier to handle
+		m_bListAll= false;
 	}
 
 	db= DatabaseFactory::getChoosenDatabase(properties, NULL);
@@ -147,8 +200,6 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 						tmStartingTime= line->tm;
 						string sStart(tmStartingTime.toString(true));
 
-						if(sStart.substr(0, 6) == "11.05.")
-							cout << flush;
 						if(!tmStartReading.isSet())
 							tmStartReading= tmStartingTime;
 						if(needStatistic(bTimeDbLog))
@@ -308,7 +359,10 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 						tReachend.runpercent= mSetRunlength[line->folder].runpercent;
 						tReachend.runlength= mSetRunlength[line->folder].runlength;
 						tReachend.runlengthcount= mSetRunlength[line->folder].maxcount;
-						m_mReachend[sRun][line->folder][line->subroutine].push_back(tReachend);
+						if(m_bFolderSort)
+							m_mReachend[line->folder][line->subroutine][sRun].push_back(tReachend);
+						else
+							m_mReachend[sRun][line->folder][line->subroutine].push_back(tReachend);
 						pLastReachend->informlate= 0;
 						pLastReachend->startlate= 0;
 
@@ -383,55 +437,67 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 	cout << "BEGIN time statistic on " << tmStartReading.toString(/*as date*/true) << endl;
 	cout << "----------------------------------------------------------------------------------------------------------------------" << endl;
 	cout << endl;
-	for(itReachendFolder::iterator itRun= m_mReachend.begin(); itRun != m_mReachend.end(); ++itRun)
+	// when sort by folder (option --foldersort[m_bFolderSort]) itSort1 is folder
+	// elsewhere itSort1 is running folder ID
+	for(itReachendFolder::iterator itSort1= m_mReachend.begin(); itSort1 != m_mReachend.end(); ++itSort1)
 	{
-		cout << endl << endl;
-		cout << "running folder ID " << itRun->first << ":" << endl;
-		cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
-		for(itReachendSub itFolder= itRun->second.begin(); itFolder != itRun->second.end(); ++itFolder)
+		if(!m_bFolderSort)
 		{
-			for(itReachendRun itSub= itFolder->second.begin(); itSub != itFolder->second.end(); ++itSub)
+			cout << endl << endl;
+			cout << "running folder ID " << itSort1->first << ":" << endl;
+			cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+		}
+		// when sort by folder (option --foldersort[m_bFolderSort]) itSort2 is subroutine
+		// elsewhere itSort2 is folder
+		for(itReachendSub itSort2= itSort1->second.begin(); itSort2 != itSort1->second.end(); ++itSort2)
+		{
+			// when sort by folder (option --foldersort[m_bFolderSort]) itSort3 is running folder ID
+			// elsewhere itSort3 is subroutine
+			for(itReachendRun itSort3= itSort2->second.begin(); itSort3 != itSort2->second.end(); ++itSort3)
 			{
-				cout << endl;
-				cout << "   " << itRun->first << " " << itFolder->first << ":" << itSub->first << ":" << endl;
+				unsigned int nRunningCount(0);
+				short nMaxDigits;
+				map<ppi_value, string> mTimeSort;
+
+				if(!m_bFolderSort)
+				{
+					cout << endl;
+					cout << "   " << itSort1->first << " " << itSort2->first << ":" << itSort3->first << ":" << endl;
+				}
 				dCurrentReachendMaxCount= 0;
 				tMinMax.reset();
 				tMinMax.resetFirstFolders();
-				for(itReachendValue itValue= itSub->second.begin(); itValue != itSub->second.end(); ++itValue)
+				for(itReachendValue itValue= itSort3->second.begin(); itValue != itSort3->second.end(); ++itValue)
 				{
 					bool bmore;
 					double seconds;
+					ostringstream out;
 
-					if(itValue == itSub->second.begin())
+					++nRunningCount;
+					if(	m_bFolderSort &&
+						itValue == itSort3->second.begin()	)
 					{
-						ostringstream info;
-
-						info << "   " << "with scheduling policy ";
-						switch(itValue->policy)
+						if(itSort3 == itSort2->second.begin())
 						{
-						case SCHED_OTHER:
-							info << "SCHED_OTHER";
-							break;
-						case SCHED_BATCH:
-							info << "SCHED_BATCH";
-							break;
-						case SCHED_IDLE:
-							info << "SCHED_IDLE";
-							break;
-						case SCHED_RR:
-							info << "SCHED_RR";
-							break;
-						case SCHED_FIFO:
-							info << "SCHED_FIFO";
-							break;
-						default:
-							info << "unknown";
-							break;
+							cout << endl << endl;
+							cout << "running folder '" << itSort1->first << ":" << itSort2->first << endl;
+							cout << getPolicyString(itValue) << endl;
+							cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
 						}
-						info << " and priority " << itValue->priority;
-						if(itValue->priority != SCHED_OTHER)
-							cout << info.str() << endl;
-						cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+						if(itSort2 == itSort1->second.begin())
+						{
+							cout << endl << endl;
+							cout << "running folder ID " << itValue->ID << ":" << endl;
+							cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+						}
+
+					}else
+					{
+						if(itValue == itSort3->second.begin())
+						{
+							cout << "   " << getPolicyString(itValue) << endl;
+							cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+						}
 					}
 					if(itValue->maxcount != dCurrentReachendMaxCount)
 					{
@@ -439,7 +505,7 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 						dCurrentReachendMaxCount= itValue->maxcount;
 					}
 					if(	m_bListAll &&
-						itValue != itSub->second.begin()	)
+						itValue != itSort3->second.begin()	)
 					{
 						cout << endl;
 					}
@@ -449,35 +515,57 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 						tMinMax.reset();
 						tmStartingTime= itValue->tmStart;
 						tMinMax.setStarting(tmStartingTime);
-						cout << "new STARTING " << tmStartingTime.toString(/*as date*/true) << endl;
+						if(	!m_bExactStopSort &&
+							!m_bEstimateTimeSort	)
+						{
+							cout << "new STARTING " << tmStartingTime.toString(/*as date*/true) << endl;
+						}
 					}
-					tMinMax.setTimes(itFolder->first+":"+itSub->first, itValue->reachlate, itValue->wrongreach);
+					tMinMax.setTimes(itSort2->first+":"+itSort3->first, itValue->reachlate, itValue->wrongreach);
 
 					if(m_bListAll)
 					{
-						cout << endl;
+						out << endl;
+						if(	m_bExactStopSort ||
+							m_bEstimateTimeSort	)
+						{
+							out << "           by " << nRunningCount << ". running" << endl;
+						}
 						if(itValue->ID != "-")
-						cout << "           running under ID " << itValue->ID << endl;
-						cout << "       want measure time of " << fixed << itValue->wanttime << " seconds" << endl;
-						cout << "   by ending calculation on " << fixed << itValue->tmFetch.toString(/*as date*/true) << endl;
-						cout.precision(0);
-						cout << "    fetch reachend value by " << itValue->reachpercent << "% CPU-time" << endl;
-						cout.precision(6);
-						cout << "            fetch runlength " << fixed << itValue->runlength;
-						cout.precision(0);
-						cout << " by " << dec << itValue->runpercent << "% CPU-time" << endl;
-						cout.precision(6);
+							out << "           running under ID " << itValue->ID << endl;
+						out << "      for folder:subroutine ";
+						if(m_bFolderSort)
+							out << itSort1->first << ":" << itSort2->first << endl;
+						else
+							out << itSort2->first << ":" << itSort3->first << endl;
+						out << "      " << getPolicyString(itValue) << endl;
+						out << "       want measure time of " << itValue->wanttime << " seconds" << endl;
+						out << "   by ending calculation on " << fixed << itValue->tmFetch.toString(/*as date*/true) << endl;
+						out.precision(0);
+						out << "    fetch reachend value by " << itValue->reachpercent << "% CPU-time" << endl;
+						out.precision(6);
+						out << "            fetch runlength " << fixed << itValue->runlength;
+						out.precision(0);
+						out << " by " << dec << itValue->runpercent << "% CPU-time" << endl;
+						out.precision(6);
 						if(itValue->informlate > 0)
-							cout << "             subroutine was " << fixed << itValue->informlate << " seconds informed to late,"
+							out << "             subroutine was " << fixed << itValue->informlate << " seconds informed to late,"
 										" to beginning time measure" << endl;
 						if(itValue->startlate > 0)
-							cout << "        subroutine starting " << fixed << itValue->startlate << " seconds to late" << endl;
+							out << "        subroutine starting " << fixed << itValue->startlate << " seconds to late" << endl;
 					}
 					if(	m_bListAll ||
 						m_bExactStop	)
 					{
-						cout << "                       need " << fixed << itValue->reachlate
-										<< " seconds after stopping TIMER subroutine with 0" << endl;
+						out << "                       ";
+						if(	!m_bListAll &&
+							(	m_bExactStopSort ||
+								m_bEstimateTimeSort	)	)
+						{
+							out << nRunningCount << ". run ";
+						}
+						out << "need " << fixed << itValue->reachlate;
+						out << " seconds after stopping TIMER subroutine" << endl;
 					/*	seconds= itValue->reachlate;
 						if(seconds < 0)
 						{
@@ -493,7 +581,7 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 						cout << "seconds after want exact stopping" << endl;*/
 					}
 					if(	m_bListAll ||
-						m_bExactStop	)
+						m_bEstimated	)
 					{
 						seconds= itValue->wrongreach;
 						if(seconds < 0)
@@ -502,18 +590,73 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 							bmore= false;
 						}else
 							bmore= true;
-						cout << "                       need " << fixed << seconds;
+						out << "                       ";
+						if(	!m_bListAll &&
+							(	m_bExactStopSort ||
+								m_bEstimateTimeSort	)	)
+						{
+							if(!m_bExactStop)
+								out << nRunningCount << ". run ";
+							else
+								out << "       ";
+						}
+						out << "need " << fixed << seconds;
 						if(bmore)
-							cout << " more ";
+							out << " more ";
 						else
-							cout << " less ";
-						cout << "seconds than estimated" << endl;
+							out << " less ";
+						out << "seconds than estimated" << endl;
 					}
 					if(	m_bListAll ||
 						m_bReachend		)
 					{
-						cout << "               reach end in " << fixed << itValue->reachend << " seconds" << endl;
+						if(	!m_bListAll &&
+							!m_bExactStop &&
+							!m_bEstimated &&
+							(	m_bExactStopSort ||
+								m_bEstimateTimeSort	)	)
+						{
+							out << " by " << nRunningCount << ". running ";
+						}
+						out << " define new reaching end by " << fixed << itValue->reachend << " seconds" << endl;
 					}
+					if(	m_bExactStopSort ||
+						m_bEstimateTimeSort	)
+					{
+						short digit;
+						ppi_value tm;
+
+						if(m_bExactStopSort)
+							tm= itValue->reachlate;
+						else
+							tm= itValue->wrongreach;
+						digit= countDigits(static_cast<int>(tm));
+						if(nMaxDigits < digit)
+							nMaxDigits= digit;
+						mTimeSort[tm]= out.str();
+
+					}else
+					{
+						cout << out.str();
+					}
+				}
+				if(	m_bExactStopSort ||
+					m_bEstimateTimeSort	)
+				{
+					map<string, string> newTimeSort;
+
+					for(map<ppi_value, string>::iterator it= mTimeSort.begin(); it != mTimeSort.end(); ++it)
+					{
+						short digit;
+						ostringstream out;
+
+						digit= countDigits(static_cast<int>(it->first));
+						out << string().append((nMaxDigits - digit), '0');
+						out << it->first;
+						newTimeSort[out.str()]= it->second;
+					}
+					for(map<string, string>::iterator it= newTimeSort.begin(); it != newTimeSort.end(); ++it)
+						cout << it->second;
 				}
 				writeMinMax(tMinMax, /*last*/true);
 			}
@@ -528,18 +671,65 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 	tmStartReading= tmLastReading;
 }
 
+string DbTimeChecker::getPolicyString(itReachendValue value) const
+{
+	ostringstream info;
+
+	info << "with scheduling policy ";
+	switch(value->policy)
+	{
+	case SCHED_OTHER:
+		info << "SCHED_OTHER";
+		break;
+	case SCHED_BATCH:
+		info << "SCHED_BATCH";
+		break;
+	case SCHED_IDLE:
+		info << "SCHED_IDLE";
+		break;
+	case SCHED_RR:
+		info << "SCHED_RR";
+		break;
+	case SCHED_FIFO:
+		info << "SCHED_FIFO";
+		break;
+	default:
+		info << "unknown";
+		break;
+	}
+	info << " and priority " << value->priority;
+	return info.str();
+}
+
+short DbTimeChecker::countDigits(int value) const
+{
+	short nRv(1);
+
+	while(value > 9)
+	{
+		++nRv;
+		value/= 10;
+	}
+	return nRv;
+}
+
 void DbTimeChecker::writeMinMax(const MinMaxTimes tmMinMax, bool bLast)
 {
+	bool bNoOptionSet(false);
 	unsigned long nCount;
 	static MinMaxTimes oFullTimes;
 	double nMinLength, nMaxLength;
 	double nMinEstimate, nMaxEstimate;
 
-	if(	!m_bStarting &&
-		!m_bListAll &&
-		!m_bExactStop &&
-		!m_bReachend	)
+	if(!m_bStarting)
 	{
+		if(	!m_bListAll &&
+			!m_bExactStop &&
+			!m_bEstimated &&
+			!m_bReachend	)
+		{// only sort option can be set
+			bNoOptionSet= true;
+		}
 		if(tmMinMax.isSet())
 		{
 			nCount= tmMinMax.getCount();
@@ -547,6 +737,7 @@ void DbTimeChecker::writeMinMax(const MinMaxTimes tmMinMax, bool bLast)
 			nMaxLength= tmMinMax.getMaxLength();
 			nMinEstimate= tmMinMax.getMinEstimate();
 			nMaxEstimate= tmMinMax.getMaxEstimate();
+			cout << endl;
 			cout << "        by reading " << nCount << " entries";
 			if(	nCount > 1 &&
 				!oFullTimes.isSet()	)
@@ -556,17 +747,43 @@ void DbTimeChecker::writeMinMax(const MinMaxTimes tmMinMax, bool bLast)
 			cout << endl;
 			if(nMinLength != nMaxLength)
 			{
-				cout << "        reaching end differ from " << fixed << nMinLength << " to "
-								<< fixed << nMaxLength << " seconds " << endl;
-				cout << "            which is various differ of " << fixed << (nMaxLength - nMinLength) << " seconds" << endl;
-				cout << "        wrong estimation differ from " << fixed << nMinEstimate << " to "
-								<< fixed << nMaxEstimate << " seconds" << endl;
-				cout << "            highest wrong estimation " << fixed << tmMinMax.getLongestMiscalculated() << " seconds" << endl;
+				if(	m_bListAll ||
+					m_bExactStop ||
+					bNoOptionSet	)
+				{
+					cout << "        reaching end differ from " << fixed << nMinLength << " to "
+									<< fixed << nMaxLength << " seconds " << endl;
+					cout << "            which is various differ of " << fixed << (nMaxLength - nMinLength) << " seconds" << endl;
+					if(tmMinMax.getCount() > 1)
+						cout << "            and has an average of " << tmMinMax.getAverageLength() << " seconds" << endl;
+				}
+				if(	m_bListAll ||
+					m_bEstimated ||
+					bNoOptionSet	)
+				{
+					cout << "        wrong estimation differ from " << fixed << nMinEstimate << " to "
+									<< fixed << nMaxEstimate << " seconds" << endl;
+					cout << "            highest wrong estimation " << fixed << tmMinMax.getLongestMiscalculated() << " seconds" << endl;
+					if(tmMinMax.getCount() > 1)
+						cout << "            and has an average of " << tmMinMax.getAverageEstimation() << " seconds" << endl;
+				}
 			}else
 			{
-				cout << "        reaching end time of " << fixed << nMinLength << " seconds " << endl;
-				cout << "              wrong estimate " << fixed << tmMinMax.getLongestMiscalculated() << " seconds" << endl;
+				if(	m_bListAll ||
+					m_bExactStop ||
+					bNoOptionSet	)
+				{
+					cout << "        reaching end time of " << fixed << nMinLength << " seconds " << endl;
+				}
+				if(	m_bListAll ||
+					m_bEstimated ||
+					bNoOptionSet	)
+				{
+					cout << "              wrong estimate " << fixed << tmMinMax.getLongestMiscalculated() << " seconds" << endl;
+				}
 			}
+			if(!bLast)
+				cout << endl;
 			oFullTimes.add(tmMinMax);
 		}
 		if(	bLast &&
@@ -585,16 +802,40 @@ void DbTimeChecker::writeMinMax(const MinMaxTimes tmMinMax, bool bLast)
 			cout << endl;
 			if(nMinLength != nMaxLength)
 			{
-				cout << "        reaching end differ from " << fixed << nMinLength << " to "
-								<< fixed << nMaxLength << " seconds " << endl;
-				cout << "            which is various differ of " << fixed << (nMaxLength - nMinLength) << " seconds" << endl;
-				cout << "        wrong estimation differ from " << fixed << nMinEstimate << " to "
-								<< nMaxEstimate << " seconds" << endl;
-				cout << "            highest wrong estimation " << fixed << oFullTimes.getLongestMiscalculated() << " seconds" << endl;
+				if(	m_bListAll ||
+					m_bExactStop ||
+					bNoOptionSet	)
+				{
+					cout << "        reaching end differ from " << fixed << nMinLength << " to "
+									<< fixed << nMaxLength << " seconds " << endl;
+					cout << "            which is various differ of " << fixed << (nMaxLength - nMinLength) << " seconds" << endl;
+					if(tmMinMax.getCount() > 1)
+						cout << "            and has an average of " << tmMinMax.getAverageLength() << " seconds" << endl;
+				}
+				if(	m_bListAll ||
+					m_bEstimated ||
+					bNoOptionSet	)
+				{
+					cout << "        wrong estimation differ from " << fixed << nMinEstimate << " to "
+									<< nMaxEstimate << " seconds" << endl;
+					cout << "            highest wrong estimation " << fixed << oFullTimes.getLongestMiscalculated() << " seconds" << endl;
+					if(tmMinMax.getCount() > 1)
+						cout << "            and has an average of " << tmMinMax.getAverageEstimation() << " seconds" << endl;
+				}
 			}else
 			{
-				cout << "        reaching end time of " << fixed << nMinLength << " seconds " << endl;
-				cout << "              wrong estimate " << fixed << oFullTimes.getLongestMiscalculated() << " seconds" << endl;
+				if(	m_bListAll ||
+					m_bExactStop ||
+					bNoOptionSet	)
+				{
+					cout << "        reaching end time of " << fixed << nMinLength << " seconds " << endl;
+				}
+				if(	m_bListAll ||
+					m_bEstimated ||
+					bNoOptionSet	)
+				{
+					cout << "              wrong estimate " << fixed << oFullTimes.getLongestMiscalculated() << " seconds" << endl;
+				}
 			}
 			cout << "        -----------------------------------------------------------------------" << endl;
 		}
@@ -615,6 +856,10 @@ void DbTimeChecker::MinMaxTimes::add(const MinMaxTimes& tmOthers)
 		m_dMinLength= tmOthers.m_dMinLength;
 	if(tmOthers.m_dMaxLength > m_dMaxLength)
 		m_dMaxLength= tmOthers.m_dMaxLength;
+	if(m_dAverageLength == 0)
+		m_dAverageLength= tmOthers.m_dAverageLength;
+	else if(tmOthers.m_dAverageLength != 0)
+		m_dAverageLength= (m_dAverageLength + tmOthers.m_dAverageLength) / 2;
 	m_vLengthTimes.insert(m_vLengthTimes.end(), tmOthers.m_vLengthTimes.begin(), tmOthers.m_vLengthTimes.end());
 	if(tmOthers.m_dMinEstimate < m_dMinEstimate)
 		m_dMinEstimate= tmOthers.m_dMinEstimate;
@@ -623,6 +868,10 @@ void DbTimeChecker::MinMaxTimes::add(const MinMaxTimes& tmOthers)
 	if(tmOthers.m_dLongEstimate > m_dLongEstimate)
 		m_dLongEstimate= tmOthers.m_dLongEstimate;
 	m_vEstimateTimes.insert(m_vEstimateTimes.end(), tmOthers.m_vEstimateTimes.begin(), tmOthers.m_vEstimateTimes.end());
+	if(m_dAverageEstimate == 0)
+		m_dAverageEstimate= tmOthers.m_dAverageEstimate;
+	else if(tmOthers.m_dAverageEstimate != 0)
+		m_dAverageEstimate= (m_dAverageEstimate + tmOthers.m_dAverageEstimate) / 2;
 }
 
 DbTimeChecker::t_reachend* DbTimeChecker::getLastReachendValues(const string& folder,

@@ -171,9 +171,11 @@ public:
 			m_tmStarting.clear();
 			m_dMinLength= 99999;
 			m_dMaxLength= 0;
+			m_dAverageLength= 0;
 			m_dMinEstimate= 99999;
 			m_dMaxEstimate= -99999;
 			m_dLongEstimate= 0;
+			m_dAverageEstimate= 0;
 		};
 		/**
 		 * reset first folder setting to null
@@ -222,6 +224,7 @@ public:
 				m_dMinLength= dLength;
 			if(dLength > m_dMaxLength)
 				m_dMaxLength= dLength;
+			m_dAverageLength= (m_dAverageLength + dLength) / 2;
 			if(dTime < m_dMinEstimate)
 				m_dMinEstimate= dTime;
 			if(dTime > m_dMaxEstimate)
@@ -230,6 +233,7 @@ public:
 				ntime*= -1;
 			if(ntime > m_dLongEstimate)
 				m_dLongEstimate= ntime;
+			m_dAverageEstimate= (m_dAverageEstimate + dTime) / 2;
 		}
 		/**
 		 * get minimal length of time
@@ -264,6 +268,13 @@ public:
 			return m_dMaxLength;
 		};
 		/**
+		 * get average of time length after stopping
+		 *
+		 * @return average time
+		 */
+		ppi_value getAverageLength() const
+		{ return m_dAverageLength; };
+		/**
 		 * get minimal wrong estimated time
 		 *
 		 * @return minimal estimated time
@@ -294,7 +305,7 @@ public:
 			return m_dMaxEstimate;
 		};
 		/**
-		 * get logest wrong estimated time
+		 * get longest wrong estimated time
 		 *
 		 * @return longest estimated time
 		 */
@@ -311,6 +322,13 @@ public:
 			}
 			return m_dLongEstimate;
 		};
+		/**
+		 * get average wrong estimated time
+		 *
+		 * @return average time
+		 */
+		ppi_value getAverageEstimation() const
+		{ return m_dAverageEstimate; };
 		/**
 		 * set current starting time of server
 		 *
@@ -349,9 +367,13 @@ public:
 		 */
 		ppi_value m_dMinLength;
 		/**
-		 * maximal length of fime after stopping
+		 * maximal length of time after stopping
 		 */
 		ppi_value m_dMaxLength;
+		/**
+		 * Average of length time after stopping
+		 */
+		ppi_value m_dAverageLength;
 		/**
 		 * minimal wrong estimated time
 		 */
@@ -364,6 +386,10 @@ public:
 		 * longest wrong estimated time
 		 */
 		ppi_value m_dLongEstimate;
+		/**
+		 * average of wrong time estimation
+		 */
+		ppi_value m_dAverageEstimate;
 		/**
 		 * all different setting length times
 		 */
@@ -442,9 +468,26 @@ private:
 	 */
 	bool m_bExactStop;
 	/**
+	 * list only fault estimated times
+	 */
+	bool m_bEstimated;
+	/**
 	 * list only defined reachend values
 	 */
 	bool m_bReachend;
+	/**
+	 * sorting output by folder:subroutine (true)<br>
+	 * or running folder ID (false)
+	 */
+	bool m_bFolderSort;
+	/**
+	 * sorting output by exact stopping time
+	 */
+	bool m_bExactStopSort;
+	/**
+	 * sorting output by wrong estimated times
+	 */
+	bool m_bEstimateTimeSort;
 	/**
 	 * show starting and ending times of server
 	 */
@@ -505,6 +548,19 @@ private:
 	 * @return running folders
 	 */
 	unsigned short countFolders(const string& runningFolders) const;
+	/**
+	 * count digits of given value
+	 *
+	 * @param value integer of reaching time
+	 * @return how much digits counted
+	 */
+	short countDigits(int value) const;
+	/**
+	 * write policy string with priority
+	 *
+	 * @param value current reachend structure
+	 */
+	string getPolicyString(itReachendValue value) const;
 	/**
 	 * display on command line, only when need depending on the options,
 	 * minimal an maximal length of time needed after exact stopping
