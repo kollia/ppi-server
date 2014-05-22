@@ -431,6 +431,7 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 {
 	double dCurrentReachendMaxCount(0);
 	ppi_time tmStartingTime;
+	ppi_value dLastReachend;
 	MinMaxTimes tMinMax;
 
 	cout << endl;
@@ -467,6 +468,7 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 				dCurrentReachendMaxCount= 0;
 				tMinMax.reset();
 				tMinMax.resetFirstFolders();
+				dLastReachend= 0;
 				for(itReachendValue itValue= itSort3->second.begin(); itValue != itSort3->second.end(); ++itValue)
 				{
 					bool bmore;
@@ -566,19 +568,13 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 						}
 						out << "need " << fixed << itValue->reachlate;
 						out << " seconds after stopping TIMER subroutine" << endl;
-					/*	seconds= itValue->reachlate;
-						if(seconds < 0)
-						{
-							seconds*= -1;
-							bmore= false;
-						}else
-							bmore= true;
-						cout << "                       need " << seconds;
-						if(bmore)
-							cout << " more ";
-						else
-							cout << " less ";
-						cout << "seconds after want exact stopping" << endl;*/
+					}
+					if(	m_bListAll &&
+						dLastReachend != 0 &&
+						itValue->wanttime > itValue->reachlate	)
+					{
+						out << "                      minus ";
+						out << dLastReachend << " seconds before estimated ending time" << endl;
 					}
 					if(	m_bListAll ||
 						m_bEstimated	)
@@ -590,6 +586,23 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 							bmore= false;
 						}else
 							bmore= true;
+						if(itValue->wanttime < itValue->reachlate)
+						{
+							if(	!m_bListAll &&
+								(	m_bExactStopSort ||
+									m_bEstimateTimeSort	)	)
+							{
+								out << "                   ";
+							}else
+								out << "            ";
+							out << "desired time of " << itValue->wanttime;
+							out << " seconds was overrun" << endl;
+							if(itValue == itSort3->second.begin())
+							{
+								seconds-= itValue->wanttime;
+								itValue->wrongreach= seconds;
+							}
+						}
 						out << "                       ";
 						if(	!m_bListAll &&
 							(	m_bExactStopSort ||
@@ -605,7 +618,10 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 							out << " more ";
 						else
 							out << " less ";
-						out << "seconds than estimated" << endl;
+						out << "seconds";
+						if(itValue->wanttime > itValue->reachlate)
+							out << " than estimated";
+						out << endl;
 					}
 					if(	m_bListAll ||
 						m_bReachend		)
@@ -620,6 +636,7 @@ void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLast
 						}
 						out << " define new reaching end by " << fixed << itValue->reachend << " seconds" << endl;
 					}
+					dLastReachend= itValue->reachend;
 					if(	m_bExactStopSort ||
 						m_bEstimateTimeSort	)
 					{
