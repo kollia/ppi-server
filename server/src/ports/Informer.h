@@ -75,7 +75,7 @@ namespace util
 		 * @param objCaller class object of ExternClientInputTemplate which need this sender thread
 		 */
 		Informer(const string& threadName, IMeasurePattern* measureThread)
-		: Thread("InformerThread_for_" + threadName, false),
+		: Thread("InformerThread_for_" + threadName, false, SCHED_BATCH, 0),
 		  m_bisRunn(false),
 		  m_poMeasurePattern(measureThread),
 		  m_sFolder(threadName),
