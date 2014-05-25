@@ -1388,7 +1388,7 @@ bool MeasureThread::checkToStart(const bool debug)
 				newFolder.push_back(*it);
 			}else
 			{
-				cout << "folder " << m_sFolder << " remove old informing over " << it->first << endl;
+				//cout << "folder " << m_sFolder << " remove old informing over " << it->first << endl;
 				bRemoved= true;
 
 #ifdef __followSETbehaviorFromFolder
