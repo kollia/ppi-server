@@ -1,0 +1,16 @@
+
+
+toDo:
+  - writing ncursos possibility for ppi-client
+  - sending debug output over ppi-internet-server
+  - making IPv6 support
+  - making SSL support
+  - writing communication over SOCKET's
+  - making --help usage for ppi-client over own classes of MainParams and ParamCommand
+  - writing man pages for ppi-server (maybe make possibility to write XML-files from MainParams)
+  - make Hudson/Jenkins testing
+  - writing unit tests
+
+known bugs:
+  - CalculatorContainer do not stopping when result is false
+    and an logical and with container follow 
