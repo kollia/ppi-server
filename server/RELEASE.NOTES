@@ -1,41 +1,57 @@
 
  RELEASE NOTES for ppi-server and java-client
- 
+
 
 VERSION 0.2.00
 ~~~~~~~~~~~~~~~~
-	ppi-server
-		split one process ppi-server into follow
-			- ppi-server
-			- ppi-db-server
-			- ppi-log-client
-			- ppi-owreader
-		lirc support to receive and transmit signals over IR
-		
-	ppi-java-client
-		create scroll bars for main display field
-		layout structure better aligned with HTML
-		insert regexp library org.apache.regexp version 1.5
-		update follow eclipse libraries to new version
-			- org.eclipse.core.commands 	to version 3.6.0.I20100512-1500
-			- org.eclipse.core.runtime 	to version 3.6.0.v20100505
-			- org.eclipse.equinox.common 	to version 3.6.0.v20100503
-			- org.eclipse.jface 		to version 3.6.0.I20100601-0800
-			- org.eclipse.swt 		to version 3.6.0.v3650b
-			- org.eclipse.swt.native	to version 3.5.2.v3557
+    ppi-server
+        split one process ppi-server into follow
+            - ppi-server           provide structured working list
+            - ppi-db-server        store database file and thin when it grows up to hold closer
+                                   making communication between all 4 processes
+                                   writing log files
+            - ppi-internet-server  allow communication with internet
+                                   and check permission over user administration
+            - ppi-owreader         provide interface to external hardware
+            - ppi-client           c++ pendant to communicate with server over command line
+            - ppi-mconfig          checking some properties
+                                   and writing also some example files for external hardware
+        new features:
+            - lirc support to receive and transmit signals over IR
+
+    ppi-java-client
+        create scroll bars for main display field
+        layout structure better aligned with HTML
+        insert regexp library org.apache.regexp version 1.5
+        update follow eclipse libraries to new version
+            - org.eclipse.core.commands     to version 3.6.0.I20110111-0800        3.6.0.I20100512-1500
+            - org.eclipse.core.runtime      to version 3.7.0.v20110110             3.6.0.v20100505
+            - org.eclipse.equinox.common    to version 3.6.0.v20110523             3.6.0.v20100503
+            - org.eclipse.jface             to version 3.7.0.v20110928-1505        3.6.0.I20100601-0800
+            - org.eclipse.swt               to version                             3.6.0.v3650b
+            - org.eclipse.osgi              to version 3.7.2.v20120110-1415
+            - org.eclipse.swt.native        to version 3.7.2.v3740f                3.5.2.v3557
+            - org.eclipse.swt.win32_x86     to version 4234
 
 VERSION 0.1.00
 ~~~~~~~~~~~~~~~~
-	ppi-server
-		first insert into SVN Repository
-		with follow features:
-			- measure on 	RS232 interface 
-					maxim/dallas semiconductors
-					vellemann K8055 board
-			- database to store long-term variables
-			- logging object to locate problems occurring
-			- usermanagement to check wheter client has permission
-			
-	ppi-java-client
-		first insert into SVN Repository
-		client should display all variables with right permission in an GUI 
+    ppi-server
+        first insert into SVN Repository
+        with follow features:
+            - measure on 	
+                    RS232 interface 
+                    maxim/dallas semiconductors
+                    vellemann K8055 board
+            - database to store long-term variables
+            - logging object to locate problems occurring
+            - user-management to check wheter client has permission
+
+    ppi-java-client
+        first insert into SVN Repository
+        client should display all variables with right permission in an GUI
+
+
+
+
+
+
