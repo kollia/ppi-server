@@ -46,6 +46,20 @@ public:
 	{ };
 	virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 	/**
+	 * check whether subroutine has possibility to start
+	 * any action per time
+	 *
+	 * @return null string when subroutine can start per time, otherwise an error message string
+	 */
+	virtual string checkStartPossibility();
+	/**
+	 * start behavior to starting subroutine per time
+	 *
+	 * @param tm time to starting subroutine action
+	 * @return whether starting was successful
+	 */
+	virtual bool startingBy(const ppi_time& tm);
+	/**
 	 * measure new value for subroutine
 	 *
 	 * @param actValue current value
@@ -184,6 +198,16 @@ private:
 	 */
 	bool m_bMore;
 	/**
+	 * whether only parameter command
+	 * is defined inside whilecommand list object
+	 */
+	bool m_bCommandSet;
+	/**
+	 * whether the subroutine should be designed
+	 * for starting from any TIMER routine
+	 */
+	bool m_bStarting;
+	/**
 	 * whether ending script should write error return value (!= 0)
 	 * into log file
 	 */
@@ -218,6 +242,17 @@ private:
 	 * @param command shell command to execute
 	 */
 	int system(const string& action, string command);
+	/**
+	 * starting on command on local threads
+	 *
+	 * @param action type of action (begincommand, whilecommand, endcommand, read or starting)
+	 * @param command shell command to execute
+	 * @param result result vector getting from command
+	 * @param tm starting time when action is also 'starting'
+	 * @param bDebug whether running is debug session
+	 */
+	int inlineStarting(const string& action, string command, vector<string>& result,
+					const ppi_time& tm, bool bDebug);
 	/**
 	 * set new value inside folder list
 	 *

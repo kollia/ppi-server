@@ -449,6 +449,28 @@ bool CommandExec::wait()
 	return bWait;
 }
 
+int CommandExec::startingBy(const ppi_time& tm, const string& command)
+{
+	int nRv;
+
+	if(	!stopping() &&
+		wait()			)
+	{
+		LOCK(m_WAITMUTEX);
+		if(!m_oStartTime.isSet())
+		{
+			nRv= 1;
+			m_oStartTime= tm;
+			m_sCommand= command;
+			AROUSEALL(m_WAITFORRUNGCONDITION);
+		}else
+			nRv= 0;
+	}else
+		nRv= 0;
+	UNLOCK(m_WAITMUTEX);
+	return nRv;
+}
+
 int CommandExec::execute()
 {
 	bool bWaitMutex(false), bResultMutex(false), bOpenShell(false);
@@ -473,7 +495,18 @@ int CommandExec::execute()
 	while(	m_sCommand == "" &&
 			!stopping()			)
 	{
+		if(m_sSubroutine == "grad_timer")
+			cout << "grad_timer wait for condition" << endl;
 		CONDITION(m_WAITFORRUNGCONDITION, m_WAITMUTEX);
+	}
+	if(m_oStartTime.isSet())
+	{
+		timespec waittm;
+		if(m_sSubroutine == "grad_timer")
+			cout << "grad_timer wait for time condition" << endl;
+		waittm.tv_sec= m_oStartTime.tv_sec;
+		waittm.tv_nsec= m_oStartTime.tv_usec * 1000;
+		TIMECONDITION(m_WAITFORRUNGCONDITION, m_WAITMUTEX, &waittm);
 	}
 	orgCommand= m_sCommand;
 	UNLOCK(m_WAITMUTEX);
@@ -665,6 +698,7 @@ int CommandExec::execute()
 	}
 	LOCK(m_WAITMUTEX);
 	m_sCommand= "";
+	m_oStartTime.clear();
 	AROUSEALL(m_WAITFORRUNGCONDITION);
 	UNLOCK(m_WAITMUTEX);
 	return 0;

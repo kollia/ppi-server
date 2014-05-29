@@ -162,6 +162,7 @@ namespace ports
 		int nRv;
 		bool bchangedVec(false), bInfo;
 		bool wait(false), block(false), debug(false), bLogError;
+		bool bStarting(false);
 		string sline;
 		string execute;
 		string folder, subroutine, foldsub;
@@ -170,6 +171,7 @@ namespace ports
 		istringstream get(command);
 		map<string, bool>::iterator itFoundBlock;
 		SHAREDPTR::shared_ptr<CommandExec> thread;
+		ppi_time tmStarting;
 		typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
 		typedef map<string, SHAREDPTR::shared_ptr<CommandExec> >::iterator blIt;
 
@@ -185,13 +187,33 @@ namespace ports
 		if(	sline != "read" &&
 			sline != "info"		)
 		{
-			if(sline == "begincommand")
+			if(	sline == "starting")
+			{
+				bStarting= true;
+				nCommand= 2;
+				get >> sline;
+				if(!tmStarting.read(sline, "%d.%m.%Y %H:%M:%S %N"))
+				{
+					ostringstream msg;
+
+					msg << "ERROR: by trying to start CommandExec thread "
+									"inside SchellWriter by command '" << execute << "'\n"
+									"for subroutine object of " << folder << ":" << subroutine << endl;
+					msg << "       " << tmStarting.errorStr();
+					cerr << msg.str() << endl;
+					LOG(LOG_ALERT, msg.str());
+					return -3;
+				}
+				sline= "command";
+
+			}else if(sline == "begincommand")
 				nCommand= 1;
 			else if(sline == "whilecommand")
 				nCommand= 2;
 			else if(sline == "endcommand")
 				nCommand= 3;
 			execute= pSub->getValue(sline);
+
 		}else
 			execute= sline;
 		while(!get.eof())
@@ -259,7 +281,8 @@ namespace ports
 					ostringstream msg;
 
 					msg << "ERROR: by trying to start CommandExec thread "
-									"inside SchellWriter for command '" << execute << "'\n";
+									"inside SchellWriter by command '" << execute << "'\n"
+									"for subroutine object of " << folder << ":" << subroutine << endl;
 					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
 					cerr << msg.str() << endl;
 					LOG(LOG_ALERT, msg.str());
@@ -277,7 +300,12 @@ namespace ports
 			}
 		}
 		thread->setWritten(&m_msdWritten, m_WRITTENVALUES, nCommand);
-		nRv= CommandExec::command_exec(thread, execute, result, more, wait, block, debug);
+		if(bStarting)
+		{
+			if(!thread->startingBy(tmStarting, execute))
+				nRv= -4;
+		}else
+			nRv= CommandExec::command_exec(thread, execute, result, more, wait, block, debug);
 		try{
 			do{// remove all not needed threads from vector
 				unsigned short count= 1;

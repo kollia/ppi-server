@@ -285,9 +285,23 @@ namespace ports
 			 *
 			 * @param properties the properties of subroutine from file measure.conf
 			 * @param pStartFolder reference to all folder
-			 * @return whether initalization was ok
+			 * @return whether initialization was ok
 			 */
 			virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+			/**
+			 * check whether subroutine has possibility to start
+			 * any action per time
+			 *
+			 * @return null string when subroutine can start per time, otherwise an error message string
+			 */
+			virtual string checkStartPossibility();
+			/**
+			 * start behavior to starting subroutine per time
+			 *
+			 * @param tm time to starting subroutine action
+			 * @return whether starting was successful
+			 */
+			virtual bool startingBy(const ppi_time& tm);
 			/**
 			 * whether subroutine is defined as binary
 			 *
@@ -410,7 +424,7 @@ namespace ports
 			 *
 			 * @return name of type of the subroutine
 			 */
-			virtual string getSubroutineType()
+			virtual string getSubroutineType() const
 			{ return m_sType; };
 			/**
 			 * returning the name of the folder
@@ -418,13 +432,13 @@ namespace ports
 			 *
 			 * @return name of folder
 			 */
-			string getFolderName();
+			string getFolderName() const;
 			/**
 			 * returning the name of this subroutine
 			 *
 			 * @return name of the subroutine
 			 */
-			string getSubroutineName();
+			string getSubroutineName() const;
 			/**
 			 * return true if subroutine is only for switching between 0 and 1
 			 *

@@ -52,6 +52,22 @@ namespace ports
 		virtual bool hasServer() const
 		{ return m_oSubroutine->hasServer(); };
 		/**
+		 * check whether subroutine has possibility to start
+		 * any action per time
+		 *
+		 * @return null string when subroutine can start per time, otherwise an error message string
+		 */
+		virtual string checkStartPossibility()
+		{ return m_oSubroutine->checkStartPossibility(); };
+		/**
+		 * start behavior to starting subroutine per time
+		 *
+		 * @param tm time to starting subroutine action
+		 * @return whether starting was successful
+		 */
+		virtual bool startingBy(const ppi_time& tm)
+		{ return m_oSubroutine->startingBy(tm); };
+		/**
 		 * whether subroutine has the incoming sub-variable
 		 *
 		 * @subvar name of sub-variable
@@ -167,7 +183,7 @@ namespace ports
 		 *
 		 * @return name of type of the subroutine
 		 */
-		virtual string getSubroutineType()
+		virtual string getSubroutineType() const
 		{ return m_oSubroutine->getSubroutineType(); };
 		/**
 		 * returning the name of the folder
@@ -175,14 +191,14 @@ namespace ports
 		 *
 		 * @return name of folder
 		 */
-		virtual string getFolderName()
+		virtual string getFolderName() const
 		{ return m_oSubroutine->getFolderName(); };
 		/**
 		 * returning the name of this subroutine
 		 *
 		 * @return name of the subroutine
 		 */
-		virtual string getSubroutineName()
+		virtual string getSubroutineName() const
 		{ return m_oSubroutine->getSubroutineName(); };
 		/**
 		 * return true if subroutine is only for switching between 0 and 1

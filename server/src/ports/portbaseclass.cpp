@@ -140,6 +140,20 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	return true;
 }
 
+string portBase::checkStartPossibility()
+{
+	ostringstream sRv;
+
+	sRv << "subroutine " << getFolderName() << ":" << getSubroutineName() << " from type " << getType() << endl;
+	sRv << "is not designed to start any action per time";
+	return sRv.str();
+}
+
+bool portBase::startingBy(const ppi_time& tm)
+{
+	return false;
+}
+
 string portBase::getSubroutineMsgHead(bool *error/*= NULL*/)
 {
 	if(error == NULL)
@@ -1057,7 +1071,7 @@ bool portBase::getLinkedValue(const string& type, auto_ptr<IValueHolderPattern>&
 	return true;
 }
 
-string portBase::getFolderName()
+string portBase::getFolderName() const
 {
 	return m_sFolder;
 }
@@ -1118,7 +1132,7 @@ string portBase::getFolderRunningID()
 	return sRv;
 }
 
-string portBase::getSubroutineName()
+string portBase::getSubroutineName() const
 {
 	return m_sSubroutine;
 }

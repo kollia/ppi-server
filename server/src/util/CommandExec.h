@@ -92,6 +92,14 @@ public:
 	virtual int start(void *args= NULL, bool bHold= false)
 	{ m_bStarted= true; return Thread::start(args, bHold); };
 	/**
+	 * start behavior to starting subroutine per time
+	 *
+	 * @param tm time to starting subroutine action
+	 * @param command which command should starting
+	 * @return when starting was successful 1 otherwise 0
+	 */
+	int startingBy(const ppi_time& tm, const string& command);
+	/**
 	 * whether thread waiting for new command to run
 	 *
 	 * @return whether thread waiting
@@ -216,6 +224,10 @@ private:
 	 * Interface to set value in an subroutine
 	 */
 	IMeasureSet* m_pPort;
+	/**
+	 * time to starting shell command per time
+	 */
+	ppi_time m_oStartTime;
 	/**
 	 * command to execute
 	 */

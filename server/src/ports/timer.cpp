@@ -14,11 +14,13 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "limits.h"
+#include <climits>
 
 #include <iostream>
-
 #include <sys/time.h>
+
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 #include "timer.h"
 
@@ -285,7 +287,34 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 			m_bExactTime= properties->haveAction("exact");
 			if(m_bExactTime)
 			{
-				getRunningThread()->calculateLengthTime();
+				bool bStarting(false);
+				string starting;
+
+				starting= properties->getValue("start", /*warning*/false);
+				if(starting != "")
+				{
+					vector<string> spl;
+
+					boost::split(spl, starting, boost::is_any_of(":"));
+					if(	spl.size() &&
+						spl.size() <= 2	)
+					{
+						m_pStartObj= m_oDirect.getSubroutine(&starting, getObjectFolderID(), true);
+						if(m_pStartObj != NULL)
+							bStarting= true;
+					}
+					if(!bStarting)
+					{
+						string msg(properties->getMsgHead(/*error*/true));
+
+						msg+= "cannot localize subroutine '" + starting + "' inside ";
+						msg+= " starting parameter start";
+						LOG(LOG_ERROR, msg);
+						out() << msg << endl;
+					}
+				}
+				if(!bStarting)
+					getRunningThread()->calculateLengthTime();
 				if(m_bLogPercent)
 				{
 					db->writeIntoDb(folder, subroutine, "wanttime");
@@ -560,7 +589,35 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 		return oMeasureValue;
 	}
 	if(m_bExactTime)
+	{
+		if(	m_pStartObj != NULL &&
+			m_nAllowStarting == 0	)
+		{
+			string errStr;
+			string err(m_pStartObj->checkStartPossibility());
+			vector<string> spl;
+			vector<string>::size_type nLen;
+
+			if(err != "")
+			{
+				m_nAllowStarting= -1;
+				boost::split(spl, err, boost::is_any_of("\n"));
+				nLen= spl.size();
+				errStr= "### ERROR: inside " + getFolderName() + ":" + getSubroutineName();
+				errStr+= " by parameter 'start'\n";
+				for(vector<string>::size_type n= 0; n < nLen; ++n)
+					errStr+= "           " + spl[n] + "\n";
+				errStr+= "           so count only the time inside ";
+				errStr+= getSubroutineName() + " down to 0";
+				LOG(LOG_ERROR, errStr);
+				cerr << errStr << endl;
+				getRunningThread()->calculateLengthTime();
+
+			}else
+				m_nAllowStarting= 1;
+		}
 		getRunningThread()->setCpuMeasureBegin(&m_tReachedTypes);
+	}
 	if(!m_bFinished)
 	{// m_bFinished is only false when waiting for other subroutines in case 3
 		if(debug)
@@ -580,9 +637,13 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 
 				if(debug)
 				{
-					out() << "   start time: " << MeasureThread::getTimevalString(m_tmStart, /*as date*/true, debug) << endl;
-					out() << "     end time: " << MeasureThread::getTimevalString(m_tmExactStop, /*as date*/true, debug) << endl;
-					out() << "real finished: " << MeasureThread::getTimevalString(changed, /*as date*/true, debug) << endl;
+					out() << "      start time: " << MeasureThread::getTimevalString(m_tmStart, /*as date*/true, debug) << endl;
+					if(m_nAllowStarting)
+						out() << "external starting ";
+					else
+						out() << "        end time: ";
+					out() << MeasureThread::getTimevalString(m_tmExactStop, /*as date*/true, debug) << endl;
+					out() << "   real finished: " << MeasureThread::getTimevalString(changed, /*as date*/true, debug) << endl;
 					diff= changed - m_tmStart;
 				}
 				if(m_tmWantFinish > changed)
@@ -636,7 +697,11 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 				m_sSyncID= "";
 			}else
 				changed-= m_tmExactStop;// <- subtraction made also inside debug mode
-			getRunningThread()->calcLengthDiff(&m_tReachedTypes, changed, debug);
+			if(	m_nAllowStarting != 1 ||
+				m_bStartExtern			)
+			{//when no external starting was done, or external starting was OK
+				getRunningThread()->calcLengthDiff(&m_tReachedTypes, changed, debug);
+			}
 		}else
 		{
 			oMeasureValue->setValue(0);
@@ -851,11 +916,27 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 					m_bMeasure= false;
 				}else
 					m_bMeasure= true;*/
-				if(	need == -1 &&
-					m_nDirection > -2	)
+				if(m_nAllowStarting == 1)
 				{
-					need= actValue;
-				}
+					m_bMeasure= false;
+					if(m_bStartExtern)
+					{
+						m_bFinished= false;
+						need= 0;
+					}else
+					{// error occurred
+						m_bFinished= true;
+						need= -2;
+					}
+
+				}else //if(m_nAllowStarting == 1)
+				{
+					if(	need == -1 &&
+						m_nDirection > -2	)
+					{
+						need= actValue;
+					}
+				}//else if(m_nAllowStarting == 1)
 
 			}else if(m_tmStop <= m_oActTime)
 			{ // reaching end of count down
@@ -1058,7 +1139,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 						need= 0;
 					else
 						need= calcNextTime(/*start*/false, debug, &next);
-				}else
+				}else//if(!bswitch)
 				{
 					if(	m_bExactTime &&
 						(	m_tReachedTypes.inPercent < 100	||
@@ -1111,7 +1192,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 					}
 					next= m_oActTime;
 					need= calcNextTime(/*start*/false, debug, &next);
-				}
+				}//else if(!bswitch)
 				if(debug)
 				{
 					if(bswitch)
@@ -1624,37 +1705,48 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 			m_tmExactStop= m_tmStart + *next;
 			m_tmStop= m_tmExactStop;
 		}
-		if(calc > 0)
+		if(m_nAllowStarting != 1)
 		{
-			if(debug)
-				out() << "refresh folder at " << m_tmStop.toString(/*as date*/true) << endl;
-			getRunningThread()->nextActivateTime(getFolderName(), m_tmStop);
-			m_bMeasure= true;
-		}else
-		{
-			if(calc < 0)
+			if(calc > 0)
 			{
-				ostringstream err;
-
-				err << "calculated minus time (" << calc << ") to refresh folder by ";
-				err << getFolderName() << ":" << getSubroutineName();
-				TIMELOGEX(LOG_WARNING, getSubroutineName(), err.str(),
-								getRunningThread()->getExternSendDevice());
 				if(debug)
-					out() << "###ERROR: " << err.str() << endl;
-				calc= 0;
+					out() << "refresh folder at " << m_tmStop.toString(/*as date*/true) << endl;
+				getRunningThread()->nextActivateTime(getFolderName(), m_tmStop);
+				m_bMeasure= true;
 			}else
 			{
-				if(debug)
-					out() << "do not refresh folder, because calculated time was 0" << endl;
+				if(calc < 0)
+				{
+					ostringstream err;
+
+					err << "calculated minus time (" << calc << ") to refresh folder by ";
+					err << getFolderName() << ":" << getSubroutineName();
+					TIMELOGEX(LOG_WARNING, getSubroutineName(), err.str(),
+									getRunningThread()->getExternSendDevice());
+					if(debug)
+						out() << "###ERROR: " << err.str() << endl;
+					calc= 0;
+				}else
+				{
+					if(debug)
+						out() << "do not refresh folder, because calculated time was 0" << endl;
+				}
+				//m_dSwitch= 0;
+				m_bMeasure= false;
+				if(!m_oFinished.isEmpty())
+					m_bFinished= false;
+				//need= actValue;
+			}// else if(calc > 0)
+		}else//if(m_nAllowStarting != 1)
+		{
+			m_bStartExtern= m_pStartObj->startingBy(m_tmExactStop);
+			if(	!m_bStartExtern &&
+				debug										)
+			{
+				out() << "WARNING: cannot start external subroutine\n"
+								"         maybe starting will be running" << endl;
 			}
-			//m_dSwitch= 0;
-			m_bMeasure= false;
-			if(!m_oFinished.isEmpty())
-				m_bFinished= false;
-			//need= actValue;
 		}
-		//need= calc;
 	}
 	return need;
 }
@@ -1666,35 +1758,37 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 	m_tmWantFinish= m_tmStart + *nextTime;
 	m_tmExactStop= m_tmStart + *nextTime;
 	lateSec= m_oActTime - m_tmStart;
-	if(debug)
+	if(	debug &&
+		m_oActTime != m_tmStart	)
 	{
 		out() << "      - time length   " << lateSec.toString(/*as date*/false)
 				<< " seconds since the late information" << endl;
 	}
 	if(*nextTime < lateSec)
-	{
-		nextTime->tv_sec= 0;
-		nextTime->tv_usec= 0;
-	}else
+		nextTime->clear();
+	else
 		*nextTime-= lateSec;
-	// Subtract length of folder run, because subroutine should reached before
-	// to wait inside this subroutine for exact time
-	folderLength= getRunningThread()->getLengthedTime(m_bLogPercent, debug);
-	if(*nextTime > folderLength)
+	if(m_nAllowStarting != 1)
 	{
-		m_tmStop= m_tmExactStop - folderLength;
-		*nextTime-= folderLength;
+		// Subtract length of folder run, because subroutine should reached before
+		// to wait inside this subroutine for exact time
+		folderLength= getRunningThread()->getLengthedTime(m_bLogPercent, debug);
+		if(*nextTime > folderLength)
+		{
+			m_tmStop= m_tmExactStop - folderLength;
+			*nextTime-= folderLength;
 
-	}else
-	{
-		nextTime->tv_sec= 0;
-		nextTime->tv_usec= 0;
-		m_tmStop= m_oActTime;
-	}
-	if(debug)
-	{
-		out() << "      - folder length " << folderLength.toString(/*as date*/false)
-				<< " seconds for exact time starting" << endl;
+		}else
+		{
+			nextTime->tv_sec= 0;
+			nextTime->tv_usec= 0;
+			m_tmStop= m_oActTime;
+		}
+		if(debug)
+		{
+			out() << "      - folder length " << folderLength.toString(/*as date*/false)
+					<< " seconds for exact time starting" << endl;
+		}
 	}
 	if(!m_oFinished.isEmpty())
 	{
@@ -1732,18 +1826,39 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 
 		res= lateSec + folderLength;
 		res+= tmReachEnd;
-		out() << "                   are ";
+		out() << "                  are ";
 		out() << res.toString(/*as date*/false);
 		out() << " seconds" << endl;
-		if( nextTime->tv_usec > 0 ||
-			nextTime->tv_sec > 0	)
+		if(m_nAllowStarting == -1)
 		{
-			out() << "    folder should start again in ";
-			out() << nextTime->toString(/*as date*/false) << " seconds, by ";
-			out() << m_tmStop.toString(/*as date*/true) << endl;
+			string errStr;
+			string err(m_pStartObj->checkStartPossibility());
+			vector<string> spl;
+
+			boost::split(spl, err, boost::is_any_of("\n"));
+			errStr= "STARTING-ERROR: " + spl[0] + "\n";
+			if(spl.size() > 1)
+			{
+				vector<string>::size_type nLen= spl.size();
+				for(vector<string>::size_type n= 1; n < nLen; ++n)
+					errStr+= "                " + spl[n] + "\n";
+			}
+			out() << errStr;
+		}
+		if(nextTime->isSet())
+		{
+			if(m_nAllowStarting != 1)
+			{
+				out() << "    folder should start again in ";
+				out() << nextTime->toString(/*as date*/false) << " seconds, by ";
+				out() << m_tmStop.toString(/*as date*/true) << endl;
+			}
 			if(m_bExactTime)
 			{
-				out() << "       to reach subroutine after ";
+				if(m_nAllowStarting == 1)
+					out() << "external subroutine should start at ";
+				else
+					out() << "          to reach subroutine after ";
 				out() << ppi_time(*nextTime + folderLength).toString(/*as date*/false);
 				out() << " seconds, by ";
 				out() << m_tmExactStop.toString(/*as date*/true);
@@ -1753,15 +1868,13 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 			{
 				res= *nextTime + folderLength;
 				res+= tmReachEnd;
-				out() << "  which should be finished after ";
+				out() << "     which should be finished after ";
 				out() << res.toString(/*as date*/false);
 				out() << " seconds, by ";
 				out() << m_tmWantFinish.toString(/*as date*/true);
 				out() << endl;
 			}
-		}
-		if(	nextTime->tv_sec == 0 &&
-			nextTime->tv_usec == 0	)
+		}else //if(nextTime->isSet())
 		{
 			ppi_time tvWait;
 
@@ -1794,7 +1907,8 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 				m_oActTime= m_tmExactStop;
 				if(m_bLogPercent)
 					getRunningThread()->fillValue(getFolderName(), getSubroutineName(), "informlate", 0);
-			}else
+
+			}else //if(m_tmExactStop > m_oActTime)
 			{
 				if(	debug ||
 					m_bLogPercent	)
@@ -1817,14 +1931,15 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 					}
 				}
 			}
-		}else if(m_bLogPercent)
-			getRunningThread()->fillValue(getFolderName(), getSubroutineName(), "informlate", 0);
+		}//else if(!nextTime->isSet())
 
-	}
-	if( nextTime->tv_usec > 0 ||
-		nextTime->tv_sec > 0	)
+	}//if(debug)
+	if(nextTime->isSet())
 	{
-		*nextTime+= folderLength;
+		if(m_bLogPercent)
+			getRunningThread()->fillValue(getFolderName(), getSubroutineName(), "informlate", 0);
+		if(m_nAllowStarting != 1)
+			*nextTime+= folderLength;
 	}
 	return MeasureThread::calcResult(*nextTime, m_bSeconds);
 }

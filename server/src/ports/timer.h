@@ -91,6 +91,7 @@ public:
 	  m_bMeasure(false),
 	  m_bSeconds(true),
 	  m_bFinished(true),
+	  m_nAllowStarting(0),
 	  m_omtime(folderName, subroutineName, "mtime", false, false, this),
 	  m_oFinished(folderName, subroutineName, "finished", false, true, this),
 	  m_oMicroseconds(folderName, subroutineName, "microsec", false, false, this),
@@ -256,6 +257,21 @@ protected:
 	 * when m_bExactTime be set
 	 */
 	bool m_bFinished;
+	/**
+	 * whether foreign subroutine is designed to starting
+	 * -1 not designed
+	 * 0 never checked
+	 * 1 correct designed
+	 */
+	short m_nAllowStarting;
+	/**
+	 * whether can starting external subroutine
+	 */
+	bool m_bStartExtern;
+	/**
+	 * subroutine to start per time
+	 */
+	SHAREDPTR::shared_ptr<IListObjectPattern> m_pStartObj;
 	/**
 	 * defined-value where get the time for count down
 	 */

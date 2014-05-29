@@ -47,24 +47,33 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		bRv= false;
 	m_bInfo= !properties->haveAction("noinfo");
 	m_bLastValue= 0;
-	m_bWait= properties->haveAction("wait");
-	if(!m_bWait)
-		m_bLastRes= properties->haveAction("last");
-	else
-		m_bLastRes= false;
-	m_bBlock= properties->haveAction("block");
-	if(!m_bBlock)
-	{
-		m_sBeginCom= properties->getValue("begincommand", /*warning*/false);
-		trim(m_sBeginCom);
-	}
-	m_sWhileCom= properties->getValue("whilecommand", /*warning*/false);
+	m_bStarting= false;
+	m_sWhileCom= properties->getValue("command", /*warning*/false);
 	trim(m_sWhileCom);
-	if(!m_bBlock)
+	if(m_sWhileCom == "")
 	{
-		m_sEndCom= properties->getValue("endcommand", /*warning*/false);
-		trim(m_sEndCom);
-	}
+		m_bCommandSet= false;
+		m_bWait= properties->haveAction("wait");
+		if(!m_bWait)
+			m_bLastRes= properties->haveAction("last");
+		else
+			m_bLastRes= false;
+		m_bBlock= properties->haveAction("block");
+		if(!m_bBlock)
+		{
+			m_sBeginCom= properties->getValue("begincommand", /*warning*/false);
+			trim(m_sBeginCom);
+		}
+		m_sWhileCom= properties->getValue("whilecommand", /*warning*/false);
+		trim(m_sWhileCom);
+		if(!m_bBlock)
+		{
+			m_sEndCom= properties->getValue("endcommand", /*warning*/false);
+			trim(m_sEndCom);
+		}
+	}else
+		m_bCommandSet= true;
+
 	if(	m_sBeginCom != "" ||
 		m_sWhileCom != "" ||
 		m_sEndCom != ""		)
@@ -193,6 +202,54 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 				setDeviceAccess(false);
 				bRv= false;
 			}
+		}
+	}
+	return bRv;
+}
+
+string Shell::checkStartPossibility()
+{
+	ostringstream sRv;
+
+	if(!m_bCommandSet)
+	{
+		sRv << "subroutine " << getFolderName() << ":" << getSubroutineName();
+		sRv << " from type " << getType() << endl;
+		sRv << "is not designed to start any action per time." << endl;
+		sRv << "Inside subroutine has to be only defined parameter 'command'";
+	}else
+	{
+		LOCK(m_WRITTENVALUES);
+		m_bStarting= true;
+		UNLOCK(m_WRITTENVALUES);
+	}
+	return sRv.str();
+}
+
+bool Shell::startingBy(const ppi_time& tm)
+{
+	bool bRv(false);
+	bool bDebug(isDebug());
+	vector<string> result;
+
+	LOCK(m_WRITTENVALUES);
+	bRv= m_bStarting;
+	UNLOCK(m_WRITTENVALUES);
+	if(bRv)
+	{
+		if(m_sUserAccount != "")
+		{
+			string command;
+
+			command= getFolderName() + " " + getSubroutineName();
+			command+= " starting " + tm.toString(/*as date*/false);
+			command= m_pOWServer->command_exec(false, command, result, m_bMore);
+			if(command != "true")
+				bRv= false;
+		}else
+		{
+			if(!inlineStarting("starting", m_sWhileCom, result, tm, bDebug))
+				bRv= false;
 		}
 	}
 	return bRv;
@@ -369,7 +426,6 @@ int Shell::system(const string& action, string command)
 {
 	bool wait(m_bWait);
 	bool bDebug(isDebug());
-	short nCommand;
 	int res(0);
 	vector<string> result;
 	string msg, nocorrread, folder(getFolderName()), subroutine(getSubroutineName());
@@ -417,130 +473,11 @@ int Shell::system(const string& action, string command)
 
 	}else
 	{
-		bool bchangedVec(false);
-		short count(0), runCount(0);
-		SHAREDPTR::shared_ptr<CommandExec> thread;
-		typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
+		ppi_time nullTime;
 
-		if(m_sBeginCom != "")
-			++count;
-		if(m_sWhileCom != "")
-			++count;
-		if(m_sEndCom != "")
-			++count;
-		LOCK(m_EXECUTEMUTEX);
-		if(action == "read")
-		{// when action is defined with read, m_bBlock is true
-			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
-			{
-				if(	!(*it)->stopping() &&
-					!(*it)->wait()			)
-				{
-					thread= *it;
-					break;
-				}
-			}
-			if(thread == NULL)
-			{
-				for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
-				{
-					if(!(*it)->stopping())
-					{
-						thread= *it;
-						break;
-					}
-				}
-				if(	thread == NULL &&
-					!m_vCommandThreads.empty()	)
-				{
-					thread= m_vCommandThreads[0];
-				}
-			}
-
-		}else
-		{
-			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
-			{
-				if(	!(*it)->stopping() &&
-					(*it)->wait()			)
-				{
-					thread= *it;
-					break;
-				}
-			}
-			if(thread == NULL)
-			{
-				out() << "create new CommandExec Thread for action " << action << endl;
-				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError, m_bInfo,
-								getRunningThread()->getExternSendDevice()));
-				thread->setFor(folder, subroutine);
-				if(thread->start() != 0)
-				{
-					ostringstream msg;
-
-					msg << "ERROR: by trying to start CommandExec thread for command '" << command << "'\n";
-					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
-					cerr << msg.str() << endl;
-					LOG(LOG_ALERT, msg.str());
-					UNLOCK(m_EXECUTEMUTEX);
-					return -2;
-				}else
-					m_vCommandThreads.push_back(thread);
-			}
-		}
-		UNLOCK(m_EXECUTEMUTEX);
-
-		if(	m_bBlock &&
-			!thread->running())
-		{
-			LOCK(m_WRITTENVALUES);
-			m_msdWritten.clear();
-			UNLOCK(m_WRITTENVALUES);
-		}
-		if(action == "begincommand")
-			nCommand= 1;
-		else if(action == "whilecommand")
-			nCommand= 2;
-		else if(action == "endcommand")
-			nCommand= 3;
-		else
-			nCommand= 0;
-		thread->setWritten(&m_msdWritten, m_WRITTENVALUES, nCommand);
-		LOCK(m_EXECUTEMUTEX);
-		// incoming more is for set subroutine to 0 when
-		// no shell command be starting (no ERROR)
-		m_bMore= !m_bLastRes;
-		//cout << "--- run '" << command << "' of " << getFolderName() << ":" << getSubroutineName() << endl;
-		res= CommandExec::command_exec(thread, command, result, m_bMore, m_bWait, m_bBlock, bDebug);
-		do{// remove all not needed threads from vector
-			bchangedVec= false;
-			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
-			{
-				if(	runCount >= count &&
-					!(*it)->stopping() &&
-					(*it)->wait()			)
-				{
-					(*it)->stop(false);
-				}
-				if((*it)->stopping())
-				{
-					//cout << "remove one CommandExec thread for " << folder << ":" << subroutine;
-					//cout << " because " << m_vCommandThreads.size() << " are running" << endl;
-					if((*it)->running())
-					{// when thread should stopping,
-					 // waiting for finished
-						(*it)->stop(true);
-					}
-					//cout << "remove CommandExec Thread inside folder " << folder << ":" << subroutine << endl;
-					m_vCommandThreads.erase(it);
-					bchangedVec= true;
-					break;
-				}else
-					++runCount;
-			}
-		}while(bchangedVec);
-		UNLOCK(m_EXECUTEMUTEX);
+		res= inlineStarting(action, command, result, nullTime, bDebug);
 	}
+
 	if(	m_bWait ||
 		bDebug		)
 	{
@@ -598,6 +535,142 @@ int Shell::system(const string& action, string command)
 			out() << "~~~~~~~~" << endl;
 		}
 	}*/
+	return res;
+}
+
+int Shell::inlineStarting(const string& action, string command, vector<string>& result,
+				const ppi_time& tm, bool bDebug)
+{
+	bool bchangedVec(false);
+	int res;
+	short nCommand;
+	short count(0), runCount(0);
+	SHAREDPTR::shared_ptr<CommandExec> thread;
+	typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
+
+	if(m_sBeginCom != "")
+		++count;
+	if(m_sWhileCom != "")
+		++count;
+	if(m_sEndCom != "")
+		++count;
+	LOCK(m_EXECUTEMUTEX);
+	if(action == "read")
+	{// when action is defined with read, m_bBlock is true
+		for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
+		{
+			if(	!(*it)->stopping() &&
+				!(*it)->wait()			)
+			{
+				thread= *it;
+				break;
+			}
+		}
+		if(thread == NULL)
+		{
+			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
+			{
+				if(!(*it)->stopping())
+				{
+					thread= *it;
+					break;
+				}
+			}
+			if(	thread == NULL &&
+				!m_vCommandThreads.empty()	)
+			{
+				thread= m_vCommandThreads[0];
+			}
+		}
+
+	}else
+	{
+		for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
+		{
+			if(	!(*it)->stopping() &&
+				(*it)->wait()			)
+			{
+				thread= *it;
+				break;
+			}
+		}
+		if(thread == NULL)
+		{
+			out() << "create new CommandExec Thread for action " << action << endl;
+			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError, m_bInfo,
+							getRunningThread()->getExternSendDevice()));
+			thread->setFor(getFolderName(), getSubroutineName());
+			if(thread->start() != 0)
+			{
+				ostringstream msg;
+
+				msg << "ERROR: by trying to start CommandExec thread for command '" << command << "'\n";
+				msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
+				cerr << msg.str() << endl;
+				LOG(LOG_ALERT, msg.str());
+				UNLOCK(m_EXECUTEMUTEX);
+				return -2;
+			}else
+				m_vCommandThreads.push_back(thread);
+		}
+	}
+	UNLOCK(m_EXECUTEMUTEX);
+
+	if(	m_bBlock &&
+		!thread->running())
+	{
+		LOCK(m_WRITTENVALUES);
+		m_msdWritten.clear();
+		UNLOCK(m_WRITTENVALUES);
+	}
+	if(action == "begincommand")
+		nCommand= 1;
+	else if(action == "whilecommand")
+		nCommand= 2;
+	else if(action == "endcommand")
+		nCommand= 3;
+	else if(action == "starting")
+		nCommand= 2;
+	else
+		nCommand= 0;
+	thread->setWritten(&m_msdWritten, m_WRITTENVALUES, nCommand);
+	LOCK(m_EXECUTEMUTEX);
+	// incoming more is for set subroutine to 0 when
+	// no shell command be starting (no ERROR)
+	m_bMore= !m_bLastRes;
+	//cout << "--- run '" << command << "' of " << getFolderName() << ":" << getSubroutineName() << endl;
+	if(action == "starting")
+		res= thread->startingBy(tm, command);
+	else
+		res= CommandExec::command_exec(thread, command, result, m_bMore, m_bWait, m_bBlock, bDebug);
+	do{// remove all not needed threads from vector
+		bchangedVec= false;
+		for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
+		{
+			if(	runCount >= count &&
+				!(*it)->stopping() &&
+				(*it)->wait()			)
+			{
+				(*it)->stop(false);
+			}
+			if((*it)->stopping())
+			{
+				//cout << "remove one CommandExec thread for " << folder << ":" << subroutine;
+				//cout << " because " << m_vCommandThreads.size() << " are running" << endl;
+				if((*it)->running())
+				{// when thread should stopping,
+				 // waiting for finished
+					(*it)->stop(true);
+				}
+				//cout << "remove CommandExec Thread inside folder " << folder << ":" << subroutine << endl;
+				m_vCommandThreads.erase(it);
+				bchangedVec= true;
+				break;
+			}else
+				++runCount;
+		}
+	}while(bchangedVec);
+	UNLOCK(m_EXECUTEMUTEX);
 	return res;
 }
 

@@ -23,6 +23,8 @@
 #include "imeasurepattern.h"
 #include "IPPIValuesPattern.h"
 
+#include "../../util/stream/ppivalues.h"
+
 using namespace std;
 
 
@@ -52,6 +54,20 @@ namespace design_pattern_world
 			 * @return whether server found
 			 */
 			virtual bool hasServer() const= 0;
+			/**
+			 * check whether subroutine has possibility to start
+			 * any action per time
+			 *
+			 * @return null string when subroutine can start per time, otherwise an error message string
+			 */
+			virtual string checkStartPossibility()= 0;
+			/**
+			 * start behavior to starting subroutine per time
+			 *
+			 * @param tm time to starting subroutine action
+			 * @return whether starting was successful
+			 */
+			virtual bool startingBy(const ppi_time& tm)= 0;
 			/**
 			 * whether subroutine has the incoming sub-variable
 			 *
@@ -154,20 +170,20 @@ namespace design_pattern_world
 			 *
 			 * @return name of type of the subroutine
 			 */
-			virtual string getSubroutineType()= 0;
+			virtual string getSubroutineType() const = 0;
 			/**
 			 * returning the name of the folder
 			 * in which this subroutine running
 			 *
 			 * @return name of folder
 			 */
-			virtual string getFolderName()= 0;
+			virtual string getFolderName() const = 0;
 			/**
 			 * returning the name of this subroutine
 			 *
 			 * @return name of the subroutine
 			 */
-			virtual string getSubroutineName()= 0;
+			virtual string getSubroutineName() const = 0;
 			/**
 			 * return true if subroutine is only for switching between 0 and 1
 			 *
