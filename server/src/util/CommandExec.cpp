@@ -213,12 +213,14 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 	}else
 		result= thread->getOutput();
 	nLen= result.size();
+	for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
+		cout << "result>> " << *it << endl;
 	if(	block == true &&
 		thread->running() &&
 		!thread->wait() &&
 		(	nLen == 0 ||						// when end of output has an ERRORLEVEL command
-			result[nLen-1].length() <= 19 ||    // thread should stopping the next time
-			result[nLen-1].substr(0, 19) != "PPI-DEF ERRORLEVEL "))
+			result[nLen-1].length() < 12 ||    // thread should stopping the next time
+			result[nLen-1].substr(0, 12) != "-ERRORLEVEL "))
 	{
 		more= true;
 	}else
@@ -228,10 +230,10 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 	{
 		if(nLen > 0)
 		{
-			if(	result[nLen-1].length() > 19 &&
-				result[nLen-1].substr(0, 19) == "PPI-DEF ERRORLEVEL "	)
+			if(	result[nLen-1].length() > 12 &&
+				result[nLen-1].substr(0, 12) == "-ERRORLEVEL "	)
 			{
-				istringstream errorlevel(result[nLen-1].substr(19));
+				istringstream errorlevel(result[nLen-1].substr(12));
 
 				more= false;
 				errorlevel >> nRv;
@@ -473,7 +475,7 @@ int CommandExec::startingBy(const ppi_time& tm, const string& command)
 
 int CommandExec::execute()
 {
-	bool bWaitMutex(false), bResultMutex(false), bOpenShell(false);
+	bool bWaitMutex(false), bResultMutex(false), bOpenShell(false), bStarting(false);
 	bool bWait, bDebug, bCloseError(false);
 	char line[1024];
 	string sline;
@@ -502,11 +504,11 @@ int CommandExec::execute()
 	if(m_oStartTime.isSet())
 	{
 		timespec waittm;
-		if(m_sSubroutine == "grad_timer")
-			cout << "grad_timer wait for time condition" << endl;
+
 		waittm.tv_sec= m_oStartTime.tv_sec;
 		waittm.tv_nsec= m_oStartTime.tv_usec * 1000;
 		TIMECONDITION(m_WAITFORRUNGCONDITION, m_WAITMUTEX, &waittm);
+		bStarting= true;
 	}
 	orgCommand= m_sCommand;
 	UNLOCK(m_WAITMUTEX);
@@ -556,8 +558,18 @@ int CommandExec::execute()
 		bDebug= m_bDebug;
 		UNLOCK(m_WAITMUTEX);
 		bWaitMutex= false;
-		if(	!bWait && // when wait not be set and thread do not starting directly
-			m_bInfo		) // and the script before running has the same ERRORLEVEL than this now will be have
+		/*
+		 *  when wait not be set, also no external starting done
+		 *  and thread do not starting directly,
+		 *  the script before running has maybe the same ERRORLEVEL,
+		 *  than set first the correct value for running command
+		 *  ( 1 for begincommand
+		 *    2 for whilecommand or
+		 *    3 for endcommand      )
+		 */
+		if(	!bWait &&
+			!bStarting &&
+			m_bInfo			)
 		{
 			ostringstream startCommand;// the subroutine will be not informed for an new value
 			ppi_time acttime;
