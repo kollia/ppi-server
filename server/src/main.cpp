@@ -25,6 +25,7 @@
 
 #include "util/MainParams.h"
 #include "util/debug.h"
+#include "util/properties/measureStructures.h"
 #include "util/thread/Terminal.h"
 
 #include "starter.h"

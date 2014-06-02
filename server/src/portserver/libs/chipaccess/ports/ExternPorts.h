@@ -25,7 +25,7 @@
 #include "../../../../pattern/server/ichipaccesspattern.h"
 
 #include "../../../../util/debug.h"
-#include "../../../../util/structures.h"
+#include "../../../../util/properties/measureStructures.h"
 
 //* Variablenbelegung
 #define ITIMERTYPE ITIMER_REAL

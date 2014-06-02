@@ -213,8 +213,6 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 	}else
 		result= thread->getOutput();
 	nLen= result.size();
-	for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
-		cout << "result>> " << *it << endl;
 	if(	block == true &&
 		thread->running() &&
 		!thread->wait() &&

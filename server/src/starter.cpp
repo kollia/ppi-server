@@ -42,6 +42,7 @@
 #include "util/usermanagement.h"
 #include "util/process/ProcessStarter.h"
 #include "util/properties/interlacedactionproperties.h"
+#include "util/properties/PPIConfigFileStructure.h"
 
 #include "database/lib/DbInterface.h"
 
@@ -92,15 +93,19 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	bool bConfigure, bSubroutines;
 	int err;
 	unsigned short nDbConnectors;
-	vector<pair<string, PortTypes> > ports; // whitch ports as string are needet. Second pair object bool is whether the port is defined for pin reading with ioperm()
-	string fileName;
+	/*
+	 * which ports as string are needed.
+	 * Second pair object PortTypes is defined which
+	 * the port is defined for pin reading with ioperm()
+	 */
+	vector<pair<string, PortTypes> > ports;
 	string logpath, sLogLevel, property;
 	DbInterface *db;
 	string prop;
 	auto_ptr<ProcessStarter> process, logprocess;
-	vector<string>::size_type readercount;
 	set<string> shellstarter;
 	time_t nServerSearchSequence;
+	PPIConfigFiles configFiles;
 
 	bConfigure= commands->hasOption("configure");
 	bSubroutines= commands->hasOption("subroutines");
@@ -119,74 +124,22 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	if(commands->hasOption("configure"))
 		cout << "   read configuration files ..." << endl;
-	m_sConfPath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
-	fileName= URL::addPath(m_sConfPath, "server.conf");
-	m_oServerFileCasher.setDelimiter("owreader", "[", "]");
-	m_oServerFileCasher.modifier("owreader");
-	m_oServerFileCasher.readLine("workdir= " + m_sWorkdir);
-	if(!m_oServerFileCasher.readFile(fileName))
-	{
-		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
-		exit(EXIT_FAILURE);
-	}
-	// look for defined owreader in server.conf configuration file
-	readercount= m_oServerFileCasher.getPropertyCount("owreader");
-	for(vector<string>::size_type owreaders= 0; owreaders < readercount; ++owreaders)
-	{
-		string owreader(m_oServerFileCasher.getValue("owreader", owreaders));
+	PPIConfigFileStructure::init(m_sWorkdir, /*first process creation*/true);
+	configFiles= PPIConfigFileStructure::instance();
+	configFiles->readServerConfig();
 
-		m_vOWReaderTypes.insert(owreader);
-		if(owreader == "PORT")
-			m_vOWReaderTypes.insert("MPORT");
-	}
-	readFile(ports, URL::addPath(m_sConfPath, "measure.conf"));
+	// look for defined external port interfaces in server.conf configuration file
+	m_vOWReaderTypes= configFiles->getPortIntercfaceNames();
+	configFiles->readMeasureConfig();
 
-	// check whether should be start which server
-	property= m_oServerFileCasher.getValue("databaseserver", /*warning*/true);
-	if(	property == ""
-		||
-		(	property != "true"
-			&&
-			property != "false"	)	)
-	{
-		cerr << "###          parameter databaseserver not be set correctly, so start server" << endl;
-		bDb= true;
-	}else if(property == "true")
-		bDb= true;
-	else
-		bDb= false;
-	property= m_oServerFileCasher.getValue("owreaders", /*warning*/true);
-	if(	property == "" ||
-		(	property != "true" &&
-			property != "false"		)	)
-	{
-		cerr << "###          parameter owreaders not be set correctly, so start server" << endl;
-		bPorts= true;
-	}else if(property == "true")
-		bPorts= true;
-	else
-		bPorts= false;
-	property= m_oServerFileCasher.getValue("internetserver", /*warning*/true);
-	if(	property == ""
-		||
-		(	property != "true"
-			&&
-			property != "false"	)	)
-	{
-		cerr << "###          parameter internetserver not be set correctly, so start server" << endl;
-		bInternet= true;
-	}else if(property == "true")
-		bInternet= true;
-	else
-		bInternet= false;
-	property= "serversearch";
-	nServerSearchSequence= static_cast<time_t>(m_oServerFileCasher.getInt(property, /*warning*/true));
-	if(	property == "#ERROR" ||
-		nServerSearchSequence <= 0	)
-	{
-		cerr << "###          parameter serversearch not be set correctly, set as default to 15 seconds" << endl;
-		nServerSearchSequence= 15;
-	}
+	// check which proccess should be started
+	bDb= configFiles->startDbServer();
+	bPorts= configFiles->startPortInterfaces();
+	bInternet= configFiles->startInternetServer();
+
+	// check in which time interval should checking port access
+	nServerSearchSequence= configFiles->getPortSearchInterval();
+
 	readPasswd();
 
 	string commhost;
@@ -195,65 +148,29 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	bool btimerlog, bNoDbRead;
 	short folderCPUlength, finishedCPUtime;
 
+	// reading internal communication host and port
+	commhost= configFiles->getCommunicationHost();
+	commport= configFiles->getCommunicationPort();
 
-	commhost= m_oServerFileCasher.getValue("communicationhost", /*warning*/false);
-	if(commhost == "")
-		commhost= "127.0.0.1";
-	property= "communicationport";
-	commport= m_oServerFileCasher.needUShort(property);
-	if(	commport == 0
-		&&
-		property == "#ERROR"	)
-	{
-		exit(EXIT_FAILURE);
-	}
+	// get time length of logging when
+	// an TIMERLOG be defined
+	nLogAllSec= configFiles->getTimerLogSeconds();
 
-	property= "timelogSec";
-	nLogAllSec= m_oServerFileCasher.getInt(property);
-	if(	nLogAllSec == 0
-		&&
-		property == "#ERROR"	)
-	{
-		nLogAllSec= 1800;
-	}
+	// reading in which CPU time %
+	// the reachend values, stored inside database,
+	// should be localized inside extra different values
+	pair<short, short> splitting(configFiles->getCPUtimeSplitting());
+	folderCPUlength= splitting.first;
+	finishedCPUtime= splitting.second;
+
+	btimerlog= commands->hasOption("timerdblog");
+	bNoDbRead= commands->hasOption("nodbbegintime");
 
 	// ------------------------------------------------------------------------------------------------------------
 
 
 	if(commands->hasOption("configure"))
 		cout << "   create folder lists ..." << endl;
-	btimerlog= commands->hasOption("timerdblog");
-	bNoDbRead= commands->hasOption("nodbbegintime");
-	property= "folderlength_split";
-	folderCPUlength= m_oServerFileCasher.getInt(property);
-	if(	property == "#ERROR" ||
-		folderCPUlength <= 0 ||
-		folderCPUlength > 100 ||
-		(100 % folderCPUlength) != 0	)
-	{
-		string err1("parameter folderlength_split not be set correctly,\n");
-		string err2("or not modular to 100, so do not differ between CPU times");
-
-		cerr << "###          " << err1;
-		cerr << "             " << err2 << endl;
-		LOG(LOG_ERROR, err1 + err2);
-		folderCPUlength= 100;
-	}
-	property= "finishedtime_split";
-	finishedCPUtime= m_oServerFileCasher.getInt(property);
-	if(	property == "#ERROR" ||
-		finishedCPUtime <= 0 ||
-		finishedCPUtime > 100 ||
-		(100 % finishedCPUtime) != 0	)
-	{
-		string err1("parameter finishedtime_split not be set correctly,\n");
-		string err2("or not modular to 100, so do not differ between CPU times");
-
-		cerr << "###          " << err1;
-		cerr << "             " << err2 << endl;
-		LOG(LOG_ERROR, err1 + err2);
-		finishedCPUtime= 100;
-	}
 	createFolderLists(shellstarter, btimerlog, bNoDbRead, finishedCPUtime);
 
 	//*********************************************************************************
@@ -266,15 +183,17 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	unsigned short nOWReaderCount;
 	unsigned short nOWReader(0);
 	const IPropertyPattern* pProp;
+	string extPortReading;
 
 	// count of all OWReaders should starting in an own user account of system
 	// which are get some commands from subroutine with type SHELL and defined runuser
 	nOWReader= static_cast<unsigned short>(shellstarter.size());
 
 	// count in nOWReader how much one wire reader (OWServer) should running
-	if(m_vOWReaderNeed.find("OWFS") != m_vOWReaderNeed.end())
+	extPortReading= "OWFS";
+	if(m_vOWReaderNeed.find(extPortReading) != m_vOWReaderNeed.end())
 	{
-		pProp= m_oServerFileCasher.getSection("owreader", "OWFS");
+		pProp= configFiles->getExternalPortProperties(extPortReading);
 		if(pProp)
 		{
 			property= "maximinit";
@@ -284,9 +203,10 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			nOWReader+= nOWReaderCount;
 		}
 	}
-	if(m_vOWReaderNeed.find("Vk8055") != m_vOWReaderNeed.end())
+	extPortReading= "Vk8055";
+	if(m_vOWReaderNeed.find(extPortReading) != m_vOWReaderNeed.end())
 	{
-		pProp= m_oServerFileCasher.getSection("owreader", "Vk8055");
+		pProp= configFiles->getExternalPortProperties(extPortReading);
 		if(pProp)
 		{
 			property= "port";
@@ -296,9 +216,10 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			nOWReader+= nOWReaderCount;
 		}
 	}
-	if(m_vOWReaderNeed.find("LIRC") != m_vOWReaderNeed.end())
+	extPortReading= "LIRC";
+	if(m_vOWReaderNeed.find(extPortReading) != m_vOWReaderNeed.end())
 	{
-		pProp= m_oServerFileCasher.getSection("owreader", "LIRC");
+		pProp= configFiles->getExternalPortProperties(extPortReading);
 		if(pProp)
 		{
 			char type[8];
@@ -423,7 +344,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	DbInterface::instance()->setThreadName(glob::getProcessName());
 	// ------------------------------------------------------------------------------------------------------------
 
-	LOG(LOG_INFO, "Read configuration files from " + m_sConfPath);
+	LOG(LOG_INFO, "Read configuration files from " + configFiles->getConfigPath());
 
 	// ------------------------------------------------------------------------------------------------------------
 
@@ -432,15 +353,8 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	string host;
 	unsigned short port;
 
-	host= m_oServerFileCasher.getValue("listen", /*warning*/false);
-	property= "port";
-	port= m_oServerFileCasher.needUShort(property);
-	if(	port == 0
-		&&
-		property == "#ERROR"	)
-	{
-		exit(EXIT_FAILURE);
-	}
+	host= configFiles->getInternetHost();
+	port= configFiles->getInternetPort();
 
 	cout << endl;
 	cout << "### start ppi internet server" << endl;
@@ -710,7 +624,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		vector<int>::iterator vit;
 
 		// start Vellemann k8055 ports
-		pProp= m_oServerFileCasher.getSection("owreader", "Vk8055");
+		pProp= configFiles->getExternalPortProperties("Vk8055");
 		nVk8055Count= pProp->getPropertyCount("port");
 		for(vector<string>::size_type n= 0; n < nVk8055Count; ++n)
 		{
@@ -805,7 +719,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		vector<string>::size_type nMaximCount;
 
 		// read first all maxim adapters
-		pProp= m_oServerFileCasher.getSection("owreader", "OWFS");
+		pProp= configFiles->getExternalPortProperties("OWFS");
 		nMaximCount= pProp->getPropertyCount("maximadapter");
 		for(vector<string>::size_type n= 0; n < nMaximCount; ++n)
 		{
@@ -950,7 +864,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	bFolderStart= commands->hasOption("folderstart");
 	if(bFolderStart)
 		cout << "### define folder objects from measure.conf" << endl;
-	aktFolder= m_tFolderStart;
+	aktFolder= configFiles->getWorkingList();
 	if(commands->hasOption("folderdebug"))
 	{
 		string result(commands->getOptionContent("folderdebug"));
@@ -994,14 +908,14 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			}
 		}
 	}
-	aktFolder= m_tFolderStart;
+	aktFolder= configFiles->getWorkingList();
 	while(aktFolder != NULL)
 	{
 		nFolders= nFolders + 1;
 		aktFolder= aktFolder->next;
 	}
 	db->setServerConfigureStatus("folder_define", 0);
-	aktFolder= m_tFolderStart;
+	aktFolder= configFiles->getWorkingList();
 	while(aktFolder != NULL)
 	{
 		if(bFolderStart)
@@ -1034,7 +948,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			}
 		}
 		pCurrentMeasure->pMeasure = SHAREDPTR::shared_ptr<MeasureThread>(
-						new MeasureThread(aktFolder->name, args, m_tFolderStart,
+						new MeasureThread(aktFolder->name, args, configFiles->getWorkingList(),
 										nServerSearchSequence, bNoDbRead, folderCPUlength));
 		aktFolder->runThread= pCurrentMeasure->pMeasure;
 
@@ -1073,7 +987,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	db->setServerConfigureStatus("folder_start", 0);
 	nFolderCount= 0;
-	aktFolder= m_tFolderStart;
+	aktFolder= configFiles->getWorkingList();
 	pCurrentMeasure= pFirstMeasureThreads;
 	while(aktFolder != NULL)
 	{
@@ -1211,9 +1125,10 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool bNoDbRead, short finishedCPUtime)
 {
-	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
+	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder;
 	//DbInterface* db= DbInterface::instance();
 
+	aktualFolder= PPIConfigFileStructure::instance()->getWorkingList();
 	while(aktualFolder != NULL)
 	{
 		int nMuch= aktualFolder->subroutines.size();
@@ -1363,14 +1278,14 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 {
 	short nCount(0);
 	float nSubroutines(0);  // define nSubroutines as float, otherwise percent calculation can be fault
-	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
+	SHAREDPTR::shared_ptr<measurefolder_t> firstFolder, aktualFolder;
 	DbInterface* db= DbInterface::instance();
 	vector<string>::size_type nAliasCount;
 	string property("defaultSleep");
-	//string sMeasureFile;
-	unsigned short nDefaultSleep= m_oServerFileCasher.getUShort(property, /*warning*/false);
 
 	db->setServerConfigureStatus("folder_conf", 0);
+	firstFolder= PPIConfigFileStructure::instance()->getWorkingList();
+	aktualFolder= firstFolder;
 	while(aktualFolder != NULL)
 	{
 		nSubroutines+= aktualFolder->subroutines.size();
@@ -1385,10 +1300,7 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 		}
 		aktualFolder= aktualFolder->next;
 	}
-	aktualFolder= m_tFolderStart;
-	if(property == "#ERROR")
-		nDefaultSleep= 2;
-	//sMeasureFile= URL::addPath(m_sConfPath, "measure.conf");
+	aktualFolder= firstFolder;
 	while(aktualFolder != NULL)
 	{
 		bool correctFolder= false;
@@ -1458,7 +1370,7 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 			{
 				//if(bShowConf)
 				//	tout << pobj->getFolderName() << ":" << pobj->getSubroutineName() << endl;
-				if(pobj->init(aktualFolder->subroutines[n].property.get(), m_tFolderStart))
+				if(pobj->init(aktualFolder->subroutines[n].property.get(), firstFolder))
 				{
 					aktualFolder->subroutines[n].bCorrect= true;
 					correctFolder= true;
@@ -1496,7 +1408,7 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 					port= dynamic_cast<TimeMeasure*>(aktualFolder->subroutines[n].portClass.get());
 					if(aktualFolder->subroutines[n].measuredness == -1)
 					{
-						measuredness= port->setNewMeasuredness(m_nMeasurednessCount, nDefaultSleep);
+						measuredness= port->setNewMeasuredness(m_nMeasurednessCount, 15);
 						aktualFolder->subroutines[n].measuredness= measuredness;
 						//cout << "set measuredness to " << measuredness << endl;
 
@@ -1514,7 +1426,7 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 					if(bFillCorr)
 					{
 						port->getNewCorrection(aktualFolder->subroutines[n].correction[nCorr],
-																		*pvOhm, nDefaultSleep);
+																		*pvOhm, 15);
 
 						//readFile(sMeasureFile, aktualFolder->subroutines[n].name, "correction", &correction);
 						cout << endl;
@@ -1566,17 +1478,16 @@ Starter::~Starter()
 
 void Starter::readPasswd()
 {
+	PPIConfigFiles config;
 	map<string, uid_t> users;
-	string defaultUser(m_oServerFileCasher.needValue("defaultuser"));
-	string defaultextUser(m_oServerFileCasher.getValue("defaultextuser"));
-	string passwd(m_oServerFileCasher.needValue("passwd"));
-	size_t defaultLen= defaultUser.length();
+	string defaultUser;
+	string defaultextUser;
+	string passwd;
 
-	if(defaultLen == 0)
-	{
-		cout << "### ERROR: no default user (defaultuser) in server.conf be set" << endl;
-		exit(EXIT_FAILURE);
-	}
+	config= PPIConfigFileStructure::instance();
+	passwd= config->getPasswdFile();
+	defaultUser= config->getDefaultUser();
+	defaultextUser= config->getExternalPortUser();
 	users[defaultUser]= 0;
 	if(!glob::readPasswd(passwd, users))
 	{
@@ -1611,831 +1522,6 @@ inline vector<pair<string, PortTypes> >::iterator Starter::find(vector<pair<stri
 			break;
 	}
 	return portIt;
-}
-
-void Starter::readFile(vector<pair<string, PortTypes> > &vlRv, string fileName)
-{
-	typedef vector<IInterlacedPropertyPattern*>::iterator secIt;
-
-	bool bInObj(false);
-	unsigned short nFolderID(0), nObjFolderID(0);
-	string firstObjFolder;
-	string modifier, value;
-	string curObj("NULL");
-	vector<string> objFolders;
-	auto_ptr<sub> subdir;
-	ActionProperties *pProperty;
-	InterlacedActionProperties mainprop(/*check after*/true);
-	vector<IInterlacedPropertyPattern*> objSections;
-	vector<IInterlacedPropertyPattern*> folderSections;
-	vector<IInterlacedPropertyPattern*> *pFolderSections;
-	vector<IInterlacedPropertyPattern*> subSections;
-	SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
-	SHAREDPTR::shared_ptr<measurefolder_t> pFirstObjFolder;
-	SHAREDPTR::shared_ptr<IActionPropertyPattern> pHold1OBJfolderprops;
-	secIt oit, fit, defObj;
-
-	mainprop.allowLaterModifier(true);
-	mainprop.action("action");
-	// object name shouldn't be shown by error, so do not define
-	mainprop.modifier("object");// an setMsgParameter for modifier
-	mainprop.modifier("folder");
-	mainprop.setMsgParameter("folder");
-	mainprop.modifier("name");
-	mainprop.setMsgParameter("name", "subroutine");
-	mainprop.valueLocalization("\"", "\"", /*remove*/true);
-	mainprop.readFile(fileName);
-	objSections= mainprop.getSections();
-	// first can be the folder section
-	// also be an object section
-	pFolderSections= &objSections;
-	oit= objSections.begin();
-	fit= oit;
-	do{
-		if(fit == pFolderSections->end())
-		{
-			if(!bInObj)
-				break;
-			if(curObj == "NULL")
-			{
-				++oit;
-				if(oit == objSections.end())
-					break;
-				fit= oit;
-
-			}else
-			{
-				// fill all folders from object
-				aktualFolder= m_tFolderStart;
-				while(aktualFolder->next != NULL)
-				{
-					if(aktualFolder->name == firstObjFolder)
-						break;
-					aktualFolder= aktualFolder->next;
-				}
-				//cout << "copy all folders from first object folder " << aktualFolder->name << endl;
-				pFirstObjFolder= aktualFolder;
-				pFirstObjFolder->vsObjFolders= objFolders;
-				aktualFolder= aktualFolder->next;
-				while(aktualFolder  != NULL)
-				{
-					if(aktualFolder->bDefined == false)
-					{
-						//cout << "fill object folder " << aktualFolder->name << endl;
-						aktualFolder->bCorrect= false;
-						pProperty= new ActionProperties;
-						*pProperty= *dynamic_cast<ActionProperties*>(pFirstObjFolder->folderProperties.get());
-						pProperty->add(*dynamic_cast<ActionProperties*>(aktualFolder->folderProperties.get()));
-						aktualFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
-						aktualFolder->subroutines= pFirstObjFolder->subroutines;
-						pFirstObjFolder->vsObjFolders= objFolders;
-						aktualFolder->bDefined= true;
-					}
-					aktualFolder= aktualFolder->next;
-				}
-				if(pHold1OBJfolderprops != NULL)
-				{
-					// fill now properties from 1 folder
-					// defined by reading real 1 folder
-					// into aktual 1 folder object
-					pProperty= dynamic_cast<ActionProperties*>(pFirstObjFolder->folderProperties.get());
-					pProperty->add(*dynamic_cast<ActionProperties*>(pHold1OBJfolderprops.get()));
-					pHold1OBJfolderprops= SHAREDPTR::shared_ptr<IActionPropertyPattern>();
-				}
-
-				// goto new object
-				++oit;
-				fit= oit;
-				bInObj= false;
-				curObj= "NULL";
-				modifier= (*fit)->getSectionModifier();
-				while(	modifier == "object" &&
-						(*fit)->getSectionValue() == "NULL"	)
-				{
-					folderSections= (*fit)->getSections();
-					if(folderSections.size() > 0)
-					{
-						pFolderSections= &folderSections;
-						fit= folderSections.begin();
-						bInObj= true;
-					}else
-					{
-						++oit;
-						fit= oit;
-					}
-					modifier= (*fit)->getSectionModifier();
-				}
-			}
-		}
-		modifier= (*fit)->getSectionModifier();
-		//cout << "create " << modifier << " with " << (*fit)->getSectionValue() << endl;
-		if(modifier == "object")
-		{
-			bInObj= true;
-			curObj= (*fit)->getSectionValue();
-			glob::replaceName(curObj, "object name");
-			objFolders.clear();
-			folderSections= (*oit)->getSections();
-			pFolderSections= &folderSections;
-			fit= pFolderSections->begin();
-			modifier= (*fit)->getSectionModifier();
-			firstObjFolder= (*fit)->getSectionValue();
-			nObjFolderID= 0;
-		}
-		if(modifier != "folder")
-		{
-			ostringstream out;
-
-			out << "### ERROR by reading measure.conf" << endl;
-			out << "          wrong defined modifier '" << modifier << "'" << endl;
-			out << "          with value '" << (*fit)->getSectionValue() << "'." << endl;
-			out << "          (maybe an subroutine is defined outside from an folder)" << endl;
-			out << "          Do not create this subroutine for working!";
-			cerr << out << endl << endl;
-			LOG(LOG_ERROR, out.str());
-		}else
-		{
-			// create new folder
-			++nFolderID;
-			++nObjFolderID;
-			value= (*fit)->getSectionValue();
-			glob::replaceName(value, "folder name");
-			if(	curObj != "NULL" &&
-				value == curObj		)
-			{
-				value= firstObjFolder;
-			}else
-				objFolders.push_back(value);
-			if(m_tFolderStart == NULL)
-			{
-				aktualFolder= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
-				m_tFolderStart= aktualFolder;
-				aktualFolder->name= value;
-				aktualFolder->bCorrect= false;
-				aktualFolder->bDefined= false;
-				aktualFolder->nFolderID= nFolderID;
-				if(curObj != "NULL")
-				{
-					aktualFolder->nObjectID= nObjFolderID;
-					aktualFolder->sObject= curObj;
-				}else
-					aktualFolder->nObjectID= 0;
-			}else
-			{
-				aktualFolder= m_tFolderStart;
-				while(aktualFolder->next != NULL)
-				{
-					if(aktualFolder->name == value)
-						break;
-					aktualFolder= aktualFolder->next;
-				}
-				if(aktualFolder->name == value)
-				{
-					string warn;
-
-					if(aktualFolder->bDefined)
-					{
-						warn=  "### WARNING: found second folder name '" + value + "'\n";
-						warn+= "             and change all subroutines to new folder!";
-						cout << warn << endl;
-						LOG(LOG_WARNING, warn);
-					}
-
-				}else
-				{
-					aktualFolder->next= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
-					aktualFolder= aktualFolder->next;
-					aktualFolder->name= value;
-					aktualFolder->bCorrect= false;
-					aktualFolder->bDefined= false;
-					aktualFolder->nFolderID= nFolderID;
-					if(curObj != "NULL")
-					{
-						aktualFolder->nObjectID= nObjFolderID;
-						aktualFolder->sObject= curObj;
-					}else
-						aktualFolder->nObjectID= 0;
-				}
-			}
-			pProperty= new ActionProperties;
-			*pProperty= *dynamic_cast<ActionProperties*>(*fit);
-			if(	!aktualFolder->bDefined &&
-				curObj != "NULL" &&
-				aktualFolder->folderProperties != NULL	)
-			{// folder is first folder of an object,
-			 // so hold folder properties from actual folder to fill in by filling objects
-				pHold1OBJfolderprops= aktualFolder->folderProperties;
-			}
-			aktualFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
-			subSections= (*fit)->getSections();
-			for(secIt sit= subSections.begin(); sit != subSections.end(); ++sit)
-			{
-				modifier= (*sit)->getSectionModifier();
-				if(modifier != "name")
-				{
-					cerr << "### ALERT: modifier '" << modifier << "' defined inside folder" << endl;
-					cerr << "           STOP process of ppi-server!" << endl;
-					exit(EXIT_FAILURE);
-				}else
-				{
-					bool buse(true);
-
-					// create new subroutine
-					value= (*sit)->getSectionValue();
-					glob::replaceName(value, "folder '" + aktualFolder->name + "' for subroutine name");
-					//cout << "    with subroutine: " << value << endl;
-					for(vector<sub>::iterator it= aktualFolder->subroutines.begin(); it != aktualFolder->subroutines.end(); ++it)
-					{
-						if(it->name == value)
-						{
-							string err;
-
-							buse= false;
-							err=  "### Error: found ambiguous name \"" + value + "\" in folder " + aktualFolder->name + "\n";
-							err+= "           Do not create this subroutine for working!";
-							cerr << err << endl;
-							LOG(LOG_ERROR, err);
-							break;
-						}
-					}
-					if(buse)
-					{
-						subdir= auto_ptr<sub>(new sub);
-						/************************************************************\
-						 * fill into vlRv vector witch COM or LPT ports are needed
-						 * when type of subroutine was PORT, MPORT or RWPORT
-						 * to start
-						\************************************************************/
-						subdir->type= (*sit)->needValue("type");
-						if(	subdir->type == "PORT" ||
-							subdir->type == "MPORT" ||
-							subdir->type == "RWPORT"	)
-						{
-							bool bInsert= true;
-							PortTypes act;
-							string port;
-
-							port= (*sit)->needValue("ID");
-							if(subdir->type == "PORT")
-								act= PORT;
-							else if(subdir->type == "MPORT")
-								act= MPORT;
-							else
-								act= RWPORT;
-							for(vector<pair<string, PortTypes> >::iterator it= vlRv.begin(); it != vlRv.end(); ++it)
-							{
-								if(	it->first == port
-									&&
-									it->second == act	)
-								{
-									bInsert= false;
-									break;
-								}
-							}
-							if(bInsert)
-								vlRv.push_back(pair<string, PortTypes>(port, act));
-						}
-						/************************************************************/
-						if(buse)
-						{
-							ostringstream sFID, sOID;
-
-							pProperty= new ActionProperties;
-							*pProperty= *dynamic_cast<ActionProperties*>(*sit);
-							subdir->property= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
-							subdir->name= value;
-							subdir->bCorrect= true;	// set first subroutine to correct,
-													// because later by wrong initial will be set to false
-							/************************************************************\
-							 * define values for subroutine witch should be obsolete
-							\************************************************************/
-							subdir->producerBValue= -1;
-							subdir->defaultValue= 0;
-							subdir->tmlong= 0;
-							subdir->bAfterContact= false;
-							subdir->measuredness= 0;
-							/************************************************************/
-
-							aktualFolder->subroutines.push_back(*subdir.get());
-						}
-					}
-				}// modifier is subroutine
-			}// iterate subroutines of folder
-			if(!subSections.empty())
-				aktualFolder->bDefined= true;
-			if(aktualFolder->nFolderID != nFolderID)
-			{//first folder of object was defined, do not count object name
-				--nFolderID;//so count ID one back
-			}
-		}// modifier is folder
-		++fit;
-		if(!bInObj)
-			++oit;
-	}while(oit != objSections.end());
-
-
-#if 0
-	bool bRead;
-	//Properties::param_t pparam;
-	string line;
-	//string sAktSubName;
-	ifstream file(fileName.c_str());
-
-	//bool bWrite= true;
-	vector<string> lines;
-	vector<string> names;
-	//vector<unsigned long> vlRv;
-	list<unsigned long>::iterator result; // result of find in port-list of folder
-	//bool bWroteMikrosec= false;
-	//bool bWroteCorrection= false;
-
-	//if(subName=="")
-	//	bWrite= false;
-	if(file.is_open())
-	{
-		while(!file.eof())
-		{
-			//bool bCasherRead= false;
-
-			getline(file, line);
-			//cout << "\"" << line << "\"" << endl;
-			//if(line=="in= COM1:DCD")
-			//	cout << "stop" << endl;
-			stringstream ss(line);
-			string buffer;
-			string type("");
-			string value("");
-			string::size_type pos;
-
-
-			while(ss >> buffer)
-			{
-				if(buffer.substr(0, 1) != "#")
-				{
-					//cout << "  ... " << buffer << endl;
-					if(type == "")
-					{
-						pos= buffer.find("=");
-						if(pos < buffer.size())
-						{
-							type= buffer.substr(0, pos);
-							//printf("size:%d pos:%d", buffer.size(), pos);
-							if(pos+1 < buffer.size())
-							{
-								value= buffer.substr(pos+1);
-								break;
-							}
-						}else
-							type= buffer;
-						buffer= "";
-					}
-					if(	buffer!=""
-						&&
-						buffer!="=")
-					{
-						if(buffer.substr(0, 1)=="=")
-							buffer= buffer.substr(1, buffer.size()-1);
-						value+= buffer;
-					}
-				}else
-					break;
-			}
-			/*if(type != "")
-			{
-				cout << " >> found TYPE:\"" << type << "\" with value \"" << value << "\"" << flush;
-				cout << endl;
-			}*/
-			bRead= false;
-			if(type=="file")
-			{
-				readFile(vlRv, URL::addPath(m_sConfPath, value));
-				bRead= true;
-
-			}else if(type=="folder")
-			{
-
-			}else if(type == "name")
-			{
-
-			}
-			if(	subdir.get()
-				&&
-				subdir->type != ""	)
-			{
-				if(	(	type == "ID"
-						&&
-						(	subdir->type == "PORT"
-							||
-							subdir->type == "MPORT"
-							||
-							subdir->type == "RWPORT"	)	)
-					||
-					(	subdir->type == "MPORT"
-						&&
-						(	value.substr(0, 3) == "COM"
-							||
-							value.substr(0, 3) == "LPT"	)
-						&&
-						(	type == "out"
-							||
-							type == "neg"	)	)				)
-				{
-					bool bInsert= true;
-					PortTypes act;
-					string port(value);
-
-					if(	value.substr(0, 3) == "COM"
-						||
-						value.substr(0, 3) == "LPT"	)
-					{
-						vector<string> spl;
-
-						split(spl, value, is_any_of(":"));
-						port= spl[0];
-					}
-					if(subdir->type == "PORT")
-						act= PORT;
-					else if(subdir->type == "MPORT")
-						act= MPORT;
-					else
-						act= RWPORT;
-					for(vector<pair<string, PortTypes> >::iterator it= vlRv.begin(); it != vlRv.end(); ++it)
-					{
-						if(	it->first == port
-							&&
-							it->second == act	)
-						{
-							bInsert= false;
-							break;
-						}
-					}
-					if(bInsert)
-						vlRv.push_back(pair<string, PortTypes>(value, act));
-				}
-				subdir->property->readLine(line);
-				{
-					ConfigPropertyCasher* p;
-
-					p= dynamic_cast<ConfigPropertyCasher*>(subdir->property.get());
-					if(	p && !p->newSubroutine().correct)
-						continue;
-				}
-
-// writing pins into aktual folder
-// hoping to never used
-/**********************************************************************************************************/
-				if(	subdir->type == "MPORTS"
-					||
-					subdir->type == "TEMP"
-					||
-					subdir->type == "TIMEMEASURE"
-					||
-					subdir->type == "RESISTANCE"	)
-				{
-					portBase::Pins pin;
-					string value;
-					vector<string> need;
-					vector<pair<string, PortTypes> >::iterator portIt;
-
-					if(	subdir->type == "GETCONTACT"
-						||
-						subdir->type == "TEMP"			)
-					{
-						need.push_back("pin");
-						need.push_back("out");
-					}else if(subdir->type == "SWITCHCONTACT")
-					{
-						need.push_back("out");
-					}else if(	subdir->type == "TIMEMEASURE"
-								||
-								subdir->type == "RESISTANCE"	)
-					{
-						need.push_back("pin");
-						need.push_back("out");
-						need.push_back("neg");
-					}
-
-					for(vector<string>::iterator it= need.begin(); it != need.end(); ++it)
-					{
-						value= subdir->property->getValue(*it, /*warning*/false);
-						pin= portBase::getPinsStruct(value);
-						if(pin.nPort != 0)
-						{
-							portIt= find(vlRv, pin.sPort);
-							if(portIt == vlRv.end())
-								vlRv.push_back(pair<string, PortTypes>(pin.sPort, MPORT));
-							if(	*it == "in"
-								&&
-								pin.ePin != portBase::NONE	)
-							{
-								aktualFolder->needInPorts.insert(pin);
-							}
-						}
-					}
-				}
-			}
-
-			if(type == "type")
-			{
-				subdir->type= value;
-
-			}
-// all this next stuff is reading inside Properties
-// hope this things are not usable in future
-			if(type=="measuredness")
-			{
-				if(subdir.get())
-				{
-					if(value == "now")
-						subdir->measuredness= -1;
-					else
-						subdir->measuredness= atoi(value.c_str());
-				}else
-					m_nMeasuredness=  atoi(value.c_str());
-
-			}else if(type=="measurednessCount")
-			{
-				m_nMeasurednessCount=  atoi(value.c_str());
-
-			}else if(type=="microsecCount")
-			{
-				m_nMicrosecCount=  (unsigned short)atoi(value.c_str());
-
-			}else if(type == "correction")
-			{
-				correction_t tCorr;
-				vector<string> correction= ConfigPropertyCasher::split(value, ":");
-
-				if(correction[1] == "now")
-				{
-					/*if(subName != "")
-					{
-						char sMikrosec[500];
-
-						tCorr= *(correction_t*)changeValue;
-						tCorr.bSetTime= true;
-						//cout << "write correction" << resistor.nMikrosec << endl;
-						sprintf(sMikrosec, "%lu", tCorr.nMikrosec);
-						line= "correction= ";
-						line+= sMikrosec;
-						line+= ":";
-						sprintf(sMikrosec, "%.60lf", tCorr.correction);
-						line+= sMikrosec;
-						bWroteCorrection= true;
-						//cout << line << endl;
-					}else
-					{*/
-						tCorr.bSetTime= false;
-						tCorr.be= atof(&correction[0][0]);
-					//}
-				}else
-				{
-					string sValue;
-
-					sValue= correction[0];
-					tCorr.nMikrosec= strtoul(&sValue[0], NULL, 0);
-					sValue= correction[1];
-					tCorr.correction= strtod(&sValue[0], NULL);
-					tCorr.bSetTime= true;
-				}
-				//if(subName=="")
-				//{
-					if(subdir.get())
-						subdir->correction.push_back(tCorr);
-					else
-						m_vCorrection.push_back(tCorr);
-				//}
-
-			}else if(type == "OHM")
-			{
-				ohm resistor;
-				vector<string> correction= ConfigPropertyCasher::split(value, ":");
-
-				resistor.be= (double)atof(correction[0].c_str());
-				if(correction[1]=="now")
-				{
-					/*if(subName != "")
-					{
-						char sMikrosec[50];
-
-						resistor.nMikrosec= *(unsigned long*)changeValue;
-						resistor.bSetTime= true;
-						//cout << "write correction" << resistor.nMikrosec << endl;
-						sprintf(sMikrosec, "%lu", *(unsigned long*)changeValue);
-						line= "OHM= " + correction[0] + ":" + sMikrosec;
-						bWroteMikrosec= true;
-						//cout << line << endl;
-					}else*/
-						resistor.bSetTime= false;
-				}else
-				{
-					const char *cCorrection= correction[1].c_str();
-
-					resistor.nMikrosec= strtoul(cCorrection, NULL, 0);
-					resistor.bSetTime= true;
-				}
-				//if(subName=="")
-				//{
-					if(subdir.get())
-						subdir->resistor.push_back(resistor);
-					else
-						m_vOhm.push_back(resistor);
-				//}
-			}else if(type == "vector")
-			{
-				vector<string> vOhm= ConfigPropertyCasher::split(value, ":");
-				const char *cOhm1= vOhm[0].c_str();
-				const char *cOhm2= vOhm[1].c_str();
-				unsigned short a, b;
-
-				a= (unsigned short)atoi(cOhm1);
-				b= (unsigned short)atoi(cOhm2);
-				if(a > b)
-				{
-					unsigned short buffer= a;
-
-					a= b;
-					b= buffer;
-				}
-				subdir->ohmVector.push_back(a);
-				subdir->ohmVector.push_back(b);
-
-			}else if(type == "BVALUE")
-			{
-				subdir->producerBValue= atoi(value.c_str());
-
-			}else if(type == "out")
-			{
-				portBase::Pins ePort= portBase::getPinsStruct(value);
-				portBase::portpin_address_t ePortPin;
-				bool bInsert= true;
-
-				for(vector<pair<string, PortTypes> >::iterator it= vlRv.begin(); it != vlRv.end(); ++it)
-				{
-					if(	it->first == ePort.sPort
-						&&
-						it->second == MPORT		)
-					{
-						bInsert= false;
-						break;
-					}
-				}
-				if(bInsert)
-					vlRv.push_back(pair<string, PortTypes>(ePort.sPort, MPORT));
-				subdir->out= ePort;
-				ePortPin= portBase::getPortPinAddress(subdir->out, false);
-				if(	subdir->out.ePin == portBase::NONE
-					||
-					ePortPin.ePort != portBase::getPortType(ePort.sPort)
-					||
-					ePortPin.eDescript == portBase::GETPIN			)
-				{
-					string msg("### on subroutine ");
-
-					msg+= subdir->name + ", pin '";
-					msg+= ePort.sPin + "' is no correct pin on port '";
-					msg+= ePort.sPort + "'\n    ERROR on line: ";
-					msg+= line + "\n    stop server!";
-					LOG(LOG_ALERT, msg);
-#ifndef DEBUG
-					cout << msg << endl;
-#endif
-					cout << endl;
-					exit(1);
-				}
-			}else if(type == "in")
-			{
-				portBase::Pins ePort= portBase::getPinsStruct(value);
-				portBase::portpin_address_t ePortPin;
-				bool bInsert= true;
-
-				for(vector<pair<string, PortTypes> >::iterator it= vlRv.begin(); it != vlRv.end(); ++it)
-				{
-					if(	it->first == ePort.sPort
-						&&
-						it->second == MPORT		)
-					{
-						bInsert= false;
-						break;
-					}
-				}
-				if(bInsert)
-					vlRv.push_back(pair<string, PortTypes>(ePort.sPort, MPORT));
-				subdir->in= ePort;
-				aktualFolder->needInPorts.insert(subdir->in);
-				ePortPin= portBase::getPortPinAddress(subdir->in, false);
-				if(	subdir->in.ePin == portBase::NONE
-					||
-					ePortPin.ePort != portBase::getPortType(ePort.sPort)
-					||
-					ePortPin.eDescript == portBase::SETPIN			)
-				{
-					string msg("### on subroutine ");
-
-					msg+= subdir->name + ", pin '";
-					msg+= ePort.sPin + "' is no correct pin on port '";
-					msg+= ePort.sPort + "'\n    ERROR on line: ";
-					msg+= line + "\n    stop server!";
-					LOG(LOG_ALERT, msg);
-#ifndef DEBUG
-					cout << msg << endl;
-#endif
-					cout << endl;
-					exit(1);
-				}
-			}else if(type == "neg")
-			{
-				portBase::Pins ePort= portBase::getPinsStruct(value);
-				portBase::portpin_address_t ePortPin;
-				bool bInsert= true;
-
-				for(vector<pair<string, PortTypes> >::iterator it= vlRv.begin(); it != vlRv.end(); ++it)
-				{
-					if(	it->first == ePort.sPort
-						&&
-						it->second == MPORT		)
-					{
-						bInsert= false;
-						break;
-					}
-				}
-				if(bInsert)
-					vlRv.push_back(pair<string, PortTypes>(ePort.sPort, MPORT));
-				subdir->negative= ePort;
-				ePortPin= portBase::getPortPinAddress(subdir->negative, false);
-				if(	subdir->negative.ePin == portBase::NONE
-					||
-					ePortPin.ePort != portBase::getPortType(ePort.sPort)
-					||
-					ePortPin.eDescript == portBase::GETPIN			)
-				{
-					string msg("### on subroutine ");
-
-					msg+= subdir->name + ", pin '";
-					msg+= ePort.sPin + "' is no correct pin on port '";
-					msg+= ePort.sPort + "'\n    ERROR on line: ";
-					msg+= line + "\n    stop server!";
-					LOG(LOG_ALERT, msg);
-#ifndef DEBUG
-					cout << msg << endl;
-#endif
-					cout << endl;
-					exit(1);
-				}
-
-			}else if(type == "max")
-			{
-				int max= atoi(value.c_str());
-
-				subdir->nMax= max;
-
-			}else if(type == "after")
-			{
-				if(	value=="true"
-					||
-					value=="TRUE"	)
-				{
-					subdir->bAfterContact= true;
-				}
-
-			}else if(type == "default")
-			{
-				subdir->defaultValue= atof(&value[0]);
-
-			}else if(	!bRead
-						&&
-						line != ""
-						&&
-						line.substr(0, 1) != "#")
-			{
-				string msg;
-
-				msg=  "### warning: cannot read line '";
-				msg+= line + "'";
-				if(aktualFolder != NULL)
-				{
-					msg+= "\n    under folder >> ";
-					msg+= aktualFolder->name;
-					msg+= " <<  ";
-				}
-				if(subdir.get() != NULL)
-				{
-					msg+= "\n    with type-name '" + subdir->name + "'";
-				}
-				cout << msg << endl;
-			}
-
-			lines.push_back(line);
-		}// end of while(!file.eof())
-	}else
-	{
-		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
-		exit(1);
-	}
-
-	if(subdir.get() != NULL)
-		aktualFolder->subroutines.push_back(*subdir);
-#endif
 }
 
 #if 0
@@ -2569,28 +1655,16 @@ bool Starter::status()
 	int clientsocket, err;
 	unsigned short nPort;
 	string result;
-	string property;
-	string confpath, fileName;
+	PPIConfigFiles configFiles;
 
-
-	if(m_oServerFileCasher.isEmpty())
-	{
-		confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
-		fileName= URL::addPath(confpath, "server.conf");
-		if(!m_oServerFileCasher.readFile(fileName))
-		{
-			cout << "### ERROR: cannot read '" << fileName << "'" << endl;
-			return false;
-		}
-	}
-	property= "port";
-	nPort= m_oServerFileCasher.needUShort(property);
-	if(property == "#ERROR")
-		exit(EXIT_FAILURE);
+	PPIConfigFileStructure::init(m_sWorkdir, /*first process creation*/true);
+	configFiles= PPIConfigFileStructure::instance();
+	configFiles->readServerConfig();
+	nPort= configFiles->getInternetPort();
 	clientsocket= ServerThread::connectAsClient("127.0.0.1", nPort, false);
 	if(clientsocket==0)
 	{
-		printf("no server is running\n");
+		cerr << "no ppi-server is running on localhost" << endl;
 		return false;
 	}
 	fp = fdopen (clientsocket, "w+");
@@ -2647,63 +1721,42 @@ bool Starter::stop(bool debug)
 	char	buf[64];
 	string  sendbuf;
 	string 	stopping, dostop;
+	string  result;
 	char	stopServer[]= "stop-server\n";
 	FILE 	*fp;
 	int clientsocket;
 	unsigned short nPort;
 	short nUserManagement;
-	string result;
 	string fileName;
-	string confpath, logpath, sLogLevel, property, username;
+	string confpath, logpath, property, username;
 	UserManagement* user= UserManagement::instance();
 	ostringstream hello;
+	PPIConfigFiles configFiles;
 
+	PPIConfigFileStructure::init(m_sWorkdir, /*first process creation*/true);
+	configFiles= PPIConfigFileStructure::instance();
+	configFiles->readServerConfig();
 	hello << "GET v" << PPI_SERVER_PROTOCOL << endl;
 	sendbuf= hello.str();
-	confpath= URL::addPath(m_sWorkdir, PPICONFIGPATH, /*always*/false);
-	fileName= URL::addPath(confpath, "server.conf");
-	m_oServerFileCasher.setDelimiter("owreader", "[", "]");
-	m_oServerFileCasher.modifier("owreader");
-	m_oServerFileCasher.readLine("workdir= " + m_sWorkdir);
-	if(!m_oServerFileCasher.readFile(fileName))
-	{
-		cout << "### ERROR: cannot read '" << fileName << "'" << endl;
-		exit(1);
-	}
 	if(debug)
-	{
-		result= m_oServerFileCasher.getValue("log", /*warning*/false);
-		if(	result == "DEBUG")
-			LogHolderPattern::init(LOG_DEBUG);
-		else if(result == "INFO")
-			LogHolderPattern::init(LOG_INFO);
-		else if(result == "WARNING")
-			LogHolderPattern::init(LOG_WARNING);
-		else if(result == "ERROR")
-			LogHolderPattern::init(LOG_ERROR);
-		else if(result == "ALERT")
-			LogHolderPattern::init(LOG_ALERT);
-		else
-			LogHolderPattern::init(LOG_DEBUG);
-	}else
+		LogHolderPattern::init(configFiles->getLogLevel());
+	else
 		LogHolderPattern::init(LOG_WARNING);
 	
 
 	if(user == NULL)
 	{
-		if(!UserManagement::initial(URL::addPath(confpath, "access.conf", /*always*/true),
-									""/*needs no definition of subroutine permission*/)		)
+		if(!UserManagement::initial(
+						URL::addPath(configFiles->getConfigPath(), "access.conf", /*always*/true),
+						""/*needs no definition of subroutine permission*/)		)
 			return false;
 		user= UserManagement::instance();
 	}
-	property= "port";
-	nPort= m_oServerFileCasher.needUShort(property);
-	if(property == "#ERROR")
-		exit(EXIT_FAILURE);
+	nPort= configFiles->getInternetPort();
 	clientsocket= ServerThread::connectAsClient("127.0.0.1", nPort);
 	if(clientsocket==0)
 	{
-		printf("no server is running\n");
+		printf("no ppi-server is running on localhost\n");
 		return false;
 	}
 	fp = fdopen (clientsocket, "w+");
@@ -2854,17 +1907,9 @@ bool Starter::checkServer()
 	int clientsocket= 0;
 	unsigned short nDefaultPort;
 	string result;
-	string host;
 	string property("port");
 
-	nDefaultPort= m_oServerFileCasher.needUShort(property);
-	//host= m_oServerFileCasher.needValue("host");
-	if(	nDefaultPort == 0
-		&&
-		property == "#ERROR"	)
-	{
-		exit(EXIT_FAILURE);
-	}
+	nDefaultPort= PPIConfigFileStructure::instance()->getInternetPort();
 	clientsocket= ServerThread::connectAsClient("127.0.0.1", nDefaultPort);
 	if(clientsocket == 0)
 	{

@@ -26,6 +26,7 @@
 
 #include "../util/structures.h"
 #include "../util/exception.h"
+#include "../util/properties/PPIConfigFileStructure.h"
 #include "../util/thread/Terminal.h"
 
 #include "../database/logger/lib/logstructures.h"
@@ -39,7 +40,9 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 {
 	bool bRv= true;
 	string user, folder(getFolderName()), subroutine(getSubroutineName());
+	PPIConfigFiles configFiles;
 
+	configFiles= PPIConfigFileStructure::instance();
 	properties->notAllowedParameter("default");
 	properties->notAllowedParameter("perm");
 	properties->notAllowedAction("binary");
@@ -50,7 +53,11 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	m_bStarting= false;
 	m_sWhileCom= properties->getValue("command", /*warning*/false);
 	trim(m_sWhileCom);
-	if(m_sWhileCom == "")
+	if(m_sWhileCom != "")
+	{
+		m_bCommandSet= true;
+		m_sWhileCom= configFiles->createCommand(folder, subroutine, "command", m_sWhileCom);
+	}else
 	{
 		m_bCommandSet= false;
 		m_bWait= properties->haveAction("wait");
@@ -71,47 +78,14 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 			m_sEndCom= properties->getValue("endcommand", /*warning*/false);
 			trim(m_sEndCom);
 		}
-	}else
-		m_bCommandSet= true;
-
-	if(	m_sBeginCom != "" ||
-		m_sWhileCom != "" ||
-		m_sEndCom != ""		)
-	{
-		SHAREDPTR::shared_ptr<measurefolder_t> pFolder;
-
-		pFolder= pStartFolder;
-		while(	pFolder != NULL &&
-				pFolder->name != folder	)
-		{
-			pFolder= pFolder->next;
-		}
-		if(pFolder != NULL)
-		{
-			string inp;
-			vector<string> spl;
-			vector<string>::size_type nAliasCount;
-			map<string, string> mSubroutineAlias;
-			map<string, string>::iterator found;
-
-			nAliasCount= pFolder->folderProperties->getPropertyCount("subvar");
-			for(vector<string>::size_type n= 0; n < nAliasCount; ++n)
-			{
-				inp= pFolder->folderProperties->getValue("subvar", n);
-				split(spl, inp, is_any_of("="));
-				if(spl.size() == 2)
-				{// when not set correct alias, write error inside folder configuration by starting
-					trim(spl[0]);
-					trim(spl[1]);
-					mSubroutineAlias.insert(pair<string, string>(spl[0], spl[1]));
-				}
-			}
-			replaceVars(&m_sBeginCom, mSubroutineAlias, "begincommand");
-			replaceVars(&m_sWhileCom, mSubroutineAlias, "whilecommand");
-			replaceVars(&m_sEndCom, mSubroutineAlias, "endcommand");
-		}else
-			LOG(LOG_ALERT, "shell subroutine "+folder+":"+subroutine+" do not find exact folder");
+		if(m_sBeginCom != "")
+			m_sBeginCom= configFiles->createCommand(folder, subroutine, "begincommand", m_sBeginCom);
+		if(m_sWhileCom != "")
+			m_sWhileCom= configFiles->createCommand(folder, subroutine, "whilecommand", m_sWhileCom);
+		if(m_sEndCom != "")
+			m_sEndCom= configFiles->createCommand(folder, subroutine, "endcommand", m_sEndCom);
 	}
+
 
 	m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
 	if(!m_oYears.isEmpty())
@@ -242,9 +216,8 @@ bool Shell::startingBy(const ppi_time& tm)
 			string command;
 
 			command= getFolderName() + " " + getSubroutineName();
-			command+= " starting " + tm.toString(/*as date*/false);
-			command= m_pOWServer->command_exec(false, command, result, m_bMore);
-			if(command != "true")
+			command+= " starting " + tm.toString(/*as date*/true);
+			if(m_pOWServer->command_exec(false, command, result, m_bMore))
 				bRv= false;
 		}else
 		{
@@ -255,31 +228,6 @@ bool Shell::startingBy(const ppi_time& tm)
 	return bRv;
 }
 
-void Shell::replaceVars(string* str, const map<string, string>& aliases, const string& parameter)
-{
-	smatch what;
-	regex exp("([^${}]*(\\$\\{([^${}]+)\\})[^${}]*)+");
-
-	if(*str == "")
-		return;
-	for(map<string, string>::const_iterator it= aliases.begin(); it != aliases.end(); ++it)
-	{
-		string result;
-		regex pattern("\\$\\{[ \t]*" + it->first + "[ \t]*\\}");
-
-		*str= regex_replace(*str, pattern, it->second);
-	}
-	if(regex_match(*str, what, exp))
-	{
-		string msg;
-
-		msg= getSubroutineMsgHead(/*error message*/false);
-		msg+= "predefined subvar variable ${" + what.str(what.size() -1);
-		msg+= "} by parameter " + parameter + " isn't defined inside folder";
-		LOG(LOG_WARNING, msg);
-		cerr << msg << endl;
-	}
-}
 auto_ptr<IValueHolderPattern> Shell::measure(const ppi_value& actValue)
 {
 	bool bDebug(isDebug());

@@ -48,7 +48,6 @@ class Starter
 		//unsigned short m_nDefaultPort;
 		//unsigned short m_nDefaultSleep;
 		string m_sWorkdir;
-		string m_sConfPath;
 		//string m_sLogFile;
 		//string m_sMeasureFile;
 		//int m_nLogLevel;
@@ -58,7 +57,7 @@ class Starter
 		unsigned short m_nMeasurednessCount;
 		unsigned short m_nMicrosecCount;
 		unsigned short m_nMeasureTimes;
-		SHAREDPTR::shared_ptr<measurefolder_t> m_tFolderStart;
+
 		vector<ohm> m_vOhm;
 		vector<correction_t> m_vCorrection;
 		/**
@@ -69,10 +68,6 @@ class Starter
 		 * user id for loguser setting in server.conf
 		 */
 		uid_t m_tLogUser;
-		/*
-		 * casher of defined variables in file server.conf
-		 */
-		InterlacedProperties m_oServerFileCasher;
 		/**
 		 * all types of owreader defined in server.conf
 		 */
@@ -143,9 +138,6 @@ class Starter
 		void printSigError(const string cpSigValue);
 
 	public:
-		Starter() :
-			m_oServerFileCasher()
-			{ };
 		/**
 		 * start server
 		 *
@@ -166,8 +158,6 @@ class Starter
 		 * @return whether server can be sopped correctly
 		 */
 		bool stop(bool config);
-		//which ports as string are needeD. Second pair object bool is whether the port is defined for pin reading with ioperm()
-		void readFile(vector<pair<string, PortTypes> > &vlRv, string fileName);
 		/**
 		 * set directory of working
 		 *

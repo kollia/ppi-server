@@ -53,14 +53,10 @@ namespace ports
 
 	bool ShellWriter::init(const IPropertyPattern* properties)
 	{
-		m_sConfPath= properties->getValue("confpath");
-		m_oMeasure.action("action");
-		m_oMeasure.modifier("folder");
-		m_oMeasure.setMsgParameter("folder");
-		m_oMeasure.modifier("name");
-		m_oMeasure.setMsgParameter("name", "subroutine");
-		m_oMeasure.valueLocalization("\"", "\"", /*remove*/true);
-		if(!m_oMeasure.readFile(URL::addPath(m_sConfPath, "measure.conf")))
+		PPIConfigFiles configFiles;
+
+		configFiles= PPIConfigFileStructure::instance();
+		if(!configFiles->readMeasureConfig())
 		{
 			string err("cannot read measure.conf for SHELL owreader and account ");
 
@@ -166,7 +162,7 @@ namespace ports
 		string sline;
 		string execute;
 		string folder, subroutine, foldsub;
-		const IInterlacedActionPropertyPattern* pSub;
+		SHAREDPTR::shared_ptr<IActionPropertyPattern> pSub;
 		DbInterface* db;
 		istringstream get(command);
 		map<string, bool>::iterator itFoundBlock;
@@ -174,13 +170,13 @@ namespace ports
 		ppi_time tmStarting;
 		typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
 		typedef map<string, SHAREDPTR::shared_ptr<CommandExec> >::iterator blIt;
+		PPIConfigFiles configFiles;
 
-
+		configFiles= PPIConfigFileStructure::instance();
 		get >> folder;
 		get >> subroutine;
 		foldsub= folder + ":" + subroutine;
-		pSub= m_oMeasure.getASection("folder", folder);
-		pSub= pSub->getASection("name", subroutine);
+		pSub= configFiles->getSubroutineProperties(folder, subroutine);
 		bLogError= !pSub->haveAction("noerrorlog");
 		bInfo= !pSub->haveAction("noinfo");
 		get >> sline;
@@ -189,10 +185,16 @@ namespace ports
 		{
 			if(	sline == "starting")
 			{
+				string time;
+
 				bStarting= true;
 				nCommand= 2;
+				get >> time;
 				get >> sline;
-				if(!tmStarting.read(sline, "%d.%m.%Y %H:%M:%S %N"))
+				time+= " " + sline;
+				get >> sline;
+				time+= " " + sline;
+				if(!tmStarting.read(time, "%d.%m.%Y %H:%M:%S %N"))
 				{
 					ostringstream msg;
 
@@ -213,6 +215,7 @@ namespace ports
 			else if(sline == "endcommand")
 				nCommand= 3;
 			execute= pSub->getValue(sline);
+			execute= configFiles->createCommand(folder, subroutine, sline, execute);
 
 		}else
 			execute= sline;
@@ -302,6 +305,7 @@ namespace ports
 		thread->setWritten(&m_msdWritten, m_WRITTENVALUES, nCommand);
 		if(bStarting)
 		{
+			nRv= 0;
 			if(!thread->startingBy(tmStarting, execute))
 				nRv= -4;
 		}else

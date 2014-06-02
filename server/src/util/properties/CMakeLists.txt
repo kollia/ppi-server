@@ -3,7 +3,8 @@ set(utilSrcs	properties.cpp
         		interlacedproperties.cpp
                 actionproperties.cpp
         		interlacedactionproperties.cpp
-        		configpropertycasher.cpp			)
+        		configpropertycasher.cpp
+        		PPIConfigFileStructure.cpp			)
 
 add_library(ppipropertyutil ${libraries} ${utilSrcs})
 target_link_libraries(ppipropertyutil ppistreamutil ppipattern)

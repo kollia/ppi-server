@@ -34,66 +34,6 @@ using namespace util;
 using namespace design_pattern_world::util_pattern;
 
 
-struct convert_t
-{
-	float be;
-	bool bSetTime;
-	unsigned long nMikrosec;
-
-};
-
-struct correction_t : public convert_t
-{
-	double correction;
-};
-
-typedef convert_t ohm;
-
-struct sub
-{
-	string name;
-	bool bCorrect;
-	bool bAfterContact;
-	string type;
-	//portBase::Pins out;
-	//portBase::Pins in;
-	//portBase::Pins negative;
-	string sBegin;
-	string sWhile;
-	string sEnd;
-	string sBeginComm;
-	string sWhileComm;
-	string sEndComm;
-	double defaultValue;
-	SHAREDPTR::shared_ptr<IListObjectPattern> portClass;
-	time_t tmlong;
-	int nMax;
-	int nMin;
-	vector<ohm> resistor;
-	vector<correction_t> correction;
-	vector<unsigned short> ohmVector;
-	unsigned short producerBValue;
-	short measuredness;
-	SHAREDPTR::shared_ptr<IActionPropertyPattern> property;
-};
-
-struct measurefolder_t
-{
-	string name;
-	bool bDefined;
-	bool bCorrect;
-	unsigned short nFolderID;
-	unsigned short nObjectID;
-	string sObject;
-	vector<string> vsObjFolders;
-	//set<portBase::Pins> afterContactPins;
-	//set<portBase::Pins> needInPorts;
-	vector<sub> subroutines;
-	SHAREDPTR::shared_ptr<IMeasurePattern> runThread;
-	SHAREDPTR::shared_ptr<IActionPropertyPattern> folderProperties;
-	SHAREDPTR::shared_ptr<measurefolder_t> next;
-};
-
 struct timemap_t
 {
 	unsigned long time;
@@ -125,13 +65,6 @@ struct timemap_t
 			return 1;
 		return 0;
 	};
-};
-
-enum PortTypes
-{
-	PORT, //!- set or read power on one pin
-	MPORT, //!- measure time from outgoing power to incoming pin
-	RWPORT //!- read or write on hole port with open()
 };
 
 //-------------------------------------------------------------------------------------------------

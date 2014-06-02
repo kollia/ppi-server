@@ -27,6 +27,7 @@
 #include "../util/smart_ptr.h"
 #include "../util/CommandExec.h"
 #include "../util/properties/interlacedactionproperties.h"
+#include "../util/properties/PPIConfigFileStructure.h"
 
 using namespace util;
 
@@ -255,18 +256,9 @@ namespace ports
 			 */
 			bool m_bDebug;
 			/**
-			 * ID from Vellemann k8055 port on USB.<br />
-			 * Can be from 0 to 3
+			 * ID from from starting SHELL
 			 */
 			long m_nID;
-			/**
-			 * configure path
-			 */
-			string m_sConfPath;
-			/**
-			 * properties from measure.conf
-			 */
-			InterlacedActionProperties m_oMeasure;
 			/**
 			 * all running shell threads which are not blocking
 			 */

@@ -19,6 +19,8 @@
 #ifndef DATABASEFACTORY_H_
 #define DATABASEFACTORY_H_
 
+#include "../../util/properties/measureStructures.h"
+
 #include "../../pattern/util/IPPIDatabasePattern.h"
 #include "../../pattern/util/ipropertypattern.h"
 #include "../../pattern/util/IChipConfigReaderPattern.h"

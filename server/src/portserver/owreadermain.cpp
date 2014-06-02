@@ -33,6 +33,7 @@
 #include "../util/exception.h"
 
 #include "../util/properties/interlacedproperties.h"
+#include "../util/properties/PPIConfigFileStructure.h"
 
 #include "../database/lib/DbInterface.h"
 
@@ -73,8 +74,8 @@ int main(int argc, char* argv[])
 	unsigned short commport;
 	int nLogAllSec, err;
 	ostringstream usestring;
-	string commhost, property, servertype, questionservername("OwServerQuestion-");
-	string workdir, sConfPath, fileName, defaultuser, shelluser;
+	string commhost, servertype, questionservername("OwServerQuestion-");
+	string workdir, defaultuser, shelluser;
 	vector<int> vLength;
 	//vector<string> vParams;
 	vector<string> vDescript;
@@ -82,7 +83,7 @@ int main(int argc, char* argv[])
 	vector<string>::size_type dirlen;
 	auto_ptr<OWServer> owserver;
 	vector<string> vParams;
-	InterlacedProperties oServerProperties;
+	PPIConfigFiles configFiles;
 	DbInterface *db;
 	IChipAccessPattern* accessPort;
 	auto_ptr<OwServerQuestions> pQuestions;
@@ -103,32 +104,16 @@ int main(int argc, char* argv[])
 		}
 		workdir+= directorys[c] + "/";
 	}
-	sConfPath= URL::addPath(workdir, PPICONFIGPATH, /*always*/false);
-	fileName= URL::addPath(sConfPath, "server.conf");
-	oServerProperties.setDelimiter("owreader", "[", "]");
-	oServerProperties.modifier("owreader");
-	oServerProperties.readLine("workdir= " + workdir);
-	if(!oServerProperties.readFile(fileName))
-	{
-		cout << "### ERROR: owreader cannot read '" << fileName << "'" << endl;
-		return EXIT_FAILURE;
-	}
 
-	commhost= oServerProperties.getValue("communicationhost", /*warning*/false);
-	if(commhost == "")
-		commhost= "127.0.0.1";
-	property= "communicationport";
-	commport= oServerProperties.needUShort(property);
+	PPIConfigFileStructure::init(workdir, /*first process creation*/false);
+	configFiles= PPIConfigFileStructure::instance();
+	configFiles->readServerConfig();
+
+	commhost= configFiles->getCommunicationHost();
+	commport= configFiles->getCommunicationPort();
 
 	// initial interface to log client
-	property= "timelogSec";
-	nLogAllSec= oServerProperties.getInt(property);
-	if(	nLogAllSec == 0
-		&&
-		property == "#ERROR"	)
-	{
-		nLogAllSec= 1800;
-	}
+	nLogAllSec= configFiles->getTimerLogSeconds();
 
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -316,7 +301,7 @@ int main(int argc, char* argv[])
 	}
 
 
-	string value;
+	string value, property;
 	ostringstream output;
 	Properties newProp;
 	const IPropertyPattern* pProp;
@@ -332,23 +317,19 @@ int main(int argc, char* argv[])
 
 	if(servertype != "SHELL")
 	{
-		pProp= oServerProperties.getSection("owreader", servertype);
-		if(pProp == NULL)
+		pProp= configFiles->getExternalPortProperties(servertype);
+		if(pProp != NULL)
 		{
-			string msg("spezification of external port reading " + servertype + " has no entry inside server.conf");
-
-			LOG(LOG_ERROR, msg);
-			cerr << "### ERROR: " << msg << endl;
-		}
-		// copy all properties with value in new Properties object
-		// because start method of Thread object allow no const object
-		while((property= pProp->nextProp()) != "")
-		{
-			value= pProp->getValue(property);
-			newProp.setDefault(property, value);
+			// copy all properties with value in new Properties object
+			// because start method of Thread object allow no const object
+			while((property= pProp->nextProp()) != "")
+			{
+				value= pProp->getValue(property);
+				newProp.setDefault(property, value);
+			}
 		}
 	}
-	newProp.setDefault("confpath", sConfPath, /*overwrite*/false);
+	newProp.setDefault("confpath", configFiles->getConfigPath(), /*overwrite*/false);
 	try{
 
 		if(owserver->start(&newProp) != 0)
@@ -388,16 +369,16 @@ int main(int argc, char* argv[])
 																	owserver.get()								));
 
 
-	const IInterlacedPropertyPattern* pPortProps;
+	const IPropertyPattern* pPortProps;
 
 	if(servertype != "SHELL")
 	{
 		if(	servertype == "MPORT" ||
 			servertype == "RWPORT"	)
 		{
-			pPortProps= oServerProperties.getSection("owreader", "PORT");
+			pPortProps= configFiles->getExternalPortProperties("PORT");
 		}else
-			pPortProps= oServerProperties.getSection("owreader", servertype);
+			pPortProps= configFiles->getExternalPortProperties(servertype);
 		if(pPortProps)
 		{
 			defaultuser= pPortProps->getValue("runuser", /*warning*/false);
@@ -405,7 +386,7 @@ int main(int argc, char* argv[])
 			{
 				users.clear();
 				users[defaultuser]= 0;
-				if(!glob::readPasswd(oServerProperties.getValue("passwd"), users))
+				if(!glob::readPasswd(configFiles->getPasswdFile(), users))
 				{
 					string msg1("defined user '");
 					string msg2("so external reader running as default user for external readers (defaultextuser)");
@@ -421,19 +402,19 @@ int main(int argc, char* argv[])
 		}
 		if(defaultuser == "")
 		{
-			defaultuser= oServerProperties.getValue("defaultextuser", /*warning*/false);
+			defaultuser= configFiles->getExternalPortUser();
 			if(defaultuser != "")
 			{
 				users.clear();
 				users[defaultuser]= 0;
-				if(!glob::readPasswd(oServerProperties.getValue("passwd"), users))
+				if(!glob::readPasswd(configFiles->getPasswdFile(), users))
 				{
 					string msg1("defined default user '");
 					string msg2("so external reader running as default user '");
 
 					msg1+= defaultuser + "' for external interfaces";
 					msg1+= " is not registered correctly inside operating system\n";
-					msg2+= oServerProperties.getValue("defaultuser", /*warning*/false) + "'";
+					msg2+= configFiles->getDefaultUser() + "'";
 					cout << "### WARNING: " << msg1;
 					cout << "             " << msg2 << endl;
 					LOG(LOG_WARNING, msg1 + msg2);
@@ -443,11 +424,11 @@ int main(int argc, char* argv[])
 		}
 	}
 	if(defaultuser == "")
-		defaultuser= oServerProperties.getValue("defaultuser", /*warning*/false);
+		defaultuser= configFiles->getDefaultUser();
 	users[defaultuser]= 0;
 	if(servertype == "SHELL")
 		users[shelluser]= 0;
-	if(	!glob::readPasswd(oServerProperties.getValue("passwd"), users) ||
+	if(	!glob::readPasswd(configFiles->getPasswdFile(), users) ||
 		servertype != "SHELL"												)
 	{
 		if(servertype == "SHELL")

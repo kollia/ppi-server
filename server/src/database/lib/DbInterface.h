@@ -26,7 +26,7 @@
 
 #include "../../pattern/util/IMeasureSet.h"
 
-#include "../../util/structures.h"
+#include "../../util/properties/measureStructures.h"
 
 #include "../../server/libs/client/ProcessInterfaceTemplate.h"
 

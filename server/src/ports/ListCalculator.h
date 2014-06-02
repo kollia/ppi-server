@@ -24,7 +24,7 @@
 #include "../pattern/util/imeasurepattern.h"
 
 #include "../util/smart_ptr.h"
-#include "../util/structures.h"
+#include "../util/properties/measureStructures.h"
 #include "../util/thread/Terminal.h"
 #include "../util/CalculatorContainer.h"
 

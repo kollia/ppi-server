@@ -25,7 +25,7 @@
 #include <vector>
 #include <map>
 
-#include "../../util/structures.h"
+#include "../../util/properties/measureStructures.h"
 
 using namespace std;
 
