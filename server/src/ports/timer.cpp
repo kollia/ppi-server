@@ -1758,6 +1758,13 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 	m_tmWantFinish= m_tmStart + *nextTime;
 	m_tmExactStop= m_tmStart + *nextTime;
 	lateSec= m_oActTime - m_tmStart;
+	if(m_bLogPercent)
+	{
+		ppi_value dlateSec;
+
+		lateSec >> dlateSec;
+		getRunningThread()->fillValue(getFolderName(), getSubroutineName(), "informlate", dlateSec);
+	}
 	if(	debug &&
 		m_oActTime != m_tmStart	)
 	{
@@ -1905,8 +1912,6 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 				}
 				getRunningThread()->usleep(tvWait);
 				m_oActTime= m_tmExactStop;
-				if(m_bLogPercent)
-					getRunningThread()->fillValue(getFolderName(), getSubroutineName(), "informlate", 0);
 
 			}else //if(m_tmExactStop > m_oActTime)
 			{
@@ -1924,11 +1929,6 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 						out() << tvWait.toString(/*as date*/false);
 						out() << " seconds to reach finished time" << endl;
 					}
-					if(m_bLogPercent)
-					{
-						getRunningThread()->fillValue(getFolderName(), getSubroutineName(), "informlate",
-										MeasureThread::calcResult(tvWait, /*seconds*/false));
-					}
 				}
 			}
 		}//else if(!nextTime->isSet())
@@ -1936,8 +1936,6 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 	}//if(debug)
 	if(nextTime->isSet())
 	{
-		if(m_bLogPercent)
-			getRunningThread()->fillValue(getFolderName(), getSubroutineName(), "informlate", 0);
 		if(m_nAllowStarting != 1)
 			*nextTime+= folderLength;
 	}
