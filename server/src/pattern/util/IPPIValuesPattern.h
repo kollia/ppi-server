@@ -78,6 +78,18 @@ public:
 	 */
 	virtual IPPITimePattern& operator -= (const timeval& time)= 0;
 	/**
+	 * fill object time from an normaly ppi_value type
+	 *
+	 * @param value ppi_value type stored inside object
+	 */
+	virtual IPPITimePattern& operator = (ppi_value value)= 0;
+	/**
+	 * write own holded time value inside an normal ppi_value type
+	 *
+	 * @param value ppi_value into which should writing
+	 */
+	virtual void operator >> (ppi_value& value) const= 0;
+	/**
 	 * set actually time into own object
 	 *
 	 * @return true for success, or -1 for failure (in which case errno is set appropriately).

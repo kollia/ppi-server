@@ -35,6 +35,22 @@ IPPITimePattern& ppi_time::operator = (const IPPITimePattern& time)
 	return *this;
 }
 
+IPPITimePattern& ppi_time::operator = (ppi_value value)
+{
+	tv_sec= static_cast<__time_t>(value);
+	value-= tv_sec;
+	value*= 1000000;
+	tv_usec= static_cast<__suseconds_t>(value);
+	return *this;
+}
+
+void ppi_time::operator >> (ppi_value& value) const
+{
+	value= static_cast<ppi_value>(tv_usec);
+	value/= 1000000;
+	value+= static_cast<ppi_value>(tv_sec);
+}
+
 IPPITimePattern& ppi_time::operator = (const timeval& time)
 {
 	tv_sec= time.tv_sec;
