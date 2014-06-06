@@ -37,9 +37,11 @@ using namespace ppi_database;
 
 bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
+	DbInterface *db= DbInterface::instance();
 	bool bBegin, bWhile, bEnd, bOk= true, bAlwaysBegin= false, bTimeMeasure= false;
-	double dDefault;
+	double dDefault, dTimerStat;
 	string prop, smtime, sSetNull;
+	string folder(getFolderName()), subroutine(getSubroutineName());
 
 	//Debug info to stop by right subroutine
 	/*if(	getFolderName() == "display_settings" &&
@@ -282,8 +284,6 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		if(	m_nCaseNr == 3 ||	// case 3: count the time down to 0
 			m_nCaseNr == 4	)	// case 4: count the time down to 0, or up to full time
 		{
-			string folder(getFolderName()), subroutine(getSubroutineName());
-			DbInterface *db= DbInterface::instance();
 
 			m_bExactTime= properties->haveAction("exact");
 			if(m_bExactTime)
@@ -484,6 +484,15 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 			} // if(m_bExactTime)
 		}
 	}
+	dTimerStat= 0;
+	if(m_bExactTime)
+		dTimerStat= 1;
+	if(m_bWaitTime)
+		dTimerStat= 2;
+	if(m_pStartObj != NULL)
+		dTimerStat= 3;
+	db->writeIntoDb(folder, subroutine, "timerstat");
+	db->fillValue(folder, subroutine, "timerstat", dTimerStat, /*new*/true);
 	return bOk;
 }
 
