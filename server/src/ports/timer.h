@@ -214,6 +214,10 @@ protected:
 	 */
 	bool m_bExactTime;
 	/**
+	 * whether soubroutine should always waiting for exact time
+	 */
+	bool m_bWaitTime;
+	/**
 	 * pull parameter 'reachend'/'wrongreach' from database with follow
 	 * running folder synchronization ID
 	 */

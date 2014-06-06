@@ -277,6 +277,7 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	//if(bOk)
 	{
 		m_bExactTime= false;
+		m_bWaitTime= false;
 		m_bFinished= true;
 		if(	m_nCaseNr == 3 ||	// case 3: count the time down to 0
 			m_nCaseNr == 4	)	// case 4: count the time down to 0, or up to full time
@@ -312,9 +313,13 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 						LOG(LOG_ERROR, msg);
 						out() << msg << endl;
 					}
-				}
-				if(!bStarting)
+				}else // if(starting != "")
+					m_bWaitTime= properties->haveAction("wait");
+				if(	!bStarting &&
+					!m_bWaitTime	)
+				{
 					getRunningThread()->calculateLengthTime();
+				}
 				if(m_bLogPercent)
 				{
 					db->writeIntoDb(folder, subroutine, "wanttime");
@@ -1812,8 +1817,7 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 
 			}else
 			{
-				nextTime->tv_sec= 0;
-				nextTime->tv_usec= 0;
+				nextTime->clear();
 				m_tmStop= m_oActTime;
 				if(ppi_time(*nextTime + folderLength) > tmReachEnd)
 					m_tmExactStop-= tmReachEnd;
@@ -1881,64 +1885,76 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 				out() << m_tmWantFinish.toString(/*as date*/true);
 				out() << endl;
 			}
-		}else //if(nextTime->isSet())
-		{
-			ppi_time tvWait;
-
-			if(debug)
-				out() << "  subtracted times are to much for starting again" << endl;
-
-			if(m_tmExactStop > m_oActTime)
-			{
-				if(tvWait.setActTime())
-					tvWait= m_tmExactStop - tvWait;
-				else
-					tvWait= m_tmExactStop - m_oActTime;
-				if(debug)
-				{
-					out() << "  wait now ";
-					out() << tvWait.toString(/*as date*/false);
-					out() << " seconds to reach exact time of ";
-					out() << m_tmExactStop.toString(/*as date*/true);
-					out() << endl;
-					if(!m_oFinished.isEmpty())
-					{
-						out() << "  which should be finished after ";
-						out() << res.toString(/*as date*/false);
-						out() << " seconds, by ";
-						out() << m_tmWantFinish.toString(/*as date*/true);
-						out() << endl;
-					}
-				}
-				getRunningThread()->usleep(tvWait);
-				m_oActTime= m_tmExactStop;
-
-			}else //if(m_tmExactStop > m_oActTime)
-			{
-				if(	debug ||
-					m_bLogPercent	)
-				{
-					ppi_time res;
-
-					tvWait= lateSec + tmReachEnd;
-					tvWait-= needTime;
-					if(debug)
-					{
-						out() << "subroutine do not need to wait for exact time," << endl;
-						out() << "because subroutine was informed to late for ";
-						out() << tvWait.toString(/*as date*/false);
-						out() << " seconds to reach finished time" << endl;
-					}
-				}
-			}
-		}//else if(!nextTime->isSet())
-
+		} //if(nextTime->isSet())
 	}//if(debug)
-	if(nextTime->isSet())
+
+	if(	nextTime->isSet() &&
+		m_bWaitTime == false	)
 	{
 		if(m_nAllowStarting != 1)
 			*nextTime+= folderLength;
-	}
+	}else
+	{
+		ppi_time tvWait;
+
+		if(debug)
+		{
+			if(m_bWaitTime)
+				out() << "  wait now until exact stopping time is reached" << endl;
+			else
+				out() << "  subtracted times are to much for starting again" << endl;
+		}
+
+		if(m_tmExactStop > m_oActTime)
+		{
+			if(tvWait.setActTime())
+				tvWait= m_tmExactStop - tvWait;
+			else
+				tvWait= m_tmExactStop - m_oActTime;
+			if(debug)
+			{
+				ppi_time res;
+
+				res= lateSec + folderLength;
+				res+= tmReachEnd;
+				out() << "  wait now ";
+				out() << tvWait.toString(/*as date*/false);
+				out() << " seconds to reach exact time of ";
+				out() << m_tmExactStop.toString(/*as date*/true);
+				out() << endl;
+				if(!m_oFinished.isEmpty())
+				{
+					out() << "  which should be finished after ";
+					out() << res.toString(/*as date*/false);
+					out() << " seconds, by ";
+					out() << m_tmWantFinish.toString(/*as date*/true);
+					out() << endl;
+				}
+			}
+			if(m_bWaitTime)// when bWaitTime set, nextTime can also be set
+				nextTime->clear();
+			getRunningThread()->usleep(tvWait);
+			m_oActTime= m_tmExactStop;
+
+		}else //if(m_tmExactStop > m_oActTime)
+		{
+			if(	debug ||
+				m_bLogPercent	)
+			{
+				ppi_time res;
+
+				tvWait= lateSec + tmReachEnd;
+				tvWait-= needTime;
+				if(debug)
+				{
+					out() << "subroutine do not need to wait for exact time," << endl;
+					out() << "because subroutine was informed to late for ";
+					out() << tvWait.toString(/*as date*/false);
+					out() << " seconds to reach finished time" << endl;
+				}
+			}
+		}
+	}//end else if(nextTime->isSet())
 	return MeasureThread::calcResult(*nextTime, m_bSeconds);
 }
 
