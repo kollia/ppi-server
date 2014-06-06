@@ -255,8 +255,11 @@ auto_ptr<IValueHolderPattern> Shell::measure(const ppi_value& actValue)
 		dLastSwitch= 1;
 	else
 		dLastSwitch= 0;
-	if(switchClass::measure(dLastSwitch)->getValue())
-		bswitch= true;
+	if(!m_bStarting)
+	{//check begin/while/end only when subroutine is not defined for external starting
+		if(switchClass::measure(dLastSwitch)->getValue())
+			bswitch= true;
+	}
 	if(bswitch)
 	{
 
@@ -307,6 +310,12 @@ auto_ptr<IValueHolderPattern> Shell::measure(const ppi_value& actValue)
 	{
 		ostringstream outStr;
 
+		if(m_bStarting)
+		{
+			m_bBlock= true;
+			system("read", m_sWhileCom);
+			outStr << "SHELL routine is defined for external starting" << endl;
+		}
 		outStr << "result of subroutine is " << dRv << " for ";
 		switch(static_cast<int>(dRv))
 		{
