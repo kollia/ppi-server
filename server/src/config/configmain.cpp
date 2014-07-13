@@ -63,6 +63,9 @@ int main(int argc, char* argv[])
 	command= params.command("TIMER", "check database file, created with ppi-server option --timerdblog,\n"
 					                   "whether reached precise time or different");
 	command->option("list", "l", "list all defined times inside database");
+	command->option("inform", "i", "make also list of times,\n"
+					"but filter list by times of inform after measure starting\n"
+					"(only usable with option --list)");
 	command->option("exactstop", "E", "make also list of times,\n"
 					"but filter list by time needed after exact stopping\n"
 					"(only usable with option --list)");
@@ -72,7 +75,7 @@ int main(int argc, char* argv[])
 	command->option("reachend", "r", "make also list of times,\n"
 					"but filter list by new estimated reaching end time\n"
 					"(only usable with option --list)");
-	command->option("idsort", "i", "sort output by running folder ID\n"
+	command->option("idsort", "I", "sort output by running folder ID\n"
 					"otherwise as standard, sorting will be done by folders with subroutines");
 	command->option("exacttimesort", "T", "sort output by exact stopping time\n"
 					"otherwise sort by time written into database\n"
@@ -81,6 +84,8 @@ int main(int argc, char* argv[])
 					"otherwise sort by time written into database\n"
 					"(not usable with option --exacttimesort)");
 	command->option("startingtime", "s", "show starting and ending times of server");
+	command->option("difference", "d", true, "show statistic difference between last reading start times\n"
+					"(only usable with option --list)");
 	command->option("begin", "B", true, "begin calculation of statistic by given time\n"
 					"(can't be used with option --starting");
 	command->option("stop", "S", true, "stop calculation of statistic by this given time\n"

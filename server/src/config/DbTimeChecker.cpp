@@ -19,95 +19,124 @@
 #include "DbTimeChecker.h"
 
 #include "../database/lib/DatabaseFactory.h"
+#include "../database/logger/lib/logstructures.h"
+
+#include "../pattern/util/LogHolderPattern.h"
+
 
 using namespace ppi_database;
 
 int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProperties* properties)
 {
-	/**
-	 * server will be initialed
-	 */
-	bool bInitialing(false);
-	/**
-	 * whether new calculation beginning
-	 * where reachend and runlength begin
-	 * with null
-	 */
-	bool bNewBegin(false);
-	bool bTimeDbLog(false);
-	/**
-	 * server do running
-	 */
-	bool brun(false);
+	bool bDiffer;
 	string stime;
-	IPPIDatabasePattern* db;
-	vector<vector<db_t> > dbVector;
-	ppi_time tmStartReading;
-	ppi_time tmStartingTime;
-	ppi_time tmFetchReachend;
-	ppi_time tmLastTime;
-	ostringstream startstopOut;
-	map<string, t_runlength > mSetRunlength;
-	map<string, t_runlength >::iterator itRunlength;
+	short nSort(0);
+	vmmdifferDef readBlock;
 
 	m_bListAll= params->hasOption("list");
 	m_bStarting= params->hasOption("startingtime");
 	if(	m_bListAll &&
 		m_bStarting		)
 	{
-		cout << "ERROR: combination of starting times (--starting)," << endl;
-		cout << "       and list all times (--list) are not allowed" << endl;
+		cout << "ERROR: combination of starting times (--starting)[-s]," << endl;
+		cout << "       and list all times (--list)[-l] are not allowed" << endl;
+		return EXIT_FAILURE;
+	}
+	m_bInformLate= params->hasOption("inform");
+	if(	m_bInformLate &&
+		m_bStarting		)
+	{
+		cout << "ERROR: combination of starting times (--starting)[-s]" << endl;
+		cout << "       and option --inform [-i] is not allowed" << endl;
 		return EXIT_FAILURE;
 	}
 	m_bExactStop= params->hasOption("exactstop");
 	if(	m_bExactStop &&
 		m_bStarting		)
 	{
-		cout << "ERROR: combination of starting times (--starting)" << endl;
-		cout << "       and option --exactstop is not allowed" << endl;
+		cout << "ERROR: combination of starting times (--starting)[-s]" << endl;
+		cout << "       and option --exactstop [-E] is not allowed" << endl;
 		return EXIT_FAILURE;
 	}
 	m_bEstimated= params->hasOption("estimated");
 	if(	m_bEstimated &&
 		m_bStarting		)
 	{
-		cout << "ERROR: combination of starting times (--starting)" << endl;
-		cout << "       and option --estimated is not allowed" << endl;
+		cout << "ERROR: combination of starting times (--starting)[-s]" << endl;
+		cout << "       and option --estimated [-e] is not allowed" << endl;
 		return EXIT_FAILURE;
 	}
 	m_bReachend= params->hasOption("reachend");
 	if(	m_bReachend &&
 		m_bStarting		)
 	{
-		cout << "ERROR: combination of starting times (--starting)" << endl;
-		cout << "       and list only new defined reaching end (--reachend) is not allowed" << endl;
+		cout << "ERROR: combination of starting times (--starting)[-s]" << endl;
+		cout << "       and list only new defined reaching end (--reachend)[-r] is not allowed" << endl;
 		return EXIT_FAILURE;
 	}
-	if(	(	m_bExactStop ||
+	if(	(	m_bInformLate ||
+			m_bExactStop ||
 			m_bEstimated ||
 			m_bReachend		) &&
 		!m_bListAll					)
 	{
 		cout << "ERROR: option of ";
+		if(m_bInformLate)
+			cout << "--inform [-i] ";
 		if(m_bExactStop)
-			cout << "--exactstop ";
+			cout << "--exactstop [-E] ";
 		if(m_bEstimated)
-			cout << "--estimated ";
+			cout << "--estimated [-e] ";
 		if(m_bReachend)
-			cout << "--reachend ";
+			cout << "--reachend [-r] ";
 		cout << endl;
-		cout << "       is only allowed with option --list" << endl;
+		cout << "       is only allowed with option --list [-l]" << endl;
 		return EXIT_FAILURE;
 	}
 	m_bFolderSort= !params->hasOption("idsort");
 	m_bExactStopSort= params->hasOption("exacttimesort");
+	if(m_bExactStopSort)
+		++nSort;
 	m_bEstimateTimeSort= params->hasOption("estimatetimesort");
-	if(	m_bExactStopSort &&
-		m_bEstimateTimeSort	)
+	if(m_bEstimateTimeSort)
+		++nSort;
+	if(nSort > 1)
 	{
-		cout << "ERROR: option --exacttimesort and --estimatetimesort" << endl;
+		cerr << "ERROR: option of --exacttimesort [-T]" << endl;
+		cerr << "             and --estimatetimesort [-t]" << endl;
 		cout << "       can't be used in same time" << endl;
 		return EXIT_FAILURE;
+	}
+	bDiffer= params->hasOption("difference");
+	if(	bDiffer &&
+		!m_bListAll	)
+	{
+		cerr << "ERROR: option --difference [-d] only usable with option --list [-l]" << endl;
+		return EXIT_FAILURE;
+	}
+/*	if(	bDiffer &&
+		nSort > 0	)
+	{
+		cerr << "ERROR: option --difference [-d] can't be used with any sorting option" << endl;
+		cerr << "                                       --idsort [-I]" << endl;
+		cerr << "                                       --exacttimesort [-T]" << endl;
+		cerr << "                                       --estimatetimesort [-t]" << endl;
+		return EXIT_FAILURE;
+	}*/
+	if(bDiffer)
+	{
+		string option("difference");
+		float nDiffer;
+
+		nDiffer= params->getOptionFloatContent(option);
+		if(	option == "##ERROR" ||
+			option == "##NULL"		)
+		{
+			cerr << "ERROR: last content for option --difference not be set" << endl;
+			cerr << "       or can not read" << endl;
+			return EXIT_FAILURE;
+		}
+		m_nDiffer= static_cast<unsigned short>(nDiffer);
 	}
 	if(	(	m_bExactStopSort ||
 			m_bEstimateTimeSort	) &&
@@ -161,8 +190,288 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 		m_bListAll= false;
 	}
 
+	readBlock= readDatabase(properties);
+
+	if(m_nDiffer > 0)
+	{
+		int start;
+		size_t count;
+		count= readBlock.size();
+		start= static_cast<int>(count) - static_cast<int>(m_nDiffer);
+		if(start < 0)
+		{
+			cerr << "ERROR: not enough starting times are available" << endl;
+			return EXIT_FAILURE;
+		}else
+		{
+			/*
+			 * iterator array point to current inner map
+			 * of map<'folder:subroutine', map<'folder ID', MinMaxTimes> >
+			 * first strings can be converse
+			 * when option --idsort be set
+			 */
+			mmdifferDef::iterator* pmmMinMaxFolders;
+			/*
+			 * iterator array point to current
+			 * MinMaxTimes object of map<'folder ID', MinMaxTimes >
+			 * when option --idsort be set
+			 * first string will be 'folder:subroutine'
+			 */
+			mdifferDef::iterator* pmMinMaxFolders;
+			set<string> vDefFolderIds;
+			set<string> vDefIdFolders;
+			MinMaxTimes nullObj;
+			MinMaxTimes* last;
+			ostringstream out;
+
+			/*
+			 * check first whether all objects
+			 * has the same count of folders
+			 */
+			// read all defined folders
+			for(size_t n= start; n < count; ++n)
+			{
+				for(mmdifferDef::iterator it= readBlock[n].begin();
+								it != readBlock[n].end(); ++it)
+				{
+					vDefFolderIds.insert(it->first);
+					for(mdifferDef::iterator it2= it->second.begin();
+									it2 != it->second.end(); ++it2)
+					{
+						vDefIdFolders.insert(it2->first);
+					}
+				}
+			}
+			size_t ni, ci;
+
+			ni= vDefIdFolders.size();
+			out << "found follow folders:" << endl;
+			for(set<string>::iterator it= vDefFolderIds.begin(); it != vDefFolderIds.end(); ++it)
+			{
+				string nullstr;
+				size_t len(it->length() + 8);
+
+				out << "      " << *it << " ";
+				if(m_bFolderSort)
+				{
+					out << "with ";
+					len+= 5;
+				}else
+				{
+					out << "by ";
+					len+= 3;
+				}
+				nullstr.append(len, ' ');
+				ci= 1;
+				for(set<string>::iterator it2= vDefIdFolders.begin(); it2 != vDefIdFolders.end(); ++it2)
+				{
+					out << *it2 << endl;
+					if(ci < ni)
+						out << nullstr;
+					++ci;
+				}
+			}
+			out << endl;
+			LOG(LOG_INFO, out.str());
+			out.str("");
+
+			out << "found " << count << " difference objects" << endl;
+			out << "      take " << (count - start) << " objects, from " << start << " to " << (count - 1) << endl;
+			LOG(LOG_INFO, out.str());
+			out.str("");
+			// implement missing folders into time blocks
+			LOG(LOG_DEBUG, "implement missing folders into time blocks:");
+			for(size_t n= start; n < count; ++n)
+			{
+				mmdifferDef::iterator found1;
+				mdifferDef::iterator found2;
+
+				out << "    for " << (n - start + 1) << ". time block";
+				LOG(LOG_DEBUG, out.str());
+				out.str("");
+				for(set<string>::iterator it= vDefFolderIds.begin(); it != vDefFolderIds.end(); ++it)
+				{
+					found1= readBlock[n].find(*it);
+					if(found1 == readBlock[n].end())
+					{
+						readBlock[n][*it]= mdifferDef();
+						out << "        implement new ";
+					}else
+						out << "        found ";
+					out << "block for ";
+					if(m_bFolderSort)
+						out << "folder ";
+					else
+						out << "ID ";
+					out << *it;
+					LOG(LOG_DEBUG, out.str());
+					out.str("");
+					for(set<string>::iterator it2= vDefIdFolders.begin(); it2 != vDefIdFolders.end(); ++it2)
+					{
+						found2= readBlock[n][*it].find(*it2);
+						if(found2 == readBlock[n][*it].end())
+						{
+							readBlock[n][*it][*it2]= nullObj;
+							out << "            implement new ";
+						}else
+							out << "            found ";
+						out << "block for ";
+						if(!m_bFolderSort)
+							out << "folder ";
+						else
+							out << "ID ";
+						out << *it2;
+						LOG(LOG_DEBUG, out.str());
+						out.str("");
+					}
+				}
+			}
+			/*
+			 * write than from all needed last object times
+			 * always the first folder into an vector of iterators
+			 */
+			pmmMinMaxFolders= new mmdifferDef::iterator[readBlock[0].size()];
+			pmMinMaxFolders= new mdifferDef::iterator[readBlock[0].begin()->second.size()];
+			for(size_t n= start; n < count; ++n)
+			{
+				pmmMinMaxFolders[n - start]= readBlock[n].begin();
+				pmMinMaxFolders[n - start]= pmmMinMaxFolders[n - start]->second.begin();
+			}
+
+			/*
+			 * run thru all first objects from pmmMinMaxFolders->pmMinMaxFolders
+			 * than second, third and so on
+			 */
+			while(!allEnd(start, readBlock, pmmMinMaxFolders))
+			{
+				last= NULL;
+				for(size_t n= 0; n < m_nDiffer; ++n)
+				{
+					if(pmmMinMaxFolders[n] != readBlock[n + start].end())
+					{
+						out << "read from first " << pmmMinMaxFolders[n]->first;
+						LOG(LOG_DEBUG, out.str());
+						out.str("");
+						if(pmMinMaxFolders[n] != pmmMinMaxFolders[n]->second.end())
+						{
+							if(pmMinMaxFolders[n]->second.isSet())
+							{
+								out << "    read second " << pmMinMaxFolders[n]->first;
+								LOG(LOG_DEBUG, out.str());
+								out.str("");
+								pmMinMaxFolders[n]->second.writeDifference(static_cast<long>(n + 1), last);
+								pmMinMaxFolders[n]->second.listEntries();
+								last= &(pmMinMaxFolders[n]->second);
+							}
+							++pmMinMaxFolders[n];
+						}
+					}
+				}
+				if(allEnd(pmmMinMaxFolders, pmMinMaxFolders))
+				{
+					last= NULL;
+					out << endl;
+					LOG(LOG_DEBUG, out.str());
+					out.str("");
+					for(size_t i= 0; i < m_nDiffer; ++i)
+					{
+						++pmmMinMaxFolders[i];
+						if(pmmMinMaxFolders[i] != readBlock[i + start].end())
+							pmMinMaxFolders[i]= pmmMinMaxFolders[i]->second.begin();
+					}
+				}
+			}
+			delete[] pmmMinMaxFolders;
+			delete[] pmMinMaxFolders;
+		}
+	}else //if(m_nDiffer > 0)
+	{
+		bool bStart;
+		bool bOut;
+		long nBlock(1);
+
+		cout << endl << endl;
+		for(vmmdifferDef::iterator vmm_it= readBlock.begin(); vmm_it != readBlock.end(); ++vmm_it)
+		{
+			bStart= true;
+			bOut= false;
+			for(mmdifferDef::iterator mm_it= vmm_it->begin(); mm_it != vmm_it->end(); ++mm_it)
+			{
+				bOut= false;
+				for(mdifferDef::iterator m_it= mm_it->second.begin(); m_it != mm_it->second.end(); ++m_it)
+				{
+					bOut= true;
+					if(bStart)
+					{
+						m_it->second.writeStarting();
+						bStart= false;
+					}
+					m_it->second.writeDifference(nBlock, NULL);
+					m_it->second.listEntries();
+				}
+			}
+			if(bOut)
+			{
+				MinMaxTimes *last;
+
+				last= &vmm_it->rbegin()->second.rbegin()->second;
+				last->writeEnding();
+			}
+			++nBlock;
+		}
+	}
+	return EXIT_SUCCESS;
+}
+
+DbTimeChecker::vmmdifferDef DbTimeChecker::readDatabase(InterlacedProperties* properties)
+{
+	/**
+	 * read sorted blocks of MaxMinTimes object
+	 */
+	vmmdifferDef vmmRv;
+	/**
+	 * server will be initialed
+	 */
+	bool bInitialing(false);
+	/**
+	 * whether new calculation beginning
+	 * where reachend and runlength begin
+	 * with null
+	 */
+	bool bNewBegin(false);
+	/**
+	 * whether server started with option --timerdblog
+	 * by current reading database entries
+	 */
+	bool bTimeDbLog(false);
+	/**
+	 * server do running
+	 */
+	bool brun(false);
+	/**
+	 * when server was new starting
+	 * and no ending entry in database
+	 * starting:starting -1 was defined
+	 * server before was crashed
+	 */
+	bool bCrashed(false);
+	/**
+	 * last defined database
+	 */
+	IPPIDatabasePattern* db;
+	vector<vector<db_t> > dbVector;
+	ppi_time tmStartReading;
+	ppi_time tmStartingTime;
+	ppi_time tmFetchReachend;
+	ppi_time tmLastTime;
+	ostringstream startstopOut;
+	map<string, t_runlength > mSetRunlength;
+	map<string, t_runlength >::iterator itRunlength;
+
+	vmmRv.push_back(mmdifferDef());
 	db= DatabaseFactory::getChoosenDatabase(properties, NULL);
-	db->readInsideSubroutine("ppi-server:starting", -1, 0, 0);
+	db->readAllContent();
+	//db->readInsideSubroutine("ppi-server:starting", -1, 0, 0);
 	cout << endl;
 	db->read(/*show loading*/true);
 	cout << endl << endl;
@@ -185,25 +494,23 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 					line->subroutine == "starting" &&
 					line->identif == "starting"			)
 				{
-
 					ppi_time time;
 
 					if(nValue == -1)
 					{
 						bInitialing= true;
-						if(brun)
-						{
-							brun= false;
-							startstopOut << "Server crashed on " << tmLastTime.toString(/*date*/true) << endl;
-							startstopOut << "----------------------------------------------------------------------------------------------------------------------" << endl;
-						}
 						tmStartingTime= line->tm;
 						string sStart(tmStartingTime.toString(true));
 
 						if(!tmStartReading.isSet())
 							tmStartReading= tmStartingTime;
-						if(needStatistic(bTimeDbLog))
-							doStatistic(tmStartReading, tmLastTime);
+						if(brun)
+						{
+							brun= false;
+							bCrashed= true;
+							writeEnding(&vmmRv, tmLastTime, /*crashed*/true);
+						}
+						bTimeDbLog= false;
 
 					}else if(nValue == 1)
 					{
@@ -211,23 +518,16 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 						ostringstream timemsg;
 						string sStart(tmStartingTime.toString(true));
 
-						if(sStart.substr(0, 6) == "11.05.")
-							cout << flush;
 						bInitialing= false;
 						if(bNewBegin)
 						{
-							bool bLog;
-
-							// set wrong boolean value
-							// to write always statistic when needed
-							bLog= bTimeDbLog ? false : true;
-							if(needStatistic(bLog))
-								doStatistic(tmStartReading, tmLastTime);
 							bNewBegin= false;
 							mSetRunlength.clear();
 						}
 						if(brun)
 						{
+							LOG(LOG_WARNING, "found starting time 1 without first initiallining starting (-1)");
+							writeEnding(&vmmRv, tmLastTime, /*crashed*/true);
 							startstopOut << "Server crashed on " << tmLastTime.toString(/*date*/true) << endl;
 							startstopOut << "----------------------------------------------------------------------------------------------------------------------" << endl;
 						}
@@ -316,36 +616,37 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 
 					}else if(line->identif.substr(0, 8) == "reachend")
 					{
-						string sRun;
+						string sRunID;
 						t_reachend tReachend;
 						map<string, double>::iterator itP;
 
-						if(needStatistic(bTimeDbLog))
-							doStatistic(tmStartReading, tmLastTime);
+						m_vUsePolicy.insert(line->folder);
 						if(line->identif.length() > 8)
 						{
 							string::size_type nLen;
 							ostringstream out;
 
-							sRun= line->identif.substr(8);
-							tReachend.ID= sRun;
+							sRunID= line->identif.substr(8);
+							tReachend.ID= sRunID;
 							// calculte first how much caracter has
 							// count of folder
-							nLen= sRun.length();
+							nLen= sRunID.length();
 							out << nLen;
 							nLen= out.str().length();
 							// create folder string
 							out.str("");
-							out << countFolders(sRun) << "-" << sRun;
-							sRun= string("").append(nLen-1, ' ') + out.str();
+							out << countFolders(sRunID) << "-" << sRunID;
+							sRunID= string("").append(nLen-1, ' ') + out.str();
 						}else
-							sRun= "-";
+							sRunID= "-";
 						itP= m_mPolicy.find(line->folder);
 						if(itP != m_mPolicy.end())
 							tReachend.policy= static_cast<int>(itP->second);
 						itP= m_mPriority.find(line->folder);
 						if(itP != m_mPriority.end())
 							tReachend.priority= static_cast<int>(itP->second);
+						tReachend.timerstat= m_mmTimerStat[line->folder][line->subroutine];
+						tReachend.timeDbLog= bTimeDbLog;
 						tReachend.reachend= nValue;
 						tReachend.maxcount= pLastReachend->maxcount;
 						tReachend.reachpercent= pLastReachend->reachpercent;
@@ -359,10 +660,45 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 						tReachend.runpercent= mSetRunlength[line->folder].runpercent;
 						tReachend.runlength= mSetRunlength[line->folder].runlength;
 						tReachend.runlengthcount= mSetRunlength[line->folder].maxcount;
-						if(m_bFolderSort)
-							m_mReachend[line->folder][line->subroutine][sRun].push_back(tReachend);
-						else
-							m_mReachend[sRun][line->folder][line->subroutine].push_back(tReachend);
+						LOG(LOG_INFO, "read " + line->folder + ":" + line->subroutine +
+										" with ID " + sRunID + "\n  use " +
+										MinMaxTimes::getPolicyString(tReachend.policy, tReachend.priority)	);
+
+						bool bFound(true);
+						mmdifferDef::iterator found1;
+						mdifferDef::iterator found2;
+						mmdifferDef* block;
+						string sSearch1(line->folder + ":" + line->subroutine);
+						string sSearch2(sRunID);
+
+						if(!m_bFolderSort)
+						{
+							sSearch2= sSearch1;
+							sSearch1= sRunID;
+						}
+						block= &vmmRv.back();
+						found1= block->find(sSearch1);
+						if(found1 != block->end())
+						{
+							found2= found1->second.find(sSearch2);
+							if(found2 != found1->second.end())
+								found2->second.setTimes(tReachend);
+							else
+								bFound= false;
+						}else
+							bFound= false;
+						if(!bFound)
+						{
+							MinMaxTimes newObj;
+
+							newObj.setFolderSubroutine(line->folder + ":" + line->subroutine);
+							newObj.setStarting(tmStartingTime);
+							newObj.setOptions(m_bListAll, m_bInformLate, m_bExactStop,
+												m_bEstimated, m_bReachend, m_bFolderSort,
+												m_bExactStopSort, m_bEstimateTimeSort);
+							newObj.setTimes(tReachend);
+							(*block)[sSearch1][sSearch2]= newObj;
+						}
 						pLastReachend->informlate= 0;
 						pLastReachend->startlate= 0;
 
@@ -373,349 +709,102 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 					{
 						if(line->identif == "policy")
 						{
+							//cout << "found " << MinMaxTimes::getPolicyString((int)nValue, 1) << " for folder " << line->folder << " " << line->subroutine << endl;
 							m_mPolicy[line->subroutine]= nValue;
 
 						}else if(line->identif == "priority")
 						{
 							m_mPriority[line->subroutine]= nValue;
 
+						}else if(line->identif == "timerstat")
+						{
+							m_mmTimerStat[line->folder][line->subroutine]= static_cast<short>(nValue);
+
 						}else if(line->identif.substr(0, 8) == "reachend")
 						{
 							if(nValue == 0)
+							{
+								mmdifferDef* block;
+
 								bNewBegin= true;
+								block= &vmmRv.back();
+								if(!block->empty())
+								{
+									writeEnding(&vmmRv, tmLastTime, bCrashed);
+									vmmRv.push_back(mmdifferDef());
+									/*
+									 * remove used policies
+									 * when server starting again
+									 * for new initialization
+									 */
+									m_vUsePolicy.clear();
+								}
+							}
+						}else if(	line->identif == "wanttime" ||
+									line->identif == "runpercent" ||
+									line->identif == "reachpercent" ||
+									line->identif == "reachlate" ||
+									line->identif == "wrongreach" ||
+									line->identif == "informlate" ||
+									line->identif == "startlate"		)
+						{
+							bTimeDbLog= true;
 						}
 					}// end else if(bInitialing)
 			}// end if(bFoundValue)
 			tmLastTime= line->tm;
 		}
 	}
+	writeEnding(&vmmRv, tmLastTime, bCrashed);
+
 	if(brun)
 	{
 		startstopOut << "Server crashed or last reading time on " << tmLastTime.toString(/*date*/true) << endl;
 		startstopOut << "----------------------------------------------------------------------------------------------------------------------" << endl;
 	}
-	// set wrong boolean value
-	// to write always statistic when needed
-	bTimeDbLog= bTimeDbLog ? false : true;
-	if(needStatistic(bTimeDbLog))
-		doStatistic(tmStartReading, tmLastTime);
 	if(m_bStarting)
 	{
 		cout << endl << endl;
 		cout << startstopOut.str();
 	}
-	return EXIT_SUCCESS;
+	return vmmRv;
 }
 
-bool DbTimeChecker::needStatistic(bool bTimeDbLog)
+bool DbTimeChecker::allEnd(int first, vmmdifferDef& readBlock, mmdifferDef::iterator* pMinMaxFolders)
 {
-	if(bTimeDbLog == m_bTimeDbLog)
-		return false;
-	m_bTimeDbLog= bTimeDbLog;
-	if(m_mReachend.empty())
-		return false;
-	if(m_bListAll)
-		return true;
-	if(m_bExactStop)
-		return true;
-	if(m_bReachend)
-		return true;
-	// when no option be set,
-	// make also statistic
-	if(!m_bStarting)
-		return true;
-	return false;
-}
-
-void DbTimeChecker::doStatistic(ppi_time& tmStartReading, const ppi_time& tmLastReading)
-{
-	double dCurrentReachendMaxCount(0);
-	ppi_time tmStartingTime;
-	ppi_value dLastReachend;
-	MinMaxTimes tMinMax;
-
-	cout << endl;
-	cout << "BEGIN time statistic on " << tmStartReading.toString(/*as date*/true) << endl;
-	cout << "----------------------------------------------------------------------------------------------------------------------" << endl;
-	cout << endl;
-	// when sort by folder (option --foldersort[m_bFolderSort]) itSort1 is folder
-	// elsewhere itSort1 is running folder ID
-	for(itReachendFolder::iterator itSort1= m_mReachend.begin(); itSort1 != m_mReachend.end(); ++itSort1)
+	for(size_t n= 0; n < m_nDiffer; ++n)
 	{
-		if(!m_bFolderSort)
+		if(pMinMaxFolders[n] != readBlock[n + first].end())
+			return false;
+	}
+	return true;
+}
+
+bool DbTimeChecker::allEnd(mmdifferDef::iterator* pmmMinMaxFolders, mdifferDef::iterator* pmMinMaxFolders)
+{
+	for(size_t n= 0; n < m_nDiffer; ++n)
+	{
+		if(pmMinMaxFolders[n] != pmmMinMaxFolders[n]->second.end())
+			return false;
+	}
+	return true;
+}
+
+void DbTimeChecker::writeEnding(vmmdifferDef* timeBlock, const ppi_time& time, bool bCrashed)
+{
+	mmdifferDef* block;
+
+	if(timeBlock->empty())
+		return;
+	block= &timeBlock->back();
+	for(mmdifferDef::iterator oit= block->begin(); oit != block->end(); ++oit)
+	{
+		for(mdifferDef::iterator iit= oit->second.begin(); iit != oit->second.end(); ++iit)
 		{
-			cout << endl << endl;
-			cout << "running folder ID " << itSort1->first << ":" << endl;
-			cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
-		}
-		// when sort by folder (option --foldersort[m_bFolderSort]) itSort2 is subroutine
-		// elsewhere itSort2 is folder
-		for(itReachendSub itSort2= itSort1->second.begin(); itSort2 != itSort1->second.end(); ++itSort2)
-		{
-			// when sort by folder (option --foldersort[m_bFolderSort]) itSort3 is running folder ID
-			// elsewhere itSort3 is subroutine
-			for(itReachendRun itSort3= itSort2->second.begin(); itSort3 != itSort2->second.end(); ++itSort3)
-			{
-				unsigned int nRunningCount(0);
-				short nMaxDigits;
-				map<ppi_value, string> mTimeSort;
-
-				if(!m_bFolderSort)
-				{
-					cout << endl;
-					cout << "   " << itSort1->first << " " << itSort2->first << ":" << itSort3->first << ":" << endl;
-				}
-				dCurrentReachendMaxCount= 0;
-				tMinMax.reset();
-				tMinMax.resetFirstFolders();
-				dLastReachend= 0;
-				for(itReachendValue itValue= itSort3->second.begin(); itValue != itSort3->second.end(); ++itValue)
-				{
-					bool bmore;
-					double seconds;
-					ostringstream out;
-
-					++nRunningCount;
-					if(	m_bFolderSort &&
-						itValue == itSort3->second.begin()	)
-					{
-						if(itSort3 == itSort2->second.begin())
-						{
-							cout << endl << endl;
-							cout << "running folder '" << itSort1->first << ":" << itSort2->first << endl;
-							cout << getPolicyString(itValue) << endl;
-							cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
-						}
-						if(itSort2 == itSort1->second.begin())
-						{
-							cout << endl << endl;
-							cout << "running folder ID " << itValue->ID << ":" << endl;
-							cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
-						}
-
-					}else
-					{
-						if(itValue == itSort3->second.begin())
-						{
-							cout << "   " << getPolicyString(itValue) << endl;
-							cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
-						}
-					}
-					if(itValue->maxcount != dCurrentReachendMaxCount)
-					{
-						cout << "            on maximal count " << itValue->maxcount << endl;
-						dCurrentReachendMaxCount= itValue->maxcount;
-					}
-					if(	m_bListAll &&
-						itValue != itSort3->second.begin()	)
-					{
-						cout << endl;
-					}
-					if(tmStartingTime != itValue->tmStart)
-					{
-						writeMinMax(tMinMax, /*last*/false);
-						tMinMax.reset();
-						tmStartingTime= itValue->tmStart;
-						tMinMax.setStarting(tmStartingTime);
-						if(	!m_bExactStopSort &&
-							!m_bEstimateTimeSort	)
-						{
-							cout << "new STARTING " << tmStartingTime.toString(/*as date*/true) << endl;
-						}
-					}
-					tMinMax.setTimes(itSort2->first+":"+itSort3->first, itValue->reachlate, itValue->wrongreach);
-
-					if(m_bListAll)
-					{
-						out << endl;
-						if(	m_bExactStopSort ||
-							m_bEstimateTimeSort	)
-						{
-							out << "           by " << nRunningCount << ". running" << endl;
-						}
-						if(itValue->ID != "-")
-							out << "           running under ID " << itValue->ID << endl;
-						out << "      for folder:subroutine ";
-						if(m_bFolderSort)
-							out << itSort1->first << ":" << itSort2->first << endl;
-						else
-							out << itSort2->first << ":" << itSort3->first << endl;
-						out << "      " << getPolicyString(itValue) << endl;
-						out << "       want measure time of " << itValue->wanttime << " seconds" << endl;
-						out << "   by ending calculation on " << fixed << itValue->tmFetch.toString(/*as date*/true) << endl;
-						out.precision(0);
-						out << "    fetch reachend value by " << itValue->reachpercent << "% CPU-time" << endl;
-						out.precision(6);
-						out << "            fetch runlength " << fixed << itValue->runlength;
-						out.precision(0);
-						out << " by " << dec << itValue->runpercent << "% CPU-time" << endl;
-						out.precision(6);
-						if(itValue->informlate > 0)
-							out << "             subroutine was " << fixed << itValue->informlate << " seconds informed to late,"
-										" to beginning time measure" << endl;
-						if(itValue->startlate > 0)
-							out << "        subroutine starting " << fixed << itValue->startlate << " seconds to late" << endl;
-					}
-					if(	m_bListAll ||
-						m_bExactStop	)
-					{
-						out << "                       ";
-						if(	!m_bListAll &&
-							(	m_bExactStopSort ||
-								m_bEstimateTimeSort	)	)
-						{
-							out << nRunningCount << ". run ";
-						}
-						out << "need " << fixed << itValue->reachlate;
-						out << " seconds after stopping TIMER subroutine" << endl;
-					}
-					if(	m_bListAll &&
-						dLastReachend != 0 &&
-						itValue->wanttime > itValue->reachlate	)
-					{
-						out << "                      minus ";
-						out << dLastReachend << " seconds before estimated ending time" << endl;
-					}
-					if(	m_bListAll ||
-						m_bEstimated	)
-					{
-						seconds= itValue->wrongreach;
-						if(seconds < 0)
-						{
-							seconds*= -1;
-							bmore= false;
-						}else
-							bmore= true;
-						if(itValue->wanttime < itValue->reachlate)
-						{
-							if(	!m_bListAll &&
-								(	m_bExactStopSort ||
-									m_bEstimateTimeSort	)	)
-							{
-								out << "                   ";
-							}else
-								out << "            ";
-							out << "desired time of " << itValue->wanttime;
-							out << " seconds was overrun" << endl;
-							if(itValue == itSort3->second.begin())
-							{
-								seconds-= itValue->wanttime;
-								itValue->wrongreach= seconds;
-							}
-						}
-						out << "                       ";
-						if(	!m_bListAll &&
-							(	m_bExactStopSort ||
-								m_bEstimateTimeSort	)	)
-						{
-							if(!m_bExactStop)
-								out << nRunningCount << ". run ";
-							else
-								out << "       ";
-						}
-						out << "need " << fixed << seconds;
-						if(bmore)
-							out << " more ";
-						else
-							out << " less ";
-						out << "seconds";
-						if(itValue->wanttime > itValue->reachlate)
-							out << " than estimated";
-						out << endl;
-					}
-					if(	m_bListAll ||
-						m_bReachend		)
-					{
-						if(	!m_bListAll &&
-							!m_bExactStop &&
-							!m_bEstimated &&
-							(	m_bExactStopSort ||
-								m_bEstimateTimeSort	)	)
-						{
-							out << " by " << nRunningCount << ". running ";
-						}
-						out << " define new reaching end by " << fixed << itValue->reachend << " seconds" << endl;
-					}
-					dLastReachend= itValue->reachend;
-					if(	m_bExactStopSort ||
-						m_bEstimateTimeSort	)
-					{
-						short digit;
-						ppi_value tm;
-
-						if(m_bExactStopSort)
-							tm= itValue->reachlate;
-						else
-							tm= itValue->wrongreach;
-						digit= countDigits(static_cast<int>(tm));
-						if(nMaxDigits < digit)
-							nMaxDigits= digit;
-						mTimeSort[tm]= out.str();
-
-					}else
-					{
-						cout << out.str();
-					}
-				}
-				if(	m_bExactStopSort ||
-					m_bEstimateTimeSort	)
-				{
-					map<string, string> newTimeSort;
-
-					for(map<ppi_value, string>::iterator it= mTimeSort.begin(); it != mTimeSort.end(); ++it)
-					{
-						short digit;
-						ostringstream out;
-
-						digit= countDigits(static_cast<int>(it->first));
-						out << string().append((nMaxDigits - digit), '0');
-						out << it->first;
-						newTimeSort[out.str()]= it->second;
-					}
-					for(map<string, string>::iterator it= newTimeSort.begin(); it != newTimeSort.end(); ++it)
-						cout << it->second;
-				}
-				writeMinMax(tMinMax, /*last*/true);
-			}
+			iit->second.setPolicy(m_mPolicy, m_mPriority, m_vUsePolicy);
+			iit->second.setEndingTime(time, bCrashed);
 		}
 	}
-	cout << endl;
-	cout << "END time statistic by " << tmLastReading.toString(/*as date*/true) << endl;
-	cout << "----------------------------------------------------------------------------------------------------------------------" << endl;
-	cout << endl;
-	m_mLastReachend.clear();
-	m_mReachend.clear();
-	tmStartReading= tmLastReading;
-}
-
-string DbTimeChecker::getPolicyString(itReachendValue value) const
-{
-	ostringstream info;
-
-	info << "with scheduling policy ";
-	switch(value->policy)
-	{
-	case SCHED_OTHER:
-		info << "SCHED_OTHER";
-		break;
-	case SCHED_BATCH:
-		info << "SCHED_BATCH";
-		break;
-	case SCHED_IDLE:
-		info << "SCHED_IDLE";
-		break;
-	case SCHED_RR:
-		info << "SCHED_RR";
-		break;
-	case SCHED_FIFO:
-		info << "SCHED_FIFO";
-		break;
-	default:
-		info << "unknown";
-		break;
-	}
-	info << " and priority " << value->priority;
-	return info.str();
 }
 
 short DbTimeChecker::countDigits(int value) const
@@ -730,168 +819,7 @@ short DbTimeChecker::countDigits(int value) const
 	return nRv;
 }
 
-void DbTimeChecker::writeMinMax(const MinMaxTimes tmMinMax, bool bLast)
-{
-	bool bNoOptionSet(false);
-	unsigned long nCount;
-	static MinMaxTimes oFullTimes;
-	double nMinLength, nMaxLength;
-	double nMinEstimate, nMaxEstimate;
-
-	if(!m_bStarting)
-	{
-		if(	!m_bListAll &&
-			!m_bExactStop &&
-			!m_bEstimated &&
-			!m_bReachend	)
-		{// only sort option can be set
-			bNoOptionSet= true;
-		}
-		if(tmMinMax.isSet())
-		{
-			nCount= tmMinMax.getCount();
-			nMinLength= tmMinMax.getMinLength();
-			nMaxLength= tmMinMax.getMaxLength();
-			nMinEstimate= tmMinMax.getMinEstimate();
-			nMaxEstimate= tmMinMax.getMaxEstimate();
-			cout << endl;
-			cout << "        by reading " << nCount << " entries";
-			if(	nCount > 1 &&
-				!oFullTimes.isSet()	)
-			{
-				cout << " (do not calculate first time because that is mostly wrong)";
-			}
-			cout << endl;
-			if(nMinLength != nMaxLength)
-			{
-				if(	m_bListAll ||
-					m_bExactStop ||
-					bNoOptionSet	)
-				{
-					cout << "        reaching end differ from " << fixed << nMinLength << " to "
-									<< fixed << nMaxLength << " seconds " << endl;
-					cout << "            which is various differ of " << fixed << (nMaxLength - nMinLength) << " seconds" << endl;
-					if(tmMinMax.getCount() > 1)
-						cout << "            and has an average of " << tmMinMax.getAverageLength() << " seconds" << endl;
-				}
-				if(	m_bListAll ||
-					m_bEstimated ||
-					bNoOptionSet	)
-				{
-					cout << "        wrong estimation differ from " << fixed << nMinEstimate << " to "
-									<< fixed << nMaxEstimate << " seconds" << endl;
-					cout << "            highest wrong estimation " << fixed << tmMinMax.getLongestMiscalculated() << " seconds" << endl;
-					if(tmMinMax.getCount() > 1)
-						cout << "            and has an average of " << tmMinMax.getAverageEstimation() << " seconds" << endl;
-				}
-			}else
-			{
-				if(	m_bListAll ||
-					m_bExactStop ||
-					bNoOptionSet	)
-				{
-					cout << "        reaching end time of " << fixed << nMinLength << " seconds " << endl;
-				}
-				if(	m_bListAll ||
-					m_bEstimated ||
-					bNoOptionSet	)
-				{
-					cout << "              wrong estimate " << fixed << tmMinMax.getLongestMiscalculated() << " seconds" << endl;
-				}
-			}
-			if(!bLast)
-				cout << endl;
-			oFullTimes.add(tmMinMax);
-		}
-		if(	bLast &&
-			oFullTimes.isSet() &&
-			tmMinMax.getCount() < oFullTimes.getCount()	)
-		{
-			nCount= oFullTimes.getCount();
-			nMinLength= oFullTimes.getMinLength();
-			nMaxLength= oFullTimes.getMaxLength();
-			nMinEstimate= oFullTimes.getMinEstimate();
-			nMaxEstimate= oFullTimes.getMaxEstimate();
-			cout << "        -----------------------------------------------------------------------" << endl;
-			cout << "        is result by reading " << nCount << " entries";
-			if(nCount > 1)
-				cout << " (do not calculate first time because that is mostly wrong)";
-			cout << endl;
-			if(nMinLength != nMaxLength)
-			{
-				if(	m_bListAll ||
-					m_bExactStop ||
-					bNoOptionSet	)
-				{
-					cout << "        reaching end differ from " << fixed << nMinLength << " to "
-									<< fixed << nMaxLength << " seconds " << endl;
-					cout << "            which is various differ of " << fixed << (nMaxLength - nMinLength) << " seconds" << endl;
-					if(oFullTimes.getCount() > 1)
-						cout << "            and has an average of " << oFullTimes.getAverageLength() << " seconds" << endl;
-				}
-				if(	m_bListAll ||
-					m_bEstimated ||
-					bNoOptionSet	)
-				{
-					cout << "        wrong estimation differ from " << fixed << nMinEstimate << " to "
-									<< nMaxEstimate << " seconds" << endl;
-					cout << "            highest wrong estimation " << fixed << oFullTimes.getLongestMiscalculated() << " seconds" << endl;
-					if(oFullTimes.getCount() > 1)
-						cout << "            and has an average of " << oFullTimes.getAverageEstimation() << " seconds" << endl;
-				}
-			}else
-			{
-				if(	m_bListAll ||
-					m_bExactStop ||
-					bNoOptionSet	)
-				{
-					cout << "        reaching end time of " << fixed << nMinLength << " seconds " << endl;
-				}
-				if(	m_bListAll ||
-					m_bEstimated ||
-					bNoOptionSet	)
-				{
-					cout << "              wrong estimate " << fixed << oFullTimes.getLongestMiscalculated() << " seconds" << endl;
-				}
-			}
-			cout << "        -----------------------------------------------------------------------" << endl;
-		}
-	}
-	if(bLast)
-	{
-		oFullTimes.reset();
-		oFullTimes.resetFirstFolders();
-	}
-}
-
-void DbTimeChecker::MinMaxTimes::add(const MinMaxTimes& tmOthers)
-{
-	m_nCount+= tmOthers.m_nCount;
-	if(m_tmStarting > tmOthers.m_tmStarting)
-		m_tmStarting= tmOthers.m_tmStarting;
-	if(tmOthers.m_dMinLength < m_dMinLength)
-		m_dMinLength= tmOthers.m_dMinLength;
-	if(tmOthers.m_dMaxLength > m_dMaxLength)
-		m_dMaxLength= tmOthers.m_dMaxLength;
-	if(m_dAverageLength == 0)
-		m_dAverageLength= tmOthers.m_dAverageLength;
-	else if(tmOthers.m_dAverageLength != 0)
-		m_dAverageLength= (m_dAverageLength + tmOthers.m_dAverageLength) / 2;
-	m_vLengthTimes.insert(m_vLengthTimes.end(), tmOthers.m_vLengthTimes.begin(), tmOthers.m_vLengthTimes.end());
-	if(tmOthers.m_dMinEstimate < m_dMinEstimate)
-		m_dMinEstimate= tmOthers.m_dMinEstimate;
-	if(tmOthers.m_dMaxEstimate > m_dMaxEstimate)
-		m_dMaxEstimate= tmOthers.m_dMaxEstimate;
-	if(tmOthers.m_dLongEstimate > m_dLongEstimate)
-		m_dLongEstimate= tmOthers.m_dLongEstimate;
-	m_vEstimateTimes.insert(m_vEstimateTimes.end(), tmOthers.m_vEstimateTimes.begin(), tmOthers.m_vEstimateTimes.end());
-	if(m_dAverageEstimate == 0)
-		m_dAverageEstimate= tmOthers.m_dAverageEstimate;
-	else if(tmOthers.m_dAverageEstimate != 0)
-		m_dAverageEstimate= (m_dAverageEstimate + tmOthers.m_dAverageEstimate) / 2;
-}
-
-DbTimeChecker::t_reachend* DbTimeChecker::getLastReachendValues(const string& folder,
+t_reachend* DbTimeChecker::getLastReachendValues(const string& folder,
                               const string& subroutine)
 {
 	t_reachend reachend;

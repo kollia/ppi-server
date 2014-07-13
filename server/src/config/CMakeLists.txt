@@ -1,5 +1,6 @@
 
 set(configSrcs	configmain.cpp
+                MinMaxTimes.cpp
                 DbTimeChecker.cpp  )
  
 if(USE_LircClient)
