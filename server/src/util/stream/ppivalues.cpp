@@ -51,6 +51,19 @@ void ppi_time::operator >> (ppi_value& value) const
 	value+= static_cast<ppi_value>(tv_sec);
 }
 
+IPPITimePattern& ppi_time::operator = (const ppi_time& time)
+{
+	/*
+	 * implement also ppi_time object
+	 * because when not
+	 * gcc do not know which operator should taken
+	 * take not for timeval ??? don't know why
+	 */
+	tv_sec= time.tv_sec;
+	tv_usec= time.tv_usec;
+	return *this;
+}
+
 IPPITimePattern& ppi_time::operator = (const timeval& time)
 {
 	tv_sec= time.tv_sec;

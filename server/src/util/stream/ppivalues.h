@@ -51,9 +51,13 @@ public:
 	ppi_time(const timeval& time)
 	{ tv_sec= time.tv_sec; tv_usec= time.tv_usec; m_nErrno= 0; };
 	/**
-	 * copy operator
+	 * copy operator for time pattern
 	 */
 	virtual IPPITimePattern& operator = (const IPPITimePattern& time);
+	/**
+	 * copy operator for time object
+	 */
+	virtual IPPITimePattern& operator = (const ppi_time& time);
 	/**
 	 * copy operator for normal timeval value
 	 */
