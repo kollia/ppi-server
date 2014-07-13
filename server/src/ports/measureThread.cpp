@@ -1784,6 +1784,7 @@ int MeasureThread::getCpuPercent(const vector<int>::size_type& processor, int *p
 			ostringstream oerr;
 			vector<string> err(5);
 
+			// toDo: bug >> write no strings into log file ????
 			oerr << "cannot create correct CPU time:" << endl;
 			err.push_back(oerr.str());
 			oerr.str("");
