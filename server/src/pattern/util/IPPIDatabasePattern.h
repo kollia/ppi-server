@@ -130,6 +130,11 @@ namespace design_pattern_world
 		virtual void readInsideSubroutine(const string& fromsub, const double from, const string& tosub,
 						const double to, const unsigned short ncount)= 0;
 		/**
+		 * read all content from database
+		 * to get with method <code>getReadSubBlock()</code>
+		 */
+		virtual void readAllContent()= 0;
+		/**
 		 * read all actually state of subroutine inside value from and to
 		 *
 		 * @param sub subroutine for definition to begin end ending

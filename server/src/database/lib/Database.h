@@ -78,6 +78,12 @@ namespace ppi_database
 		 */
 		virtual bool read(bool load= false);
 		/**
+		 * read all content from database
+		 * to get with method <code>getReadSubBlock()</code>
+		 */
+		virtual void readAllContent()
+		{ m_bReadContent= true; };
+		/**
 		 * read all actually state of subroutine inside given subroutines fromsub with value from
 		 * to subroutine tosub and value to
 		 *
@@ -377,6 +383,10 @@ namespace ppi_database
 		 * whether any value is changed in database
 		 */
 		bool m_bAnyChanged;
+		/**
+		 * whether read content from database into an vector
+		 */
+		bool m_bReadContent;
 		/**
 		 * all subroutines witch need new content of any chips.<br/>
 		 * saving in map<onServer, map<chip, map<folder, set<subroutine> > > >

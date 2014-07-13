@@ -63,6 +63,7 @@ namespace ppi_database
 
 		m_bError= false;
 		m_bDbStop= false;
+		m_bReadContent= false;
 		m_sConfigureLevel= "NONE";
 		prop= "newdbafter";
 		newdbafter= (float)properties->getDouble(prop);
@@ -159,6 +160,7 @@ namespace ppi_database
 		tm l;
 		db_t entry;
 		bool bNew= false;
+		bool bReadSubContent(false);
 		off_t size, loaded;
 		map<string, string> files;
 		ppi_time curLoad, newTime;
@@ -168,6 +170,11 @@ namespace ppi_database
 			curLoad.setActTime();
 			cout << endl;
 			cout << " read database " << flush;
+		}
+		if(	m_bReadContent &&
+			!m_vReadBlockDefs.empty()	)
+		{
+			bReadSubContent= true;
 		}
 		m_sDbFile= getLastDbFile(m_sWorkDir, "entrys_", size);
 		LOCK(m_SERVERSTARTINGMUTEX);
@@ -260,32 +267,47 @@ namespace ppi_database
 					}else
 					{
 						setActEntry(entry);
-						if(m_pEndReading == NULL)
+						if(m_bReadContent)
 						{
-							for(readVector vec= m_vReadBlockDefs.begin(); vec != m_vReadBlockDefs.end(); ++vec)
+							if(	bReadSubContent &&
+								m_pEndReading == NULL	)
 							{
-								if(	vec->first.first.first == entry.folder &&
-									vec->first.first.second == entry.subroutine &&
-									vec->first.second == entry.values[0]				)
+								for(readVector vec= m_vReadBlockDefs.begin(); vec != m_vReadBlockDefs.end(); ++vec)
+								{
+									if(	vec->first.first.first == entry.folder &&
+										vec->first.first.second == entry.subroutine &&
+										vec->first.second == entry.values[0]				)
+									{
+										vector<db_t> first;
+
+										m_pEndReading= &vec->second;
+										first.push_back(entry);
+										m_vvDbEntrys.push_back(first);
+										m_nReadBlock= m_vvDbEntrys.size()-1;
+									}
+								}
+							}else
+							{
+								if(	!bReadSubContent &&
+									m_vvDbEntrys.empty()	)
 								{
 									vector<db_t> first;
 
-									m_pEndReading= &vec->second;
 									first.push_back(entry);
 									m_vvDbEntrys.push_back(first);
-									m_nReadBlock= m_vvDbEntrys.size()-1;
+									m_nReadBlock= 0;
+								}else
+									m_vvDbEntrys[m_nReadBlock].push_back(entry);
+
+								if(	bReadSubContent &&
+									m_pEndReading->first.first == entry.folder &&
+									m_pEndReading->first.second == entry.subroutine &&
+									m_pEndReading->second == entry.values[0]			)
+								{
+									m_pEndReading= NULL;
 								}
 							}
-						}else
-						{
-							m_vvDbEntrys[m_nReadBlock].push_back(entry);
-							if(	m_pEndReading->first.first == entry.folder &&
-								m_pEndReading->first.second == entry.subroutine &&
-								m_pEndReading->second == entry.values[0]			)
-							{
-								m_pEndReading= NULL;
-							}
-						}
+						}// if(m_bReadContent)
 					}
 				}
 				if(load)
@@ -357,6 +379,7 @@ namespace ppi_database
 		split(fspl, fromsub, is_any_of(":"));
 		split(tspl, tosub, is_any_of(":"));
 
+		m_bReadContent= true;
 		pair<string, string> fromSub(fspl[0], fspl[1]);
 		pair<string, string> toSub(tspl[0], tspl[1]);
 		pair<pair<string, string>, double> From(fromSub, from);
