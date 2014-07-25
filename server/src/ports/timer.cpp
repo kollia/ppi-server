@@ -479,18 +479,24 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 								break;
 							++n;
 						}while(!bAll1);
-					}
-				}
-			} // if(m_bExactTime)
-		}
+					}// end if(smtime != "")
+				}// end if(m_nCaseNr == 3)
+			} // end if(m_bExactTime)
+		}// end if(m_nCaseNr == 3 or 4)
 	}
-	dTimerStat= 0;
+	/*
+	 * values should be hold synchronized
+	 * with t_reachend.timerstat
+	 * inside header file MinMaxTimes.h
+	 * to create time statistics
+	 */
+	dTimerStat= 0;// normally
 	if(m_bExactTime)
-		dTimerStat= 1;
+		dTimerStat= 1;// exact stopping
 	if(m_bWaitTime)
-		dTimerStat= 2;
+		dTimerStat= 2;// every wait
 	if(m_pStartObj != NULL)
-		dTimerStat= 3;
+		dTimerStat= 3;// external starting
 	db->writeIntoDb(folder, subroutine, "timerstat");
 	db->fillValue(folder, subroutine, "timerstat", dTimerStat, /*new*/true);
 	return bOk;

@@ -24,6 +24,7 @@
 
 #include "../GlobalStaticMethods.h"
 
+#include "../../database/logger/lib/logstructures.h"
 #include "../../pattern/util/LogHolderPattern.h"
 
 namespace util
@@ -77,6 +78,45 @@ namespace util
 				sRv.insert("MPORT");
 		}
 		return sRv;
+	}
+
+	short PPIConfigFileStructure::getFolderDbThreads()
+	{
+		static bool bFirst(true);
+		short nRv;
+		string res;
+
+		res= m_oServerFileCasher.getValue("folder_db_threads");
+		if(res == "")
+		{
+			nRv= 1;
+			if(bFirst)
+			{
+				LOG(LOG_WARNING, "no property folder_db_thread is defined\n"
+								"so create ONE thread for all folders");
+				bFirst= false;
+			}
+		}else
+		{
+			if(res == "DIRECT")
+				nRv= -1;
+			else if(res == "ONE")
+				nRv= 1;
+			else if(res == "EVERY")
+				nRv= 0;
+			else
+			{
+				nRv= 1;
+				if(bFirst)
+				{
+					LOG(LOG_WARNING, "cannot read property folder_db_thread\n"
+									"readed entry '" + res + "' is not defined correctly\n"
+									"so create ONE thread for all folders");
+					bFirst= false;
+				}
+			}
+		}
+		return nRv;
 	}
 
 	bool PPIConfigFileStructure::startDbServer()

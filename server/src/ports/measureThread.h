@@ -32,7 +32,7 @@
 #include "../util/thread/Terminal.h"
 
 #include "Informer.h"
-#include "DbFiller.h"
+#include "DbFillerFactory.h"
 #include "ListCalculator.h"
 
 using namespace util;
@@ -99,7 +99,7 @@ class MeasureThread : 	public Thread,
 		 * @return sending device
 		 */
 		virtual IClientSendMethods* getExternSendDevice()
-		{ return &m_oDbFiller; };
+		{ return m_oDbFiller.get(); };
 		/**
 		 * return run specification of folder
 		 *
@@ -148,7 +148,7 @@ class MeasureThread : 	public Thread,
 		 * @param bNew whether database should actualize value for client default= false
 		 */
 		virtual void fillValue(const string& folder, const string& subroutine, const string& identif, double value, bool bNew= false)
-		{ m_oDbFiller.fillValue(folder, subroutine, identif, value, bNew); };
+		{ m_oDbFiller->fillValue(folder, subroutine, identif, value, bNew); };
 		/**
 		 * fill double value over an queue into database
 		 *
@@ -160,7 +160,7 @@ class MeasureThread : 	public Thread,
 		 */
 		virtual void fillValue(const string& folder, const string& subroutine, const string& identif,
 						const vector<double>& dvalues, bool bNew= false)
-		{ m_oDbFiller.fillValue(folder, subroutine, identif, dvalues, bNew); };
+		{ m_oDbFiller->fillValue(folder, subroutine, identif, dvalues, bNew); };
 		/**
 		 * return actually count of current subroutine
 		 *
@@ -572,7 +572,7 @@ class MeasureThread : 	public Thread,
 		/**
 		 * database filler pool
 		 */
-		DbFiller m_oDbFiller;
+		SHAREDPTR::shared_ptr<IDbFillerPattern> m_oDbFiller;
 
 		/**
 		 * private copy constructor for no allowed copy

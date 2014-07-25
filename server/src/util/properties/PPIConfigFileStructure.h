@@ -111,6 +111,15 @@ namespace util
 		 */
 		bool startDbServer();
 		/**
+		 * read how much extra database write threads
+		 * needed for all folder to write into database
+		 *
+		 * @return -1        - not thread, writing directly
+		 *          0        - creating for every folder an thread
+		 *          <number> - count of threads writing into database
+		 */
+		short getFolderDbThreads();
+		/**
 		 * check whether should start any external port interface
 		 *
 		 * @return whether start

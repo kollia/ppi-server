@@ -23,44 +23,25 @@
 #include <vector>
 
 #include "../pattern/util/IPPIDatabasePattern.h"
+#include "../pattern/util/IDbFillerPattern.h"
 #include "../pattern/server/IClientSendMethods.h"
 
 #include "../util/thread/Thread.h"
 
+#include "DbFillerCache.h"
+
 namespace util
 {
 	using namespace std;
-	using namespace design_pattern_world::client_pattern;
 
 	/**
 	 * sending all questions which reach ExternClientInputTemplate
 	 * and need no really answer
 	 */
 	class DbFiller : 	public Thread,
-						public IClientSendMethods
+						public IDbFillerPattern
 	{
 	public:
-		/**
-		 * structure for an sending question which need no answer.<br />
-		 * this will be done from an seperate thread
-		 */
-		struct sendingInfo_t
-		{
-			/**
-			 * to which process the question should be send
-			 */
-			string toProcess;
-			/**
-			 * question method object with all parameters
-			 */
-			string method;
-			/**
-			 * when answer (which not needed, but its possible)
-			 * have more than one strings, there should be defined
-			 * and end message string
-			 */
-			string done;
-		};
 		/**
 		 * constructor of object
 		 *
@@ -69,12 +50,16 @@ namespace util
 		 */
 		DbFiller(const string& threadName)
 		: Thread("DbFillerThread_for_" + threadName, false, SCHED_BATCH, 0),
-		  m_bisRunn(false),
-		  m_vsSendingQueue(new vector<sendingInfo_t>()),
-		  m_apmtValueEntrys(new map<string, db_t>()),
-		  m_SENDQUEUELOCK(getMutex("SENDQUEUELOCK")),
-		  m_SENDQUEUECONDITION(getCondition("SENDQUEUECONDITION"))
+		  m_SENDQUEUELOCK(Thread::getMutex("SENDQUEUELOCK")),
+		  m_SENDQUEUECONDITION(Thread::getCondition("SENDQUEUECONDITION")),
+		  m_bHasContent(false),
+		  m_oCache("DbFillerCache_for_" + threadName, m_SENDQUEUELOCK, &m_bHasContent)
 		{};
+		/**
+		 * return thread name of DbFiller
+		 */
+		virtual string getName()
+		{ return getThreadName(); };
 		/**
 		 * send message to given server in constructor
 		 * or write into queue when no answer be needed
@@ -84,7 +69,8 @@ namespace util
 		 * @param answer whether client should wait for answer
 		 * @return backward send return value from server if answer is true, elsewhere returning null string
 		 */
-		virtual string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true);
+		virtual string sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer= true)
+		{ return m_oCache.sendMethod(toProcess, method, answer); };
 		/**
 		 * send message to given server in constructor
 		 * or write into queue when no answer be needed
@@ -95,7 +81,8 @@ namespace util
 		 * @param answer whether client should wait for answer
 		 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
 		 */
-		virtual vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
+		virtual vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true)
+		{ return m_oCache.sendMethod(toProcess, method, done, answer); };
 		/**
 		 * fill double value over an queue into database
 		 *
@@ -105,8 +92,9 @@ namespace util
 		 * @param value value which should write into database
 		 * @param bNew whether database should actualize value for client default= false
 		 */
-		void fillValue(const string& folder, const string& subroutine, const string& identif,
-						double value, bool bNew= false);
+		virtual void fillValue(const string& folder, const string& subroutine, const string& identif,
+						double value, bool bNew= false)
+		{ m_oCache.fillValue(folder, subroutine, identif, value, bNew); };
 		/**
 		 * fill double value over an queue into database
 		 *
@@ -116,8 +104,32 @@ namespace util
 		 * @param dvalues vector of more values which should write into database
 		 * @param bNew whether database should actualize value for client default= false
 		 */
-		void fillValue(const string& folder, const string& subroutine, const string& identif,
-						const vector<double>& dvalues, bool bNew= false);
+		virtual void fillValue(const string& folder, const string& subroutine, const string& identif,
+						const vector<double>& dvalues, bool bNew= false)
+		{ m_oCache.fillValue(folder, subroutine, identif, dvalues, bNew); };
+		/**
+		 * informing thread to send entries to database
+		 */
+		virtual void informDatabase();
+		/**
+		 * return filled content from cache<br />
+		 * dummy method witch is'nt used,
+		 * only used inside DbFillerCache
+		 *
+		 * @param dbQueue database queue from cache
+		 * @param msgQueue message queue from cache
+		 */
+		virtual void getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
+						SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue);
+		/**
+		 * sending database and message values from queue
+		 * directly over interface to database-server
+		 *
+		 * @param dbQueue database queue from cache(es)
+		 * @param msgQueue message queue from cache(es)
+		 */
+		void sendDirect(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
+						SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue);
 		/**
 		 *  external command to stop thread
 		 *
@@ -131,6 +143,12 @@ namespace util
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
 		virtual int stop(const bool *bWait= NULL);
+		/**
+		 * remove all content from DbFiller
+		 * and stop thread when one running
+		 */
+		virtual int remove()
+		{ bool bWait(true); return DbFiller::stop(&bWait); };
 		/**
 		 * calculate the error code given back from server as string.<br />
 		 * the return error codes from server should be ERROR or WARNING.
@@ -156,7 +174,7 @@ namespace util
 		 * @return defined error code from extended class
 		 */
 		virtual int init(void *args)
-		{ m_bisRunn= true; return 0; };
+		{ m_oCache.isRunning(); return 0; };
 		/**
 		 * abstract method to running thread
 		 * in the extended class.<br />
@@ -174,26 +192,6 @@ namespace util
 
 	private:
 		/**
-		 * whether own thread is running<br />
-		 * this variable will be checked only the first time
-		 * and should be thread safe
-		 */
-		bool m_bisRunn;
-		/**
-		 * queue of question methods which need no answer
-		 */
-		std::auto_ptr<vector<sendingInfo_t> > m_vsSendingQueue;
-		/**
-		 * queue of all values for database
-		 */
-		std::auto_ptr<map<string, db_t> > m_apmtValueEntrys;
-		/**
-		 * last answer from sending question
-		 * which need no answer.<br />
-		 * could be an error/warning message
-		 */
-		string m_sNoWaitError;
-		/**
 		 * mutex lock for write sending messages
 		 * into an queue which are no answer needed
 		 */
@@ -202,7 +200,24 @@ namespace util
 		 * condition to wait for new sending messages
 		 */
 		pthread_cond_t* m_SENDQUEUECONDITION;
+		/**
+		 * whether cache has any content<br />
+		 * has to be locked inside SENDQUEUELOCK
+		 */
+		bool m_bHasContent;
+		/**
+		 * cache of holding all database entries
+		 * when DbFiller threads should running for every folder
+		 */
+		DbFillerCache m_oCache;
+
+		/**
+		 * cache running inside an DbFiller
+		 * or used as more caches
+		 */
+		virtual void isRunning()
+		{ /* dummy method, used only by DbFillerCache */ };
 	};
 
-} /* namespace ppi_database */
+} /* namespace util */
 #endif /* DBFILLER_H_ */

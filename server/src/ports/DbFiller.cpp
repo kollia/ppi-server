@@ -18,8 +18,11 @@
 
 #include <iostream>
 
+#include "../pattern/util/LogHolderPattern.h"
+
 #include "../util/GlobalStaticMethods.h"
 #include "../util/exception.h"
+
 #include "../database/lib/DbInterface.h"
 
 #include "DbFiller.h"
@@ -29,190 +32,38 @@ using namespace ppi_database;
 
 namespace util
 {
-	string DbFiller::sendMethod(const string& toProcess, const OMethodStringStream& method, const bool answer/*= true*/)
-	{
-		vector<string> res;
-
-		res= sendMethod(toProcess, method, "", answer);
-		if(res.size() == 0)
-			return "";
-		return res[0];
-	}
-	vector<string> DbFiller::sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer/*= true*/)
-	{
-		bool bNew;
-		double value;
-		sendingInfo_t sendInfo;
-		string folder, subroutine, identif;
-		vector<double> values;
-		vector<string> vsRv;
-		DbInterface* db;
-
-		if(	m_bisRunn &&
-			answer == false	)
-		{
-			vsRv.push_back("done");
-			if(method.getMethodName() == "fillValue")
-			{
-				IMethodStringStream out(method.str());
-
-				out >> folder;
-				out >> subroutine;
-				out >> identif;
-				out >> bNew;
-				while(!out.fail())
-				{
-					out >> value;
-					values.push_back(value);
-				}
-				fillValue(folder, subroutine, identif, values, bNew);
-				LOCK(m_SENDQUEUELOCK);
-				vsRv.push_back(m_sNoWaitError);
-				m_sNoWaitError= "";
-				UNLOCK(m_SENDQUEUELOCK);
-
-			}else
-			{
-				sendInfo.toProcess= "ppi-db-server";
-				sendInfo.method= method.str();
-				sendInfo.done= done;
-				LOCK(m_SENDQUEUELOCK);
-				m_vsSendingQueue->push_back(sendInfo);
-				vsRv.push_back(m_sNoWaitError);
-				m_sNoWaitError= "";
-				AROUSE(m_SENDQUEUECONDITION);
-				UNLOCK(m_SENDQUEUELOCK);
-			}
-		}else
-		{
-			db= DbInterface::instance();
-			vsRv= db->sendMethod(toProcess, method, done, answer);
-		}
-		return vsRv;
-	}
-	void DbFiller::fillValue(const string& folder, const string& subroutine, const string& identif,
-					double value, bool bNew/*= false*/)
-	{
-		vector<double> values;
-
-		values.push_back(value);
-		fillValue(folder, subroutine, identif, values, bNew);
-	}
-
-	void DbFiller::fillValue(const string& folder, const string& subroutine, const string& identif,
-					const vector<double>& dvalues, bool bNew/*= false*/)
-	{
-		DbInterface* db;
-		OMethodStringStream command("fillValue");
-		map<string, db_t>::iterator foundSub;
-		sendingInfo_t sendInfo;
-		db_t newEntry;
-
-		if(m_bisRunn)
-		{
-			LOCK(m_SENDQUEUELOCK);
-
-//#define __showLOCK
-#ifdef __showLOCK
-			if(getThreadName() == "DbFillerThread_for_Raff1_Zeit")
-			{
-				ostringstream out;
-				out << " Raff1_Zeit LOCK for filling " << identif << " ";
-				for(vector<double>::const_iterator i= dvalues.begin(); i != dvalues.end(); ++i)
-					out << *i << " ";
-				out << " into " << folder << ":" << subroutine << endl;
-				cout << out.str();
-			}
-#endif // __showLOCK
-			if(identif == "value")
-			{
-				foundSub= m_apmtValueEntrys->find(subroutine);
-				if(foundSub == m_apmtValueEntrys->end())
-				{
-					newEntry.folder= folder;
-					newEntry.subroutine= subroutine;
-					newEntry.identif= identif;
-					newEntry.values= dvalues;
-					newEntry.bNew= bNew;
-					(*m_apmtValueEntrys)[subroutine]= newEntry;
-
-				}else
-				{
-					foundSub->second.values= dvalues;
-					foundSub->second.bNew= bNew;
-				}
-			}else
-			{
-				OMethodStringStream command("fillValue");
-
-				sendInfo.toProcess= "ppi-db-server";
-				sendInfo.done= "";
-				command << folder;
-				command << subroutine;
-				command << identif;
-				command << bNew;
-				for(vector<double>::const_iterator it= dvalues.begin(); it != dvalues.end(); ++it)
-					command << *it;
-				sendInfo.method= command.str();
-				m_vsSendingQueue->push_back(sendInfo);
-			}
-			AROUSE(m_SENDQUEUECONDITION);
-			UNLOCK(m_SENDQUEUELOCK);
-		}else
-		{
-			db= DbInterface::instance();
-			db->fillValue(folder, subroutine, identif, dvalues, bNew);
-		}
-	}
-
 	int DbFiller::execute()
 	{
+		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > pMsgQueue;
+		SHAREDPTR::shared_ptr<map<string, db_t>  > pDbQueue;
+
+		LOCK(m_SENDQUEUELOCK);
+		while(!m_bHasContent)
+			CONDITION(m_SENDQUEUECONDITION, m_SENDQUEUELOCK);
+		UNLOCK(m_SENDQUEUELOCK);
+
+		m_oCache.getContent(pDbQueue, pMsgQueue);
+		// write all values with identif 'value' from command fillValue()
+		if(	!pDbQueue->empty() ||
+			!pMsgQueue->empty()		)
+		{
+			sendDirect(pDbQueue, pMsgQueue);
+		}
+		return 0;
+	}
+
+	void DbFiller::sendDirect(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
+					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue)
+	{
 		typedef map<string, db_t>::iterator subIt;
-		std::auto_ptr<vector<sendingInfo_t> > newMsgQueue(new vector<sendingInfo_t>());
-		std::auto_ptr<vector<sendingInfo_t> > pMsg;
-		std::auto_ptr<map<string, db_t>  > newValueEntrys(new map<string, db_t>());
-		std::auto_ptr<map<string, db_t>  > pEntrys;
+		bool bError(false);
 		DbInterface* db;
 		vector<sendingInfo_t>::iterator msgPos;
 		vector<string> answer;
-		string sError;
 		int err;
 
-		// set scheduling back to SCHED_OTHER
-		// while thread inside SENDQUEUBLOCK
-		// because there should have the same
-		// running policy
-		// and set to SCHED_BATCH again when outside
-		// to run with lower priority
-		//setSchedulingParameter(SCHED_OTHER, 0);
-		LOCK(m_SENDQUEUELOCK);
-		if(	m_vsSendingQueue->size() == 0 &&
-			m_apmtValueEntrys->size() == 0	)
-		{
-#ifdef __showLOCK
-			if(getThreadName() == "DbFillerThread_for_Raff1_Zeit")
-				cout << " DbFiller wait for condition" << endl;
-#endif // __showLOCK
-			CONDITION(m_SENDQUEUECONDITION, m_SENDQUEUELOCK);
-#ifdef __showLOCK
-			if(getThreadName() == "DbFillerThread_for_Raff1_Zeit")
-				cout << " DbFiller wake-up for working" << endl;
-#endif // __showLOCK
-		}
-#ifdef __showLOCK
-		else if(getThreadName() == "DbFillerThread_for_Raff1_Zeit")
-			cout << " DbFiller LOCK for working" << endl;
-#endif // __showLOCK
-		pMsg= m_vsSendingQueue;
-		m_vsSendingQueue= newMsgQueue;
-		pEntrys= m_apmtValueEntrys;
-		m_apmtValueEntrys= newValueEntrys;
-		UNLOCK(m_SENDQUEUELOCK);
-		//setSchedulingParameter(SCHED_BATCH, 0);
-
 		db= DbInterface::instance();
-		// write all values with identif 'value' from command fillValue()
-		for(subIt sIt= pEntrys->begin(); sIt != pEntrys->end(); ++sIt)
+		for(subIt sIt= dbQueue->begin(); sIt != dbQueue->end(); ++sIt)
 		{
 			OMethodStringStream command("fillValue");
 
@@ -228,16 +79,22 @@ namespace util
 				err= error(*answ);
 				if(err > 0)
 				{// ending only by errors (no warnings)
-					sError= *answ;
+					ostringstream oErr;
+
+					oErr << "DbFiller for NoAnswer method: " << msgPos->method << endl;
+					oErr << " get Error code: " << *answ;
+					cerr << oErr.str() << endl << endl;
+					LOGEX(LOG_ERROR, oErr.str(), &m_oCache);
+					bError= true;
 					break;
 				}
 			}
-			if(sError != "") // toDo: error handling, because values by error lost here
+			if(bError)
 				break;
 		}
-		if(sError == "")
+		if(!bError)
 		{
-			for(msgPos= pMsg->begin(); msgPos != pMsg->end(); ++msgPos)
+			for(msgPos= msgQueue->begin(); msgPos != msgQueue->end(); ++msgPos)
 			{
 				OMethodStringStream method(msgPos->method);
 
@@ -247,26 +104,34 @@ namespace util
 					err= error(*answ);
 					if(err > 0)
 					{// ending only by errors (no warnings)
-						sError= *answ;
+						ostringstream oErr;
+
+						oErr << "DbFiller for NoAnswer method: " << msgPos->method << endl;
+						oErr << " get Error code: " << *answ;
+						cerr << oErr.str() << endl << endl;
+						LOGEX(LOG_ERROR, oErr.str(), &m_oCache);
+						bError= true;
 						break;
 					}
 				}
-				if(sError != "")
+				if(bError)
 					break;
 			}
 		}
-		if(stopping())
-			return 0;
-		if(sError != "")
-		{
-			LOCK(m_SENDQUEUELOCK);
-			cerr << "DbFiller for NoAnswer method: " << msgPos->method << endl;
-			cerr << " get Error code: " << sError << endl << endl;
-			m_sNoWaitError= sError; // fill back into queue all sending methods from error
-			m_vsSendingQueue->insert(m_vsSendingQueue->begin(), msgPos, pMsg->end());
-			UNLOCK(m_SENDQUEUELOCK);
-		}
-		return 0;
+	}
+
+	void DbFiller::informDatabase()
+	{
+		LOCK(m_SENDQUEUELOCK);
+		if(m_bHasContent)
+			AROUSE(m_SENDQUEUECONDITION);
+		UNLOCK(m_SENDQUEUELOCK);
+	}
+
+	void DbFiller::getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
+					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue)
+	{
+		m_oCache.getContent(dbQueue, msgQueue);
 	}
 
 	inline int DbFiller::error(const string& input)

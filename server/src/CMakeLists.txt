@@ -7,6 +7,8 @@ set(mainSrcs 	main.cpp
 		        ports/ListCalculator.cpp
 		        ports/Informer.cpp
 		        ports/DbFiller.cpp
+		        ports/DbFillerFactory.cpp
+		        ports/DbFillerCache.cpp
         		ports/measureThread.cpp
 		        ports/counter.cpp
         		ports/measuredness.cpp

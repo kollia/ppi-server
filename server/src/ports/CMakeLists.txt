@@ -2,7 +2,9 @@
 
 set(portsSrcs 	ListCalculator.cpp
 				counter.cpp
-				++ DbFiller.cpp
+				DbFiller.cpp
+				DbFillerFactory.cpp
+				DbFillerCache.cpp
         		measuredness.cpp
         		measureThread.cpp
         		ExternPort.cpp

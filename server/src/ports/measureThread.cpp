@@ -36,6 +36,7 @@
 #include "../util/debugsubroutines.h"
 #include "../util/exception.h"
 #include "../util/thread/Terminal.h"
+#include "../util/properties/PPIConfigFileStructure.h"
 
 #include "../pattern/util/LogHolderPattern.h"
 
@@ -73,7 +74,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
   m_oInformOutput(new Output(threadname, threadname, /*objectID*/0)),
   m_oInformeThread(threadname, "informe_thread", "inform", false, true, m_oInformOutput.get()),
   m_oInformer(threadname, this),
-  m_oDbFiller(threadname)
+  m_oDbFiller(DbFillerFactory::getInstance(threadname, PPIConfigFileStructure::instance()->getFolderDbThreads()))
 {
 	int res;
 	string run;
@@ -82,6 +83,8 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 #ifdef DEBUG
 	cout << "constructor of measurethread for folder " << getFolderName() << endl;
 #endif // DEBUG
+
+
 	m_bNeedFolderRunning= false;
 	m_bFolderRunning= false;
 	m_nServerSearchSeconds= nServerSearch;
@@ -219,17 +222,6 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 			break;
 		}
 		pCurrent= pCurrent->next;
-	}
-	res= m_oDbFiller.start();
-	if(res)
-	{
-		string err("measuring thread for folder '" + threadname +
-						"' can not send questions which need no answer over external thread '");
-
-		err+= m_oDbFiller.getThreadName() + "'\n";
-		cerr << "### WARNING: " << err;
-		cerr << "              so send this messages directly which has more bad performance" << endl;
-		LOG(LOG_WARNING, err +"so send this messages directly which has more bad performance");
 	}
 	// do not start informer
 	// because need to high performance
@@ -1631,6 +1623,7 @@ bool MeasureThread::measure()
 				it->portClass->setValue(result, "i:"+folder+":"+it->name);
 			else
 				it->portClass->noChange();
+			m_oDbFiller->informDatabase();
 			if(classdebug)
 			{
 				string modified;
@@ -2837,7 +2830,7 @@ MeasureThread::~MeasureThread()
 	cout << "destructure of measureThread for folder "<< getFolderName() << endl;
 #endif // DEBUG
 
-	m_oDbFiller.stop(/*wait*/true);
+	m_oDbFiller->remove();
 	DESTROYMUTEX(m_DEBUGLOCK);
 	DESTROYMUTEX(m_WANTINFORM);
 	DESTROYMUTEX(m_VALUE);
