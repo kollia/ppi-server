@@ -64,6 +64,8 @@ namespace util
 				LOCK(m_SENDQUEUELOCK);
 				vsRv.push_back(m_sNoWaitError);
 				m_sNoWaitError= "";
+				if(m_pHasContent)
+					*m_pHasContent= true;
 				UNLOCK(m_SENDQUEUELOCK);
 
 			}else
@@ -204,6 +206,8 @@ namespace util
 		m_vsSendingQueue= newMsgQueue;
 		dbQueue= m_apmtValueEntrys;
 		m_apmtValueEntrys= newValueEntrys;
+		if(m_pHasContent)
+			*m_pHasContent= false;
 		UNLOCK(m_SENDQUEUELOCK);
 		//setSchedulingParameter(SCHED_BATCH, 0);
 	}
