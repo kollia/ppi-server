@@ -507,7 +507,10 @@ void MinMaxTimes::listEntries()
 		if(!bFirstContent)
 			calculateAverage(*itValue, pCurrentAverage.get());
 		else
+		{
+			pCurrentAverage->nCount= 1;
 			bFirstContent= false;
+		}
 	}// end of for(itValue= m_vReachendTimes.begin(); itValue != m_vReachendTimes.end(); ++itValue)
 
 	if(	m_bExactStopSort ||
@@ -531,7 +534,10 @@ void MinMaxTimes::listEntries()
 	cout << endl;
 	writeStatistic(bFirstStatistic, /*result*/bFirstStatistic, pCurrentAverage.get());
 	if(!bFirstStatistic)
+	{
+		calculateAverage(pCurrentAverage.get(), allAverage);
 		writeStatistic(bFirstStatistic, /*result*/true, &allAverage);
+	}
 }
 
 short MinMaxTimes::countDigits(int value) const
