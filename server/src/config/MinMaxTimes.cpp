@@ -312,7 +312,6 @@ void MinMaxTimes::listEntries()
 	std::auto_ptr<t_averageVals> pCurrentAverage(new t_averageVals());
 	bool bFirstContent(true);
 	bool bFirstStatistic(true);
-	bool bNoOptionSet(false);
 	double dCurrentReachendMaxCount(0);
 	ppi_time tmStartingTime;
 	ostringstream out;
@@ -323,14 +322,6 @@ void MinMaxTimes::listEntries()
 	short nMaxDigits;
 	map<ppi_value, string> mTimeSort;
 
-	if(	!m_bListAll &&
-		!m_bInformLate &&
-		!m_bExactStop &&
-		!m_bEstimated &&
-		!m_bReachend	)
-	{// only sort option can be set
-		bNoOptionSet= true;
-	}
 	for(vector<t_reachend>::iterator itValue= m_vReachendTimes.begin();
 					itValue != m_vReachendTimes.end(); ++itValue)
 	{
