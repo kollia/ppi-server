@@ -223,18 +223,19 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 		}
 		pCurrent= pCurrent->next;
 	}
-	// do not start informer
-	// because need to high performance
-	res= 0;//m_oInformer.start();
-	if(res)
+	if(PPIConfigFileStructure::instance()->needInformThreads())
 	{
-		string err("measuring thread for folder '" + threadname +
-						"' can not activate external thread '");
+		res= m_oInformer.start();
+		if(res)
+		{
+			string err("measuring thread for folder '" + threadname +
+							"' can not activate external thread '");
 
-		err+= m_oInformer.getThreadName() + "' to inform other folders\n";
-		cerr << "### WARNING: " << err;
-		cerr << "              so folder list inform directly other folders, which has more bad performance" << endl;
-		LOG(LOG_WARNING, err +"so folder list inform directly other folders, which has more bad performance");
+			err+= m_oInformer.getThreadName() + "' to inform other folders\n";
+			cerr << "### WARNING: " << err;
+			cerr << "              so folder list inform directly other folders, which has more bad performance" << endl;
+			LOG(LOG_WARNING, err +"so folder list inform directly other folders, which has more bad performance");
+		}
 	}
 }
 
@@ -808,6 +809,23 @@ void MeasureThread::informFolders(const folders_t& folders, const string& from,
 										const string& as, const bool debug, pthread_mutex_t *lock)
 {
 	m_oInformer.informFolders(folders, from, as, debug, lock);
+	if(m_oInformer.running())
+	{
+		vector<string> spl;
+		/*
+		 * when no informer thread running,
+		 * informing was made directly
+		 * and no thread is to arouse
+		 */
+		split(spl, from, is_any_of(":"));
+		if(	spl[0] == "e" || // < from external need arousing
+			(	spl.size() > 1 && // < value was changed not from own folder,
+				spl[0] == "i" &&  //   so arouse informer thread
+				spl[1] != m_sFolder	)	)
+		{
+			m_oInformer.arouseInformerThread();
+		}
+	}
 }
 
 int MeasureThread::execute()
@@ -1674,6 +1692,7 @@ bool MeasureThread::measure()
 		if(stopping())
 			break;
 	}
+	m_oInformer.arouseInformerThread();
 	return true;
 }
 

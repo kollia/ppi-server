@@ -80,6 +80,61 @@ namespace util
 		return sRv;
 	}
 
+	bool PPIConfigFileStructure::needInformThreads()
+	{
+		static bool bFirst(true);
+		bool bRv;
+		string res;
+
+		/*
+		 * doDo: implementation of running informer threads
+		 *       controllable from server.conf
+		 * ########################################
+		 * # informing measure folders
+		 * # for better performance
+		 * # over extra threads
+		 * informer_threads= true
+		 *
+		 * threads are implemented finished to start
+		 * and also reading flag from server.conf OK
+		 * running a while, than functionality
+		 * of server stopping
+		 * folder thread should running in this case
+		 * when flag true faster
+		 * have now no time to search where the bug
+		 */
+		return false;
+
+		res= m_oServerFileCasher.getValue("informer_threads");
+		if(res == "")
+		{
+			bRv= false;
+			if(bFirst)
+			{
+				LOG(LOG_WARNING, "no property informer_threads is defined\n"
+								"so do not create any extra thread for folder informing");
+				bFirst= false;
+			}
+		}else
+		{
+			if(res == "true")
+				bRv= true;
+			else if(res == "false")
+				bRv= false;
+			else
+			{
+				bRv= false;
+				if(bFirst)
+				{
+					LOG(LOG_WARNING, "cannot recognize defined value '" + res + "' for property informer_threads\n"
+								"so do not create any extra thread for folder informing");
+					bFirst= false;
+				}
+			}
+		}
+		return bRv;
+	}
+
 	short PPIConfigFileStructure::getFolderDbThreads()
 	{
 		static bool bFirst(true);

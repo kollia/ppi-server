@@ -46,7 +46,6 @@ namespace util
 			informing(folders, from, as, threadID, lock);
 			return;
 		}
-		LOCK(m_INFORMQUEUELOCK);
 		pfolders= SHAREDPTR::shared_ptr<folders_t>(new folders_t);
 		*pfolders= folders;
 		inform.ownSubroutine= as;
@@ -56,8 +55,18 @@ namespace util
 		if(debug)
 			inform.threadID= Thread::gettid();
 		inform.OBSERVERLOCK= lock;
+		LOCK(m_INFORMQUEUELOCK);
 		m_apvtFolders->push_back(inform);
-		AROUSE(m_INFORMQUEUECONDITION);
+		UNLOCK(m_INFORMQUEUELOCK);
+	}
+
+	void Informer::arouseInformerThread()
+	{
+		if(m_bisRunn == false)
+			return;
+		LOCK(m_INFORMQUEUELOCK);
+		if(!m_apvtFolders->empty())
+			AROUSE(m_INFORMQUEUECONDITION);
 		UNLOCK(m_INFORMQUEUELOCK);
 	}
 
@@ -146,7 +155,8 @@ namespace util
 		std::auto_ptr<vector<inform_t> > pInform;
 
 		LOCK(m_INFORMQUEUELOCK);
-		if(m_apvtFolders->size() == 0)
+		while(	m_apvtFolders->size() == 0 &&
+				!stopping()						)
 		{
 			CONDITION(m_INFORMQUEUECONDITION, m_INFORMQUEUELOCK);
 		}

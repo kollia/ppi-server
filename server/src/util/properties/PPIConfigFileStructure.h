@@ -120,6 +120,13 @@ namespace util
 		 */
 		short getFolderDbThreads();
 		/**
+		 * read whether server should create, to inform folder thread
+		 * for any changing, an extra thread
+		 *
+		 * @return whether should creating
+		 */
+		bool needInformThreads();
+		/**
 		 * check whether should start any external port interface
 		 *
 		 * @return whether start

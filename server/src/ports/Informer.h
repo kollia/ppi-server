@@ -96,17 +96,11 @@ namespace util
 		void informFolders(const folders_t& folders, const string& from, const string& as,
 													const bool debug, pthread_mutex_t *lock);
 		/**
-		 * inform directly other folders and also own when necessary
-		 * that an specific subroutine was changed
-		 *
-		 * @param folders map of folders which should informed
-		 * @param from which subroutine (other or own) changing value
-		 * @param as from which subroutine be informed
-		 * @param threadId when subroutine which inform folders, running in debug session
-		 * @param lock locking mutex for observers
+		 * arouse informer pool when running
+		 * to inform all other folders and maybe own
+		 * that any subroutine was changing
 		 */
-		void informing(const folders_t& folders, const string& from,
-						const string& as, const pid_t& threadId, pthread_mutex_t *lock);
+		void arouseInformerThread();
 		/**
 		 *  external command to stop thread
 		 *
@@ -145,6 +139,18 @@ namespace util
 		 * @return defined error code from extended class
 		 */
 		virtual int execute();
+		/**
+		 * inform directly other folders and also own when necessary
+		 * that an specific subroutine was changed
+		 *
+		 * @param folders map of folders which should informed
+		 * @param from which subroutine (other or own) changing value
+		 * @param as from which subroutine be informed
+		 * @param threadId when subroutine which inform folders, running in debug session
+		 * @param lock locking mutex for observers
+		 */
+		void informing(const folders_t& folders, const string& from,
+						const string& as, const pid_t& threadId, pthread_mutex_t *lock);
 		/**
 		 * dummy method to ending the thread
 		 */
