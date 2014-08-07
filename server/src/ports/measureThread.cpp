@@ -636,8 +636,17 @@ void MeasureThread::changedValue(const string& folder, const string& from)
 	 // this other one do the job
 		LOCK(m_ACTIVATETIME);
 		AROUSE(m_VALUECONDITION);
-		UNLOCK(m_ACTIVATETIME);
+		/*
+		 * unlock WANTINFORM before ACTIVATETIME
+		 * because otherwise when one folder inform
+		 * own folder to start and thread slice ending before
+		 * unlock WANTINFORM, after that running
+		 * hole own folder and stop again inside condition
+		 * no other folder inform again to restart
+		 * because WANTINFORM was locked
+		 */
 		UNLOCK(m_WANTINFORM);
+		UNLOCK(m_ACTIVATETIME);
 	}
 }
 
