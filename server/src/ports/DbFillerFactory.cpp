@@ -35,6 +35,13 @@ namespace util
 
 		if(threads > 0)
 		{
+			/*
+			 * when folder_db_threads inside server.conf
+			 * defined with ONE (threads= 1)
+			 * need an single pattern of DbFillerFactory
+			 * and create for all measureThread objects
+			 * only an DbFillerCache
+			 */
 			if(__instance == NULL)
 			{
 				__instance= new DbFillerFactory();
@@ -55,9 +62,21 @@ namespace util
 
 		if(res)
 		{
+			/*
+			 * when folder_db_threads inside server.conf
+			 * defined with DIRECT (threads= -1)
+			 * or EVERY (threads= 0)
+			 * all measureThread objects need one DbFiller
+			 */
 			oRv= SHAREDPTR::shared_ptr<IDbFillerPattern>(new DbFiller(threadName));
 			if(threads > -1)
 			{
+				/*
+				 * when folder_db_threads inside server.conf
+				 * defined with EVERY (threads= 0)
+				 * DbFiller for all measureThread objects
+				 * be an own thread instance and need to start
+				 */
 				pDbFiller= dynamic_cast<DbFiller*>(oRv.get());
 				if(pDbFiller != NULL)
 					res= pDbFiller->start();

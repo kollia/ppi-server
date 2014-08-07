@@ -46,10 +46,10 @@ namespace util
 		  m_bisRunn(false),
 		  m_bCreateLock(false),
 		  m_pHasContent(hasContent),
-		  m_vsSendingQueue(new vector<sendingInfo_t>()),
-		  m_apmtValueEntrys(new map<string, db_t>()),
+		  m_vsSendingQueue1(new vector<sendingInfo_t>()),
+		  m_apmtValueEntrys1(new map<string, db_t>()),
 		  m_dbInform(NULL),
-		  m_SENDQUEUELOCK(queueLock)
+		  m_SENDQUEUELOCK1(queueLock)
 		{};
 		/**
 		 * constructor to create cache
@@ -64,10 +64,13 @@ namespace util
 		  m_bisRunn(false),
 		  m_bCreateLock(true),
 		  m_pHasContent(NULL),
-		  m_vsSendingQueue(new vector<sendingInfo_t>()),
-		  m_apmtValueEntrys(new map<string, db_t>()),
+		  m_vsSendingQueue1(new vector<sendingInfo_t>()),
+		  m_vsSendingQueue2(new vector<sendingInfo_t>()),
+		  m_apmtValueEntrys1(new map<string, db_t>()),
+		  m_apmtValueEntrys2(new map<string, db_t>()),
 		  m_dbInform(dbInform),
-		  m_SENDQUEUELOCK(Thread::getMutex("SENDQUEUELOCK"))
+		  m_SENDQUEUELOCK1(Thread::getMutex("SENDQUEUELOCK1")),
+		  m_SENDQUEUELOCK2(Thread::getMutex("SENDQUEUELOCK2"))
 		{};
 		/**
 		 * return thread name of DbFiller
@@ -146,7 +149,10 @@ namespace util
 		virtual ~DbFillerCache()
 		{
 			if(m_bCreateLock)
-				Thread::DESTROYMUTEX(m_SENDQUEUELOCK);
+			{
+				Thread::DESTROYMUTEX(m_SENDQUEUELOCK1);
+				Thread::DESTROYMUTEX(m_SENDQUEUELOCK2);
+			}
 		};
 
 	private:
@@ -171,19 +177,33 @@ namespace util
 		 */
 		bool* m_pHasContent;
 		/**
-		 * queue of question methods which need no answer
+		 * first queue of question methods which need no answer
 		 */
-		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > m_vsSendingQueue;
+		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > m_vsSendingQueue1;
 		/**
-		 * queue of all values for database
+		 * second queue of question methods which need no answer
 		 */
-		SHAREDPTR::shared_ptr<map<string, db_t> > m_apmtValueEntrys;
+		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > m_vsSendingQueue2;
+		/**
+		 * first queue of all values for database
+		 */
+		SHAREDPTR::shared_ptr<map<string, db_t> > m_apmtValueEntrys1;
+		/**
+		 * second queue of all values for database
+		 */
+		SHAREDPTR::shared_ptr<map<string, db_t> > m_apmtValueEntrys2;
 		/**
 		 * last answer from sending question
 		 * which need no answer.<br />
 		 * could be an error/warning message
 		 */
-		string m_sNoWaitError;
+		string m_sNoWaitError1;
+		/**
+		 * last answer from sending question
+		 * which need no answer.<br />
+		 * could be an error/warning message
+		 */
+		string m_sNoWaitError2;
 		/**
 		 * inform DbFillerFactory to write values inside database.<br />
 		 * only used when cache created from factory
@@ -193,7 +213,12 @@ namespace util
 		 * mutex lock for write sending messages
 		 * into an queue which are no answer needed
 		 */
-		pthread_mutex_t* m_SENDQUEUELOCK;
+		pthread_mutex_t* m_SENDQUEUELOCK1;
+		/**
+		 * mutex lock for write sending messages
+		 * into an queue which are no answer needed
+		 */
+		pthread_mutex_t* m_SENDQUEUELOCK2;
 	};
 
 } /* namespace util */

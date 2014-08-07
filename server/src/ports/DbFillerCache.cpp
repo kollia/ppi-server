@@ -35,53 +35,111 @@ namespace util
 	}
 	vector<string> DbFillerCache::sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer/*= true*/)
 	{
-		bool bNew;
-		double value;
 		sendingInfo_t sendInfo;
-		string folder, subroutine, identif;
-		vector<double> values;
 		vector<string> vsRv;
 		DbInterface* db;
 
 		if(	m_bisRunn &&
 			answer == false	)
 		{
-			vsRv.push_back("done");
+			bool bFillFirstContainer(true), bFilledError(false);
+
 			if(method.getMethodName() == "fillValue")
 			{
 				IMethodStringStream out(method.str());
+				string folder, subroutine, identif;
 
 				out >> folder;
 				out >> subroutine;
 				out >> identif;
-				out >> bNew;
-				while(!out.fail())
+				if(identif == "value")
 				{
-					out >> value;
-					values.push_back(value);
-				}
-				fillValue(folder, subroutine, identif, values, bNew);
-				LOCK(m_SENDQUEUELOCK);
-				vsRv.push_back(m_sNoWaitError);
-				m_sNoWaitError= "";
-				if(m_pHasContent)
-					*m_pHasContent= true;
-				UNLOCK(m_SENDQUEUELOCK);
+					bool bNew;
+					double value;
+					vector<double> values;
 
-			}else
+					out >> bNew;
+					while(!out.fail())
+					{
+						out >> value;
+						values.push_back(value);
+					}
+					fillValue(folder, subroutine, identif, values, bNew);
+					if(TRYLOCK(m_SENDQUEUELOCK2) == 0)
+					{
+						if(m_sNoWaitError2 != "")
+						{
+							vsRv.push_back(m_sNoWaitError2);
+							m_sNoWaitError2= "";
+							bFilledError= true;
+						}
+						UNLOCK(m_SENDQUEUELOCK2);
+					}
+					if(!bFilledError)
+					{
+						if(TRYLOCK(m_SENDQUEUELOCK1) == 0)
+						{
+							if(m_sNoWaitError1 != "")
+							{
+								vsRv.push_back(m_sNoWaitError1);
+								m_sNoWaitError1= "";
+								bFilledError= true;
+							}
+							UNLOCK(m_SENDQUEUELOCK1);
+						}
+					}
+					if(!bFilledError)
+						vsRv.push_back("done");
+					return vsRv;
+				}
+
+			}
+			sendInfo.toProcess= "ppi-db-server";
+			sendInfo.method= method.str();
+			sendInfo.done= done;
+			if(m_pHasContent == NULL)
 			{
-				sendInfo.toProcess= "ppi-db-server";
-				sendInfo.method= method.str();
-				sendInfo.done= done;
-				LOCK(m_SENDQUEUELOCK);
-				m_vsSendingQueue->push_back(sendInfo);
-				vsRv.push_back(m_sNoWaitError);
-				m_sNoWaitError= "";
+				/*
+				 * cache running with dbFiller ONE
+				 * set inside server.conf
+				 *
+				 * when dbFiller thread lock currently SENDQUELOCK2
+				 * dbFiller thread was before inside SENDQUELOCK1
+				 * and this locking array should be free now
+				 * fill into m_vsSendingQueue1 container
+				 * otherwise into m_vsSendingQueue2
+				 */
+				if(TRYLOCK(m_SENDQUEUELOCK2) == 0)
+				{
+					m_vsSendingQueue2->push_back(sendInfo);
+					if(m_sNoWaitError2 != "")
+					{
+						vsRv.push_back(m_sNoWaitError2);
+						m_sNoWaitError2= "";
+						bFilledError= true;
+					}
+					UNLOCK(m_SENDQUEUELOCK2);
+					bFillFirstContainer= false;
+				}
+			}
+			if(bFillFirstContainer)
+			{
+				LOCK(m_SENDQUEUELOCK1);
+				m_vsSendingQueue1->push_back(sendInfo);
+				if(m_sNoWaitError1 != "")
+				{
+					vsRv.push_back(m_sNoWaitError1);
+					m_sNoWaitError1= "";
+					bFilledError= true;
+				}
 				if(m_pHasContent)
 					*m_pHasContent= true;
-				UNLOCK(m_SENDQUEUELOCK);
+				UNLOCK(m_SENDQUEUELOCK1);
 			}
-		}else
+			if(!bFilledError)
+				vsRv.push_back("done");
+
+		}else // if(m_bisRunn && answer == false)
 		{
 			db= DbInterface::instance();
 			vsRv= db->sendMethod(toProcess, method, done, answer);
@@ -108,8 +166,6 @@ namespace util
 
 		if(m_bisRunn)
 		{
-			LOCK(m_SENDQUEUELOCK);
-
 //#define __showLOCK
 #ifdef __showLOCK
 			if(getThreadName() == "DbFillerThread_for_Raff1_Zeit")
@@ -124,39 +180,89 @@ namespace util
 #endif // __showLOCK
 			if(identif == "value")
 			{
-				foundSub= m_apmtValueEntrys->find(subroutine);
-				if(foundSub == m_apmtValueEntrys->end())
-				{
-					newEntry.folder= folder;
-					newEntry.subroutine= subroutine;
-					newEntry.identif= identif;
-					newEntry.values= dvalues;
-					newEntry.bNew= bNew;
-					(*m_apmtValueEntrys)[subroutine]= newEntry;
+				bool bFillFirstContainer(true);
 
-				}else
+				if(m_pHasContent == NULL)
 				{
-					foundSub->second.values= dvalues;
-					foundSub->second.bNew= bNew;
+					/*
+					 * cache running with dbFiller ONE
+					 * defined inside server.conf
+					 *
+					 * when dbFiller thread lock currently SENDQUELOCK2
+					 * dbFiller thread was before inside SENDQUELOCK1
+					 * and this locking array should be free now
+					 * fill into m_apmtValueEntrys1 container
+					 * otherwise into m_apmtValueEntrys2
+					 */
+					if(TRYLOCK(m_SENDQUEUELOCK2) == 0)
+					{
+						ppi_time tm;
+
+						tm.setActTime();
+						foundSub= m_apmtValueEntrys2->find(subroutine);
+						if(foundSub == m_apmtValueEntrys2->end())
+						{
+							newEntry.folder= folder;
+							newEntry.subroutine= subroutine;
+							newEntry.identif= identif;
+							newEntry.tm.tv_sec= tm.tv_sec;
+							newEntry.tm.tv_usec= tm.tv_usec;
+							newEntry.values= dvalues;
+							newEntry.bNew= bNew;
+							(*m_apmtValueEntrys2)[subroutine]= newEntry;
+
+						}else
+						{
+							foundSub->second.values= dvalues;
+							foundSub->second.tm.tv_sec= tm.tv_sec;
+							foundSub->second.tm.tv_usec= tm.tv_usec;
+							foundSub->second.bNew= bNew;
+						}
+						UNLOCK(m_SENDQUEUELOCK2);
+						bFillFirstContainer= false;
+					}
+				}
+				if(bFillFirstContainer)
+				{
+					ppi_time tm;
+
+					LOCK(m_SENDQUEUELOCK1);
+					tm.setActTime();
+					foundSub= m_apmtValueEntrys1->find(subroutine);
+					if(foundSub == m_apmtValueEntrys1->end())
+					{
+						newEntry.folder= folder;
+						newEntry.subroutine= subroutine;
+						newEntry.identif= identif;
+						newEntry.tm.tv_sec= tm.tv_sec;
+						newEntry.tm.tv_usec= tm.tv_usec;
+						newEntry.values= dvalues;
+						newEntry.bNew= bNew;
+						(*m_apmtValueEntrys1)[subroutine]= newEntry;
+
+					}else
+					{
+						foundSub->second.values= dvalues;
+						foundSub->second.tm.tv_sec= tm.tv_sec;
+						foundSub->second.tm.tv_usec= tm.tv_usec;
+						foundSub->second.bNew= bNew;
+					}
+					if(m_pHasContent)
+						*m_pHasContent= true;
+					UNLOCK(m_SENDQUEUELOCK1);
 				}
 			}else
 			{
 				OMethodStringStream command("fillValue");
 
-				sendInfo.toProcess= "ppi-db-server";
-				sendInfo.done= "";
 				command << folder;
 				command << subroutine;
 				command << identif;
 				command << bNew;
 				for(vector<double>::const_iterator it= dvalues.begin(); it != dvalues.end(); ++it)
 					command << *it;
-				sendInfo.method= command.str();
-				m_vsSendingQueue->push_back(sendInfo);
+				sendMethod("ppi-db-server", command, /*answer*/false);
 			}
-			if(m_pHasContent)
-				*m_pHasContent= true;
-			UNLOCK(m_SENDQUEUELOCK);
 		}else
 		{
 			db= DbInterface::instance();
@@ -168,13 +274,13 @@ namespace util
 	{
 		bool bEntrys(false);
 
-		LOCK(m_SENDQUEUELOCK);
-		if(	!m_vsSendingQueue->empty() ||
-			!m_apmtValueEntrys->empty()		)
+		LOCK(m_SENDQUEUELOCK1);
+		if(	!m_vsSendingQueue1->empty() ||
+			!m_apmtValueEntrys1->empty()		)
 		{
 			bEntrys= true;
 		}
-		UNLOCK(m_SENDQUEUELOCK);
+		UNLOCK(m_SENDQUEUELOCK1);
 		if(bEntrys)
 			m_dbInform->informDatabase();
 	}
@@ -191,25 +297,52 @@ namespace util
 	void DbFillerCache::getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
 					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue)
 	{
-		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > newMsgQueue(new vector<sendingInfo_t>());
-		SHAREDPTR::shared_ptr<map<string, db_t>  > newValueEntrys(new map<string, db_t>());
+		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > newMsgQueue1(new vector<sendingInfo_t>());
+		SHAREDPTR::shared_ptr<map<string, db_t>  > newValueEntrys1(new map<string, db_t>());
+		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > newMsgQueue2(new vector<sendingInfo_t>());
+		SHAREDPTR::shared_ptr<map<string, db_t>  > newValueEntrys2(new map<string, db_t>());
+		SHAREDPTR::shared_ptr<map<string, db_t> > dbQueue2;
+		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > msgQueue2;
+		map<string, db_t>::iterator found;
 
-		// set scheduling back to SCHED_OTHER
-		// while thread inside SENDQUEUBLOCK
-		// because there should have the same
-		// running policy
-		// and set to SCHED_BATCH again when outside
-		// to run with lower priority
-		//setSchedulingParameter(SCHED_OTHER, 0);
-		LOCK(m_SENDQUEUELOCK);
-		msgQueue= m_vsSendingQueue;
-		m_vsSendingQueue= newMsgQueue;
-		dbQueue= m_apmtValueEntrys;
-		m_apmtValueEntrys= newValueEntrys;
+		LOCK(m_SENDQUEUELOCK1);
+		msgQueue= m_vsSendingQueue1;
+		m_vsSendingQueue1= newMsgQueue1;
+		dbQueue= m_apmtValueEntrys1;
+		m_apmtValueEntrys1= newValueEntrys1;
 		if(m_pHasContent)
 			*m_pHasContent= false;
-		UNLOCK(m_SENDQUEUELOCK);
-		//setSchedulingParameter(SCHED_BATCH, 0);
+		UNLOCK(m_SENDQUEUELOCK1);
+
+		if(m_pHasContent != NULL)
+		{
+			/*
+			 * cache running with dbFiller ONE
+			 * defined inside server.conf
+			 * and content was only written into
+			 * m_vsSendingQueue1 and m_apmtValueEntrys1
+			 * (mutex SENDQUEUELOCK2 wasn't defined)
+			 */
+			return;
+		}
+		LOCK(m_SENDQUEUELOCK2);
+		msgQueue2= m_vsSendingQueue2;
+		m_vsSendingQueue2= newMsgQueue2;
+		dbQueue2= m_apmtValueEntrys2;
+		m_apmtValueEntrys2= newValueEntrys2;
+		UNLOCK(m_SENDQUEUELOCK2);
+
+		for(map<string, db_t>::iterator it= dbQueue2->begin(); it != dbQueue2->end(); ++it)
+		{
+			found= dbQueue->find(it->first);
+			if(found != dbQueue->end())
+			{	// overwrite entry only when have newer time
+				if(ppi_time(it->second.tm) > found->second.tm)
+					(*dbQueue)[it->first]= it->second;
+			}else // or do not exist
+				(*dbQueue)[it->first]= it->second;
+		}
+		msgQueue->insert(msgQueue->end(), msgQueue2->begin(), msgQueue2->end());
 	}
 
 } /* namespace util */
