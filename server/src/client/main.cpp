@@ -206,11 +206,11 @@ void help(char* cpSelf)
 	printf("                                 an second connection to server,\n");
 	printf("                                 where the client get changes which are set before\n");
 	printf("                                 with the command 'HEAR'\n");
-	printf("            -t  --thread       - display by status info all threads with running information,\n");
-	printf("                                 otherwise the command status tell only how much threads on an process running\n");
-	printf("            -c  --client       - like --thread but also display all communication-threads with which client-ID they are connected,\n");
-	printf("                                 or it displays for no client\n");
-	printf("            -p  --pid          - display by status info all process id's separated in own rows\n");
+//	printf("            -t  --thread       - display by status info all threads with running information,\n");
+//	printf("                                 otherwise the command status tell only how much threads on an process running\n");
+//	printf("            -c  --client       - like --thread but also display all communication-threads with which client-ID they are connected,\n");
+//	printf("                                 or it displays for no client\n");
+//	printf("            -p  --pid          - display by status info all process id's separated in own rows\n");
 	printf("\n");
 	printf("       command:\n");
 	printf("                STOP     -     stopping server\n");
