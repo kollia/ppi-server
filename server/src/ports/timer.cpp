@@ -725,6 +725,8 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 		}else
 		{
 			oMeasureValue->setValue(0);
+			if(debug)
+				out() << "result of time is 0 seconds" << endl;
 			return oMeasureValue;
 		}
 	}
@@ -1607,7 +1609,20 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 				bneed= true;
 			if(!bneed)
 			{
-				if(debug)
+				if(m_nAllowStarting == 1)
+				{
+					if(debug)
+						out() << "no next measure time be set, starting currently external subroutine" << endl;
+					m_tmExactStop= m_tmStart;
+					m_tmStop= m_tmExactStop;
+					m_bStartExtern= m_pStartObj->startingBy(m_tmExactStop);
+					if(	!m_bStartExtern &&
+						debug										)
+					{
+						out() << "WARNING: cannot start external subroutine\n"
+										"         maybe starting will be running" << endl;
+					}
+				}else if(debug)
 					out() << "no next measure time be set, make no count down" << endl;
 				need= -1;
 			}else
