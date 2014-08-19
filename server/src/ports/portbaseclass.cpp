@@ -279,12 +279,13 @@ void portBase::setObserver(IMeasurePattern* observer)
 
 void portBase::informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
 {
-	typedef map<IMeasurePattern*, vector<string> > measureMap;
+	typedef map<IInformerCachePattern*, vector<string> > measureMap;
 
 	string inform(folder+":"+subroutine+" "+parameter);
 	vector<string> vec;
 	vector<string>::iterator found;
 	measureMap::iterator fObs;
+	IInformerCachePattern* pInformCache;
 
 	try{
 		if(	folder == getFolderName() &&
@@ -305,17 +306,18 @@ void portBase::informObserver(IMeasurePattern* observer, const string& folder, c
 		return;
 	}
 	LOCK(m_OBSERVERLOCK);
-	fObs= m_mvObservers.find(observer);
+	pInformCache= observer->getInformerCache(m_sFolder);
+	fObs= m_mvObservers.find(pInformCache);
 	if(fObs != m_mvObservers.end())
 	{
-		vec= m_mvObservers[observer];
+		vec= m_mvObservers[pInformCache];
 		found= find(vec.begin(), vec.end(), inform);
 		if(found == vec.end())
-			m_mvObservers[observer].push_back(inform);
+			m_mvObservers[pInformCache].push_back(inform);
 	}else
 	{
 		vec.push_back(inform);
-		m_mvObservers.insert(measureMap::value_type(observer, vec));
+		m_mvObservers.insert(measureMap::value_type(pInformCache, vec));
 	}
 	UNLOCK(m_OBSERVERLOCK);
 }
@@ -323,11 +325,15 @@ void portBase::informObserver(IMeasurePattern* observer, const string& folder, c
 void portBase::removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
 {
 	string remove(folder+":"+subroutine+" "+parameter);
-	map<IMeasurePattern*, vector<string> >::iterator foundT;
+	map<IInformerCachePattern*, vector<string> >::iterator foundT;
 	vector<string>::iterator foundS;
+	IInformerCachePattern* pInformCache;
 
+	pInformCache= observer->getUsedInformerCache(m_sFolder);
+	if(pInformCache == NULL)
+		return;
 	LOCK(m_OBSERVERLOCK);
-	foundT= m_mvObservers.find(observer);
+	foundT= m_mvObservers.find(pInformCache);
 	if(foundT != m_mvObservers.end())
 	{
 		foundS= find(foundT->second.begin(), foundT->second.end(), remove);
@@ -335,7 +341,10 @@ void portBase::removeObserver(IMeasurePattern* observer, const string& folder, c
 		{
 			foundT->second.erase(foundS);
 			if(foundT->second.size() == 0)
+			{
 				m_mvObservers.erase(foundT);
+				observer->removeObserverCache(m_sFolder);
+			}
 		}
 	}
 	UNLOCK(m_OBSERVERLOCK);
@@ -995,13 +1004,16 @@ bool portBase::getLinkedValue(const string& type, auto_ptr<IValueHolderPattern>&
 					port= link->getSubroutine(&slink, getObjectFolderID(), /*own folder*/true);
 					if(port != NULL)
 					{
+						IInformerCachePattern* cache;
+
 						if(isdebug)
 						{
 							out() << "value was changed in own subroutine," << endl;
 							out() << "set foreign subroutine " << slink << " to " << dec << val->getValue() << endl;
 						}
 						port->setValue(*val.get(), "i:"+foldersub);
-						port->getRunningThread()->changedValue(slink, foldersub);
+						cache= port->getRunningThread()->getInformerCache(m_sFolder);
+						cache->changedValue(slink, foldersub);
 					}else
 					{
 						ostringstream err;

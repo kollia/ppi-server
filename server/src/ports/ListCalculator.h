@@ -158,10 +158,21 @@ public:
 	 *
 	 * @param write wheter should write
 	 */
-	virtual void doOutput(const bool write)
+	OVERWRITE void doOutput(const bool write)
 	{ 	LOCK(m_CALCUALTEMUTEX);
 		CalculatorContainer::doOutput(write);
-		UNLOCK(m_CALCUALTEMUTEX);	};
+		UNLOCK(m_CALCUALTEMUTEX);				};
+	/**
+	 * return whether output is set
+	 *
+	 * @return whether output is set
+	 */
+	OVERWRITE bool doOutput() const
+	{ 	bool bRv;
+		LOCK(m_CALCUALTEMUTEX);
+		bRv= CalculatorContainer::doOutput();
+		UNLOCK(m_CALCUALTEMUTEX);
+		return bRv;								};
 	/**
 	 * destructor of object
 	 */

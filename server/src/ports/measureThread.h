@@ -24,6 +24,7 @@
 
 #include "../pattern/util/IListObjectPattern.h"
 #include "../pattern/util/imeasurepattern.h"
+#include "../pattern/util/IInformerCachePattern.h"
 
 #include "../util/debugsubroutines.h"
 #include "../util/smart_ptr.h"
@@ -32,6 +33,7 @@
 #include "../util/thread/Terminal.h"
 
 #include "Informer.h"
+#include "MeasureInformerCache.h"
 #include "DbFillerFactory.h"
 #include "ListCalculator.h"
 
@@ -84,28 +86,35 @@ class MeasureThread : 	public Thread,
 		 *
 		 * @return name of folder
 		 */
-		virtual string getFolderName() const
+		OVERWRITE string getFolderName() const
 		{ return m_sFolder; };
+		/**
+		 * return ListCalculator for whether foder thread should be informed
+		 *
+		 * @return ListCalculator
+		 */
+		OVERWRITE string getInformeThreadStatement()
+		{ return m_sInformeThreadStatement; };
 		/**
 		 * returning thread id in which thread folder object running
 		 *
 		 * @return thread id
 		 */
-		virtual pid_t getRunningThreadID()
+		OVERWRITE pid_t getRunningThreadID()
 		{ return Thread::getThreadID(); };
 		/**
 		 * returning external send device
 		 *
 		 * @return sending device
 		 */
-		virtual IClientSendMethods* getExternSendDevice()
+		OVERWRITE IClientSendMethods* getExternSendDevice()
 		{ return m_oDbFiller.get(); };
 		/**
 		 * return run specification of folder
 		 *
 		 * @return all specification needed
 		 */
-		virtual vector<string> getAllSpecs() const
+		OVERWRITE vector<string> getAllSpecs() const
 		{ return m_vsFolderSecs; };
 		/**
 		 * check whether this folder is running for work.<br />
@@ -117,7 +126,32 @@ class MeasureThread : 	public Thread,
 		 * @param specs all specifications are allowed
 		 * @return whether folder running
 		 */
-		virtual folderSpecNeed_t isFolderRunning(const vector<string>& specs);
+		OVERWRITE folderSpecNeed_t isFolderRunning(const vector<string>& specs);
+		/**
+		 * return cache to observer changing values
+		 *
+		 * @param folder name of folder for which cache used
+		 * @return observer cache
+		 */
+		OVERWRITE IInformerCachePattern* getInformerCache(const string& folder);
+		/**
+		 * return as parameter mutex and conditions
+		 * to awake folder thread for running
+		 */
+		OVERWRITE awakecond_t getAwakeConditions();
+		/**
+		 * return cache to observer only when exist
+		 *
+		 * @param folder name of folder for which cache used
+		 * @return observer cache when exist, otherwise NULL
+		 */
+		OVERWRITE IInformerCachePattern* getUsedInformerCache(const string& folder);
+		/**
+		 * remove observer cache when no more needed
+		 *
+		 * @param folder name of folder for which cache was used
+		 */
+		OVERWRITE void removeObserverCache(const string& folder);
 		/**
 		 * inform other folders and also own when necessary
 		 * that an specific subroutine was changed
@@ -128,8 +162,15 @@ class MeasureThread : 	public Thread,
 		 * @param debug whether subroutine which inform folders, running in debug session
 		 * @param lock locking mutex for observers
 		 */
-		virtual void informFolders(const folders_t& folders, const string& from,
+		OVERWRITE void informFolders(const folders_t& folders, const string& from,
 											const string& as, const bool debug, pthread_mutex_t *lock);
+		/**
+		 * returning output object to write output inside folder thread
+		 *
+		 * @return output object
+		 */
+		OVERWRITE SHAREDPTR::shared_ptr<IListObjectPattern> getTerminalOutputObject()
+				{ return m_oInformOutput; };
 		/**
 		 * set debug session in subroutine or hole folder when subroutine not given
 		 *
@@ -147,7 +188,7 @@ class MeasureThread : 	public Thread,
 		 * @param value value which should write into database
 		 * @param bNew whether database should actualize value for client default= false
 		 */
-		virtual void fillValue(const string& folder, const string& subroutine, const string& identif, double value, bool bNew= false)
+		OVERWRITE void fillValue(const string& folder, const string& subroutine, const string& identif, double value, bool bNew= false)
 		{ m_oDbFiller->fillValue(folder, subroutine, identif, value, bNew); };
 		/**
 		 * fill double value over an queue into database
@@ -158,7 +199,7 @@ class MeasureThread : 	public Thread,
 		 * @param dvalues vector of more values which should write into database
 		 * @param bNew whether database should actualize value for client default= false
 		 */
-		virtual void fillValue(const string& folder, const string& subroutine, const string& identif,
+		OVERWRITE void fillValue(const string& folder, const string& subroutine, const string& identif,
 						const vector<double>& dvalues, bool bNew= false)
 		{ m_oDbFiller->fillValue(folder, subroutine, identif, dvalues, bNew); };
 		/**
@@ -167,44 +208,32 @@ class MeasureThread : 	public Thread,
 		 * @param subroutine whitch count should be returned when set, elsewhere create new counts
 		 * @return count number of subroutine
 		 */
-		virtual unsigned short getActCount(const string& subroutine);
+		OVERWRITE unsigned short getActCount(const string& subroutine);
 		/**
 		 * returning true if an client set this measurethread to debug
 		 *
 		 * @return whether measure thread do output
 		 */
-		virtual bool isDebug();
+		OVERWRITE bool isDebug();
 		/**
 		 *  external command to stop object of MeasureThread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual int stop(const bool bWait)
+		OVERWRITE int stop(const bool bWait)
 		{ return stop(&bWait); };
 		/**
 		 *  external command to stop object of MeasureThread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual int stop(const bool *bWait= NULL);
-		/**
-		 * if any client set debug to true, method returning sleeptime
-		 * whitch has client set. Otherwise method returning default time from 3
-		 */
-		//unsigned short getSleepTime();
-		/**
-		 * information by changed value in any subroutine
-		 *
-		 * @param folder which folder should be informed
-		 * @param from from which folder comes information
-		 */
-		virtual void changedValue(const string& folder, const string& from);
+		OVERWRITE int stop(const bool *bWait= NULL);
 		/**
 		 * from witch folder:subroutine thread was informed for new value
 		 *
 		 * @return vector of folder:subroutine which informed
 		 */
-		virtual vector<string> wasInformed();
+		OVERWRITE vector<string> wasInformed();
 		/**
 		 * on which time the measure routine should start without any actions on extern ports
 		 *
@@ -222,7 +251,7 @@ class MeasureThread : 	public Thread,
 		 * @param debug whether call run in debug session
 		 * @return longest measured length of folder time
 		 */
-		virtual IPPITimePattern& getLengthedTime(const bool& logPercent, const bool& debug);
+		OVERWRITE IPPITimePattern& getLengthedTime(const bool& logPercent, const bool& debug);
 		/**
 		 * length time of given map by actual CPU time.<br />
 		 * when get unset time back (<code>= !timerisset(<returnvalue>)</code>)
@@ -235,7 +264,7 @@ class MeasureThread : 	public Thread,
 		 * @param debug whether call run in debug session
 		 * @return longest measured length of folder time
 		 */
-		virtual IPPITimePattern& getLengthedTime(timetype_t* timelength, short *percent,
+		OVERWRITE IPPITimePattern& getLengthedTime(timetype_t* timelength, short *percent,
 										const bool& logPercent, const bool& debug);
 		/**
 		 * sleep microseconds by consider stopping of running thread
@@ -243,11 +272,11 @@ class MeasureThread : 	public Thread,
 		 * @param time sleeping time
 		 * @return whether thread should stopping
 		 */
-		virtual bool usleep(const IPPITimePattern& time);
+		OVERWRITE bool usleep(const IPPITimePattern& time);
 		/**
 		 * set folder to calculating length of folder time
 		 */
-		virtual void calculateLengthTime()
+		OVERWRITE void calculateLengthTime()
 		{ m_bNeedLength= true; };
 		/**
 		 * subroutine signal whether can find the server for external measuring
@@ -265,7 +294,7 @@ class MeasureThread : 	public Thread,
 		 * @param time next beginning run time
 		 * @param newtime new starting time
 		 */
-		virtual void changeActivationTime(const string& folder, const IPPITimePattern& time,
+		OVERWRITE void changeActivationTime(const string& folder, const IPPITimePattern& time,
 													const IPPITimePattern& newtime);
 		/**
 		 * searching whether folder was starting from an specific time condition and erase starting.
@@ -273,7 +302,7 @@ class MeasureThread : 	public Thread,
 		 * @param folder name of folder
 		 * @param time next beginning run time
 		 */
-		virtual void eraseActivateTime(const string& folder, const IPPITimePattern& time);
+		OVERWRITE void eraseActivateTime(const string& folder, const IPPITimePattern& time);
 		/**
 		 * write timeval time to display on console
 		 *
@@ -292,7 +321,7 @@ class MeasureThread : 	public Thread,
 		  * @param length longer time of reached or starting late time
 		  * @param debug whether subroutine running inside debug session
 		  */
-		 virtual void calcLengthDiff(timetype_t* timelength,
+		 OVERWRITE void calcLengthDiff(timetype_t* timelength,
 						 const IPPITimePattern& length, const bool& debug);
 		 /**
 		  * search inside timetype_t for correct map with synchronization ID
@@ -309,7 +338,7 @@ class MeasureThread : 	public Thread,
 		 *
 		 * @param timetype all static variables to measure CPU time
 		 */
-		virtual void setCpuMeasureBegin(timetype_t *timetype);
+		OVERWRITE void setCpuMeasureBegin(timetype_t *timetype);
 		/**
 		 * calculate CPU time in percent
 		 *
@@ -366,19 +395,19 @@ class MeasureThread : 	public Thread,
 		 * 				method start(void *args).
 		 * @return error code for not right initialization
 		 */
-		virtual int init(void *arg);
+		OVERWRITE int init(void *arg);
 		/**
 		 * This method starting again when ending with code 0 or lower for warnings
 		 * and if the method stop() isn't called.
 		 *
 		 * @param error code for not correctly done
 		 */
-		virtual int execute();
+		OVERWRITE int execute();
 		/**
 		 * This method will be called if any other or own thread
 		 * calling method stop().
 		 */
-		virtual void ending();
+		OVERWRITE void ending();
 		void clear();
 		bool measure();
 
@@ -456,9 +485,9 @@ class MeasureThread : 	public Thread,
 		 */
 		SHAREDPTR::shared_ptr<IListObjectPattern> m_oInformOutput;
 		/**
-		 * Calculate whether folder thread should be informed to start running
+		 * string to calculate whether folder thread should be informed to start running
 		 */
-		ListCalculator m_oInformeThread;
+		string m_sInformeThreadStatement;
 		/**
 		 * all folder ID specifications which are defined for running folders
 		 * to differ between reach time
@@ -468,15 +497,6 @@ class MeasureThread : 	public Thread,
 		 * actually count number of set subroutine
 		 */
 		unsigned short m_nActCount;
-		/**
-		 * all changed folder
-		 */
-		vector<pair<string, ppi_time> > m_vFolder;
-		/**
-		 * all time activation
-		 * which cannot write actualy into m_vFolder
-		 */
-		vector<string> m_vTimeFolder;
 		/**
 		 * next time to activate measure routine without any action from external client
 		 */
@@ -500,14 +520,10 @@ class MeasureThread : 	public Thread,
 		 */
 		short m_nFolderCPUtime;
 		/**
-		 * whether can read informed folders
-		 */
-		bool m_bReadInformations;
-		/**
 		 * vector of all started times
 		 * when information folders not can be written
 		 */
-		vector<pair<short, ppi_time> > m_vStartTimes;
+		vector<ppi_time> m_vStartTimes;
 		/**
 		 * structure definition to calculate length of folder running time
 		 */
@@ -540,10 +556,6 @@ class MeasureThread : 	public Thread,
 		 */
 		int m_nSchedPriority;
 		/**
-		 * mutex by any changing of value
-		 */
-		pthread_mutex_t *m_VALUE;
-		/**
 		 * mutex for fill or erase new activate time
 		 */
 		pthread_mutex_t *m_ACTIVATETIME;
@@ -562,9 +574,17 @@ class MeasureThread : 	public Thread,
 		 */
 		pthread_mutex_t *m_WANTINFORM;
 		/**
+		 * mutex to create or remove informer cache
+		 */
+		pthread_mutex_t *m_INFORMERCACHECREATION;
+		/**
 		 * condition for wait for new changing of any subroutine
 		 */
 		pthread_cond_t *m_VALUECONDITION;
+		/**
+		 * vector of all exist informer caches
+		 */
+		vector<SHAREDPTR::shared_ptr<MeasureInformerCache> > m_voInformerCaches;
 		/**
 		 * thread to inform other and own folder when one subroutine changing
 		 */
@@ -592,10 +612,11 @@ class MeasureThread : 	public Thread,
 		 * only when lock is given,
 		 * and write info by debug session
 		 *
+		 * @param vInformed vector of which folder or external clients are informed to start
 		 * @param debug session of debug output
 		 * @return whether folder should start
 		 */
-		bool checkToStart(const bool debug);
+		bool checkToStart(vector<string>& vInformed, const bool debug);
 };
 
 

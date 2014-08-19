@@ -2,6 +2,7 @@
 
 set(portsSrcs 	ListCalculator.cpp
 				counter.cpp
+				MeasureInformerCache.cpp
 				DbFiller.cpp
 				DbFillerFactory.cpp
 				DbFillerCache.cpp

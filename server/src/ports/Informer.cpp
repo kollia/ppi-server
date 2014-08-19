@@ -88,7 +88,7 @@ namespace util
 		{// inform own folder to restart
 		 // when setting was from other folder, outside any folder,
 		 // or in same folder, subroutine was from an later one
-			m_poMeasurePattern->changedValue(m_sFolder, from.substr(2));
+			m_pOwnInformerCache->changedValue(m_sFolder, from.substr(2));
 		}
 		if(threadId > 0)
 		{

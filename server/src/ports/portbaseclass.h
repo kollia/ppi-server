@@ -33,6 +33,7 @@
 #include "../pattern/util/IMeasureSet.h"
 #include "../pattern/util/IListObjectPattern.h"
 #include "../pattern/util/imeasurepattern.h"
+#include "../pattern/util/IInformerCachePattern.h"
 
 #include "ListCalculator.h"
 
@@ -212,7 +213,7 @@ namespace ports
 			/**
 			 * all other folder threads which should be informed when value was changed
 			 */
-			map<IMeasurePattern*, vector<string> > m_mvObservers;
+			map<IInformerCachePattern*, vector<string> > m_mvObservers;
 			/**
 			 * header text for display error message on screen or log-file
 			 */

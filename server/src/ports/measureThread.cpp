@@ -70,9 +70,15 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
   m_oToFolderExp(__followSETbehaviorToFolder),
   m_oToSubExp(__followSETbehaviorToSubroutine),
 #endif
+  m_sFolder(threadname),
   m_oRunnThread(threadname, "parameter_run", "run", false, true, pFolderStart->subroutines[0].portClass.get()),
   m_oInformOutput(new Output(threadname, threadname, /*objectID*/0)),
-  m_oInformeThread(threadname, "informe_thread", "inform", false, true, m_oInformOutput.get()),
+  m_ACTIVATETIME(Thread::getMutex("ACTIVATETIME")),
+  m_FOLDERRUNMUTEX(Thread::getMutex("FOLDERRUNMUTEX")),
+  m_DEBUGLOCK(Thread::getMutex("DEBUGLOCK")),
+  m_WANTINFORM(Thread::getMutex("WANTINFORM")),
+  m_INFORMERCACHECREATION(Thread::getMutex("INFORMERCACHECREATION")),
+  m_VALUECONDITION(Thread::getCondition("VALUECONDITION")),
   m_oInformer(threadname, this),
   m_oDbFiller(DbFillerFactory::getInstance(threadname, PPIConfigFileStructure::instance()->getFolderDbThreads()))
 {
@@ -88,16 +94,8 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 	m_bNeedFolderRunning= false;
 	m_bFolderRunning= false;
 	m_nServerSearchSeconds= nServerSearch;
-	m_bReadInformations= true;
-	m_DEBUGLOCK= Thread::getMutex("DEBUGLOCK");
-	m_WANTINFORM= Thread::getMutex("WANTINFORM");
-	m_VALUE= Thread::getMutex("VALUE");
-	m_ACTIVATETIME= Thread::getMutex("ACTIVATETIME");
-	m_FOLDERRUNMUTEX= Thread::getMutex("FOLDERRUNMUTEX");
-	m_VALUECONDITION= Thread::getCondition("VALUECONDITION");
 	m_bDebug= false;
 	m_bInformParam= false;
-	m_sFolder= threadname;
 	m_nActCount= 0;
 	m_nRunCount= -1;
 	m_tRunThread= Thread::getThreadID();
@@ -129,13 +127,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 				for(vector<string>::iterator it= m_vsFolderSecs.begin(); it != m_vsFolderSecs.end(); ++it)
 					trim(*it);
 			}
-			run= pCurrent->folderProperties->getValue("inform", /*warning*/false);
-			if(run != "")
-			{
-				m_oInformeThread.init(pFolderStart, run);
-				if(threadname == "power_switch")
-					m_oInformeThread.doOutput(true);
-			}
+			m_sInformeThreadStatement= pCurrent->folderProperties->getValue("inform", /*warning*/false);
 			run= pCurrent->folderProperties->getValue("policy", /*warning*/false);
 			if(run != "")
 			{
@@ -287,9 +279,17 @@ bool MeasureThread::setDebug(bool bDebug, bool bInform, const string& subroutine
 	}
 	if(!bFound)
 		return false;
+	if(!isDebug)
+		bInform= false;
+	LOCK(m_INFORMERCACHECREATION);
+	for(vector<SHAREDPTR::shared_ptr<MeasureInformerCache> >::iterator it= m_voInformerCaches.begin();
+					it != m_voInformerCaches.end(); ++it						)
+	{
+		(*it)->doOutput(bInform);
+	}
+	UNLOCK(m_INFORMERCACHECREATION);
 	LOCK(m_DEBUGLOCK);
 	m_oInformOutput->out().str("");
-	m_oInformeThread.doOutput(isDebug);
 	if(isDebug)
 	{
 		m_bDebug= true;
@@ -565,91 +565,6 @@ int MeasureThread::init(void *arg)
 	return 0;
 }
 
-void MeasureThread::changedValue(const string& folder, const string& from)
-{
-	bool debug, bReg;
-	double inform;
-	ppi_time time;
-
-#ifdef __followSETbehaviorFromFolder
-	if(	m_btimer &&
-		__followSETbehaviorFrom <= 4 &&
-		__followSETbehaviorTo >= 4		)
-	{
-		vector<string> spl;
-
-		split(spl, from, is_any_of(":"));
-		if(	string(__followSETbehaviorFromFolder) == "" ||
-			boost::regex_match(spl[0], m_oToFolderExp)		)
-		{
-			if(	string(__followSETbehaviorFromSubroutine) == "" ||
-				boost::regex_match(spl[1], m_oToSubExp)				)
-			{
-				cout << "[4] informing from " << from << endl;
-			}
-		}
-	}
-#endif // __followSETbehaviorFromFolder
-	if(!time.setActTime())
-	{
-		string msg("### DEBUGGING for folder " + getFolderName());
-
-		msg+= "\n    ERROR: cannot calculate time to informing";
-		msg+= "\n    " + time.errorStr();
-		TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
-		if(isDebug())
-			tout << " ERROR: cannot calculate time to informing" << endl;
-		time.clear();
-
-	}
-	if(!m_oInformeThread.isEmpty())
-	{
-		debug= isDebug();
-		if(debug)
-		{
-			if(m_bInformParam)
-			{
-				bReg= Terminal::instance()->isRegistered(gettid());
-				m_oInformOutput->out() << "--------------------------------------------------------------" << endl;
-				m_oInformOutput->out() << "t:" << time.toString(/*ad date*/true) << endl;
-				m_oInformOutput->out() << "INFORMED folder " << getFolderName() << " from " << from << ":" << endl;
-			}else
-				debug= false;
-		}
-		m_oInformeThread.calculate(inform);
-		if(debug)
-		{
-			m_oInformOutput->out() << "--------------------------------------------------------------" << endl;
-			m_oInformOutput->writeDebugStream();
-			if(!bReg)
-				TERMINALEND;
-		}
-		if(inform == 0)
-			return;
-	}
-	LOCK(m_VALUE);
-	m_vFolder.push_back(pair<string, ppi_time>(from, time));
-	UNLOCK(m_VALUE);
-	if(TRYLOCK(m_WANTINFORM) == 0)
-	{// try to inform folder to start,
-	 // but when lock given to an other thread
-	 // this other one do the job
-		LOCK(m_ACTIVATETIME);
-		AROUSE(m_VALUECONDITION);
-		/*
-		 * unlock WANTINFORM before ACTIVATETIME
-		 * because otherwise when one folder inform
-		 * own folder to start and thread slice ending before
-		 * unlock WANTINFORM, after that running
-		 * hole own folder and stop again inside condition
-		 * no other folder inform again to restart
-		 * because WANTINFORM was locked
-		 */
-		UNLOCK(m_WANTINFORM);
-		UNLOCK(m_ACTIVATETIME);
-	}
-}
-
 bool MeasureThread::usleep(const IPPITimePattern& time)
 {
 	useconds_t usWait;
@@ -814,6 +729,66 @@ folderSpecNeed_t MeasureThread::isFolderRunning(const vector<string>& specs)
 	return tRv;
 }
 
+IInformerCachePattern* MeasureThread::getInformerCache(const string& folder)
+{
+	IInformerCachePattern* pRv;
+
+	pRv= getUsedInformerCache(folder);
+	if(pRv == NULL)
+	{
+		LOCK(m_INFORMERCACHECREATION);
+		m_voInformerCaches.push_back(
+						SHAREDPTR::shared_ptr<MeasureInformerCache>(
+										new MeasureInformerCache(folder, this, m_oInformOutput)	)	);
+		pRv= static_cast<IInformerCachePattern*>(m_voInformerCaches.back().get());
+		UNLOCK(m_INFORMERCACHECREATION);
+	}
+	return pRv;
+}
+
+IMeasurePattern::awakecond_t MeasureThread::getAwakeConditions()
+{
+	awakecond_t awake;
+
+	awake.wantinform= m_WANTINFORM;
+	awake.activatetime= m_ACTIVATETIME;
+	awake.valuecondition= m_VALUECONDITION;
+	return awake;
+}
+
+IInformerCachePattern* MeasureThread::getUsedInformerCache(const string& folder)
+{
+	IInformerCachePattern* pRv= NULL;
+
+	LOCK(m_INFORMERCACHECREATION);
+	for(vector<SHAREDPTR::shared_ptr<MeasureInformerCache> >::iterator it= m_voInformerCaches.begin();
+					it != m_voInformerCaches.end(); ++it	)
+	{
+		if((*it)->getFolderName() == folder)
+		{
+			pRv= static_cast<IInformerCachePattern*>(it->get());
+			break;
+		}
+	}
+	UNLOCK(m_INFORMERCACHECREATION);
+	return pRv;
+}
+
+void MeasureThread::removeObserverCache(const string& folder)
+{
+	LOCK(m_INFORMERCACHECREATION);
+	for(vector<SHAREDPTR::shared_ptr<MeasureInformerCache> >::iterator it= m_voInformerCaches.begin();
+					it != m_voInformerCaches.end(); ++it	)
+	{
+		if((*it)->getFolderName() == folder)
+		{
+			m_voInformerCaches.erase(it);
+			break;
+		}
+	}
+	UNLOCK(m_INFORMERCACHECREATION);
+}
+
 void MeasureThread::informFolders(const folders_t& folders, const string& from,
 										const string& as, const bool debug, pthread_mutex_t *lock)
 {
@@ -841,28 +816,20 @@ int MeasureThread::execute()
 {
 	bool debug(isDebug());
 	/**
-	 * whether thread has lock to see inside
-	 * information vector m_vFolder.
-	 * variable is 0 when lock given
-	 * otherwise, when no error, variable is EBUSY
-	 */
-	int nHasLock;
-	/**
 	 * from which folder:subroutine the thread was informed to change
 	 */
-	vector<pair<string, ppi_time> > vInformed;
+	vector<string> vInformed;
 	string folder;
 	ppi_time end_tv, diff_tv;
 	timespec waittm;
 	vector<ppi_time>::iterator akttime, lasttime;
 
 	//Debug info before measure routine to stop by right folder
-	/*folder= getFolderName();
-	if(folder == "display_settings")
-	{
-		cout << __FILE__ << __LINE__ << endl;
-		cout << "starting folder " << folder << endl;
-	}*/
+	folder= getFolderName();
+	LOCK(m_FOLDERRUNMUTEX);
+	if(m_nRunCount >= 0)
+		++m_nRunCount;
+	UNLOCK(m_FOLDERRUNMUTEX);
 	if(!m_tvStartTime.isSet())
 	{
 		if(!m_tvStartTime.setActTime())
@@ -872,26 +839,7 @@ int MeasureThread::execute()
 			m_tvStartTime.clear();
 		}
 	}
-	if(!m_bReadInformations)
-	{
-		short id;
-
-		if(debug)
-		{
-			// last id was predefined on last Ending
-			// written debug output for START
-			m_vStartTimes.back().second= m_tvStartTime;
-		}else
-		{
-			id= 0;
-			m_vStartTimes.clear();
-			m_vStartTimes.push_back(pair<short, ppi_time>(id, m_tvStartTime));
-		}
-	}
-	LOCK(m_FOLDERRUNMUTEX);
-	if(m_nRunCount >= 0)
-		++m_nRunCount;
-	UNLOCK(m_FOLDERRUNMUTEX);
+	m_vStartTimes.push_back(m_tvStartTime);
 	measure();
 	//Debug info behind measure routine to stop by right folder
 	/*folder= getFolderName();
@@ -953,9 +901,7 @@ int MeasureThread::execute()
 		tout << out.str();
 		TERMINALEND;
 	}
-	nHasLock= -1;
 	LOCK(m_ACTIVATETIME);
-	m_tvStartTime.clear();
 	diff_tv.clear();
 	TERMINALEND;
 	if(	!m_vtmNextTime.empty() ||
@@ -973,10 +919,10 @@ int MeasureThread::execute()
 			while(akttime != m_vtmNextTime.end())
 			{// remove all older times than actual from NextTime vector
 			 // and make no condition when any older found
-				if(timercmp(&end_tv, &*akttime, <))
+				if(end_tv < *akttime)
 					break;
 				fold= true;
-				m_vTimeFolder.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
+				vInformed.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
 				m_vtmNextTime.erase(akttime);
 				akttime= m_vtmNextTime.begin();
 			}
@@ -1036,16 +982,8 @@ int MeasureThread::execute()
 			}
 			bool bRun(false);
 
-			if(m_vTimeFolder.empty())
-			{
-				nHasLock= TRYLOCK(m_VALUE);
-				if(nHasLock == 0)
-				{// thread get lock to look whether one folder informed
-				 // to restart
-					bRun= checkToStart(debug);
-				}else // when someone has lock one want to inform
-					bRun= true; // that this folder should start
-			}else// or m_vTimeFolder has entry's own folder should also restart
+			bRun= checkToStart(vInformed, debug);
+			if(!vInformed.empty())
 				bRun= true;
 			while(bRun == false)
 			{
@@ -1059,12 +997,14 @@ int MeasureThread::execute()
 				// for wanted awake time
 				diff_tv.tv_sec= waittm.tv_sec;
 				diff_tv.tv_usec= waittm.tv_nsec / 1000;
-				if(nHasLock == 0)
-				{
-					nHasLock= -1;
-					UNLOCK(m_VALUE);
-				}
 				condRv= TIMECONDITION(m_VALUECONDITION, m_ACTIVATETIME, &waittm);
+				if(stopping())
+				{
+					UNLOCK(m_ACTIVATETIME);
+					if(debug)
+						TERMINALEND;
+					return 0;
+				}
 				if(gettimeofday(&m_tvStartTime, NULL))
 				{
 					string msg("### DEBUGGING for folder ");
@@ -1084,29 +1024,15 @@ int MeasureThread::execute()
 					m_bFolderRunning= true;
 					UNLOCK(m_FOLDERRUNMUTEX);
 				}
-				nHasLock= TRYLOCK(m_VALUE);
 				if(condRv == ETIMEDOUT)
 				{
 					if(!bSearchServer)
-						m_vTimeFolder.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
+						vInformed.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
 					else
-						m_vTimeFolder.push_back("#searchserver");
-					break;
-				}
-				if(nHasLock == 0)
-				{// thread get lock to look whether one folder informed
-				 // to restart
-					if(m_vFolder.empty())
-					{
-						if(stopping())
-							break;
-						// condition for folder list
-						// get's an spurious wake-up
-						bRun= false;
-					}else
-						bRun= true;
-				}else // when someone has lock one want to inform to start
+						vInformed.push_back("#searchserver");
 					bRun= true;
+				}else
+					bRun= checkToStart(vInformed, debug);
 			}//while(bRun == false)
 			if(	!bSearchServer &&
 				condRv == ETIMEDOUT	)
@@ -1120,15 +1046,9 @@ int MeasureThread::execute()
 		//  and make now an new pass of older
 	}else
 	{
-		bool bRun(false);
+		bool bRun;
 
-		nHasLock= TRYLOCK(m_VALUE);
-		if(nHasLock == 0)
-		{// thread get lock to look whether one folder informed
-		 // to restart
-			bRun= checkToStart(debug);
-		}else // when someone has lock one want to inform
-			bRun= true; // that this folder should start
+		bRun= checkToStart(vInformed, debug);
 		while(bRun == false)
 		{
 			if(m_bNeedFolderRunning)
@@ -1137,12 +1057,14 @@ int MeasureThread::execute()
 				m_bFolderRunning= false;
 				UNLOCK(m_FOLDERRUNMUTEX);
 			}
-			if(nHasLock == 0)
-			{
-				nHasLock= -1;
-				UNLOCK(m_VALUE);
-			}
 			CONDITION(m_VALUECONDITION, m_ACTIVATETIME);
+			if(stopping())
+			{
+				UNLOCK(m_ACTIVATETIME);
+				if(debug)
+					TERMINALEND;
+				return 0;
+			}
 			if(gettimeofday(&m_tvStartTime, NULL))
 			{
 				string msg("### DEBUGGING for folder ");
@@ -1161,37 +1083,8 @@ int MeasureThread::execute()
 				m_bFolderRunning= true;
 				UNLOCK(m_FOLDERRUNMUTEX);
 			}
-			nHasLock= TRYLOCK(m_VALUE);
-			if(nHasLock == 0)
-			{// thread get lock to look whether one folder informed
-			 // to restart
-				if(m_vFolder.empty())
-				{
-					if(stopping())
-						break;
-					// condition for folder list
-					// get's an spurious wake-up
-					bRun= false;
-				}else
-					bRun= true;
-			}else // when someone has lock one want to inform to start
-				bRun= true;
+			bRun= checkToStart(vInformed, debug);
 		}
-	}
-	if(stopping())
-	{
-		UNLOCK(m_ACTIVATETIME);
-		if(debug)
-			TERMINALEND;
-		return 0;
-	}
-	if(nHasLock == 0)
-	{
-		// check first before define vInformer
-		// whether inside m_vFolder are old times
-		checkToStart(debug);
-		vInformed= m_vFolder;
-		m_vFolder.clear();
 	}
 #ifdef __followSETbehaviorFromFolder
 	if(	m_btimer &&
@@ -1289,39 +1182,32 @@ int MeasureThread::execute()
 			}
 			out << " and priority " << m_nSchedPriority << endl;
 		}
-		if(nHasLock != 0)
+		if(!m_vStartTimes.empty())
 		{
-			short id;
-
-			if(!m_vStartTimes.empty())
-				id= m_vStartTimes.back().first + 1;
-			else
-				id= 1;
-			m_vStartTimes.push_back(pair<short, ppi_time>(id, m_tvStartTime));
-			out << "###StartTHID_" << id << "  showing information later" << endl;
+			out << "###StartTHID_" << (m_vStartTimes.size() + 1) << "  showing some information later" << endl;
 		}else
 			out << "###StartTHID_0" << endl;
-		for(vector<pair<string, ppi_time> >::iterator i= vInformed.begin(); i != vInformed.end(); ++i)
+		for(vector<string>::iterator i= vInformed.begin(); i != vInformed.end(); ++i)
 		{
-			if(i->first.substr(0, 15) == "|SHELL-command_")
+			if(i->substr(0, 15) == "|SHELL-command_")
 			{
-				out << "    informed over SHELL script " << i->first.substr(15) << endl;
+				out << "    informed over SHELL script " << i->substr(15) << endl;
 
 			}else
 			{
 				out << "    informed ";
-				if(i->first.substr(0, 1) == "|")
+				if(i->substr(0, 1) == "|")
 				{
-					if(i->first.substr(1, 1) == "|")
-						out << "from ppi-reader '" << i->first.substr(2) << "'" << endl;
+					if(i->substr(1, 1) == "|")
+						out << "from ppi-reader '" << i->substr(2) << "'" << endl;
 					else
-						out << "over Internet connection account '" << i->first.substr(1) << "'" << endl;
+						out << "over Internet connection account '" << i->substr(1) << "'" << endl;
 				}else
-					out << "from " << i->first << " because value was changed" << endl;
+					out << "from " << *i << " because value was changed" << endl;
 			}
 
 		}
-		for(vector<string>::iterator i= m_vTimeFolder.begin(); i != m_vTimeFolder.end(); ++i)
+		for(vector<string>::iterator i= vInformed.begin(); i != vInformed.end(); ++i)
 		{
 			if(i->substr(0, 15) == "#timecondition ")
 			{
@@ -1367,125 +1253,108 @@ int MeasureThread::execute()
 			m_tvStartTime= end_tv; // after last folder end
 		}
 	}
-	m_vTimeFolder.clear();
-	if(nHasLock == 0)
-	{
-		m_bReadInformations= true;
-		m_vStartTimes.clear();
-		UNLOCK(m_VALUE);
-	}else
-	{
-		m_bReadInformations= false;
-	}
 	UNLOCK(m_ACTIVATETIME);
 	return 0;
 }
 
-bool MeasureThread::checkToStart(const bool debug)
+bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)
 {
-	bool bRemoved(false);
-	bool bFirst(true), bWFirstDebug(true), bWDebug(false);
-	ppi_time lastStart;
+	bool bLocked, bDoStart(false);
 	ostringstream out;
-	vector<pair<string, ppi_time> > newFolder;
-	vector<pair<string, ppi_time> >::iterator it;
-	vector<pair<short, ppi_time> >::iterator startTime;
+	map<short, vector<string> > mInformed;
+	SHAREDPTR::shared_ptr<MeasureInformerCache> lastCache;
+	map<short, vector<string> >::iterator found;
 
-	if(m_vFolder.empty())
-		return false;
-	if(!m_vStartTimes.empty())
+	LOCK(m_INFORMERCACHECREATION);
+	if(m_voInformerCaches.empty())
 	{
-		lastStart= m_vStartTimes.back().second;
-		if(debug)
-			startTime= m_vStartTimes.begin();
-		for(it= m_vFolder.begin(); it != m_vFolder.end(); ++it)
+		UNLOCK(m_INFORMERCACHECREATION);
+		return false;
+	}
+	lastCache= m_voInformerCaches.back();
+	for(vector<SHAREDPTR::shared_ptr<MeasureInformerCache> >::iterator it= m_voInformerCaches.begin();
+					it != m_voInformerCaches.end(); ++it	)
+	{
+		bDoStart= (*it)->shouldStarting(m_vStartTimes, mInformed, &bLocked, debug);
+		if(	*it == lastCache &&
+			!bLocked				)
 		{
-			if(it->second > lastStart)
+			m_vStartTimes.clear();
+			break;
+		}
+		if(bDoStart)
+			break;
+	}
+	UNLOCK(m_INFORMERCACHECREATION);
+	/*
+	 * mInformed only be filled
+	 * when debugging session
+	 * for folder thread be set
+	 */
+	if(mInformed.empty())
+		return bDoStart;
+
+	found= mInformed.find(SHRT_MAX);
+	if(found != mInformed.end())
+	{
+		vInformed.insert(vInformed.end(), found->second.begin(), found->second.end());
+		mInformed.erase(found);
+	}
+	if(mInformed.empty())
+		return bDoStart;
+	out << "--------------------------------------------------------------------" << endl;
+	out << "STARTING reason from running sessions before" << endl;
+	for(map<short, vector<string> >::iterator it= mInformed.begin();
+					it != mInformed.end(); ++it						)
+	{
+#ifdef __followSETbehaviorFromFolder
+		// toDo: running only when debug session for folder thread defined
+		//		 but should also run inside other case
+		if(	m_btimer &&
+			__followSETbehaviorFrom <= 5 &&
+			__followSETbehaviorTo >= 5		)
+		{
+			vector<string> spl;
+
+			split(spl, it->second, is_any_of(":"));
+			if(	string(__followSETbehaviorFromFolder) == "" ||
+				boost::regex_match(spl[0], m_oToFolderExp)		)
 			{
-				if(bFirst)
-					return true;
-				newFolder.push_back(*it);
+				if(	string(__followSETbehaviorFromSubroutine) == "" ||
+					boost::regex_match(spl[1], m_oToSubExp)				)
+				{
+					cout << "[5] remove old informing over " << it->first << endl;
+				}
+			}
+		}
+#endif // __followSETbehaviorFromFolder
+
+		out << "###THID_" << it->first << endl;
+		for(vector<string>::iterator vit= it->second.begin();
+						vit != it->second.end(); ++vit		)
+		{
+			if(vit->substr(0, 15) == "|SHELL-command_")
+			{
+				out << "    informed over SHELL script " << vit->substr(15) << endl;
+
 			}else
 			{
-				//cout << "folder " << m_sFolder << " remove old informing over " << it->first << endl;
-				bRemoved= true;
-
-#ifdef __followSETbehaviorFromFolder
-				if(	m_btimer &&
-							__followSETbehaviorFrom <= 5 &&
-							__followSETbehaviorTo >= 5		)
+				out << "    informed ";
+				if(vit->substr(0, 1) == "|")
 				{
-					vector<string> spl;
-
-					split(spl, it->first, is_any_of(":"));
-					if(	string(__followSETbehaviorFromFolder) == "" ||
-						boost::regex_match(spl[0], m_oToFolderExp)		)
-					{
-						if(	string(__followSETbehaviorFromSubroutine) == "" ||
-							boost::regex_match(spl[1], m_oToSubExp)				)
-						{
-							cout << "[5] remove old informing over " << it->first << endl;
-						}
-					}
-				}
-#endif // __followSETbehaviorFromFolder
+					if(vit->substr(1, 1) == "|")
+						out << "from ppi-reader '" << vit->substr(2) << "'" << endl;
+					else
+						out << "over Internet connection account '" << vit->substr(1) << "'" << endl;
+				}else
+					out << "from " << *vit << " because value was changed" << endl;
 			}
-
-			if(debug)
-			{
-				while(	startTime != m_vStartTimes.end() &&
-						it->second > startTime->second		)
-				{
-					++startTime;
-					bWDebug= false;
-				}
-				if(	startTime != m_vStartTimes.end() &&
-					it->second <= startTime->second		)
-				{
-					if(bWFirstDebug)
-					{
-						out << "--------------------------------------------------------------------" << endl;
-						out << "STARTING reason from running sessions before" << endl;
-						bWFirstDebug= false;
-					}
-					if(bWDebug == false)
-					{
-						out << "###THID_" << startTime->first << endl;
-						bWDebug= true;
-					}
-					if(it->first.substr(0, 15) == "|SHELL-command_")
-					{
-						out << "    informed over SHELL script " << it->first.substr(15) << endl;
-
-					}else
-					{
-						out << "    informed ";
-						if(it->first.substr(0, 1) == "|")
-						{
-							if(it->first.substr(1, 1) == "|")
-								out << "from ppi-reader '" << it->first.substr(2) << "'" << endl;
-							else
-								out << "over Internet connection account '" << it->first.substr(1) << "'" << endl;
-						}else
-							out << "from " << it->first << " because value was changed" << endl;
-					}
-				}
-			}
-			bFirst= false;
-		}
-		if(	debug &&
-			bWFirstDebug == false	)
-		{
-			out << "--------------------------------------------------------------------" << endl;
-			tout << out.str();
-			TERMINALEND;
-		}
-		if(bRemoved)
-			m_vFolder= newFolder;
-		if(m_vFolder.empty())
-			return false;
-	}
-	return true;
+		}//foreach(second var[vector] of mInformed)
+	}//foreach(mInformed)
+	out << "--------------------------------------------------------------------" << endl;
+	tout << out.str();
+	TERMINALEND;
+	return bDoStart;
 }
 
 void MeasureThread::changeActivationTime(const string& folder, const IPPITimePattern& time,
@@ -2861,8 +2730,8 @@ MeasureThread::~MeasureThread()
 	m_oDbFiller->remove();
 	DESTROYMUTEX(m_DEBUGLOCK);
 	DESTROYMUTEX(m_WANTINFORM);
-	DESTROYMUTEX(m_VALUE);
 	DESTROYMUTEX(m_ACTIVATETIME);
 	DESTROYMUTEX(m_FOLDERRUNMUTEX);
+	DESTROYMUTEX(m_INFORMERCACHECREATION);
 	DESTROYCOND(m_VALUECONDITION);
 }

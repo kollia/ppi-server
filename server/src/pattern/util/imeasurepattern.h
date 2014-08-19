@@ -28,7 +28,7 @@
 #include "../server/IClientSendMethods.h"
 
 #include "IPPIValuesPattern.h"
-
+#include "IInformerCachePattern.h"
 
 namespace design_pattern_world
 {
@@ -190,6 +190,25 @@ namespace design_pattern_world
 					  log(false)
 					{};
 				};
+				/**
+				 * awake mutexe and conditions
+				 * for informer cache
+				 */
+				struct awakecond_t
+				{
+					/**
+					 * mutex want to inform folder to running
+					 */
+					pthread_mutex_t* wantinform;
+					/**
+					 * mutex for fill or erase new activate time
+					 */
+					pthread_mutex_t* activatetime;
+					/**
+					 * condition for wait for new changing of any subroutine
+					 */
+					pthread_cond_t* valuecondition;
+				};
 
 				/**
 				 * method returning name of folder
@@ -197,6 +216,37 @@ namespace design_pattern_world
 				 * @return name of folder
 				 */
 				virtual string getFolderName() const= 0;
+				/**
+				 * return cache to observer changing values
+				 *
+				 * @param folder name of folder for which cache used
+				 * @return observer cache
+				 */
+				virtual IInformerCachePattern* getInformerCache(const string& folder)= 0;
+				/**
+				 * return as parameter mutex and conditions
+				 * to awake folder thread for running
+				 */
+				virtual awakecond_t getAwakeConditions()= 0;
+				/**
+				 * return cache to observer only when exist
+				 *
+				 * @param folder name of folder for which cache used
+				 * @return observer cache when exist, otherwise NULL
+				 */
+				virtual IInformerCachePattern* getUsedInformerCache(const string& folder)= 0;
+				/**
+				 * remove observer cache when no more needed
+				 *
+				 * @param folder name of folder for which cache was used
+				 */
+				virtual void removeObserverCache(const string& folder)= 0;
+				/**
+				 * return ListCalculator for whether foder thread should be informed
+				 *
+				 * @return ListCalculator
+				 */
+				virtual string getInformeThreadStatement()= 0;
 				/**
 				 * inform other folders and also own when necessary
 				 * that an specific subroutine was changed
@@ -207,7 +257,7 @@ namespace design_pattern_world
 				 * @param debug whether subroutine which inform folders, running in debug session
 				 * @param lock locking mutex for observers
 				 */
-				virtual void informFolders(const map<IMeasurePattern*, vector<string> >& folders,
+				virtual void informFolders(const map<IInformerCachePattern*, vector<string> >& folders,
 								const string& from, const string& as, const bool debug, pthread_mutex_t *lock)= 0;
 				/**
 				 * returning thread id in which thread folder object running
@@ -299,12 +349,6 @@ namespace design_pattern_world
 				 * @return count number of subroutine
 				 */
 				virtual unsigned short getActCount(const string& subroutine= "")= 0;
-				/**
-				 * activate new pass of hole folder
-				 *
-				 * @param folder name of folder
-				 */
-				virtual void changedValue(const string& folder, const string& from)= 0;
 				/**
 				 * from witch folder:subroutine thread was informed for new value
 				 *

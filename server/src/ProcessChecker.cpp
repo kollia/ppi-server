@@ -98,13 +98,15 @@ int ProcessChecker::execute()
 #endif
 				if(method == "changedChip")
 				{
+					IInformerCachePattern* informerCache;
 #ifdef __DEBUGPROCESSGETCHANGES
 					out << " with reachable device " << boolalpha << device << endl;
 					cout << out.str();
 #endif // __DEBUGPROCESSGETCHANGES
 					port->setDeviceAccess(device);
 					port->setValue(oValue, "r:"+from);
-					pCurMeas->pMeasure->changedValue(folder, "||"+from);
+					informerCache= pCurMeas->pMeasure->getInformerCache(from);
+					informerCache->changedValue(folder, "||"+from);
 					m_sAnswer= "done";
 
 				}else if(bCorrect)

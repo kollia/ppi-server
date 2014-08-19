@@ -6,6 +6,7 @@ set(mainSrcs 	main.cpp
 		        
 		        ports/ListCalculator.cpp
 		        ports/Informer.cpp
+		        ports/MeasureInformerCache.cpp
 		        ports/DbFiller.cpp
 		        ports/DbFillerFactory.cpp
 		        ports/DbFillerCache.cpp

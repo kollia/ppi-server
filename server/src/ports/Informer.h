@@ -27,12 +27,13 @@
 #include "../util/thread/Thread.h"
 
 #include "../pattern/util/imeasurepattern.h"
+#include "../pattern/util/IInformerCachePattern.h"
 
 namespace util
 {
 	using namespace std;
 
-	typedef map<IMeasurePattern*, vector<string> > folders_t;
+	typedef map<IInformerCachePattern*, vector<string> > folders_t;
 
 	/**
 	 * inform own or other folders over an external pool thread
@@ -79,6 +80,7 @@ namespace util
 		  m_bisRunn(false),
 		  m_poMeasurePattern(measureThread),
 		  m_sFolder(threadName),
+		  m_pOwnInformerCache(measureThread->getInformerCache(m_sFolder)),
 		  m_apvtFolders(auto_ptr<vector<inform_t> >(new vector<inform_t>)),
 		  m_INFORMQUEUELOCK(getMutex("INFORMQUEUELOCK")),
 		  m_INFORMQUEUECONDITION(getCondition("INFORMQUEUECONDITION"))
@@ -172,6 +174,10 @@ namespace util
 		 * name of folder in which Informer running
 		 */
 		string m_sFolder;
+		/**
+		 * informer cache for own folder thread
+		 */
+		IInformerCachePattern* m_pOwnInformerCache;
 		/**
 		 * queue of all values for database
 		 */
