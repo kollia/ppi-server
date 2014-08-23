@@ -508,6 +508,7 @@ namespace util
 
 	bool PPIConfigFileStructure::readMeasureConfig()
 	{
+#define __reading_pos
 		typedef vector<IInterlacedPropertyPattern*>::iterator secIt;
 
 		bool bInObj(false);
@@ -548,6 +549,12 @@ namespace util
 		oit= objSections.begin();
 		fit= oit;
 		do{
+#ifdef __reading_pos
+			cout << endl;
+			cout << "reading object " << (*oit)->getSectionValue() << endl;
+			if((*oit)->getSectionValue() == "kalibrierung")
+				cout << flush;
+#endif //__reading_pos
 			if(fit == pFolderSections->end())
 			{
 				if(!bInObj)
@@ -573,7 +580,7 @@ namespace util
 					pFirstObjFolder= aktualFolder;
 					pFirstObjFolder->vsObjFolders= objFolders;
 					aktualFolder= aktualFolder->next;
-					while(aktualFolder  != NULL)
+					while(aktualFolder != NULL)
 					{
 						if(aktualFolder->bDefined == false)
 						{
@@ -601,11 +608,14 @@ namespace util
 
 					// goto new object
 					++oit;
+					if(oit == objSections.end())
+						break;
 					fit= oit;
 					bInObj= false;
 					curObj= "NULL";
 					modifier= (*fit)->getSectionModifier();
 					while(	modifier == "object" &&
+							oit != objSections.end() &&
 							(*fit)->getSectionValue() == "NULL"	)
 					{
 						folderSections= (*fit)->getSections();
@@ -617,10 +627,14 @@ namespace util
 						}else
 						{
 							++oit;
+							if(oit == objSections.end())
+								break;
 							fit= oit;
 						}
 						modifier= (*fit)->getSectionModifier();
 					}
+					if(oit == objSections.end())
+						break;
 				}
 			}
 			modifier= (*fit)->getSectionModifier();
@@ -656,6 +670,9 @@ namespace util
 				++nObjFolderID;
 				value= (*fit)->getSectionValue();
 				glob::replaceName(value, "folder name");
+#ifdef __reading_pos
+				cout << "            folder " << value << endl;
+#endif //__reading_pos
 				if(	curObj != "NULL" &&
 					value == curObj		)
 				{
@@ -739,7 +756,11 @@ namespace util
 						// create new subroutine
 						value= (*sit)->getSectionValue();
 						glob::replaceName(value, "folder '" + aktualFolder->name + "' for subroutine name");
-						//cout << "    with subroutine: " << value << endl;
+#ifdef __reading_pos
+						cout << "                subroutine " << value << endl;
+						if(value == "time")
+							cout << flush;
+#endif //__reading_pos
 						for(vector<sub>::iterator it= aktualFolder->subroutines.begin(); it != aktualFolder->subroutines.end(); ++it)
 						{
 							if(it->name == value)
