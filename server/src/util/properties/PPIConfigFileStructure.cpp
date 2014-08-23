@@ -508,7 +508,7 @@ namespace util
 
 	bool PPIConfigFileStructure::readMeasureConfig()
 	{
-#define __reading_pos
+//#define __reading_pos
 		typedef vector<IInterlacedPropertyPattern*>::iterator secIt;
 
 		bool bInObj(false);
@@ -552,8 +552,6 @@ namespace util
 #ifdef __reading_pos
 			cout << endl;
 			cout << "reading object " << (*oit)->getSectionValue() << endl;
-			if((*oit)->getSectionValue() == "kalibrierung")
-				cout << flush;
 #endif //__reading_pos
 			if(fit == pFolderSections->end())
 			{
@@ -758,8 +756,6 @@ namespace util
 						glob::replaceName(value, "folder '" + aktualFolder->name + "' for subroutine name");
 #ifdef __reading_pos
 						cout << "                subroutine " << value << endl;
-						if(value == "time")
-							cout << flush;
 #endif //__reading_pos
 						for(vector<sub>::iterator it= aktualFolder->subroutines.begin(); it != aktualFolder->subroutines.end(); ++it)
 						{
