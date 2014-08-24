@@ -35,12 +35,13 @@ public:
 	 * @param seconds how much seconds should wait for counting
 	 * @param bClient whether thread should waiting for client action before begin counting
 	 */
-	MeasureThreadCounter(const int seconds, const bool bClient)
+	MeasureThreadCounter(const int seconds, const bool bOrder, const bool bClient)
 //					const SHAREDPTR::shared_ptr<measurefolder_t> pFolderStart)
 	: CallbackTemplate("MeasureThreadCounter"),
 	  m_CLIENTACTIONMUTEX(getMutex("CLIENTACTIONMUTEX")),
 	  m_CLIENTACTIONCOND(getCondition("CLIENTACTIONCOND")),
 	  m_nSeconds(seconds),
+	  m_bShowOrder(bOrder),
 	  m_bClientAction(bClient),
 	  m_bClientActionDone(false),
 	  m_bCounting(true)
@@ -119,6 +120,11 @@ private:
 	 * thread should counting folder thread
 	 */
 	int m_nSeconds;
+	/**
+	 * whether result of counting should show
+	 * in which order folders are starting
+	 */
+	bool m_bShowOrder;
 	/**
 	 * whether thread should waiting for client action
 	 *  before begin counting

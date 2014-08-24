@@ -33,7 +33,7 @@ namespace util
 {
 	using namespace std;
 
-	typedef map<IInformerCachePattern*, vector<string> > folders_t;
+	typedef vector<pair<IInformerCachePattern*, vector<string> > > folders_t;
 
 	/**
 	 * inform own or other folders over an external pool thread

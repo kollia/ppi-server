@@ -279,12 +279,12 @@ void portBase::setObserver(IMeasurePattern* observer)
 
 void portBase::informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
 {
-	typedef map<IInformerCachePattern*, vector<string> > measureMap;
+	typedef vector<pair<IInformerCachePattern*, vector<string> > > observerVector;
+	typedef pair<IInformerCachePattern*, vector<string> > observerPair;
 
 	string inform(folder+":"+subroutine+" "+parameter);
-	vector<string> vec;
 	vector<string>::iterator found;
-	measureMap::iterator fObs;
+	observerVector::iterator fObs;
 	IInformerCachePattern* pInformCache;
 
 	try{
@@ -307,25 +307,67 @@ void portBase::informObserver(IMeasurePattern* observer, const string& folder, c
 	}
 	LOCK(m_OBSERVERLOCK);
 	pInformCache= observer->getInformerCache(m_sFolder);
-	fObs= m_mvObservers.find(pInformCache);
+	fObs= m_mvObservers.end();
+	for(observerVector::iterator it= m_mvObservers.begin();
+					it != m_mvObservers.end(); ++it		)
+	{
+		if(it->first == pInformCache)
+		{
+			fObs= it;
+			break;
+		}
+	}
 	if(fObs != m_mvObservers.end())
 	{
-		vec= m_mvObservers[pInformCache];
-		found= find(vec.begin(), vec.end(), inform);
-		if(found == vec.end())
-			m_mvObservers[pInformCache].push_back(inform);
+		found= find(fObs->second.begin(), fObs->second.end(), inform);
+		if(found == fObs->second.end())
+			fObs->second.push_back(inform);
 	}else
 	{
+		vector<string> vec;
+
 		vec.push_back(inform);
-		m_mvObservers.insert(measureMap::value_type(pInformCache, vec));
+		if(folder == getFolderName())
+			m_mvObservers.insert(m_mvObservers.begin(), observerPair(pInformCache, vec));
+		else
+			m_mvObservers.push_back(observerPair(pInformCache, vec));
 	}
 	UNLOCK(m_OBSERVERLOCK);
 }
 
+string portBase::getObserversString() const
+{
+	typedef vector<pair<IInformerCachePattern*, vector<string> > > observerVector;
+	ostringstream oRv;
+
+	LOCK(m_OBSERVERLOCK);
+	if(m_mvObservers.empty())
+	{
+		UNLOCK(m_OBSERVERLOCK);
+		return "";
+	}
+	oRv << "for folder " << m_sFolder << " in subroutine " << m_sSubroutine << endl;
+	for(observerVector::const_iterator it= m_mvObservers.begin();
+								it != m_mvObservers.end(); ++it		)
+	{
+		oRv << "     define observer " << it->first->getFolderName() << endl;
+		for(vector<string>::const_iterator vit= it->second.begin();
+								vit != it->second.end(); ++vit		)
+		{
+			oRv << "                               " << *vit << endl;
+		}
+	}
+	UNLOCK(m_OBSERVERLOCK);
+	oRv << endl;
+	return oRv.str();
+}
+
 void portBase::removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
 {
+	typedef vector<pair<IInformerCachePattern*, vector<string> > > observerVector;
+
 	string remove(folder+":"+subroutine+" "+parameter);
-	map<IInformerCachePattern*, vector<string> >::iterator foundT;
+	observerVector::iterator foundT;
 	vector<string>::iterator foundS;
 	IInformerCachePattern* pInformCache;
 
@@ -333,7 +375,17 @@ void portBase::removeObserver(IMeasurePattern* observer, const string& folder, c
 	if(pInformCache == NULL)
 		return;
 	LOCK(m_OBSERVERLOCK);
-	foundT= m_mvObservers.find(pInformCache);
+	foundT= m_mvObservers.end();
+	for(observerVector::iterator it= m_mvObservers.begin();
+					it != m_mvObservers.end(); ++it		)
+	{
+		if(it->first == pInformCache)
+		{
+			foundT= it;
+			break;
+		}
+	}
+	//foundT= m_mvObservers.find(pInformCache);
 	if(foundT != m_mvObservers.end())
 	{
 		foundS= find(foundT->second.begin(), foundT->second.end(), remove);
@@ -346,6 +398,8 @@ void portBase::removeObserver(IMeasurePattern* observer, const string& folder, c
 				observer->removeObserverCache(m_sFolder);
 			}
 		}
+		if(foundT->second.empty())
+			m_mvObservers.erase(foundT);
 	}
 	UNLOCK(m_OBSERVERLOCK);
 }

@@ -199,17 +199,19 @@ int ProcessChecker::execute()
 
 	}else if(method == "showThreads")
 	{
+		//bool bOrder;
 		bool bClient;
 		int seconds;
 
 		object >> seconds;
+		//object >> bOrder;
 		object >> bClient;
 		if(counter)
 		{
 			counter->stop(true);
 			delete counter;
 		}
-		counter= new MeasureThreadCounter(seconds, bClient);
+		counter= new MeasureThreadCounter(seconds, /*bOrder*/true, bClient);
 		counter->initialStarting();
 		m_sAnswer= "done";
 

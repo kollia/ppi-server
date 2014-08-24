@@ -124,6 +124,11 @@ namespace design_pattern_world
 			 */
 			virtual void removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)= 0;
 			/**
+			 * return string of defined observer links
+			 * for current subroutine
+			 */
+			virtual string getObserversString() const= 0;
+			/**
 			 * set whether subroutine has correct access to device
 			 *
 			 * @param access whether own object have correct access to device

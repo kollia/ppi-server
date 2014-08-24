@@ -979,13 +979,14 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	meash_t::clientPath= URL::addPath(m_sWorkdir, PPICLIENTPATH, /*always*/false);
 	LOG(LOG_INFO, "Read layout content for clients from " + meash_t::clientPath);
 
-	args.ports= ports;
-	if(bFolderStart)
-		cout << endl;
-	if(bFolderStart)
-		cout << "### start folder thread(s) from measure.conf" << endl;
 
 	db->setServerConfigureStatus("folder_start", 0);
+	args.ports= ports;
+	if(bFolderStart)
+	{
+		cout << endl;
+		cout << "### start folder thread(s) from measure.conf" << endl;
+	}
 	nFolderCount= 0;
 	aktFolder= configFiles->getWorkingList();
 	pCurrentMeasure= pFirstMeasureThreads;
@@ -1046,8 +1047,26 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	db->chipsDefined(true);
 	db->setServerConfigureStatus("folder_start", 100);
 
-	//logprocess= auto_ptr<ProcessStarter>();
-	//process= auto_ptr<ProcessStarter>();
+	if(commands->hasOption("observers"))
+	{
+		cout << endl;
+		cout << "observer definitions for all folder:subroutines:" << endl;
+		aktFolder= configFiles->getWorkingList();
+		while(aktFolder != NULL)
+		{
+			if(aktFolder->bCorrect)
+			{
+				for(vector<sub>::iterator it= aktFolder->subroutines.begin();
+								it != aktFolder->subroutines.end(); ++it	)
+				{
+					if(it->bCorrect)
+						cout << it->portClass->getObserversString();
+				}
+			}
+			aktFolder= aktFolder->next;
+		}
+		cout << endl;
+	}
 
 	// start ProcessChecker
 	ProcessChecker checker(	new SocketClientConnection(	SOCK_STREAM,

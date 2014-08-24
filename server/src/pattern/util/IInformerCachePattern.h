@@ -29,6 +29,12 @@ namespace design_pattern_world
 		{
 		public:
 			/**
+			 * returning name of folder for which cache be used
+			 *
+			 * @return name of folder
+			 */
+			virtual string getFolderName() const= 0;
+			/**
 			 * information by changed value in any subroutine
 			 *
 			 * @param folder which folder should be informed

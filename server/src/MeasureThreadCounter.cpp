@@ -119,24 +119,70 @@ void MeasureThreadCounter::beginCount()
 
 void MeasureThreadCounter::outputCounting(int seconds)
 {
+	typedef map<ppi_time, map<string, vector<string> > > order_type;
 	bool bCount(false);
 	int nCount;
+	string folderName;
 	SHAREDPTR::shared_ptr<meash_t> pCurrent;
+	map<ppi_time, vector<string> > starting;
+	order_type timeOrder;
+	ostringstream oCountOut;
 
 	pCurrent= meash_t::firstInstance;
 	tout << "inside time of " << getTimeString(seconds) << endl;
 	while(pCurrent)
 	{
-		nCount= pCurrent->pMeasure->getRunningCount();
+		nCount= pCurrent->pMeasure->getRunningCount(starting);
 		if(nCount > 0)
 		{
+			folderName= pCurrent->pMeasure->getFolderName();
 			bCount= true;
-			tout << "folder " << pCurrent->pMeasure->getFolderName() <<
+			oCountOut << "folder " << folderName <<
 							" running in " << nCount << " times" << endl;
+			for(map<ppi_time, vector<string> >::iterator it= starting.begin();
+													it != starting.end(); ++it)
+			{
+				timeOrder[it->first][folderName].insert(
+								timeOrder[it->first][folderName].end(),
+								it->second.begin(), it->second.end()	);
+			}
 		}
 		pCurrent= pCurrent->next;
 	}
-	if(!bCount)
+	if(bCount)
+	{
+		if(m_bShowOrder)
+		{
+			tout << endl;
+			tout << "starting order of folders:" << endl;
+			for(order_type::iterator it= timeOrder.begin();
+							it != timeOrder.end(); ++it		)
+			{
+				tout << "     at " << it->first.toString(/*as date*/true);
+				for(map<string, vector<string> >::iterator f= it->second.begin();
+													f != it->second.end(); ++f	)
+				{
+					string space("                 	          ");
+
+					if(f != it->second.begin())
+						tout << space;
+					tout << " folder " << f->first << endl;
+					tout << space << "      informed from ";
+					space.append(/*informed from*/20, ' ');
+					for(vector<string>::iterator i= f->second.begin();
+									i != f->second.end(); ++i			)
+					{
+						if(i != f->second.begin())
+							tout << space;
+						tout << *i << endl;
+					}
+				}
+			}//foreach(timeOrder)
+			tout << endl;
+		}//if(m_bShowOrder)
+		tout << oCountOut.str() << endl;
+		tout << endl;
+	}else
 		tout << "no folder running in given time" << endl;
 	TERMINALEND;
 }

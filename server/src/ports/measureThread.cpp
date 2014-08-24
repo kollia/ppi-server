@@ -672,13 +672,15 @@ void MeasureThread::beginCounting()
 	UNLOCK(m_FOLDERRUNMUTEX);
 }
 
-int MeasureThread::getRunningCount()
+int MeasureThread::getRunningCount(map<ppi_time, vector<string> >& starts)
 {
 	int nRv;
 
 	LOCK(m_FOLDERRUNMUTEX);
 	nRv= m_nRunCount;
 	m_nRunCount= -1;
+	starts= m_vStartingCounts;
+	m_vStartingCounts.clear();
 	UNLOCK(m_FOLDERRUNMUTEX);
 	return nRv;
 }
@@ -816,20 +818,22 @@ int MeasureThread::execute()
 {
 	bool debug(isDebug());
 	/**
-	 * from which folder:subroutine the thread was informed to change
+	 * from which folder:subroutine the thread
+	 * was informed to change
 	 */
 	vector<string> vInformed;
 	string folder;
-	ppi_time end_tv, diff_tv;
+	/**
+	 * time of measure ending
+	 * from all subroutines
+	 */
+	ppi_time end_tv;
+	ppi_time diff_tv;
 	timespec waittm;
 	vector<ppi_time>::iterator akttime, lasttime;
 
 	//Debug info before measure routine to stop by right folder
 	folder= getFolderName();
-	LOCK(m_FOLDERRUNMUTEX);
-	if(m_nRunCount >= 0)
-		++m_nRunCount;
-	UNLOCK(m_FOLDERRUNMUTEX);
 	if(!m_tvStartTime.isSet())
 	{
 		if(!m_tvStartTime.setActTime())
@@ -840,6 +844,22 @@ int MeasureThread::execute()
 		}
 	}
 	m_vStartTimes.push_back(m_tvStartTime);
+	LOCK(m_FOLDERRUNMUTEX);
+	if(m_nRunCount >= 0)
+	{
+		map<ppi_time, vector<string> >::iterator found;
+		ppi_time nullTime;
+
+		++m_nRunCount;
+		found= m_vStartingCounts.find(nullTime);
+		if(found != m_vStartingCounts.end())
+		{
+			m_vStartingCounts[m_tvStartTime]= found->second;
+			m_vStartingCounts.erase(found);
+		}else
+			m_vStartingCounts[m_tvStartTime]= vector<string>();
+	}
+	UNLOCK(m_FOLDERRUNMUTEX);
 	measure();
 	//Debug info behind measure routine to stop by right folder
 	/*folder= getFolderName();
@@ -901,7 +921,6 @@ int MeasureThread::execute()
 		tout << out.str();
 		TERMINALEND;
 	}
-	LOCK(m_ACTIVATETIME);
 	diff_tv.clear();
 	TERMINALEND;
 	if(	!m_vtmNextTime.empty() ||
@@ -982,6 +1001,7 @@ int MeasureThread::execute()
 			}
 			bool bRun(false);
 
+			LOCK(m_ACTIVATETIME);
 			bRun= checkToStart(vInformed, debug);
 			if(!vInformed.empty())
 				bRun= true;
@@ -993,7 +1013,7 @@ int MeasureThread::execute()
 					m_bFolderRunning= false;
 					UNLOCK(m_FOLDERRUNMUTEX);
 				}
-				// set timevec (nanoseconds) into timeval (microsecons)
+				// set timevec (nanoseconds) into timeval (microseconds)
 				// for wanted awake time
 				diff_tv.tv_sec= waittm.tv_sec;
 				diff_tv.tv_usec= waittm.tv_nsec / 1000;
@@ -1034,6 +1054,7 @@ int MeasureThread::execute()
 				}else
 					bRun= checkToStart(vInformed, debug);
 			}//while(bRun == false)
+			UNLOCK(m_ACTIVATETIME);
 			if(	!bSearchServer &&
 				condRv == ETIMEDOUT	)
 			{
@@ -1048,6 +1069,7 @@ int MeasureThread::execute()
 	{
 		bool bRun;
 
+		LOCK(m_ACTIVATETIME);
 		bRun= checkToStart(vInformed, debug);
 		while(bRun == false)
 		{
@@ -1084,7 +1106,8 @@ int MeasureThread::execute()
 				UNLOCK(m_FOLDERRUNMUTEX);
 			}
 			bRun= checkToStart(vInformed, debug);
-		}
+		}//while(bRun == false)
+		UNLOCK(m_ACTIVATETIME);
 	}
 #ifdef __followSETbehaviorFromFolder
 	if(	m_btimer &&
@@ -1143,7 +1166,8 @@ int MeasureThread::execute()
 				nLen-= string("wanted AWAKE by ").length();
 				out << "wanted AWAKE by (";
 				out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
-			}
+			}else
+				m_tvStartTime= end_tv; // after last folder end
 		}else
 		{
 			m_tvStartTime= end_tv;
@@ -1242,29 +1266,37 @@ int MeasureThread::execute()
 
 	}else
 	{// by debug session when StartTime not set, StartTime will be set inside debug output block
-		if(m_tvStartTime.isSet())
+		if(	m_tvStartTime.isSet() &&
+			diff_tv.isSet()			)
 		{
-			if(diff_tv.isSet())
-				m_tvStartTime= diff_tv; // after CONDITION
+			m_tvStartTime= diff_tv; // after CONDITION
 		}else
-		{
-			if(m_nSchedPolicy == SCHED_FIFO)
-				sched_yield();
 			m_tvStartTime= end_tv; // after last folder end
-		}
+		if(m_nSchedPolicy == SCHED_FIFO)
+			sched_yield();
 	}
-	UNLOCK(m_ACTIVATETIME);
 	return 0;
 }
 
 bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)
 {
 	bool bLocked, bDoStart(false);
+	/**
+	 * bDebugShow can be true when
+	 * incoming debug is true
+	 * or only ppi-client was started
+	 * with parameter SHOW
+	 */
+	bool bDebugShow(debug);
 	ostringstream out;
 	map<short, vector<string> > mInformed;
 	SHAREDPTR::shared_ptr<MeasureInformerCache> lastCache;
 	map<short, vector<string> >::iterator found;
 
+	LOCK(m_FOLDERRUNMUTEX);
+	if(m_nRunCount >= 0)
+		bDebugShow= true;
+	UNLOCK(m_FOLDERRUNMUTEX);
 	LOCK(m_INFORMERCACHECREATION);
 	if(m_voInformerCaches.empty())
 	{
@@ -1275,7 +1307,7 @@ bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)
 	for(vector<SHAREDPTR::shared_ptr<MeasureInformerCache> >::iterator it= m_voInformerCaches.begin();
 					it != m_voInformerCaches.end(); ++it	)
 	{
-		bDoStart= (*it)->shouldStarting(m_vStartTimes, mInformed, &bLocked, debug);
+		bDoStart= (*it)->shouldStarting(m_vStartTimes, mInformed, &bLocked, bDebugShow);
 		if(	*it == lastCache &&
 			!bLocked				)
 		{
@@ -1290,6 +1322,8 @@ bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)
 	 * mInformed only be filled
 	 * when debugging session
 	 * for folder thread be set
+	 * or ppi-client was started
+	 * with parameter SHOW
 	 */
 	if(mInformed.empty())
 		return bDoStart;
@@ -1298,15 +1332,38 @@ bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)
 	if(found != mInformed.end())
 	{
 		vInformed.insert(vInformed.end(), found->second.begin(), found->second.end());
+		LOCK(m_FOLDERRUNMUTEX);
+		if(m_nRunCount >= 0)
+		{
+			ppi_time nullTime;
+
+			m_vStartingCounts[nullTime].insert(m_vStartingCounts[nullTime].end(),
+							found->second.begin(), found->second.end());
+		}
+		UNLOCK(m_FOLDERRUNMUTEX);
 		mInformed.erase(found);
 	}
 	if(mInformed.empty())
 		return bDoStart;
-	out << "--------------------------------------------------------------------" << endl;
-	out << "STARTING reason from running sessions before" << endl;
+	if(debug)
+	{
+		out << "--------------------------------------------------------------------" << endl;
+		out << "STARTING reason from running sessions before" << endl;
+	}
 	for(map<short, vector<string> >::iterator it= mInformed.begin();
 					it != mInformed.end(); ++it						)
 	{
+		LOCK(m_FOLDERRUNMUTEX);
+		if(m_nRunCount >= 0)
+		{
+			ppi_time startTime;
+
+			if(m_vStartTimes.size() <= static_cast<vector<ppi_time>::size_type>(it->first))
+				startTime= m_vStartTimes[(it->first - 1)];
+			m_vStartingCounts[startTime].insert(m_vStartingCounts[startTime].end(),
+							it->second.begin(), it->second.end());
+		}
+		UNLOCK(m_FOLDERRUNMUTEX);
 #ifdef __followSETbehaviorFromFolder
 		// toDo: running only when debug session for folder thread defined
 		//		 but should also run inside other case
@@ -1329,29 +1386,33 @@ bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)
 		}
 #endif // __followSETbehaviorFromFolder
 
-		out << "###THID_" << it->first << endl;
-		for(vector<string>::iterator vit= it->second.begin();
-						vit != it->second.end(); ++vit		)
+		if(debug)
 		{
-			if(vit->substr(0, 15) == "|SHELL-command_")
+			out << "###THID_" << it->first << endl;
+			for(vector<string>::iterator vit= it->second.begin();
+							vit != it->second.end(); ++vit		)
 			{
-				out << "    informed over SHELL script " << vit->substr(15) << endl;
-
-			}else
-			{
-				out << "    informed ";
-				if(vit->substr(0, 1) == "|")
+				if(vit->substr(0, 15) == "|SHELL-command_")
 				{
-					if(vit->substr(1, 1) == "|")
-						out << "from ppi-reader '" << vit->substr(2) << "'" << endl;
-					else
-						out << "over Internet connection account '" << vit->substr(1) << "'" << endl;
+					out << "    informed over SHELL script " << vit->substr(15) << endl;
+
 				}else
-					out << "from " << *vit << " because value was changed" << endl;
-			}
-		}//foreach(second var[vector] of mInformed)
+				{
+					out << "    informed ";
+					if(vit->substr(0, 1) == "|")
+					{
+						if(vit->substr(1, 1) == "|")
+							out << "from ppi-reader '" << vit->substr(2) << "'" << endl;
+						else
+							out << "over Internet connection account '" << vit->substr(1) << "'" << endl;
+					}else
+						out << "from " << *vit << " because value was changed" << endl;
+				}
+			}//foreach(second var[vector] of mInformed)
+		}//if(debug)
 	}//foreach(mInformed)
-	out << "--------------------------------------------------------------------" << endl;
+	if(debug)
+		out << "--------------------------------------------------------------------" << endl;
 	tout << out.str();
 	TERMINALEND;
 	return bDoStart;

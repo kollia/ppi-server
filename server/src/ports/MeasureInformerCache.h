@@ -53,7 +53,7 @@ namespace util
 		 *
 		 * @return name of folder
 		 */
-		string getFolderName() const
+		OVERWRITE string getFolderName() const
 		{ return m_sFolderName; };
 		/**
 		 * do debug output for informer ListCalculater

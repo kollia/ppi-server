@@ -61,6 +61,20 @@
 //#define _LIRCCLIENTLIBRARY // not used currently liblirc_client.so
 /*******************************************************************************************************************/
 
+
+/*******************************************************************************************************************
+ * definitions for new C++ standard c++11
+ */
+#ifdef __NEWCPP11STANDARD
+
+#define OVERWRITE overwrite
+
+#else // __NEWCPP11STANDARD
+
+#define OVERWRITE virtual
+
+#endif // __NEWCPP11STANDARD
+/*******************************************************************************************************************/
 #ifndef DEBUG
 //#define DEBUG
 #endif //DEBUG

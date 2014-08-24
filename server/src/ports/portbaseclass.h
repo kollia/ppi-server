@@ -213,7 +213,7 @@ namespace ports
 			/**
 			 * all other folder threads which should be informed when value was changed
 			 */
-			map<IInformerCachePattern*, vector<string> > m_mvObservers;
+			vector<pair<IInformerCachePattern*, vector<string> > > m_mvObservers;
 			/**
 			 * header text for display error message on screen or log-file
 			 */
@@ -315,7 +315,7 @@ namespace ports
 			 *
 			 * @return whether need an server
 			 */
-			virtual bool needServer() const
+			OVERWRITE bool needServer() const
 			{ return false; };
 			/**
 			 * check whether object found for chip in subroutine correct server.<br />
@@ -323,7 +323,7 @@ namespace ports
 			 *
 			 * @return whether server found
 			 */
-			virtual bool hasServer() const
+			OVERWRITE bool hasServer() const
 			{ return false; }
 			/**
 			 * whether subroutine has the incoming sub-variable
@@ -331,21 +331,21 @@ namespace ports
 			 * @subvar name of sub-variable
 			 * @return whether subroutine has this varibale
 			 */
-			virtual bool hasSubVar(const string& subvar) const;
+			OVERWRITE bool hasSubVar(const string& subvar) const;
 			/**
 			 * return content of sub-variable from actual subroutine
 			 *
 			 * @subvar name of sub-variable
 			 * @return value of sub-var
 			 */
-			virtual ppi_value getSubVar(const string& subvar) const;
+			OVERWRITE ppi_value getSubVar(const string& subvar) const;
 			/**
 			 * return true when subroutine need information from other subroutines by changing.<br />
 			 * otherwise false.
 			 *
 			 * @return whether subroutine need information from other subroutines
 			 */
-			virtual bool needObserver() const
+			OVERWRITE bool needObserver() const
 			{ return m_bInfo; };
 			/**
 			 * this method will be called from any measure thread to set as observer
@@ -354,7 +354,7 @@ namespace ports
 			 *
 			 * @param observer measure thread which containing the own folder
 			 */
-			virtual void setObserver(IMeasurePattern* observer);
+			OVERWRITE void setObserver(IMeasurePattern* observer);
 			/**
 			 * fill observer vector to inform other folder if value changed
 			 *
@@ -363,7 +363,7 @@ namespace ports
 			 * @param subroutine name of subroutine which should be informed
 			 * @param parameter name of parameter where the own subroutine is occured
 			 */
-			virtual void informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter);
+			OVERWRITE void informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter);
 			/**
 			 * remove from observer from information when value changed.<br />
 			 * This method remove the observer only when all 'folder:subroutine parameter' values
@@ -374,13 +374,18 @@ namespace ports
 			 * @param subroutine name of subroutine which should be removed from information
 			 * @param parameter name of parameter where the own subroutine is occured
 			 */
-			virtual void removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter);
+			OVERWRITE void removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter);
+			/**
+			 * return string of defined observer links
+			 * for current subroutine
+			 */
+			OVERWRITE string getObserversString() const;
 			/**
 			 * set whether subroutine has correct access to device
 			 *
 			 * @param access whether own object have correct access to device
 			 */
-			virtual void setDeviceAccess(const bool access);
+			OVERWRITE void setDeviceAccess(const bool access);
 			/**
 			 * ask subroutine whether she has an correct access to device
 			 *

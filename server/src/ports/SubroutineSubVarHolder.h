@@ -23,6 +23,8 @@
 
 #include "../util/stream/ppivalues.h"
 
+#include "../util/debug.h"
+
 using namespace std;
 using namespace design_pattern_world::util_pattern;
 
@@ -129,6 +131,12 @@ namespace ports
 		 */
 		virtual void removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
 		{ m_oSubroutine->removeObserver(observer, folder, subroutine, parameter); };
+		/**
+		 * return string of defined observer links
+		 * for current subroutine
+		 */
+		OVERWRITE string getObserversString() const
+		{ return m_oSubroutine->getObserversString(); };
 		/**
 		 * set whether subroutine has correct access to device
 		 *

@@ -376,9 +376,10 @@ class MeasureThread : 	public Thread,
 		/**
 		 * return how often folder thread was running
 		 *
+		 * @param starts all starting times with information how inform
 		 * @return counting number
 		 */
-		int getRunningCount();
+		int getRunningCount(map<ppi_time, vector<string> >& starts);
 		/**
 		 * destructor of MeasureThread
 		 */
@@ -547,6 +548,12 @@ class MeasureThread : 	public Thread,
 		 * count how often folder running
 		 */
 		int m_nRunCount;
+		/**
+		 * starting times when running will be counted.<br />
+		 * (ppi-client was started with parameter SHOW)<br />
+		 * contain also hwo starting inside vector
+		 */
+		map<ppi_time, vector<string> > m_vStartingCounts;
 		/**
 		 * scheduling policy in which folder thread should running
 		 */
