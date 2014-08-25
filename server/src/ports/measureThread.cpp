@@ -817,23 +817,13 @@ void MeasureThread::informFolders(const folders_t& folders, const string& from,
 int MeasureThread::execute()
 {
 	bool debug(isDebug());
-	/**
-	 * from which folder:subroutine the thread
-	 * was informed to change
-	 */
-	vector<string> vInformed;
-	string folder;
-	/**
-	 * time of measure ending
-	 * from all subroutines
-	 */
-	ppi_time end_tv;
+	bool bHasCondition(false);
 	ppi_time diff_tv;
+	ppi_time currentStart;
 	timespec waittm;
 	vector<ppi_time>::iterator akttime, lasttime;
 
 	//Debug info before measure routine to stop by right folder
-	folder= getFolderName();
 	if(!m_tvStartTime.isSet())
 	{
 		if(!m_tvStartTime.setActTime())
@@ -843,7 +833,27 @@ int MeasureThread::execute()
 			m_tvStartTime.clear();
 		}
 	}
-	m_vStartTimes.push_back(m_tvStartTime);
+	if(debug)
+		doDebugStartingOutput();
+	if(!currentStart.setActTime())
+	{
+		tout << " ERROR: cannot calculate time of beginning" << endl;
+		tout << " " << currentStart.errorStr() << endl;
+		if(m_tvStartTime.isSet())
+			currentStart= m_tvStartTime;
+		else
+			currentStart.clear();
+	}
+	/*
+	 * do not fill m_tvStartTime
+	 * into vector of m_vStartTimes
+	 * because m_tvStartTime is for debug output
+	 * to see how long CONDITION need to activate
+	 * or for calculating of running length
+	 * and currentStart should shortly before
+	 * all subroutines of folder thread starting
+	 */
+	m_vStartTimes.push_back(currentStart);
 	LOCK(m_FOLDERRUNMUTEX);
 	if(m_nRunCount >= 0)
 	{
@@ -854,10 +864,10 @@ int MeasureThread::execute()
 		found= m_vStartingCounts.find(nullTime);
 		if(found != m_vStartingCounts.end())
 		{
-			m_vStartingCounts[m_tvStartTime]= found->second;
+			m_vStartingCounts[currentStart]= found->second;
 			m_vStartingCounts.erase(found);
 		}else
-			m_vStartingCounts[m_tvStartTime]= vector<string>();
+			m_vStartingCounts[currentStart]= vector<string>();
 	}
 	UNLOCK(m_FOLDERRUNMUTEX);
 	measure();
@@ -869,26 +879,26 @@ int MeasureThread::execute()
 		cout << "starting folder " << folder << endl;
 	}*/
 
-	if(!end_tv.setActTime())
+	if(!m_tvEndTime.setActTime())
 	{
 		string err("ERROR: cannot calculate ending time of hole folder list from '");
 
-		err+= getFolderName() + "'\n" + end_tv.errorStr();
+		err+= getFolderName() + "'\n" + m_tvEndTime.errorStr();
 		if(debug)
 		{
 			tout << "--------------------------------------------------------------------" << endl;
 			tout << err << endl;
 		}
-		TIMELOG(LOG_ERROR, "ending_time_" + folder, err);
-		end_tv.tv_sec= 0;
-		end_tv.tv_usec= 0;
+		TIMELOG(LOG_ERROR, "ending_time_" + m_sFolder, err);
+		m_tvEndTime.clear();
 	}
 	diff_tv.clear();
+	m_vInformed.clear();
 	if(	m_bNeedLength &&
-		end_tv.isSet() &&
+		m_tvEndTime.isSet() &&
 		m_tvStartTime.isSet()	)
 	{
-		diff_tv= end_tv - m_tvStartTime;
+		diff_tv= m_tvEndTime - m_tvStartTime;
 		if(m_tvSleepLength.isSet())
 		{
 			diff_tv-= m_tvSleepLength;
@@ -906,22 +916,20 @@ int MeasureThread::execute()
 
 		if(!diff_tv.isSet())
 		{
-			diff_tv= end_tv - m_tvStartTime;
+			diff_tv= m_tvEndTime - m_tvStartTime;
 			if(m_tvSleepLength.isSet())
 			{
 				diff_tv-= m_tvSleepLength;
 				m_tvSleepLength.clear();
 			}
 		}
-		folder= getFolderName();
 		out << "--------------------------------------------------------------------" << endl;
-		out << " folder '" << folder << "' STOP (" << end_tv.toString(/*as date*/true) << ")" ;
+		out << " folder '" << m_sFolder << "' STOP (" << m_tvEndTime.toString(/*as date*/true) << ")" ;
 		out << "  running time (" << diff_tv.toString(/*as date*/false) << ")" << endl;
 		out << "--------------------------------------------------------------------" << endl;
 		tout << out.str();
 		TERMINALEND;
 	}
-	diff_tv.clear();
 	TERMINALEND;
 	if(	!m_vtmNextTime.empty() ||
 		!m_osUndefServers.empty()	)
@@ -936,21 +944,26 @@ int MeasureThread::execute()
 		//		cout << "    " << akttime->tv_sec << "." << MeasureThread::getUsecString(akttime->tv_usec) << endl;
 			akttime= m_vtmNextTime.begin();
 			while(akttime != m_vtmNextTime.end())
-			{// remove all older times than actual from NextTime vector
+			{// remove all older times than current from NextTime vector
 			 // and make no condition when any older found
-				if(end_tv < *akttime)
+				if(m_tvEndTime < *akttime)
 					break;
 				fold= true;
-				vInformed.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
+				if(debug)
+					m_vInformed.push_back("#timecondition " + akttime->toString(/*as date*/true));
 				m_vtmNextTime.erase(akttime);
 				akttime= m_vtmNextTime.begin();
 			}
-			do{ // search for same times
-				// and erase until one on of them
+			while(akttime != m_vtmNextTime.end())
+			{
+				/*
+				 * search whether same times exist
+				 * and remove one of them
+				 */
 				lasttime= akttime;
 				++akttime;
 				if(	akttime == m_vtmNextTime.end() ||
-					timercmp(&*akttime, &*lasttime, !=)	)
+					*akttime != *lasttime				)
 				{
 					akttime= lasttime;
 					break;
@@ -958,9 +971,9 @@ int MeasureThread::execute()
 				if(lasttime != m_vtmNextTime.end())
 					m_vtmNextTime.erase(lasttime);
 				akttime= m_vtmNextTime.begin();
-			}while(akttime != m_vtmNextTime.end());
+			}
 			//cout << __FILE__ << " " << __LINE__ << endl;
-			//cout << "akttime:  " << end_tv.tv_sec << " " << end_tv.tv_usec << endl;
+			//cout << "akttime:  " << m_tvEndTime.tv_sec << " " << m_tvEndTime.tv_usec << endl;
 			//cout << "polltime: " << akttime->tv_sec << " " << akttime->tv_usec << endl;
 		}
 		if(	fold == false &&
@@ -977,10 +990,10 @@ int MeasureThread::execute()
 				waittm.tv_nsec= akttime->tv_usec * 1000;
 			}else
 			{// searching for external port server
-				timeval tv;
+				ppi_time tv;
 
 				bSearchServer= true;
-				if(gettimeofday(&tv, NULL))
+				if(!tv.setActTime())
 				{
 					string msg("ALERT: cannot get time of day,\n");
 
@@ -1002,9 +1015,7 @@ int MeasureThread::execute()
 			bool bRun(false);
 
 			LOCK(m_ACTIVATETIME);
-			bRun= checkToStart(vInformed, debug);
-			if(!vInformed.empty())
-				bRun= true;
+			bRun= checkToStart(m_vInformed, debug);
 			while(bRun == false)
 			{
 				if(m_bNeedFolderRunning)
@@ -1013,11 +1024,34 @@ int MeasureThread::execute()
 					m_bFolderRunning= false;
 					UNLOCK(m_FOLDERRUNMUTEX);
 				}
-				// set timevec (nanoseconds) into timeval (microseconds)
-				// for wanted awake time
-				diff_tv.tv_sec= waittm.tv_sec;
-				diff_tv.tv_usec= waittm.tv_nsec / 1000;
+				bHasCondition= true;
 				condRv= TIMECONDITION(m_VALUECONDITION, m_ACTIVATETIME, &waittm);
+				if(condRv == ETIMEDOUT)
+				{
+					// set timevec (nanoseconds) into timeval (microseconds)
+					// for wanted awake time
+					m_tvStartTime.tv_sec= waittm.tv_sec;
+					m_tvStartTime.tv_usec= waittm.tv_nsec / 1000;
+					if(!bSearchServer)
+						m_vInformed.push_back("#timecondition " + akttime->toString(/*as date*/true));
+					else
+						m_vInformed.push_back("#searchserver");
+					bRun= true;
+				}else
+				{
+					if(!m_tvStartTime.setActTime())
+					{
+						string msg("### DEBUGGING for folder ");
+
+						msg+= m_sFolder + " is aktivated!\n";
+						msg+= "    ERROR: cannot calculate time of beginning";
+						TIMELOGEX(LOG_ERROR, m_sFolder, msg, getExternSendDevice());
+						if(isDebug())
+							tout << " ERROR: cannot calculate time of beginning" << endl;
+						m_tvStartTime.clear();
+					}
+					bRun= checkToStart(m_vInformed, debug);
+				}
 				if(stopping())
 				{
 					UNLOCK(m_ACTIVATETIME);
@@ -1025,34 +1059,12 @@ int MeasureThread::execute()
 						TERMINALEND;
 					return 0;
 				}
-				if(gettimeofday(&m_tvStartTime, NULL))
-				{
-					string msg("### DEBUGGING for folder ");
-
-					folder= getFolderName();
-					msg+= folder + " is aktivated!\n";
-					msg+= "    ERROR: cannot calculate time of beginning";
-					TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
-					if(isDebug())
-						tout << " ERROR: cannot calculate time of beginning" << endl;
-					timerclear(&m_tvStartTime);
-
-				}
 				if(m_bNeedFolderRunning)
 				{
 					LOCK(m_FOLDERRUNMUTEX);
 					m_bFolderRunning= true;
 					UNLOCK(m_FOLDERRUNMUTEX);
 				}
-				if(condRv == ETIMEDOUT)
-				{
-					if(!bSearchServer)
-						vInformed.push_back("#timecondition " + getTimevalString(*akttime, /*as date*/true, debug));
-					else
-						vInformed.push_back("#searchserver");
-					bRun= true;
-				}else
-					bRun= checkToStart(vInformed, debug);
 			}//while(bRun == false)
 			UNLOCK(m_ACTIVATETIME);
 			if(	!bSearchServer &&
@@ -1070,7 +1082,7 @@ int MeasureThread::execute()
 		bool bRun;
 
 		LOCK(m_ACTIVATETIME);
-		bRun= checkToStart(vInformed, debug);
+		bRun= checkToStart(m_vInformed, debug);
 		while(bRun == false)
 		{
 			if(m_bNeedFolderRunning)
@@ -1079,7 +1091,18 @@ int MeasureThread::execute()
 				m_bFolderRunning= false;
 				UNLOCK(m_FOLDERRUNMUTEX);
 			}
+			bHasCondition= true;
 			CONDITION(m_VALUECONDITION, m_ACTIVATETIME);
+			if(!m_tvStartTime.setActTime())
+			{
+				string msg("### DEBUGGING for folder ");
+
+				msg+= m_sFolder + " is aktivated!\n";
+				msg+= "    ERROR: cannot calculate time of beginning";
+				TIMELOGEX(LOG_ERROR, m_sFolder, msg, getExternSendDevice());
+				if(isDebug())
+					tout << " ERROR: cannot calculate time of beginning" << endl;
+			}
 			if(stopping())
 			{
 				UNLOCK(m_ACTIVATETIME);
@@ -1087,28 +1110,31 @@ int MeasureThread::execute()
 					TERMINALEND;
 				return 0;
 			}
-			if(gettimeofday(&m_tvStartTime, NULL))
-			{
-				string msg("### DEBUGGING for folder ");
-
-				folder= getFolderName();
-				msg+= folder + " is aktivated!\n";
-				msg+= "    ERROR: cannot calculate time of beginning";
-				TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
-				if(isDebug())
-					tout << " ERROR: cannot calculate time of beginning" << endl;
-
-			}
 			if(m_bNeedFolderRunning)
 			{
 				LOCK(m_FOLDERRUNMUTEX);
 				m_bFolderRunning= true;
 				UNLOCK(m_FOLDERRUNMUTEX);
 			}
-			bRun= checkToStart(vInformed, debug);
+			bRun= checkToStart(m_vInformed, debug);
 		}//while(bRun == false)
 		UNLOCK(m_ACTIVATETIME);
 	}
+	if(!bHasCondition)
+	{
+		m_tvStartTime= m_tvEndTime; // after last folder end
+		if(m_nSchedPolicy == SCHED_FIFO)
+			sched_yield();
+	}
+	return 0;
+}
+
+void MeasureThread::doDebugStartingOutput()
+{
+	ostringstream out;
+	string folder(getFolderName());
+	string msg("### DEBUGGING for folder ");
+
 #ifdef __followSETbehaviorFromFolder
 	if(	m_btimer &&
 		__followSETbehaviorFrom <= 6 &&
@@ -1140,142 +1166,121 @@ int MeasureThread::execute()
 			cout << "without informing from right wanted folder:subroutine" << endl;
 	}
 #endif // __followSETbehaviorFromFolder
-	if(isDebug())
+
+
+	msg+= folder + " is activated!";
+	TIMELOG(LOG_INFO, folder, msg);
+
+	out << "--------------------------------------------------------------------" << endl;
+	out << " folder '" << folder << "' ";
+	if(m_tvStartTime.isSet())
 	{
-		ostringstream out;
+		out << "AWAKED after (";
+		out << m_tvStartTime.toString(/*as date*/true) << ")" << endl;
+		if(m_tvEndTime.isSet())
+		{
+			string::size_type nLen;
+			string space;
+
+			m_tvStartTime= m_tvEndTime;
+			nLen= string(" folder '" + folder + "' AWAKED after ").length();
+			nLen-= string("wanted AWAKE by ").length();
+			out << "wanted AWAKE by (";
+			out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
+		}else
+			m_tvStartTime= m_tvEndTime; // after last folder end
+	}else
+	{
+		m_tvStartTime= m_tvEndTime;
+		out << "running after ";
+		if(m_nSchedPolicy == SCHED_FIFO)
+			out << "sched_yield ";
+		out << "STOP (";
+		out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
+	}
+	if(m_nSchedPolicy != SCHED_OTHER)
+	{
+		out << "  running with scheduling policy ";
+		switch(m_nSchedPolicy)
+		{
+		case SCHED_OTHER:
+			out << "SCHED_OTHER";
+			break;
+		case SCHED_BATCH:
+			out << "SCHED_BATCH";
+			break;
+		case SCHED_IDLE:
+			out << "SCHED_IDLE";
+			break;
+		case SCHED_RR:
+			out << "SCHED_RR";
+			break;
+		case SCHED_FIFO:
+			out << "SCHED_FIFO";
+			break;
+		default:
+			out << "unknown";
+			break;
+		}
+		out << " and priority " << m_nSchedPriority << endl;
+	}
+	if(!m_vStartTimes.empty())
+	{
+		out << "###StartTHID_" << (m_vStartTimes.size() + 1) << "  showing some information later" << endl;
+	}else
+		out << "###StartTHID_0" << endl;
+	for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
+	{
+		if(i->substr(0, 15) == "|SHELL-command_")
+		{
+			out << "    informed over SHELL script " << i->substr(15) << endl;
+
+		}else
+		{
+			out << "    informed ";
+			if(i->substr(0, 1) == "|")
+			{
+				if(i->substr(1, 1) == "|")
+					out << "from ppi-reader '" << i->substr(2) << "'" << endl;
+				else
+					out << "over Internet connection account '" << i->substr(1) << "'" << endl;
+			}else
+				out << "from " << *i << " because value was changed" << endl;
+		}
+
+	}
+	for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
+	{
+		if(i->substr(0, 15) == "#timecondition ")
+		{
+			out << "      awaked from setting time " << i->substr(15) << endl;
+
+		}else if(i->substr(0, 13) == "#searchserver")
+		{
+			out << "      awaked to search again for external port server (owserver)" << endl;
+
+		}else
+				out << "from " << *i << " because value was changed" << endl;
+
+	}
+	if(!m_tvEndTime.setActTime())
+	{
 		string msg("### DEBUGGING for folder ");
 
-		if(folder == "")
-			folder= getFolderName();
-		msg+= folder + " is aktivated!";
-		TIMELOG(LOG_INFO, folder, msg);
+		folder= getFolderName();
+		msg+= folder + " is aktivated!\n";
+		msg+= "    ERROR: cannot calculate time of beginning";
+		TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
+		if(isDebug())
+			tout << " ERROR: cannot calculate time of beginning" << endl;
+		timerclear(&m_tvStartTime);
 
-		out << "--------------------------------------------------------------------" << endl;
-		out << " folder '" << folder << "' ";
-		if(m_tvStartTime.isSet())
-		{
-			out << "AWAKED after (";
-			out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
-			if(diff_tv.isSet())
-			{
-				string::size_type nLen;
-				string space;
-
-				m_tvStartTime= diff_tv;
-				nLen= string(" folder '" + folder + "' AWAKED after ").length();
-				nLen-= string("wanted AWAKE by ").length();
-				out << "wanted AWAKE by (";
-				out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
-			}else
-				m_tvStartTime= end_tv; // after last folder end
-		}else
-		{
-			m_tvStartTime= end_tv;
-			out << "running after ";
-			if(m_nSchedPolicy == SCHED_FIFO)
-			{
-				sched_yield();
-				out << "sched_yield ";
-			}
-			out << "STOP (";
-			out << getTimevalString(m_tvStartTime, /*as date*/true, /*debug*/true) << ")" << endl;
-		}
-		if(m_nSchedPolicy != SCHED_OTHER)
-		{
-			out << "  running with scheduling policy ";
-			switch(m_nSchedPolicy)
-			{
-			case SCHED_OTHER:
-				out << "SCHED_OTHER";
-				break;
-			case SCHED_BATCH:
-				out << "SCHED_BATCH";
-				break;
-			case SCHED_IDLE:
-				out << "SCHED_IDLE";
-				break;
-			case SCHED_RR:
-				out << "SCHED_RR";
-				break;
-			case SCHED_FIFO:
-				out << "SCHED_FIFO";
-				break;
-			default:
-				out << "unknown";
-				break;
-			}
-			out << " and priority " << m_nSchedPriority << endl;
-		}
-		if(!m_vStartTimes.empty())
-		{
-			out << "###StartTHID_" << (m_vStartTimes.size() + 1) << "  showing some information later" << endl;
-		}else
-			out << "###StartTHID_0" << endl;
-		for(vector<string>::iterator i= vInformed.begin(); i != vInformed.end(); ++i)
-		{
-			if(i->substr(0, 15) == "|SHELL-command_")
-			{
-				out << "    informed over SHELL script " << i->substr(15) << endl;
-
-			}else
-			{
-				out << "    informed ";
-				if(i->substr(0, 1) == "|")
-				{
-					if(i->substr(1, 1) == "|")
-						out << "from ppi-reader '" << i->substr(2) << "'" << endl;
-					else
-						out << "over Internet connection account '" << i->substr(1) << "'" << endl;
-				}else
-					out << "from " << *i << " because value was changed" << endl;
-			}
-
-		}
-		for(vector<string>::iterator i= vInformed.begin(); i != vInformed.end(); ++i)
-		{
-			if(i->substr(0, 15) == "#timecondition ")
-			{
-				out << "      awaked from setting time " << i->substr(15) << endl;
-
-			}else if(i->substr(0, 13) == "#searchserver")
-			{
-				out << "      awaked to search again for external port server (owserver)" << endl;
-
-			}else
-					out << "from " << *i << " because value was changed" << endl;
-
-		}
-		if(gettimeofday(&end_tv, NULL))
-		{
-			string msg("### DEBUGGING for folder ");
-
-			folder= getFolderName();
-			msg+= folder + " is aktivated!\n";
-			msg+= "    ERROR: cannot calculate time of beginning";
-			TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
-			if(isDebug())
-				tout << " ERROR: cannot calculate time of beginning" << endl;
-			timerclear(&m_tvStartTime);
-
-		}
-		out << " folder START by (";
-		out << getTimevalString(end_tv, /*as date*/true, /*debug*/true) << ")" << endl;
-		out << "--------------------------------------------------------------------" << endl;
-		tout << out.str();
-		TERMINALEND;
-
-	}else
-	{// by debug session when StartTime not set, StartTime will be set inside debug output block
-		if(	m_tvStartTime.isSet() &&
-			diff_tv.isSet()			)
-		{
-			m_tvStartTime= diff_tv; // after CONDITION
-		}else
-			m_tvStartTime= end_tv; // after last folder end
-		if(m_nSchedPolicy == SCHED_FIFO)
-			sched_yield();
 	}
-	return 0;
+	out << " folder START by (";
+	out << m_tvEndTime.toString(/*as date*/true) << ")" << endl;
+	out << "--------------------------------------------------------------------" << endl;
+	tout << out.str();
+	TERMINALEND;
 }
 
 bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)

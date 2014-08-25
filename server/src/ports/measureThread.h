@@ -503,9 +503,14 @@ class MeasureThread : 	public Thread,
 		 */
 		vector<ppi_time> m_vtmNextTime;
 		/**
-		 * start time of folder
+		 * start time of folder thread
 		 */
 		ppi_time m_tvStartTime;
+		/**
+		 * time of measure ending
+		 * from all subroutines
+		 */
+		ppi_time m_tvEndTime;
 		/**
 		 * whether folder need to know whether folder is running.<br />
 		 * this variable will be defined by initialization and need no mutex lock
@@ -554,6 +559,11 @@ class MeasureThread : 	public Thread,
 		 * contain also hwo starting inside vector
 		 */
 		map<ppi_time, vector<string> > m_vStartingCounts;
+		/**
+		 * from which folder:subroutine the thread
+		 * was informed to restart
+		 */
+		vector<string> m_vInformed;
 		/**
 		 * scheduling policy in which folder thread should running
 		 */
@@ -624,6 +634,10 @@ class MeasureThread : 	public Thread,
 		 * @return whether folder should start
 		 */
 		bool checkToStart(vector<string>& vInformed, const bool debug);
+		/**
+		 * write debugging output by start folder thread
+		 */
+		void doDebugStartingOutput();
 };
 
 
