@@ -138,6 +138,8 @@ namespace util
 			}
 			if(!bFilledError)
 				vsRv.push_back("done");
+			if(m_dbInform)
+				m_dbInform->informDatabase();
 
 		}else // if(m_bisRunn && answer == false)
 		{
@@ -251,6 +253,8 @@ namespace util
 						*m_pHasContent= true;
 					UNLOCK(m_SENDQUEUELOCK1);
 				}
+				if(m_dbInform)
+					m_dbInform->informDatabase();
 			}else
 			{
 				OMethodStringStream command("fillValue");
