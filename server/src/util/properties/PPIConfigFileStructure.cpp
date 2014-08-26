@@ -170,6 +170,24 @@ namespace util
 					bFirst= false;
 				}
 			}
+			if(bFirst)
+			{
+				res= "property folder_db_thread is defined as " + res + "\n";
+				switch(nRv)
+				{
+				case -1:
+					res+= "write from all folders directly into database";
+					break;
+				case 0:
+					res+= "create for every folder an second thread to write into database";
+					break;
+				case 1:
+					res+= "create one extra thread for all folders to write into database";
+					break;
+				}
+				LOG(LOG_INFO, res);
+				bFirst= false;
+			}
 		}
 		return nRv;
 	}
