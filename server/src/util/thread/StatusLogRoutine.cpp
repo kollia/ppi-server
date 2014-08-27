@@ -35,6 +35,16 @@
 #include "Thread.h"
 #include "StatusLogRoutine.h"
 
+/*
+ * toDo: commend all functionality from this class
+ * 		 on 27/08/2014
+ * 		 because do not need status for any time before
+ * 		 maybe class can removed when in the future
+ * 		 never needed
+ * 		 functionality of class also
+ * 		 not runnable
+ */
+#define __never_used__
 
 using namespace std;
 using namespace util;
@@ -42,12 +52,14 @@ using namespace util;
 map<pid_t, pos_t> StatusLogRoutine::m_mStatus;
 pthread_mutex_t* StatusLogRoutine::m_POSITIONSTATUS= Thread::getMutex("POSITIONSTATUS");
 
+
 StatusLogRoutine::StatusLogRoutine()
 {
 }
 
 void StatusLogRoutine::positionA(const string file, const int line, const string identif, const string* info2, const int* ninfo2)
 {
+#ifndef __never_used__
 	pid_t tid= Thread::gettid();
 	map<pid_t, pos_t>::iterator t;
 
@@ -68,11 +80,13 @@ void StatusLogRoutine::positionA(const string file, const int line, const string
 		t->second.ninfo2= *ninfo2;
 	time(&t->second.time);
 	UNLOCK(m_POSITIONSTATUS);
+#endif // __never_used__
 
 }
 
 void StatusLogRoutine::initstatus(const string threadName, IStatusLogPattern* thread)
 {
+#ifndef __never_used__
 	pid_t tid= Thread::gettid();
 	pos_t pos;
 
@@ -90,10 +104,12 @@ void StatusLogRoutine::initstatus(const string threadName, IStatusLogPattern* th
 	LOCK(m_POSITIONSTATUS);
 	m_mStatus[tid]= pos;
 	UNLOCK(m_POSITIONSTATUS);
+#endif // __never_used__
 }
 
 void StatusLogRoutine::statusattrib(IStatusLogPattern* thread, string* info1, int* ninfo1)
 {
+#ifndef __never_used__
 	pid_t tid= Thread::gettid();
 	map<pid_t, pos_t>::iterator t;
 
@@ -111,6 +127,7 @@ void StatusLogRoutine::statusattrib(IStatusLogPattern* thread, string* info1, in
 	if(thread != NULL)
 		t->second.thread= thread;
 	UNLOCK(m_POSITIONSTATUS);
+#endif // __never_used__
 }
 
 string StatusLogRoutine::getStatusInfo(string params)
