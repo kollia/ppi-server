@@ -34,7 +34,7 @@ namespace util
 	: m_pFolderObject(folderObj),
 	  m_sFolderName(forFolder),
 	  m_oInformOutput(informOutput),
-	  m_oInformeThread(folderObj->getFolderName(), "informe_thread", "inform",
+	  m_oInformeThread(folderObj->getFolderName(), "#informe_thread", "inform",
 					  false, true, informOutput.get()),
 	  m_CACHEVALUEMUTEX(Thread::getMutex("CACHEVALUEMUTEX"))
 	{

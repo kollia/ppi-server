@@ -742,6 +742,8 @@ IInformerCachePattern* MeasureThread::getInformerCache(const string& folder)
 		m_voInformerCaches.push_back(
 						SHAREDPTR::shared_ptr<MeasureInformerCache>(
 										new MeasureInformerCache(folder, this, m_oInformOutput)	)	);
+		if(getInformeThreadStatement() != "")
+			m_oInformOutput->writeDebugStream();
 		pRv= static_cast<IInformerCachePattern*>(m_voInformerCaches.back().get());
 		UNLOCK(m_INFORMERCACHECREATION);
 	}

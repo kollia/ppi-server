@@ -36,6 +36,12 @@ ListCalculator::ListCalculator(const string& folder, const string& subroutine, c
   m_sParameter(param),
   m_oOutput(obj)
 {
+	if(m_sFolder == "Raff1_Zeit_timer")
+	{
+		cout << flush;
+		if(m_sSubroutine == "informe_thread")
+			cout << flush;
+	}
 	m_CALCUALTEMUTEX= Thread::getMutex("CALCUALTEMUTEX");
 	allowComparison(true);
 	allowIfSentence(true);
@@ -50,6 +56,12 @@ bool ListCalculator::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFo
 	vector<string>::size_type nAliasCount;
 	SHAREDPTR::shared_ptr<measurefolder_t> pfolder;
 
+	if(m_sFolder == "Raff1_Zeit_timer")
+	{
+		cout << flush;
+		if(m_sSubroutine == "informe_thread")
+			cout << flush;
+	}
 	m_pStartFolder= pStartFolder;
 	if(m_pStartFolder == NULL)
 		return false;
@@ -174,7 +186,10 @@ void ListCalculator::output(bool bError, const string& file, const int line, con
 	{
 		string err("rendering ERROR by folder '");
 
-		err+= m_sFolder + "' and subroutine '" + m_sSubroutine + "' in parameter " + m_sParameter;
+		err+= m_sFolder + "' ";
+		if(m_sSubroutine != "#informe_thread")
+			err+= "and subroutine '" + m_sSubroutine + "' ";
+		err+= "in parameter " + m_sParameter;
 		m_oOutput->out() << "### " << err << endl;
 		m_oOutput->out() << "    " << msg << endl;
 		err+= "\n" + msg;
