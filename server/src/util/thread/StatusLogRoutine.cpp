@@ -294,6 +294,7 @@ string StatusLogRoutine::getStatus(string params, pos_t& pos, time_t elapsed, st
 
 void StatusLogRoutine::removestatus(pid_t threadid)
 {
+#ifndef __never_used__
 	map<pid_t, pos_t>::iterator del;
 
 	LOCK(m_POSITIONSTATUS);
@@ -314,6 +315,7 @@ void StatusLogRoutine::removestatus(pid_t threadid)
 		m_mStatus.erase(del);
 		UNLOCK(m_POSITIONSTATUS);
 	}
+#endif // __never_used__
 }
 
 void StatusLogRoutine::setThreadLogName(string threadName, IClientSendMethods* sendDevice)
