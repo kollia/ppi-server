@@ -29,6 +29,17 @@ class MeasureThreadCounter : public CallbackTemplate
 {
 public:
 	/**
+	 * structure to set
+	 * which client will be start counting
+	 */
+	struct who_t
+	{
+		string who;
+		string folder;
+		string subroutine;
+		ppi_value value;
+	};
+	/**
 	 * constructor to define seconds and whether should wait
 	 * for some client action
 	 *
@@ -51,8 +62,13 @@ public:
 	 * external action from outside
 	 * when thread counter should wait for it
 	 * to beginning
+	 *
+	 * @param folder for which folder activation be
+	 * @param subroutine for which subroutine activation be
+	 * @param value which value will be set
+	 * @param from which client will be activate counting
 	 */
-	void clientAction();
+	void clientAction(const string& folder, const string& subroutine, const ppi_value& value, const string& from);
 	/**
 	 *  external command to stop thread
 	 *
@@ -141,9 +157,9 @@ private:
 	 */
 	bool m_bCounting;
 	/**
-	 * all folders to know which how often running
+	 * which client start counting
 	 */
-	//SHAREDPTR::shared_ptr<measurefolder_t> m_pFolderStart
+	who_t m_tClient;
 };
 
 #endif /* MEASURETHREADCOUNTER_H_ */

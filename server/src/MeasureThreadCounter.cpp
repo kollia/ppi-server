@@ -187,7 +187,8 @@ void MeasureThreadCounter::outputCounting(int seconds)
 	TERMINALEND;
 }
 
-void MeasureThreadCounter::clientAction()
+void MeasureThreadCounter::clientAction(const string& folder, const string& subroutine,
+				const ppi_value& value, const string& from)
 {
 	LOCK(m_CLIENTACTIONMUTEX);
 	if(!m_bCounting)
@@ -195,6 +196,10 @@ void MeasureThreadCounter::clientAction()
 	 // because by waiting for client action the action will be set
 	 // only when MeasureThreadCounter has informed all MeasureThread's to count
 		m_bClientActionDone= true;
+		m_tClient.who= from;
+		m_tClient.folder= folder;
+		m_tClient.subroutine= subroutine;
+		m_tClient.value= value;
 		AROUSE(m_CLIENTACTIONCOND);
 		CONDITION(m_CLIENTACTIONCOND, m_CLIENTACTIONMUTEX);
 	}
@@ -230,8 +235,14 @@ short MeasureThreadCounter::runnable()
 		beginCount();
 		AROUSEALL(m_CLIENTACTIONCOND);
 		m_bCounting= true;
-		UNLOCK(m_CLIENTACTIONMUTEX);
 		tout << "wait now for " << getTimeString(seconds, &wait) << endl;
+		if(m_bClientAction)
+		{
+			tout << "  activated from " << m_tClient.who << endl;
+			tout << "    to inform " << m_tClient.folder << ":" << m_tClient.subroutine
+							<< " set with value " << m_tClient.value << endl;
+		}
+		UNLOCK(m_CLIENTACTIONMUTEX);
 		TERMINALEND;
 	}else
 		beginCount();

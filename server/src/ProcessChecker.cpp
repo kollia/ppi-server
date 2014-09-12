@@ -112,7 +112,7 @@ int ProcessChecker::execute()
 				}else if(bCorrect)
 				{
 					if(counter)
-						counter->clientAction();
+						counter->clientAction(folder, subroutine, oValue.value, from);
 #ifdef __DEBUGPROCESSGETCHANGES
 					out << endl;
 					cout << out.str();
