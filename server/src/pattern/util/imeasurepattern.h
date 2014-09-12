@@ -161,19 +161,6 @@ namespace design_pattern_world
 					 */
 					map< string, map<short, timeLen_t> > percentSyncDiff;
 					/**
-					 * preview idle time from last CPU creation
-					 */
-					int prev_idle;
-					/**
-					 * preview total time from last CPU creation
-					 */
-					int prev_total;
-					/**
-					 * CPU percent from last creation.<br />
-					 * maybe CPU creation need when method <code>getCpuPercent()</code> was called to fast
-					 */
-					int old_usage;
-					/**
 					 * log inside database for starting earlier or estimate possible finish time
 					 * by which CPU percent time length be taken
 					 */
@@ -184,9 +171,6 @@ namespace design_pattern_world
 					  maxVal(5),
 					  //percentDB(false),
 					  inPercent(10),
-					  prev_idle(0),
-					  prev_total(0),
-					  old_usage(0),
 					  log(false)
 					{};
 				};
@@ -329,12 +313,6 @@ namespace design_pattern_world
 				  */
 				 virtual void calcLengthDiff(timetype_t* timelength,
 								 const IPPITimePattern& length, const bool& debug)= 0;
-				/**
-				 * set into given timetype the CPU times to begin measuring for <code>getCpuPercent</code>
-				 *
-				 * @param timetype all static variables to measure CPU time
-				 */
-				virtual void setCpuMeasureBegin(timetype_t *timetype)= 0;
 				/**
 				 * sleep microseconds by consider stopping of running thread
 				 *

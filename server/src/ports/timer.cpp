@@ -636,7 +636,6 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 			}else
 				m_nAllowStarting= 1;
 		}
-		getRunningThread()->setCpuMeasureBegin(&m_tReachedTypes);
 	}
 	if(!m_bFinished)
 	{// m_bFinished is only false when waiting for other subroutines in case 3
@@ -1814,7 +1813,7 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 	{
 		// Subtract length of folder run, because subroutine should reached before
 		// to wait inside this subroutine for exact time
-		folderLength= getRunningThread()->getLengthedTime(m_bLogPercent, debug);
+		folderLength= getRunningThread()->getLengthedTime((m_nFinishedCPUtime<100), debug);
 		if(*nextTime > folderLength)
 		{
 			m_tmStop= m_tmExactStop - folderLength;
@@ -1835,7 +1834,7 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 	if(!m_oFinished.isEmpty())
 	{
 		tmReachEnd= getRunningThread()->getLengthedTime(&m_tReachedTypes, &m_nLengthPercent,
-													m_bLogPercent, debug);
+													(m_nFinishedCPUtime<100), debug);
 		if(tmReachEnd.isSet())
 		{
 			// subtract calculated finished time

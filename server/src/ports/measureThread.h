@@ -334,23 +334,13 @@ class MeasureThread : 	public Thread,
 		 map<short, timeLen_t>* getPercentDiff(timetype_t *timelength,
 						 	 bool& nearest, const bool&debug);
 		/**
-		 * set into given timetype the CPU times to begin measuring for <code>getCpuPercent</code>
-		 *
-		 * @param timetype all static variables to measure CPU time
-		 */
-		OVERWRITE void setCpuMeasureBegin(timetype_t *timetype);
-		/**
 		 * calculate CPU time in percent
 		 *
 		 * @param processor return CPU percent for processor.<br /> by 0 an average of all exist
-		 * @param prev_idle last idle time from which should be created and give back new old one
-		 * @param prev_total last total time from which  should be created and give back new old one
-		 * @param old_usage last calculated CPU percent
 		 * @param debug whether call is for debug session
 		 * @return percent of CPU
 		 */
-		static int getCpuPercent(const vector<int>::size_type& processor, int *prev_idle,
-										int *prev_total, int old_usage, const bool& debug);
+		static int getCpuPercent(const vector<int>::size_type& processor, const bool& debug);
 		/**
 		 * calculate double result whether should measure in second range
 		 * or microsecond range
@@ -413,6 +403,41 @@ class MeasureThread : 	public Thread,
 		bool measure();
 
 	private:
+		/**
+		 * current measure of CPU time
+		 */
+		struct CpuTime_t
+		{
+			 /**
+			  * last idle time
+			  * from which should be created
+			  * and give back new old one
+			  */
+			 int prev_idle;
+			 /**
+			  * last total time from which should
+			  * be created and give back new old one
+			  */
+			 int prev_total;
+			 /**
+			  * last calculated CPU percent
+			  */
+			 int old_usage;
+			 /**
+			  * time after calculating
+			  * new CPU time
+			  */
+			 ppi_time nextCall;
+
+			 /**
+			  * constructor to set all values to 0
+			  */
+			 CpuTime_t()
+			 : prev_idle(0),
+			   prev_total(0),
+			   old_usage(0)
+			 {};
+		};
 		/**
 		 * changed times of subroutines
 		 */
@@ -526,6 +551,11 @@ class MeasureThread : 	public Thread,
 		 */
 		short m_nFolderCPUtime;
 		/**
+		 * structure of
+		 * created CPU time
+		 */
+		static CpuTime_t m_tCpuTime;
+		/**
 		 * vector of all started times
 		 * when information folders not can be written
 		 */
@@ -598,6 +628,20 @@ class MeasureThread : 	public Thread,
 		 * condition for wait for new changing of any subroutine
 		 */
 		pthread_cond_t *m_VALUECONDITION;
+		/**
+		 * mutex of creating CPU time
+		 */
+		static pthread_mutex_t *m_CREATECPUTIMEMUTEX;
+		/**
+		 * mutex of reading CPU time
+		 * when other thread will be creating
+		 */
+		static pthread_mutex_t *m_READCPUTIMEMUTEX;
+		/**
+		 * condition of waiting
+		 * for new calculated CPU time
+		 */
+		static pthread_cond_t * m_NEWCPUTIMECONDITION;
 		/**
 		 * vector of all exist informer caches
 		 */

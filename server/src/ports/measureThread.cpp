@@ -53,6 +53,10 @@ using namespace ppi_database;
 using namespace boost;
 using namespace boost::algorithm;
 
+pthread_mutex_t *MeasureThread::m_CREATECPUTIMEMUTEX= Thread::getMutex("CREATECPUTIMEMUTEX");
+pthread_mutex_t *MeasureThread::m_READCPUTIMEMUTEX= Thread::getMutex("READCPUTIMEMUTEX");
+pthread_cond_t *MeasureThread::m_NEWCPUTIMECONDITION= Thread::getCondition("NEWCPUTIMECONDITION");
+MeasureThread::CpuTime_t MeasureThread::m_tCpuTime= MeasureThread::CpuTime_t();
 SHAREDPTR::shared_ptr<meash_t> meash_t::firstInstance= SHAREDPTR::shared_ptr<meash_t>();
 string meash_t::clientPath= "";
 
@@ -1642,25 +1646,51 @@ bool MeasureThread::measure()
 	return true;
 }
 
-void MeasureThread::setCpuMeasureBegin(timetype_t *timetype)
-{
-	timetype->prev_idle= m_tLengthType.prev_idle;
-	timetype->prev_total= m_tLengthType.prev_total;
-}
-
-int MeasureThread::getCpuPercent(const vector<int>::size_type& processor, int *prev_idle,
-										int *prev_total, int old_usage, const bool& debug)
+int MeasureThread::getCpuPercent(const vector<int>::size_type& processor, const bool& debug)
 {
 	// implement bash script from
 	// Paul Colby (http://colby.id.au), no rights reserved ;)
 	// getting from page (http://colby.id.au/node/39)
 	int value, idle, total(0);
+	int prev_idle, prev_total, old_usage;
+	ppi_time nextCall, currentCall;
 	int diff_idle, diff_total, diff_usage;
 	string cpu, filename("/proc/stat");
 	ifstream file;
 	string line;
 	vector<int>::size_type actProcessor(0);
 
+	if(!currentCall.setActTime())
+	{
+		string err("ERROR: cannot calculate new time to create last CPU time creating\n");
+
+		err+= currentCall.errorStr();
+		if(debug)
+			tout << err << endl;
+		TIMELOG(LOG_ERROR, "CPUTIMEcreating", err);
+		currentCall= nextCall;
+	}
+	if(TRYLOCK(m_CREATECPUTIMEMUTEX) != 0)
+	{
+		LOCK(m_READCPUTIMEMUTEX);
+		if((currentCall >= m_tCpuTime.nextCall))
+			CONDITION(m_NEWCPUTIMECONDITION, m_READCPUTIMEMUTEX);
+		old_usage= m_tCpuTime.old_usage;
+		UNLOCK(m_READCPUTIMEMUTEX);
+		return old_usage;
+	}
+	LOCK(m_READCPUTIMEMUTEX);
+	prev_idle= m_tCpuTime.prev_idle;
+	prev_total= m_tCpuTime.prev_total;
+	old_usage= m_tCpuTime.old_usage;
+	nextCall= m_tCpuTime.nextCall;
+	UNLOCK(m_READCPUTIMEMUTEX);
+	//cout << "read CPU time -----------------------------------------" << endl;
+	if((currentCall < nextCall))
+	{
+		UNLOCK(m_CREATECPUTIMEMUTEX);
+		return old_usage;
+	}
 	try{
 		try{
 			file.open(filename.c_str());
@@ -1684,6 +1714,7 @@ int MeasureThread::getCpuPercent(const vector<int>::size_type& processor, int *p
 							tout << "           " << err2.str();
 						}
 						TIMELOG(LOG_ERROR, "processor_count", err1.str() + err2.str());
+						UNLOCK(m_CREATECPUTIMEMUTEX);
 						return 0;
 					}
 					if(processor == actProcessor)
@@ -1706,6 +1737,7 @@ int MeasureThread::getCpuPercent(const vector<int>::size_type& processor, int *p
 				if(debug)
 					tout << err << endl;
 				TIMELOG(LOG_ERROR, "cpu_creation", err);
+				UNLOCK(m_CREATECPUTIMEMUTEX);
 				return old_usage;
 			}
 			file.close();
@@ -1714,14 +1746,15 @@ int MeasureThread::getCpuPercent(const vector<int>::size_type& processor, int *p
 			string err;
 
 			ex.addMessage("getCpuPercent try to read");
+			UNLOCK(m_CREATECPUTIMEMUTEX);
 			throw(ex);
 		}
 
-		diff_idle= idle - *prev_idle;
-		diff_total= total - *prev_total;
+		diff_idle= idle - prev_idle;
+		diff_total= total - prev_total;
 		if(diff_total <= 0) // method was called to quickly after each other
 		{
-			//UNLOCK(globalCPUMUTEX);
+			UNLOCK(m_CREATECPUTIMEMUTEX);
 			return old_usage;
 		}
 
@@ -1734,13 +1767,14 @@ int MeasureThread::getCpuPercent(const vector<int>::size_type& processor, int *p
 
 			calc << "(1000 * (" << diff_total << " - " << diff_idle << ") / " << diff_total << " + 5) / 10";
 			ex.addMessage("getCpuPercent calc " + calc.str());
+			UNLOCK(m_CREATECPUTIMEMUTEX);
 			throw(ex);
 		}
 
 		if(diff_usage <= 0)
 		{
 			ostringstream oerr;
-			vector<string> err(5);
+			vector<string> err;
 
 			// toDo: bug >> write no strings into log file ????
 			oerr << "cannot create correct CPU time:" << endl;
@@ -1773,11 +1807,37 @@ int MeasureThread::getCpuPercent(const vector<int>::size_type& processor, int *p
 			TIMELOG(LOG_WARNING, "cputimecreation",
 							err[0] + err[1] +
 							err[2] + err[3] + err[4]);
+			UNLOCK(m_CREATECPUTIMEMUTEX);
 			return old_usage;
 		}
-		*prev_total= total;
-		*prev_idle= idle;
-		old_usage= diff_usage;
+		/*
+		 * create time of new calculation again
+		 * because creating need some time
+		 */
+		nextCall= currentCall;
+		if(!currentCall.setActTime())
+		{
+			string err("ERROR: cannot calculate new time to create last CPU time creating\n");
+
+			err+= currentCall.errorStr();
+			if(debug)
+				tout << err << endl;
+			TIMELOG(LOG_ERROR, "CPUTIMEcreating", err);
+			currentCall= nextCall;
+		}
+		/*
+		 * creating next calculation time
+		 */
+		nextCall.tv_sec= 0;
+		nextCall.tv_usec= 500000;
+		nextCall= currentCall + nextCall;
+		LOCK(m_READCPUTIMEMUTEX);
+		m_tCpuTime.prev_total= total;
+		m_tCpuTime.prev_idle= idle;
+		m_tCpuTime.old_usage= diff_usage;
+		m_tCpuTime.nextCall= nextCall;
+		AROUSEALL(m_NEWCPUTIMECONDITION);
+		UNLOCK(m_READCPUTIMEMUTEX);
 		//cout << cpu << " " << diff_usage << "%" << endl;
 
 	}catch(SignalException& ex)
@@ -1793,9 +1853,11 @@ int MeasureThread::getCpuPercent(const vector<int>::size_type& processor, int *p
 		{
 			cerr << endl << "ERROR: catch exception by trying to log error message" << endl << endl;
 		}
+		UNLOCK(m_CREATECPUTIMEMUTEX);
 		return old_usage;
 
 	}
+	UNLOCK(m_CREATECPUTIMEMUTEX);
 	return diff_usage;
 }
 
@@ -1860,7 +1922,6 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 #endif // __showStatistic
 	bool nearest;
 	short nPercent(100);
-	int prev_idle, prev_total;
 	double dRv;
 	map<short, timeLen_t>* percentDiff;
 	map<short, timeLen_t>::const_iterator it, last;
@@ -1882,9 +1943,7 @@ IPPITimePattern& MeasureThread::getLengthedTime(timetype_t* timelength, short *p
 		|| debug
 		|| logPercent 				)
 	{
-		prev_idle= timelength->prev_idle;
-		prev_total= timelength->prev_total;
-		nPercent= static_cast<short>(getCpuPercent(0, &prev_idle, &prev_total, timelength->old_usage, debug));
+		nPercent= static_cast<short>(getCpuPercent(0, debug));
 	}
 
 #ifdef __showStatistic
@@ -2099,7 +2158,6 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 #endif // __showStatistic
 	bool bSave(false);
 	short nPercent;
-	int prev_idle, prev_total;
 	double value;
 	timeLen_t* timevec;
 	map<short, timeLen_t>* percentDiff;
@@ -2125,12 +2183,9 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 		percentDiff= &timelength->percentSyncDiff["none"];
 	else
 		percentDiff= &timelength->percentSyncDiff[timelength->synchroID];
-	prev_idle= timelength->prev_idle;
-	prev_total= timelength->prev_total;
 	if(timelength->inPercent < 100)
 	{// differ between CPU percent
-		nPercent= static_cast<short>(getCpuPercent(0, &prev_idle, &prev_total, timelength->old_usage, debug));
-		timelength->old_usage= nPercent;
+		nPercent= static_cast<short>(getCpuPercent(0, debug));
 		timevec= NULL;
 		if(	timelength->inPercent >= 10 &&
 			nPercent >= 10					)
@@ -2201,9 +2256,7 @@ void MeasureThread::calcLengthDiff(timetype_t *timelength,
 	if(timelength->runlength)
 	{// measure begin of CPU time always only from last ending folder
 		if(timelength->inPercent == 100)// when inPercent is 100 no CPU time was created
-			getCpuPercent(0, &prev_idle, &prev_total, timelength->old_usage, debug);
-		timelength->prev_idle= prev_idle; // also for reach end sessions
-		timelength->prev_total= prev_total;
+			getCpuPercent(0, debug);
 	}
 
 	value= calcResult(length, /*seconds*/false);
