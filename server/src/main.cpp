@@ -195,6 +195,7 @@ int main(int argc, char* argv[])
 }
 
 
+//#define __URI_TEST
 //#define __MAKE_CALCULATER_TESTS
 //#define __CHECK_THREAD_CREATION
 //#define __CHECK_WORKING_INTERLACEDPROPERTIES
@@ -203,6 +204,9 @@ int main(int argc, char* argv[])
 //#define __CALENDAR_DEFINITIONS
 //#define __EXCEPTION_HANDLING
 
+#ifdef __URI_TEST
+#define __MAKE_TESTS
+#endif // __MAKE_TESTS
 #ifdef __MAKE_CALCULATER_TESTS
 #define __MAKE_TESTS
 #endif // __MAKE_CALCULATER_TESTS
@@ -279,7 +283,75 @@ void tests(const string& workdir, int argc, char* argv[])
 	string sConfPath;
 
 	sConfPath= URL::addPath(workdir, PPICONFIGPATH, /*always*/false);
+
 #endif // __MAKE_TESTS
+
+#ifdef __URI_TEST
+
+	URL oURI;
+
+	cout << endl;
+	for(int c= 1; c < 7; ++c)
+	{
+		switch(c)
+		{
+		case 1:
+			oURI.set("/usr/local/bin/");
+			break;
+		case 2:
+			oURI.set("file://user/local/bin/ppi-server");
+			break;
+		case 3:
+			oURI.set("http://alexander.kolli.at:8080/index.html");
+			break;
+		case 4:
+			oURI.set("http://www.kolli.at/p/source/?list=iii$ hier&geht#&duroch=erst=h/#stop$");
+			break;
+		case 5:
+			oURI.encode();
+			break;
+		case 6:
+			oURI.decode();
+			break;
+		}
+		cout << "URI " << c << endl;
+		cout << "full URI: " << oURI.getBaseUri() << endl;
+		cout << "Address: " << oURI.getAddress() << endl;
+		cout << "Protocol: ";
+		switch(oURI.getProtocol())
+		{
+		case util::file:
+			cout << "file";
+			break;
+		case util::http:
+			cout << "http";
+			break;
+		case util::https:
+			cout << "https";
+			break;
+		case util::SOA:
+			cout << "SOA";
+			break;
+		default:
+			cout << "unknown";
+			break;
+		}
+		cout << endl;
+		cout << "Protocol Specification: " << oURI.getProtocolSpec() << endl;
+		cout << "HOST: " << oURI.getHost() << endl;
+		cout << "Path: " << oURI.getAbsolutePath() << endl;
+		cout << "File: " << oURI.getFile() << endl;
+		cout << "Query: " << oURI.getQuery() << endl;
+		cout << "Address: " << oURI.getAddress() << endl;
+		cout << "AddressQuery: " << oURI.getAddressQuery() << endl;
+		cout << "PathQuery: " << oURI.getAbsolutePathQuery() << endl;
+		cout << "SpecAddress: " << oURI.getSpecAddress() << endl;
+		cout << "SpecAddressQuery: " << oURI.getBaseUri() << endl;
+		cout << "Port: " << oURI.getPort() << endl;
+		cout << endl;
+	}
+
+#endif // __URI_TEST
 
 #ifdef __MAKE_CALCULATER_TESTS
 
