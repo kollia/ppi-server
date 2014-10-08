@@ -18,9 +18,9 @@
 
 #include "CallbackTemplate.h"
 
-void CallbackTemplate::initialStarting()
+int CallbackTemplate::initialStarting()
 {
-	start(NULL, /*holding*/false);
+	return start(NULL, /*holding*/false);
 }
 
 int CallbackTemplate::execute()

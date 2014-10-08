@@ -27,23 +27,30 @@ public:
 	/**
 	 * constructor for callback template
 	 *
-	 * @param threadName name of template class
+	 * @param policy thread policy for scheduling
+	 * @param priority new other scheduling priority for thread
+	 * @param logger sending object over which logging should running
 	 */
-	CallbackTemplate()
-	: Thread("callbackRoutine")
+	CallbackTemplate(const int policy= -1, const int priority= -9999, IClientSendMethods* logger= NULL)
+	: Thread("callbackRoutine", /*waitinit*/true, policy, priority, logger)
 	{};
 	/**
 	 * constructor for callback template
 	 *
 	 * @param threadName name of template class
+	 * @param policy thread policy for scheduling
+	 * @param priority new other scheduling priority for thread
+	 * @param logger sending object over which logging should running
 	 */
-	CallbackTemplate(string threadName)
-	: Thread(threadName)
+	CallbackTemplate(string threadName, const int policy= -1, const int priority= -9999, IClientSendMethods* logger= NULL)
+	: Thread(threadName, /*waitinit*/true, policy, priority, logger)
 	{};
 	/**
 	 * starting callback routine inside an new thread
+	 *
+	 * @return error number when thread cannot be started, otherwise 0
 	 */
-	void initialStarting();
+	int initialStarting();
 	/**
 	 * for asking whether callback routine is finished
 	 *
