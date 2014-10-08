@@ -431,7 +431,7 @@ namespace server
 			/**
 			 * signal end of file.
 			 */
-			mutable bool m_bEOF;
+//			mutable bool m_bEOF;
 			/**
 			 * holds error number
 			 */

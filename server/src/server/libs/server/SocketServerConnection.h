@@ -558,8 +558,11 @@ namespace server
 			{ m_pServer= server; };
 			/**
 			 * initial connection for server
+			 *
+			 * @param ai address info from socket
+			 * @return whether command was correct
 			 */
-			virtual int initType(sockaddr* address);
+			virtual int initType(addrinfo* ai);
 			/**
 			 * listen on device for new connection
 			 * and initial descriptor which getting with <code>getDescriptor()</code>

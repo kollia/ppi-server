@@ -120,7 +120,7 @@ namespace server
 		return ip_address;
 	}
 
-	int SocketServerConnection::initType(sockaddr* address)
+	int SocketServerConnection::initType(addrinfo* ai)
 	{
 		int nRv= 0;
 		int reuse;
@@ -154,7 +154,7 @@ namespace server
 			return nRv;
 		}
 
-		if (bind(m_kSocket.serverSocket, address, sizeof(*address)) != 0)
+		if (bind(m_kSocket.serverSocket, ai->ai_addr, ai->ai_addrlen) != 0)
 		{
 			switch(errno)
 			{
@@ -252,7 +252,7 @@ namespace server
 			}
 			return nRv;
 		}
-		smsg << "listen on port " << m_nPort << " with IP ";
+		smsg << "listen on port " << m_nPort << " by host ";
 		smsg << m_sHost;
 		cout << smsg.str() << endl;
 		return 0;

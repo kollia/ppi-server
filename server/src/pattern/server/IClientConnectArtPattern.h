@@ -53,6 +53,12 @@ namespace design_pattern_world
 			 */
 			virtual int init()=0;
 			/**
+			 * check whether instance is connected
+			 *
+			 * @return whether connected
+			 */
+			virtual bool connected()= 0;
+			/**
 			 * get host address to which client connect
 			 *
 			 * @return host address

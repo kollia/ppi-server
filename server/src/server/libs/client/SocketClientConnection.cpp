@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <errno.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include <string.h>
 
@@ -33,11 +34,13 @@ using namespace std;
 namespace server
 {
 
-	SocketClientConnection::SocketClientConnection(int type, const string host, const unsigned short port, const unsigned int timeout, ITransferPattern* transfer)
-	:	m_pTransfer(transfer),
+	SocketClientConnection::SocketClientConnection(int type, const string host, const int port, const unsigned int timeout, ITransferPattern* transfer)
+	:	m_bCorrectAddr(false),
+	 	m_pTransfer(transfer),
 		m_sHost(host),
 		m_nPort(port),
 		m_nTimeout(timeout),
+		m_bNeedConnectionCheck(false),
 		m_nSocketType(type)
 	{
 	}
@@ -56,73 +59,79 @@ namespace server
 
 	int SocketClientConnection::init()
 	{
+		bool bAliveWarning(false);
 		int nRv= 0;
-		int nRvw= 0;
-		//int pf; // type of connection
+		int status, lasterrno;
+		addrinfo hints, *ai, *aptr;
 		char ip_address[INET6_ADDRSTRLEN];
 		//string msg;
-		sockaddr_in	address;
-		sockaddr_in6 address6;
-		sockaddr* reference;
+		sockaddr_in	*ipv4addr;
+		sockaddr_in6 *ipv6addr;
+		ostringstream oPort;
 
 		if(m_pDescriptor)
 		{
-			if(m_pDescriptor->transfer())
-				return 0;
-			return -2;
-		}
-
-		m_kSocket.ss_family= AF_INET;
-		m_kSocket.adrlaenge= sizeof(m_kSocket.rec_addres);
-
-		address.sin_family = AF_INET;
-		address6.sin6_family= AF_INET6;
-		address.sin_port   = htons(m_nPort);
-		address6.sin6_port= address.sin_port;
-		memset(&address.sin_addr, 0, sizeof(address.sin_addr));
-		memset(&address6.sin6_addr, 0, sizeof(address6.sin6_addr));
-
-		if(m_sHost != "")
-		{
-			m_kSocket.ss_family= AF_INET;
-			if(!inet_pton(m_kSocket.ss_family, m_sHost.c_str(), &address.sin_addr))
+			if(m_pDescriptor->error())
 			{
-				m_kSocket.ss_family= AF_INET6;
-				if(!inet_pton(m_kSocket.ss_family, m_sHost.c_str(), &address6.sin6_addr))
-				{
-					m_kSocket.ss_family= AF_INET;
-			/*		msg=  "### WARNING: host address '";
-					msg+=               m_sHost;
-					msg+=               "'is not valid\n";
-					msg+= "             so listen only on localhost";*/
-					inet_pton(m_kSocket.ss_family, "127.0.0.1", &address.sin_addr);
-			/*		if(logger::LogInterface::instance())
-						LOG(LOG_WARNING, msg);
-					cout << msg << endl;*/
-					nRvw= -1;
-				}
+				m_pDescriptor->closeConnection();
+				close();
+			}else
+			{
+				if(m_pDescriptor->transfer())
+					return 0;
+				return -2;
 			}
 		}
-		if(m_kSocket.ss_family == AF_INET)
-		{
-			inet_ntop(m_kSocket.ss_family, &address.sin_addr, ip_address, INET6_ADDRSTRLEN);
-			reference= (sockaddr *)&address;
-		}else
-		{
-			inet_ntop(m_kSocket.ss_family, &address6.sin6_addr, ip_address, INET6_ADDRSTRLEN);
-			reference= (sockaddr *)&address6;
-		}
 
-		m_sHost= ip_address;
-		/*if(m_kSocket.ss_family == AF_INET)
-			pf= PF_INET;
-		else
-			pf= PF_INET6;
-		m_kSocket.serverSocket = socket(pf, m_nSocketType, 0);*/
-		m_kSocket.serverSocket = socket(m_kSocket.ss_family, m_nSocketType, 0);
+		oPort << m_nPort;
+		memset(&hints, 0, sizeof(struct addrinfo));
+		hints.ai_flags= AI_CANONNAME;
+		hints.ai_family= AF_UNSPEC;
+		hints.ai_socktype= m_nSocketType;
+		m_bCorrectAddr= false;
+
+		status= getaddrinfo(m_sHost.c_str(), oPort.str().c_str(), &hints, &ai);
+		if(status != 0)
+			return status;
+		m_bCorrectAddr= true;
+		for(aptr= ai; aptr != NULL; aptr= aptr->ai_next)
+		{
+			m_sHostName= aptr->ai_canonname;
+			if(ai->ai_family == AF_INET)
+			{
+				ipv4addr= (struct sockaddr_in *)aptr->ai_addr;
+				inet_ntop(aptr->ai_family, &ipv4addr->sin_addr, ip_address, INET6_ADDRSTRLEN);
+			}else
+			{
+				ipv6addr= (struct sockaddr_in6 *)aptr->ai_addr;
+				inet_ntop(aptr->ai_family, &ipv6addr->sin6_addr, ip_address, INET6_ADDRSTRLEN);
+			}
+			m_sHostAddress= ip_address;
+
+			m_kSocket.ss_family= aptr->ai_family;
+			m_kSocket.serverSocket = socket(aptr->ai_family, aptr->ai_socktype, aptr->ai_protocol);
+			if (m_kSocket.serverSocket < 0)
+			{
+				lasterrno= errno;
+				continue;
+			}
+			if(m_bNeedConnectionCheck)
+			{
+				int alive(1);
+
+				if(	setsockopt(m_kSocket.serverSocket, SOL_SOCKET, SO_KEEPALIVE,
+								&alive, sizeof( int ))		< 0					)
+				{
+					bAliveWarning= true;
+				}
+			}
+
+			nRv= initType(aptr);
+			break;// socket was set correctly
+		}
 		if (m_kSocket.serverSocket < 0)
 		{
-			switch(errno)
+			switch(lasterrno)
 			{
 			case EAFNOSUPPORT:
 				nRv= 1;
@@ -152,37 +161,78 @@ namespace server
 				nRv= 20;
 				break;
 			}
-			return nRv;
 		}
-
-		nRv= initType(reference);
-		if(nRv == 0)
-			nRv= nRvw;
+		if(	nRv == 0 &&
+			bAliveWarning	)
+		{
+			nRv= -3;
+		}
+		freeaddrinfo(ai);
 		return nRv;
 	}
 
-	int SocketClientConnection::initType(sockaddr* address)
+	bool SocketClientConnection::connected()
+	{
+		int res;
+		socklen_t len;
+		struct sockaddr_storage addr;
+		char ipstr[INET6_ADDRSTRLEN];
+		int port;
+
+		m_bNeedConnectionCheck= true;
+		if(m_pDescriptor == NULL)
+			return false;
+
+		len = sizeof addr;
+		res= getpeername(m_kSocket.serverSocket, (struct sockaddr*)&addr, &len);
+		if(res != 0)
+			return false;
+
+		// deal with both IPv4 and IPv6:
+		if (addr.ss_family == AF_INET)
+		{
+		    struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+		    port = ntohs(s->sin_port);
+		    inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof ipstr);
+		}else
+		{ // AF_INET6
+		    struct sockaddr_in6 *s = (struct sockaddr_in6 *)&addr;
+		    port = ntohs(s->sin6_port);
+		    inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof ipstr);
+		}
+
+		//printf("Peer IP address: %s\n", ipstr);
+		//printf("Peer port      : %d\n", port);
+		if(	ipstr == m_sHostAddress &&
+			port == m_nPort				)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	int SocketClientConnection::initType(addrinfo* ai)
 	{
 		int nRv;
 		int con;
-		int nsize= sizeof(*address);
 		int errsv;
 		string msg;
 		FILE* fp;
 		time_t t, nt;
 
 		time(&t);
-		con= connect(m_kSocket.serverSocket, address, nsize);
-		if(con < 0)
+		con= connect(m_kSocket.serverSocket, ai->ai_addr, ai->ai_addrlen);
+		errsv= errno;
+		if(	con < 0 &&
+			errsv != EISCONN	)
 		{
-			errsv= errno;
 			time(&nt);
 			while((nt - t) < (time_t)m_nTimeout)
 			{
-				con= connect(m_kSocket.serverSocket, address, nsize);
+				con= connect(m_kSocket.serverSocket, ai->ai_addr, ai->ai_addrlen);
+				errsv= errno;
 				if(con == 0)
 					break;
-				errsv= errno;
 				usleep(2000);
 				time(&nt);
 			}
@@ -280,27 +330,36 @@ namespace server
 																							m_nPort,
 																							m_nTimeout	));
 		if(!m_pDescriptor->init())
+		{
+			close();
 			return 10;
+		}
 		if(m_pTransfer)
 		{
 			if(!m_pDescriptor->transfer())
+			{
+				close();
 				return -2;
+			}
 		}
 		return 0;
 	}
 
 	SHAREDPTR::shared_ptr<IFileDescriptorPattern> SocketClientConnection::getDescriptor()
 	{
-		SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
+		//SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
 
-		descriptor= m_pDescriptor;
-		m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>();
-		return descriptor;
+		//descriptor= m_pDescriptor;
+		//m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>();
+		return m_pDescriptor;
 	}
 
 	void SocketClientConnection::close()
 	{
 		::close(m_kSocket.serverSocket);
+//		if(m_bCorrectAddr)
+//			freeaddrinfo(m_pAddrInfo);
+		m_bCorrectAddr= false;
 		m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>();
 	}
 
@@ -315,6 +374,9 @@ namespace server
 			break;
 		case -2:
 			str="transaction to server will get stop command from ITransferPattern";
+			break;
+		case -3:
+			str= "cannot check connection whether is holding alive";
 			break;
 		case -1:
 			str= "WARNING: no valid address for host be set, so connect only to localhost";
@@ -435,6 +497,7 @@ namespace server
 				str= "Undefined socket connection error";
 			else
 				str= "Undefined socket connection warning";
+			break;
 		}
 		return str;
 	}

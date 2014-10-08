@@ -18,8 +18,10 @@
 #define SOCKETCLIENTCONNECTION_H_
 
 #include <sys/io.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <memory>
 
 #include "../../../pattern/server/IClientConnectArtPattern.h"
@@ -57,7 +59,7 @@ namespace server
 	 * 			0
 	 * 		</td>
 	 * 		<td>
-	 * 			no error occured
+	 * 			no error occurred
 	 * 		</td>
 	 * 	</tr>
 	 * 	<tr>
@@ -66,6 +68,14 @@ namespace server
 	 * 		</td>
 	 * 		<td>
 	 * 			transaction to server will get stop command from ITransferPattern
+	 * 		</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>
+	 * 			-3
+	 * 		</td>
+	 * 		<td>
+	 * 			cannot check connection whether is holding alive
 	 * 		</td>
 	 * 	</tr>
 	 * 	<tr>
@@ -403,7 +413,7 @@ namespace server
 			 * @param timeout if client reach no server, try all seconds to reconnect and ending after timeout
 			 * @param transfer pattern of ITransferPattern to cumunicate with some server
 			 */
-			SocketClientConnection(int type, const string host, const unsigned short port, const unsigned int timeout, ITransferPattern* transfer= NULL);
+			SocketClientConnection(int type, const string host, const int port, const unsigned int timeout, ITransferPattern* transfer= NULL);
 			/**
 			 * set new transfer object and delete the old one if exist
 			 *
@@ -420,9 +430,16 @@ namespace server
 			/**
 			 * initial connection for client
 			 *
+			 * @param ai address info from socket
 			 * @return whether command was correct
 			 */
-			virtual int initType(sockaddr* address);
+			virtual int initType(addrinfo* ai);
+			/**
+			 * check whether instance is connected
+			 *
+			 * @return whether connected
+			 */
+			virtual bool connected();
 			/**
 			 * get host address to which client connect
 			 *
@@ -486,17 +503,32 @@ namespace server
 			 */
 			_SOCKET m_kSocket;
 			/**
+			 * read correct address info from other peer
+			 */
+			bool m_bCorrectAddr;
+			/**
 			 * transaction from server to client or backward
 			 */
 			ITransferPattern* m_pTransfer;
 			/**
-			 * char string of host
+			 * char string of host.<br />
+			 * can be an IP-Address or IP-Name
+			 * given from constructor
 			 */
 			string m_sHost;
 			/**
+			 * character string of canonical
+			 * IP-Name of host
+			 */
+			string m_sHostName;
+			/**
+			 * character string of IP-Address
+			 */
+			string m_sHostAddress;
+			/**
 			 * number of port
 			 */
-			const unsigned short m_nPort;
+			const int m_nPort;
 			/**
 			 * how ofthen the client should try to connect
 			 */
@@ -505,6 +537,11 @@ namespace server
 			 * descriptor for transaction
 			 */
 			SHAREDPTR::shared_ptr<IFileDescriptorPattern> m_pDescriptor;
+			/**
+			 * whether client need to know
+			 * whether connection is alive
+			 */
+			bool m_bNeedConnectionCheck;
 
 		private:
 			/**

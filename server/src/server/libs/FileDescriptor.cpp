@@ -49,7 +49,7 @@ namespace server
 		m_sAddress= address;
 		m_nPort= port;
 		m_pFile= file;
-		m_bEOF= false;
+//		m_bEOF= false;
 		m_CONNECTIONIDACCESS= Thread::getMutex("CONNECTIONIDACCESS");
 		m_SENDSTRING= Thread::getMutex("SENDSTRING");
 		m_THREADSAVEMETHODS= Thread::getMutex("THREADSAVEMETHODS");
@@ -70,14 +70,18 @@ namespace server
 
 	void FileDescriptor::operator >>(string &reader)
 	{
+		bool locked(true);
 		char *res;
 		char buf[501];
 		string::size_type bufLen= (sizeof(buf)-2);
 		string sread;
 
+		reader= "";
 		if(eof())
 			return;
-		reader= "";
+
+		if(TRYLOCK(m_THREADSAVEMETHODS) == 0)
+			locked= false;// lock done, so lock wasn't set
 		UNLOCK(m_THREADSAVEMETHODS);
 		do{
 			res= fgets(buf, bufLen+1, m_pFile);
@@ -85,38 +89,40 @@ namespace server
 			reader+= sread;
 
 		}while(!eof() && sread.length() == bufLen && sread.substr(bufLen-1, 1) != "\n");
-		LOCK(m_THREADSAVEMETHODS);
-		if(res == NULL)
+		if(locked)
+			LOCK(m_THREADSAVEMETHODS);
+/*		if(res == NULL)
 		{
 			reader= "";
 			m_bEOF= true;
 			return;
-		}
+		}*/
 	}
 
 	void FileDescriptor::operator << (const string& writer)
 	{
-		if(eof())
-			return;
+//		if(eof())
+//			return;
 		if(fputs(writer.c_str(), m_pFile) < 0)
 		{
 			error();
-			m_bEOF= true;
+//			m_bEOF= true;
 		}
 	}
 
 	inline void FileDescriptor::endl()
 	{
 		(*this) << "\n";
+		flush();
 	}
 
 	inline bool FileDescriptor::eof() const
 	{
-		if(m_bEOF)
-			return true;
+//		if(m_bEOF)
+//			return true;
 		if(feof(m_pFile) != 0)
 		{
-			m_bEOF= true;
+//			m_bEOF= true;
 			return true;
 		}
 		return false;
@@ -125,20 +131,20 @@ namespace server
 	inline int FileDescriptor::error() const
 	{
 		m_nErr= ferror(m_pFile);
-		if(m_nErr != 0)
+/*		if(m_nErr != 0)
 			m_bEOF= true;
 		if(m_bEOF)
 		{
 			if(m_nErr == 0)
 				m_nErr= EOF;
-		}
+		}*/
 		return m_nErr;
 	}
 
 	void FileDescriptor::flush()
 	{
-		if(m_bEOF)
-			return;
+//		if(m_bEOF)
+//			return;
 		try{
 			fflush(m_pFile);
 		}catch(...)
@@ -744,10 +750,11 @@ namespace server
 
 	bool FileDescriptor::transfer()
 	{
-		bool bRv;
+		bool bRv(1);
 
 		LOCK(m_THREADSAVEMETHODS);
-		bRv= m_pTransfer->transfer(*this);
+		if(m_pTransfer)
+			bRv= m_pTransfer->transfer(*this);
 		UNLOCK(m_THREADSAVEMETHODS);
 		return bRv;
 	}
