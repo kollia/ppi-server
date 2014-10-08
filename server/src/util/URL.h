@@ -185,8 +185,17 @@ namespace util
 			  *
 			  * @return path string
 			  */
-			 string getAbsolutePath() const
+			 string getPath() const
 			 { return m_sPath; };
+			 /**
+			  * return absolute path of address.<br />
+			  * when not beginning with slash '/'
+			  * add slash before. Or path not exist,
+			  * return only an slash
+			  *
+			  * @return path string
+			  */
+			 string getAbsolutePath() const;
 			 /**
 			  * return file of address when exist
 			  *

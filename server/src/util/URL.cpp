@@ -345,7 +345,7 @@ namespace util {
 	{
 		string sRv;
 
-		sRv= addPath(m_sHost, m_sPath);
+		sRv= addPath(m_sHost, getAbsolutePath(), /*always*/true);
 		sRv= addPath(sRv, m_sFile);
 		return sRv;
 	}
@@ -371,13 +371,26 @@ namespace util {
 		return sRv;
 	}
 
+	string URL::getAbsolutePath() const
+	{
+		string path;
+
+		if(m_sPath == "")
+			return "/";
+		if(m_sPath.substr(0, 1) != "/")
+			path= "/" + m_sPath;
+		else
+			path= m_sPath;
+		return path;
+	}
+
 	string URL::getAbsolutePathQuery() const
 	{
 		string sRv, query;
 
 		if(m_eType == file)
 			return "";
-		sRv= m_sPath;
+		sRv= getAbsolutePath();
 		query= getQuery();
 		if(query != "")
 			sRv+= "?" + query;
