@@ -236,6 +236,18 @@ int Thread::start(void *args, bool bHold)
 
 bool Thread::setSchedulingParameter(int policy, int priority)
 {
+	if(!running())
+	{
+		m_nSchedPolicy= policy;
+		m_nSchedPriority= priority;
+		return true;
+	}
+	if(m_nThreadId == gettid())
+		return setSchedulingParameterInline(policy, priority);
+	return false;
+}
+bool Thread::setSchedulingParameterInline(int policy, int priority)
+{
 	int res, oldPolicy;
 	sched_param param;
 
@@ -357,7 +369,7 @@ void Thread::run()
 	int err;
 
 	try{
-		setSchedulingParameter(m_nSchedPolicy, m_nSchedPriority);
+		setSchedulingParameterInline(m_nSchedPolicy, m_nSchedPriority);
 		m_nThreadId= gettid();
 		initstatus(thname, this);
 		startmsg+= thname + "'";

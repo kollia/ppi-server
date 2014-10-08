@@ -593,6 +593,26 @@ class Thread :	public virtual IThreadPattern,
 		pthread_t getPosixThreadID()
 		{ return m_nPosixThreadID; };
 		/**
+		 * set new scheduling priority and or policy.<br />
+		 * from inside every time
+		 * and outside running thread
+		 * only when no thread running
+		 *
+		 * @param policy thread policy for scheduling
+		 * @param priority scheduling priority
+		 * @return whether schedulling parameters can set correctly
+		 */
+		bool setSchedulingParameter(int policy, int priority);
+		/**
+		 * get setting scheduling parameters
+		 * of policy and priority
+		 *
+		 * @param policy thread policy for scheduling
+		 * @param priority scheduling priority
+		 */
+		virtual void getSchedulingParameter(int& policy, int& priority)
+		{ policy= m_nSchedPolicy; priority= m_nSchedPriority; };
+		/**
 		 * destructor of class Thread
 		 */
 		virtual ~Thread();
@@ -625,13 +645,6 @@ class Thread :	public virtual IThreadPattern,
 		 * calling method stop().
 		 */
 		virtual void ending()=0;
-		/**
-		 * set new scheduling priority and or policy
-		 *
-		 * @param policy thread policy for scheduling
-		 * @param priority scheduling priority
-		 */
-		bool setSchedulingParameter(int policy, int priority);
 
 
 
@@ -750,6 +763,14 @@ class Thread :	public virtual IThreadPattern,
 		 * @return own object
 		 */
 		Thread& operator=(const Thread& x);
+		/**
+		 * set new scheduling priority and or policy
+		 *
+		 * @param policy thread policy for scheduling
+		 * @param priority scheduling priority
+		 * @return whether schedulling parameters can set correctly
+		 */
+		bool setSchedulingParameterInline(int policy, int priority);
 		void run();
 		static void * EntryPoint(void*);
 
