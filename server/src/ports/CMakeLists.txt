@@ -21,7 +21,9 @@ set(portsSrcs 	ListCalculator.cpp
         		timer.cpp
         		valueholder.cpp
         		Set.cpp
-        		SubroutineSubVarHolder.cpp	)
+        		SubroutineSubVarHolder.cpp
+        		read.cpp
+        		ReadWorkder.cpp	)
         
 add_library(ppiports ${libraries} ${portsSrcs})
 target_link_libraries(ppiports ppiutil ppithreadutil ppiserverlibclient ppidb ppiow ppipattern)

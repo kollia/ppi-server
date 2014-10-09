@@ -147,6 +147,15 @@ class MeasureThread : 	public Thread,
 		 */
 		OVERWRITE IInformerCachePattern* getUsedInformerCache(const string& folder);
 		/**
+		 * get setting scheduling parameters
+		 * of policy and priority
+		 *
+		 * @param policy thread policy for scheduling
+		 * @param priority scheduling priority
+		 */
+		OVERWRITE void getSchedulingParameter(int& policy, int& priority)
+		{ Thread::getSchedulingParameter(policy, priority); };
+		/**
 		 * remove observer cache when no more needed
 		 *
 		 * @param folder name of folder for which cache was used

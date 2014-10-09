@@ -60,6 +60,7 @@
 #include "ports/measuredness.h"
 #include "ports/timer.h"
 #include "ports/shell.h"
+#include "ports/read.h"
 #include "ports/valueholder.h"
 #include "ports/Set.h"
 #include "ports/SaveSubValue.h"
@@ -1192,6 +1193,13 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 				user= aktualFolder->subroutines[n].property->getValue("runuser", /*warning*/false);
 				if(user != "")
 					shellstarter.insert(user);
+
+			}else if(aktualFolder->subroutines[n].type == "READ")
+			{
+				auto_ptr<Read> obj= auto_ptr<Read>(new Read(	aktualFolder->name,
+																aktualFolder->subroutines[n].name,
+																aktualFolder->nObjectID				));
+				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
 			{

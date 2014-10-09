@@ -232,6 +232,14 @@ namespace design_pattern_world
 				 */
 				virtual string getInformeThreadStatement()= 0;
 				/**
+				 * get setting scheduling parameters
+				 * of policy and priority
+				 *
+				 * @param policy thread policy for scheduling
+				 * @param priority scheduling priority
+				 */
+				virtual void getSchedulingParameter(int& policy, int& priority)= 0;
+				/**
 				 * inform other folders and also own when necessary
 				 * that an specific subroutine was changed
 				 *

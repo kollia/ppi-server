@@ -30,7 +30,7 @@
 #include "../util/stream/ppivalues.h"
 #include "../util/properties/configpropertycasher.h"
 
-#include "../pattern/util/IMeasureSet.h"
+#include "../pattern/util/IOutMeasureSet.h"
 #include "../pattern/util/IListObjectPattern.h"
 #include "../pattern/util/imeasurepattern.h"
 #include "../pattern/util/IInformerCachePattern.h"
@@ -44,7 +44,7 @@ using namespace design_pattern_world::util_pattern;
 namespace ports
 {
 	class portBase : virtual public IListObjectPattern,
-					 virtual public IMeasureSet
+					 virtual public IOutMeasureSet
 	{
 		public:
 	#ifdef DEBUG

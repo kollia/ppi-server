@@ -20,6 +20,8 @@ set(mainSrcs 	main.cpp
         		ports/resistancemeasure.cpp
         		ports/SaveSubValue.cpp
         		ports/shell.cpp
+        		ports/read.cpp
+        		ports/ReadWorker.cpp
         		ports/switch.cpp
         		ports/tempmeasure.cpp
         		ports/timemeasure.cpp
