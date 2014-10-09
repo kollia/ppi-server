@@ -127,55 +127,59 @@ namespace util
 		typedef map<string, SHAREDPTR::shared_ptr<IDbFillerPattern> >::iterator cacheIt;
 		struct timespec wait;
 		bool bWritten(true);
-		bool bFirstOff(false);
+		bool bFirstOff(true);// <- set true because on first time should wait also 1 second
 		SHAREDPTR::shared_ptr<map<string, db_t> > dbQueue;
 		vector<SHAREDPTR::shared_ptr<map<string, db_t> > > allDbQueue;
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > msgQueue, allMsgQueue(new vector<sendingInfo_t>());
 
 		wait.tv_sec= 1;
 		wait.tv_nsec= 0;
-		while(bWritten)
+		while(!stopping())
 		{
-			LOCK(m_READCACHE);
-			for(cacheIt it= m_mCaches.begin(); it != m_mCaches.end(); ++it)
+			while(bWritten)
 			{
-				it->second->getContent(dbQueue, msgQueue);
-				if(!dbQueue->empty())
-					allDbQueue.push_back(dbQueue);
-				if(!msgQueue->empty())
-					allMsgQueue->insert(allMsgQueue->end(), msgQueue->begin(), msgQueue->end());
-			}
-			UNLOCK(m_READCACHE);
-			if(	!allDbQueue.empty() ||
-				!allMsgQueue->empty()	)
-			{
-				SHAREDPTR::shared_ptr<map<string, db_t> > wDbQueue(new map<string, db_t>());
-
-				if(!allDbQueue.empty())
+				LOCK(m_READCACHE);
+				for(cacheIt it= m_mCaches.begin(); it != m_mCaches.end(); ++it)
 				{
-					for(vector<SHAREDPTR::shared_ptr<map<string, db_t> > >::iterator it= allDbQueue.begin();
-									it != allDbQueue.end(); ++it)
+					it->second->getContent(dbQueue, msgQueue);
+					if(!dbQueue->empty())
+						allDbQueue.push_back(dbQueue);
+					if(!msgQueue->empty())
+						allMsgQueue->insert(allMsgQueue->end(), msgQueue->begin(), msgQueue->end());
+				}
+				UNLOCK(m_READCACHE);
+				if(	!allDbQueue.empty() ||
+					!allMsgQueue->empty()	)
+				{
+					SHAREDPTR::shared_ptr<map<string, db_t> > wDbQueue(new map<string, db_t>());
+
+					if(!allDbQueue.empty())
 					{
-						m_oDbFiller.sendDirect(*it, allMsgQueue);
-						allMsgQueue->clear();
-					}
+						for(vector<SHAREDPTR::shared_ptr<map<string, db_t> > >::iterator it= allDbQueue.begin();
+										it != allDbQueue.end(); ++it)
+						{
+							m_oDbFiller.sendDirect(*it, allMsgQueue);
+							allMsgQueue->clear();
+						}
+					}else
+						m_oDbFiller.sendDirect(wDbQueue, allMsgQueue);
+					allMsgQueue->clear();
+					allDbQueue.clear();
+					bWritten= true;
+					bFirstOff= true;
 				}else
-					m_oDbFiller.sendDirect(wDbQueue, allMsgQueue);
-				allMsgQueue->clear();
-				allDbQueue.clear();
-				bWritten= true;
-				bFirstOff= true;
-			}else
-				bWritten= false;
-		}// while(bWritten)
-		if(stopping())
-			return 1;
-		LOCK(m_INFORMDATABASEMUTEX);
-		if(bFirstOff)
-			RELTIMECONDITION(m_INFORMDATABASECOND, m_INFORMDATABASEMUTEX, &wait);
-		else
-			CONDITION(m_INFORMDATABASECOND, m_INFORMDATABASEMUTEX);
-		UNLOCK(m_INFORMDATABASEMUTEX);
+					bWritten= false;
+			}// while(bWritten)
+			if(stopping())
+				return 1;
+			LOCK(m_INFORMDATABASEMUTEX);
+			if(bFirstOff)
+				RELTIMECONDITION(m_INFORMDATABASECOND, m_INFORMDATABASEMUTEX, &wait);
+			else
+				CONDITION(m_INFORMDATABASECOND, m_INFORMDATABASEMUTEX);
+			UNLOCK(m_INFORMDATABASEMUTEX);
+			bWritten= true;
+		}
 		return 0;
 	}
 
