@@ -33,8 +33,6 @@
 
 #include "../server/libs/client/SocketClientConnection.h"
 
-#include "ReadHttpTransaction.h"
-
 namespace ports
 {
 	using namespace std;
