@@ -137,6 +137,14 @@ namespace design_pattern_world
 			 * @param other interface of error handling objects
 			 * @return own object
 			 */
+			virtual const IErrorHandlingPattern& operator = (const IErrorHandlingPattern& other)= 0;
+			/**
+			 * operator to initialize with interface from object
+			 * from error handling pattern
+			 *
+			 * @param other interface of error handling objects
+			 * @return own object
+			 */
 			virtual const IErrorHandlingPattern* operator = (const IErrorHandlingPattern* other)= 0;
 			/**
 			 * operator to initialize with interface from object

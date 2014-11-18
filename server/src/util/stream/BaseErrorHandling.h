@@ -69,7 +69,23 @@ namespace util
 		 * @param other base error handling object
 		 * @return own object
 		 */
-		OVERWRITE const IErrorHandlingPattern* operator = (const BaseErrorHandling& other);
+		OVERWRITE const IErrorHandlingPattern* operator = (const BaseErrorHandling* other);
+		/**
+		 * operator to initialize with object
+		 * from error handling pattern
+		 *
+		 * @param other base error handling object
+		 * @return own object
+		 */
+		OVERWRITE const IErrorHandlingPattern& operator = (const BaseErrorHandling& other);
+		/**
+		 * operator to initialize with interface from object
+		 * from error handling pattern
+		 *
+		 * @param other interface of error handling objects
+		 * @return own object
+		 */
+		OVERWRITE const IErrorHandlingPattern& operator = (const IErrorHandlingPattern& other);
 		/**
 		 * operator to initialize with interface from object
 		 * from error handling pattern

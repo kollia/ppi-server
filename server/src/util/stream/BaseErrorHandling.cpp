@@ -72,9 +72,15 @@ namespace util
 		set(other);
 	}
 
-	const IErrorHandlingPattern* BaseErrorHandling::operator = (const BaseErrorHandling& other)
+	const IErrorHandlingPattern& BaseErrorHandling::operator = (const BaseErrorHandling& other)
 	{
 		set(&other);
+		return *this;
+	}
+
+	const IErrorHandlingPattern* BaseErrorHandling::operator = (const BaseErrorHandling* other)
+	{
+		set(other);
 		return this;
 	}
 
@@ -85,6 +91,12 @@ namespace util
 		else
 			set(other);
 		return this;
+	}
+
+	const IErrorHandlingPattern& BaseErrorHandling::operator = (const IErrorHandlingPattern& other)
+	{
+		set(&other);
+		return *this;
 	}
 
 	const IErrorHandlingPattern* BaseErrorHandling::operator = (const std::auto_ptr<IErrorHandlingPattern> other)
