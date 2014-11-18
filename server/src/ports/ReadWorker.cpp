@@ -75,18 +75,21 @@ namespace ports
 
 				tmtime.tv_sec= m_oStartTime.tv_sec;
 				tmtime.tv_nsec= (m_oStartTime.tv_usec * 1000);
+				m_oStartTime.clear();
 				if(TIMECONDITION(m_STARTINGCONDITION, m_STARTMUTEX, &tmtime) == ETIMEDOUT)
 				{
 					auto_ptr<IValueHolderPattern> oValue;
 
+					UNLOCK(m_STARTMUTEX);
 					oValue= doHttpConnection(0, m_bDebug);
 					m_pValueSet->setValue(m_sFolder, m_sSubroutine, *(oValue.get()),
 									"i:"+m_sFolder+":"+m_sSubroutine);
+					LOCK(m_STARTMUTEX);
 				}
 			}
 		}// while(!stopping())
 		UNLOCK(m_STARTMUTEX);
-		return false;
+		return true;
 	}
 
 	void ReadWorker::setDebug(bool bDebug)
