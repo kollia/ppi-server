@@ -1,6 +1,7 @@
 
 set(utilSrcs	StatusLogRoutine.cpp
 				Thread.cpp
+				ThreadErrorHandling.cpp
 				Terminal.cpp
 				CallbackTemplate.cpp	)
 

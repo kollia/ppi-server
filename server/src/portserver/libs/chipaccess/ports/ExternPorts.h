@@ -161,7 +161,7 @@ namespace ports
 			 * @param properties reading properties from the main config file
 			 * @return whether the initialization was correct
 			 */
-			virtual bool init(const IPropertyPattern* properties);
+			OVERWRITE bool init(const IPropertyPattern* properties);
 			/**
 			 * return normally the name of default config file for every chips or pins.<br />
 			 * But method returning an null string, so no default config will be used

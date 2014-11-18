@@ -35,7 +35,6 @@ namespace server {
 	class KernelModule : public Thread
 	{
 	public:
-		using Thread::stop;
 		/**
 		 * constructor of class
 		 *
@@ -58,15 +57,24 @@ namespace server {
 		 * This method starting again when ending without an sleeptime
 		 * if the method stop() isn't call.
 		 *
-		 * @return defined error code from extended class
+		 * @return whether should start thread again
 		 */
-		virtual int execute();
+		OVERWRITE bool execute();
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool bWait);
+		OVERWRITE EHObj stop(const bool bWait)
+		{ return KernelModule::stop(&bWait); };
+		/**
+		 *  external command to stop thread
+		 *
+		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
+		 */
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 		/**
 		 * check whether should changing any read by polling
 		 *
@@ -90,9 +98,9 @@ namespace server {
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return defined error code from extended class
+		 * @return object of error handling
 		 */
-		virtual int init(void *args);
+		OVERWRITE EHObj init(void *args);
 		/**
 		 * read direct from chip
 		 *

@@ -19,6 +19,7 @@
 #ifndef IDBFILLERPATTERN_H_
 #define IDBFILLERPATTERN_H_
 
+#include "IErrorHandlingPattern.h"
 #include "IPPIDatabasePattern.h"
 
 #include "../server/IClientSendMethods.h"
@@ -105,8 +106,10 @@ public:
 	/**
 	 * remove all content from DbFiller
 	 * and stop thread when one running
+	 *
+	 * @return object of error handling
 	 */
-	virtual int remove()= 0;
+	virtual EHObj remove()= 0;
 	/**
 	 * dummy destructor of pattern
 	 */

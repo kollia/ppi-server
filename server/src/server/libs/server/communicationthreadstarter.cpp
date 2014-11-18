@@ -35,6 +35,7 @@ namespace server
 		m_maxConnThreads(maxThreads),
 		m_minConnThreads(minThreads)
 	{
+		m_poFirstCommunication= NULL;
 		m_NEXTCOMMUNICATION= getMutex("NEXTCOMMUNICATION");
 		m_NEXTCOMMUNICATIONCOND= getCondition("NEXTCOMMUNICATIONCOND");
 	}
@@ -46,11 +47,12 @@ namespace server
 		m_maxConnThreads(maxThreads),
 		m_minConnThreads(minThreads)
 	{
+		m_poFirstCommunication= NULL;
 		m_NEXTCOMMUNICATION= getMutex("NEXTCOMMUNICATION");
 		m_NEXTCOMMUNICATIONCOND= getCondition("NEXTCOMMUNICATIONCOND");
 	}
 
-	int CommunicationThreadStarter::start(void *args/*= NULL*/, bool bHold/*= false*/)
+	EHObj CommunicationThreadStarter::start(void *args/*= NULL*/, bool bHold/*= false*/)
 	{
 		if(m_minConnThreads == 0)
 			return init(args);
@@ -58,7 +60,7 @@ namespace server
 		return Thread::start(args, bHold);
 	}
 
-	int CommunicationThreadStarter::init(void* args)
+	EHObj CommunicationThreadStarter::init(void* args)
 	{
 		ICommunicationPattern* pCurrentCom;
 
@@ -79,7 +81,7 @@ namespace server
 			cout << "." << flush;
 		}
 		cout << endl;
-		return 0;
+		return m_pError;
 	}
 
 	IClientPattern* CommunicationThreadStarter::getClient(const string& definition, IFileDescriptorPattern* own) const
@@ -109,7 +111,7 @@ namespace server
 		return new Communication(nextID, this);
 	}
 
-	int CommunicationThreadStarter::execute()
+	bool CommunicationThreadStarter::execute()
 	{
 		bool bWillStop;
 		bool bAllFilled;
@@ -141,7 +143,7 @@ namespace server
 				}
 			}
 		}
-		return 0;
+		return m_pError;
 	}
 
 	void CommunicationThreadStarter::arouseStarterThread() const
@@ -576,26 +578,23 @@ namespace server
 		return false;
 	}
 
-	int CommunicationThreadStarter::stop(const bool *bWait)
+	EHObj CommunicationThreadStarter::stop(const bool *bWait)
 	{
-		int nRv;
+		EHObj pRv;
 
 		stopCommunicationThreads(0, false);
 		LOCK(m_NEXTCOMMUNICATION);
-		nRv= Thread::stop(false);
+		pRv= Thread::stop(false);
 		AROUSEALL(m_NEXTCOMMUNICATIONCOND);
 		UNLOCK(m_NEXTCOMMUNICATION);
-		if(	nRv <= 0
-			&&
-			bWait
-			&&
-			*bWait == true	)
+		if(	bWait &&
+			*bWait == true		)
 		{
 			while(!stopCommunicationThreads(0, true))
 			{};
-			nRv= Thread::stop(true);
+			pRv= Thread::stop(true);
 		}
-		return nRv;
+		return pRv;
 	}
 
 	void CommunicationThreadStarter::ending()

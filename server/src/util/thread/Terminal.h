@@ -103,14 +103,14 @@ public:
 	 *
 	 * @param bWait calling rutine should wait until the thread is stopping
 	 */
-	virtual int stop(const bool bWait)
+	virtual EHObj stop(const bool bWait)
 	{ return Terminal::stop(&bWait); };
 	/**
 	 *  external command to stop thread
 	 *
 	 * @param bWait calling rutine should wait until the thread is stopping
 	 */
-	virtual int stop(const bool *bWait= NULL);
+	virtual EHObj stop(const bool *bWait= NULL);
 	/**
 	 * deleting of object
 	 */
@@ -132,19 +132,19 @@ protected:
 	 * @param args user defined parameter value or array,<br />
 	 * 				comming as void pointer from the external call
 	 * 				method start(void *args).
-	 * @return defined error code
+	 * @return object of error handling
 	 */
-	virtual int init(void *args)
-	{ /* nothing to do */ return 0; };
+	virtual EHObj init(void *args)
+	{ /* nothing to do */ return m_pError; };
 	/**
 	 * abstract method to running thread
 	 * in the extended class.<br />
 	 * This method starting again when ending when method ending with return value 0
 	 * and the method stop() isn't called.
 	 *
-	 * @return defined error code
+	 * @return whether should start thread again
 	 */
-	virtual int execute();
+	virtual bool execute();
 	/**
 	 * abstract method to ending the thread.<br />
 	 * This method will be called if any other or own thread

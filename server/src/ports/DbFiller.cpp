@@ -23,6 +23,8 @@
 #include "../util/GlobalStaticMethods.h"
 #include "../util/exception.h"
 
+#include "../util/stream/ErrorHandling.h"
+
 #include "../database/lib/DbInterface.h"
 
 #include "DbFiller.h"
@@ -32,7 +34,7 @@ using namespace ppi_database;
 
 namespace util
 {
-	int DbFiller::execute()
+	bool DbFiller::execute()
 	{
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > pMsgQueue;
 		SHAREDPTR::shared_ptr<map<string, db_t>  > pDbQueue;
@@ -49,7 +51,7 @@ namespace util
 		{
 			sendDirect(pDbQueue, pMsgQueue);
 		}
-		return 0;
+		return true;
 	}
 
 	void DbFiller::sendDirect(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
@@ -60,7 +62,7 @@ namespace util
 		DbInterface* db;
 		vector<sendingInfo_t>::iterator msgPos;
 		vector<string> answer;
-		int err;
+		ErrorHandling err;
 
 		db= DbInterface::instance();
 		for(subIt sIt= dbQueue->begin(); sIt != dbQueue->end(); ++sIt)
@@ -76,17 +78,30 @@ namespace util
 			answer= db->sendMethodD("ppi-db-server", command, "", /*answer*/true);
 			for(vector<string>::iterator answ= answer.begin(); answ != answer.end(); ++answ)
 			{
-				err= error(*answ);
-				if(err > 0)
+				err.setErrorStr(*answ);
+				if(err.fail())
 				{// ending only by errors (no warnings)
-					ostringstream oErr;
+					int log;
+					string msg;
 
-					oErr << "DbFiller for NoAnswer method: " << msgPos->method << endl;
-					oErr << " get Error code: " << *answ;
-					cerr << oErr.str() << endl << endl;
-					LOGEX(LOG_ERROR, oErr.str(), &m_oCache);
-					bError= true;
-					break;
+					err.addMessage("DbFiller", "sendToDatabase", msgPos->method
+									+ "@" + sIt->second.folder + "@" + sIt->second.subroutine);
+					msg= err.getDescription();
+					if(err.hasError())
+					{
+						log= LOG_ERROR;
+						cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+					}else
+					{
+						log= LOG_WARNING;
+						cout << glob::addPrefix("### WARNING: ", msg) << endl;
+					}
+					LOGEX(log, msg, &m_oCache);
+					if(log == LOG_ERROR)
+					{
+						bError= true;
+						break;
+					}
 				}
 			}
 			if(bError)
@@ -101,17 +116,29 @@ namespace util
 				answer= db->sendMethodD(msgPos->toProcess, method, msgPos->done, /*answer*/true);
 				for(vector<string>::iterator answ= answer.begin(); answ != answer.end(); ++answ)
 				{
-					err= error(*answ);
-					if(err > 0)
+					err.setErrorStr(*answ);
+					if(err.fail())
 					{// ending only by errors (no warnings)
-						ostringstream oErr;
+						int log;
+						string msg;
 
-						oErr << "DbFiller for NoAnswer method: " << msgPos->method << endl;
-						oErr << " get Error code: " << *answ;
-						cerr << oErr.str() << endl << endl;
-						LOGEX(LOG_ERROR, oErr.str(), &m_oCache);
-						bError= true;
-						break;
+						err.addMessage("DbFiller", "sendDatabase", msgPos->method);
+						msg= err.getDescription();
+						if(err.hasError())
+						{
+							log= LOG_ERROR;
+							cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+						}else
+						{
+							log= LOG_WARNING;
+							cout << glob::addPrefix("### WARNING: ", msg) << endl;
+						}
+						LOGEX(log, msg, &m_oCache);
+						if(log == LOG_ERROR)
+						{
+							bError= true;
+							break;
+						}
 					}
 				}
 				if(bError)
@@ -134,28 +161,17 @@ namespace util
 		m_oCache.getContent(dbQueue, msgQueue);
 	}
 
-	inline int DbFiller::error(const string& input)
+	EHObj DbFiller::stop(const bool *bWait/*= NULL*/)
 	{
-		int number;
-		string answer;
-		istringstream out(input);
-
-		out >> answer >> number;
-		if(answer == "ERROR")
-			return number;
-		if(answer == "WARNING")
-			return number * -1;
-		return 0;
-	}
-
-	int DbFiller::stop(const bool *bWait/*= NULL*/)
-	{
-		int res;
-
-		Thread::stop(/*wait*/false);
+		m_pError= Thread::stop(/*wait*/false);
 		AROUSE(m_SENDQUEUECONDITION);
-		res= Thread::stop(bWait);
-		return res;
+		if(	bWait &&
+			*bWait == true &&
+			!m_pError->hasError()	)
+		{
+			(*m_pError)= Thread::stop(bWait);
+		}
+		return m_pError;
 	}
 
 	DbFiller::~DbFiller()

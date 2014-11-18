@@ -16,6 +16,8 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "../util/GlobalStaticMethods.h"
+
 #include "read.h"
 
 namespace ports
@@ -117,6 +119,8 @@ namespace ports
 	{
 		string sRv;
 
+		if(m_bTimerStart)
+			return "";
 		if(m_bWhileSet)
 		{
 			sRv= "cannot make starting possibility when parameter begin/while or end be set\n";
@@ -125,17 +129,33 @@ namespace ports
 		}else
 		{
 			int policy, priority;
+			EHObj err;
 
 			getRunningThread()->getSchedulingParameter(policy, priority);
-			if(!m_oReader.setSchedulingParameter(policy, priority))
+			err= m_oReader.setSchedulingParameter(policy, priority);
+			if(err->fail())
 			{
-				sRv= "for subroutine " + getFolderName() + ":" + getSubroutineName() + "\n";
-				sRv+= "cannot set policy and priority";
+				ostringstream uid;
 
-			}else if(m_oReader.initialStarting() != 0)
+				err->addMessage("Read", "set_policy", getFolderName() + "@" + getSubroutineName());
+				sRv= err->getDescription();
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING: ", sRv);
+				sRv= "";
+
+			}
+			err= m_oReader.initialStarting();
+			if(err->fail())
 			{
-				sRv= "cannot start worker thread for READ subroutine\n";
-				sRv= "inside " + getFolderName() + ":" + getSubroutineName();
+				err->addMessage("Read", "wrong_start", getFolderName() + "@" + getSubroutineName());
+				sRv= err->getDescription();
+				if(err->hasWarning())
+				{
+					LOG(LOG_WARNING, sRv);
+					cout << glob::addPrefix("### WARNING: ", sRv);
+					sRv= "";
+					m_bTimerStart= true;
+				}
 
 			}else
 				m_bTimerStart= true;

@@ -33,6 +33,8 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+#include "stream/BaseErrorHandling.h"
+
 #include "URL.h"
 
 #include "../database/logger/lib/logstructures.h"
@@ -250,7 +252,7 @@ namespace util {
 
 			msg+= path + "'\n";
 			msg+= "    ERRNO: ";
-			msg+= strerror(errno);
+			msg+= BaseErrorHandling::getErrnoString(errno);
 			cout << msg << endl;
 			TIMELOG(LOG_ALERT, "readdirectory", msg);
 			return files;

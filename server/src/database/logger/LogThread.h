@@ -51,14 +51,24 @@ class LogThread : 	public Thread,
 		 * @param args arbitrary optional defined parameter to get in initialization method init
 		 * @param bHold should the caller wait of thread by ending.<br />
 		 * 				default is false
+		 * @return object of error handling
 		 */
-		virtual int start(void *args= NULL, bool bHold= false);
+		OVERWRITE EHObj start(void *args= NULL, bool bHold= false);
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(bool bWait= true);
+		OVERWRITE EHObj stop(const bool bWait)
+		{ return LogThread::stop(&bWait); };
+		/**
+		 *  external command to stop thread
+		 *
+		 * @param bWait calling routine should wait until the thread is stopping
+		 * @return object of error handling
+		 */
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 		/**
 		 * set propertys for logging thread
 		 *
@@ -142,16 +152,16 @@ class LogThread : 	public Thread,
 		 * @param args user defined parameter value or array,<br />
 		 * 				coming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return error code for not right initialization
+		 * @return object of error handling
 		 */
-		virtual int init(void *arg);
+		OVERWRITE EHObj init(void *arg);
 		/**
-		 * This method starting again when ending with code 0 or lower for warnings
+		 * This method starting again when ending with true
 		 * and if the method stop() isn't called.
 		 *
-		 * @param error code for not correctly done
+		 * @param whether thread should start again
 		 */
-		virtual int execute();
+		virtual bool execute();
 		/**
 		 * This method will be called if any other or own thread
 		 * calling method stop().

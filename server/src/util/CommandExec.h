@@ -87,9 +87,9 @@ public:
 	 * @param args arbitary optional defined parameter to get in initialisation method init
 	 * @param bHold should the caller wait of thread by ending.<br />
 	 * 				default is false
-	 * @return NULL when all ok if bHold is false, otherwise the returnvalue of the thread in an void pointer
+	 * @return object of error handling
 	 */
-	virtual int start(void *args= NULL, bool bHold= false)
+	OVERWRITE EHObj start(void *args= NULL, bool bHold= false)
 	{ m_bStarted= true; return Thread::start(args, bHold); };
 	/**
 	 * start behavior to starting subroutine per time
@@ -108,16 +108,17 @@ public:
 	/**
 	 *  external command to stop thread
 	 *
-	 * @param bWait calling rutine should wait until the thread is stopping
+	 * @param object of error handling
 	 */
-	virtual int stop(const bool bWait)
+	OVERWRITE EHObj stop(const bool bWait)
 	{ return CommandExec::stop(&bWait); };
 	/**
 	 *  external command to stop thread
 	 *
 	 * @param bWait calling rutine should wait until the thread is stopping
+	 * @return object of error handling
 	 */
-	virtual int stop(const bool *bWait= NULL);
+	OVERWRITE EHObj stop(const bool *bWait= NULL);
 	/**
 	 * whether process was started any time before
 	 *
@@ -297,15 +298,15 @@ private:
 	 * initialization of starting command
 	 *
 	 * @args name of command in an string
-	 * @return whether initialization was successful
+	 * @return object of error handling
 	 */
-	virtual int init(void *args);
+	OVERWRITE EHObj init(void *args);
 	/**
 	 * execute of command on shell
 	 *
-	 * @return defined error code from extended class
+	 * @return whether execute should start again
 	 */
-	virtual int execute();
+	OVERWRITE bool execute();
 	/**
 	 * read output line from script
 	 *
@@ -336,7 +337,7 @@ private:
 	 * This method will be called if any other or own thread
 	 * calling method stop().
 	 */
-	virtual void ending() {};
+	OVERWRITE void ending() {};
 };
 
 #endif /* COMMANDEXEC_H_ */

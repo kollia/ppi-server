@@ -86,7 +86,6 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
   m_oInformer(threadname, this),
   m_oDbFiller(DbFillerFactory::getInstance(threadname, PPIConfigFileStructure::instance()->getFolderDbThreads()))
 {
-	int res;
 	string run;
 	SHAREDPTR::shared_ptr<measurefolder_t> pCurrent;
 
@@ -221,16 +220,21 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 	}
 	if(PPIConfigFileStructure::instance()->needInformThreads())
 	{
-		res= m_oInformer.start();
-		if(res)
+		m_pError= m_oInformer.start();
+		if(m_pError->fail())
 		{
-			string err("measuring thread for folder '" + threadname +
-							"' can not activate external thread '");
+			string err;
 
-			err+= m_oInformer.getThreadName() + "' to inform other folders\n";
-			cerr << "### WARNING: " << err;
-			cerr << "              so folder list inform directly other folders, which has more bad performance" << endl;
-			LOG(LOG_WARNING, err +"so folder list inform directly other folders, which has more bad performance");
+			if(m_pError->hasError())
+				m_pError->addMessage("MeasureThread", "startInformerErr",
+								m_oInformer.getThreadName() + "@" + threadname);
+			else
+				m_pError->addMessage("MeasureThread", "startInformer",
+								m_oInformer.getThreadName() + "@" + threadname);
+			err= m_pError->getDescription();
+			cout << glob::addPrefix("### WARNING: ", err) << endl;
+			LOG(LOG_WARNING, err);
+			m_pError->clear();
 		}
 	}
 }
@@ -394,7 +398,7 @@ unsigned short MeasureThread::getActCount(const string& subroutine)
 	return 0;
 }
 
-int MeasureThread::init(void *arg)
+EHObj MeasureThread::init(void *arg)
 {
 	bool *pbSubroutines(static_cast<bool*>(arg));
 	int nMuch;
@@ -566,7 +570,7 @@ int MeasureThread::init(void *arg)
 		if(exist && value != 0)
 			db->fillValue("folder", m_sFolder, "priority", 0);
 	}
-	return 0;
+	return m_pError;
 }
 
 bool MeasureThread::usleep(const IPPITimePattern& time)
@@ -580,11 +584,9 @@ bool MeasureThread::usleep(const IPPITimePattern& time)
 	return true;
 }
 
-int MeasureThread::stop(const bool* bWait/*=NULL*/)
+EHObj MeasureThread::stop(const bool* bWait/*=NULL*/)
 {
-	int nRv;
-
-	nRv= Thread::stop(false);
+	m_pError= Thread::stop(false);
 	//LOCK(m_VALUE);
 	AROUSE(m_VALUECONDITION);
 	//UNLOCK(m_VALUE);
@@ -620,13 +622,13 @@ int MeasureThread::stop(const bool* bWait/*=NULL*/)
 			}
 		}
 	}
-	if(	bWait
-		&&
-		*bWait	)
+	if(	bWait &&
+		*bWait &&
+		!m_pError->hasError()	)
 	{
-		nRv= Thread::stop(bWait);
+		(*m_pError)= Thread::stop(bWait);
 	}
-	return nRv;
+	return m_pError;
 }
 
 struct time_sort : public binary_function<timeval, timeval, bool>
@@ -820,7 +822,7 @@ void MeasureThread::informFolders(const folders_t& folders, const string& from,
 	}
 }
 
-int MeasureThread::execute()
+bool MeasureThread::execute()
 {
 	bool debug(isDebug());
 	bool bHasCondition(false);
@@ -1063,7 +1065,7 @@ int MeasureThread::execute()
 					UNLOCK(m_ACTIVATETIME);
 					if(debug)
 						TERMINALEND;
-					return 0;
+					return false;
 				}
 				if(m_bNeedFolderRunning)
 				{
@@ -1114,7 +1116,7 @@ int MeasureThread::execute()
 				UNLOCK(m_ACTIVATETIME);
 				if(debug)
 					TERMINALEND;
-				return 0;
+				return false;
 			}
 			if(m_bNeedFolderRunning)
 			{
@@ -1132,7 +1134,7 @@ int MeasureThread::execute()
 		if(m_nSchedPolicy == SCHED_FIFO)
 			sched_yield();
 	}
-	return 0;
+	return true;
 }
 
 void MeasureThread::doDebugStartingOutput()

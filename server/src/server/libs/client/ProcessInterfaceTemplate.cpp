@@ -31,21 +31,27 @@ namespace util
 		return false;
 	}
 
-	int ProcessInterfaceTemplate::stop(const bool bWait/*= true*/)
+	EHObj ProcessInterfaceTemplate::stop(const bool bWait/*= true*/)
 	{
 		string answer;
 		OMethodStringStream stop("stop");
 
+		m_pSocketError->clear();
 		answer= sendMethod(m_sSendTo, stop, bWait);
-		return error(answer);;
+		m_pSocketError->setErrorStr(answer);
+		if(m_pSocketError->getErrorType() == IEH::UNKNOWN)
+			m_pSocketError->clear();
+		return m_pSocketError;
 	}
 
 	bool ProcessInterfaceTemplate::stopping()
 	{
 		string answer;
-		OMethodStringStream running("running");
+		OMethodStringStream running("stopping");
 
 		answer= sendMethod(m_sSendTo, running, true);
+		if(answer == "true")
+			return true;
 		return false;
 	}
 }

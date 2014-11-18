@@ -234,20 +234,6 @@ namespace server
 			 */
 			virtual void connectionEnding(const unsigned int ID, const string& process, const string& client);
 			/**
-			 * return string describing error number
-			 *
-			 * @param error code number of error
-			 * @return error string
-			 */
-			virtual string strerror(int error) const;
-			/**
-			 * get maximal error or warning number in positive values from own class
-			 *
-			 * @param byerror whether needs error number (true) or warning number (false)
-			 * @return maximal error or warning number
-			 */
-			virtual unsigned int getMaxErrorNums(const bool byerror) const;
-			/**
 			 * destructor of server method-transaction
 			 */
 			virtual ~ServerDbTransaction();

@@ -20,8 +20,13 @@
 #include "DbFillerCache.h"
 
 #include "../util/debug.h"
+#include "../util/GlobalStaticMethods.h"
+
+#include "../util/stream/ErrorHandling.h"
 
 #include "../pattern/util/LogHolderPattern.h"
+
+#include "../database/logger/lib/logstructures.h"
 
 namespace util
 {
@@ -29,9 +34,9 @@ namespace util
 
 	SHAREDPTR::shared_ptr<IDbFillerPattern> DbFillerFactory::getInstance(const string& threadName, short threads)
 	{
-		int res(1);
 		DbFiller* pDbFiller(NULL);
 		SHAREDPTR::shared_ptr<IDbFillerPattern> oRv;
+		ErrorHandling errHandle;
 
 		if(threads > 0)
 		{
@@ -47,20 +52,35 @@ namespace util
 				__instance= new DbFillerFactory();
 				if(__instance)
 				{
-					res= __instance->start();
-					if(res)
+					errHandle= __instance->start();
+					if(errHandle.fail())
 					{
-						delete __instance;
-						__instance= NULL;
+						int log;
+						string msg;
+
+						errHandle.addMessage("DbFillerFactory", "start");
+						msg= errHandle.getDescription();
+						if(errHandle.hasError())
+						{
+							log= LOG_ERROR;
+							cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+							delete __instance;
+							__instance= NULL;
+						}else
+						{
+							log= LOG_WARNING;
+							cout << glob::addPrefix("### ERROR: ", msg) << endl;
+							errHandle.clear();
+						}
+						LOG(log, msg);
 					}
 				}
-			}else
-				res= 0;
-			if(!res)
+			}
+			if(!errHandle.hasError())
 				oRv= __instance->createCache(threadName);
 		}
 
-		if(res)
+		if(!errHandle.hasError())
 		{
 			/*
 			 * when folder_db_threads inside server.conf
@@ -79,19 +99,31 @@ namespace util
 				 */
 				pDbFiller= dynamic_cast<DbFiller*>(oRv.get());
 				if(pDbFiller != NULL)
-					res= pDbFiller->start();
-			}else
-				res= 0;
-		}
-		if(res)
-		{
-			string err("measuring thread for folder '" + threadName +
-							"' can not send questions which need no answer over external thread '");
+				{
+					errHandle= pDbFiller->start();
+					if(errHandle.fail())
+					{
+						int log;
+						string msg;
 
-			err+= pDbFiller->getName() + "'\n";
-			cerr << "### WARNING: " << err;
-			cerr << "              so send this messages directly which has more bad performance" << endl;
-			LOG(LOG_WARNING, err +"so send this messages directly which has more bad performance");
+						errHandle.addMessage("DbFiller", "start");
+						msg= errHandle.getDescription();
+						if(errHandle.hasError())
+						{
+							log= LOG_ERROR;
+							cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+							delete __instance;
+							__instance= NULL;
+						}else
+						{
+							log= LOG_WARNING;
+							cout << glob::addPrefix("### ERROR: ", msg) << endl;
+							errHandle.clear();
+						}
+						LOG(log, msg);
+					}
+				}
+			}
 		}
 		return oRv;
 	}
@@ -122,7 +154,7 @@ namespace util
 		}
 	}
 
-	int DbFillerFactory::execute()
+	bool DbFillerFactory::execute()
 	{
 		typedef map<string, SHAREDPTR::shared_ptr<IDbFillerPattern> >::iterator cacheIt;
 		struct timespec wait;
@@ -171,7 +203,7 @@ namespace util
 					bWritten= false;
 			}// while(bWritten)
 			if(stopping())
-				return 1;
+				return false;
 			LOCK(m_INFORMDATABASEMUTEX);
 			if(bFirstOff)
 				RELTIMECONDITION(m_INFORMDATABASECOND, m_INFORMDATABASEMUTEX, &wait);
@@ -180,13 +212,19 @@ namespace util
 			UNLOCK(m_INFORMDATABASEMUTEX);
 			bWritten= true;
 		}
-		return 0;
+		return true;
 	}
 
-	int DbFillerFactory::stop(const bool *bWait/*= NULL*/)
+	EHObj DbFillerFactory::stop(const bool *bWait/*= NULL*/)
 	{
-		Thread::stop(false);
+		m_pError= Thread::stop(false);
 		AROUSE(m_INFORMDATABASECOND);
-		return Thread::stop(bWait);
+		if(	bWait &&
+			*bWait == true &&
+			!m_pError->hasError()	)
+		{
+			(*m_pError)= Thread::stop(bWait);
+		}
+		return m_pError;
 	}
 }

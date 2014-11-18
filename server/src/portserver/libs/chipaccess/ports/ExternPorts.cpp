@@ -32,6 +32,8 @@
 
 #include "../../../../util/thread/Thread.h"
 
+#include "../../../../util/stream/BaseErrorHandling.h"
+
 #include "ExternPorts.h"
 
 
@@ -583,7 +585,7 @@ namespace ports
 						os.clear();
 						os << "### ERROR: Could not open extern port " << *it << endl;
 						if(errno != 0)
-							   os << "    ERRNO(" << dec << errno << "): " << strerror(errno);
+							   os << "    ERRNO(" << dec << errno << "): " << BaseErrorHandling::getErrnoString(errno);
 						TIMELOG(LOG_ERROR, *it+"ExternPorts", os.str());
 						if(!failt)
 						{
@@ -1036,7 +1038,7 @@ namespace ports
 			else
 				msg << "scheduling to normal";
 			msg << endl << "ERRNO(" <<  errno << "): ";
-			msg << strerror(res);
+			msg << BaseErrorHandling::getErrnoString(res);
 			identif << "sched_schedulling" << errno << bSet;
 			TIMELOG(LOG_ERROR, identif.str(), msg.str());
 			if(bSet && !blockf)

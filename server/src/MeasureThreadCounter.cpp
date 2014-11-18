@@ -206,7 +206,7 @@ void MeasureThreadCounter::clientAction(const string& folder, const string& subr
 	UNLOCK(m_CLIENTACTIONMUTEX);
 }
 
-short MeasureThreadCounter::runnable()
+bool MeasureThreadCounter::runnable()
 {
 	int seconds(m_nSeconds), wait;
 
@@ -229,7 +229,7 @@ short MeasureThreadCounter::runnable()
 			{
 				m_bCounting= true;
 				UNLOCK(m_CLIENTACTIONMUTEX);
-				return 1;
+				return false;
 			}
 		}
 		beginCount();
@@ -251,7 +251,7 @@ short MeasureThreadCounter::runnable()
 		if(SLEEP(wait) != ETIMEDOUT)
 		{
 			outputCounting(m_nSeconds - seconds);
-			return 1;
+			return false;
 		}
 		seconds-= wait;
 		if(seconds > 0)
@@ -261,23 +261,22 @@ short MeasureThreadCounter::runnable()
 		}
 	}while(seconds > 0);
 	outputCounting(m_nSeconds);
-	return 1;
+	return false;
 }
 
-int MeasureThreadCounter::stop(const bool *bWait)
+EHObj MeasureThreadCounter::stop(const bool *bWait)
 {
-	int nRv;
-
-	nRv= Thread::stop(false);
+	m_pError= Thread::stop(false);
 	LOCK(m_CLIENTACTIONMUTEX);
 	AROUSE(m_CLIENTACTIONCOND);
 	UNLOCK(m_CLIENTACTIONMUTEX);
-	if(	bWait &&
-		*bWait	)
+	if(	!m_pError->hasError() &&
+		bWait &&
+		*bWait					)
 	{
-		nRv= Thread::stop(bWait);
+		(*m_pError)= Thread::stop(bWait);
 	}
-	return nRv;
+	return m_pError;
 }
 
 

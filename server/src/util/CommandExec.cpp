@@ -32,13 +32,14 @@
 #include "exception.h"
 
 #include "stream/ppivalues.h"
+#include "stream/BaseErrorHandling.h"
 
 #include "CommandExec.h"
 
 using namespace boost;
 using namespace design_pattern_world::util_pattern;
 
-int CommandExec::init(void* args)
+EHObj CommandExec::init(void* args)
 {
 	char* cCommand;
 
@@ -56,7 +57,8 @@ int CommandExec::init(void* args)
 			err= ex.getTraceString();
 			cerr << endl << err << endl;
 			LOG(LOG_ERROR, err);
-			return -2;
+			m_pError->setError("CommandExec", "init");
+			return m_pError;
 
 		}catch(std::exception& ex)
 		{
@@ -71,7 +73,8 @@ int CommandExec::init(void* args)
 			{
 				cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
 			}
-			return -2;
+			m_pError->setError("CommandExec", "init");
+			return m_pError;
 
 		}catch(...)
 		{
@@ -85,7 +88,8 @@ int CommandExec::init(void* args)
 			{
 				cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
 			}
-			return -2;
+			m_pError->setError("CommandExec", "init");
+			return m_pError;
 		}
 	}
 /*	if(m_sCommand == "")
@@ -93,7 +97,7 @@ int CommandExec::init(void* args)
 		TIMELOGEX(LOG_ERROR, "msCommandInitial", "CommandExec object will be create without command string", m_pSendLog);
 		return -1;
 	}*/
-	return 0;
+	return m_pError;
 }
 
 void CommandExec::setFor(const string& folder, const string& subroutine)
@@ -249,7 +253,7 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 	return nRv;
 }
 
-int CommandExec::stop(const bool *bWait/*= NULL*/)
+EHObj CommandExec::stop(const bool *bWait/*= NULL*/)
 {
 	bool bFound(false);
 	string command;
@@ -343,7 +347,7 @@ int CommandExec::stop(const bool *bWait/*= NULL*/)
 		return Thread::stop(bWait);
 	}
 	//cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
-	return 0;
+	return m_pError;
 }
 
 vector<pid_t> CommandExec::getChildProcess(pid_t actPid, vector<string>* commands) const
@@ -421,7 +425,7 @@ vector<string> CommandExec::grepPS(pid_t pid) const
 		sline=  "ERROR by grep running process with line "+ grepStr + "\n";
 		sline+= "         to secure stop process of shell command '" + m_sCommand + "'\n";
 		sline+= "ERRNO: ";
-		sline+=           *strerror(errno) + "\n";
+		sline+=           BaseErrorHandling::getErrnoString(errno) + "\n";
 		sline+= "       >> do not stop process !!! <<";
 		cerr << sline << endl;
 		LOGEX(LOG_ERROR, sline, m_pSendLog);
@@ -471,7 +475,7 @@ int CommandExec::startingBy(const ppi_time& tm, const string& command)
 	return nRv;
 }
 
-int CommandExec::execute()
+bool CommandExec::execute()
 {
 	bool bWaitMutex(false), bResultMutex(false), bOpenShell(false), bStarting(false);
 	bool bWait, bDebug, bCloseError(false);
@@ -511,7 +515,7 @@ int CommandExec::execute()
 	orgCommand= m_sCommand;
 	UNLOCK(m_WAITMUTEX);
 	if(stopping())
-		return 0;
+		return false;
 	//cout << " --  start commandExec thread ----------------------------- " << endl;
 	try{
 		split(spl, orgCommand, is_any_of(";"));
@@ -541,14 +545,16 @@ int CommandExec::execute()
 		if(fp == NULL)
 		{
 			sline= "ERROR by writing command on folder subroutine " + orgCommand + " on command line\n";
-			sline+= "ERRNO: " + *strerror(errno);
+			sline+= "ERRNO: " + BaseErrorHandling::getErrnoString(errno);
 			cerr << sline << endl;
 			LOGEX(LOG_ERROR, sline, m_pSendLog);
 			generateError(sLastErrorlevel, qLastRows, bWait, bDebug);
 			LOCK(m_WAITMUTEX);
 			m_sCommand= "";
 			UNLOCK(m_WAITMUTEX);
-			return 0;
+			m_pError->setError("CommandExec", "popen",
+							m_sFolder + "@" + m_sSubroutine + "@" + orgCommand);
+			return false;
 		};
 		LOCK(m_WAITMUTEX);
 		bWaitMutex= true;
@@ -613,7 +619,7 @@ int CommandExec::execute()
 		if(stopping())
 		{
 			pclose(fp);
-			return 1;
+			return false;
 		}
 		LOCK(m_WAITMUTEX);
 		bWaitMutex= true;
@@ -711,7 +717,7 @@ int CommandExec::execute()
 	m_oStartTime.clear();
 	AROUSEALL(m_WAITFORRUNGCONDITION);
 	UNLOCK(m_WAITMUTEX);
-	return 0;
+	return true;
 }
 
 void CommandExec::generateError(const string& errorLevelString, const deque<string>& qLastErrRows, bool bWait, bool bDebug)

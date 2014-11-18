@@ -62,7 +62,7 @@ namespace ports
 		return true;
 	}
 
-	short ReadWorker::runnable()
+	bool ReadWorker::runnable()
 	{
 		LOCK(m_STARTMUTEX);
 		while(!stopping())
@@ -86,7 +86,7 @@ namespace ports
 			}
 		}// while(!stopping())
 		UNLOCK(m_STARTMUTEX);
-		return 1;
+		return false;
 	}
 
 	void ReadWorker::setDebug(bool bDebug)
@@ -99,7 +99,8 @@ namespace ports
 	auto_ptr<IValueHolderPattern> ReadWorker::doHttpConnection(const ppi_value& curValue, bool debug)
 	{
 		bool bHoldConnection;
-		int connResult;
+		int connResult(0);
+		EHObj errHandle;
 		string result;
 		ostringstream oSendRequest;
 		ppi_time currentTime;
@@ -230,12 +231,13 @@ namespace ports
 					outstr+= m_sAddress.getHost();
 					m_pValueSet->out() << outstr << endl;
 				}
-				connResult= m_oSocket->init();
+				errHandle= m_oSocket->init();
+				if(errHandle->hasError())
+					connResult= -1;
 			}else
 			{
 				if(debug)
 					m_pValueSet->out() << "Try to take existing connection to server" << endl;
-				connResult= 0;
 //				connResult= m_oSocket->reconnect();
 //				if(connResult == 28/*EISCONN*/)	// The socket is already connected.
 //					connResult= 0;				// but do not read correctly (don't know why)
@@ -693,6 +695,11 @@ namespace ports
 			err= "can't open connection to address '" + sDecoded + "'";
 			if(sDecoded != sEncoded)
 				err+= "\nwas send as encoded URL '" + sEncoded + "'";
+			if(	errHandle &&
+				errHandle->fail()	)
+			{
+				err+= "\n" + errHandle->getDescription();
+			}
 			if(debug)
 				m_pValueSet->out() << err << endl;
 			LOG(LOG_ERROR, err);
@@ -704,17 +711,16 @@ namespace ports
 		return oValue;
 	}
 
-	int ReadWorker::stop(const bool *bWait/*= NULL*/)
+	EHObj ReadWorker::stop(const bool *bWait/*= NULL*/)
 	{
-		int nRv;
-
-		nRv= CallbackTemplate::stop(/*wait*/false);
+		m_pError= CallbackTemplate::stop(/*wait*/false);
 		AROUSEALL(m_STARTINGCONDITION);
-		if(	nRv == 0 &&
-			*bWait == true	)
+		if(	bWait &&
+			*bWait == true &&
+			!m_pError->hasError()	)
 		{
-			nRv= CallbackTemplate::stop(bWait);
+			(*m_pError)= CallbackTemplate::stop(bWait);
 		}
-		return nRv;
+		return m_pError;
 	}
 } /* namespace ports */

@@ -92,16 +92,16 @@ namespace server
 			 * @param args user defined parameter value or array,<br />
 			 * 				coming as void pointer from the external call
 			 * 				method start(void *args).
-			 * @return error code for not right initialization
+			 * @return object of error handling
 			 */
-			virtual int init(void *args);
+			OVERWRITE EHObj init(void *args);
 			/**
 			 * This method starting again when ending with code 0 or lower for warnings
 			 * and if the method stop() isn't called.
 			 *
-			 * @param error code for not correctly done
+			 * @param whether should start thread again
 			 */
-			virtual int execute();
+			OVERWRITE bool execute();
 			/**
 			 * This method will be called if any other or own thread
 			 * calling method stop().

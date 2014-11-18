@@ -56,7 +56,7 @@ namespace server
 		m_bSpeakerThread= false;
 	}
 
-	int Communication::init(void *args)
+	EHObj Communication::init(void *args)
 	{
 		// encrypt decrypt from webside http://www.daniweb.com/forums/thread23258.html
 		/*char *message ="Test Message";
@@ -122,10 +122,10 @@ namespace server
 		clear_text= (unsigned char *) malloc(strlen(message));
 		RSA_private_decrypt(strlen((char*)e_data), e_data, clear_text, aprivate, RSA_PKCS1_OAEP_PADDING);
 		cout << "read text: '" << clear_text << "'" << endl;*/
-		return 0;
+		return m_pError;
 	}
 
-	int Communication::execute()
+	bool Communication::execute()
 	{
 		bool bHave;
 		int conderror= 0;
@@ -181,7 +181,7 @@ namespace server
 		}else if(conderror)
 			USLEEP(500000);
 		glob::threadStopMessage("Communication::execute(): ending CommunicationThread");
-		return 0;
+		return true;
 	}
 
 	string Communication::getStatusInfo(string params, pos_t& pos, time_t elapsed, string lasttime)
@@ -243,20 +243,17 @@ namespace server
 		return sRv;
 	}
 
-	int Communication::stop(const bool *bWait)
+	EHObj Communication::stop(const bool *bWait)
 	{
-		int Rv= 0;
+		EHObj Rv;
 		//bool client= hasClient();
 
 		LOCK(m_HAVECLIENT);
 		Rv= Thread::stop();// do not detach thread
 		AROUSE(m_CLIENTWAITCOND);
 		UNLOCK(m_HAVECLIENT);
-		if(	Rv == 0
-			&&
-			bWait
-			&&
-			*bWait	)
+		if(	bWait &&
+			*bWait				)
 		{
 			/*if(*bWait && client && m_hFileAccess.get())
 			{

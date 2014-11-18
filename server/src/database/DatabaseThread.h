@@ -49,8 +49,6 @@ namespace ppi_database
 	class DatabaseThread : public Thread
 	{
 	public:
-		using Thread::stop;
-
 		/**
 		 * Instantiate class of database
 		 *
@@ -97,15 +95,17 @@ namespace ppi_database
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool bWait)
+		OVERWRITE EHObj stop(const bool bWait)
 		{ return DatabaseThread::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
-		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @param bWait calling routine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool *bWait= NULL);
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 		/**
 		 * delete single instance of DatabaseThread object
 		 */
@@ -120,17 +120,17 @@ namespace ppi_database
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return error code for not right initialization
+		 * @return object of error handling
 		 */
-		virtual int init(void *args= NULL);
+		OVERWRITE EHObj init(void *args= NULL);
 		/**
 		 * method to running thread .<br />
 		 * This method starting again when ending without an sleeptime
 		 * if the method stop() isn't call.
 		 *
-		 * @return error code for not correctly done
+		 * @return whether should start thread again
 		 */
-		virtual int execute()
+		OVERWRITE bool execute()
 		{ return m_pDatabase->execute(); };
 		/**
 		 * method to ending the thread.<br />

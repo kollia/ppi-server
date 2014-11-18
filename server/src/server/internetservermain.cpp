@@ -33,6 +33,7 @@
 #include "../util/URL.h"
 #include "../util/usermanagement.h"
 
+#include "../util/thread/ThreadErrorHandling.h"
 #include "../util/properties/interlacedproperties.h"
 
 #include "../database/lib/NeedDbChanges.h"
@@ -56,6 +57,7 @@ string global_clientpath;
 
 int main(int argc, char* argv[])
 {
+	int nRv;
 	uid_t defaultuserID;
 	string defaultuser;
 	string workdir;
@@ -63,12 +65,18 @@ int main(int argc, char* argv[])
 	string property;
 	string sConfPath, fileName;
 	unsigned short port, commport, minThreads, maxThreads;
-	int err;
 	int nLogAllSec;
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
 	InterlacedProperties oServerProperties;
 	map<string, uid_t> users;
+	ErrorHandling errHandle;
+	thread::ThreadErrorHandling thErrHandle;
+	SocketErrorHandling sockErrHandle;
+
+	errHandle.read();
+	thErrHandle.read();
+	sockErrHandle.read();
 
 	glob::processName("ppi-internet-server");
 	glob::setSignals("ppi-internet-server");
@@ -183,23 +191,26 @@ int main(int argc, char* argv[])
 																5,
 																new ServerTransaction(defaultuserID)	),
 									new SocketClientConnection(	SOCK_STREAM,
-																commhost,
-																commport,
+																host,
+																port,
 																5			),
 									/*open connection with*/"GET"									);
 
-	err= internetserver.run();
-	if(err != 0)
+	errHandle= internetserver.run();
+	nRv= EXIT_SUCCESS;
+	if(errHandle.fail())
 	{
+		string msg;
 
-		if(err > 0)
-			cerr << "### ERROR " << err << ": for ";
-		else
-			cerr << "### WARNING " << err << ": by ";
-		cerr << "initial process internet server" << endl;
-		cerr << "             " << internetserver.strerror(err) << endl;
-		return err;
+		errHandle.addMessage("internetservermain", "run");
+		msg= errHandle.getDescription();
+		if(errHandle.hasError())
+		{
+			cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+			nRv= EXIT_FAILURE;
+		}else
+			cout << glob::addPrefix("### WARNING: ", msg) << endl;
 	}
 	glob::stopMessage("### process of ppi-internet-server was ending correctly", /*all process names*/true);
-	return 0;
+	return nRv;
 }

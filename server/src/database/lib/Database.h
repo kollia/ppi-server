@@ -234,9 +234,9 @@ namespace ppi_database
 		 * method to running thread .<br />
 		 * This method starting again when method stop() wasn't call.
 		 *
-		 * @return error code for not correctly done
+		 * @return whether thread should starting again
 		 */
-		virtual int execute();
+		OVERWRITE bool execute();
 		/**
 		 * stop working of database,
 		 * arose all conditions

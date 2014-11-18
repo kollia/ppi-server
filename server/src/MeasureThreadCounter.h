@@ -73,15 +73,17 @@ public:
 	 *  external command to stop thread
 	 *
 	 * @param bWait calling rutine should wait until the thread is stopping
+	 * @return object of error handling
 	 */
-	virtual int stop(const bool bWait)
+	OVERWRITE EHObj stop(const bool bWait)
 	{ return MeasureThreadCounter::stop(&bWait); };
 	/**
 	 *  external command to stop thread
 	 *
 	 * @param bWait calling rutine should wait until the thread is stopping
+	 * @return object of error handling
 	 */
-	virtual int stop(const bool *bWait= NULL);
+	OVERWRITE EHObj stop(const bool *bWait= NULL);
 	/**
 	 * destructor to destroy mutex and condition
 	 */
@@ -99,9 +101,9 @@ protected:
 	 * In the most case the should be 1 for finished correctly, -1 finished with warnings
 	 * or -2 with errors.
 	 *
-	 * @return defined error code from extended class
+	 * @return whether should start runnable method again
 	 */
-	virtual short runnable();
+	virtual bool runnable();
 	/**
 	 * define user readable second string
 	 *

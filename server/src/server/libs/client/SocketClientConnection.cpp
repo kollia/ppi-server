@@ -41,6 +41,7 @@ namespace server
 		m_nPort(port),
 		m_nTimeout(timeout),
 		m_bNeedConnectionCheck(false),
+		m_pSocketError(EHObj(new SocketErrorHandling)),
 		m_nSocketType(type)
 	{
 	}
@@ -57,11 +58,9 @@ namespace server
 		m_pTransfer= transfer;
 	}
 
-	int SocketClientConnection::init()
+	EHObj SocketClientConnection::init()
 	{
-		bool bAliveWarning(false);
-		int nRv= 0;
-		int status, lasterrno;
+		int lasterrno;
 		addrinfo hints, *ai, *aptr;
 		char ip_address[INET6_ADDRSTRLEN];
 		//string msg;
@@ -69,17 +68,24 @@ namespace server
 		sockaddr_in6 *ipv6addr;
 		ostringstream oPort;
 
+		m_pSocketError->clear();
 		if(m_pDescriptor)
 		{
 			if(m_pDescriptor->error())
 			{
-				m_pDescriptor->closeConnection();
 				close();
 			}else
 			{
-				if(m_pDescriptor->transfer())
-					return 0;
-				return -2;
+				bool hold;
+
+				hold= m_pDescriptor->transfer();
+				if(!hold)
+				{
+					m_pSocketError->setWarning("SocketClientConnection", "transfer",
+								m_pDescriptor->getHostAddressName());
+					close();
+				}
+				return m_pSocketError;
 			}
 		}
 
@@ -88,11 +94,19 @@ namespace server
 		hints.ai_flags= AI_CANONNAME;
 		hints.ai_family= AF_UNSPEC;
 		hints.ai_socktype= m_nSocketType;
+		m_kSocket.serverSocket= 0;
 		m_bCorrectAddr= false;
 
-		status= getaddrinfo(m_sHost.c_str(), oPort.str().c_str(), &hints, &ai);
-		if(status != 0)
-			return status;
+		lasterrno= getaddrinfo(m_sHost.c_str(), oPort.str().c_str(), &hints, &ai);
+		if(lasterrno != 0)
+		{
+			SocketErrorHandling handle;
+
+			handle.setAddrError("SocketConnection", "getaddrinfo",
+							lasterrno, errno, m_sHost + "@" + oPort.str());
+			(*m_pSocketError)= handle;
+			return m_pSocketError;
+		}
 		m_bCorrectAddr= true;
 		for(aptr= ai; aptr != NULL; aptr= aptr->ai_next)
 		{
@@ -110,7 +124,7 @@ namespace server
 
 			m_kSocket.ss_family= aptr->ai_family;
 			m_kSocket.serverSocket = socket(aptr->ai_family, aptr->ai_socktype, aptr->ai_protocol);
-			if (m_kSocket.serverSocket < 0)
+			if (m_kSocket.serverSocket <= 0)
 			{
 				lasterrno= errno;
 				continue;
@@ -122,53 +136,21 @@ namespace server
 				if(	setsockopt(m_kSocket.serverSocket, SOL_SOCKET, SO_KEEPALIVE,
 								&alive, sizeof( int ))		< 0					)
 				{
-					bAliveWarning= true;
+					m_pSocketError->setErrnoWarning("SocketConnection", "setsockopt",
+									errno, m_sHost + "@" + oPort.str());
 				}
 			}
 
-			nRv= initType(aptr);
+			initType(aptr);
 			break;// socket was set correctly
 		}
-		if (m_kSocket.serverSocket < 0)
+		if(m_kSocket.serverSocket <= 0)
 		{
-			switch(lasterrno)
-			{
-			case EAFNOSUPPORT:
-				nRv= 1;
-				break;
-			case EMFILE:
-				nRv= 2;
-				break;
-			case ENFILE:
-				nRv= 3;
-				break;
-			case EPROTONOSUPPORT:
-				nRv= 4;
-				break;
-			case EPROTOTYPE:
-				nRv= 5;
-				break;
-			case EACCES:
-				nRv= 6;
-				break;
-			case ENOBUFS:
-				nRv= 7;
-				break;
-			case ENOMEM:
-				nRv= 8;
-				break;
-			default:
-				nRv= 20;
-				break;
-			}
-		}
-		if(	nRv == 0 &&
-			bAliveWarning	)
-		{
-			nRv= -3;
+			m_pSocketError->setErrnoError("SocketConnection", "socket",
+							lasterrno, m_sHost + "@" + oPort.str());
 		}
 		freeaddrinfo(ai);
-		return nRv;
+		return m_pSocketError;
 	}
 
 	bool SocketClientConnection::connected()
@@ -211,9 +193,8 @@ namespace server
 		return false;
 	}
 
-	int SocketClientConnection::initType(addrinfo* ai)
+	bool SocketClientConnection::initType(addrinfo* ai)
 	{
-		int nRv;
 		int con;
 		int errsv;
 		string msg;
@@ -239,110 +220,52 @@ namespace server
 		}
 		if(con < 0)
 		{
-			switch(errsv)
-			{
-			case EADDRNOTAVAIL:
-				nRv= 21;
-				break;
-			case EAFNOSUPPORT:
-				nRv= 22;
-				break;
-			case EALREADY:
-				nRv= 23;
-				break;
-			case EBADF:
-				nRv= 24;
-				break;
-			case ECONNREFUSED:
-				nRv= 25;
-				break;
-			case EINPROGRESS:
-				nRv= 26;
-				break;
-			case EINTR:
-				nRv= 27;
-				break;
-			case EISCONN:
-				nRv= 28;
-				break;
-			case ENETUNREACH:
-				nRv= 29;
-				break;
-			case ENOTSOCK:
-				nRv= 30;
-				break;
-			case EPROTOTYPE:
-				nRv= 31;
-				break;
-			case ETIMEDOUT:
-				nRv= 32;
-				break;
-			case EIO:
-				nRv= 33;
-				break;
-			case ELOOP:
-				nRv= 34;
-				break;
-			case ENAMETOOLONG:
-				nRv= 35;
-				break;
-			case ENOENT:
-				nRv= 36;
-				break;
-			case ENOTDIR:
-				nRv= 37;
-				break;
-			case EACCES:
-				nRv= 38;
-				break;
-			case EADDRINUSE:
-				nRv= 39;
-				break;
-			case ECONNRESET:
-				nRv= 40;
-				break;
-			case EHOSTUNREACH:
-				nRv= 41;
-				break;
-			case EINVAL:
-				nRv= 42;
-				break;
-			case ENETDOWN:
-				nRv= 43;
-				break;
-			case ENOBUFS:
-				nRv= 44;
-				break;
-			case EOPNOTSUPP:
-				nRv= 45;
-				break;
-			default:
-				nRv= 60;
-				break;
-			}
-			return nRv;
+			ostringstream decl;
+
+			decl << m_nTimeout << "@" << m_sHost << "@" << m_nPort;
+			m_pSocketError->setErrnoError("SocketClientConnection",
+							"connect", errsv, decl.str());
+			return false;
 		}
 		fp= fdopen (m_kSocket.serverSocket, "w+");
-		m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>(new FileDescriptor(	NULL,
+		if(fp != NULL)
+		{
+			m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>(new FileDescriptor(	NULL,
 																							m_pTransfer,
 																							fp,
 																							m_sHost,
 																							m_nPort,
 																							m_nTimeout	));
-		if(!m_pDescriptor->init())
+		}else
+		{
+			int errno_nr(errno);
+			ostringstream decl;
+
+			decl << m_sHost << "@" << m_nPort;
+			m_pSocketError->setErrnoError("SocketClientConnection", "fdopen", errno_nr, decl.str());
+			return false;
+		}
+		m_pSocketError= m_pDescriptor->init();
+		if(m_pSocketError->hasError())
 		{
 			close();
-			return 10;
+			return false;
 		}
 		if(m_pTransfer)
 		{
-			if(!m_pDescriptor->transfer())
+			bool hold;
+
+			hold= m_pDescriptor->transfer();
+			if(m_pSocketError->hasError())
 			{
 				close();
-				return -2;
+				return false;
 			}
+			if(!hold)
+				m_pSocketError->setError("SocketClientConnection", "transfer",
+								m_pDescriptor->getHostAddressName());
 		}
-		return 0;
+		return true;
 	}
 
 	SHAREDPTR::shared_ptr<IFileDescriptorPattern> SocketClientConnection::getDescriptor()
@@ -361,156 +284,6 @@ namespace server
 //			freeaddrinfo(m_pAddrInfo);
 		m_bCorrectAddr= false;
 		m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>();
-	}
-
-	string SocketClientConnection::strerror(int error) const
-	{
-		string str;
-
-		switch(error)
-		{
-		case 0:
-			str= "no connection error occurred";
-			break;
-		case -2:
-			str="transaction to server will get stop command from ITransferPattern";
-			break;
-		case -3:
-			str= "cannot check connection whether is holding alive";
-			break;
-		case -1:
-			str= "WARNING: no valid address for host be set, so connect only to localhost";
-			break;
-		case 1:
-			str= "ERROR: The implementation does not support the specified address family.";
-			break;
-		case 2:
-			str= "ERROR: No more file descriptors are available for this process.";
-			break;
-		case 3:
-			str= "ERROR: No more file descriptors are available for the system.";
-			break;
-		case 4:
-			str= "ERROR: The protocol is not supported by the address family, or the protocol is not supported by the implementation.";
-			break;
-		case 5:
-			str= "ERROR: The socket type is not supported by the protocol.";
-			break;
-		case 6:
-			str= "ERROR: The process does not have appropriate privileges.";
-			break;
-		case 7:
-			str= "ERROR: Insufficient resources were available in the system to perform the operation.";
-			break;
-		case 8:
-			str= "ERROR: Insufficient memory was available to fulfill the request.";
-			break;
-		case 9:
-			str= "ERROR: no ITransferPattern be set for transaction";
-			break;
-		case 10:
-			str= "ERROR: can not initial correct new descriptor in given ITransactionPattern";
-			break;
-		case 20:
-			str= "ERROR: Undefined socket error.";
-			break;
-		 // connect errors:
-		case 21:
-			str= "ERROR: The specified address is not available from the local machine.";
-			break;
-		case 22:
-			str= "ERROR: The specified address is not a valid address for the address family of the specified socket.";
-			break;
-		case 23:
-			str= "ERROR: A connection request is already in progress for the specified socket.";
-			break;
-		case 24:
-			str= "ERROR: The socket argument is not a valid file descriptor.";
-			break;
-		case 25:
-			str= "ERROR: The target address was not listening for connections or refused the connection request.";
-			break;
-		case 26:
-			str= "ERROR: O_NONBLOCK is set for the file descriptor for the socket and the connection cannot be immediately established; "
-		  			"the connection shall be established asynchronously.";
-			break;
-		case 27:
-			str= "ERROR: The attempt to establish a connection was interrupted by delivery of a signal that was caught; "
-					"the connection shall be established asynchronously.";
-			break;
-		case 28:
-			str= "ERROR: The specified socket is connection-mode and is already connected.";
-			break;
-		case 29:
-			str= "ERROR: No route to the network is present.";
-			break;
-		case 30:
-			str= "ERROR: The socket argument does not refer to a socket.";
-			break;
-		case 31:
-			str= "ERROR: The specified address has a different type than the socket bound to the specified peer address.";
-			break;
-		case 32:
-			str= "ERROR: The attempt to connect timed out before a connection was made.";
-			break;
-		case 33:
-			str= "ERROR: An I/O error occurred while reading from or writing to the file system.";
-			break;
-		case 34:
-			str= "ERROR: A loop exists in symbolic links encountered during resolution of the pathname in address.";
-			break;
-		case 35:
-			str= "ERROR: A component of a pathname exceeded {NAME_MAX} characters, or an entire pathname exceeded {PATH_MAX} characters.";
-			break;
-		case 36:
-			str= "ERROR: A component of the pathname does not name an existing file or the pathname is an empty string.";
-			break;
-		case 37:
-			str= "ERROR: A component of the pathname does not name an existing file or the pathname is an empty string.";
-			break;
-		case 38:
-			str= "ERROR: Search permission is denied for a component of the path prefix; or write access to the named socket is denied.";
-			break;
-		case 39:
-			str= "ERROR: Attempt to establish a connection that uses addresses that are already in use.";
-			break;
-		case 40:
-			str= "ERROR: Remote host reset the connection request.";
-			break;
-		case 41:
-			str= "ERROR: The destination host cannot be reached (probably because the host is down or a remote router cannot reach it).";
-			break;
-		case 42:
-			str= "ERROR: The address_len argument is not a valid length for the address family; or invalid address family in the sockaddr structure.";
-			break;
-		case 43:
-			str= "ERROR: The local network interface used to reach the destination is down.";
-			break;
-		case 44:
-			str= "ERROR: No buffer space is available.";
-			break;
-		case 45:
-			str= "ERROR: The socket is listening and cannot be connected.";
-			break;
-		default:
-			if(error > 0)
-				str= "Undefined socket connection error";
-			else
-				str= "Undefined socket connection warning";
-			break;
-		}
-		return str;
-	}
-
-	inline unsigned int SocketClientConnection::getMaxErrorNums(const bool byerror) const
-	{
-		unsigned int nRv;
-
-		if(byerror)
-			nRv= 50;
-		else
-			nRv= 10;
-		return nRv;
 	}
 
 	SocketClientConnection::~SocketClientConnection()

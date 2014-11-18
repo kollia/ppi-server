@@ -23,10 +23,12 @@
 //#include "Thread.h"
 #include "process.h"
 
+#include "../GlobalStaticMethods.h"
+
 #include "../stream/OMethodStringStream.h"
 
 #include "../../pattern/util/LogHolderPattern.h"
-//#include "../../logger/lib/LogInterface.h"
+#include "../../database/logger/lib/logstructures.h"
 
 namespace util
 {
@@ -49,38 +51,37 @@ namespace util
 		m_PROCESSSTOPCOND= Thread::getCondition("PROCESSSTOPCOND");
 	}
 
-	int Process::stop(const bool bWait/*= true*/)
+	EHObj Process::stop(const bool bWait/*= true*/)
 	{
+		m_pSocketError->clear();
 		if(m_nProcessID == 0)
 		{
 			OMethodStringStream stop("stop");
-			int err, err2= 0;
 			string answer;
 
-			err= openSendConnection();
-			if(err > 0)
-				return err;
+			m_pSocketError= openSendConnection();
+			if(m_pSocketError->hasError())
+				return m_pSocketError;
 			answer= sendMethod(m_sToClient, stop, bWait);
-			if(err == 0)
-				err2= closeSendConnection();
-			err= error(answer);
-			if(err != 0)
-				return err;
-			if(err2 > 0)
-				return err2;
-			if(answer != "done")
-				return 4;
-			return 0;
+			m_pSocketError= closeSendConnection();
+			/*
+			 * when error exist inside answer
+			 * and also closeSendConnection()
+			 * overwrite close-error
+			 * with answer-error
+			 */
+			m_pSocketError->setErrorStr(answer);
+			return m_pSocketError;
 		}
 		LOCK(m_PROCESSSTOPPING);
 		m_bStop= true;
 		if(bWait)
 			CONDITION(m_PROCESSSTOPCOND, m_PROCESSSTOPPING);
 		UNLOCK(m_PROCESSSTOPPING);
-		return 0;
+		return m_pSocketError;
 	}
 
-	int Process::start(void *args/*= NULL*/, bool bHold/*= false*/)
+	EHObj Process::start(void *args/*= NULL*/, bool bHold/*= false*/)
 	{
 		string processName(getProcessName());
 		string debugProcessName("");//("LogServer");//("CommunicationServerProcess");//
@@ -88,7 +89,11 @@ namespace util
 		ostringstream stream;
 
 		if((nProcess= fork()) < 0)
-			return 2;
+		{
+			m_pSocketError->setErrnoError("process", "fork", errno,
+							processName + "@" + m_sToClient);
+			return m_pSocketError;
+		}
 		if(	(	debugProcessName == processName
 				&&
 				nProcess > 0						)
@@ -97,118 +102,126 @@ namespace util
 				&&
 				nProcess == 0						)	)
 		{
-			int ret;
-			ret= runprocess(args, bHold);
-			exit(ret);
+			m_pSocketError= runprocess(args, bHold);
+			if(m_pSocketError->fail())
+			{
+				int logging;
+				string prefix;
+				string msg;
+
+				msg= m_pSocketError->getDescription();
+				if(m_pSocketError->hasError())
+				{
+					prefix= "### ALERT: ";
+					logging= LOG_ALERT;
+				}else
+				{
+					prefix= "### WARNING: ";
+					logging= LOG_WARNING;
+				}
+				LOG(logging, msg);
+				cout << glob::addPrefix(prefix, msg) << endl;
+				exit(EXIT_FAILURE);
+			}
+			exit(EXIT_SUCCESS);
 		}
-		//if(getProcessName() == "LogServer")
-		//	sleep(5);
 		if(	m_bWaitInit	)
 		{
-			int ret;
-
-			ret= check();
-			if(ret > 0)
-				return ret;
+			m_pSocketError= check();
+			if(m_pSocketError->hasError())
+				return m_pSocketError;
 		}
 		if(bHold)
 		{
-			int err, err2= 0;
+			SocketErrorHandling err;
 			string answer;
 			OMethodStringStream waiting("waiting");
 
 			answer= sendMethod(m_sToClient, waiting, true);
-			err= error(answer);
-			if(err == 0)
-				err2= closeSendConnection();
-			if(err != 0)
-				return err;
-			if(err2 > 0)
-				return err2;
+			m_pSocketError->setErrorStr(answer);
+			if(m_pSocketError->hasError())
+				err= closeSendConnection();
+			if(m_pSocketError->fail())
+				return m_pSocketError;
+			if(err.fail())
+			{
+				(*m_pSocketError)= err;
+				return m_pSocketError;
+			}
 			if(answer != "done")
-				return 3;
+				m_pSocketError->setError("process", "waiting",
+								processName + "@" + m_sToClient + "@" + answer);
 		}
-		return 0;
+		return m_pSocketError;
 	}
 
-	int Process::check()
+	EHObj Process::check()
 	{
-		int err, err2= 0;
+		SocketErrorHandling errorHandling;
 		string answer;
 		OMethodStringStream init("init");
 
-		err= openSendConnection();
-		if(err > 0)
-			return err;
+		m_pSocketError= openSendConnection();
+		if(m_pSocketError->hasError())
+			return m_pSocketError;
 		answer= sendMethod(m_sToClient, init, true);
-		if(err == 0)
-			err2= closeSendConnection();
-		err= error(answer);
-		if(err != 0)
-			return err;
-		if(err2 > 0)
-			return err2;
+		m_pSocketError->setErrorStr(answer);
+		if(m_pSocketError->hasError())
+			errorHandling= closeSendConnection();
+		if(m_pSocketError->fail())
+		{
+			m_pSocketError->addMessage("process", "check", getProcessName() + "@" + m_sToClient);
+			return m_pSocketError;
+		}
 		if(answer != "done")
-			return 3;
-		return 0;
+		{
+			m_pSocketError->setError("process", "wrong_answer",
+							getProcessName() + "@" + m_sToClient + "@" + answer);
+			return m_pSocketError;
+		}
+		(*m_pSocketError)= errorHandling;
+		m_pSocketError->addMessage("process", "closeSendConnection",
+							getProcessName() + "@" + m_sToClient);
+		return m_pSocketError;
 	}
 
-	int Process::run(void *args/*= NULL*/)
+	EHObj Process::run(void *args/*= NULL*/)
 	{
 		return runprocess(args, false);
 	}
 
-	int Process::runprocess(void* args, bool bHold)
+	EHObj Process::runprocess(void* args, bool bHold)
 	{
-		int ret= 0;
+		bool bRun(true);
 
 		m_bRun= true;
 		m_nProcessID= getpid();
 		initstatus(getProcessName(), this);
-		ret= init(args);
-		while(	ret <= 0
-				&&
-				!stopping()	)
+		m_pSocketError= init(args);
+		if(m_pSocketError->fail())
 		{
-			POS("###THREAD_execute_start");
-			ret= execute();
+			m_pSocketError->addMessage("process", "init",
+							getProcessName());
+		}
+		if(!m_pSocketError->hasError())
+		{
+			while(	bRun &&
+					!stopping()	)
+			{
+				POS("###THREAD_execute_start");
+				m_pSocketError->clear();
+				bRun= execute();
+			}
 		}
 		AROUSEALL(m_PROCESSSTOPCOND);
 		ending();
 		removestatus(m_nProcessID);
-		return ret;
+		return m_pSocketError;
 	}
 
-	string Process::strerror(int error)
+	short Process::running()
 	{
-		string str;
-
-		switch(error)
-		{
-		case 0:
-			str= "no error occurred";
-			break;
-		case 2:
-			str= "cannot fork process";
-			break;
-		case 3:
-			str= "cannot correctly check initialization from new process, "
-		  			"maybe connection was failed or server give back wrong answer (not 'done')";
-			break;
-		case 4:
-			str= "cannot correctly check stopping from process, "
-		  			"maybe connection was failed or server give back wrong answer (not 'done')";
-			break;
-		default:
-			str= ExternClientInputTemplate::strerror(error);
-			break;
-		}
-		return str;
-	}
-
-	int Process::running()
-	{
-		int nRv= 0;
+		short nRv= 0;
 		string answer;
 
 		if(m_nProcessID == 0)
@@ -220,7 +233,13 @@ namespace util
 				return 1;
 			if(answer == "false")
 				return 0;
-			return error(answer);
+			m_pSocketError->setErrorStr(answer);
+			if(!m_pSocketError->fail())
+			{
+				m_pSocketError->setError("process", "running",
+								getProcessName() + "@" + m_sToClient + "@" + answer);
+			}
+			return -1;
 		}
 		LOCK(m_PROCESSRUNNING);
 		if(m_bRun)
@@ -229,7 +248,7 @@ namespace util
 		return nRv;
 	}
 
-	int Process::stopping()
+	short Process::stopping()
 	{
 		int nRv= 0;
 		string answer;
@@ -245,7 +264,13 @@ namespace util
 				return 1;
 			if(answer == "false")
 				return 0;
-			return error(answer);
+			m_pSocketError->setErrorStr(answer);
+			if(!m_pSocketError->fail())
+			{
+				m_pSocketError->setError("process", "stopping",
+								getProcessName() + "@" + m_sToClient + "@" + answer);
+			}
+			return -1;
 		}
 		LOCK(m_PROCESSSTOPPING);
 		if(m_bStop)

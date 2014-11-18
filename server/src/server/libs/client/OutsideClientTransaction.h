@@ -21,12 +21,13 @@
 #include <vector>
 #include <deque>
 
-//#include "../../hearingthread.h"
-
-//#include "../../../portserver/owserver.h"
+#include "../../../pattern/util/IErrorHandlingPattern.h"
 
 #include "../../../pattern/server/NoCommunicateTransactionAdapter.h"
 
+#include "../SocketErrorHandling.h"
+
+using namespace design_pattern_world::util_pattern;
 using namespace design_pattern_world::server_pattern;
 
 namespace server
@@ -44,17 +45,17 @@ namespace server
 			 * constructor for transaction from outside
 			 */
 			OutsideClientTransaction()
-			:	m_bAccess(false),
+			:	m_pSocketError(EHObj(new SocketErrorHandling)),
+			 	m_bAccess(false),
 				m_bHold(true)
 				{ };
 			/**
 			 * initial all values for transaction
 			 *
 			 * @param descriptor file handle to set start values
-			 * @return whether initialization was correct
+			 * @return object for error handling
 			 */
-			virtual bool init(IFileDescriptorPattern& descriptor)
-			{ return true; };
+			virtual EHObj init(IFileDescriptorPattern& descriptor);
 			/**
 			 * set command from outside the transaction object
 			 *
@@ -88,27 +89,19 @@ namespace server
 			 * transaction protocol between client to server
 			 *
 			 * @param descriptor file handle to get command's and send answer
-			 * @return wether need to hold the connection
+			 * @return whether should hold connection
 			 */
-			virtual bool transfer(IFileDescriptorPattern& descriptor);
-			/**
-			 * return string describing error number
-			 *
-			 * @param error code number of error
-			 * @return error string
-			 */
-			virtual string strerror(int error) const;
-			/**
-			 * get maximal error or warning number in positive values from own class
-			 *
-			 * @param byerror whether needs error number (true) or warning number (false)
-			 * @return maximal error or warning number
-			 */
-			virtual unsigned int getMaxErrorNums(const bool byerror) const;
+			OVERWRITE bool transfer(IFileDescriptorPattern& descriptor);
 			/**
 			 * destructor of client transaction
 			 */
 			virtual ~OutsideClientTransaction() {};
+
+		protected:
+			/**
+			 * socket error handling
+			 */
+			EHObj m_pSocketError;
 
 		private:
 			/**

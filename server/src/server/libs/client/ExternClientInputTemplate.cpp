@@ -23,13 +23,15 @@
 #include "../../../util/thread/Thread.h"
 
 #include "../../../pattern/util/LogHolderPattern.h"
+#include "../../../database/logger/lib/logstructures.h"
 
 #include "ExternClientInputTemplate.h"
 
 namespace util
 {
 	ExternClientInputTemplate::ExternClientInputTemplate(const string& process, const string& client, IClientConnectArtPattern* sendConnection, IClientConnectArtPattern* getConnection)
-	:	m_sProcess(process),
+	:	m_pSocketError(EHObj(new SocketErrorHandling)),
+	 	m_sProcess(process),
 		m_sName(client),
 		m_oSendConnect(sendConnection),
 		m_oGetConnect(getConnection),
@@ -44,16 +46,16 @@ namespace util
 		,m_boutput(false)
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 	{
-		int res;
-
 		m_SENDMETHODLOCK= Thread::getMutex("SENDMETHODLOCK");
 		m_GETQUESTIONLOCK= Thread::getMutex("GETQUESTIONLOCK");
-		res= m_oAnswerSender.start();
-		if(res)
+		m_pSocketError= m_oAnswerSender.start();
+		if(m_pSocketError->hasError())
 		{
-			string err("ExternClientInputTemplate can not send questions which need no answer over external thread '");
+			string err;
 
 			m_bNoAnswerSend= false;
+			m_pSocketError->addMessage("ExternClientInputTemplate",
+							"NoAnswerSender_start", process + "@" + client);
 			err+= m_oAnswerSender.getThreadName() + "'\n";
 			cerr << "### WARNING: " << err;
 			cerr << "              so send this messages directly which has more bad performance" << endl;
@@ -63,28 +65,36 @@ namespace util
 		//m_bNoAnswerSend= false;
 	}
 
-	int ExternClientInputTemplate::openSendConnection(string toopen/*= ""*/)
+	EHObj ExternClientInputTemplate::openSendConnection(string toopen/*= ""*/)
 	{
 		if(m_oSendConnect == NULL)
-			return 1;
+		{
+			m_pSocketError->setError("ExternClientInputTemplate",
+							"noSendClass");
+			return m_pSocketError;
+		}
 		return openSendConnection(m_oSendConnect->getTimeout(), toopen);
 	}
 
-	int ExternClientInputTemplate::openSendConnection(const unsigned int timeout, string toopen/*= ""*/)
+	EHObj ExternClientInputTemplate::openSendConnection(
+					const unsigned int timeout, string toopen/*= ""*/)
 	{
-		int nRv= 0, err;
 		unsigned int old;
 
 		LOCK(m_SENDMETHODLOCK);
 		if(m_pSendTransaction)
 		{
 			UNLOCK(m_SENDMETHODLOCK);
-			return -1;
+			m_pSocketError->setWarning("ExternClientInputTemplate",
+									"noTransactionClass");
+			return m_pSocketError;
 		}
 		if(m_oSendConnect == NULL)
 		{
 			LOCK(m_SENDMETHODLOCK);
-			return 1;
+			m_pSocketError->setError("ExternClientInputTemplate",
+									"noSendClass");
+			return m_pSocketError;
 		}
 		if(toopen == "")
 			toopen= m_sOpenSendCommand;
@@ -96,30 +106,17 @@ namespace util
 		{
 			m_oSendConnect->newTranfer(m_pSendTransaction, true);
 			m_pSendTransaction->setCommand(toopen);
-			nRv= m_oSendConnect->init();
+			m_pSocketError= m_oSendConnect->init();
 			if(old != timeout)
 				m_oSendConnect->setTimeout(old);
-			if(nRv > 0)
+			if(m_pSocketError->hasError())
 			{
 				m_oSendConnect->newTranfer(NULL, /*delete old*/true);
 				m_pSendTransaction= NULL;
-				UNLOCK(m_SENDMETHODLOCK);
-				return nRv += getMaxErrorNums(/*error*/true);
 			}
-			err= error(m_pSendTransaction->getReturnedString()[0]);
-			if(err != 0)
-			{
-				err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
-				err+= (err > 0 ? m_oSendConnect->getMaxErrorNums(true) : (m_oSendConnect->getMaxErrorNums(false) * -1));
-				UNLOCK(m_SENDMETHODLOCK);
-				return err;
-			}
-			if(nRv < 0)
-				nRv-= getMaxErrorNums(false);
-			UNLOCK(m_SENDMETHODLOCK);
-			return nRv;
 		}
-		return 0;
+		UNLOCK(m_SENDMETHODLOCK);
+		return m_pSocketError;
 	}
 
 	string ExternClientInputTemplate::sendMethod(const string& toProcess, const OMethodStringStream& method,
@@ -166,7 +163,7 @@ namespace util
 															const string& done, const bool answer/*= true*/)
 	{
 		bool bsend;
-		int ret, tryrecon= 0;
+		int tryrecon= 0;
 		string command;
 		vector<string> result, fresult;
 		vector<string>::iterator it;
@@ -174,13 +171,21 @@ namespace util
 		LOCK(m_SENDMETHODLOCK);
 		if(m_oSendConnect == NULL)
 		{
-			result.push_back("ERROR 001");
+			SocketErrorHandling error;
+
+			error.setError("ExternClientInputTemplate",
+									"noConSendMethod");
+			result.push_back(error.getErrorStr());
 			UNLOCK(m_SENDMETHODLOCK);
 			return result;
 		}
 		if(m_pSendTransaction == NULL)
 		{
-			result.push_back("ERROR 002");
+			SocketErrorHandling error;
+
+			error.setError("ExternClientInputTemplate",
+									"noTransSendMethod");
+			result.push_back(error.getErrorStr());
 			UNLOCK(m_SENDMETHODLOCK);
 			return result;
 		}
@@ -237,18 +242,24 @@ namespace util
 				ex.addMessage(msg.str());
 				throw(ex);
 			}
-			ret= m_oSendConnect->init();
+			m_pSocketError= m_oSendConnect->init();
 			bsend= true;
-			if(ret > 0)
+			if(m_pSocketError->hasGroupError("IClientConnectArtPattern"))
 			{
 				UNLOCK(m_SENDMETHODLOCK);
-				result.push_back(error(ret + getMaxErrorNums(true)));
+				result.push_back(m_pSocketError->getErrorStr());
 				return result;
 			}
 			result= m_pSendTransaction->getReturnedString();
 			UNLOCK(m_SENDMETHODLOCK);
-			if(ret == -2)
+			if(m_pSocketError->hasError())
 			{
+				/*
+				 * this error will be now
+				 * only from transaction or higher,
+				 * because group of IClientConnectArtPattern
+				 * was asked before
+				 */
 				closeSendConnection();
 				if(tryrecon <= 5)
 				{
@@ -290,115 +301,102 @@ namespace util
 			cout << "Interface " << m_sProcess << "::" << m_sName;
 			cout << " get answer:" << endl;
 		}
-#endif // __FOLLOWSERVERCLIENTTRANSACTION
 		while(it != result.end())
 		{
-#ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			if(boutput)
 			{ // DEBUG display
 				cout << "             '" << *it << "'" << endl;
 			}
-#endif // __FOLLOWSERVERCLIENTTRANSACTION
-			ret= error(*it);
-			if(ret != 0)
-			{
-				it= result.erase(it);
-				ret+= (ret > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
-				ret+= (ret > 0 ? m_oSendConnect->getMaxErrorNums(true) : (m_oSendConnect->getMaxErrorNums(false) * -1));
-				result.insert(it, error(ret));
-			}
 			++it;
 		}
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
 		return result;
 	}
 
-	int ExternClientInputTemplate::closeSendConnection()
+	EHObj ExternClientInputTemplate::closeSendConnection()
 	{
-		int nRv;
-
 		LOCK(m_SENDMETHODLOCK);
 		try{
-			nRv= closeConnection(m_oSendConnect, m_pSendTransaction, m_sEndingSendCommand);
+			closeConnection(m_oSendConnect, m_pSendTransaction, m_sEndingSendCommand);
 		}catch(SignalException& ex)
 		{
 			ex.addMessage("try to close send connection for Interface " + m_sProcess + "::" + m_sName);
 			ex.printTrace();
 			LOG(LOG_WARNING, ex.getTraceString());
+			if(!m_pSocketError->hasError())
+				m_pSocketError->setError("ExternClientInputTemplate", "closeSendConnection",
+								m_sProcess + "@" + m_sName);
 		}
 		m_pSendTransaction= NULL;
 		UNLOCK(m_SENDMETHODLOCK);
-		return nRv;
+		return m_pSocketError;
 	}
 
-	int ExternClientInputTemplate::closeConnection(IClientConnectArtPattern* connection, OutsideClientTransaction* transaction, const string& command)
+	bool ExternClientInputTemplate::closeConnection(IClientConnectArtPattern* connection,
+					OutsideClientTransaction* transaction, const string& command)
 	{
-		int nRv= 0;
+		int bRv(true);
 
-		if(connection == NULL)
-			return 1;
-		if(transaction == NULL)
-			return 2;
 		try{
-			transaction->closeConnection(command);
+			if(transaction)
+				transaction->closeConnection(command);
 		}catch(SignalException& ex)
 		{
 			ex.addMessage("try to close transaction connection for Interface " + m_sProcess + "::" + m_sName);
 			ex.printTrace();
 			LOG(LOG_WARNING, ex.getTraceString());
+			m_pSocketError->setError("ExternClientInputTemplate", "closeConnection",
+							m_sProcess + "@" + m_sName);
+			bRv= false;
 		}
-		if(!connection->init())
-			nRv= 3;
-		connection->close();
-		connection->newTranfer(NULL, /*delete old*/true);
-		return nRv;
+		// unknown error setting from commit release before 956
+		// do not know why want to reinitialize connection
+		//if(!connection->init())
+		//	nRv= 3;
+		if(connection)
+		{
+			connection->close();
+			connection->newTranfer(NULL, /*delete old*/true);
+		}
+		return bRv;
 	}
 
-	int ExternClientInputTemplate::openGetConnection()
+	EHObj ExternClientInputTemplate::openGetConnection()
 	{
-		int nRv;
 		vector<string> answer;
 
 		LOCK(m_GETQUESTIONLOCK);
 		if(m_oGetConnect == NULL)
 		{
 			UNLOCK(m_GETQUESTIONLOCK);
-			return 1;
+			m_pSocketError->setError("ExternClientInputTemplate", "noGetClass");
+			return m_pSocketError;
 		}
 		if(m_pGetTransaction == NULL)
 		{
 			m_pGetTransaction= new OutsideClientTransaction();
 			if(m_sOpenGetCommand != "")
 			{
+				SocketErrorHandling handling;
+
 				m_oGetConnect->newTranfer(m_pGetTransaction, true);
 				m_pGetTransaction->setCommand(m_sOpenGetCommand);
-				nRv= m_oGetConnect->init();
-				if(nRv > 0)
+				m_pSocketError= m_oGetConnect->init();
+				if(m_pSocketError->hasGroupError("IClientConnectArtPattern"))
 				{
 					m_oGetConnect->newTranfer(NULL, /*delete old*/true);
 					m_pGetTransaction= NULL;
 					UNLOCK(m_GETQUESTIONLOCK);
-					return nRv + getMaxErrorNums(true);
+					return m_pSocketError;
 				}
 				answer= m_pGetTransaction->getReturnedString();
-				if(answer[0] != "done")
-				{
-					int err;
-
-					UNLOCK(m_GETQUESTIONLOCK);
-					err= error(answer[0]);
-					if(err != 0)
-					{
-						err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
-						err+= (err > 0 ? m_oGetConnect->getMaxErrorNums(true) : (m_oGetConnect->getMaxErrorNums(false) * -1));
-						return err;
-					}
-					if(nRv < 0)
-						return nRv - getMaxErrorNums(false);
-				}
+				handling.searchResultError(answer);
+				if(handling.fail())
+					(*m_pSocketError)= handling;
 			}
 		}
 		UNLOCK(m_GETQUESTIONLOCK);
-		return 0;
+		return m_pSocketError;
 	}
 
 	string ExternClientInputTemplate::getQuestion(const string& lastAnswer)
@@ -419,7 +417,6 @@ namespace util
 
 	string ExternClientInputTemplate::getQuestion(const vector<string>& lastAnswer)
 	{
-		int err;
 		string question;
 		vector<string> answer;
 
@@ -427,37 +424,22 @@ namespace util
 		if(m_oGetConnect == NULL)
 		{
 			UNLOCK(m_GETQUESTIONLOCK);
-			return "ERROR 001";
+			m_pSocketError->setError("ExternClientInputTemplate", "noGetClass");
+			return m_pSocketError->getErrorStr();
 		}
 		if(m_pGetTransaction == NULL)
 		{
-			err= openGetConnection();
-			if(err != 0)
+			m_pSocketError= openGetConnection();
+			if(m_pSocketError->hasError())
 			{
 				UNLOCK(m_GETQUESTIONLOCK);
-				return error(err);
+				return m_pSocketError->getErrorStr();
 			}
 		}
 		m_pGetTransaction->setAnswer(lastAnswer);
-		err= m_oGetConnect->init();
-		if(err != 0)
-		{
-			answer= m_pGetTransaction->getReturnedString();
-			if(answer.size() > 0)
-			{
-				int err2;
-				string serr;
-
-				serr= answer.back();
-				err2= error(serr);
-				if(err2 != 0)
-					err= err2;
-			}
-			UNLOCK(m_GETQUESTIONLOCK);
-			err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
-			err+= (err > 0 ? m_oGetConnect->getMaxErrorNums(true) : (m_oGetConnect->getMaxErrorNums(false) * -1));
-			return error(err);
-		}
+		m_pSocketError= m_oGetConnect->init();
+		if(m_pSocketError->hasError())
+			return m_pSocketError->getErrorStr();
 
 	// this part of writing messages to output gives some ERROR
 	// Although the variable m_boutput in the constructor is set to false, it is true in the processing
@@ -471,7 +453,21 @@ namespace util
 		}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 #endif
+		string warnstr;
+		SocketErrorHandling handling;
+
+		if(m_pSocketError->hasWarning())
+		{
+			warnstr= m_pSocketError->getErrorStr();
+			m_pSocketError->clear();
+		}
 		answer= m_pGetTransaction->getReturnedString();
+		if(	handling.searchResultError(answer) &&
+			handling.hasError()						)
+		{
+			return handling.getErrorStr();
+		}
+		(*m_pSocketError)= handling;
 		if(answer.size())
 		{
 			IMethodStringStream oQuestion(answer.front());
@@ -534,224 +530,26 @@ namespace util
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 #endif
 		UNLOCK(m_GETQUESTIONLOCK);
-		err= error(question);
-		if(err != 0)
-		{
-			err+= (err > 0 ? getMaxErrorNums(true) : (getMaxErrorNums(false) * -1));
-			err+= (err > 0 ? m_oGetConnect->getMaxErrorNums(true) : (m_oGetConnect->getMaxErrorNums(false) * -1));
-			return error(err);
-		}
 		return question;
 	}
 
-	int ExternClientInputTemplate::closeGetConnection()
+	EHObj ExternClientInputTemplate::closeGetConnection()
 	{
-		int nRv;
-
 		LOCK(m_GETQUESTIONLOCK);
 		try{
-			nRv= closeConnection(m_oGetConnect, m_pGetTransaction, m_sEndingGetCommand);
+			closeConnection(m_oGetConnect, m_pGetTransaction, m_sEndingGetCommand);
 		}catch(SignalException& ex)
 		{
 			ex.addMessage("try to close get connection for Interface " + m_sProcess + "::" + m_sName);
 			ex.printTrace();
 			LOG(LOG_WARNING, ex.getTraceString());
+			if(!m_pSocketError->hasError())
+				m_pSocketError->setError("ExternClientInputTemplate", "closeSendConnection",
+								m_sProcess + "@" + m_sName);
 		}
 		m_pGetTransaction= NULL;
 		UNLOCK(m_GETQUESTIONLOCK);
-		return nRv;
-	}
-
-	inline int ExternClientInputTemplate::error(const string& input)
-	{
-		int number;
-		string answer;
-		istringstream out(input);
-
-		out >> answer >> number;
-		if(answer == "ERROR")
-			return number;
-		if(answer == "WARNING")
-			return number * -1;
-		return 0;
-	}
-
-	inline string ExternClientInputTemplate::error(int err)
-	{
-		ostringstream in;
-
-		if(err < 0)
-		{
-			err*= -1;
-			in << "WARNING ";
-		}else
-			in << "ERROR ";
-		in.width(3);
-		in.fill('0');
-		in << err;
-		return in.str();
-	}
-
-	string ExternClientInputTemplate::strerror(int err, const bool bSend/*= true*/)
-	{
-		int min, max;
-		string str;
-
-		switch(err)
-		{
-		case 0:
-			str= "no error occurred";
-			break;
-		case -1:
-		str= "WARNING: connection exist before";
-			break;
-		case 1:
-			str= "ERROR: no <code>IClientConnectArtPattern</code> be given for sending";
-			break;
-		case 2:
-			str= "cannot connect with server, or initialization was fail";
-			break;
-		default:
-			min= getMaxErrorNums(false) * -1;
-			max= getMaxErrorNums(true);
-			if(	err > max
-				||
-				err < min	)
-			{
-				err-= (err > 0 ? max : min);
-				min= 0;
-				max= 0;
-				if(bSend && m_oSendConnect)
-				{
-					min= m_oSendConnect->getMaxErrorNums(/*error*/false) * -1;
-					max= m_oSendConnect->getMaxErrorNums(/*error*/true);
-
-				}else if(m_oGetConnect)
-				{
-					min= m_oGetConnect->getMaxErrorNums(/*error*/false) * -1;
-					max= m_oGetConnect->getMaxErrorNums(/*error*/true);
-
-				}
-				if(err >= min && err <= max)
-				{
-					if(bSend && m_oSendConnect)
-					{
-						str= m_oSendConnect->strerror(err);
-						break;
-
-					}else if(m_oGetConnect)
-					{
-						str= m_oGetConnect->strerror(err);
-						break;
-					}
-				}else
-				{
-					bool open= false;
-					string answer;
-					OMethodStringStream command("getMinMaxErrorNums");
-
-					err-= (err > 0 ? max : min);
-					min= 0;
-					max= 0;
-					if(bSend && m_oSendConnect)
-					{
-						if(!m_pSendTransaction)
-						{
-							openSendConnection();
-							open= true;
-						}
-						min= m_pSendTransaction->getMaxErrorNums(/*error*/false) * -1;
-						max= m_pSendTransaction->getMaxErrorNums(/*error*/true);
-						if(err >= min && err <= max)
-						{
-							str= m_pSendTransaction->strerror(err);
-							break;
-						}
-						answer= sendMethod(m_sName, command);
-						if(open)
-							closeSendConnection();
-
-					}else if(m_oGetConnect)
-					{
-						if(!m_pGetTransaction)
-						{
-							openGetConnection();
-							open= true;
-						}
-						min= m_pGetTransaction->getMaxErrorNums(/*error*/false) * -1;
-						max= m_pGetTransaction->getMaxErrorNums(/*error*/true);
-						if(err >= min && err <= max)
-						{
-							str= m_pGetTransaction->strerror(err);
-							break;
-						}
-						answer= sendMethod(m_sName, command, true);
-						if(open)
-							closeGetConnection();
-					}
-					err-= (err > 0 ? max : min);
-					if(error(answer) == 0)
-					{
-						int err2;
-						OMethodStringStream command("getErrorString");
-						istringstream ianswer(answer);
-
-						ianswer >> min;
-						ianswer >> max;
-						if(err >= min && err <= max)
-						{
-							min= 0;
-							max= 0;
-							command << err;
-							if(bSend && m_oSendConnect)
-							{
-								if(!m_pSendTransaction)
-								{
-									openSendConnection();
-									open= true;
-								}
-								str= sendMethod(m_sName, command, /*answer*/true);
-								if(open)
-									closeSendConnection();
-								err2= error(str);
-								if(err2 == 0 && str != "")
-									break;
-
-							}if(m_oGetConnect)
-							{
-								if(!m_pGetTransaction)
-								{
-									openGetConnection();
-									open= true;
-								}
-								str= getQuestion(command.str());
-								if(open)
-									closeGetConnection();
-								err2= error(str);
-								if(err2 == 0 && str != "")
-									break;
-							}
-						}
-					}
-				}
-			}
-			if(err > 0)
-				str= "undefined error occurred";
-			else
-				str= "undefined warning occurred";
-		}
-		return str;
-	}
-
-	unsigned int ExternClientInputTemplate::getMaxErrorNums(const bool byerror) const
-	{
-		unsigned int nRv;
-
-		if(byerror)
-			nRv= 10;
-		else
-			nRv= 10;
-		return nRv;
+		return m_pSocketError;
 	}
 
 	ExternClientInputTemplate::~ExternClientInputTemplate()

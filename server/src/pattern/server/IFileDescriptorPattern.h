@@ -23,11 +23,15 @@
 
 #include "../../util/stream/IMethodStringStream.h"
 
+#include "../util/IErrorHandlingPattern.h"
+
 using namespace std;
 using namespace util;
 
 namespace design_pattern_world
 {
+	using namespace util_pattern;
+
 	namespace server_pattern
 	{
 		/**
@@ -42,9 +46,9 @@ namespace design_pattern_world
 				/**
 				 * initial object of IFileDiscriptorPattern
 				 *
-				 * @return whether initialization was correct
+				 * @return object of error handling
 				 */
-				virtual bool init()= 0;
+				virtual EHObj init()= 0;
 				/**
 				 * operator writing string value into the param,
 				 * witch comming over the transaction
@@ -73,7 +77,7 @@ namespace design_pattern_world
 				 */
 				virtual bool eof() const= 0;
 				/**
-				 * get error number if any occured,
+				 * get error number if any errno occurred,
 				 * elsewhere 0
 				 */
 				virtual int error() const= 0;
@@ -334,20 +338,6 @@ namespace design_pattern_world
 				 * close connection to client
 				 */
 				virtual void closeConnection()= 0;
-				/**
-				 * return string describing error number
-				 *
-				 * @param error code number of error
-				 * @return error string
-				 */
-				virtual string strerror(int error) const= 0;
-				/**
-				 * get maximal error or warning number in positive values from own class
-				 *
-				 * @param byerror whether needs error number (true) or warning number (false)
-				 * @return maximal error or warning number
-				 */
-				virtual unsigned int getMaxErrorNums(const bool byerror) const= 0;
 				/**
 				 * destructor to dereference file
 				 */

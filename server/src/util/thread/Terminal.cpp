@@ -23,6 +23,8 @@
 
 #include "../../pattern/util/LogHolderPattern.h"
 
+#include "../../database/logger/lib/logstructures.h"
+
 Terminal* Terminal::_instance= NULL;
 
 using namespace boost;
@@ -113,7 +115,7 @@ void Terminal::read(const pid_t& threadID, const string& msg)
 	UNLOCK(m_PRINT);
 }
 
-int Terminal::execute()
+bool Terminal::execute()
 {
 //#define __showOutputCheckOnCommandLine
 	bool bFinishedBlocks(false);
@@ -231,7 +233,7 @@ int Terminal::execute()
 		for(vector<string>::iterator it= pmsgs->begin(); it != pmsgs->end(); ++it)
 			write(threadID, *it);
 	}
-	return 0;
+	return true;
 }
 
 void Terminal::ending()
@@ -403,19 +405,17 @@ void Terminal::end(pid_t threadID/*= 0*/)
 		execute();// when no working thread created
 }
 
-int Terminal::stop(const bool *bWait/*= NULL*/)
+EHObj Terminal::stop(const bool *bWait/*= NULL*/)
 {
-	int res;
-
-	res= Thread::stop(false);
+	m_pError= Thread::stop(false);
 	LOCK(m_PRINT);
 	AROUSE(m_WORKINGCONDITION);
 	UNLOCK(m_PRINT);
-	if(	res != 0 ||
+	if(	m_pError->hasError() ||
 		bWait == NULL ||
-		*bWait == false	)
+		*bWait == false			)
 	{
-		return res;
+		return m_pError;
 	}
 	return Thread::stop(bWait);
 }

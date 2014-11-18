@@ -29,6 +29,8 @@
 
 #include "../../../../pattern/util/LogHolderPattern.h"
 
+#include "../../../../util/stream/BaseErrorHandling.h"
+
 #include "LircClient.h"
 
 //extern "C" {
@@ -142,7 +144,7 @@ namespace ports
 		{
 			string msg("### ERROR: cannot initial LIRC\n");
 
-			msg+= "    ERRNO: " + *strerror(errno);
+			msg+= "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
 			cerr << msg << endl;
 			LOG(LOG_ERROR, msg);
 			return false;
@@ -150,7 +152,7 @@ namespace ports
 		/*if(lirc_readconfig(NULL, &m_ptLircConfig, NULL) != 0)
 		{
 			cout << "### ERROR: cannot read lirc configuration" << endl;
-			cout << "    ERRNO: " << strerror(errno) << endl;
+			cout << "    ERRNO: " << BaseErrorHandling::getErrnoString(errno) << endl;
 			return false;
 		}*/
 		m_bConnected= true;
@@ -306,7 +308,7 @@ namespace ports
 
 			msg+= "    LIRC:  " + *lircdef;
 			if(errno)
-				msg+= "\n    ERRNO: " + *strerror(errno);
+				msg+= "\n    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
 			cerr << msg << endl;
 			LOG(LOG_ERROR, msg);
 			free(lircdef);

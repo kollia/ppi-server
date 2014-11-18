@@ -48,40 +48,42 @@ LogThread::LogThread(bool check, bool waitFirst/*= false*/, bool asServer/*= tru
 	m_READLOGMESSAGESCOND= getCondition("READLOGMESSAGESCOND");
 }
 
-int LogThread::init(void* arg)
+EHObj LogThread::init(void* arg)
 {
-	return 0;
+	return m_pError;
 }
 
-int LogThread::start(void *args, bool bHold)
+EHObj LogThread::start(void *args, bool bHold)
 {
 #ifndef SINGLETHREADING
 	if(m_bAsServer)
 		return Thread::start(args, bHold);
 #endif // SINGLETHREADING
 
-	return -11;
+	m_pError->setWarning("LogThread", "start");
+	return m_pError;
 }
 
-int LogThread::stop(bool bWait)
+EHObj LogThread::stop(const bool *bWait/*= NULL*/)
 {
 #ifndef SINGLETHREADING
 	if(m_bAsServer)
 	{
-		int result;
-
-		result= Thread::stop(/*wait*/false);
+		m_pError= Thread::stop(/*wait*/false);
 		stopping();
 		LOCK(m_READLOGMESSAGES);
 		AROUSE(m_READLOGMESSAGESCOND);
 		UNLOCK(m_READLOGMESSAGES);
+		if(m_pError->hasError())
+			return m_pError;
 		if(bWait)
-			return Thread::stop(/*wait*/true);
-		return result;
+			(*m_pError)= Thread::stop(/*wait*/true);
+		return m_pError;
 	}
 #endif // SINGLETHREADING
 
-	return -12;
+	m_pError->setWarning("LogThread", "stop");
+	return m_pError;
 }
 
 void LogThread::setProperties(string logFile, int minLogLevel, int logAllSec, int writeLogDays, const unsigned short nDeleteAfter)
@@ -238,7 +240,7 @@ void LogThread::beginLogging()
 	UNLOCK(m_READLOGMESSAGES);
 }
 
-int LogThread::execute()
+bool LogThread::execute()
 {
 	auto_ptr<vector<struct log_t> > pvLogVector;
 
@@ -337,7 +339,7 @@ int LogThread::execute()
 						{
 							cerr << "### ERROR: cannot open file '" << m_sCurrentLogFile << "'" << endl;
 							cerr << "           so cannot write any log file" << endl;
-							cerr << "    ERRNO: " << strerror(errno) << endl;
+							cerr << "    ERRNO: " << BaseErrorHandling::getErrnoString(errno) << endl;
 							return 1;
 						}
 						bOpenedLogF= true;
@@ -435,7 +437,7 @@ int LogThread::execute()
 					sprintf(cerrno, "%d", errno);
 					error+= cerrno;
 					error+= "): ";
-					error+= strerror(errno);
+					error+= BaseErrorHandling::getErrnoString(errno);
 					log(__FILE__, __LINE__, LOG_WARNING, error);
 				}else
 				{
@@ -450,7 +452,7 @@ int LogThread::execute()
 							sprintf(cerrno, "%d", errno);
 							error+= cerrno;
 							error+= "): ";
-							error+= strerror(errno);
+							error+= BaseErrorHandling::getErrnoString(errno);
 							log(__FILE__, __LINE__, LOG_ERROR, error);
 						}
 					}
@@ -459,7 +461,7 @@ int LogThread::execute()
 			m_nNextDeleteTime= Calendar::calcDate(/*newer*/true, timenow, m_nDeleteDays, Calendar::days);
 		}
 	}
-	return 0;
+	return true;
 }
 
 void LogThread::ending()

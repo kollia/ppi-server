@@ -21,8 +21,9 @@
 
 #include <string>
 
-using namespace std;
+#include "IErrorHandlingPattern.h"
 
+using namespace std;
 
 namespace design_pattern_world
 {
@@ -43,28 +44,35 @@ namespace design_pattern_world
 				 * @param args arbitrary optional defined parameter to get in initialization method init
 				 * @param bHold should the caller wait of thread by ending.<br />
 				 * 				default is false
-				 * @return NULL when all OK if bHold is false, otherwise the return value of the thread in an void pointer
+				 * @return error handling object
 				 */
-				virtual int start(void *args= NULL, bool bHold= false)= 0;
+				virtual EHObj start(void *args= NULL, bool bHold= false)= 0;
 				/**
 				 * to ask whether the thread should stopping.<br />
 				 * This method should be call into running thread to know whether the thread should stop.
 				 *
-				 * @return true if the thread should stop
+				 * @return 1 if the thread should stop otherwise 0 or -1 by error
 				 */
-				virtual int stopping()= 0;
+				virtual short stopping()= 0;
 				/**
 				 * external query whether the thread is running
 				 *
-				 * @return true if thread is running
+				 * @return 1 when thread running otherwise 0 or -1 by error
 				 */
-				virtual int running()= 0;
+				virtual short running()= 0;
 				/**
 				 *  external command to stop thread
 				 *
 				 * @param bWait calling rutine should wait until the thread is stopping
+				 * @return error handling object
 				 */
-				virtual int stop(const bool bWait)= 0;
+				virtual EHObj stop(const bool bWait)= 0;
+				/**
+				 * returning current error handling object
+				 *
+				 * @return object of error handling
+				 */
+				virtual EHObj getErrorHandlingObj() const= 0;
 				/**
 				 * dummy destructor for pattern
 				 */

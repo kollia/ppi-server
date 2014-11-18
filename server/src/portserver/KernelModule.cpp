@@ -26,13 +26,13 @@ namespace server {
 		m_POLLREAD= getMutex("POLLREAD");
 	}
 
-	int KernelModule::init(void *args)
+	EHObj KernelModule::init(void *args)
 	{
 		string threadName("KernelModul[");
 
 		threadName+= m_sServerType + ")";
 		LogHolderPattern::instance()->setThreadName(threadName);
-		return 0;
+		return m_pError;
 	}
 
 	bool KernelModule::changeReadPoll(map<double, vector<SHAREDPTR::shared_ptr<chip_types_t> > >& sequences,
@@ -99,7 +99,7 @@ namespace server {
 		return bPoll;
 	}
 
-	int KernelModule::execute()
+	bool KernelModule::execute()
 	{
 		short endWork;
 		double value;
@@ -148,7 +148,7 @@ namespace server {
 			}
 			UNLOCK(m_READCACHE);
 		}
-		return 0;
+		return true;
 	}
 
 	bool KernelModule::readChip(const short endWork, const double value, chip_types_t* pActChip)
@@ -199,7 +199,7 @@ namespace server {
 		return bDo;
 	}
 
-	int KernelModule::stop(const bool bWait)
+	EHObj KernelModule::stop(const bool *bWait/*= NULL*/)
 	{
 		m_poChipAccess->disconnect();
 		return Thread::stop(bWait);

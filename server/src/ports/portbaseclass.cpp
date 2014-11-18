@@ -99,6 +99,14 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	}else
 		m_bFollow= false;
 #endif // __followSETbehaviorToFolder
+
+	//Debug info to stop by right subroutine
+/*	if(	getFolderName() == "Raff1_Zeit" &&
+		getSubroutineName() == "schliessen"					)
+	{
+		cout << getFolderName() << ":" << getSubroutineName() << endl;
+		cout << __FILE__ << __LINE__ << endl;
+	}*/
 	m_dValue.value= 0;
 	m_pFolders= pStartFolder;
 	m_bInfo= !properties->haveAction("noinfo");

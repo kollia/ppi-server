@@ -256,9 +256,9 @@ namespace design_pattern_world
 		 * method to running thread .<br />
 		 * This method starting again when method stop() wasn't call.
 		 *
-		 * @return error code for not correctly done
+		 * @return whether thread should starting again
 		 */
-		virtual int execute()= 0;
+		virtual bool execute()= 0;
 		/**
 		 * stop working of database.<br />
 		 * Arose all conditions to ending method <code>execute()</code>

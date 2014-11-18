@@ -50,18 +50,17 @@ namespace logger
 	bool LogInterface::openedConnection()
 	{
 		bool bRv;
+		EHObj err;
 
 		LOCK(m_WRITELOOP);
 		switch(m_nOpen)
 		{
 		case 0:
-			int err;
-
 			m_nOpen= 1;
 			UNLOCK(m_WRITELOOP);
 			err= openConnection();
 			LOCK(m_WRITELOOP);
-			if(err > 0)
+			if(err->hasError())
 			{
 				bRv= false;
 				m_nOpen= 0;

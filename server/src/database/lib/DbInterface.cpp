@@ -50,7 +50,7 @@ namespace ppi_database
 	short DbInterface::initial(const string& process, IClientConnectArtPattern* connection, const int identifwait)
 	{
 		short n;
-		int ret;
+		EHObj ret;
 		DbInterface* pdb;
 
 		n= _instance.size();
@@ -58,22 +58,26 @@ namespace ppi_database
 		if(n == 0)
 			LogHolderPattern::init((ILogPattern*)pdb);
 		ret= pdb->openSendConnection();
-		if(ret > 0 && ret != 35)
+		if(	ret->hasError() &&
+			!ret->fail(IEH::errno_error, ECONNREFUSED)	)
 		{
-			cerr << pdb->strerror(ret) << endl;
+			cerr << glob::addPrefix("ERROR: ", ret->getDescription()) << endl;
 			delete pdb;
 			return -1;
 		}
-		if(ret < 0)
-			cout << pdb->strerror(ret) << endl;
+		if(ret->hasWarning())
+			cout << glob::addPrefix("WARNING: ", ret->getDescription()) << endl;
 		_instance[n]= pdb;
 		return n;
 	}
 
-	int DbInterface::openConnection(string toopen/*= ""*/)
+	EHObj DbInterface::openConnection(string toopen/*= ""*/)
 	{
 		if(ExternClientInputTemplate::hasOpenGetConnection())
-			return 0;
+		{
+			m_pSocketError->clear();
+			return m_pSocketError;
+		}
 		return ExternClientInputTemplate::openSendConnection(toopen);
 	}
 
@@ -91,140 +95,148 @@ namespace ppi_database
 
 	void DbInterface::setServerConfigureStatus(const string& sProcess, const short& nPercent)
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("setServerConfigureStatus");
 
 		command << sProcess;
 		command << nPercent;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
 		}
 	}
 
 	bool DbInterface::isServerConfigured(string& sProcess, short& nPercent)
 	{
-		int err;
-		bool nRv(false);
-		string sRv;
+		bool bRv(false);
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("isServerConfigured");
 
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
+			bRv= false;
 		}else
 		{
-			istringstream result(sRv);
+			istringstream result(msg);
 
-			result >> boolalpha >> nRv;
+			result >> boolalpha >> bRv;
 			result >> sProcess;
 			result >> nPercent;
+			if(result.fail())
+			{
+				bRv= false;
+				msg= "gives back false answer '" + msg + "'";
+				msg= "DbInterface question for isServerConfigured\n" + msg;
+				LOG(LOG_ALERT, msg);
+				cerr << glob::addPrefix("### ALERT:", msg) << endl;
+			}
 		}
-		return nRv;
+		return bRv;
 	}
 
 	bool DbInterface::isDbLoaded()
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream loaded("isDbLoaded");
 
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", loaded, true);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", loaded, true);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + loaded.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
-			return false;
 		}
-		if(sRv == "1")
+		if(msg == "1")
 			return true;
 		return false;
 	}
 
 	string DbInterface::allOwreadersInitialed()
 	{
-		int err;
-		string res;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream initialed("allOwreadersInitialed");
 
-		res= ExternClientInputTemplate::sendMethod("ppi-db-server", initialed, true);
-		err= error(res);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", initialed, true);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			res= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + initialed.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, res);
-				cerr << res << endl;
-				return "done";
+				LOG(LOG_ERROR, msg);
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
-				LOG(LOG_WARNING, res);
+			{
+				LOG(LOG_WARNING, msg);
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
+			}
+			msg= "false";
 		}
-		return res;
+		return msg;
 	}
 
 	void DbInterface::writeIntoDb(const string& folder, const string& subroutine, const string& identif/*= "value"*/)
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("writeIntoDb");
 
 		command << folder;
 		command << subroutine;
 		command << identif;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
 		}
 	}
@@ -232,8 +244,8 @@ namespace ppi_database
 	bool DbInterface::setValue(const string& folder, const string& subroutine,
 					const IValueHolderPattern& value, const string& account)
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("setValue");
 
 		command << folder;
@@ -241,23 +253,22 @@ namespace ppi_database
 		command << value.getValue();
 		command << value.getTime();
 		command << account;
-		sRv= ExternClientInputTemplate::sendMethod("ProcessChecker", command, true);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ProcessChecker", command, true);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "worker list@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
+				return false;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
-			return false;
 		}
 		return true;
 	}
@@ -273,8 +284,8 @@ namespace ppi_database
 	void DbInterface::fillValue(const string& folder, const string& subroutine, const string& identif,
 					const vector<double>& values, bool bNew/*= true*/)
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("fillValue");
 
 		command << folder;
@@ -296,49 +307,48 @@ namespace ppi_database
 		out << endl;
 		cout << out.str();
 #endif
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
 		}
 	}
 
 	string DbInterface::isEntryChanged()
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("isEntryChanged");
 
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
+			return "false";
 		}
-		return sRv;
+		return msg;
 	}
 
 	bool DbInterface::existSubroutine(const string& folder, const string& subroutine/*= ""*/)
@@ -359,80 +369,80 @@ namespace ppi_database
 
 	void DbInterface::changedChip(const string& onServer, const string& chip, const double value, const bool device)
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("changedChip");
 
 		command << onServer;
 		command << chip;
 		command << value;
 		command << device;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
 		}
 	}
 
-	unsigned short DbInterface::existEntry(const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number)
+	unsigned short DbInterface::existEntry(const string& folder, const string& subroutine,
+					const string& identif, const vector<double>::size_type number)
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("existEntry");
 
 		command << folder;
 		command << subroutine;
 		command << identif;
 		command << number;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
+				return false;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
-			return 0;
 		}
-		if(sRv == "exist")
+		if(msg == "exist")
 			return 5;
-		if(sRv == "noaccess")
+		if(msg == "noaccess")
 			return 4;
-		if(sRv == "novalue")
+		if(msg == "novalue")
 			return 3;
-		if(sRv == "noidentif")
+		if(msg == "noidentif")
 			return 2;
-		if(sRv == "nosubroutine")
+		if(msg == "nosubroutine")
 			return 1;
-		if(sRv == "nofolder")
+		if(msg == "nofolder")
 			return 0;
 		return 0;
 	}
 
-	void DbInterface::debugSubroutine(bool debug, bool bInform, const string& folder, const string& subroutine/*= ""*/)
+	void DbInterface::debugSubroutine(bool debug, bool bInform,
+					const string& folder, const string& subroutine/*= ""*/)
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("debugSubroutine");
 
 		command << debug;
@@ -440,82 +450,79 @@ namespace ppi_database
 		command << folder;
 		if(subroutine != "")
 			command << subroutine;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
 		}
 	}
 
 	void DbInterface::showThreads(int seconds, bool bClient)
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("showThreads");
 
 		command << seconds;
 		command << bClient;
-		sRv= ExternClientInputTemplate::sendMethod("ProcessChecker", command, false);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ProcessChecker", command, false);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "worker list@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
 		}
 	}
 
 	void DbInterface::clearFolderDebug()
 	{
-		int err;
-		string sRv;
+		string msg;
+		SocketErrorHandling err;
 		OMethodStringStream command("clearFolderDebug");
 
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		err.setErrorStr(msg);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
 			{
 				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
 		}
 	}
 
 	double DbInterface::getFolderValue(short& noexist, const string& folder, const string& subroutine, const string& account)
 	{
-		int err;
 		double dRv= 0;
 		string sRv;
+		SocketErrorHandling err;
 		OMethodStringStream command("getValue");
 
 
@@ -523,20 +530,19 @@ namespace ppi_database
 		command << subroutine;
 		command << account;
 		sRv= ExternClientInputTemplate::sendMethod("ProcessChecker", command, true);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "worker list@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 			return 0;
 		}
@@ -560,9 +566,9 @@ namespace ppi_database
 
 	double DbInterface::getActEntry(bool& exist, const string& folder, const string& subroutine, const string& identif, const vector<double>::size_type number/*= 0*/)
 	{
-		int err;
 		double dRv= 0;
 		string sRv;
+		SocketErrorHandling err;
 		OMethodStringStream command("getActEntry");
 
 
@@ -571,20 +577,19 @@ namespace ppi_database
 		command << identif;
 		command << number;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 			return 0;
 		}
@@ -601,7 +606,7 @@ namespace ppi_database
 
 	vector<convert_t> DbInterface::getNearest(string subroutine, string definition, double value)
 	{
-		int err;
+		SocketErrorHandling err;
 		vector<convert_t> vtRv;
 		vector<string> vsRv;
 		OMethodStringStream command("getNearest");
@@ -611,63 +616,62 @@ namespace ppi_database
 		command << definition;
 		command << value;
 		vsRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, "done", true);
+		err.searchResultError(vsRv);
+		if(err.fail())
+		{
+			string msg;
+
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
+			}
+		}
 
 		istringstream oRv;
 		for(vector<string>::iterator o= vsRv.begin(); o != vsRv.end(); ++o)
 		{
 			istringstream oRv(*o);
 
-			err= error(*o);
-			if(err != 0)
-			{
-				string msg;
-
-				msg= strerror(err);
-				if(err > 0)
-				{
-					LOG(LOG_ERROR, msg);
-					cerr << "### " << msg << endl;
-				}else
-				{
-					LOG(LOG_WARNING, msg);
-					cout << "### " << msg << endl;
-				}
-			}else
-			{
-				oRv >> tRv.be;
-				oRv >> tRv.bSetTime;
-				oRv >> tRv.nMikrosec;
+			oRv >> tRv.be;
+			oRv >> tRv.bSetTime;
+			oRv >> tRv.nMikrosec;
+			if(!oRv.fail())
 				vtRv.push_back(tRv);
-			}
 		}
 		return vtRv;
 	}
 
 	bool DbInterface::needSubroutines(unsigned long connection, string name)
 	{
-		int err;
 		string sRv;
+		SocketErrorHandling err;
 		OMethodStringStream command("needSubroutines");
 
 		command << connection;
 		command << name;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
-				return false;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
+			return false;
 		}
 /*		alix: 29/12/2013
  * 		do not need answer now
@@ -682,29 +686,27 @@ namespace ppi_database
 
 	vector<string> DbInterface::getChangedEntrys(unsigned long connection)
 	{
-		int err;
+		SocketErrorHandling err;
 		vector<string> vRv;
 		OMethodStringStream command("getChangedEntrys");
 
 		command << connection;
 		vRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, "done", true);
-		for(vector<string>::iterator o= vRv.begin(); o != vRv.end(); ++o)
+		err.searchResultError(vRv);
+		if(err.fail())
 		{
-			err= error(*o);
-			if(err != 0)
-			{
-				string msg;
+			string msg;
 
-				msg= strerror(err);
-				if(err > 0)
-				{
-					LOG(LOG_ERROR, msg);
-					cerr << "### " << msg << endl;
-				}else
-				{
-					LOG(LOG_WARNING, msg);
-					cout << "### " << msg << endl;
-				}
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
 		}
 		return vRv;
@@ -712,80 +714,77 @@ namespace ppi_database
 
 	void DbInterface::changeNeededIds(unsigned long oldId, unsigned long newId)
 	{
-		int err;
 		string sRv;
+		SocketErrorHandling err;
 		OMethodStringStream command("changeNeededIds");
 
 		command << oldId;
 		command << newId;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
 	}
 
 	void DbInterface::chipsDefined(const bool defined)
 	{
-		int err;
 		string sRv;
+		SocketErrorHandling err;
 		OMethodStringStream command("chipsDefined");
 
 		command << defined;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
 	}
 
 	void DbInterface::define(const string& server, const string& config)
 	{
-		int err;
+		SocketErrorHandling err;
 		string sRv;
 		OMethodStringStream command("define");
 
 		command << server;
 		command << config;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
 	}
@@ -793,7 +792,7 @@ namespace ppi_database
 	void DbInterface::registerChip(const string& server, const string& chip, const string& pin, const string& type, const string& family,
 			const double* pdmin/*= NULL*/, const double* pdmax/*= NULL*/, const bool* pbFloat/*= NULL*/, const double* pdCache/*= NULL*/)
 	{
-		int err;
+		SocketErrorHandling err;
 		string sRv;
 		OMethodStringStream command("registerChip");
 
@@ -807,27 +806,26 @@ namespace ppi_database
 		command << pbFloat;
 		command << pdCache;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
 	}
 
 	void DbInterface::registerPortID(const string& folder, const string& subroutine, const string& onServer, const string& chip)
 	{
-		int err;
+		SocketErrorHandling err;
 		string sRv;
 		OMethodStringStream command("registerPortID");
 
@@ -836,58 +834,26 @@ namespace ppi_database
 		command << onServer;
 		command << chip;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
-
 	}
-
-/*	void DbInterface::useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip)
-	{
-		int err;
-		string sRv;
-		OMethodStringStream command("useChip");
-
-		command << folder;
-		command << subroutine;
-		command << onServer;
-		command << chip;
-		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(sRv);
-		if(err != 0)
-		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
-			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
-			}else
-			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
-			}
-		}
-
-	}*/
 
 	void DbInterface::registerSubroutine(const string& subroutine, const string& folder, const string& server, const string& chip)
 	{
-		int err;
+		SocketErrorHandling err;
 		string sRv;
 		OMethodStringStream command("registerSubroutine");
 
@@ -896,27 +862,26 @@ namespace ppi_database
 		command << server;
 		command << chip;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
 	}
 
 	double DbInterface::getRegisteredDefaultChipCache(const string& server, const string& chip, bool& exist)
 	{
-		int err;
+		SocketErrorHandling err;
 		double dRv;
 		string sRv;
 		OMethodStringStream command("getRegisteredDefaultChipCache");
@@ -924,20 +889,19 @@ namespace ppi_database
 		command << server;
 		command << chip;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 			exist= false;
 			return 0;
@@ -967,7 +931,7 @@ namespace ppi_database
 	DbInterface::chips_t DbInterface::getRegisteredDefaultChipA(bool bAll, const string& server, const string& family,
 																	const string& type, const string& chip, const string& pin)
 	{
-		int err;
+		SocketErrorHandling err;
 		chips_t tRv;
 		double errorcode;
 		string sRv;
@@ -988,20 +952,19 @@ namespace ppi_database
 		if(bAll)
 			command << pin;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 			sRv= "NULL";
 		}
@@ -1038,7 +1001,7 @@ namespace ppi_database
 
 	double DbInterface::getDefaultCache(const double min, const double max, const bool bFloat, const string& folder/*= ""*/, const string& subroutine/*= ""*/)
 	{
-		int err;
+		SocketErrorHandling err;
 		double dRv;
 		string sRv;
 		OMethodStringStream command("getDefaultCache");
@@ -1049,20 +1012,19 @@ namespace ppi_database
 		command << folder;
 		command << subroutine;
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 			return 15;
 		}
@@ -1074,12 +1036,28 @@ namespace ppi_database
 
 	bool DbInterface::existOWServer(const unsigned short sID)
 	{
-		string res;
+		string sRv;
+		SocketErrorHandling err;
 		OMethodStringStream command("existOWServer");
 
 		command << sID;
-		res= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		if(res == "true")
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		err.setErrorStr(sRv);
+		if(err.fail())
+		{
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
+			{
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
+			}else
+			{
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
+			}
+		}
+		if(sRv == "true")
 			return true;
 		return false;
 	}
@@ -1095,29 +1073,27 @@ namespace ppi_database
 
 	vector<string> DbInterface::getOWDebugInfo(const unsigned short ID)
 	{
-		int err;
+		SocketErrorHandling err;
 		vector<string> vRv;
 		OMethodStringStream command("getOWDebugInfo");
 
 		command << ID;
 		vRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, "done", true);
-		for(vector<string>::iterator o= vRv.begin(); o != vRv.end(); ++o)
+		err.searchResultError(vRv);
+		if(err.fail())
 		{
-			err= error(*o);
-			if(err != 0)
-			{
-				string msg;
+			string sRv;
 
-				msg= strerror(err);
-				if(err > 0)
-				{
-					LOG(LOG_ERROR, msg);
-					cerr << "### " << msg << endl;
-				}else
-				{
-					LOG(LOG_WARNING, msg);
-					cout << "### " << msg << endl;
-				}
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
+			{
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
+			}else
+			{
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
 		return vRv;
@@ -1125,79 +1101,76 @@ namespace ppi_database
 
 	void DbInterface::setOWDebug(const unsigned short serverID, const unsigned int connectionID, const bool set)
 	{
-		int err;
-		string res;
+		SocketErrorHandling err;
+		string sRv;
 		OMethodStringStream command("setOWDebug");
 
 		command << serverID;
 		command << connectionID;
 		command << set;
-		res= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(res);
-		if(err != 0)
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
 	}
 
 	void DbInterface::clearOWDebug(const unsigned int connectionID)
 	{
-		int err;
-		string res;
+		SocketErrorHandling err;
+		string sRv;
 		OMethodStringStream command("clearOWDebug");
 
 		command << connectionID;
-		res= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
-		err= error(res);
-		if(err != 0)
+		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
 	}
 
 	string DbInterface::stopall()
 	{
-		int err;
+		SocketErrorHandling err;
 		string sRv;
 		OMethodStringStream command("stop-all");
 
 		sRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
-		err= error(sRv);
-		if(err != 0)
+		err.setErrorStr(sRv);
+		if(err.fail())
 		{
-			string msg;
-
-			msg= strerror(err);
-			if(err > 0)
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
 			{
-				LOG(LOG_ERROR, msg);
-				cerr << "### " << msg << endl;
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
 			}else
 			{
-				LOG(LOG_WARNING, msg);
-				cout << "### " << msg << endl;
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
 		return sRv;

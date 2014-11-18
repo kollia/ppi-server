@@ -50,12 +50,14 @@ public:
 	 *
 	 * @return error number when thread cannot be started, otherwise 0
 	 */
-	int initialStarting();
+	EHObj initialStarting();
 	/**
 	 * for asking whether callback routine is finished
 	 *
 	 * @param bWait whether method should wait for ending (default: false)
-	 * @return 1 when callback is finished correctly, 0 when callback running, -1 when callback ending with warnings and -2 ending with errors
+	 * @return 1 when callback is finished correctly, 0 when callback running,
+	 *         -1 when callback ending with warnings and -2 ending with errors.<br />
+	 *         by error/warning call <code>getErrorHandlingObj()</code> for more information
 	 */
 	short finished(bool bWait= false);
 	/**
@@ -66,23 +68,14 @@ public:
 protected:
 	/**
 	 * abstract method running in thread.<br />
-	 * This method starting again when method ending with return 0
-	 * and stopping by all other values.<br />
-	 * By calling external method finished()
-	 * method gives back the return code.<br />
-	 * In the most case the should be 1 for finished correctly, -1 finished with warnings
-	 * or -2 with errors.
+	 * This method starting again when method ending with true
+	 * and stopping by false.
 	 *
-	 * @return defined error code from extended class
+	 * @return whether thread should start again
 	 */
-	virtual short runnable()=0;
+	virtual bool runnable()=0;
 
 private:
-	/**
-	 * return code of runnable method
-	 */
-	short m_nReturnCode;
-
 	/**
 	 * abstract method to initial the thread
 	 * in the extended class.<br />
@@ -92,9 +85,9 @@ private:
 	 * @param args user defined parameter value or array,<br />
 	 * 				comming as void pointer from the external call
 	 * 				method start(void *args).
-	 * @return defined error code from extended class
+	 * @return object of error handling
 	 */
-	virtual int init(void *args) { return 0; };
+	OVERWRITE EHObj init(void *args) { return m_pError; };
 	/**
 	 * method to running thread
 	 * in the extended class.<br />
@@ -103,7 +96,7 @@ private:
 	 *
 	 * @return defined error code from extended class
 	 */
-	virtual int execute();
+	OVERWRITE bool execute();
 	/**
 	 * abstract method to ending the thread.<br />
 	 * This method will be called if any other or own thread

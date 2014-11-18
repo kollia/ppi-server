@@ -74,8 +74,9 @@ namespace server
 		 * @param args arbitrary optional defined parameter to get in initialization method init
 		 * @param bHold should the caller wait of thread by ending.<br />
 		 * 				default is false
+		 * @return object of error handling
 		 */
-		virtual int start(void *args= NULL, bool bHold= false);
+		OVERWRITE EHObj start(void *args= NULL, bool bHold= false);
 		/**
 		 * this method will be called before running
 		 * the method execute to initial class
@@ -83,9 +84,9 @@ namespace server
 		 * @param args user defined parameter value or array,<br />
 		 * 				coming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return error code for not right initialization
+		 * @return object of error handling
 		 */
-		virtual int init(void *args);
+		OVERWRITE EHObj init(void *args);
 		/**
 		 * function locate the next free client id
 		 *
@@ -148,15 +149,17 @@ namespace server
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool bWait)
+		OVERWRITE EHObj stop(const bool bWait)
 		{ return CommunicationThreadStarter::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool *bWait= NULL);
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 		/**
 		 * destructor of CommunicationStarter
 		 */
@@ -197,9 +200,9 @@ namespace server
 		 * This method starting again when ending with code 0 or lower for warnings
 		 * and if the method stop() isn't called.
 		 *
-		 * @param error code for not correctly done
+		 * @param whether should start thread again
 		 */
-		virtual int execute();
+		OVERWRITE bool execute();
 		/**
 		 * protected initialization for given info points
 		 * to write into the status information

@@ -33,6 +33,8 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
+#include "stream/BaseErrorHandling.h"
+
 #include "GlobalStaticMethods.h"
 
 #include "../pattern/util/LogHolderPattern.h"
@@ -155,7 +157,7 @@ void GlobalStaticMethods::printSigError(const string& cpSigValue, const string& 
 	msg+= cpSigValue;
 	msg+= "\" for process " + process;
 	msg+= "\"\nSystem-ERROR: ";
-	msg+= strerror(errno);
+	msg+= BaseErrorHandling::getErrnoString(errno);
 	cerr << msg << endl;
 	LOG(LOG_ERROR, msg);
 }
@@ -301,7 +303,7 @@ bool GlobalStaticMethods::readPasswd(const string& passwd, map<string, uid_t>& u
 		string err;
 
 		err=  "### ERROR: cannot read '/etc/passwd'\n";
-		err+= "    ERRNO: " + *strerror(errno);
+		err+= "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
 		cerr << err << endl;
 		LOG(LOG_ALERT, err);
 		return false;
@@ -372,3 +374,28 @@ string GlobalStaticMethods::getBinString(const long value, const size_t bits)
 	}
 	return bRv.str();
 }
+
+string GlobalStaticMethods::addPrefix(const string& pref, const string& str)
+{
+	string sRv, nullStr;
+	vector<string> spl;
+
+	nullStr.append(pref.length(), ' ');
+	split(spl, str, is_any_of("\n"));
+	for(vector<string>::iterator it= spl.begin();
+					it != spl.end(); ++it	)
+	{
+		if(it == spl.begin())
+			sRv= pref + *it;
+		else
+			sRv+= nullStr + *it;
+		sRv+= "\n";
+	}
+	if(str.substr(str.length() - 1, 1) == "\n")
+		sRv+= "\n";
+	return sRv;
+}
+
+
+
+

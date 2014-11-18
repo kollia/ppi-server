@@ -55,10 +55,10 @@ namespace logger
 			_instance= NULL;
 	}
 
-	int ProcessLogInterface::openConnection(string toopen/*= ""*/)
+	EHObj ProcessLogInterface::openConnection(string toopen/*= ""*/)
 	{
 		if(ExternClientInputTemplate::hasOpenGetConnection())
-			return 0;
+			return m_pSocketError;
 		return ExternClientInputTemplate::openSendConnection(toopen);
 	}
 

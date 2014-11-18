@@ -27,6 +27,9 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include "../../util/URL.h"
+#include "../../util/stream/BaseErrorHandling.h"
+
+#include "../logger/lib/logstructures.h"
 
 #include "../../pattern/util/LogHolderPattern.h"
 
@@ -36,7 +39,7 @@ namespace ppi_database
 	using namespace util;
 	using namespace boost;
 
-	int DatabaseThinning::init(void *args)
+	EHObj DatabaseThinning::init(void *args)
 	{
 		int res;
 
@@ -52,10 +55,10 @@ namespace ppi_database
 				SLEEP(1);// by error sleeping fix second
 			}			 // when res was 0 maybe database has finished loading
 		}				 // or thread will be stopping, so do not sleep
-		return 0;
+		return m_pError;
 	}
 
-	int DatabaseThinning::execute()
+	bool DatabaseThinning::execute()
 	{
 		int nRv;
 
@@ -85,7 +88,7 @@ namespace ppi_database
 
 			UNLOCK(m_THINNINGMUTEX);
 		}
-		return 0;
+		return true;
 	}
 
 	void DatabaseThinning::startDatabaseThinning()
@@ -348,7 +351,7 @@ namespace ppi_database
 
 					msg+= m_sThinFile + ".new'\n";
 					msg+= "    ERRNO: ";
-					msg+= strerror(errno);
+					msg+= BaseErrorHandling::getErrnoString(errno);
 					cout << msg << endl;
 					TIMELOG(LOG_ALERT, "writenewfile", msg);
 					file.close();
@@ -432,7 +435,7 @@ namespace ppi_database
 
 			msg+= readName + "'\n";
 			msg+= "    ERRNO: ";
-			msg+= strerror(errno);
+			msg+= BaseErrorHandling::getErrnoString(errno);
 			cout << msg << endl;
 			TIMELOG(LOG_ERROR, "readdirectory", msg);
 			LOG(LOG_ERROR, "end database thinning file '" + m_sThinFile + ".dat' by ERROR");
@@ -730,20 +733,18 @@ namespace ppi_database
 		}
 	}
 
-	int DatabaseThinning::stop(const bool* bWait)
+	EHObj DatabaseThinning::stop(const bool* bWait)
 	{
-		int nRv;
-
-		nRv= Thread::stop(false);
-		if(nRv != 0)
-			return nRv;
+		m_pError= Thread::stop(false);
 		AROUSEALL(m_THINNINGWAITCONDITION);
+		if(m_pError->hasError())
+			return m_pError;
 		if(	bWait != NULL &&
 			*bWait == true	)
 		{
-			nRv= Thread::stop(bWait);
+			m_pError= Thread::stop(bWait);
 		}
-		return nRv;
+		return m_pError;
 	}
 
 } /* namespace ppi_database */

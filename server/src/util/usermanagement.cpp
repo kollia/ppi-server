@@ -27,6 +27,8 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include "stream/BaseErrorHandling.h"
+
 #include "usermanagement.h"
 
 #include "../pattern/util/LogHolderPattern.h"
@@ -109,7 +111,7 @@ namespace user
 				msg+= "                 ";
 				msg+= errno;
 				msg+= " ";
-				msg+= strerror(errno);
+				msg+= BaseErrorHandling::getErrnoString(errno);
 				cerr << msg;
 				LOG(LOG_ALERT, msg);
 				return false;
@@ -122,7 +124,7 @@ namespace user
 			msg+= "                 ";
 			msg+= errno;
 			msg+= " ";
-			msg+= strerror(errno);
+			msg+= BaseErrorHandling::getErrnoString(errno);
 			cerr << msg;
 			LOG(LOG_ALERT, msg);
 			return false;

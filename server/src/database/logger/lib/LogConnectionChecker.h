@@ -47,17 +47,17 @@ protected:
 	 * @param args user defined parameter value or array,<br />
 	 * 				Coming as void pointer from the external call
 	 * 				method start(void *args).
-	 * @return defined error code from extended class
+	 * @return object of error handling
 	 */
-	virtual int init(void *args)
-	{ return 0; };
+	virtual EHObj init(void *args)
+	{ return m_pError; };
 	/**
 	 * method to running thread and check every second to have connection
 	 * to send logging messages.
 	 *
-	 * @return defined error code from extended class
+	 * @return whether should start thread again
 	 */
-	virtual int execute();
+	virtual bool execute();
 	/**
 	 * method to ending the thread.<br />
 	 * This method will be called if any other or own thread

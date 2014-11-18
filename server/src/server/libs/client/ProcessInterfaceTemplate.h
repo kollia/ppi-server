@@ -60,9 +60,9 @@ namespace util
 			 *  external command to stop process
 			 *
 			 * @param bWait calling rutine should wait until the process is stopping
-			 * @return error or warning number see overview
+			 * @return object of error handling
 			 */
-			virtual int stop(const bool bWait= true);
+			OVERWRITE EHObj stop(const bool bWait= true);
 			/**
 			 * to ask whether the process should stopping.<br />
 			 * This method should be call into running process to know whether the process should stop.<br />

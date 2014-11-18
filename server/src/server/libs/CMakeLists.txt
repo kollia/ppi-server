@@ -1,6 +1,7 @@
 
 
-set(serverlibSrcs	FileDescriptor.cpp    )
+set(serverlibSrcs	FileDescriptor.cpp
+                    SocketErrorHandling.cpp    )
 
 add_library(ppiserverlib ${libraries} ${serverlibSrcs})
 target_link_libraries(ppiserverlib ppithreadutil)

@@ -58,18 +58,18 @@ protected:
 	 * @param args user defined parameter value or array,<br />
 	 * 				comming as void pointer from the external call
 	 * 				method start(void *args).
-	 * @return defined error code from extended class
+	 * @return object of error handling
 	 */
-	virtual int init(void *args);
+	OVERWRITE EHObj init(void *args);
 	/**
 	 * method to running thread
 	 * in the extended class.<br />
 	 * This method starting again when ending without an sleeptime
 	 * if the method stop() isn't call.
 	 *
-	 * @return defined error code from extended class
+	 * @return whether should start thread again
 	 */
-	virtual int execute();
+	OVERWRITE bool execute();
 	/**
 	 * method to ending the thread.<br />
 	 * This method will be called if any other or own thread

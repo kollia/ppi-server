@@ -43,8 +43,10 @@ private:
 	string m_sMeasure;
 	IUserManagementPattern* m_pUserManagement;
 
-	virtual short runnable()
-	{ return m_pUserManagement->init(m_sAccess, m_sMeasure) ? 1 : -2; }
+	OVERWRITE bool runnable()
+	{ 	if(!m_pUserManagement->init(m_sAccess, m_sMeasure))
+			m_pError->setError("UserManagementInitialization", "init");
+		return false; /* do not start runnable again*/                                           }
 };
 
 #endif /* USERMANAGEMENTINITIALIZATION_H_ */

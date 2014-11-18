@@ -20,12 +20,13 @@
 
 namespace logger {
 
-int LogConnectionChecker::execute()
+bool LogConnectionChecker::execute()
 {
 	SLEEP(1);
 	if(stopping())
-		return 0;
-	if(m_poStarter->openConnection() <= 0)
+		return false;
+	m_pError= m_poStarter->openConnection();
+	if(!m_pError->hasError())
 	{
 		LOCK(m_WRITELOOP);
 		if(!m_poStarter->writeVectors())
@@ -38,7 +39,7 @@ int LogConnectionChecker::execute()
 		}
 		UNLOCK(m_WRITELOOP);
 	}
-	return 0;
+	return true;
 }
 
 }

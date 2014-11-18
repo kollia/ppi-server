@@ -70,15 +70,17 @@ namespace ppi_database
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool bWait)
+		OVERWRITE EHObj stop(const bool bWait)
 		{ return DatabaseThinning::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool *bWait= NULL);
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 		/**
 		 * destructor to remove initialed member variables
 		 */
@@ -95,17 +97,17 @@ namespace ppi_database
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return defined error code from extended class
+		 * @return object of error handling
 		 */
-		virtual int init(void *args);
+		virtual EHObj init(void *args);
 		/**
 		 * running thread for thinning database.<br />
 		 * This method starting again when ending without an sleeptime
 		 * if the method stop() isn't call.
 		 *
-		 * @return defined error code from extended class
+		 * @return whether should start thread again
 		 */
-		virtual int execute();
+		virtual bool execute();
 		/**
 		 * ending thin thread.<br />
 		 * This method will be called if any other or own thread

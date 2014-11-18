@@ -35,16 +35,15 @@
 using namespace util;
 using namespace boost;
 
-inline int ProcessChecker::init(void *args)
+inline EHObj ProcessChecker::init(void *args)
 {
 	return openGetConnection();
 }
 
-int ProcessChecker::execute()
+bool ProcessChecker::execute()
 {
 	static bool bfirst(false);
 	static MeasureThreadCounter* counter(NULL);
-	int nRv= 0;
 	string method;
 	string question;
 	string from;
@@ -331,21 +330,28 @@ int ProcessChecker::execute()
 
 	}else
 	{
-		int err;
-		string msg("### ERROR: undefined command '");
+		int log;
+		string msg;
 
-		msg+= question + "' was send to ProcessChecker";
-		err= error(question);
-		if(err)
+		m_pError->clear();
+		m_pError->setErrorStr(question);
+		if(m_pError->fail())
+			m_pError->addMessage("ProcessChecker", "waitForQuestion");
+		else
+			m_pError->setError("ProcessChecker", "getWrongQuestion", question);
+		msg= m_pError->getDescription();
+		if(m_pError->hasError())
 		{
-			msg+= "\n           ";
-			msg+= strerror(err, false);
+			log= LOG_ERROR;
+			cerr << glob::addPrefix("### ERROR: ", msg) << endl;
 		}else
-			m_sAnswer= "ERROR 001";
-		cerr << msg << endl;
-		LOG(LOG_ERROR, msg);
+		{
+			log= LOG_WARNING;
+			cout << glob::addPrefix("### WARNING: ", msg) << endl;
+		}
+		LOG(log, msg);
 	}
-	return nRv;
+	return true;
 }
 
 inline void ProcessChecker::ending()

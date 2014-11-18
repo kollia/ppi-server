@@ -92,7 +92,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 {
 	bool bDb, bPorts, bInternet;
 	bool bConfigure, bSubroutines;
-	int err;
+	EHObj errHandle;
 	unsigned short nDbConnectors;
 	/*
 	 * which ports as string are needed.
@@ -317,18 +317,32 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 		oDbConnectors << nDbConnectors;
 		params.push_back(oDbConnectors.str());
-		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-db-server"), params);
+		errHandle= process->start(URL::addPath(m_sWorkdir, "bin/ppi-db-server"), params);
 	}else
-		err= process->check();
-	if(err > 0)
+		errHandle= process->check();
+	if(errHandle->fail())
 	{
+		int log;
 		string msg;
 
-		msg=  "### WARNING: cannot start database-server\n";
-		msg+= "             " + process->strerror(err) + "\n";
-		msg+= "             so the hole application is not useable stop server";
-		cerr << msg << endl;
-		exit(EXIT_FAILURE);
+		if(bDb)
+			errHandle->addMessage("Starter", "startDatabase");
+		else
+			errHandle->addMessage("Starter", "checkDatabase");
+		msg= errHandle->getDescription();
+		if(errHandle->hasError())
+		{
+			log= LOG_ERROR;
+			cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+		}else
+		{
+			log= LOG_WARNING;
+			cout << glob::addPrefix("### WARNING: ", msg) << endl;
+		}
+		LOG(log, msg);
+		if(errHandle->hasError())
+			exit(EXIT_FAILURE);
+		errHandle->clear();
 	}
 	// ------------------------------------------------------------------------------------------------------------
 
@@ -370,19 +384,32 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	{
 		vector<string> params;
 
-		err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-internet-server"), params);
+		errHandle= process->start(URL::addPath(m_sWorkdir, "bin/ppi-internet-server"), params);
 	}else
-		err= process->check();
-	if(err > 0)
+		errHandle= process->check();
+	if(errHandle->fail())
 	{
+		int log;
 		string msg;
 
-		//cout << "ERROR(" << err << ")" << endl;
-		msg=  "### WARNING: cannot start internet server for communication\n";
-		msg+= "             " + process->strerror(err) + "\n";
-		msg+= "             so no communication from outside (any client) is available";
-		cerr << msg << endl;
-		LOG(LOG_ERROR, msg);
+		if(bInternet)
+			errHandle->addMessage("Starter", "startInternet");
+		else
+			errHandle->addMessage("Starter", "checkInternet");
+		msg= errHandle->getDescription();
+		if(errHandle->hasError())
+		{
+			log= LOG_ERROR;
+			cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+		}else
+		{
+			log= LOG_WARNING;
+			cout << glob::addPrefix("### WARNING: ", msg) << endl;
+		}
+		LOG(log, msg);
+		if(errHandle->hasError())
+			exit(EXIT_FAILURE);
+		errHandle->clear();
 	}
 
 	// ------------------------------------------------------------------------------------------------------------
@@ -423,18 +450,30 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			params.push_back(oServerID.str());
 			params.push_back("SHELL");
 			params.push_back(*it);
-			err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
+			errHandle= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
 		}else
-			err= process->check();
-		if(err > 0)
+			errHandle= process->check();
+		if(errHandle->fail())
 		{
+			int log;
 			string msg;
 
-			msg=  "### WARNING: cannot start one wire reader\n";
-			msg+= "             " + process->strerror(err) + "\n";
-			msg+= "             so ppi-server cannot start any shell commands in system user account of '" + *it + "'";
-			cerr << endl << msg << endl;
-			LOG(LOG_ALERT, msg);
+			if(bInternet)
+				errHandle->addMessage("Starter", "startShell", *it);
+			else
+				errHandle->addMessage("Starter", "checkShell", *it);
+			msg= errHandle->getDescription();
+			if(errHandle->hasError())
+			{
+				log= LOG_ERROR;
+				cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+			}else
+			{
+				log= LOG_WARNING;
+				cout << glob::addPrefix("### WARNING: ", msg) << endl;
+			}
+			LOG(log, msg);
+			errHandle->clear();
 		}else
 		{// create reading interface to one wire reader
 			OWInterface::getServer(	"ppi-server",
@@ -481,19 +520,31 @@ bool Starter::execute(const IOptionStructPattern* commands)
 				params.push_back(oServerID.str());
 				params.push_back("PORT");
 				params.push_back(sPorts);
-				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
+				errHandle= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
 			}else
-				err= process->check();
-			if(err > 0)
+				errHandle= process->check();
+			if(errHandle->fail())
 			{
+				int log;
 				string msg;
 
-				msg=  "### WARNING: cannot start one wire reader\n";
-				msg+= "             " + process->strerror(err) + "\n";
-				msg+= "             so ppi-server cannot read ore write on any extern COM/LPT port";
-				cerr << endl << msg << endl;
-				LOG(LOG_ALERT, msg);
-			}else
+				if(bInternet)
+					errHandle->addMessage("Starter", "startPort", sPorts);
+				else
+					errHandle->addMessage("Starter", "checkPort", sPorts);
+				msg= errHandle->getDescription();
+				if(errHandle->hasError())
+				{
+					log= LOG_ERROR;
+					cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+				}else
+				{
+					log= LOG_WARNING;
+					cout << glob::addPrefix("### WARNING: ", msg) << endl;
+				}
+				LOG(log, msg);
+			}
+			if(!errHandle->hasError())
 			{// create reading interface to one wire reader
 				OWInterface::getServer(	"ppi-server",
 										new SocketClientConnection(	SOCK_STREAM,
@@ -503,6 +554,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 										nServerID									);
 				++nServerID;
 			}
+			errHandle->clear();
 			++nServerStart;
 			db->setServerConfigureStatus("owreader", 100 / nOWReader * nServerStart);
 		}
@@ -533,19 +585,31 @@ bool Starter::execute(const IOptionStructPattern* commands)
 				params.push_back(oServerID.str());
 				params.push_back("MPORT");
 				params.push_back(sPorts);
-				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), params);
+				errHandle= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader").c_str(), params);
 			}else
-				err= process->check();
-			if(err > 0)
+				errHandle= process->check();
+			if(errHandle->fail())
 			{
+				int log;
 				string msg;
 
-				msg=  "### WARNING: cannot start one wire reader\n";
-				msg+= "             " + process->strerror(err) + "\n";
-				msg+= "             so ppi-server cannot measure time on any extern COM/LPT port";
-				cerr << endl << msg << endl;
-				LOG(LOG_ALERT, msg);
-			}else
+				if(bInternet)
+					errHandle->addMessage("Starter", "startPortMeasure", sPorts);
+				else
+					errHandle->addMessage("Starter", "checkPortMeasure", sPorts);
+				msg= errHandle->getDescription();
+				if(errHandle->hasError())
+				{
+					log= LOG_ERROR;
+					cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+				}else
+				{
+					log= LOG_WARNING;
+					cout << glob::addPrefix("### WARNING: ", msg) << endl;
+				}
+				LOG(log, msg);
+			}
+			if(!errHandle->hasError())
 			{// create reading interface to one wire reader
 				OWInterface::getServer(	"ppi-server",
 										new SocketClientConnection(	SOCK_STREAM,
@@ -555,6 +619,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 										nServerID									);
 				++nServerID;
 			}
+			errHandle->clear();
 			++nServerStart;
 			db->setServerConfigureStatus("owreader", 100 / nOWReader * nServerStart);
 		}
@@ -582,19 +647,31 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 			params.push_back(oServerID.str());
 			params.push_back("LIRC");
-			err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
+			errHandle= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
 		}else
-			err= process->check();
-		if(err > 0)
+			errHandle= process->check();
+		if(errHandle->fail())
 		{
+			int log;
 			string msg;
 
-			msg=  "### WARNING: cannot start one wire reader\n";
-			msg+= "             " + process->strerror(err) + "\n";
-			msg+= "             so ppi-server cannot read or write on LIRC";
-			cerr << endl << msg << endl;
-			LOG(LOG_ALERT, msg);
-		}else
+			if(bInternet)
+				errHandle->addMessage("Starter", "startLirc");
+			else
+				errHandle->addMessage("Starter", "checkLirc");
+			msg= errHandle->getDescription();
+			if(errHandle->hasError())
+			{
+				log= LOG_ERROR;
+				cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+			}else
+			{
+				log= LOG_WARNING;
+				cout << glob::addPrefix("### WARNING: ", msg) << endl;
+			}
+			LOG(log, msg);
+		}
+		if(!errHandle->hasError())
 		{// create reading interface to one wire reader
 			OWInterface::getServer(	"ppi-server",
 									new SocketClientConnection(	SOCK_STREAM,
@@ -604,6 +681,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 									nServerID									);
 			++nServerID;
 		}
+		errHandle->clear();
 		++nServerStart;
 		db->setServerConfigureStatus("owreader", 100 / nOWReader * nServerStart);
 	}
@@ -666,19 +744,31 @@ bool Starter::execute(const IOptionStructPattern* commands)
 						params.push_back("vellemann");
 						params.push_back("k8055");
 						params.push_back(oVK8055Address.str());
-						err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
+						errHandle= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
 					}else
-						err= process->check();
-					if(err > 0)
+						errHandle= process->check();
+					if(errHandle->fail())
 					{
+						int log;
 						string msg;
 
-						msg=  "### WARNING: cannot start one wire reader\n";
-						msg+= "             " + process->strerror(err) + "\n";
-						msg+= "             so ppi-server cannot read or write on Vellemann k8055 board";
-						cerr << endl << msg << endl;
-						LOG(LOG_ALERT, msg);
-					}else
+						if(bInternet)
+							errHandle->addMessage("Starter", "startk8055");
+						else
+							errHandle->addMessage("Starter", "checkk8055");
+						msg= errHandle->getDescription();
+						if(errHandle->hasError())
+						{
+							log= LOG_ERROR;
+							cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+						}else
+						{
+							log= LOG_WARNING;
+							cout << glob::addPrefix("### WARNING: ", msg) << endl;
+						}
+						LOG(log, msg);
+					}
+					if(!errHandle->hasError())
 					{// create reading interface to one wire reader
 						OWInterface::getServer(	"ppi-server",
 												new SocketClientConnection(	SOCK_STREAM,
@@ -688,6 +778,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 												nServerID									);
 						++nServerID;
 					}
+					errHandle->clear();
 					++nServerStart;
 					db->setServerConfigureStatus("owreader", 100 / nOWReader * nServerStart);
 				}
@@ -754,19 +845,31 @@ bool Starter::execute(const IOptionStructPattern* commands)
 				params.push_back(oServerID.str());
 				params.push_back("maxim");
 				params.push_back(maximinit);
-				err= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
+				errHandle= process->start(URL::addPath(m_sWorkdir, "bin/ppi-owreader"), params);
 			}else
-				err= process->check();
-			if(err > 0)
+				errHandle= process->check();
+			if(errHandle->fail())
 			{
+				int log;
 				string msg;
 
-				msg=  "### WARNING: cannot start one wire reader\n";
-				msg+= "             " + process->strerror(err) + "\n";
-				msg+= "             so ppi-server cannot read or write on Maxim/Dallas semiconductors";
-				cerr << endl << msg << endl;
-				LOG(LOG_ALERT, msg);
-			}else
+				if(bInternet)
+					errHandle->addMessage("Starter", "startMaxim");
+				else
+					errHandle->addMessage("Starter", "checkMaxim");
+				msg= errHandle->getDescription();
+				if(errHandle->hasError())
+				{
+					log= LOG_ERROR;
+					cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+				}else
+				{
+					log= LOG_WARNING;
+					cout << glob::addPrefix("### WARNING: ", msg) << endl;
+				}
+				LOG(log, msg);
+			}
+			if(!errHandle->hasError())
 			{// create reading interface to one wire reader
 				OWInterface::getServer(	"ppi-server",
 										new SocketClientConnection(	SOCK_STREAM,
@@ -776,6 +879,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 										nServerID									);
 				++nServerID;
 			}
+			errHandle->clear();
 			++nServerStart;     // define nOWReader as float, otherwise percent calculation can be fault
 			db->setServerConfigureStatus("owreader", 100 / static_cast<float>(nOWReader) * nServerStart);
 			cout << endl;
@@ -1087,7 +1191,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		string err;
 
 		err= "main application ppi-server has no privileges to get other userid!\n";
-		err= "ERRNO: " + string(strerror(errno)) + "\n";
+		err= "ERRNO: " + string(BaseErrorHandling::getErrnoString(errno)) + "\n";
 		err+= "       so hole application running as root!!";
 		LOG(LOG_ALERT, err);
 		cerr << err << endl;
@@ -1679,10 +1783,11 @@ bool Starter::status()
 	bool bOK;
 	char	buf[165];
 	FILE 	*fp;
-	int clientsocket, err;
+	int clientsocket;
 	unsigned short nPort;
 	string result;
 	PPIConfigFiles configFiles;
+	ErrorHandling errHandle;
 
 	PPIConfigFileStructure::init(m_sWorkdir, /*first process creation*/true);
 	configFiles= PPIConfigFileStructure::instance();
@@ -1715,21 +1820,25 @@ bool Starter::status()
 		buf[0]= '\0';
 		fgets(buf, sizeof(buf), fp);
 		result= buf;
-		err= ExternClientInputTemplate::error(result);
-		if(err)
+		errHandle.setErrorStr(result);
+		if(errHandle.fail())
 		{
-			if(ExternClientInputTemplate::error(result) > 0)
-			{
-				ostringstream send;
+			int log;
+			string msg;
 
-				send << "GETERRORSTRING " << err;
-				fputs(send.str().c_str(), fp);
-				fgets(buf, sizeof(buf), fp);
-				cerr << buf;
-				bOK= false;
-				break;
+			errHandle.addMessage("Starter", "readStatus");
+			msg= errHandle.getDescription();
+			if(errHandle.hasError())
+			{
+				log= LOG_ERROR;
+				cerr << glob::addPrefix("### ERROR: ", msg) << endl;
 			}else
-				cout << result;
+			{
+				log= LOG_WARNING;
+				cout << glob::addPrefix("### WARNING: ", msg) << endl;
+			}
+			LOG(log, msg);
+			break;
 		}
 		if(result != "done\n")
 		{

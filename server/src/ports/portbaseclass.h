@@ -457,7 +457,7 @@ namespace ports
 			 * @param bWait calling routine should wait until the thread is stopping
 			 */
 			virtual void stop(const bool bWait)
-			{ portBase::stop(&bWait); };
+			{ stop(&bWait); };
 			/**
 			 *  external command to send stopping to all subroutines.<br />
 			 *  dummy routine can be overloaded when need

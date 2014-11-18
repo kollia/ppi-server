@@ -25,17 +25,15 @@
 namespace util
 {
 
-	int ProcessStarter::start(const string& file, const vector<string>& params)
+	EHObj ProcessStarter::start(const string& file, const vector<string>& params)
 	{
-		int nRv;
-
 		m_sApp= file;
 		m_vParams= params;
-		nRv= Process::start(NULL, false);
-		return nRv;
+		m_pSocketError= Process::start(NULL, false);
+		return m_pSocketError;
 	}
 
-	int ProcessStarter::runprocess(void*, bool bHold)
+	EHObj ProcessStarter::runprocess(void*, bool bHold)
 	{
 		int nRv;
 		unsigned short count= 0;
@@ -74,6 +72,18 @@ namespace util
 			cout << "\"" << endl;
 		ppEllipse[count]= NULL;
 		nRv= execv(m_sApp.c_str(), ppEllipse);
+		if(nRv != 0)
+		{
+			int error(errno);
+			string command(m_sApp + " ");
+
+			for(vector<string>::iterator it= m_vParams.begin(); it != m_vParams.end(); ++it)
+			{
+				command+= *it + " ";
+			}
+			command= command.substr(0, command.length() - 1);
+			m_pSocketError->setErrnoError("ProcessStarter", "execv", error, command);
+		}
 		for(vector<char*>::iterator it= vList.begin(); it != vList.end(); ++it)
 		{
 			char* p;
@@ -84,97 +94,7 @@ namespace util
 			delete[] p;
 		}
 		delete[] ppEllipse;
-		if(nRv != 0)
-		{
-			switch(errno)
-			{
-			case E2BIG:
-				nRv= 5;
-				break;
-			case EACCES:
-				nRv= 6;
-				break;
-			case EINVAL:
-				nRv= 7;
-				break;
-			case ELOOP:
-				nRv= 8;
-				break;
-			case ENAMETOOLONG:
-				nRv= 9;
-				break;
-			case ENOENT:
-				nRv= 10;
-				break;
-			case ENOTDIR:
-				nRv= 11;
-				break;
-			case ENOEXEC:
-				nRv= 12;
-				break;
-			case ENOMEM:
-				nRv= 13;
-				break;
-			case ETXTBSY:
-				nRv= 14;
-				break;
-			default:
-				nRv= 20;
-				break;
-			}
-			// ToDo: send over transaction back the error
-		}
-		return nRv;
+		return m_pSocketError;
 	}
 
-	string ProcessStarter::strerror(int error)
-	{
-		string str;
-
-		switch(error)
-		{
-		case 5:
-			str= "E2BIG  The  number  of  bytes  used  by  the new process image’s argument list and environment list is greater than the system-imposed limit of {ARG_MAX} bytes.";
-			break;
-		case 6:
-			str= "EACCES Search permission is denied for a directory listed in the new process image file’s path prefix, or the new process  image  file  denies  execution"
-	 				   " permission, or the new process image file is not a regular file and the implementation does not support execution of files of its type.";
-			break;
-		case 7:
-			str= "EINVAL The new process image file has the appropriate permission and has a recognized executable binary format, but the system does not support execution"
-     			        " of a file with this format.";
-			break;
-		case 8:
-			str= "ELOOP  A loop exists in symbolic links encountered during resolution of the path or file argument.";
-			break;
-		case 9:
-			str= "ENAMETOOLONG"
-				" The length of the path or file arguments exceeds {PATH_MAX} or a pathname component is longer than {NAME_MAX}.";
-			break;
-		case 10:
-			str= "ENOENT A component of path or file does not name an existing file or path or file is an empty string.";
-			break;
-		case 11:
-			str= "ENOTDIR"
-              " A component of the new process image file’s path prefix is not a directory.";
-			break;
-		case 12:
-			str= "ENOEXEC"
-              " The new process image file has the appropriate access permission but has an unrecognized format.";
-			break;
-		case 13:
-			str= "ENOMEM The new process image requires more memory than is allowed by the hardware or system-imposed memory management constraints.";
-			break;
-		case 14:
-			str= "ETXTBSY"
-              " The new process image file is a pure procedure (shared text) file that is currently open for writing by some process.";
-			break;
-		case 20:
-			str= "undefined error by start an external application with execv()";
-		default:
-			str= Process::strerror(error);
-			break;
-		}
-		return str;
-	}
 }

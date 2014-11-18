@@ -162,7 +162,7 @@ namespace server
 		return false;
 	}
 
-	int OWServer::init(void* arg)
+	EHObj OWServer::init(void* arg)
 	{
 		string threadName("owreader[");
 		string defaultConfig;
@@ -173,7 +173,10 @@ namespace server
 			if(defaultConfig != "")
 				DbInterface::instance()->define(m_sServerType, defaultConfig);
 			if(!m_poChipAccess->init(m_oServerProperties))
-				return 1;
+			{
+				m_pError->setError("owserver", "init_chip", m_sServerType);
+				return m_pError;
+			}
 			threadName+= m_sServerType + "]";
 			LogHolderPattern::instance()->setThreadName(threadName);
 			if(!m_poChipAccess->isConnected())
@@ -190,13 +193,13 @@ namespace server
 			string err;
 
 			ex.addMessage("initialing external chip reader " +  m_sServerType);
+			m_pError->setError("owserver", "init_exception", m_sServerType);
 			err= ex.getTraceString();
 			cout << endl << err << endl;
 			LOG(LOG_ALERT, err);
-			return 1;
+			return m_pError;
 		}
-
-		return 0;
+		return m_pError;
 	}
 
 	bool OWServer::reachAllChips()
@@ -482,7 +485,7 @@ namespace server
 		return m_poChipAccess->isDebug();
 	}
 
-	int OWServer::execute()
+	bool OWServer::execute()
 	{
 		typedef map<string, map<string, string> >::iterator cachemmiter;
 		typedef map<string, string>::iterator cachemiter;
@@ -493,21 +496,21 @@ namespace server
 		if(!m_bAllInitial)
 		{
 			USLEEP(500000);
-			return 0;
+			return true;
 		}
 		if(!m_bConnected)
 		{
 			SLEEP(1);
 			if(stopping())
-				return 1;
+				return false;
 			try{
 				if(m_poChipAccess->connect())
 				{
-					if(m_poChipAccess->init(m_oServerProperties) != 0)
-						return 1;
+					if(!m_poChipAccess->init(m_oServerProperties))
+						return false;
 					m_bConnected= true;
 				}else
-					return 0;
+					return true;
 			}catch(SignalException& ex)
 			{
 				string err;
@@ -516,7 +519,7 @@ namespace server
 				err= ex.getTraceString();
 				cout << endl << err << endl;
 				LOG(LOG_ERROR, err);
-				return 0;
+				return false;
 			}
 
 		}
@@ -1030,7 +1033,7 @@ namespace server
 			}
 			UNLOCK( m_PRIORITYCACHE);
 		}
-		return 0;
+		return true;
 	}
 
 	vector<string> OWServer::getDebugInfo()
@@ -1310,20 +1313,25 @@ namespace server
 		}
 	}
 
-	int OWServer::stop(const bool *bWait)
+	EHObj OWServer::stop(const bool *bWait/*= NULL*/)
 	{
-		int nRv;
+		ErrorHandling errHandle;
 
-		nRv= Thread::stop(false);
+		m_pError= Thread::stop(false);
 		AROUSEALL(m_PRIORITYCACHECOND);
 		if(m_pKernelModule.get() != NULL)
-			m_pKernelModule->stop(bWait);
-		if(	bWait != NULL &&
+		{
+			errHandle= m_pKernelModule->stop(bWait);
+			if(!m_pError->hasError())
+				(*m_pError)= errHandle;
+		}
+		if(	!m_pError->hasError() &&
+			bWait != NULL &&
 			*bWait == true	)
 		{
-			nRv= Thread::stop(bWait);
+			m_pError= Thread::stop(bWait);
 		}
-		return nRv;
+		return m_pError;
 	}
 
 	OWServer::~OWServer()

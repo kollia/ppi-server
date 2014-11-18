@@ -37,6 +37,8 @@
 #include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/XMLStartEndTagReader.h"
 
+#include "../../../database/logger/lib/logstructures.h"
+
 #include "../client/SocketClientConnection.h"
 #include "../client/ExternClientInputTemplate.h"
 
@@ -115,36 +117,60 @@ namespace server
 		return sRv;
 	}
 
-	int ServerProcess::init(void *args)
+	EHObj ServerProcess::init(void *args)
 	{
-		int ret;
 		const unsigned short port= getSendPortAddress();
 		string host(getSendHostAddress());
 		//ExternClientInputTemplate run(getName(), getName(), m_pConnect, NULL);
 
-		if(host != "127.0.0.1")
+		if(	host != "127.0.0.1" &&
+			host != "localhost" &&
+			host != "::1" &&
+			host != "ip6-localhost"	)
 		{
 			cerr << "### " << getProcessName() << " should running on other computer," << endl;
 			cerr << "    so do not start any server process" << endl;
-			return 10;
+			m_pSocketError->setError("ServerProcess", "init", getProcessName() + "@" + host);
+			cerr << glob::addPrefix("### ERROR: ", m_pSocketError->getDescription()) << endl;
+			LOG(LOG_ERROR, m_pSocketError->getDescription());
+			return m_pSocketError;
 		}
 		cout << "### checking socket on IP:127.0.0.1 port:" << port << endl;
-		ret= openSendConnection(0, m_sOpenConnection);
-		if(ret == 0)
+		m_pSocketError= openSendConnection(0, m_sOpenConnection);
+		if(!m_pSocketError->fail(IEH::errno_error, ECONNREFUSED, "IClientConnectArtPattern", "connect"))
 		{
 			closeSendConnection();
-			cerr << "### any server running on port, so do not start server" << endl;
-			return 10;
+			m_pSocketError->addMessage("ServerProcess", "openSendConnection", getProcessName());
+			return m_pSocketError;
 		}
 		LogHolderPattern::instance()->setThreadName(getProcessName());
-		m_pStarterPool->start(args);
+		m_pSocketError= m_pStarterPool->start(args);
+		if(m_pSocketError->fail())
+		{
+			int log;
+			string prefix, msg;
+
+			m_pSocketError->addMessage("ServerProcess", "communicationclient_start", getProcessName());
+			if(m_pSocketError->hasError())
+			{
+				prefix= "### ERROR: ";
+				log= LOG_ERROR;
+			}else
+			{
+				prefix= "### WARNING: ";
+				log= LOG_WARNING;
+			}
+			msg= m_pSocketError->getDescription();
+			cout << glob::addPrefix(prefix, msg) << endl;
+			LOG(log, msg);
+		}
 		return m_pConnect->init();
 	}
 
-	int ServerProcess::execute()
+	bool ServerProcess::execute()
 	{
-		bool allowed= true;
-		int ret= 0;
+		bool allowed(true);
+		bool bRv(true);
 		SHAREDPTR::shared_ptr<IFileDescriptorPattern> fp;
 
 		if(!connectionsAllowed())
@@ -159,27 +185,49 @@ namespace server
 		}else
 		{
 			m_nAcceptThread= pthread_self();
-			ret= m_pConnect->accept();
+			m_pSocketError= m_pConnect->accept();
 			allowed= connectionsAllowed();
+			if(m_pSocketError->fail())
+			{
+				string msg;
+				ostringstream decl;
+
+				decl << getProcessName();
+				decl << "@" << m_pConnect->getHostAddress();
+				decl << "@" << m_pConnect->getPortAddress();
+				m_pSocketError->addMessage("ServerProcess", "accept", decl.str());
+				cout << "write ERROR: '" << m_pSocketError->getErrorStr() << "'" << endl;
+				msg= m_pSocketError->getDescription();
+				if(m_pSocketError->hasError())
+				{
+					cerr << glob::addPrefix("### ALERT: ", msg) << endl;
+					LOG(LOG_ALERT, msg);
+					bRv= false;
+				}else
+				{
+					cout << glob::addPrefix("### WARNING: ", msg) << endl;
+					TIMELOG(LOG_WARNING, getProcessName() +
+									"@" + m_pConnect->getHostAddress(), msg);
+				}
+			}
 		}
 
-		if(allowed && !stopping() && ret <= 0)
+		if(	bRv &&
+			!stopping()	)
 		{
-			fp= m_pConnect->getDescriptor();
-			m_pStarterPool->setNewClient(fp);
+			if(allowed)
+			{
+				fp= m_pConnect->getDescriptor();
+				m_pStarterPool->setNewClient(fp);
 
-		}else if(!allowed)
-		{
-			glob::stopMessage("server allow no new access!");
-			m_pConnect->close();
-			ret= 0;
+			}else
+			{
+				glob::stopMessage("server allow no new access!");
+				m_pConnect->close();
 
-		}else if(	ret &&
-					stopping()	)
-		{
-			ret= 0;
+			}
 		}
-		return ret;
+		return bRv;
 	}
 
 	inline bool ServerProcess::connectionsAllowed()
@@ -204,26 +252,44 @@ namespace server
 		m_pConnect->close();
 	}
 
-	int ServerProcess::stop(const bool bWait/*= true*/)
+	EHObj ServerProcess::stop(const bool bWait/*= true*/)
 	{
-		int nRv;
+		SocketErrorHandling handle;
 
 		allowNewConnections(false);
-		m_pStarterPool->stop(false);
-		nRv= Process::stop(false);
+		m_pSocketError= m_pStarterPool->stop(false);
+		handle= Process::stop(false);
 		AROUSE(m_NOCONWAITCONDITION);
 		if(	running() &&
 			m_nAcceptThread != 0	)
 		{
 			pthread_kill(m_nAcceptThread, SIGALRM);
 		}
-		close();
-		if(bWait)
+		if(	!m_pSocketError->hasError() &&
+			bWait							)
 		{
-			m_pStarterPool->stop(true);
-			nRv= Process::stop(true);
+			m_pSocketError= m_pStarterPool->stop(true);
 		}
-		return nRv;
+		if(!m_pSocketError->hasError())
+		{
+			close();
+			if(	bWait &&
+				!handle.hasError()	)
+			{
+				handle= Process::stop(true);
+			}
+		}
+		if(	!m_pSocketError->hasError() &&
+			handle.hasError()				)
+		{
+			(*m_pSocketError)= handle;
+
+		}else if(	!m_pSocketError->fail() &&
+					handle.fail()				)
+		{
+			(*m_pSocketError)= handle;
+		}
+		return m_pSocketError;
 	}
 
 	void ServerProcess::ending()

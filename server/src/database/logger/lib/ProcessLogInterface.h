@@ -65,52 +65,11 @@ namespace logger
 			static void deleteObj();
 			/**
 			 * open the connection to server for sending questions
-			 * <b>errorcodes:</b>
-			 * <table>
-			 * 	<tr>
-			 * 		<td>
-			 * 			0
-			 * 		</td>
-			 * 		<td>
-			 * 			no error occurred
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td>
-			 * 			-1
-			 * 		</td>
-			 * 		<td>
-			 * 			WARNING: connection exist before
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td>
-			 * 			1
-			 * 		</td>
-			 * 		<td>
-			 * 			ERROR: no <code>IClientConnectArtPattern</code> be given for sending
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td>
-			 * 			2
-			 * 		</td>
-			 * 		<td>
-			 * 			cannot connect with server, or initialization was fail
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td colspan="2">
-			 * 			all other ERRORs or WARNINGs see in <code>IClientConnectArtPattern</code>
-			 * 			for beginning connection by sending
-			 * 		</td>
-			 * 	</tr>
-			 * </table>
 			 *
 			 * @param toopen string for open question, otherwise by null the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
-			 * @return error number
+			 * @return object of error handling
 			 */
-			virtual int openConnection(string toopen= "");
+			OVERWRITE EHObj openConnection(string toopen= "");
 			/**
 			 * destructor of log interface
 			 */

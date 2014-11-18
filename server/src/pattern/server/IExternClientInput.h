@@ -35,23 +35,6 @@ namespace design_pattern_world
 
 			virtual vector<string> sendMethodD(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true)= 0;
 			/**
-			 * return string describing error number
-			 *
-			 * @param error code number of error
-			 * @param bSend whether need error string for sending connections (true is default) or get question connection (false).<br />
-			 *              If no sending connection is set, but bSend is true, method ask even by get question connection
-			 * @return error string
-			 */
-			virtual string strerror(const int error, const bool bSend= true)= 0;
-			/**
-			 * get maximal error or warning number in positive values
-			 * from own class and all imply run through classes
-			 *
-			 * @param byerror whether needs error number (true) or warning number (false)
-			 * @return maximal error or warning number
-			 */
-			virtual unsigned int getMaxErrorNums(const bool byerror) const= 0;
-			/**
 			 * dummy destructor
 			 */
 			virtual ~IExternClientInput()

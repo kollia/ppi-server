@@ -30,11 +30,14 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/XMLStartEndTagReader.h"
 
 #include "../../../pattern/util/LogHolderPattern.h"
 
 #include "../../../pattern/server/IFileDescriptorPattern.h"
+
+#include "../../../database/logger/lib/logstructures.h"
 
 #include "ServerThread.h"
 #include "Communication.h"
@@ -149,22 +152,49 @@ namespace server
 		return clientsocket;
 	}
 
-	int ServerThread::init(void *args)
+	EHObj ServerThread::init(void *args)
 	{
-		m_pStarterPool->start(args);
-		return m_pConnect->init();
+		m_pError= m_pStarterPool->start(args);
+		if(m_pError->hasError())
+			return m_pError;
+		m_pError= m_pConnect->init();
+		return m_pError;
 	}
 
-	int ServerThread::execute()
+	bool ServerThread::execute()
 	{
+		bool bRv(true);
 		SHAREDPTR::shared_ptr<IFileDescriptorPattern> fp;
 
-		if(m_pConnect->accept() <= 0)
+		m_pError= m_pConnect->accept();
+		if(!m_pError->hasError())
 		{
 			fp= m_pConnect->getDescriptor();
 			m_pStarterPool->setNewClient(fp);
 		}
-		return 0;
+		if(m_pError->fail())
+		{
+			string msg;
+			ostringstream decl;
+
+			decl << getThreadName();
+			decl << "@" << m_pConnect->getHostAddress();
+			decl << "@" << m_pConnect->getPortAddress();
+			m_pError->addMessage("ServerThread", "accept", decl.str());
+			msg= m_pError->getDescription();
+			if(m_pError->hasError())
+			{
+				cerr << glob::addPrefix("### ALERT: ", msg) << endl;
+				LOG(LOG_ALERT, msg);
+				bRv= false;
+			}else
+			{
+				cout << glob::addPrefix("### WARNING: ", msg) << endl;
+				TIMELOG(LOG_WARNING, getThreadName() +
+								"@" + m_pConnect->getHostAddress(), msg);
+			}
+		}
+		return bRv;
 	}
 
 	void ServerThread::close()

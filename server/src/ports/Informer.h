@@ -38,7 +38,7 @@ namespace util
 	/**
 	 * inform own or other folders over an external pool thread
 	 */
-	class Informer : 	public Thread
+	class Informer : public Thread
 	{
 	public:
 		struct inform_t
@@ -73,7 +73,7 @@ namespace util
 		 * constructor of object
 		 *
 		 * @param threadName name of thread
-		 * @param objCaller class object of ExternClientInputTemplate which need this sender thread
+		 * @param measureThread class object of ExternClientInputTemplate which need this sender thread
 		 */
 		Informer(const string& threadName, IMeasurePattern* measureThread)
 		: Thread("InformerThread_for_" + threadName, false, SCHED_BATCH, 0),
@@ -107,15 +107,17 @@ namespace util
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool bWait)
+		OVERWRITE EHObj stop(const bool bWait)
 		{ return Informer::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool *bWait= NULL);
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 		/**
 		 * destructor of object
 		 */
@@ -128,19 +130,19 @@ namespace util
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return defined error code from extended class
+		 * @return object of error handling
 		 */
-		virtual int init(void *args)
-		{ m_bisRunn= true; return 0; };
+		OVERWRITE EHObj init(void *args)
+		{ m_bisRunn= true; return m_pError; };
 		/**
 		 * abstract method to running thread
 		 * in the extended class.<br />
 		 * This method starting again when ending without an sleeptime
 		 * if the method stop() isn't call.
 		 *
-		 * @return defined error code from extended class
+		 * @return whether should start thread again
 		 */
-		virtual int execute();
+		OVERWRITE bool execute();
 		/**
 		 * inform directly other folders and also own when necessary
 		 * that an specific subroutine was changed

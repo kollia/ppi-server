@@ -225,18 +225,20 @@ class MeasureThread : 	public Thread,
 		 */
 		OVERWRITE bool isDebug();
 		/**
-		 *  external command to stop object of MeasureThread
+		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		OVERWRITE int stop(const bool bWait)
-		{ return stop(&bWait); };
+		OVERWRITE EHObj stop(const bool bWait)
+		{ return MeasureThread::stop(&bWait); };
 		/**
 		 *  external command to stop object of MeasureThread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		OVERWRITE int stop(const bool *bWait= NULL);
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 		/**
 		 * from witch folder:subroutine thread was informed for new value
 		 *
@@ -393,16 +395,16 @@ class MeasureThread : 	public Thread,
 		 * @param args user defined parameter value or array,<br />
 		 * 				coming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return error code for not right initialization
+		 * @return object of error handling
 		 */
-		OVERWRITE int init(void *arg);
+		OVERWRITE EHObj init(void *arg);
 		/**
 		 * This method starting again when ending with code 0 or lower for warnings
 		 * and if the method stop() isn't called.
 		 *
-		 * @param error code for not correctly done
+		 * @param whether should start thread again
 		 */
-		OVERWRITE int execute();
+		OVERWRITE bool execute();
 		/**
 		 * This method will be called if any other or own thread
 		 * calling method stop().

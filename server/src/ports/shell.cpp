@@ -148,17 +148,30 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 				++count;
 			for(short n= 0; n < count; ++n)
 			{
+				EHObj res;
+
 				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError, m_bInfo,
 												getRunningThread()->getExternSendDevice()));
 				thread->setFor(folder, subroutine);
-				if(thread->start() != 0)
+				res= thread->start();
+				if(res->fail())
 				{
-					ostringstream msg;
+					int log;
+					string msg;
 
-					msg << "ERROR: by trying to start CommandExec thread for beginning\n";
-					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
-					cerr << msg.str() << endl;
-					LOG(LOG_ERROR, msg.str());
+					res->addMessage("Shell", "CommandExecStartInit", folder + "@" + subroutine);
+					msg= res->getDescription();
+					if(res->hasError())
+					{
+						log= LOG_ERROR;
+						cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+					}else
+					{
+						log= LOG_WARNING;
+						cout << glob::addPrefix("### WARNING: ", msg) << endl;
+						m_vCommandThreads.push_back(thread);
+					}
+					LOG(log, msg);
 				}else
 					m_vCommandThreads.push_back(thread);
 			}
@@ -553,18 +566,32 @@ int Shell::inlineStarting(const string& action, string command, vector<string>& 
 		}
 		if(thread == NULL)
 		{
+			EHObj res;
+
 			out() << "create new CommandExec Thread for action " << action << endl;
 			thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(this, m_bLogError, m_bInfo,
 							getRunningThread()->getExternSendDevice()));
 			thread->setFor(getFolderName(), getSubroutineName());
-			if(thread->start() != 0)
+			res= thread->start();
+			if(res->fail())
 			{
-				ostringstream msg;
+				int log;
+				string msg;
 
-				msg << "ERROR: by trying to start CommandExec thread for command '" << command << "'\n";
-				msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
-				cerr << msg.str() << endl;
-				LOG(LOG_ALERT, msg.str());
+				res->addMessage("Shell", "CommandExecStart",
+								command + "@" + getFolderName() + "@" + getSubroutineName());
+				msg= res->getDescription();
+				if(res->hasError())
+				{
+					log= LOG_ERROR;
+					cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+				}else
+				{
+					log= LOG_WARNING;
+					cout << glob::addPrefix("### WARNING: ", msg) << endl;
+					m_vCommandThreads.push_back(thread);
+				}
+				LOG(log, msg);
 				UNLOCK(m_EXECUTEMUTEX);
 				return -2;
 			}else

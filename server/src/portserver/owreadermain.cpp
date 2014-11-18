@@ -32,6 +32,8 @@
 #include "../util/URL.h"
 #include "../util/exception.h"
 
+#include "../util/thread/ThreadErrorHandling.h"
+
 #include "../util/properties/interlacedproperties.h"
 #include "../util/properties/PPIConfigFileStructure.h"
 
@@ -72,7 +74,7 @@ int main(int argc, char* argv[])
 	bool bfreeze= false;
 	unsigned short nServerID;
 	unsigned short commport;
-	int nLogAllSec, err;
+	int nLogAllSec, nRv;
 	ostringstream usestring;
 	string commhost, servertype, questionservername("OwServerQuestion-");
 	string workdir, defaultuser, shelluser;
@@ -88,6 +90,13 @@ int main(int argc, char* argv[])
 	IChipAccessPattern* accessPort;
 	auto_ptr<OwServerQuestions> pQuestions;
 	map<string, uid_t> users;
+	ErrorHandling errHandle;
+	thread::ThreadErrorHandling thErrHandle;
+	SocketErrorHandling sockErrHandle;
+
+	errHandle.read();
+	thErrHandle.read();
+	sockErrHandle.read();
 
 	glob::processName("ppi-owreader");
 	glob::setSignals("ppi-owreader");
@@ -445,7 +454,7 @@ int main(int argc, char* argv[])
 			string err;
 
 			err=  "### ERROR: cannot set process to default user " + defaultuser + "\n";
-			err+= "    ERRNO: " + *strerror(errno);
+			err+= "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
 			LOG(LOG_ALERT, err);
 			cerr << err << endl;
 			exit(EXIT_FAILURE);
@@ -457,13 +466,13 @@ int main(int argc, char* argv[])
 			string err;
 
 			err=  "### ERROR: cannot set process to user " + shelluser + " so set to default user " + defaultuser + "\n";
-			err+= "    ERRNO: " + *strerror(errno);
+			err+= "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
 			LOG(LOG_ERROR, err);
 			cerr << err << endl;
 			if(setuid(users[defaultuser]) != 0)
 			{
 				err=  "### ERROR: cannot set process to default user " + defaultuser + "\n";
-				err+= "    ERRNO: " + *strerror(errno);
+				err+= "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
 				LOG(LOG_ALERT, err);
 				cerr << err << endl;
 				exit(EXIT_FAILURE);
@@ -472,8 +481,28 @@ int main(int argc, char* argv[])
 	}
 
 	try{
+		nRv= EXIT_SUCCESS;
+		errHandle= pQuestions->run();
+		if(errHandle.fail())
+		{
+			int log;
+			string msg;
 
-		err= pQuestions->run();
+			errHandle.addMessage("owreadermain", "run", owserver->getServerDescription());
+			msg= errHandle.getDescription();
+			if(errHandle.hasError())
+			{
+				log= LOG_ERROR;
+				cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+			}else
+			{
+				log= LOG_WARNING;
+				cout << glob::addPrefix("### WARNING: ", msg) << endl;
+			}
+			LOG(log, msg);
+			errHandle.clear();
+			nRv= EXIT_FAILURE;
+		}
 
 	}catch(SignalException &ex)
 	{
@@ -495,21 +524,19 @@ int main(int argc, char* argv[])
 		cerr << endl << endl << "### ERROR: " << msg << endl << endl;
 		LOG(LOG_ALERT, msg);
 	}
-	owserver->stop();
+	errHandle= owserver->stop();
 	DbInterface::deleteAll();
-	if(err > 0)
+	if(errHandle.fail())
 	{
 		string msg;
 
-		msg=  "### ERROR: cannot start question thread for one wire server " + owserver->getServerDescription() + "\n";
-		msg+= "           " + pQuestions->strerror(err);
-		cerr << msg << endl;
-		LOG(LOG_ERROR, msg);
-		pQuestions= auto_ptr<OwServerQuestions>();// delete OwServerQuestions before OWServer
-		return EXIT_FAILURE;
+		errHandle.addMessage("owreadermain", "stop", owserver->getServerDescription());
+		msg= errHandle.getDescription();
+		cout << glob::addPrefix("### WARNING: ", msg) << endl;
+		LOG(LOG_WARNING, msg);
 	}
 
 	pQuestions= auto_ptr<OwServerQuestions>();// delete OwServerQuestions before OWServer
 	glob::stopMessage("### ending correctly ppi-owreader process for library '" + servertype + "'", /*all process names*/true);
-	return EXIT_SUCCESS;
+	return nRv;
 }

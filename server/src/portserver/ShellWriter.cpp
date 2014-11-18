@@ -250,18 +250,31 @@ namespace ports
 			}
 			if(thread == NULL)
 			{
+				EHObj res;
+
 				db= DbInterface::instance();
 				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError, bInfo));
 				thread->setFor(folder, subroutine);
-				if(thread->start() != 0)
+				res= thread->start();
+				if(res->fail())
 				{
-					ostringstream msg;
+					int log;
+					string msg;
 
-					msg << "ERROR: by trying to start CommandExec thread "
-									"inside SchellWriter for command '" << execute << "'\n";
-					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
-					cerr << msg.str() << endl;
-					LOG(LOG_ALERT, msg.str());
+					res->addMessage("ShellWriter", "CommandExecStartInit",
+									folder + "@" + subroutine);
+					msg= res->getDescription();
+					if(res->hasError())
+					{
+						log= LOG_ERROR;
+						cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+					}else
+					{
+						log= LOG_WARNING;
+						cout << glob::addPrefix("### WARNING: ", msg) << endl;
+						m_vCommandThreads.push_back(thread);
+					}
+					LOG(log, msg);
 					return -2;
 				}else
 					m_vCommandThreads.push_back(thread);
@@ -274,21 +287,33 @@ namespace ports
 			pfound= m_msoBlockThreads.find(foldsub);
 			if(pfound == m_msoBlockThreads.end())
 			{
+				EHObj res;
+
 				if(execute == "info")
 					return 0;
 				db= DbInterface::instance();
 				thread= SHAREDPTR::shared_ptr<CommandExec>(new CommandExec(db, bLogError, bInfo));
 				thread->setFor(folder, subroutine);
-				if(thread->start() != 0)
+				res= thread->start();
+				if(res->fail())
 				{
-					ostringstream msg;
+					int log;
+					string msg;
 
-					msg << "ERROR: by trying to start CommandExec thread "
-									"inside SchellWriter by command '" << execute << "'\n"
-									"for subroutine object of " << folder << ":" << subroutine << endl;
-					msg << "       ERRORCODE(" << thread->getErrorCode() << ")";
-					cerr << msg.str() << endl;
-					LOG(LOG_ALERT, msg.str());
+					res->addMessage("ShellWriter", "CommandExecStart",
+									execute + "@" + folder + "@" + subroutine);
+					msg= res->getDescription();
+					if(res->hasError())
+					{
+						log= LOG_ERROR;
+						cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+					}else
+					{
+						log= LOG_WARNING;
+						cout << glob::addPrefix("### WARNING: ", msg) << endl;
+						m_vCommandThreads.push_back(thread);
+					}
+					LOG(log, msg);
 					return -2;
 				}else
 					m_msoBlockThreads[foldsub]= thread;

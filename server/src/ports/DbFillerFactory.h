@@ -75,10 +75,10 @@ namespace util
 		 * @param args user defined parameter value or array,<br />
 		 * 				coming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return defined error code from extended class
+		 * @return object of error handling
 		 */
-		virtual int init(void *args)
-		{ return 0; };
+		OVERWRITE EHObj init(void *args)
+		{ return m_pError; };
 		/**
 		 * abstract method to running thread
 		 * in the extended class.<br />
@@ -87,27 +87,28 @@ namespace util
 		 *
 		 * @return defined error code from extended class
 		 */
-		virtual int execute();
+		OVERWRITE bool execute();
 		/**
 		 * abstract method to ending the thread.<br />
 		 * This method will be called if any other or own thread
 		 * calling method stop().
 		 */
 		virtual void ending()
-		{ /* dummy method */ };
+		{ /* dummy method, nothing to do */ };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool bWait)
+		OVERWRITE EHObj stop(const bool bWait)
 		{ return DbFillerFactory::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual int stop(const bool *bWait= NULL);
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 
 	private:
 		/**

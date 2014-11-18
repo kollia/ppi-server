@@ -44,9 +44,9 @@ namespace server
 			 * initial all values for transaction
 			 *
 			 * @param descriptor file handle to set start values
-			 * @return whether initialization was correct
+			 * @return object of error handling
 			 */
-			virtual bool init(IFileDescriptorPattern& descriptor);
+			virtual EHObj init(IFileDescriptorPattern& descriptor);
 			/**
 			 * transaction protocol between Server and Client<br /><br />
 			 * <table>
@@ -286,13 +286,6 @@ namespace server
 			 * @return error string
 			 */
 			virtual string strerror(const int error) const;
-			/**
-			 * get maximal error or warning number in positive values from own class
-			 *
-			 * @param byerror whether needs error number (true) or warning number (false)
-			 * @return maximal error or warning number
-			 */
-			virtual unsigned int getMaxErrorNums(const bool byerror) const;
 			/**
 			 * destructor of server transaction
 			 */

@@ -24,6 +24,9 @@
 #include <map>
 
 #include "../util/debug.h"
+#include "../util/stream/ErrorHandling.h"
+#include "../util/thread/ThreadErrorHandling.h"
+#include "../server/libs/SocketErrorHandling.h"
 
 #include "Client.h"
 
@@ -43,6 +46,13 @@ int main(int argc, char* argv[])
 	string workdir(argv[0]);
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
+	ErrorHandling errHandle;
+	thread::ThreadErrorHandling thErrHandle;
+	SocketErrorHandling sockErrHandle;
+
+	errHandle.read();
+	thErrHandle.read();
+	sockErrHandle.read();
 
 	directorys= ConfigPropertyCasher::split(workdir, "/");
 	dirlen= directorys.size();

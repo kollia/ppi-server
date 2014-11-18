@@ -22,41 +22,64 @@
 
 #include "../pattern/util/LogHolderPattern.h"
 
+#include "../util/GlobalStaticMethods.h"
+
 #include "../util/stream/IMethodStringStream.h"
 
 #include "../util/properties/configpropertycasher.h"
+
+#include "../database/logger/lib/logstructures.h"
 
 namespace server {
 
 using namespace boost;
 
-int OwServerQuestions::init(void* args)
+EHObj OwServerQuestions::init(void* args)
 {
 	return openGetConnection();
 }
 
-int OwServerQuestions::execute()
+bool OwServerQuestions::execute()
 {
-	int err;
 	string question, command;
 
 	question= getQuestion(m_sAnswer);
 	m_sAnswer= "";
-	err= error(question);
-	if(err != 0)
+	m_pSocketError->clear();
+	m_pSocketError->setErrorStr(question);
+	if(m_pSocketError->fail())
 	{
-		if(err < 0 || err == 35)
-		{ 	// by error number 35
-			// no communication server is listening on port
-			// or err is an warning (under 0)
-			// try again later
-			return 0;
+		int log;
+		string prefix;
+
+		m_pSocketError->addMessage("OWServerQuestions", "get_question", m_oServer->getServerDescription());
+		if(m_pSocketError->hasError())
+		{
+			log= LOG_ERROR;
+			prefix= "### ERROR: ";
+		}else
+		{
+			log= LOG_WARNING;
+			prefix= "### WARNING: ";
 		}
-		command=  "### ERROR: ending OWServer question client for server " + m_oServer->getServerDescription() + "\n";
-		command+= "           " + strerror(err);
-		cerr << command << endl;
-		LOG(LOG_ERROR, command);
-		return err;
+		command= m_pSocketError->getDescription();
+		cout << glob::addPrefix(prefix, command) << endl;
+		LOG(log, command);
+		if(m_pSocketError->hasWarning())
+		{
+			/*
+			 * toDo: by old error reading
+			 * 		 error 35 is not implemented now
+			 *
+			 * by error number 35
+			 * no communication server is listening on port
+			 * or err is an warning (under 0)
+			 * try again later
+			 */
+			usleep(5000);
+			return true;
+		}
+		return false;
 	}
 	IMethodStringStream stream(question);
 
@@ -294,18 +317,6 @@ int OwServerQuestions::execute()
 			m_sAnswer= "done";
 		first= false;
 
-	}else if(command == "getMinMaxErrorNums")
-	{
-		int nums;
-		ostringstream errornums;
-
-		nums= getMaxErrorNums(false);
-		errornums << nums << " ";
-		nums= getMaxErrorNums(true);
-		nums+= 1; // for undefined command sending;
-		errornums << nums;
-		m_sAnswer= errornums.str();
-
 	}else if(command == "stop-owclient")
 	{
 		closeGetConnection();
@@ -353,14 +364,16 @@ int OwServerQuestions::execute()
 
 	}else
 	{
-		string msg("### ERROR: undefined command '");
+		string msg;
 
-		msg+= command + "' was send to one wire server";
-		cerr << msg << endl;
+		m_pSocketError->setError("OwServerQuestions", "get_wrong_question",
+						m_oServer->getServerDescription() + "@" + command);
+		msg= m_pSocketError->getDescription();
+		cerr << glob::addPrefix("### ERROR: ", msg) << endl;
 		LOG(LOG_ERROR, msg);
-		m_sAnswer= "ERROR 001";
+		m_sAnswer= m_pSocketError->getErrorStr();
 	}
-	return 0;
+	return true;
 }
 
 void OwServerQuestions::ending()

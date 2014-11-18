@@ -46,7 +46,6 @@ namespace util
 		 * constructor of object
 		 *
 		 * @param threadName name of thread
-		 * @param objCaller class object of ExternClientInputTemplate which need this sender thread
 		 */
 		DbFiller(const string& threadName)
 		: Thread("DbFillerThread_for_" + threadName, false, SCHED_BATCH, 0),
@@ -134,31 +133,25 @@ namespace util
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool bWait)
+		OVERWRITE EHObj stop(const bool bWait)
 		{ return DbFiller::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool *bWait= NULL);
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 		/**
 		 * remove all content from DbFiller
 		 * and stop thread when one running
-		 */
-		virtual int remove()
-		{ bool bWait(true); return DbFiller::stop(&bWait); };
-		/**
-		 * calculate the error code given back from server as string.<br />
-		 * the return error codes from server should be ERROR or WARNING.
-		 * If the returned string was an warning, the number will be multiplied with -1 (become negative)
-		 * Elsewhere the number is 0
 		 *
-		 * @param input the returned string from server
-		 * @return error number
+		 * @return object of error handling
 		 */
-		int error(const string& input);
+		OVERWRITE EHObj remove()
+		{ bool bWait(true); return DbFiller::stop(&bWait); };
 		/**
 		 * destructor of object
 		 */
@@ -171,19 +164,19 @@ namespace util
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return defined error code from extended class
+		 * @return object of error handling
 		 */
-		virtual int init(void *args)
-		{ m_oCache.isRunning(); return 0; };
+		OVERWRITE EHObj init(void *args)
+		{ m_oCache.isRunning(); return m_pError; };
 		/**
 		 * abstract method to running thread
 		 * in the extended class.<br />
 		 * This method starting again when ending without an sleeptime
 		 * if the method stop() isn't call.
 		 *
-		 * @return defined error code from extended class
+		 * @return whether should start thread again
 		 */
-		virtual int execute();
+		OVERWRITE bool execute();
 		/**
 		 * dummy method to ending the thread
 		 */

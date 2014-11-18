@@ -120,15 +120,17 @@ namespace ports
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool bWait)
+		OVERWRITE EHObj stop(const bool bWait)
 		{ return ReadWorker::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool *bWait= NULL);
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 		/**
 		 * destructor to destroy
 		 * mutex and condition
@@ -141,7 +143,7 @@ namespace ports
 		/**
 		 * working routine of callback class
 		 */
-		virtual short runnable();
+		OVERWRITE bool runnable();
 
 	private:
 		/**

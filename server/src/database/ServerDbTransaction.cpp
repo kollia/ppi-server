@@ -750,13 +750,15 @@ namespace server
 					sendMeth.removeSyncID();
 				if(msg != "done")
 				{
-					if(ExternClientInputTemplate::error(msg))
+					m_pSockError->setErrorStr(msg);
+					if(!m_pSockError->fail())
 					{
-						msg= "no communication to ppi-server " + msg;
-						++step;
-					}
-					//cout << "send: " << msg << endl;
-					descriptor << msg;
+						m_pSockError->setError("ServerDbTransaction", "getStatusInfo_ppi_server", msg);
+					}else
+						m_pSockError->addMessage("ServerDbTransaction", "getStatusInfo_ppi_serverM");
+					++step;
+					descriptor << m_pSockError->getErrorStr();
+					m_pSockError->clear();
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			if(bDebugOutput)
 				debugSendMsg << "(1-3.) send answer '" << msg << "' from ppi-db-server back to client" << endl;
@@ -868,17 +870,24 @@ namespace server
 					trim(msg);
 					if(object.getSyncID() > 0)
 						sendMeth.removeSyncID();
-					if(ExternClientInputTemplate::error(msg))
-						msg= "no communication to  " + poOWReader->str() + " " + msg;
+
 					if(msg != "done")
 					{
-						if(ExternClientInputTemplate::error(msg))
+						m_pSockError->setErrorStr(msg);
+						if(m_pSockError->fail())
 						{
-							msg= "no communication to ppi-log-client " + msg;
-							++nOWReader;
+							m_pSockError->addMessage("ServerDbTransaction",
+											"getStatusInfo_owreaderM", poOWReader->str());
+						}else
+						{
+							m_pSockError->setError("ServerDbTransaction", "getStatusInfo_owreader",
+											poOWReader->str() + "@" + msg);
 						}
-						//cout << "send: " << msg << endl;
+						++step;
+						msg= m_pSockError->getErrorStr();
+						m_pSockError->clear();
 						descriptor << msg;
+
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			if(bDebugOutput)
 				debugSendMsg << "(1-3.) send answer '" << msg << "' from ppi-db-server back to client" << endl;
@@ -1685,40 +1694,6 @@ namespace server
 			db= DatabaseThread::instance()->getDatabaseObj();
 			db->arouseChangingPoolCondition();
 		}
-	}
-
-	string ServerDbTransaction::strerror(int error) const
-	{
-		string str;
-
-		switch(error)
-		{
-		case 0:
-			str= "no error occured";
-			break;
-		case 11:
-			str= "undefined command was send to database server";
-			break;
-		default:
-			if(	error >= (static_cast<int>(ServerMethodTransaction::getMaxErrorNums(false)) * -1) &&
-				error <= static_cast<int>(ServerMethodTransaction::getMaxErrorNums(true))						)
-			{
-				str= ServerMethodTransaction::strerror(error);
-			}
-			if(error > 0)
-				str= "Undefined error for transaction";
-			else
-				str= "Undefined warning for transaction";
-			break;
-		}
-		return str;
-	}
-
-	inline unsigned int ServerDbTransaction::getMaxErrorNums(const bool byerror) const
-	{
-		if(byerror)
-			return 15;
-		return 0;
 	}
 
 	void ServerDbTransaction::allocateConnection(IFileDescriptorPattern& descriptor)

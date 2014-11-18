@@ -21,6 +21,7 @@
 #include <queue>
 #include <map>
 
+#include "../../pattern/util/IErrorHandlingPattern.h"
 #include "../../pattern/server/IFileDescriptorPattern.h"
 
 #include "../../util/smart_ptr.h"
@@ -29,6 +30,7 @@
 
 using namespace std;
 using namespace util;
+using namespace design_pattern_world::util_pattern;
 using namespace design_pattern_world::server_pattern;
 
 
@@ -66,9 +68,9 @@ namespace server
 			/**
 			 * initial ITransferPattern with this FileDescriptor
 			 *
-			 * @return whether the initialization was correct
+			 * @return object of error handling
 			 */
-			virtual bool init();
+			virtual EHObj init();
 			/**
 			 * operator writing string value into the param,
 			 * witch coming over the transaction
@@ -354,20 +356,6 @@ namespace server
 			 * close connection to client
 			 */
 			virtual void closeConnection();
-			/**
-			 * return string describing error number
-			 *
-			 * @param error code number of error
-			 * @return error string
-			 */
-			virtual string strerror(int error) const;
-			/**
-			 * get maximal error or warning number in positive values from own class
-			 *
-			 * @param byerror whether needs error number (true) or warning number (false)
-			 * @return maximal error or warning number
-			 */
-			virtual unsigned int getMaxErrorNums(const bool byerror) const;
 			/**
 			 * destructor to dereference file
 			 */

@@ -85,25 +85,17 @@ namespace util
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool bWait)
+		virtual EHObj stop(const bool bWait)
 		{ return NoAnswerSender::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool *bWait= NULL);
-		/**
-		 * calculate the error code given back from server as string.<br />
-		 * the return error codes from server should be ERROR or WARNING.
-		 * If the returned string was an warning, the number will be multiplied with -1 (become negative)
-		 * Elsewhere the number is 0
-		 *
-		 * @param input the returned string from server
-		 * @return error number
-		 */
-		int error(const string& input);
+		virtual EHObj stop(const bool *bWait= NULL);
 		/**
 		 * destructor of object
 		 */
@@ -116,19 +108,19 @@ namespace util
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return defined error code from extended class
+		 * @return object of error handling
 		 */
-		virtual int init(void *args)
-		{ return 0; };
+		virtual EHObj init(void *args)
+		{ return m_pError; };
 		/**
 		 * abstract method to running thread
 		 * in the extended class.<br />
 		 * This method starting again when ending without an sleeptime
 		 * if the method stop() isn't call.
 		 *
-		 * @return defined error code from extended class
+		 * @return whether thread should start again
 		 */
-		virtual int execute();
+		virtual bool execute();
 		/**
 		 * dummy method to ending the thread
 		 */

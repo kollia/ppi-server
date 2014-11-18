@@ -18,17 +18,14 @@
 
 #include "CallbackTemplate.h"
 
-int CallbackTemplate::initialStarting()
+EHObj CallbackTemplate::initialStarting()
 {
 	return start(NULL, /*holding*/false);
 }
 
-int CallbackTemplate::execute()
+bool CallbackTemplate::execute()
 {
-	m_nReturnCode= runnable();
-	if(m_nReturnCode != 0)
-		stop(/*wait*/false);
-	return static_cast<int>(m_nReturnCode);
+	return runnable();
 }
 
 short CallbackTemplate::finished(bool bWait/*= false*/)
@@ -44,5 +41,12 @@ short CallbackTemplate::finished(bool bWait/*= false*/)
 		}else
 			break;
 	}while(bWait);
-	return m_nReturnCode;
+	if(m_pError->fail())
+	{
+		if(m_pError->hasError())
+			return -2;
+		else // warning occurred
+			return -1;
+	}
+	return 1;
 }

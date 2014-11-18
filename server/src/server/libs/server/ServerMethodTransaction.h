@@ -22,6 +22,8 @@
 #include "../../../util/stream/IMethodStringStream.h"
 #include "../../../util/debugtransaction.h"
 
+#include "../SocketErrorHandling.h"
+
 using namespace design_pattern_world::server_pattern;
 using namespace util;
 
@@ -202,24 +204,26 @@ namespace server
 	class ServerMethodTransaction : public ITransferPattern
 	{
 		public:
-#ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			ServerMethodTransaction()
-			: m_boutput(false) {};
+			: m_pSockError(EHObj(new SocketErrorHandling))
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			  ,m_boutput(false)
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
+			{};
 			/**
 			 * initial all values for transaction
 			 *
 			 * @param descriptor file handle to set start values
-			 * @return whether initialization was correct
+			 * @return object of error handling
 			 */
-			virtual bool init(IFileDescriptorPattern& descriptor);
+			OVERWRITE EHObj init(IFileDescriptorPattern& descriptor);
 			/**
 			 * method transaction protocol between Server and Client
 			 *
 			 * @param descriptor file handle to get command's and send answer
-			 * @return whether need to hold the connection
+			 * @return whether server should hold transaction
 			 */
-			virtual bool transfer(IFileDescriptorPattern& descriptor);
+			OVERWRITE bool transfer(IFileDescriptorPattern& descriptor);
 			/**
 			 * method transaction protocol between server to client.<br />
 			 * This method is called from main method of transfer,
@@ -256,25 +260,16 @@ namespace server
 			 */
 			virtual bool isClient(const IFileDescriptorPattern& descriptor, const string& definition) const;
 			/**
-			 * return string describing error number
-			 *
-			 * @param error code number of error
-			 * @return error string
-			 */
-			virtual string strerror(int error) const;
-			/**
-			 * get maximal error or warning number in positive values from own class
-			 *
-			 * @param byerror whether needs error number (true) or warning number (false)
-			 * @return maximal error or warning number
-			 */
-			virtual unsigned int getMaxErrorNums(const bool byerror) const;
-			/**
 			 * destructor of server method-transaction
 			 */
 			virtual ~ServerMethodTransaction();
 
 		protected:
+			/**
+			 * socket object for error handling
+			 */
+			EHObj m_pSockError;
+
 			/**
 			 * this method will be called if any connection allocate to server
 			 * and is only for overwriting

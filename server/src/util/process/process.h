@@ -21,6 +21,8 @@
 #include <unistd.h>
 #include <string>
 
+#include "../stream/ErrorHandling.h"
+
 #include "../thread/StatusLogRoutine.h"
 #include "../thread/Thread.h"
 
@@ -33,129 +35,13 @@ namespace util
 	using namespace std;
 
 	/**
-	 * base class for all Process with fork.<br />
-	 * <br />
-	 * error codes:<br />
-	 * (all codes over 0 be errors and under warnings)<br />
-	 * <table>
-	 * 	<tr>
-	 * 		<td>
-	 * 			0
-	 * 		</td>
-	 * 		<td>
-	 * 			<table>
-	 * 				<tr>
-	 * 					<td>
-	 * 						<code>start()</code> and<br />
-	 * 						<code>stop()</code>
-	 * 					</td>
-	 * 					<td>
-	 * 						no error occurred
-	 * 					</td>
-	 * 				</tr>
-	 * 				<tr>
-	 * 					<td>
-	 * 						<code>running()</code>
-	 * 					</td>
-	 * 					<td>
-	 * 						process do not run
-	 * 					</td>
-	 * 				</tr>
-	 * 				<tr>
-	 * 					<td>
-	 * 						<code>stopping()</code>
-	 * 					</td>
-	 * 					<td>
-	 * 						process run and do not stop in the next time
-	 * 					</td>
-	 * 				</tr>
-	 * 			</table>
-	 * 		</td>
-	 * 	</tr>
-	 * 	<tr>
-	 * 		<td>
-	 * 			1
-	 * 		</td>
-	 * 		<td>
-	 * 			<table>
-	 * 				<tr>
-	 * 					<td>
-	 * 						<code>running()</code>
-	 * 					</td>
-	 * 					<td>
-	 * 						process is running
-	 * 					</td>
-	 * 				</tr>
-	 * 				<tr>
-	 * 					<td>
-	 * 						<code>stopping()</code>
-	 * 					</td>
-	 * 					<td>
-	 * 						process should stop in the next time
-	 * 					</td>
-	 * 				</tr>
-	 * 			</table>
-	 * 		</td>
-	 * 	</tr>
-	 * 	<tr>
-	 * 		<td>
-	 * 			2
-	 * 		</td>
-	 * 		<td>
-	 * 			cannot fork process
-	 * 		</td>
-	 * 	</tr>
-	 * 	<tr>
-	 * 		<td>
-	 * 			3
-	 * 		</td>
-	 * 		<td>
-	 * 			cannot correctly check initialization from new process,
-	 * 			maybe connection was failed or server give back wrong answer (not 'done')
-	 *
-	 * 		</td>
-	 * 	</tr>
-	 * 	<tr>
-	 * 		<td>
-	 * 			4
-	 * 		</td>
-	 * 		<td>
-	 * 			cannot correctly check stopping from process,
-	 * 			maybe connection was failed or server give back wrong answer (not 'done')
-	 * 		</td>
-	 * 	</tr>
-	 * 	<tr>
-	 * 		<td>
-	 * 			5
-	 * 		</td>
-	 * 		<td>
-	 * 			ProcessStarter cannot start correctly application on harddisk
-	 * 		</td>
-	 * 	</tr>
-	 * </table>
-	 * <br />
-	 * warning codes for <code>start()</code> and <code>stop()</code>:
-	 * <table>
-	 * 	<tr>
-	 * 		<td>
-	 * 			-1
-	 * 		</td>
-	 * 		<td>
-	 * 			in constructor given no <code>IClientConnectArtPattern,
-	 * 			so cannot check instruction
-	 * 		</td>
-	 * 	</tr>
-	 * </table>
-	 * <br />
-	 * the return error codes from server should be ERROR or WARNING.
-	 * If the given warnings are multiplied with -1 (become negative)
-	 * and both will be by return of 10 count higher.
+	 * base class for all Process with forking.
 	 *
 	 * @author Alexander Kolli
 	 * @version 1.0.0
 	 */
-	class Process : virtual public IThreadPattern,
-							public ExternClientInputTemplate,
+	class Process : 		public ExternClientInputTemplate,
+					virtual public IThreadPattern,
 							public StatusLogRoutine
 	{
 	public:
@@ -177,22 +63,22 @@ namespace util
 		 * @param args arbitary optional defined parameter to get in initialisation method init
 		 * @param bHold should the caller wait of thread by ending.<br />
 		 * 				default is false
-		 * @return 0 for no error
+		 * @return object of error handling
 		 */
-		virtual int start(void *args= NULL, bool bHold= false);
+		virtual EHObj start(void *args= NULL, bool bHold= false);
 		/**
 		 * check only whether application is running
 		 *
-		 * @return 0 for process running
+		 * @return object of error handling
 		 */
-		virtual int check();
+		virtual EHObj check();
 		/**
 		 * start method to running the process without fork
 		 *
 		 * @param args arbitary optional defined parameter to get in initialisation method init
-		 * @return error code lower than 0
+		 * @return object of error handling
 		 */
-		virtual int run(void *args= NULL);
+		virtual EHObj run(void *args= NULL);
 		/**
 		 * abstract method to initial the thread
 		 * in the extended class.<br />
@@ -202,43 +88,43 @@ namespace util
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return defined error code from extended class
+		 * @return object of error handling
 		 */
-		virtual int init(void *args)=0;
+		virtual EHObj init(void *args)=0;
 		/**
 		 * abstract method to running process
 		 * in the extended class.<br />
 		 * This method starting again when ending with code 0 or lower for warnings
 		 * and if the method stop() isn't called.
 		 *
-		 * @return defined error code from extended class
+		 * @return whether should start process again
 		 */
-		virtual int execute()=0;
+		virtual bool execute()=0;
 		/**
 		 * external query whether the process is running.<br />
 		 * This method should be call into running process to know whether the process should stop.<br />
 		 * By calling from outside it ask over the server when connection given by constructor.
 		 * If not given the return value is always false
 		 *
-		 * @return error or warning number see overview
+		 * @return 1 when thread running otherwise 0 or -1 by error
 		 */
-		virtual int running();
+		virtual short running();
 		/**
 		 *  external command to stop process
 		 *
 		 * @param bWait calling rutine should wait until the process is stopping
 		 * @return error or warning number see overview
 		 */
-		virtual int stop(const bool bWait= true);
+		virtual EHObj stop(const bool bWait= true);
 		/**
 		 * to ask whether the process should stopping.<br />
 		 * This method should be call into running process to know whether the process should stop.<br />
 		 * By calling from outside it ask over the server when connection given by constructor.
-		 * If not given the return value is always false
+		 * If not given the return value is always 0
 		 *
-		 * @return error or warning number see overview
+		 * @return 1 if the thread should stop otherwise 0 or -1 by error
 		 */
-		virtual int stopping();
+		virtual short stopping();
 		/**
 		 * abstract method to ending the thread.<br />
 		 * This method will be called if any other or own thread
@@ -253,12 +139,12 @@ namespace util
 		virtual const string getProcessName() const
 		{ return m_sProcessName; };
 		/**
-		 * return string describing error number
+		 * returning current error handling object
 		 *
-		 * @param error code number of error
-		 * @return error string
+		 * @return object of error handling
 		 */
-		virtual string strerror(int error);
+		OVERWRITE EHObj getErrorHandlingObj() const
+		{ return ExternClientInputTemplate::getErrorHandlingObj(); };
 		/**
 		 * destructor of process
 		 */
@@ -271,9 +157,9 @@ namespace util
 		 * @param args arbitary optional defined parameter to get in initialisation method init
 		 * @param bHold should the caller wait of thread by ending.<br />
 		 * 				default is false
-		 * @return error code lower than 0
+		 * @return object for error handling
 		 */
-		virtual int runprocess(void *args= NULL, bool bHold= false);
+		virtual EHObj runprocess(void *args= NULL, bool bHold= false);
 
 	private:
 		/**

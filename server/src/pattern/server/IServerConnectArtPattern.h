@@ -48,11 +48,10 @@ namespace design_pattern_world
 			/**
 			 * listen on device for new connection
 			 * and initial descriptor which getting with <code>getDescriptor()</code>
-			 * if return code was 0
 			 *
-			 * @return error code
+			 * @return object of error handling
 			 */
-			virtual int accept()= 0;
+			virtual EHObj accept()= 0;
 			/**
 			 * destructor for pattern
 			 */

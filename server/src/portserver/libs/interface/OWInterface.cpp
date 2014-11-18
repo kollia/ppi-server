@@ -17,7 +17,10 @@
 
 #include "../../../pattern/util/LogHolderPattern.h"
 
+#include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/stream/IParameterStringStream.h"
+
+#include "../../../database/logger/lib/logstructures.h"
 
 #include "OWInterface.h"
 
@@ -32,7 +35,7 @@ inline SHAREDPTR::shared_ptr<OWInterface> OWInterface::getServer(const unsigned 
 
 SHAREDPTR::shared_ptr<OWInterface> OWInterface::getServer(const string& process, IClientConnectArtPattern* connection, const unsigned short serverID)
 {
-	int err;
+	EHObj ret;
 	ostringstream sID;
 	map<unsigned short, SHAREDPTR::shared_ptr<OWInterface> >::iterator it;
 
@@ -55,16 +58,28 @@ SHAREDPTR::shared_ptr<OWInterface> OWInterface::getServer(const string& process,
 		return SHAREDPTR::shared_ptr<OWInterface>();
 	}
 	_instances[serverID]= SHAREDPTR::shared_ptr<OWInterface>(new OWInterface(process, sID.str(), connection));
-	err= _instances[serverID]->openSendConnection();
-	if(err > 0)
+	ret= _instances[serverID]->openSendConnection();
+	if(ret->fail())
 	{
 		string msg;
-		msg=  "### ERROR: cannot open connection to one wire server " + sID.str() + "\n";
-		msg+= "           " + _instances[serverID]->strerror(err);
-		cerr << msg << endl;
-		LOG(LOG_ERROR, msg);
-		_instances.erase(serverID);
-		return SHAREDPTR::shared_ptr<OWInterface>();
+
+		if(ret->hasError())
+		{
+			ret->addMessage("OWInterface",
+							"openSendConnection_err", process + "@" + sID.str());
+			msg= ret->getDescription();
+			cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+			LOG(LOG_ERROR, msg);
+			_instances.erase(serverID);
+			return SHAREDPTR::shared_ptr<OWInterface>();
+		}else
+		{
+			ret->addMessage("OWInterface",
+							"openSendConnection_warn", process + "@" + sID.str());
+			msg= ret->getDescription();
+			cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+			LOG(LOG_WARNING, msg);
+		}
 	}
 	return _instances[serverID];
 }

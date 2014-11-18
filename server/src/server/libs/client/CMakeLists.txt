@@ -1,10 +1,10 @@
 
 
-set(serverlibclientSrcs ExternClientInputTemplate.cpp
+set(serverlibclientSrcs SocketClientConnection.cpp
+                        ExternClientInputTemplate.cpp
 						NoAnswerSender.cpp
 						ProcessInterfaceTemplate.cpp
-        				OutsideClientTransaction.cpp
-        		        SocketClientConnection.cpp      )
+        				OutsideClientTransaction.cpp     )
     
 add_library(ppiserverlibclient ${libraries} ${serverlibclientSrcs})
 target_link_libraries(ppiserverlibclient ppiserverlib)

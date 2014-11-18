@@ -103,6 +103,16 @@ public:
 	 * @return binary string
 	 */
 	static string getBinString(const long value, const size_t bits);
+	/**
+	 * add prefix string
+	 * to an string with more rows
+	 * (separated with '\n'
+	 *
+	 * @param pref prefix add to first row of string
+	 * @param str string where should prefix added
+	 * @return string with prefix
+	 */
+	static string addPrefix(const string& pref, const string& str);
 
 private:
 	/**

@@ -25,8 +25,13 @@
 
 #include "util/MainParams.h"
 #include "util/debug.h"
-#include "util/properties/measureStructures.h"
+
+#include "util/stream/ErrorHandling.h"
+#include "util/thread/ThreadErrorHandling.h"
 #include "util/thread/Terminal.h"
+#include "util/properties/measureStructures.h"
+
+#include "server/libs/SocketErrorHandling.h"
 
 #include "starter.h"
 
@@ -43,6 +48,13 @@ int main(int argc, char* argv[])
 	Starter server;
 	MainParams params(argc, argv, /*read path for parent dirs*/1);
 	const ICommandStructPattern* commands;
+	ErrorHandling errHandle;
+	thread::ThreadErrorHandling thErrHandle;
+	SocketErrorHandling sockErrHandle;
+
+	errHandle.read();
+	thErrHandle.read();
+	sockErrHandle.read();
 
 	// method has only content by debugging when need
 	tests(params.getPath(), argc, argv);
@@ -196,6 +208,7 @@ int main(int argc, char* argv[])
 
 
 //#define __URI_TEST
+//#define __ERRORHANDLER_TEST
 //#define __MAKE_CALCULATER_TESTS
 //#define __CHECK_THREAD_CREATION
 //#define __CHECK_WORKING_INTERLACEDPROPERTIES
@@ -207,6 +220,9 @@ int main(int argc, char* argv[])
 #ifdef __URI_TEST
 #define __MAKE_TESTS
 #endif // __MAKE_TESTS
+#ifdef __ERRORHANDLER_TEST
+#define __MAKE_TESTS
+#endif // __ERRORHANDLER_TEST
 #ifdef __MAKE_CALCULATER_TESTS
 #define __MAKE_TESTS
 #endif // __MAKE_CALCULATER_TESTS
@@ -232,6 +248,7 @@ int main(int argc, char* argv[])
 #ifdef __MAKE_TESTS
 // some includes needed for tests method
 #include "util/URL.h"
+#include "util/GlobalStaticMethods.h"
 // only for calculator test
 #include "util/CalculatorContainer.h"
 // only for simple server client communication
@@ -352,6 +369,31 @@ void tests(const string& workdir, int argc, char* argv[])
 	}
 
 #endif // __URI_TEST
+
+#ifdef __ERRORHANDLER_TEST
+
+	ErrorHandling errHandle;
+	thread::ThreadErrorHandling thErrHandle;
+	SocketErrorHandling sockHandle;
+
+	cout << errHandle.getErrnoString(EADDRINUSE) << endl;
+	sockHandle.setAddrError("SocketConnection", "getaddrinfo", EAI_SYSTEM, EINVAL, "kolli.at/go.php?set=1@8080");
+	cout << "short error '" << sockHandle.getErrorStr() << "'" << endl;
+	thErrHandle= sockHandle;
+	cout << "short error '" << thErrHandle.getErrorStr() << "'" << endl;
+	//thErrHandle.setErrnoError("Thread", "pthread_join", EINVAL, "ClientSocket");
+	thErrHandle.setPThreadError("Thread", "pthread_create", "pthread_create", EINVAL, "ClientSocket");
+	cout << "short error '" << thErrHandle.getErrorStr() << "'" << endl;
+	thErrHandle.addMessage("NoAnswerSender", "sendMethod", "setValue");
+	cout << "short error '" << thErrHandle.getErrorStr() << "'" << endl;
+	errHandle.setErrorStr(thErrHandle.getErrorStr());
+	cout << "short error '" << errHandle.getErrorStr() << "'" << endl;
+	errHandle.addMessage("ClientTransaction", "client_send", "timer@create");
+	cout << "short error '" << errHandle.getErrorStr() << "'" << endl;
+	cout << glob::addPrefix("ERROR: ", errHandle.getDescription()) << endl;
+	cout << flush;
+
+#endif // __ERRORHANDLER_TEST
 
 #ifdef __MAKE_CALCULATER_TESTS
 

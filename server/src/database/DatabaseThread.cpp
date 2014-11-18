@@ -35,7 +35,10 @@
 
 #include "../pattern/server/IClientPattern.h"
 
+#include "../util/thread/ThreadErrorHandling.h"
+
 using namespace util;
+using namespace util::thread;
 using namespace server;
 using namespace ports;
 
@@ -92,21 +95,24 @@ bool DatabaseThread::isDbLoaded() const
 	return bRv;
 }
 
-int DatabaseThread::init(void *args)
+EHObj DatabaseThread::init(void *args)
 {
 	if(m_pDatabase == NULL)
-		return -1;
+	{
+		m_pError->setError("DatabaseThread", "init");
+		return m_pError;
+	}
 	m_pDatabase->read();
 
 	LOCK(m_DBLOADED);
 	m_bDbLoaded= true;
 	UNLOCK(m_DBLOADED);
-	return 0;
+	return m_pError;
 }
 
 vector<string> DatabaseThread::getDebugInfo(const unsigned short server)
 {
-	int err;
+	ThreadErrorHandling errHandle;
 	IClientPattern* client;
 	ostringstream definition;
 	vector<string> vRv, vanswer;
@@ -122,30 +128,28 @@ vector<string> DatabaseThread::getDebugInfo(const unsigned short server)
 				answer= vanswer.front();
 			else
 				answer= "";
-			err= ExternClientInputTemplate::error(answer);
+			errHandle.setErrorStr(answer);
 			vRv.push_back(answer);
 
-		}while(answer != "done" && err <= 0);
+		}while(answer != "done" && !errHandle.hasError());
 	}
 	return vRv;
 }
 
-int DatabaseThread::stop(const bool *bWait)
+EHObj DatabaseThread::stop(const bool *bWait)
 {
-	int nRv= 0;
 	bool stopped;
 
-	nRv= Thread::stop(false);
+	m_pError= Thread::stop(false);
 	stopped= m_pDatabase->stop();
 
-	if(	nRv == 0 &&
+	if(	!m_pError->hasError() &&
 		stopped &&
 		bWait		)
 	{
-		nRv= Thread::stop(/*wait*/bWait);
-	}else
-		nRv= -1;
-	return nRv;
+		(*m_pError)= Thread::stop(/*wait*/bWait);
+	}
+	return m_pError;
 }
 
 DatabaseThread::~DatabaseThread()

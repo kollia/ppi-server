@@ -25,7 +25,11 @@
 #include "../util/GlobalStaticMethods.h"
 #include "../util/MainParams.h"
 
+#include "../util/stream/ErrorHandling.h"
+#include "../util/thread/ThreadErrorHandling.h"
 #include "../util/properties/properties.h"
+
+#include "../server/libs/SocketErrorHandling.h"
 
 #include "../pattern/util/LogHolderPattern.h"
 
@@ -48,6 +52,13 @@ int main(int argc, char* argv[])
 	MainParams params(argc, argv, /*read path for parent dirs*/1);
 	ParamCommand* command;
 	const ICommandStructPattern* commands;
+	ErrorHandling errHandle;
+	thread::ThreadErrorHandling thErrHandle;
+	SocketErrorHandling sockErrHandle;
+
+	errHandle.read();
+	thErrHandle.read();
+	sockErrHandle.read();
 
 	glob::processName("ppi-mconfig");
 

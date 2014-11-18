@@ -36,6 +36,8 @@
 #include "../util/smart_ptr.h"
 #include "../util/URL.h"
 
+#include "../util/stream/ErrorHandling.h"
+
 #include "../server/libs/client/ExternClientInputTemplate.h"
 #include "../server/libs/client/SocketClientConnection.h"
 
@@ -55,8 +57,6 @@ using namespace std;
 
 bool Client::execute(const string& workdir, vector<string> options, string command)
 {
-	bool bRv;
-	int clres;
 	unsigned short nPort;
 	string fileName, prop;
 	string confpath, logpath, sLogLevel, property;
@@ -91,28 +91,35 @@ bool Client::execute(const string& workdir, vector<string> options, string comma
 		return false;
 
 	bool askServer= true;
-	unsigned int err, warn, ask;
 	ClientTransaction* pClient;
-	string co;
+	string co, ask;
+	ErrorHandling errHandle;
 
-	bRv= true;
 	command= ConfigPropertyCasher::trim(command);
 	pClient= new ClientTransaction(options, command); // insert client into SocketClientConnection, need no auto_ptr
 	clientCon= auto_ptr<SocketClientConnection>(new SocketClientConnection(SOCK_STREAM, "127.0.0.1", nPort, 10, pClient));
-	err= clientCon->getMaxErrorNums(true);
-	warn= clientCon->getMaxErrorNums(false);
-	pClient->setErrors(warn, err);
 	icommand >> co;
 	if(co == "GETERRORSTRING")
 	{
 		icommand >> ask;
-		if(	ask >= (warn*-1)
-			&&
-			ask <= err		)
+		errHandle.setErrorStr(ask);
+		if(!errHandle.fail())
 		{
-			cout << clientCon->strerror(ask) << endl;
-			askServer= false;
+			/*
+			 * toDo: implement error descriptions
+			 *       from internet server ('WARNING xxx' / 'ERROR xxx')
+			 *       into error Handling
+			 */
+			if(	ask == "ERROR " ||
+				ask == "WARNING"	)
+			{
+				errHandle.setError("Client", "getClientErrorString");
+			}else
+				errHandle.setError("Client", "getNoErrorString", ask);
 		}
+		cout << errHandle.getDescription() << endl;
+		errHandle.clear();
+		askServer= false;
 	}
 	if(askServer)
 	{
@@ -129,37 +136,28 @@ bool Client::execute(const string& workdir, vector<string> options, string comma
 			}
 			close(s);
 		}
-		clres= clientCon->init();
-		if(clres != 0)
+		errHandle= clientCon->init();
+		if(errHandle.fail())
 		{
 			string output;
 
-			if(pClient->wasErrorWritten())
+			if(!pClient->wasErrorWritten())
 			{
-				bRv= false;
+				if(	//clres == 25 && toDo: check for old code
+					//                     before implement new error handling
+					co == "status"	)
+				{
+					errHandle.setError("Client", "noRun");
 
-			}else if(	clres == 25 &&
-						co == "status"	)
-			{
-				cerr << "ppi-server does not running" << endl;
-				bRv= false;
-			}else
-			{
+				}
 				opIt= ::find(options.begin(), options.end(), "-e");
 				if(opIt != options.end())
-					output= ExternClientInputTemplate::error(clres);
+					cout << errHandle.getDescription() << endl;
 				else
-					output= clientCon->strerror(clres);
-
-				if(clres > 0)
-				{
-					cerr << output << endl;
-					bRv= false;
-				}else
-					cout << output << endl;
+					cout << errHandle.getErrorStr();
 			}
 		}
 	}
-	return bRv;
+	return true;
 }
 

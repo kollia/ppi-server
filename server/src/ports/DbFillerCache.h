@@ -141,8 +141,10 @@ namespace util
 		/**
 		 * remove all content from DbFiller
 		 * and stop thread when one running
+		 *
+		 * @return object of error handling
 		 */
-		virtual int remove();
+		OVERWRITE EHObj remove();
 		/**
 		 * destructor
 		 */

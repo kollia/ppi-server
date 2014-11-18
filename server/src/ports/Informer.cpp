@@ -149,7 +149,7 @@ namespace util
 		UNLOCK(lock);
 	}
 
-	int Informer::execute()
+	bool Informer::execute()
 	{
 		pid_t threadId;
 		std::auto_ptr<vector<inform_t> > pInform;
@@ -165,7 +165,7 @@ namespace util
 		UNLOCK(m_INFORMQUEUELOCK);
 
 		if(stopping())
-			return 0;
+			return false;
 		for(vector<inform_t>::iterator it= pInform->begin(); it != pInform->end(); ++it)
 		{
 			threadId= 0;
@@ -173,17 +173,20 @@ namespace util
 				threadId= it->threadID;
 			informing(*it->folders, it->from, it->ownSubroutine, threadId, it->OBSERVERLOCK);
 		}
-		return 0;
+		return true;
 	}
 
-	int Informer::stop(const bool *bWait/*= NULL*/)
+	EHObj Informer::stop(const bool *bWait/*= NULL*/)
 	{
-		int res;
-
-		Thread::stop(/*wait*/false);
+		m_pError= Thread::stop(/*wait*/false);
 		AROUSE(m_INFORMQUEUECONDITION);
-		res= Thread::stop(bWait);
-		return res;
+		if(	!m_pError->hasError() &&
+			bWait &&
+			*bWait == true			)
+		{
+			(*m_pError)= Thread::stop(bWait);
+		}
+		return m_pError;
 	}
 
 	Informer::~Informer()

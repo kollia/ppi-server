@@ -29,7 +29,9 @@
 
 #include "../debug.h"
 
+#include "../../pattern/util/IErrorHandlingPattern.h"
 #include "../../pattern/util/ithreadpattern.h"
+
 #include "../../pattern/server/IClientSendMethods.h"
 
 // reading in c't extra programmieren
@@ -131,17 +133,16 @@ class Thread :	public virtual IThreadPattern,
 		 * @param args arbitary optional defined parameter to get in initialisation method init
 		 * @param bHold should the caller wait of thread by ending.<br />
 		 * 				default is false
-		 * @return 0 when all OK or bHold is false, otherwise BASIC thread error code returning<br />
-		 *         differ by <code>getErrorType()</code> (see also method <code>getErrorCode()</code>
+		 * @return error handling object
 		 */
-		virtual int start(void *args= NULL, bool bHold= false);
+		OVERWRITE EHObj start(void *args= NULL, bool bHold= false);
 		/**
 		 * to ask whether the thread should stopping.<br />
 		 * This method should be call into running thread to know whether the thread should stop.
 		 *
-		 * @return true if the thread should stop
+		 * @return 1 if the thread should stop otherwise 0 or -1 by error
 		 */
-		int stopping();
+		OVERWRITE short stopping();
 		/**
 		 * method to ask whether thread was initialed
 		 *
@@ -151,9 +152,9 @@ class Thread :	public virtual IThreadPattern,
 		/**
 		 * external query whether the thread is running
 		 *
-		 * @return true if thread is running
+		 * @return 1 when thread running otherwise 0 or -1 by error
 		 */
-		int running();
+		OVERWRITE short running();
 		/**
 		 * sleep for seconds with condition to stop
 		 *
@@ -186,21 +187,23 @@ class Thread :	public virtual IThreadPattern,
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool bWait)
+		OVERWRITE EHObj stop(const bool bWait)
 		{ return Thread::stop(&bWait); };
 		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
+		 * @return object of error handling
 		 */
-		virtual int stop(const bool *bWait= NULL);
+		OVERWRITE EHObj stop(const bool *bWait= NULL);
 		/**
 		 * the thread will be uncoupled from the starting thread
 		 *
 		 * @return error level if exist, otherwise 0
 		 */
-		int detach();
+		EHObj detach();
 		/**
 		 * return id from thread
 		 *
@@ -276,6 +279,13 @@ class Thread :	public virtual IThreadPattern,
 		 * @return error type
 		 */
 		ERRORtype getErrorType();
+		/**
+		 * returning current error handling object
+		 *
+		 * @return object of error handling
+		 */
+		OVERWRITE EHObj getErrorHandlingObj() const
+		{ return m_pError; };
 		/**
 		 * return error code differ by error type<br />
 		 * INIT and EXECUTE error types handled by extended classes,<br />
@@ -600,9 +610,9 @@ class Thread :	public virtual IThreadPattern,
 		 *
 		 * @param policy thread policy for scheduling
 		 * @param priority scheduling priority
-		 * @return whether schedulling parameters can set correctly
+		 * @return object of error handling
 		 */
-		bool setSchedulingParameter(int policy, int priority);
+		EHObj setSchedulingParameter(int policy, int priority);
 		/**
 		 * get setting scheduling parameters
 		 * of policy and priority
@@ -610,7 +620,7 @@ class Thread :	public virtual IThreadPattern,
 		 * @param policy thread policy for scheduling
 		 * @param priority scheduling priority
 		 */
-		virtual void getSchedulingParameter(int& policy, int& priority)
+		OVERWRITE void getSchedulingParameter(int& policy, int& priority)
 		{ policy= m_nSchedPolicy; priority= m_nSchedPriority; };
 		/**
 		 * destructor of class Thread
@@ -627,18 +637,18 @@ class Thread :	public virtual IThreadPattern,
 		 * @param args user defined parameter value or array,<br />
 		 * 				comming as void pointer from the external call
 		 * 				method start(void *args).
-		 * @return defined error code from extended class
+		 * @return object of error handling
 		 */
-		virtual int init(void *args)=0;
+		virtual EHObj init(void *args)=0;
 		/**
 		 * abstract method to running thread
 		 * in the extended class.<br />
 		 * This method starting again when ending when method ending with return value 0
 		 * and the method stop() isn't called.
 		 *
-		 * @return defined error code from extended class
+		 * @return whether execute should start again
 		 */
-		virtual int execute()=0;
+		virtual bool execute()=0;
 		/**
 		 * abstract method to ending the thread.<br />
 		 * This method will be called if any other or own thread
@@ -646,7 +656,12 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		virtual void ending()=0;
 
-
+	protected:
+		/**
+		 * ThreadErrorHandling object for error/warning,
+		 * usable for all depend classes
+		 */
+		EHObj m_pError;
 
 
 	private:
@@ -746,6 +761,15 @@ class Thread :	public virtual IThreadPattern,
 		 */
 		static bool m_bAppRun;
 		/**
+		 * 742
+		 * first mutex creation of global mutex POSITIONSTATUS makes error
+		 * since gcc (Ubuntu/Linaro 4.6.3-1ubuntu5) 4.6.3
+		 *       g++ (Ubuntu/Linaro 4.6.3-1ubuntu5) 4.6.3
+		 *      so write mutex for first time in an buffer
+		 *      (gcc (Debian 4.4.5-8) 4.4.5 made no problem's)
+		 */
+		static bool m_bGlobalObjDefined;
+		/**
 		 * other logging tool when nessasary
 		 */
 		IClientSendMethods* m_pExtLogger;
@@ -768,11 +792,20 @@ class Thread :	public virtual IThreadPattern,
 		 *
 		 * @param policy thread policy for scheduling
 		 * @param priority scheduling priority
-		 * @return whether schedulling parameters can set correctly
+		 * @return object of error handling
 		 */
-		bool setSchedulingParameterInline(int policy, int priority);
+		EHObj setSchedulingParameterInline(int policy, int priority);
+		/**
+		 * run method started inside entryPoint to call
+		 * execute in an loop
+		 */
 		void run();
-		static void * EntryPoint(void*);
+		/**
+		 * entry point to creating thread
+		 *
+		 * @param pthis pointer of own object
+		 */
+		static void * EntryPoint(void* pthis);
 
 };
 

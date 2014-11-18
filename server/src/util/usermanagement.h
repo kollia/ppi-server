@@ -51,13 +51,13 @@ namespace user
 			 * 			when permision groups of folder not be needed, this parameter can be an null string ("")
 			 * @return whether the file loading was successful
 			 */
-			virtual bool init(const string& access, const string& measure);
+			OVERWRITE bool init(const string& access, const string& measure);
 			/**
 			 * whether initialization of user-management is finished
 			 *
 			 * @return 1 if finished, 0 by running and -1 when some errors occurred
 			 */
-			virtual short finished();
+			OVERWRITE short finished();
 			/**
 			 * delete single object of UserManagement
 			 */
@@ -74,19 +74,19 @@ namespace user
 			 * @param user name of user
 			 * @return wethe3r root can login
 			 */
-			virtual bool canLoginFirst(const string& user) const;
+			OVERWRITE bool canLoginFirst(const string& user) const;
 			/**
 			 * returns an user whitch is not root
 			 *
 			 * @return user name
 			 */
-			virtual string getNoRootUser() const;
+			OVERWRITE string getNoRootUser() const;
 			/**
 			 * return name of root
 			 *
 			 * @return name of root
 			 */
-			virtual string getRootUser() const;
+			OVERWRITE string getRootUser() const;
 			/**
 			 * return password from given user,
 			 * otherwise if user not exist an null terminated string
@@ -94,14 +94,14 @@ namespace user
 			 * @param user name of user
 			 * @return passord from user
 			 */
-			virtual string getPassword(const string& user) const;
+			OVERWRITE string getPassword(const string& user) const;
 			/**
 			 * returns true if given user exists
 			 *
 			 * @param user name of user
 			 * @return whether user exist
 			 */
-			virtual bool isUser(const string& user) const;
+			OVERWRITE bool isUser(const string& user) const;
 			/**
 			 * returns true if given user has permission to system
 			 * with given passord
@@ -111,7 +111,7 @@ namespace user
 			 * @param login whether access request is first login or change user
 			 * @return whether user have permission
 			 */
-			virtual bool hasAccess(const string& user, const string& password, const bool login) const;
+			OVERWRITE bool hasAccess(const string& user, const string& password, const bool login) const;
 			/**
 			 * return all set groups for subroutine in measure.conf
 			 *
@@ -119,7 +119,7 @@ namespace user
 			 * @param subroutine name of subroutine
 			 * @return groups
 			 */
-			virtual string getAccessGroups(const string& folder, const string& subroutine);
+			OVERWRITE string getAccessGroups(const string& folder, const string& subroutine);
 			/**
 			 * whether user has access to given groups
 			 *
@@ -129,7 +129,7 @@ namespace user
 			 * @param access look access for given param. can be 'read' or 'write'
 			 * @return whether user has access
 			 */
-			virtual bool hasPermission(const string& user, const string& folder, const string& subroutine, const string& access);
+			OVERWRITE bool hasPermission(const string& user, const string& folder, const string& subroutine, const string& access);
 			/**
 			 * whether user has access to given groups
 			 *
@@ -138,7 +138,7 @@ namespace user
 			 * @param access look access for given param. can be 'read' or 'write'
 			 * @return whether user has access
 			 */
-			virtual bool hasPermission(const string& user, string groups, const string& access);
+			OVERWRITE bool hasPermission(const string& user, string groups, const string& access);
 			/**
 			 * destructor of user-management
 			 */

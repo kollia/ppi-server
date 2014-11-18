@@ -30,6 +30,7 @@
 
 #include "../../util/stream/OMethodStringStream.h"
 
+#include "SocketErrorHandling.h"
 #include "FileDescriptor.h"
 
 using namespace std;
@@ -57,18 +58,20 @@ namespace server
 		m_GETSTRINGCONDITION= Thread::getCondition("GETSTRINGCONDITION");
 	}
 
-	bool FileDescriptor::init()
+	EHObj FileDescriptor::init()
 	{
-		bool bRv= true;
+		EHObj pRv;
 
 		LOCK(m_THREADSAVEMETHODS);
 		if(m_pTransfer)
-			bRv= m_pTransfer->init(*this);
+			pRv= m_pTransfer->init(*this);
+		else
+			pRv= EHObj(new SocketErrorHandling);
 		UNLOCK(m_THREADSAVEMETHODS);
-		return bRv;
+		return pRv;
 	}
 
-	void FileDescriptor::operator >>(string &reader)
+	void FileDescriptor::operator >> (string &reader)
 	{
 		bool locked(true);
 		char *res;
@@ -76,6 +79,7 @@ namespace server
 		string::size_type bufLen= (sizeof(buf)-2);
 		string sread;
 
+		m_nErr= 0;
 		reader= "";
 		if(eof())
 			return;
@@ -101,8 +105,7 @@ namespace server
 
 	void FileDescriptor::operator << (const string& writer)
 	{
-//		if(eof())
-//			return;
+		m_nErr= 0;
 		if(fputs(writer.c_str(), m_pFile) < 0)
 		{
 			error();
@@ -130,21 +133,23 @@ namespace server
 
 	inline int FileDescriptor::error() const
 	{
+		if(m_nErr != 0)
+			return m_nErr;
 		m_nErr= ferror(m_pFile);
-/*		if(m_nErr != 0)
-			m_bEOF= true;
-		if(m_bEOF)
+		if(m_nErr != 0)
 		{
-			if(m_nErr == 0)
-				m_nErr= EOF;
-		}*/
+			if(errno != 0)
+				m_nErr= errno;
+			else
+				m_nErr= EBADFD;
+			clearerr(m_pFile);
+		}
 		return m_nErr;
 	}
 
 	void FileDescriptor::flush()
 	{
-//		if(m_bEOF)
-//			return;
+		m_nErr= 0;
 		try{
 			fflush(m_pFile);
 		}catch(...)
@@ -163,32 +168,6 @@ namespace server
 	void FileDescriptor::setBoolean(const string& str, const bool boolean)
 	{
 		m_mBoolean[str]= boolean;
-	}
-
-	string FileDescriptor::strerror(int error) const
-	{
-		string str;
-
-		switch(error)
-		{
-		case 1:
-			str= "ERROR: no client found for spezified definition";
-			break;
-		case 2:
-			str= "connection to hearing client is broken";
-			break;
-		default:
-			str= m_pTransfer->strerror(error > 0 ? error + 10 : error - 10);
-			break;
-		}
-		return str;
-	}
-
-	inline unsigned int FileDescriptor::getMaxErrorNums(const bool byerror) const
-	{
-		if(byerror)
-			return 2;
-		return 0;
 	}
 
 	bool FileDescriptor::getBoolean(const string& str) const
@@ -750,7 +729,7 @@ namespace server
 
 	bool FileDescriptor::transfer()
 	{
-		bool bRv(1);
+		bool bRv(true);
 
 		LOCK(m_THREADSAVEMETHODS);
 		if(m_pTransfer)

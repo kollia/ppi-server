@@ -178,7 +178,7 @@ namespace ports
 				msg+= "         ERRNO(";
 				msg+= cerrno;
 				msg+= "): ";
-				msg+= strerror(errno);
+				msg+= BaseErrorHandling::getErrnoString(errno);
 				cerr << msg << endl;
 				LOG(LOG_ERROR, msg);
 			}
@@ -595,7 +595,7 @@ namespace ports
 			msg << "### ERROR: can not initial owfs one wire device with string '";
 			msg << m_sInit << "'\n    ERRNO(";
 			msg << dec << errno << "): ";
-			msg << strerror(errno);
+			msg << BaseErrorHandling::getErrnoString(errno);
 			if(!failt)
 				cerr << msg.str() << endl;
 			failt= true;
@@ -685,7 +685,7 @@ namespace ports
 			msg+= "             ERRNO(";
 			msg+= cerrno;
 			msg+= "): ";
-			msg+= strerror(errno);
+			msg+= BaseErrorHandling::getErrnoString(errno);
 			TIMELOG(LOG_DEBUG, "chipType"+ID, msg);
 			if(size > 0)
 				free(buf);
@@ -729,7 +729,7 @@ namespace ports
 			if(errno == 0)
 				msg+= "undefined error (cannnot read correctly)";
 			else
-				msg+= strerror(errno);
+				msg+= BaseErrorHandling::getErrnoString(errno);
 			cerr << msg << endl;
 			LOG(LOG_ERROR, msg);
 			if(size > 0)
@@ -802,7 +802,7 @@ namespace ports
 			msg+= "    ERRNO(";
 			msg+= cerrno;
 			msg+= "): ";
-			msg+= strerror(errno);
+			msg+= BaseErrorHandling::getErrnoString(errno);
 			cerr << msg << endl;
 			LOG(LOG_ERROR, msg);
 			if(s > 0)
@@ -908,7 +908,7 @@ namespace ports
 			msg+= "    ERRNO(";
 			msg+= cerrno;
 			msg+= "): ";
-			msg+= strerror(errno);
+			msg+= BaseErrorHandling::getErrnoString(errno);
 			if(action == "--read")
 				LOG(LOG_INFO, msg);
 			else
@@ -1070,7 +1070,7 @@ namespace ports
 				msg+= "    ERRNO(";
 				msg+= cerrno;
 				msg+= "): ";
-				msg+= strerror(errno);
+				msg+= BaseErrorHandling::getErrnoString(errno);
 				cerr << msg << endl;
 				LOG(LOG_ERROR, msg);
 #ifdef DEBUG
@@ -1143,7 +1143,7 @@ namespace ports
 									ostringstream msg;
 
 									msg << "### ERROR: cannot write into " << path << "\n";
-									msg << "    ERRNO(" << errno << "); " << strerror(errno);
+									msg << "    ERRNO(" << errno << "); " << BaseErrorHandling::getErrnoString(errno);
 									TIMELOG(LOG_ERROR, path, msg.str());
 								}else
 								{
@@ -1214,7 +1214,7 @@ namespace ports
 			if(errno == 0)
 				msg+= "undefined value (cannot read correctly)";
 			else
-				msg+= strerror(errno);
+				msg+= BaseErrorHandling::getErrnoString(errno);
 			//cerr << msg << endl;
 			incorrectChip(getChipID(id));
 			TIMELOG(LOG_ERROR, "maximread"+path, msg);

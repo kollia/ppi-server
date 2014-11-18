@@ -37,20 +37,20 @@
 #include "../../../util/debugtransaction.h"
 #include "../../../util/structures.h"
 
+#include "../../../database/logger/lib/logstructures.h"
+
 #include "ServerMethodTransaction.h"
 #include "ServerThread.h"
 #include "communicationthreadstarter.h"
 
 using namespace std;
-//using namespace user;
-//using namespace util;
-using namespace design_pattern_world::server_pattern;
 using namespace boost;
 using namespace boost::algorithm;
+using namespace design_pattern_world::server_pattern;
 
 namespace server
 {
-	bool ServerMethodTransaction::init(IFileDescriptorPattern& descriptor)
+	EHObj ServerMethodTransaction::init(IFileDescriptorPattern& descriptor)
 	{
 		descriptor.setString("process", "");
 		descriptor.setString("client", "");
@@ -70,13 +70,14 @@ namespace server
 		descriptor.setBoolean("output", false);
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 
-		return true;
+		return m_pSockError;
 	}
 
 	bool ServerMethodTransaction::transfer(IFileDescriptorPattern& descriptor)
 	{
 		bool bRun= true;
 		bool bwait= true;
+		int nError;
 		string::size_type pos;
 		string input, wasinput;
 		string process;
@@ -85,27 +86,35 @@ namespace server
 		IServerPattern* server= NULL;
 
 		descriptor >> input;
-		if(descriptor.eof())
+		nError= descriptor.error();
+		if(	descriptor.eof() ||
+			nError != 0			)
 		{
 			unsigned int ID;
+			int log;
 			string process, client;
 			vector<string> answer;
-			ostringstream msg;
+			ostringstream decl;
 			IMethodStringStream oInit("init");
 
 			ID= descriptor.getClientID();
-			process= descriptor.getString("process");
 			client= descriptor.getString("client");
-			msg << "WARNING: conection " << ID;
-			msg << " in " << descriptor.getServerObject()->getName();
-			msg << " from client " << client;
-			msg << " in process " << process << " is broken by";
-			if(descriptor.error())
-				msg << " an undefined ERROR";
-			else
-				msg << " ending of stream";
-			msg << endl << "         so close connection";
-			LOG(LOG_INFO, msg.str());
+			process= descriptor.getString("process");
+			decl << descriptor.getServerObject()->getName() << "@" << ID;
+			decl << "@" << client << "@" << process;
+			if(nError == 0)
+			{
+				decl << "@" << input;
+				m_pSockError->setWarning("ServerMethodTransaction", "stream_end", decl.str());
+				log= LOG_INFO;
+			}else
+			{
+				m_pSockError->setErrnoError("ServerMethodTransaction", "stream_error",
+								descriptor.error(), decl.str());
+				log= LOG_ERROR;
+			}
+			LOG(log, m_pSockError->getDescription() + "\n -> so close connection");
+			m_pSockError->clear();
 #ifdef ALLOCATEONMETHODSERVER
 			msg << endl;
 			if(	string(ALLOCATEONMETHODSERVER) == "" ||
@@ -671,41 +680,6 @@ namespace server
 		return (	descriptor.getBoolean("asker") == false
 					&&
 					descriptor.getString("client") == definition	) ? true : false;
-	}
-
-	string ServerMethodTransaction::strerror(int error) const
-	{
-		string str;
-
-		switch(error)
-		{
-		case 0:
-			str= "no error occurred";
-			break;
-		case 1:
-			str= "ERROR: undefined command for own process";
-			break;
-		case 2:
-			str= "ERROR: connection was opened with wrong command";
-			break;
-		case 3:
-			str= "class have no own commands to administered";
-			break;
-		default:
-			if(error > 0)
-				str= "Undefined error for transaction";
-			else
-				str= "Undefined warning for transaction";
-			break;
-		}
-		return str;
-	}
-
-	inline unsigned int ServerMethodTransaction::getMaxErrorNums(const bool byerror) const
-	{
-		if(byerror)
-			return 10;
-		return 0;
 	}
 
 	ServerMethodTransaction::~ServerMethodTransaction()

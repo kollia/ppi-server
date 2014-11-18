@@ -15,11 +15,18 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "../../pattern/util/LogHolderPattern.h"
+
+#include "../../util/GlobalStaticMethods.h"
+#include "../../util/thread/ThreadErrorHandling.h"
+
 #include "NeedDbChanges.h"
 
 namespace ppi_database {
 
-NeedDbChanges* NeedDbChanges::_instance= NULL;
+	using namespace util::thread;
+
+	NeedDbChanges* NeedDbChanges::_instance= NULL;
 
 NeedDbChanges::NeedDbChanges(const string& process, IClientConnectArtPattern* connection, const bool bWait)
 :	Thread("NeedChangesObject", bWait),
@@ -36,9 +43,31 @@ bool NeedDbChanges::initial(const string& process, IClientConnectArtPattern* con
 {
 	if(_instance == NULL)
 	{
+		ThreadErrorHandling oHandling;
+
 		_instance= new NeedDbChanges(process, connection, bWait);
-		if(_instance->start() > 0)
-			return false;
+		oHandling= _instance->start();
+		if(oHandling.fail())
+		{
+			int logging;
+			string prefix, msg;
+
+			if(oHandling.hasError())
+			{
+				prefix= "### ALERT: ";
+				logging= LOG_ALERT;
+			}else
+			{
+				prefix= "### WARNING: ";
+				logging= LOG_WARNING;
+			}
+			oHandling.addMessage("NeedDbChanges", "start");
+			msg= oHandling.getDescription();
+			cout << glob::addPrefix(prefix, msg) << endl;
+			LOG(logging, msg);
+			if(oHandling.hasError())
+				return false;
+		}
 	}
 	return true;
 }
@@ -52,35 +81,40 @@ void NeedDbChanges::deleteObj()
 	}
 }
 
-int NeedDbChanges::init(void* args)
+EHObj NeedDbChanges::init(void* args)
 {
 	short n;
 
+	m_pError->clear();
 	n= DbInterface::initial(m_sProcess, m_oConnection, 0/*do not need for second interface*/);
 	m_oDb= DbInterface::instance(n);
-	return 0;
+	return m_pError;
 }
 
-int NeedDbChanges::execute()
+bool NeedDbChanges::execute()
 {
 	if(!m_oDb->hasOpenSendConnection())
 	{
-		int ret;
-
-		ret= m_oDb->openSendConnection();
-		if(ret > 0 && ret != 35)
+		m_pError= m_oDb->openSendConnection();
+		if(m_pError->hasError())
 		{
-			cerr << m_oDb->strerror(ret) << endl;
-			return ret;
+			if(m_pError->fail(IEH::errno_error, ECONNREFUSED))
+			{// create no ERROR try again later
+				USLEEP(5000);
+				return false;
+			}else
+			{
+				cerr << glob::addPrefix("### ERROR: ", m_pError->getDescription()) << endl;
+			}
+			return false;
+
 		}
-		if(ret == 35)
-			return 0; // try again later
 	}
 	m_oDb->isEntryChanged();
 	if(stopping())
 	{
 		AROUSEALL(m_CHANGEQUESTIONCOND);
-		return 0;
+		return false;
 	}
 	LOCK(m_CHANGEQUESTION);
 	++m_nChanged;
@@ -88,7 +122,7 @@ int NeedDbChanges::execute()
 		m_nChanged= 1;
 	AROUSEALL(m_CHANGEQUESTIONCOND);
 	UNLOCK(m_CHANGEQUESTION);
-	return 0;
+	return true;
 }
 
 unsigned short NeedDbChanges::isEntryChanged(unsigned short actualized)

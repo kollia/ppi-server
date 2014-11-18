@@ -34,22 +34,26 @@
 #include <iostream>
 
 #include "Thread.h"
+#include "ThreadErrorHandling.h"
 
 #include "../exception.h"
 #include "../GlobalStaticMethods.h"
+
 #include "../properties/configpropertycasher.h"
 
 #include "../../pattern/util/LogHolderPattern.h"
+#include "../../database/logger/lib/logstructures.h"
 
 using namespace std;
 using namespace util;
-//using namespace logger;
+using namespace util::thread;
 
 
-bool Thread::m_bAppRun= true;
 pthread_mutex_t g_READMUTEX;
 map<pthread_mutex_t*, mutexnames_t> g_mMutex;
 map<pthread_cond_t*, string> g_mCondition;
+bool Thread::m_bAppRun= true;
+bool Thread::m_bGlobalObjDefined= false;
 
 Thread::Thread(const string& threadName, bool waitInit/*= true*/, const int policy/*= -1*/,
 				const int priority/*= -9999*/, IClientSendMethods* logger)
@@ -66,6 +70,7 @@ Thread::Thread(const string& threadName, bool waitInit/*= true*/, const int poli
 	m_sThreadName= threadName;
 	m_bWaitInit= waitInit;
 	m_pExtLogger= logger;
+	m_pError= EHObj(new ThreadErrorHandling);
 	m_RUNTHREAD= getMutex("RUNTHREAD", logger);
 	m_THREADNAME= getMutex("THREADNAME", logger);
 	m_STARTSTOPTHREAD= getMutex("STARTSTOPTHREAD", logger);
@@ -73,11 +78,16 @@ Thread::Thread(const string& threadName, bool waitInit/*= true*/, const int poli
 	m_SLEEPMUTEX= getMutex("SLEEPMUTEX", logger);
 	m_SLEEPCOND= getCondition("SLEEPCOND", logger);
 	m_STARTSTOPTHREADCOND= getCondition("STARTSTOPTHREADCOND", logger);
+	if(pthread_mutex_lock(&g_READMUTEX) != 0)
+		LOGEX(LOG_ERROR, "error by global mutex lock inside class Thread constructor", logger);
+	m_bGlobalObjDefined= true;
+	if(pthread_mutex_unlock(&g_READMUTEX) != 0)
+		LOGEX(LOG_ERROR, "error by global mutex unlock inside class Thread constructor", logger);
 }
 
-int Thread::start(void *args, bool bHold)
+EHObj Thread::start(void *args, bool bHold)
 {
-	int nRv= 0;
+	int ret= 0;
 	string threadName("");
 	pthread_attr_t attr;
 
@@ -88,7 +98,8 @@ int Thread::start(void *args, bool bHold)
 			m_eErrorType= BASIC;
 			m_nErrorCode= 1;
 			mutex_unlock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
-			return 1;
+			m_pError->setWarning("Thread", "start");
+			return m_pError;
 		}
 		mutex_lock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
 		m_eErrorType= NONE;
@@ -105,11 +116,13 @@ int Thread::start(void *args, bool bHold)
 		mutex_lock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
 		m_bStop= false;
 		mutex_unlock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
-		pthread_attr_init(&attr);
-		nRv= pthread_create (&m_nPosixThreadID, &attr, Thread::EntryPoint, this);
-		if(nRv != 0)
+		ret= pthread_attr_init(&attr);
+		if(ret != 0)
 		{
-			LOGEX(LOG_ALERT, "Error by creating thread " + threadName + "\n      -> does not start thread", m_pExtLogger);
+			ThreadErrorHandling handle;
+
+			handle.setPThreadError("Thread", "pthread_attr_init", "pthread_attr_init", ret, threadName);
+			(*m_pError)= handle;
 			mutex_lock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
 			m_eErrorType= BASIC;
 			m_nErrorCode= -1;
@@ -117,20 +130,36 @@ int Thread::start(void *args, bool bHold)
 			mutex_lock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
 			m_bStop= true;
 			mutex_unlock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
-			return -1;
+			return m_pError;
+		}
+		ret= pthread_create (&m_nPosixThreadID, &attr, Thread::EntryPoint, this);
+		if(ret != 0)
+		{
+			ThreadErrorHandling handle;
+
+			handle.setPThreadError("Thread", "pthread_create", "pthread_create", ret, threadName);
+			(*m_pError)= handle;
+			LOGEX(LOG_ALERT, m_pError->getDescription(), m_pExtLogger);
+			mutex_lock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
+			m_eErrorType= BASIC;
+			m_nErrorCode= -1;
+			mutex_unlock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
+			mutex_lock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
+			m_bStop= true;
+			mutex_unlock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
+			return m_pError;
 		}
 		if(bHold)
 		{
 			POSS("###Thread_join", threadName);
-			nRv= pthread_join(m_nPosixThreadID, NULL);
-			if(nRv != 0)
+			ret= pthread_join(m_nPosixThreadID, NULL);
+			if(ret != 0)
 			{
-				ostringstream msg;
+				ThreadErrorHandling handle;
 
-				msg << "ERROR(" << nRv << "): ";
-				msg << "cannot join correctly to thread " << threadName;
-				msg << " until thread running";
-				LOGEX(LOG_ALERT, msg.str(), m_pExtLogger);
+				handle.setPThreadError("Thread", "pthread_join", "pthread_join", ret, threadName);
+				(*m_pError)= handle;
+				LOGEX(LOG_ALERT, m_pError->getDescription(), m_pExtLogger);
 				mutex_lock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
 				if(m_eErrorType == NONE)
 				{
@@ -138,9 +167,9 @@ int Thread::start(void *args, bool bHold)
 					m_nErrorCode= -2;
 				}
 				mutex_unlock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
-				return getErrorCode();
+				return m_pError;
 			}
-			return getErrorCode();
+			return m_pError;
 		}else
 		{
 			if(m_bWaitInit)
@@ -151,15 +180,14 @@ int Thread::start(void *args, bool bHold)
 					if(m_bStop)
 					{// an error is occured in init methode
 						mutex_unlock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
-						nRv= pthread_join(m_nPosixThreadID, NULL);
-						if(nRv != 0)
+						ret= pthread_join(m_nPosixThreadID, NULL);
+						if(ret != 0)
 						{
-							ostringstream msg;
+							ThreadErrorHandling handle;
 
-							msg << "ERROR(" << nRv << "): ";
-							msg << "cannot join correctly to thread " << threadName;
-							msg << " until waiting for running thread by stopping";
-							LOGEX(LOG_ALERT, msg.str(), m_pExtLogger);
+							handle.setPThreadError("Thread", "pthread_join", "pthread_join", ret, threadName);
+							(*m_pError)= handle;
+							LOGEX(LOG_ALERT, m_pError->getDescription(), m_pExtLogger);
 							mutex_lock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
 							if(m_eErrorType == NONE)
 							{
@@ -167,9 +195,8 @@ int Thread::start(void *args, bool bHold)
 								m_nErrorCode= -3;
 							}
 							mutex_unlock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
-							return getErrorCode();
 						}
-						return getErrorCode();
+						return m_pError;
 					}
 					CONDITIONEX(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD, m_pExtLogger);
 				}
@@ -180,12 +207,13 @@ int Thread::start(void *args, bool bHold)
 			cout << endl;
 #endif
 		}
-		return getErrorCode();
+		return m_pError;
 #endif // else SUNGLETHREADING
 	}catch(SignalException& ex)
 	{
 		string err;
 
+		m_pError->setError("Thread", "start_exception", threadName);
 		ex.addMessage("try to start thread " + threadName + "\nso ending hole thread routine");
 		err= ex.getTraceString();
 		cerr << endl << err << endl;
@@ -200,6 +228,7 @@ int Thread::start(void *args, bool bHold)
 	{
 		string err;
 
+		m_pError->setError("Thread", "start_exception", threadName);
 		err=  "ERROR: STD exception by try to start thread " + threadName + "\n       so ending hole thread routine\n";
 		err+= "what(): " + string(ex.what());
 		cerr << err << endl;
@@ -214,6 +243,7 @@ int Thread::start(void *args, bool bHold)
 	{
 		string error;
 
+		m_pError->setError("Thread", "start_exception", threadName);
 		error+= "ERROR: catching UNKNOWN exception by running thread of " + threadName;
 		error+= "\n       so ending hole thread routine";
 		cerr << error << endl;
@@ -231,46 +261,35 @@ int Thread::start(void *args, bool bHold)
 		m_nErrorCode= -4;
 	}
 	mutex_unlock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
-	return getErrorCode();
+	return m_pError;
 }
 
-bool Thread::setSchedulingParameter(int policy, int priority)
+EHObj Thread::setSchedulingParameter(int policy, int priority)
 {
+	EHObj handle(EHObj(new ThreadErrorHandling));
+
 	if(!running())
 	{
 		m_nSchedPolicy= policy;
 		m_nSchedPriority= priority;
-		return true;
+		return handle;
 	}
 	if(m_nThreadId == gettid())
 		return setSchedulingParameterInline(policy, priority);
-	return false;
+	handle->setError("Thread", "no_scheduling_set_possibe", m_sThreadName);
+	return handle;
 }
-bool Thread::setSchedulingParameterInline(int policy, int priority)
+EHObj Thread::setSchedulingParameterInline(int policy, int priority)
 {
 	int res, oldPolicy;
 	sched_param param;
+	ThreadErrorHandling thHandle;
+	EHObj handle(EHObj(new ThreadErrorHandling));
 
 	res= pthread_getschedparam(m_nPosixThreadID, &oldPolicy, &param);
 	if(res)
-	{
-		ostringstream smsg2;
-		string msg1("cannot define current scheduling priority for thread ");
-		string msg2("unknown error return number ");
-
-		msg1+= getThreadName() + "\n";
-		if(res != ESRCH)
-		{
-			smsg2 << res;
-			msg2+= smsg2.str();
-
-		}else
-			msg2= "No thread for given ID could be found";
-		cerr << "### ALERT: " << msg1;
-		cerr << "           " << msg2 << endl;
-		LOGEX(LOG_ALERT, msg1 + msg2, m_pExtLogger);
-		return false;
-	}
+		thHandle.setPThreadWarning("Thread", "pthread_getschedparam",
+						"read_scheduling", res, getThreadName());
 	if(	(	policy != -1 &&
 			policy != oldPolicy	) ||
 		(	priority != -9999 &&
@@ -288,76 +307,56 @@ bool Thread::setSchedulingParameterInline(int policy, int priority)
 		if(res)
 		{
 			int min, max;
-			ostringstream smsg2, smin, smax, opolicy;
-			string spolicy;
-			string msg1("cannot set new scheduling priority '");
-			string msg2("unknon error return number ");
+			ostringstream decl, opolicy;
 
-			min= sched_get_priority_min(policy);
-			smin << min;
-			max= sched_get_priority_max(policy);
-			smax << max;
 			switch(policy)
 			{
 			case SCHED_OTHER:
-				spolicy= "SCHED_OTHER";
+				decl << "SCHED_OTHER";
 				break;
 			case SCHED_FIFO:
-				spolicy= "SCHED_FIFO";
+				decl << "SCHED_FIFO";
 				break;
 			case SCHED_RR:
-				spolicy= "SCHED_RR";
+				decl << "SCHED_RR";
 				break;
 			case SCHED_BATCH:
-				spolicy= "SCHED_BATCH";
+				decl << "SCHED_BATCH";
 				break;
 			case SCHED_IDLE:
-				spolicy= "SCHED_IDLE";
+				decl << "SCHED_IDLE";
 				break;
 			case SCHED_RESET_ON_FORK:
-				spolicy= "SCHED_RESET_ON_FORK";
+				decl << "SCHED_RESET_ON_FORK";
 				break;
 			default:
-				opolicy << "(" << policy << ")";
-				spolicy= "unknown policy" + opolicy.str();
+				opolicy << policy;
+				decl << "(unknown policy [ " + opolicy.str() + " ] )";
 				break;
 			}
-			msg1+= spolicy + "' for thread " + getThreadName() + "\n";
-			switch(res)
-			{
-			case ESRCH:
-				smsg2 << m_nPosixThreadID;
-				msg2= "No thread for given ID [" + smsg2.str() + "]could be found";
-				break;
-			case EINVAL:
-				smsg2 << priority;
-				msg2= spolicy + " is not a recognized policy, or priority " + smsg2.str();
-				msg2+= " does not make sense for the policy (min:" + smin.str() + "/max:" + smax.str() + ")";
-				break;
-			case EPERM:
-				msg2= "The caller does not have appropriate privileges to set the specified scheduling policy and parameters";
-				break;
-			case ENOTSUP:
-				smsg2 << priority;
-				msg2= "attempt was made to set the policy " + spolicy + "or scheduling priority " + smsg2.str();
-				msg2+= " to an unsupported value (min:" + smin.str() + "/max:" + smax.str() + ")";
-				break;
-			default:
-				smsg2 << res;
-				msg2+= smsg2.str();
-				break;
-			}
-			cerr << "### ERROR: " << msg1;
-			cerr << "           " << msg2 << endl;
-			LOGEX(LOG_ERROR, msg1 + msg2, m_pExtLogger);
-			return false;
+			min= sched_get_priority_min(policy);
+			if(min < 0)
+				min= 0;
+			max= sched_get_priority_max(policy);
+			if(max < 0)
+				max= 0;
+			decl << "@" << priority;
+			decl << "@" << getThreadName();
+			decl << "@" << m_nPosixThreadID;
+			decl << "@" << getuid();
+			decl << "@" << min;
+			decl << "@" << max;
+			thHandle.setPThreadError("Thread", "pthread_setschedparam",
+							"set_scheduling", res, decl.str()			);
 		}
 	}else
 	{
 		m_nSchedPolicy= oldPolicy;
 		m_nSchedPriority= param.__sched_priority;
 	}
-	return true;
+	if(thHandle.fail())
+		(*handle)= thHandle;
+	return handle;
 }
 
 void Thread::run()
@@ -366,10 +365,11 @@ void Thread::run()
 	string thname(getThreadName());
 	string startmsg("starting thread with name '");
 	pos_t pos;
-	int err;
 
 	try{
-		setSchedulingParameterInline(m_nSchedPolicy, m_nSchedPriority);
+		m_pError= setSchedulingParameterInline(m_nSchedPolicy, m_nSchedPriority);
+		if(m_pError->fail())
+			m_pError->defineAsWarning();
 		m_nThreadId= gettid();
 		initstatus(thname, this);
 		startmsg+= thname + "'";
@@ -386,7 +386,7 @@ void Thread::run()
 		m_bInitialed= false;
 		mutex_unlock(__FILE__, __LINE__, m_RUNTHREAD, m_pExtLogger);
 		try{
-			err= init(m_pArgs);
+			(*m_pError)= init(m_pArgs);
 
 		}catch(SignalException& ex)
 		{
@@ -397,7 +397,7 @@ void Thread::run()
 			mutex_unlock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
 			throw ex;
 		}
-		if(err == 0)
+		if(!m_pError->hasError())
 		{
 			mutex_lock(__FILE__, __LINE__, m_RUNTHREAD, m_pExtLogger);
 			m_bInitialed= true;
@@ -406,7 +406,6 @@ void Thread::run()
 		{
 			mutex_lock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
 			m_eErrorType= INIT;
-			m_nErrorCode= err;
 			mutex_unlock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
 			error+= "### thread ";
 			error+= thname;
@@ -425,11 +424,15 @@ void Thread::run()
 		mutex_unlock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
 		if(running())
 		{
-			while(!stopping())
+			bool again(true);
+
+			while(	again &&
+					!stopping()	)
 			{
+				m_pError->clear();
 				POS("###THREAD_execute_start");
 				try{
-					err= execute();
+					again= execute();
 
 				}catch(SignalException& ex)
 				{
@@ -465,22 +468,10 @@ void Thread::run()
 					LOGEX(LOG_ALERT, error+"\n\n++++++  ending hole thread routine of " + thname + "  +++++", m_pExtLogger);
 					break;
 				}
-				if(err != 0)
+				if( !again &&
+					!stopping()	)
 				{
-					ostringstream errmsg;
-
 					stop();
-					if(err != 1)
-					{
-						errmsg << "stopping thread while execute returning error code (";
-						errmsg << err << ")";
-						LOGEX(LOG_INFO, errmsg.str(), m_pExtLogger);
-						mutex_lock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
-						m_eErrorType= EXECUTE;
-						m_nErrorCode= err;
-						mutex_unlock(__FILE__, __LINE__, m_ERRORCODES, m_pExtLogger);
-					}
-					break;
 				}
 			}
 		}
@@ -735,7 +726,9 @@ pthread_mutex_t* Thread::getMutex(const string& name, IClientSendMethods* logger
 #ifdef MUTEXLOCKDEBUG
 		tName.threadid= 0;
 #endif
-		if(name != "POSITIONSTATUS")
+		//if(	name != "POSITIONSTATUS" &&
+		//	name != "OBJECTSMUTEX"		)
+		if(m_bGlobalObjDefined)
 		{
 			if(mMutexBuffer.size() > 0)
 			{// first mutex creation of global mutex POSITIONSTATUS makes error
@@ -1597,7 +1590,7 @@ int Thread::arouseCondition(const string& file, int line, pthread_cond_t *cond, 
 		string msg("ERROR: cannot arouse the condition ");
 
 		msg+= getConditionName(cond) + "\n       ";
-		msg+= strerror(errno);
+		msg+= BaseErrorHandling::getErrnoString(errno);
 		LogHolderPattern::instance()->log(file, line, LOG_ERROR, msg, "", logger);
 	}
 	return error;
@@ -1652,34 +1645,37 @@ int Thread::arouseAllCondition(const string& file, int line, pthread_cond_t *con
 		string msg("ERROR: cannot arouse all condition from ");
 
 		msg+= getConditionName(cond, logger) + "\n       ";
-		msg+= strerror(errno);
+		msg+= BaseErrorHandling::getErrnoString(error);
 		LogHolderPattern::instance()->log(file, line, LOG_ERROR, msg, "", logger);
 	}
 	return error;
 }
 
-int Thread::detach()
+EHObj Thread::detach()
 {
-	int nRv= pthread_detach(m_nPosixThreadID);
+	int ret= pthread_detach(m_nPosixThreadID);
 
-	if(nRv != 0)
+	if(ret != 0)
 	{
-		string msg("### ERROR: cannot detach thread ");
+		ThreadErrorHandling handle;
 
-		msg+= getThreadName() + "\n           ";
-		msg+= strerror(nRv);
-		LOGEX(LOG_ERROR, msg, m_pExtLogger);
+		handle.setPThreadError("Thread", "pthread_detach", "pthread_detach", ret, getThreadName());
+		(*m_pError)= handle;
+		LOGEX(LOG_ERROR, m_pError->getDescription(), m_pExtLogger);
+
 #ifdef DEBUG
+		string msg;
+
+		msg= glob::addPrefix("### ERROR: ", m_pError->getDescription());
 		cerr << msg << endl;
 #endif
 	}
-	return nRv;
+	return m_pError;
 }
 
-int Thread::stop(const bool *bWait)
+EHObj Thread::stop(const bool *bWait)
 {
 #ifndef SINGLETHREADING
-	int nRv;
 //	LogInterface* log= LogInterface::instance();
 
 	// before lock STARTSTOPTHREAD mutex lock SLEEPMUTEX
@@ -1696,29 +1692,14 @@ int Thread::stop(const bool *bWait)
 		if(!running())
 		{
 			mutex_unlock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
-			return 5;
+			return m_pError;
 		}
-//		if(!log->ownThread(getThreadName(), pthread_self()))
-//		{
-			nRv= CONDITIONEX(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD, m_pExtLogger);
-			if(nRv != 0)
-			{
-				string msg("### fatal ERROR: cannot join correctly to thread ");
-
-				msg+= getThreadName() + "\n                 ";
-				msg+= strerror(nRv);
-#ifdef DEBUG
-				cerr << msg << endl;
-#endif // DEBUG
-				LOGEX(LOG_ERROR,  msg, m_pExtLogger);
-			}
-//		}else
-//			LOGEX(LOG_ERROR, "application cannot stop own thread with stop(true)", m_pExtLogger);
+		CONDITIONEX(m_STARTSTOPTHREADCOND, m_STARTSTOPTHREAD, m_pExtLogger);
 	}
 	mutex_unlock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
 
 #endif // SINGLETHREADING
-	return 0;
+	return m_pError;
 }
 
 string Thread::getThreadName() const
@@ -1731,9 +1712,9 @@ string Thread::getThreadName() const
 	return name;
 }
 
-int Thread::stopping()
+short Thread::stopping()
 {
-	int nRv= 0;
+	short nRv= 0;
 
 	mutex_lock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
 	if(m_bStop)
@@ -1742,9 +1723,9 @@ int Thread::stopping()
 	return nRv;
 }
 
-int Thread::running()
+short Thread::running()
 {
-	int nRv= 0;
+	short nRv= 0;
 
 	mutex_lock(__FILE__, __LINE__, m_RUNTHREAD, m_pExtLogger);
 	if(m_bRun)

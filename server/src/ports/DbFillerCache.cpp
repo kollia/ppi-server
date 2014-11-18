@@ -18,6 +18,8 @@
 
 #include "DbFillerCache.h"
 
+#include "../util/stream/ErrorHandling.h"
+
 #include "../database/lib/DbInterface.h"
 
 namespace util
@@ -289,13 +291,14 @@ namespace util
 			m_dbInform->informDatabase();
 	}
 
-	int DbFillerCache::remove()
+	EHObj DbFillerCache::remove()
 	{
+		EHObj handle(EHObj(new ErrorHandling));
 		/*
-		 * doDo: method to remove cache from queue
+		 * toDo: method to remove cache from queue
 		 * 		 only needed when property inside server.conf is ONE
 		 */
-		return 0;
+		return handle;
 	}
 
 	void DbFillerCache::getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,

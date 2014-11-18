@@ -38,10 +38,6 @@ namespace server
 	bool OutsideClientTransaction::transfer(IFileDescriptorPattern& descriptor)
 	{
 		/**
-		 * error number when connection be failt
-		 */
-		int err;
-		/**
 		 * current answer of server
 		 */
 		string answer;
@@ -58,6 +54,7 @@ namespace server
 		 */
 		string::size_type len= m_sCommand.size();
 
+		m_pSocketError->clear();
 		m_vAnswer.clear();
 		if(m_bHold)
 		{
@@ -67,7 +64,8 @@ namespace server
 				{
 					if(descriptor.eof())
 					{
-						m_vAnswer.push_back("ERROR 001");
+						m_pSocketError->setError("OutsideClientTransaction", "descriptor");
+						m_vAnswer.push_back(m_pSocketError->getErrorStr());
 						return false;
 					}
 					descriptor << *it;
@@ -108,19 +106,15 @@ namespace server
 
 				if(descriptor.eof())
 				{
-					m_vAnswer.push_back("ERROR 001");
+					m_pSocketError->setError("OutsideClientTransaction", "descriptor");
+					m_vAnswer.push_back(m_pSocketError->getErrorStr());
 					return false;
 				}
 				descriptor >> answer;
 				boost::trim(answer);
-				err= ExternClientInputTemplate::error(answer);
-				if(err != 0)
-				{
-					err+= (err > 0 ? getMaxErrorNums(/*error*/true) : (getMaxErrorNums(/*error*/false) * -1));
-					answer= ExternClientInputTemplate::error(err);
-				}
+				m_pSocketError->setErrorStr(answer);
 				m_vAnswer.push_back(answer);
-				if(err > 0)
+				if(m_pSocketError->hasError())
 					break;
 				if(	endString != "" &&
 					endString == answer	)
@@ -130,7 +124,7 @@ namespace server
 			}while(endString != "");
 			m_sCommand= "";
 			m_bHold= true;
-		}else
+		}else // if(m_bHold)
 		{
 			if(m_sEnding != "" && !descriptor.eof())
 			{
@@ -138,40 +132,25 @@ namespace server
 				descriptor.endl();
 				descriptor.flush();
 				descriptor >> answer;
+				m_pSocketError->setErrorStr(answer);
 				m_vAnswer.push_back(answer);
 			}
 			m_bHold= true;//for new beginning
 			return false;
-		}
+		}// if(m_bHold)
 		return true;
+	}
+
+	EHObj OutsideClientTransaction::init(IFileDescriptorPattern& descriptor)
+	{
+		//m_pSocketError->setError("OutsideClientTransaction", "init");
+		return m_pSocketError;
 	}
 
 	void OutsideClientTransaction::setAnswer(const vector<string>& answer)
 	{
 		m_sCommand= "";
 		m_vsAnswerBlock= answer;
-	}
-
-	string OutsideClientTransaction::strerror(int error) const
-	{
-		string str;
-
-		switch(error)
-		{
-		case 1:
-			str= "ERROR: connection is broken";
-			break;
-		default:
-			str= "undefined socket client error";
-		}
-		return str;
-	}
-
-	inline unsigned int OutsideClientTransaction::getMaxErrorNums(const bool byerror) const
-	{
-		if(byerror)
-			return 1;
-		return 0;
 	}
 
 }

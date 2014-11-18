@@ -28,7 +28,10 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include "../../util/XMLStartEndTagReader.h"
+#include "../../util/GlobalStaticMethods.h"
 #include "../../util/structures.h"
+
+#include "../../util/stream/ErrorHandling.h"
 
 #include "ClientTransaction.h"
 
@@ -51,8 +54,9 @@ namespace server
 		m_fProtocol= 0;
 	}
 
-	bool ClientTransaction::init(IFileDescriptorPattern& descriptor)
+	EHObj ClientTransaction::init(IFileDescriptorPattern& descriptor)
 	{
+		EHObj errHandle(EHObj(new ErrorHandling));
 		short x= 0;
 		/**
 		 * unique ID get from server
@@ -205,26 +209,37 @@ namespace server
 		&&
 		result == ""	)
 	{
-		cerr << "ERROR: get no result from server" << endl;
 		m_bErrWritten= true;
-		return false;
+		errHandle->setError("ClientTransaction", "get_result");
+		cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
+		return errHandle;
 	}
 		if(!bRightServer)
 		{
 			string::size_type nPos;
-			ostringstream msg;
+			ostringstream decl;
 
-			if(result.length() > 20)
-				result= result.substr(0, 20) + " ...";
-			nPos= result.find('\n');
-			if(nPos != string::npos)
-				result= result.substr(0, nPos-1) + " ...";
-			msg << "ERROR: undefined server running on ";
-			msg << descriptor.getHostAddressName() << ":" << descriptor.getPort() << endl;
-			msg << "       getting '" << result << "'";
-			cerr << msg.str() << endl;
+			decl << descriptor.getHostAddressName() << "@" << descriptor.getPort();
+			errHandle->setErrorStr(result);
+			if(!errHandle->fail())
+			{
+				if(result.length() > 20)
+					result= result.substr(0, 20) + " ...";
+				nPos= result.find('\n');
+				if(nPos != string::npos)
+					result= result.substr(0, nPos-1) + " ...";
+				decl << "@" << result;
+				errHandle->setError("ClientTransaction", "undefined_server", decl.str());
+			}else
+			{
+				errHandle->addMessage("ClientTransaction", "client_send", decl.str());
+			}
+			if(errHandle->hasError())
+				cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
+			else
+				cout << glob::addPrefix("WARNING: ", errHandle->getDescription()) << endl;
 			m_bErrWritten= true;
-			return false;
+			return errHandle;
 		}
 
 		if(bStatus)
@@ -250,10 +265,10 @@ namespace server
 				readtc= false;
 				if(errno != 25)
 				{
-					cerr << "### ERROR: cannot read tc address for password" << endl;
-					cerr << "           " << strerror(errno) << endl;
+					errHandle->setErrnoError("ClientTransaction", "tcgetattr", errno);
+					cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
 					m_bErrWritten= true;
-					return false;
+					return errHandle;
 				}
 			}
 			backup= term;
@@ -271,10 +286,10 @@ namespace server
 					term.c_lflag= term.c_lflag & ~ECHO;
 					if((tcsetattr(STDIN_FILENO, TCSAFLUSH, &term)) < 0)
 					{
-						cerr << "### ERROR: cannot set tc address for password" << endl;
-						cerr << "           " << strerror(errno) << endl;
+						errHandle->setErrnoError("ClientTransaction", "tcsetattr", errno);
+						cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
 						m_bErrWritten= true;
-						return false;
+						return errHandle;
 					}
 					cout << "password:" << flush;
 				}
@@ -288,10 +303,10 @@ namespace server
 					cout << endl;
 				if(readtc && (tcsetattr(STDIN_FILENO, TCSAFLUSH, &backup)) < 0)
 				{
-					cerr << "### ERROR: cannot set back tc address for any inserts" << endl;
-					cerr << "           " << strerror(errno) << endl;
+					errHandle->setErrnoError("ClientTransaction", "tcsetattr_back", errno);
+					cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
 					m_bErrWritten= true;
-					return false;
+					return errHandle;
 				}
 			}
 			sSendbuf= "U:";
@@ -306,11 +321,20 @@ namespace server
 			descriptor.flush();
 			descriptor >> result;
 			result= ConfigPropertyCasher::trim(result);
-			if(result != "OK")
+			errHandle->setErrorStr(result);
+			if(errHandle->fail())
 			{
-				printError(descriptor, result);
+				string prefix;
+
+				errHandle->addMessage("ClientTransaction", "get_result");
 				m_bErrWritten= true;
-				return false;
+				if(errHandle->hasError())
+					prefix= "ERROR: ";
+				else
+					prefix= "WARNING: ";
+				cerr << glob::addPrefix(prefix, errHandle->getDescription()) << endl;
+				if(errHandle->hasError())
+					return errHandle;
 			}
 		}
 		if(bSecConn)
@@ -319,9 +343,7 @@ namespace server
 																							sCommID, user, pwd, m_bOwDebug));
 			m_o2Client->start();
 		}
-
-
-		return true;
+		return errHandle;
 	}
 
 	bool ClientTransaction::transfer(IFileDescriptorPattern& descriptor)
@@ -608,25 +630,6 @@ namespace server
 		descriptor << "ending\n";
 		descriptor.flush();
 		return true;
-	}
-
-	string ClientTransaction::strerror(int error) const
-	{
-		string str;
-
-		switch(error)
-		{
-		case 0:
-			str= "no error occurred";
-			break;
-		default:
-			if(error > 0)
-				str= "Undefined transaction error occurred";
-			else
-				str= "Undefined transaction warning occurred";
-			break;
-		}
-		return str;
 	}
 
 	void ClientTransaction::printError(IFileDescriptorPattern& descriptor, const string& error)

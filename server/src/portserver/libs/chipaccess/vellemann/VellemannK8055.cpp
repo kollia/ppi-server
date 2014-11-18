@@ -33,6 +33,7 @@ extern "C" {
 
 #include "../../../../pattern/util/LogHolderPattern.h"
 
+#include "../../../../util/stream/BaseErrorHandling.h"
 #include "../../../../util/thread/Thread.h"
 #include "../../../../util/GlobalStaticMethods.h"
 
@@ -194,7 +195,7 @@ namespace ports
 
 			os <<  "### ERROR: Could not open the k8055 (port:" << dec << m_nID << ")";
 			if(errno != 0)
-				   os << "\n    ERRNO(" << dec << errno << "): " << strerror(errno);
+				   os << "\n    ERRNO(" << dec << errno << "): " << BaseErrorHandling::getErrnoString(errno);
 			TIMELOG(LOG_ERROR, m_nID+"Vellemannk8055", os.str());
 			if(!failt)
 			{
@@ -224,7 +225,7 @@ namespace ports
 
 				os <<  "### ERROR: Could not disconnect k8055 (port:" << dec << m_nID << ")";
 				if(errno != 0)
-					   os << "\n    ERRNO(" << dec << errno << "): " << strerror(errno);
+					   os << "\n    ERRNO(" << dec << errno << "): " << BaseErrorHandling::getErrnoString(errno);
 				TIMELOG(LOG_ERROR, m_nID+"Vellemannk8055", os.str());
 				if(!failt)
 				{

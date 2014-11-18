@@ -1,5 +1,7 @@
 
 set(utilSrcs	ppivalues.cpp
+                BaseErrorHandling.cpp
+                ErrorHandling.cpp
                 IMethodStringStream.cpp
         		IParameterStringStream.cpp
         		OMethodStringStream.cpp

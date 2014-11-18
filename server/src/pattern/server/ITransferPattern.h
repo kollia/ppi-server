@@ -19,8 +19,12 @@
 
 #include "IFileDescriptorPattern.h"
 
+#include "../util/IErrorHandlingPattern.h"
+
 namespace design_pattern_world
 {
+	using namespace util_pattern;
+
 	namespace server_pattern
 	{
 		/**
@@ -38,7 +42,7 @@ namespace design_pattern_world
 				 * @param descriptor file handle to set start values
 				 * @return whether initialization was correct
 				 */
-				virtual bool init(IFileDescriptorPattern& descriptor)= 0;
+				virtual EHObj init(IFileDescriptorPattern& descriptor)= 0;
 				/**
 				 * transaction to client or server
 				 *
@@ -62,20 +66,6 @@ namespace design_pattern_world
 				 * @return whether client is correct with given definition
 				 */
 				virtual bool isClient(const IFileDescriptorPattern& descriptor, const string& definition) const= 0;
-				/**
-				 * return string describing error number
-				 *
-				 * @param error code number of error
-				 * @return error string
-				 */
-				virtual string strerror(int error) const= 0;
-				/**
-				 * get maximal error or warning number in positive values from own class
-				 *
-				 * @param byerror whether needs error number (true) or warning number (false)
-				 * @return maximal error or warning number
-				 */
-				virtual unsigned int getMaxErrorNums(const bool byerror) const= 0;
 				/**
 				 * destructor to dereference file
 				 */

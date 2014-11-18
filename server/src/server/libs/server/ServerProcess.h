@@ -77,6 +77,13 @@ namespace server
 			 */
 			virtual string getName() const;
 			/**
+			 * returning current error handling object
+			 *
+			 * @return object of error handling
+			 */
+			OVERWRITE EHObj getErrorHandlingObj() const
+			{ return m_pSocketError; };
+			/**
 			 * return factory of ServerCommunicationStarter
 			 *
 			 * @return actual ServerCommunicationStarter
@@ -103,9 +110,9 @@ namespace server
 			 *  external command to stop process
 			 *
 			 * @param bWait calling rutine should wait until the process is stopping
-			 * @return error or warning number see overview
+			 * @return object of error handling
 			 */
-			virtual int stop(const bool bWait= true);
+			OVERWRITE EHObj stop(const bool bWait= true);
 			/**
 			 * desstructor to delete created objects
 			 */
@@ -119,16 +126,16 @@ namespace server
 			 * @param args user defined parameter value or array,<br />
 			 * 				coming as void pointer from the external call
 			 * 				method start(void *args).
-			 * @return error code for not right initialization
+			 * @return object of error handling
 			 */
-			virtual int init(void *arg);
+			OVERWRITE EHObj init(void *arg);
 			/**
 			 * This method starting again when ending with code 0 or lower for warnings
 			 * and if the method stop() isn't called.
 			 *
-			 * @param error code for not correctly done
+			 * @param whether process should start again
 			 */
-			virtual int execute();
+			OVERWRITE bool execute();
 			/**
 			 * This method will be called if any other or own thread
 			 * calling method stop().

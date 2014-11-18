@@ -26,6 +26,7 @@
 #include <boost/algorithm/string/classification.hpp>
 
 #include "ppivalues.h"
+#include "BaseErrorHandling.h"
 
 
 IPPITimePattern& ppi_time::operator = (const IPPITimePattern& time)
@@ -290,8 +291,6 @@ int ppi_time::error() const
 string ppi_time::errorStr() const
 {
 	ostringstream sRv;
-    char *err;
-    size_t size;
 
     if(m_sError != "")
     {
@@ -299,31 +298,7 @@ string ppi_time::errorStr() const
     	sRv << m_sError;
 
     }else
-    {
-		size = 1024;
-		err = static_cast<char*>(malloc(size));
-		if (err != NULL)
-		{
-			while (strerror_r(m_nErrno, err, size) != err && errno == ERANGE && errno != EINVAL)
-			{
-				size *= 2;
-				err = static_cast<char*>(realloc(err, size));
-				if (err == NULL)
-					break;
-			}
-		}
-		sRv << "ERRNO[" << m_nErrno << "]: ";
-		if(errno != EINVAL)
-		{
-			if(err != NULL)
-			{
-				sRv << err;
-				free(err);
-			}else
-				sRv << "cannot allocate enough character space for this ERROR description";
-		}else
-			sRv << "The value of ERRNO is not a valid error number.";
-    }
+    	sRv << util::BaseErrorHandling::getErrnoString(m_nErrno);
 	return sRv.str();
 }
 

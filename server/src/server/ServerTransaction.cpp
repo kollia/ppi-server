@@ -80,8 +80,10 @@ namespace server
 		m_SERVERISSTOPPINGMUTEX= Thread::getMutex("SERVERISSTOPPINGMUTEX");
 	}
 
-	bool ServerTransaction::init(IFileDescriptorPattern& descriptor)
+	EHObj ServerTransaction::init(IFileDescriptorPattern& descriptor)
 	{
+		EHObj errHandle(EHObj(new SocketErrorHandling));
+
 		descriptor.setString("username", "");
 		descriptor.setBoolean("speaker", false);
 		descriptor.setBoolean("access", false);
@@ -90,7 +92,7 @@ namespace server
 		descriptor.setBoolean("readdebuginfo", false);
 		descriptor.setBoolean("nextconnection", true);
 		descriptor.setBoolean("finishedloading", false);
-		return true;
+		return errHandle;
 	}
 
 	bool ServerTransaction::transfer(IFileDescriptorPattern& descriptor)
@@ -321,7 +323,7 @@ namespace server
 								string err;
 
 								err=   "### ERROR: cannot set process to default user\n";
-								err+=  "    ERRNO: " + *::strerror(errno);
+								err+=  "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
 								err+= "\n          so internet server running as root";
 								LOG(LOG_ALERT, err);
 								cerr << err << endl;
@@ -442,23 +444,6 @@ namespace server
 				omsg << "with user '" << username << "' ";
 			omsg << "and ID:" << descriptor.getClientID() << " asking only for initialization";
 			LOG(LOG_SERVERINFO, omsg.str());
-			return true;
-
-		}else if(	input == "GETMINMAXERRORNUMS"
-					||
-					input == "ppi-internet-server true false getMinMaxErrorNums"	)
-		{
-			ostringstream output;
-
-			output << getMaxErrorNums(false) * -1;
-			output << " ";
-			output << getMaxErrorNums(true);
-			descriptor << output.str();
-			descriptor.endl();
-			descriptor.flush();
-#ifdef SERVERDEBUG
-			cout << "send: " << output.str() << endl;
-#endif
 			return true;
 
 		}else if(	input.substr(0, 15) == "GETERRORSTRING "
@@ -1432,13 +1417,6 @@ namespace server
 			break;
 		}
 		return str;
-	}
-
-	inline unsigned int ServerTransaction::getMaxErrorNums(const bool byerror) const
-	{
-		if(byerror)
-			return 20;
-		return 1;
 	}
 
 	bool ServerTransaction::getDirectory(string filter, string verz, vector<string> &list)

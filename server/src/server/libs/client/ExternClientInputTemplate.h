@@ -20,6 +20,8 @@
 
 #include <string>
 
+#include "../../../pattern/util/IErrorHandlingPattern.h"
+
 #include "../../../pattern/server/IExternClientInput.h"
 #include "../../../pattern/server/IClientConnectArtPattern.h"
 
@@ -49,144 +51,37 @@ namespace util
 			 * @param sendConnection on which connection from outside the server to answer is reachable
 			 * @param getConnection on which connection from outside the server is reachable to get questions
 			 */
-			ExternClientInputTemplate(const string& process, const string& client, IClientConnectArtPattern* sendConnection, IClientConnectArtPattern* getConnection);
-			/**
-			 * calculate the error code given back from server as string.<br />
-			 * the return error codes from server should be ERROR or WARNING.
-			 * If the returned string was an warning, the number will be multiplied with -1 (become negative)
-			 * Elsewhere the number is 0
-			 *
-			 * @param input the returned string from server
-			 * @return error number
-			 */
-			static int error(const string& input);
-			/**
-			 * calculate from an error, warning code an string
-			 *
-			 * @param nr error code
-			 * @return string of this error code
-			 */
-			static string error(const int nr);
-			/**
-			 * return string describing error number
-			 *
-			 * @param error code number of error
-			 * @param bSend whether need error string for sending connections (true is default) or get question connection (false).<br />
-			 *              If no sending connection is set, but bSend is true, method ask even by get question connection
-			 * @return error string
-			 */
-			virtual string strerror(const int error, const bool bSend= true);
-			/**
-			 * get maximal error or warning number in positive values
-			 * from own class and all imply run through classes
-			 *
-			 * @param byerror whether needs error number (true) or warning number (false)
-			 * @return maximal error or warning number
-			 */
-			virtual unsigned int getMaxErrorNums(const bool byerror) const;
+			ExternClientInputTemplate(const string& process, const string& client,
+							IClientConnectArtPattern* sendConnection,
+							IClientConnectArtPattern* getConnection);
 			/**
 			 * open the connection to server for sending questions
-			 * <b>errorcodes:</b>
-			 * <table>
-			 * 	<tr>
-			 * 		<td>
-			 * 			0
-			 * 		</td>
-			 * 		<td>
-			 * 			no error occurred
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td>
-			 * 			-1
-			 * 		</td>
-			 * 		<td>
-			 * 			WARNING: connection exist before
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td>
-			 * 			1
-			 * 		</td>
-			 * 		<td>
-			 * 			ERROR: no <code>IClientConnectArtPattern</code> be given for sending
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td>
-			 * 			2
-			 * 		</td>
-			 * 		<td>
-			 * 			cannot connect with server, or initialization was fail
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td colspan="2">
-			 * 			all other ERRORs or WARNINGs see in <code>IClientConnectArtPattern</code>
-			 * 			for beginning connection by sending
-			 * 		</td>
-			 * 	</tr>
-			 * </table>
 			 *
-			 * @param toopen string for open question, otherwise by null string the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
-			 * @return error number
+			 * @param toopen string for open question,
+			 *               otherwise by null string the connection will be open
+			 *               with '<process>:<client> SEND' for connect
+			 *               with an ServerMethodTransaction
+			 * @return object of error handling
 			 */
-			int openSendConnection(string toopen= "");
+			EHObj openSendConnection(string toopen= "");
 			/**
 			 * open the connection to server for sending questions
-			 * <b>errorcodes:</b>
-			 * <table>
-			 * 	<tr>
-			 * 		<td>
-			 * 			0
-			 * 		</td>
-			 * 		<td>
-			 * 			no error occurred
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td>
-			 * 			-1
-			 * 		</td>
-			 * 		<td>
-			 * 			WARNING: connection exist before
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td>
-			 * 			1
-			 * 		</td>
-			 * 		<td>
-			 * 			ERROR: no <code>IClientConnectArtPattern</code> be given for sending
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td>
-			 * 			2
-			 * 		</td>
-			 * 		<td>
-			 * 			cannot connect with server, or initialization was fail
-			 * 		</td>
-			 * 	</tr>
-			 * 	<tr>
-			 * 		<td colspan="2">
-			 * 			all other ERRORs or WARNINGs see in <code>IClientConnectArtPattern</code>
-			 * 			for beginning connection by sending
-			 * 		</td>
-			 * 	</tr>
-			 * </table>
 			 *
-			 * @param toopen string for open question, otherwise by null string the connection will be open with '<process>:<client> SEND' for connect with an ServerMethodTransaction
+			 * @param toopen string for open question,
+			 *               otherwise by null string
+			 *               the connection will be open
+			 *               with '<process>:<client> SEND'
+			 *               for connect with an ServerMethodTransaction
 			 * @param timeout timeout in seconds by finding no connection in first step
-			 * @return error number
+			 * @return object of error handling
 			 */
-			int openSendConnection(const unsigned int timeout, string toopen= "");
+			EHObj openSendConnection(const unsigned int timeout, string toopen= "");
 			/**
 			 * open the connection to server to get questions and answer this
 			 *
-			 * @return error code
+			 * @return object of error handling
 			 */
-			int openGetConnection();
+			EHObj openGetConnection();
 			/**
 			 * sending commands to open and ending the sending connection.<br />
 			 * By default this method not be called, by open the connection it would be sending
@@ -257,25 +152,28 @@ namespace util
 			 *
 			 * @param toProcess for which process the method should be
 			 * @param method object of method which is sending to server
-			 * @param done on which getting string the answer should ending. Ending also when an ERROR or warning occurs
+			 * @param done on which getting string the answer should ending.
+			 *             Ending also when an ERROR or warning occurs
 			 * @param answer whether client should wait for answer
-			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
+			 * @return backward send return string vector from server if answer is true,
+			 *         elsewhere returning vector with no size
 			 */
-			virtual vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
+			virtual vector<string> sendMethod(const string& toProcess, const OMethodStringStream& method,
+							const string& done, const bool answer= true);
 			virtual vector<string> sendMethodD(const string& toProcess, const OMethodStringStream& method,
 							const string& done, const bool answer= true);
 			/*
 			 * close sending connection to server
 			 *
-			 * @return error code
+			 * @return object of error handling
 			 */
-			int closeSendConnection();
+			EHObj closeSendConnection();
 			/**
 			 * close get connection for questions from server (other client)
 			 *
-			 * @return error code
+			 * @return object of error handling
 			 */
-			int closeGetConnection();
+			EHObj closeGetConnection();
 			/**
 			 * return address of connecting host for sending
 			 *
@@ -327,11 +225,24 @@ namespace util
 			const string getClientName()
 			{ return m_sName; };
 			/**
+			 * returning current error handling object
+			 *
+			 * @return object of error handling
+			 */
+			OVERWRITE EHObj getErrorHandlingObj() const
+			{ return m_pSocketError; };
+			/**
 			 * destructor of ExternClientInputTemplate
 			 */
 			virtual ~ExternClientInputTemplate();
 
 		protected:
+			/**
+			 * SocketErrorHandling object for error/warning,
+			 * usable for all depend classes
+			 */
+			EHObj m_pSocketError;
+
 			/**
 			 * ask server for question from any client
 			 *
@@ -438,24 +349,14 @@ namespace util
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 
 			/**
-			 * send message to given server in constructor
-			 *
-			 * @param toProcess for which process the method should be
-			 * @param method object of method which is sending to server
-			 * @param done on which getting string the answer should ending. Ending also when an ERROR or warning occurs
-			 * @param answer whether client should wait for answer
-			 * @return backward send return string vector from server if answer is true, elsewhere returning vector with no size
-			 */
-			//virtual vector<string> sendMethodD(const string& toProcess, const OMethodStringStream& method, const string& done, const bool answer= true);
-			/**
 			 * close given sending or get connection to server
 			 *
 			 * @param connection ClientConnectArtPattern from sending or get question
 			 * @param transaction own created transaction object
 			 * @param command command sending before close connection
-			 * @return error code
+			 * @return whether closing was successful, save error into member of error handling
 			 */
-			int closeConnection(IClientConnectArtPattern* connection, OutsideClientTransaction* transaction, const string& command);
+			bool closeConnection(IClientConnectArtPattern* connection, OutsideClientTransaction* transaction, const string& command);
 	};
 }
 

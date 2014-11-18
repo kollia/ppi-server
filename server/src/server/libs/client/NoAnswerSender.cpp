@@ -20,6 +20,8 @@
 
 #include "NoAnswerSender.h"
 
+#include "../SocketErrorHandling.h"
+
 #include "../../../util/GlobalStaticMethods.h"
 
 using namespace std;
@@ -42,14 +44,13 @@ namespace util
 		return beforeAnsw;
 	}
 
-	int NoAnswerSender::execute()
+	bool NoAnswerSender::execute()
 	{
 		vector<sendingInfo_t>::iterator msgPos;
 		vector<sendingInfo_t> messages;
 		vector<string> answer;
-		string sError;
-		int err;
 
+		m_pError->clear();
 		LOCK(m_SENDQUEUELOCK);
 		if(m_vsSendingQueue.size() == 0)
 			CONDITION(m_SENDQUEUECONDITION, m_SENDQUEUELOCK);
@@ -60,58 +61,55 @@ namespace util
 		for(msgPos= messages.begin(); msgPos != messages.end(); ++msgPos)
 		{
 			OMethodStringStream method(msgPos->method);
+			SocketErrorHandling oHandling;
 
 			// this NoAnswer thread waiting for answer,
 			// because otherwise sending running in an loop
 			answer= m_pExternClient->sendMethodD(msgPos->toProcess, method, msgPos->done, /*answer*/true);
-			for(vector<string>::iterator answ= answer.begin(); answ != answer.end(); ++answ)
+			oHandling.searchResultError(answer);
+			if(oHandling.fail())
 			{
-				err= error(*answ);
-				if(err > 0)
-				{// ending only by errors (no warnings)
-					sError= *answ;
+				(*m_pError)= oHandling;
+				if(m_pError->hasError())
 					break;
-				}
 			}
-			if(sError != "")
-				break;
 		}
 		if(stopping())
-			return 0;
+			return false;
 		LOCK(m_SENDQUEUELOCK);
-		if(sError != "")
+		if(m_pError->fail())
 		{
-			cerr << "NoAnswer method: " << msgPos->method << endl;
-			cerr << " get Error code: " << sError << endl << endl;
-			m_sNoWaitError= sError; // fill back into queue all sending methods from error
-			m_vsSendingQueue.insert(m_vsSendingQueue.begin(), msgPos, messages.end());
+			string prefix;
+
+			if(m_pError->hasError())
+				prefix= "### ERROR: ";
+			else
+				prefix= "### WARNING: ";
+			m_pError->addMessage("NoAnswerSender", "sendMethod", msgPos->method);
+			cerr << glob::addPrefix(prefix, m_pError->getDescription()) << endl;
+			// fill back into queue all sending methods from error
+			if(m_pError->hasError())
+			{
+				m_sNoWaitError= m_pError->getErrorStr();
+				m_vsSendingQueue.insert(m_vsSendingQueue.begin(), msgPos, messages.end());
+			}else
+				m_sNoWaitError= "";
 		}else
 			m_sNoWaitError= "";
 		UNLOCK(m_SENDQUEUELOCK);
-		return 0;
+		return true;
 	}
 
-	inline int NoAnswerSender::error(const string& input)
+	EHObj NoAnswerSender::stop(const bool *bWait/*= NULL*/)
 	{
-		int number;
-		string answer;
-		istringstream out(input);
+		EHObj res;
 
-		out >> answer >> number;
-		if(answer == "ERROR")
-			return number;
-		if(answer == "WARNING")
-			return number * -1;
-		return 0;
-	}
-
-	int NoAnswerSender::stop(const bool *bWait/*= NULL*/)
-	{
-		int res;
-
-		Thread::stop(/*wait*/false);
-		AROUSE(m_SENDQUEUECONDITION);
-		res= Thread::stop(bWait);
+		res= Thread::stop(/*wait*/false);
+		if(!res->hasError())
+		{
+			AROUSE(m_SENDQUEUECONDITION);
+			res= Thread::stop(bWait);
+		}
 		return res;
 	}
 

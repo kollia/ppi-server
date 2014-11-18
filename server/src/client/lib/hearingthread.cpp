@@ -42,14 +42,13 @@ namespace server
 		m_bOwDebug= bOwDebug;
 	}
 
-	int HearingThread::init(void* args)
+	EHObj HearingThread::init(void* args)
 	{
-		return 0;
+		return m_pError;
 	}
 
-	int HearingThread::execute()
+	bool HearingThread::execute()
 	{
-		int code;
 		vector<string> options;
 		auto_ptr<SocketClientConnection> clientCon;
 
@@ -60,9 +59,9 @@ namespace server
 			options.push_back("-ow");
 		clientCon= auto_ptr<SocketClientConnection>(new SocketClientConnection(SOCK_STREAM, m_shost, m_nPort, 5,
 																				new ClientTransaction(options, "")));
-		code= clientCon->init();
+		m_pError= clientCon->init();
 		stop();
-		return code;
+		return false;
 	}
 
 	void HearingThread::ending()

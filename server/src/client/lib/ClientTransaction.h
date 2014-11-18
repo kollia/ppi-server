@@ -25,12 +25,15 @@
 
 #include "hearingthread.h"
 
+#include "../../pattern/util/IErrorHandlingPattern.h"
+
 #include "../../pattern/server/NoCommunicateTransactionAdapter.h"
 
 //#include "../../portserver/owserver.h"
 
 using namespace std;
 using namespace design_pattern_world::server_pattern;
+using namespace design_pattern_world::util_pattern;
 
 namespace server
 {
@@ -51,9 +54,9 @@ namespace server
 			 * initial all values for transaction
 			 *
 			 * @param descriptor file handle to set start values
-			 * @return whether initialization was correct
+			 * @return object of error handling
 			 */
-			virtual bool init(IFileDescriptorPattern& descriptor);
+			OVERWRITE EHObj init(IFileDescriptorPattern& descriptor);
 			/**
 			 * transaction protocol between client to server
 			 *
@@ -76,21 +79,6 @@ namespace server
 			 */
 			bool wasErrorWritten()
 			{ return m_bErrWritten; }
-			/**
-			 * return string describing error number
-			 *
-			 * @param error code number of error
-			 * @return error string
-			 */
-			virtual string strerror(int error) const;
-			/**
-			 * get maximal error or warning number in positive values from own class
-			 *
-			 * @param byerror whether needs error number (true) or warning number (false)
-			 * @return maximal error or warning number
-			 */
-			virtual unsigned int getMaxErrorNums(const bool byerror) const
-			{ return 0; };
 			/**
 			 * destructor of server transaction
 			 */

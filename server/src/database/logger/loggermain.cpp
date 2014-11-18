@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 	string property;
 	string sConfPath, fileName;
 	unsigned short commport;
-	int err;
+	EHObj err;
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
 	Properties oServerProperties;
@@ -105,16 +105,14 @@ int main(int argc, char* argv[])
 													10			)	);
 
 	err= logger.run(&oServerProperties);
-	if(err != 0)
+	if(err->fail())
 	{
-		if(err > 0)
-			cerr << "### ERROR: for ";
+		if(err->hasError())
+			cerr << glob::addPrefix("### ERROR: ", err->getDescription()) << endl;
 		else
-			cerr << "### WARNING: by ";
-		cerr << "initial process LogServer" << endl;
-		cerr << "             " << logger.strerror(err) << endl;
-		return err;
+			cout << glob::addPrefix("### WARNING: ", err->getDescription()) << endl;
+		return EXIT_FAILURE;
 	}
 	glob::stopMessage("### ending correctly logging process with all threads", /*all process names*/true);
-	return err;
+	return EXIT_SUCCESS;
 }

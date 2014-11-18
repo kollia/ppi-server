@@ -28,6 +28,7 @@
 #include "../util/URL.h"
 #include "../util/debug.h"
 
+#include "../util/thread/ThreadErrorHandling.h"
 #include "../util/properties/interlacedproperties.h"
 
 #include "../server/libs/client/SocketClientConnection.h"
@@ -47,6 +48,10 @@ using namespace ppi_database;
 
 int main(int argc, char* argv[])
 {
+	/**
+	 * process return value
+	 */
+	int nRv;
 	/**
 	 * log file name for logging process
 	 */
@@ -83,7 +88,6 @@ int main(int argc, char* argv[])
 	string dbpath;
 	unsigned short commport;
 	unsigned short nDbConnectors= 0;
-	int err;
 	vector<string> directorys;
 	vector<string>::size_type dirlen;
 	InterlacedProperties oServerProperties;
@@ -92,6 +96,13 @@ int main(int argc, char* argv[])
 	LogThread logObj(/*check*/true, /*waitFirst*/true, /*asServer*/true);
 	ServerDbTransaction* pDbTransaction;
 	map<string, uid_t> users;
+	ErrorHandling errHandle;
+	thread::ThreadErrorHandling thErrHandle;
+	SocketErrorHandling sockErrHandle;
+
+	errHandle.read();
+	thErrHandle.read();
+	sockErrHandle.read();
 
 	glob::processName("ppi-db-server");
 	glob::setSignals("ppi-db-server");
@@ -244,7 +255,7 @@ int main(int argc, char* argv[])
 			string err;
 
 			err=   "### ERROR: cannot set process to default user " + defaultuser + "\n";
-			err+=  "    ERRNO: " + *strerror(errno);
+			err+=  "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
 			err+= "\n          so internet server running as root";
 			LOG(LOG_ALERT, err);
 			cerr << err << endl;
@@ -266,19 +277,22 @@ int main(int argc, char* argv[])
 
 	//*********************************************************************************
 	// starting database process
-	err= database.run(&oServerProperties);
-	if(err != 0)
+	errHandle= database.run(&oServerProperties);
+	nRv= EXIT_SUCCESS;
+	if(errHandle.fail())
 	{
-		logObj.stop();
-		if(err > 0)
-			cerr << "### ERROR: for ";
-		else
-			cerr << "### WARNING: by ";
-		cerr << "initial database server" << endl;
-		cerr << "             " << database.strerror(err) << endl;
-		return err;
+		string msg;
+
+		errHandle.addMessage("databasemain", "run");
+		msg= errHandle.getDescription();
+		if(errHandle.hasError())
+		{
+			cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+			nRv= EXIT_FAILURE;
+		}else
+			cout << glob::addPrefix("### WARNING: ", msg) << endl;
 	}
 	glob::stopMessage("### ending database process with all threads", /*all process names*/true);
-	logObj.stop();
-	return EXIT_SUCCESS;
+	logObj.stop(true);
+	return nRv;
 }

@@ -43,6 +43,7 @@
 #include "../../util/exception.h"
 #include "../../util/properties/configpropertycasher.h"
 #include "../../util/stream/ppivalues.h"
+#include "../../util/stream/BaseErrorHandling.h"
 
 #include "../../pattern/util/LogHolderPattern.h"
 
@@ -226,7 +227,7 @@ namespace ppi_database
 
 				error+= m_sDbFile + "'\n";
 				error+= "           start no database\n    ERRNO: ";
-				error+= strerror(errno);
+				error+= BaseErrorHandling::getErrnoString(errno);
 				cerr << endl << error << endl;
 				LOG(LOG_ALERT, error);
 				return false;
@@ -406,7 +407,7 @@ namespace ppi_database
 
 			msg+= path + "'\n";
 			msg+= "    ERRNO: ";
-			msg+= strerror(errno);
+			msg+= BaseErrorHandling::getErrnoString(errno);
 			cout << msg << endl;
 			LOG(LOG_ALERT, msg);
 			return "";
@@ -451,7 +452,7 @@ namespace ppi_database
 				sprintf(cerrno, "%d", errno);
 				error+= cerrno;
 				error+= "): ";
-				error+= strerror(errno);
+				error+= BaseErrorHandling::getErrnoString(errno);
 				error+= "\n   create an new one          ";
 				LOG(LOG_ERROR, error);
 				cerr << endl << error;
@@ -490,7 +491,7 @@ namespace ppi_database
 				sprintf(cerrno, "%d", errno);
 				error+= cerrno;
 				error+= "): ";
-				error+= strerror(errno);
+				error+= BaseErrorHandling::getErrnoString(errno);
 				error+= "\n   create no new one";
 				LOG(LOG_ERROR, error);
 				return false;
@@ -693,8 +694,8 @@ namespace ppi_database
 
 #if 0
 #define write_out_found_written_content
-		if(	entry.folder == "folder" )//&&
-			//entry.subroutine == "digital07"		)
+		if(	entry.folder == "Raff1_Zeit" &&
+			entry.subroutine == "schliessen"		)
 		{
 			cout << endl;
 			cout << "read " << entry.folder << ":" << entry.subroutine << " with value "
@@ -1417,7 +1418,7 @@ namespace ppi_database
 
 				error+= m_sDbFile + "'\n";
 				error+= "           so write nothing into database\n    ERRNO: ";
-				error+= strerror(errno);
+				error+= BaseErrorHandling::getErrnoString(errno);
 				if(!m_bError)
 					cout << error << endl;
 				m_bError= true;
@@ -1620,7 +1621,7 @@ namespace ppi_database
 		return pRv;
 	}
 
-	int Database::execute()
+	bool Database::execute()
 	{
 		bool bNewValue;
 		std::auto_ptr<vector<db_t> > entrys= getDbEntryVector();
@@ -1631,6 +1632,16 @@ namespace ppi_database
 
 			for(iter i= entrys->begin(); i!=entrys->end(); ++i)
 			{
+				//Debug info to stop by right subroutine
+				//cout << "write db for " << i->folder << ":" << i->subroutine << endl;
+			/*	if(	i->folder == "Raff1_Zeit" &&
+					i->subroutine == "schliessen"	)
+				{
+					cout << "write from vector " << i->folder << ":" << i->subroutine;
+					cout << " with identif " << i->identif;
+					cout << " and has access " << boolalpha << i->device << endl;
+					cout << __FILE__ << __LINE__ << endl;
+				}*/
 				if(	i->identif.substr(0, 4) == "def:"
 					||
 					i->identif.substr(0, 6) == "clear:"	)
@@ -1666,7 +1677,7 @@ namespace ppi_database
 		}
 		if(m_pChipReader->chipsAreDefined())
 			createNewDbFile(/*check whether*/true);
-		return 0;
+		return true;
 	}
 
 	bool Database::stop()
@@ -1724,7 +1735,7 @@ namespace ppi_database
 
 			msg+= m_sDbFile + " by ending application'\n";
 			msg+= "    ERRNO: ";
-			msg+= strerror(errno);
+			msg+= BaseErrorHandling::getErrnoString(errno);
 			cout << msg << endl;
 			LOG(LOG_ERROR, msg);
 		}
