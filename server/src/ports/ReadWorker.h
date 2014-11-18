@@ -76,7 +76,7 @@ namespace ports
 		 * @param valueSet subroutine where can set finished value
 		 */
 		ReadWorker(const string& folder, const string& subroutine, IOutMeasureSet* valueSet)
-		: CallbackTemplate("READ-workerthread"),
+		: CallbackTemplate(folder+":"+subroutine+"_READ-workerthread"),
 		  m_bDebug(false),
 		  m_sFolder(folder),
 		  m_sSubroutine(subroutine),
