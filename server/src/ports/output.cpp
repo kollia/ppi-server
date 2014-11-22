@@ -25,6 +25,10 @@
 #include "../util/thread/Thread.h"
 #include "../util/thread/Terminal.h"
 
+#include "../util/properties/PPIConfigFileStructure.h"
+
+#include "../database/logger/lib/logstructures.h"
+
 #include "output.h"
 
 namespace ports
@@ -55,7 +59,9 @@ namespace ports
 		string on, sWhile, off;
 		vector<string>::size_type ncount;
 		ListCalculator* calc;
+		PPIConfigFiles configFiles;
 
+		configFiles= PPIConfigFileStructure::instance();
 		m_bNeedSwitch= false;
 		on= properties->getValue("begin", /*warning*/false);
 		sWhile= properties->getValue("while", /*warning*/false);
@@ -89,6 +95,8 @@ namespace ports
 		for(vector<string>::size_type n= 0; n<ncount; ++n)
 		{
 			svalue= properties->getValue("string", n, /*warning*/false);
+			svalue= configFiles->createCommand(folder,
+							subroutine, "output string", svalue);
 			m_vsStrings.push_back(svalue);
 		}
 		ncount= properties->getPropertyCount("value");
