@@ -36,8 +36,9 @@ namespace util
 	class MeasureInformerCache : public IInformerCachePattern
 	{
 	public:
-		typedef vector<pair<string, ppi_time> > informvec_type;
-		typedef SHAREDPTR::shared_ptr<vector<pair<string, ppi_time> > > sharedinformvec_type;
+		typedef pair<InformObject, ppi_time> inform_type;
+		typedef vector<inform_type> informvec_type;
+		typedef SHAREDPTR::shared_ptr<informvec_type> sharedinformvec_type;
 		/**
 		 * constructor of informer caches
 		 * to inform folder threads to running
@@ -69,7 +70,7 @@ namespace util
 		 * @param folder which folder should be informed
 		 * @param from from which folder comes information
 		 */
-		OVERWRITE void changedValue(const string& folder, const string& from);
+		OVERWRITE void changedValue(const string& folder, const InformObject& from);
 		/**
 		 * whether folder list thread should starting
 		 *
@@ -82,7 +83,7 @@ namespace util
 		 * @return whether own folder should starting
 		 */
 		OVERWRITE bool shouldStarting(const vector<ppi_time>& vStartTimes,
-						map<short, vector<string> >& mInformed, bool* bLocked, bool debug);
+						map<short, vector<InformObject> >& mInformed, bool* bLocked, bool debug);
 		/**
 		 * destructor to destroy object
 		 */

@@ -242,7 +242,7 @@ namespace ppi_database
 	}
 
 	bool DbInterface::setValue(const string& folder, const string& subroutine,
-					const IValueHolderPattern& value, const string& account)
+					const IValueHolderPattern& value, const InformObject& account)
 	{
 		string msg;
 		SocketErrorHandling err;
@@ -252,7 +252,8 @@ namespace ppi_database
 		command << subroutine;
 		command << value.getValue();
 		command << value.getTime();
-		command << account;
+		command << (int)account.getDirection();
+		command << account.getWhoDescription();
 		msg= ExternClientInputTemplate::sendMethod("ProcessChecker", command, true);
 		err.setErrorStr(msg);
 		if(err.fail())
@@ -518,7 +519,8 @@ namespace ppi_database
 		}
 	}
 
-	double DbInterface::getFolderValue(short& noexist, const string& folder, const string& subroutine, const string& account)
+	double DbInterface::getFolderValue(short& noexist, const string& folder,
+					const string& subroutine, const InformObject& account)
 	{
 		double dRv= 0;
 		string sRv;
@@ -528,7 +530,8 @@ namespace ppi_database
 
 		command << folder;
 		command << subroutine;
-		command << account;
+		command << (int)account.getDirection();
+		command << account.getWhoDescription();
 		sRv= ExternClientInputTemplate::sendMethod("ProcessChecker", command, true);
 		err.setErrorStr(sRv);
 		if(err.fail())

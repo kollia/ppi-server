@@ -66,6 +66,8 @@ bool ProcessChecker::execute()
 		method == "changedChip"	)
 	{
 		bool bCorrect, device= true;
+		int nPlace;
+		InformObject::posPlace_e place;
 		ValueHolder oValue;
 		string folder, subroutine;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
@@ -75,8 +77,11 @@ bool ProcessChecker::execute()
 		object >> subroutine;
 		object >> oValue.value;
 		if(method != "changedChip")
+		{
 			object >> oValue.lastChanging;
-		else
+			object >> nPlace;
+			place= (InformObject::posPlace_e)nPlace;
+		}else
 			object >> device;
 		object >> from;
 		while(pCurMeas)
@@ -98,14 +103,16 @@ bool ProcessChecker::execute()
 				if(method == "changedChip")
 				{
 					IInformerCachePattern* informerCache;
+					InformObject inform(InformObject::READER, from);
+
 #ifdef __DEBUGPROCESSGETCHANGES
 					out << " with reachable device " << boolalpha << device << endl;
 					cout << out.str();
 #endif // __DEBUGPROCESSGETCHANGES
 					port->setDeviceAccess(device);
-					port->setValue(oValue, "r:"+from);
+					port->setValue(oValue, inform);
 					informerCache= pCurMeas->pMeasure->getInformerCache(from);
-					informerCache->changedValue(folder, "||"+from);
+					informerCache->changedValue(folder, inform);
 					m_sAnswer= "done";
 
 				}else if(bCorrect)
@@ -116,7 +123,7 @@ bool ProcessChecker::execute()
 					out << endl;
 					cout << out.str();
 #endif // __DEBUGPROCESSGETCHANGES
-					port->setValue(oValue, "e:"+from);
+					port->setValue(oValue, InformObject(place, from));
 					m_sAnswer= "done";
 
 				}else
@@ -136,15 +143,19 @@ bool ProcessChecker::execute()
 	}else if(method == "getValue")
 	{
 		bool bCorrect;
+		int nPlace;
 		ValueHolder value;
 		string folder, subroutine, account;
 		ostringstream sval;
+		InformObject::posPlace_e ePlace;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
 		SHAREDPTR::shared_ptr<IListObjectPattern> port;
 
 		object >> folder;
 		object >> subroutine;
+		object >> nPlace;
 		object >> account;
+		ePlace= (InformObject::posPlace_e)nPlace;
 		while(pCurMeas)
 		{
 			if(pCurMeas->pMeasure->getThreadName() == folder)
@@ -161,7 +172,7 @@ bool ProcessChecker::execute()
 					bCorrect= port->hasDeviceAccess();
 					if(bCorrect)
 					{
-						value= port->getValue(account);
+						value= port->getValue(InformObject(ePlace, account));
 						sval << value.value;
 						m_sAnswer= sval.str();
 					}else

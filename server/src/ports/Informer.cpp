@@ -32,8 +32,8 @@ using namespace boost::algorithm;
 
 namespace util
 {
-	void Informer::informFolders(const folders_t& folders, const string& from, const string& as,
-											const bool debug, pthread_mutex_t *lock)
+	void Informer::informFolders(const folders_t& folders, const InformObject& from,
+					const string& as, const bool debug, pthread_mutex_t *lock)
 	{
 		pid_t threadID(0);
 		inform_t inform;
@@ -70,42 +70,36 @@ namespace util
 		UNLOCK(m_INFORMQUEUELOCK);
 	}
 
-	void Informer::informing(const folders_t& folders, const string& from, const string& as,
-										const pid_t& threadId, pthread_mutex_t *lock)
+	void Informer::informing(const folders_t& folders, const InformObject& from,
+					const string& as, const pid_t& threadId, pthread_mutex_t *lock)
 	{
 		vector<string> spl;
 		string sOwn(m_sFolder + ":" + as);
+		string sFromWho(from.getWhoDescription());
 		ostringstream output;
+		InformObject::posPlace_e place(from.getDirection());
 		unsigned short count(m_poMeasurePattern->getActCount(as));
 
-		split(spl, from, is_any_of(":"));
+		split(spl, sFromWho, is_any_of(":"));
 		LOCK(lock);
-		if(	spl[0] == "e" ||
-			(	spl[0] == "i" &&
-				(	spl[1] != m_sFolder ||
-					(	spl[1] == m_sFolder &&
-						count < m_poMeasurePattern->getActCount(spl[2])	)	)	)	)
+		if(	place != InformObject::INTERNAL ||
+			spl[0] != m_sFolder ||
+			count < m_poMeasurePattern->getActCount(spl[1])	)
 		{// inform own folder to restart
-		 // when setting was from other folder, outside any folder,
-		 // or in same folder, subroutine was from an later one
-			m_pOwnInformerCache->changedValue(m_sFolder, from.substr(2));
+		 // when setting was from other folder, outside own folder,
+		 // or in same folder, but subroutine was from an later one
+			m_pOwnInformerCache->changedValue(m_sFolder, from);
 		}
-		if(threadId > 0)
-		{
-			if(folders.size() > 0)
+		if(	threadId > 0 &&
+			folders.size() > 0	)
+		{// thread id only set by debugging session
+			output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
+			output << "  " << sOwn << " was changed" << endl;
+			if(	place == InformObject::INTERNAL ||
+				from.getWhoDescription() != sOwn	)
 			{
-				output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
-				output << "  " << sOwn << " was changed" << endl;
-				if(	spl[0] != "i" ||
-					from.substr(2) != sOwn		)
-				{
-					output << "  was informed from";
-					if(from.substr(0, 1) == "e")
-						output << " internet account ";
-					else
-						output << ": ";
-					output << from.substr(2) << endl;
-				}
+				output << "  was informed from";
+				output << from.toString() << ":" << endl;
 			}
 		}
 		for(folders_t::const_iterator it= folders.begin(); it != folders.end(); ++it)
@@ -115,22 +109,23 @@ namespace util
 				string::size_type pos;
 
 				pos= fit->find(" ");
-				if(	from.substr(0, 1) != "i" ||
+				if(	place == InformObject::INTERNAL ||
 					(	(	pos != string::npos &&
-							from.substr(2) != fit->substr(0, pos)	) ||
+							sFromWho != fit->substr(0, pos)	) ||
 						(	pos == string::npos &&
-							from.substr(2) != *fit	) 					)	)
+							sFromWho != *fit		)				)	)
 				{
 					if(threadId > 0)
 						output << "    inform " << *fit << endl;
-					it->first->changedValue(*fit, sOwn);
+					it->first->changedValue(*fit, InformObject(place, sOwn));
 
 				}else if(threadId > 0)
 					output << "    do not inform " << *fit << " back" << endl;
 				break;
 			}
 		}
-		if(threadId > 0 && folders.size() > 0)
+		if(	threadId > 0 &&
+			folders.size() > 0	)
 		{
 			bool registeredThread;
 

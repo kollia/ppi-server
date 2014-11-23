@@ -1073,7 +1073,8 @@ namespace server
 								{
 									ostringstream ovalue;
 
-									value= db->getFolderValue(noexist, values[0], values[1], "e:" + account);
+									value= db->getFolderValue(noexist, values[0], values[1],
+													InformObject(InformObject::EXTERNAL, account));
 									if(noexist == 0)
 									{
 										ovalue << value;
@@ -1107,7 +1108,8 @@ namespace server
 										err+= "so send 0 time to server";
 										TIMELOG(LOG_WARNING, "internet-server_timecreation", err);
 									}
-									db->setValue(values[0], values[1], oValue, account);
+									db->setValue(values[0], values[1], oValue,
+													InformObject(InformObject::EXTERNAL, account));
 									sendmsg= "done";
 #ifdef SERVERDEBUG
 									cout << "send: " << sendmsg << endl;

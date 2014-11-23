@@ -43,15 +43,14 @@ namespace util
 
 		if(statement != "")
 			m_oInformeThread.init(PPIConfigFileStructure::instance()->getWorkingList(), statement);
-		m_vFolderCache=
-			SHAREDPTR::shared_ptr<vector<pair<string, ppi_time> > >(new vector<pair<string, ppi_time> >());
+		m_vFolderCache= sharedinformvec_type(new informvec_type());
 		awake= folderObj->getAwakeConditions();
 		m_WANTINFORM= awake.wantinform;
 		m_ACTIVATETIME= awake.activatetime;
 		m_VALUECONDITION= awake.valuecondition;
 	}
 
-	void MeasureInformerCache::changedValue(const string& folder, const string& from)
+	void MeasureInformerCache::changedValue(const string& folder, const InformObject& from)
 	{
 		bool debug, bReg;
 		double inform;
@@ -96,10 +95,13 @@ namespace util
 			{
 				if(m_oInformeThread.doOutput())
 				{
+					string out;
+
 					bReg= Terminal::instance()->isRegistered(Thread::gettid());
-					m_oInformOutput->out() << "--------------------------------------------------------------" << endl;
-					m_oInformOutput->out() << "t:" << time.toString(/*ad date*/true) << endl;
-					m_oInformOutput->out() << "INFORMED folder " << getFolderName() << " from " << from << ":" << endl;
+					out= "--------------------------------------------------------------\n";
+					out+= "t:" + time.toString(/*ad date*/true) + "INFORMED folder ";
+					out+= getFolderName() + " from " + from.toString();
+					m_oInformOutput->out() << out << endl;
 				}else
 					debug= false;
 			}
@@ -115,7 +117,7 @@ namespace util
 				return;
 		}
 		LOCK(m_CACHEVALUEMUTEX);
-		m_vFolderCache->push_back(pair<string, ppi_time>(from, time));
+		m_vFolderCache->push_back(inform_type(from, time));
 		UNLOCK(m_CACHEVALUEMUTEX);
 
 		if(TRYLOCK(m_WANTINFORM) == 0)
@@ -139,7 +141,7 @@ namespace util
 	}
 
 	bool MeasureInformerCache::shouldStarting(const vector<ppi_time>& vStartTimes,
-							map<short, vector<string> >& mInformed, bool* bLocked, bool debug)
+							map<short, vector<InformObject> >& mInformed, bool* bLocked, bool debug)
 	{
 		bool bRv, bFullTimes;
 		sharedinformvec_type newFolderCache, currentCache;

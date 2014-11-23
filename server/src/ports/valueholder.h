@@ -136,11 +136,10 @@ namespace ports
 		/**
 		 * get value from subroutine
 		 *
-		 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
-		 * 				This time only defined for external reading over OwPort's.
+		 * @param who describe who need the value information
 		 * @return current value
 		 */
-		virtual auto_ptr<IValueHolderPattern> getValue(const string& who);
+		OVERWRITE auto_ptr<IValueHolderPattern> getValue(const InformObject& who);
 		/**
 		 * set value in subroutine.<br />
 		 * All strings from parameter 'from' beginning with an one character type,
@@ -150,7 +149,7 @@ namespace ports
 		 * @param value value which should be set with last changing time when set, otherwise method create own time
 		 * @param who which folder:subroutine or account changing the value
 		 */
-		virtual void setValue(const IValueHolderPattern& value, const string& who);
+		OVERWRITE void setValue(const IValueHolderPattern& value, const InformObject& who);
 		/**
 		 * calculate while string and set to value result or content of parameter content if exist.<br/>
 		 * Method write error or warning string into log-file and on command line if debug flag be set

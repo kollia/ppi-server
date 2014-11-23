@@ -139,11 +139,10 @@ public:
 	/**
 	 * get value from subroutine
 	 *
-	 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
-	 * 				This time only defined for external reading over OwPort's.
+	 * @param who describe who need the value information
 	 * @return current value
 	 */
-	virtual auto_ptr<IValueHolderPattern> getValue(const string& who);
+	OVERWRITE auto_ptr<IValueHolderPattern> getValue(const InformObject& who);
 	/**
 	 * whether subroutine has the incoming sub-variable
 	 *

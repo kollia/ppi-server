@@ -30,6 +30,173 @@ using namespace std;
  */
 typedef double ppi_value;
 
+class InformObject
+{
+public:
+	/**
+	 * position type from where the value comes
+	 */
+	enum posPlace_e
+	{
+		/**
+		 * enum for null object
+		 */
+		NOSET= 0,
+		/**
+		 * inside from
+		 * working list
+		 * description should be folder:subroutine
+		 */
+		INTERNAL,
+		/**
+		 * time condition
+		 * inside working list
+		 * description should be date time
+		 */
+		TIMECONDITION,
+		/**
+		 * only informed while
+		 * to check whether
+		 * external port is reachable
+		 */
+		SEARCHSERVER,
+		/**
+		 * external from
+		 * client over internet
+		 * description should be user account
+		 */
+		EXTERNAL,
+		/**
+		 * from an shell command
+		 * description should be folder:subroutine
+		 */
+		SHELL,
+		/**
+		 * from TIMER started ReadWorker thread
+		 * description should be folder:subroutine
+		 */
+		READWORKER,
+		/**
+		 * from any external port
+		 * description should be folder:subroutine
+		 */
+		READER
+	};
+
+	/**
+	 * constructor to set no defined object
+	 */
+	InformObject()
+	: m_eDirection(NOSET)
+	{};
+	/**
+	 * constructor to define informing object
+	 *
+	 * @param place from which direction be informed
+	 * @param from who does inform
+	 */
+	InformObject(const posPlace_e place, const string& from)
+	: m_eDirection(place),
+	  m_sDescription(from)
+	{};
+	/**
+	 * return from where object be informed
+	 *
+	 * @return direction place type
+	 */
+	 posPlace_e getDirection() const
+	 { return m_eDirection; };
+	 /**
+	  * return from description from where
+	  * object be informed.<br />
+	  * maybe folder or folder:subroutine
+	  *
+	  * @return who does inform
+	  */
+	 string getWhoDescription() const
+	 { return m_sDescription; };
+	 /**
+	  * return an string combination
+	  * of direction from where object coming
+	  * and who does inform
+	  *
+	  * @return description of object
+	  */
+	 string toString() const
+	 {
+		 string sRv;
+
+		switch(m_eDirection)
+		{
+		case INTERNAL:
+			sRv= "INTERNAL '";
+			break;
+		case EXTERNAL:
+			sRv= "internet connection account '";
+			break;
+		case TIMECONDITION:
+			sRv= "time condition at ";
+			break;
+		case SHELL:
+			sRv= "SHELL script '";
+			break;
+		case READWORKER:
+			sRv= "TIMER external started reading '";
+			break;
+		case READER:
+			sRv= "external physical port '";
+			break;
+		default:
+			sRv= "UNKNOWN direction '";
+			break;
+		}
+		sRv+= m_sDescription;
+		if(m_eDirection != TIMECONDITION)
+			sRv+= "'";
+		return sRv;
+	 };
+
+	 /**
+	  * operator for container to know
+	  * by counting order
+	  * whether object is same
+	  */
+	 bool operator == (const InformObject& other) const
+	 {
+		if(	m_eDirection == other.m_eDirection &&
+			m_sDescription == other.m_sDescription	)
+		{
+			return true;
+		}
+		return false;
+	 }
+	 /**
+	  * operator for container to know
+	  * by counting order
+	  * whether object is lower
+	  */
+	 bool operator < (const InformObject& other) const
+	 {
+		 if(m_eDirection < other.m_eDirection)
+			 return true;
+		 if(m_sDescription < other.m_sDescription)
+			 return true;
+		 return false;
+	 }
+
+private:
+	/**
+	 * from which direction
+	 * the value coming
+	 */
+	posPlace_e m_eDirection;
+	/**
+	 * description from where
+	 * the value coming
+	 */
+	string m_sDescription;
+};
+
 class IPPITimePattern : public timeval
 {
 public:

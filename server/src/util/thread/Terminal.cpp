@@ -21,6 +21,8 @@
 
 #include "Terminal.h"
 
+#include "../GlobalStaticMethods.h"
+
 #include "../../pattern/util/LogHolderPattern.h"
 
 #include "../../database/logger/lib/logstructures.h"
@@ -40,6 +42,7 @@ SHAREDPTR::shared_ptr<ostringstream> Terminal::out(pid_t threadID/*= 0*/)
 {
 	SHAREDPTR::shared_ptr<ostringstream> pRv;
 	map<pid_t, SHAREDPTR::shared_ptr<ostringstream> >::iterator found;
+	EHObj res;
 
 	if(threadID == 0)
 		threadID= Thread::gettid();
@@ -47,13 +50,15 @@ SHAREDPTR::shared_ptr<ostringstream> Terminal::out(pid_t threadID/*= 0*/)
 	if(m_pWorker.get() == NULL)
 	{
 		m_pWorker= std::auto_ptr<Terminal>(new Terminal());
-		if(m_pWorker->start() != 0)
+		res= m_pWorker->start();
+		if(res->fail())
 		{
 			string err("cannot create Terminal thread to write output strings\n");
 
-			cerr << "### WARNING: " << err;
-			cerr << "              so writing strings directly, which cost by using more bad performance" << endl;
-			TIMELOG(LOG_WARNING, "terminal", err +"so writing strings directly, which cost by using more bad performance");
+			err+= res->getDescription();
+			err+= "so writing strings directly, which cost by using more bad performance\n";
+			cout << glob::addPrefix("### WARNING: ", err);
+			TIMELOG(LOG_WARNING, "terminal", err);
 		}
 	}
 	found= m_sLastMsgStream.find(threadID);

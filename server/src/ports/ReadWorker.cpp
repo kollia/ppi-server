@@ -83,7 +83,8 @@ namespace ports
 					UNLOCK(m_STARTMUTEX);
 					oValue= doHttpConnection(0, m_bDebug);
 					m_pValueSet->setValue(m_sFolder, m_sSubroutine, *(oValue.get()),
-									"i:"+m_sFolder+":"+m_sSubroutine);
+									InformObject(InformObject::READWORKER,
+													m_sFolder+":"+m_sSubroutine + "-READ"));
 					LOCK(m_STARTMUTEX);
 				}
 			}
@@ -386,13 +387,20 @@ namespace ports
 							m_pValueSet->out() << "ERROR by reading answer, get no content -> so close connection to "
 									<< m_sAddress.getHost() << endl;
 							m_pValueSet->out() << "try again" << endl;
+
+							cout << debugOutStr << endl;
+							cout << "ERROR by reading answer, get no content -> so close connection to "
+									<< m_sAddress.getHost() << endl;
+							cout << "try again" << endl;
+							cout << "content '" << result << "'" << endl;
+
 						}
 						bHoldConnection= false;
 						continue;
 					}
 					currentTime.clear();
 					oValue->setTime(currentTime);
-					oValue->setValue(-1);
+					oValue->setValue(400);
 					errStr= "ERROR by reading answer, get no content -> so close connection to ";
 					errStr+= m_sAddress.getHost();
 					if(debug)
@@ -464,7 +472,7 @@ namespace ports
 					m_oSocket->close();
 					currentTime.clear();
 					oValue->setTime(currentTime);
-					oValue->setValue(-1);
+					oValue->setValue(400);
 					errStr= "ERROR by reading answer, get fault content -> so close connection to ";
 					errStr+= m_sAddress.getHost() + "\n";
 					if(debug)
@@ -594,6 +602,7 @@ namespace ports
 				debugOutStr != ""	)
 			{
 				m_pValueSet->out() << debugOutStr << endl;
+				cout << debugOutStr << endl;
 			}
 
 			if(bHeadEnd)
@@ -671,6 +680,7 @@ namespace ports
 												+ connectTime[3].toString(/*as date*/true);
 					outstr+="\n";
 					m_pValueSet->out() << outstr << endl;
+					cout << outstr << endl;
 				}
 				if(!bHoldConnection)
 					m_oSocket->close();
@@ -685,7 +695,7 @@ namespace ports
 				LOG(LOG_WARNING, warn);
 				currentTime.clear();
 				oValue->setTime(currentTime);
-				oValue->setValue(-2);
+				oValue->setValue(400);
 				m_oSocket->close();
 			}
 		}else
@@ -708,7 +718,7 @@ namespace ports
 			LOG(LOG_ERROR, err);
 			currentTime.clear();
 			oValue->setTime(currentTime);
-			oValue->setValue(-2);
+			oValue->setValue(400);
 			m_oSocket->close();
 		}
 		return oValue;

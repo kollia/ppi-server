@@ -226,21 +226,17 @@ namespace ports
 		/**
 		 * get value from subroutine
 		 *
-		 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
-		 * 				This time only defined for external reading over OwPort's.
+		 * @param who declare who need the value information
 		 * @return current value with last changing time
 		 */
-		virtual auto_ptr<IValueHolderPattern> getValue(const string& who);
+		OVERWRITE auto_ptr<IValueHolderPattern> getValue(const InformObject& who);
 		/**
-		 * set value in subroutine.<br />
-		 * All strings from parameter 'from' beginning with an one character type,
-		 * followed from an colon 'r:' by ppi-reader, 'e:' by an account connected over Internet
-		 * or 'i:' by intern folder:subroutine.
+		 * set value in subroutine.
 		 *
 		 * @param value value which should be set with last changing time when set, otherwise method create own time
 		 * @param from which folder:subroutine or account changing the value
 		 */
-		virtual void setValue(const IValueHolderPattern& value, const string& from)
+		OVERWRITE void setValue(const IValueHolderPattern& value, const InformObject& from)
 		{ m_oSubroutine->setValue(value, from); };
 		/**
 		 * informing that variable wasn't change.<br />

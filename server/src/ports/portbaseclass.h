@@ -192,7 +192,7 @@ namespace ports
 			 * all clients with values to know whether
 			 * switch subroutine was active between the last request
 			 */
-			map<string, short> m_mdValue;
+			map<InformObject, short> m_mdValue;
 			/**
 			 * type of this measure object
 			 */
@@ -476,32 +476,33 @@ namespace ports
 			/**
 			 * get value from subroutine
 			 *
-			 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
-			 * 				This time only defined for external reading over OwPort's.
+			 * @param who describe who need the value information
 			 * @return current value with last changing time
 			 */
-			virtual auto_ptr<IValueHolderPattern> getValue(const string& who);
+			OVERWRITE auto_ptr<IValueHolderPattern> getValue(const InformObject& who);
 			/**
 			 * set value in subroutine.<br />
 			 * All strings from parameter 'from' beginning with an one character type,
 			 * followed from an colon 'r:' by ppi-reader, 'e:' by an account connected over Internet
 			 * or 'i:' by intern folder:subroutine.
 			 *
-			 * @param value value which should be set with last changing time when set, otherwise method create own time
+			 * @param value value which should be set with last changing time when set,
+			 *              otherwise method create own time
 			 * @param from which folder:subroutine or account changing the value
 			 */
-			virtual void setValue(const IValueHolderPattern& value, const string& from);
+			OVERWRITE void setValue(const IValueHolderPattern& value, const InformObject& from);
 			/**
 			 * set double value into measure list
 			 *
 			 * @param folder folder name from the running thread
 			 * @param subroutine name of the subroutine in the folder
-			 * @param value value which should write into database with last changing time when set, otherwise method create own time
+			 * @param value value which should write into database with last changing time when set,
+			 *              otherwise method create own time
 			 * @param account from which account over Internet the value will be set
 			 * @return whether subroutine can be set correctly
 			 */
-			virtual bool setValue(const string& folder, const string& subroutine,
-							const IValueHolderPattern& value, const string& account);
+			OVERWRITE bool setValue(const string& folder, const string& subroutine,
+							const IValueHolderPattern& value, const InformObject& account);
 			/**
 			 * informing that variable wasn't change.<br />
 			 * for better performance, measure-thread do not set

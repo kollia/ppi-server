@@ -678,7 +678,7 @@ void MeasureThread::beginCounting()
 	UNLOCK(m_FOLDERRUNMUTEX);
 }
 
-int MeasureThread::getRunningCount(map<ppi_time, vector<string> >& starts)
+int MeasureThread::getRunningCount(map<ppi_time, vector<InformObject> >& starts)
 {
 	int nRv;
 
@@ -799,23 +799,28 @@ void MeasureThread::removeObserverCache(const string& folder)
 	UNLOCK(m_INFORMERCACHECREATION);
 }
 
-void MeasureThread::informFolders(const folders_t& folders, const string& from,
+void MeasureThread::informFolders(const folders_t& folders, const InformObject& from,
 										const string& as, const bool debug, pthread_mutex_t *lock)
 {
 	m_oInformer.informFolders(folders, from, as, debug, lock);
 	if(m_oInformer.running())
 	{
 		vector<string> spl;
+		string inform(from.getWhoDescription());
+
 		/*
 		 * when no informer thread running,
 		 * informing was made directly
 		 * and no thread is to arouse
 		 */
-		split(spl, from, is_any_of(":"));
-		if(	spl[0] == "e" || // < from external need arousing
-			(	spl.size() > 1 && // < value was changed not from own folder,
-				spl[0] == "i" &&  //   so arouse informer thread
-				spl[1] != m_sFolder	)	)
+		split(spl, inform, is_any_of(":"));
+		/*
+		 * need to arouse informer thread
+		 * when information not from working list
+		 * or not from own folder
+		 */
+		if(	from.getDirection() != InformObject::INTERNAL ||
+			spl[0] != m_sFolder								)
 		{
 			m_oInformer.arouseInformerThread();
 		}
@@ -831,7 +836,13 @@ bool MeasureThread::execute()
 	timespec waittm;
 	vector<ppi_time>::iterator akttime, lasttime;
 
-	//Debug info before measure routine to stop by right folder
+	// Debug info before measure routine to stop by right folder
+	// after condition
+	if(m_sFolder == "power_switch")
+	{
+		cout << "starting folder " << m_sFolder << endl;
+		cout << __FILE__ << __LINE__ << endl;
+	}
 	if(!m_tvStartTime.isSet())
 	{
 		if(!m_tvStartTime.setActTime())
@@ -865,7 +876,7 @@ bool MeasureThread::execute()
 	LOCK(m_FOLDERRUNMUTEX);
 	if(m_nRunCount >= 0)
 	{
-		map<ppi_time, vector<string> >::iterator found;
+		map<ppi_time, vector<InformObject> >::iterator found;
 		ppi_time nullTime;
 
 		++m_nRunCount;
@@ -875,13 +886,13 @@ bool MeasureThread::execute()
 			m_vStartingCounts[currentStart]= found->second;
 			m_vStartingCounts.erase(found);
 		}else
-			m_vStartingCounts[currentStart]= vector<string>();
+			m_vStartingCounts[currentStart]= vector<InformObject>();
 	}
 	UNLOCK(m_FOLDERRUNMUTEX);
 	measure();
 	//Debug info behind measure routine to stop by right folder
 	/*folder= getFolderName();
-	if(folder == "Raff1_Zeit")
+	if(m_sFolder == "Raff1_Zeit")
 	{
 		cout << __FILE__ << __LINE__ << endl;
 		cout << "starting folder " << folder << endl;
@@ -958,7 +969,11 @@ bool MeasureThread::execute()
 					break;
 				fold= true;
 				if(debug)
-					m_vInformed.push_back("#timecondition " + akttime->toString(/*as date*/true));
+				{
+					m_vInformed.push_back(
+									InformObject(InformObject::TIMECONDITION,
+									akttime->toString(/*as date*/true)		)	);
+				}
 				m_vtmNextTime.erase(akttime);
 				akttime= m_vtmNextTime.begin();
 			}
@@ -1041,9 +1056,12 @@ bool MeasureThread::execute()
 					m_tvStartTime.tv_sec= waittm.tv_sec;
 					m_tvStartTime.tv_usec= waittm.tv_nsec / 1000;
 					if(!bSearchServer)
-						m_vInformed.push_back("#timecondition " + akttime->toString(/*as date*/true));
-					else
-						m_vInformed.push_back("#searchserver");
+					{
+						m_vInformed.push_back(
+										InformObject(InformObject::TIMECONDITION,
+														akttime->toString(/*as date*/true)));
+					}else
+						m_vInformed.push_back(InformObject(InformObject::SEARCHSERVER, ""));
 					bRun= true;
 				}else
 				{
@@ -1142,6 +1160,7 @@ void MeasureThread::doDebugStartingOutput()
 	ostringstream out;
 	string folder(getFolderName());
 	string msg("### DEBUGGING for folder ");
+	InformObject::posPlace_e place;
 
 #ifdef __followSETbehaviorFromFolder
 	if(	m_btimer &&
@@ -1237,39 +1256,27 @@ void MeasureThread::doDebugStartingOutput()
 		out << "###StartTHID_" << (m_vStartTimes.size() + 1) << "  showing some information later" << endl;
 	}else
 		out << "###StartTHID_0" << endl;
-	for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
+	for(vector<InformObject>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
 	{
-		if(i->substr(0, 15) == "|SHELL-command_")
+		place= i->getDirection();
+		if(	place != InformObject::TIMECONDITION &&
+			place != InformObject::SEARCHSERVER	)
 		{
-			out << "    informed over SHELL script " << i->substr(15) << endl;
-
-		}else
-		{
-			out << "    informed ";
-			if(i->substr(0, 1) == "|")
-			{
-				if(i->substr(1, 1) == "|")
-					out << "from ppi-reader '" << i->substr(2) << "'" << endl;
-				else
-					out << "over Internet connection account '" << i->substr(1) << "'" << endl;
-			}else
-				out << "from " << *i << " because value was changed" << endl;
+			out << "    informed from " << i->toString();
+			if(place == InformObject::INTERNAL)
+				out << " because value was changed";
+			out << endl;
 		}
-
 	}
-	for(vector<string>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
+	for(vector<InformObject>::iterator i= m_vInformed.begin(); i != m_vInformed.end(); ++i)
 	{
-		if(i->substr(0, 15) == "#timecondition ")
-		{
-			out << "      awaked from setting time " << i->substr(15) << endl;
-
-		}else if(i->substr(0, 13) == "#searchserver")
-		{
-			out << "      awaked to search again for external port server (owserver)" << endl;
-
-		}else
-				out << "from " << *i << " because value was changed" << endl;
-
+		place= i->getDirection();
+		if(place == InformObject::TIMECONDITION)
+			out << "      awaked from setting time " << i->getWhoDescription() << endl;
+		else
+			if(place == InformObject::SEARCHSERVER)
+				out << "      awaked to search again for external "
+								"port server (owserver)" << endl;
 	}
 	if(!m_tvEndTime.setActTime())
 	{
@@ -1291,8 +1298,9 @@ void MeasureThread::doDebugStartingOutput()
 	TERMINALEND;
 }
 
-bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)
+bool MeasureThread::checkToStart(vector<InformObject>& vInformed, const bool debug)
 {
+	typedef map<short, vector<InformObject> > inform_map;
 	bool bLocked, bDoStart(false);
 	/**
 	 * bDebugShow can be true when
@@ -1302,9 +1310,9 @@ bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)
 	 */
 	bool bDebugShow(debug);
 	ostringstream out;
-	map<short, vector<string> > mInformed;
+	inform_map mInformed;
 	SHAREDPTR::shared_ptr<MeasureInformerCache> lastCache;
-	map<short, vector<string> >::iterator found;
+	inform_map::iterator found;
 
 	LOCK(m_FOLDERRUNMUTEX);
 	if(m_nRunCount >= 0)
@@ -1363,7 +1371,7 @@ bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)
 		out << "--------------------------------------------------------------------" << endl;
 		out << "STARTING reason from running sessions before" << endl;
 	}
-	for(map<short, vector<string> >::iterator it= mInformed.begin();
+	for(inform_map::iterator it= mInformed.begin();
 					it != mInformed.end(); ++it						)
 	{
 		LOCK(m_FOLDERRUNMUTEX);
@@ -1402,25 +1410,13 @@ bool MeasureThread::checkToStart(vector<string>& vInformed, const bool debug)
 		if(debug)
 		{
 			out << "###THID_" << it->first << endl;
-			for(vector<string>::iterator vit= it->second.begin();
+			for(vector<InformObject>::iterator vit= it->second.begin();
 							vit != it->second.end(); ++vit		)
 			{
-				if(vit->substr(0, 15) == "|SHELL-command_")
-				{
-					out << "    informed over SHELL script " << vit->substr(15) << endl;
-
-				}else
-				{
-					out << "    informed ";
-					if(vit->substr(0, 1) == "|")
-					{
-						if(vit->substr(1, 1) == "|")
-							out << "from ppi-reader '" << vit->substr(2) << "'" << endl;
-						else
-							out << "over Internet connection account '" << vit->substr(1) << "'" << endl;
-					}else
-						out << "from " << *vit << " because value was changed" << endl;
-				}
+				out << "    informed from " << vit->toString();
+				if(vit->getDirection() == InformObject::INTERNAL)
+					out << " because value was changed";
+				out << endl;
 			}//foreach(second var[vector] of mInformed)
 		}//if(debug)
 	}//foreach(mInformed)
@@ -1522,7 +1518,8 @@ bool MeasureThread::measure()
 				cout << __FILE__ << __LINE__ << endl;
 				cout << stopfolder << ":" << it->name << endl;
 			}*/
-			oldResult= it->portClass->getValue("i:"+folder);
+			oldResult= it->portClass->getValue(
+							InformObject(InformObject::INTERNAL, folder));
 			if( debug &&
 				it->portClass->isDebug())
 			{
@@ -1590,7 +1587,8 @@ bool MeasureThread::measure()
 				}
 			}
 			if(result.value != oldResult.value)
-				it->portClass->setValue(result, "i:"+folder+":"+it->name);
+				it->portClass->setValue(result,
+								InformObject(InformObject::INTERNAL, folder+":"+it->name));
 			else
 				it->portClass->noChange();
 			m_oDbFiller->informDatabase();

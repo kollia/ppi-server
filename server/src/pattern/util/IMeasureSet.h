@@ -35,11 +35,12 @@ public:
 	 * @param folder folder name from the running thread
 	 * @param subroutine name of the subroutine in the folder
 	 * @param value value which should write into database with last changing time when set, otherwise method create own time
+	 * @param place from which place value comes
 	 * @param account from which account over Internet the value will be set
 	 * @return whether subroutine can be set correctly
 	 */
 	virtual bool setValue(const string& folder, const string& subroutine,
-					const IValueHolderPattern& value, const string& account)= 0;
+					const IValueHolderPattern& value, const InformObject& account)= 0;
 	/**
 	 * dummy destructor for pattern
 	 */

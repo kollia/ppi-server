@@ -142,7 +142,8 @@ namespace ports
 		}
 		if(bAllFault)
 			return false;
-		setValue(oDefault, "i:"+getFolderName()+":"+getSubroutineName());
+		setValue(oDefault, InformObject(InformObject::INTERNAL,
+						getFolderName()+":"+getSubroutineName()));
 		return true;
 	}
 
@@ -207,7 +208,9 @@ namespace ports
 									out() << folder << ":";
 								out() << m_vsSet[s] << "'" << endl;
 							}
-							port->setValue(oValue, "i:"+folder+":"+subroutine);
+							port->setValue(oValue,
+											InformObject(InformObject::INTERNAL,
+															folder+":"+subroutine));
 						}else
 						{
 							ostringstream msg;

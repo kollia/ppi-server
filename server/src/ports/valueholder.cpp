@@ -115,7 +115,7 @@ namespace ports
 			else
 				oValue.value= 0;
 		}
-		setValue(oValue, "i:"+folder+":"+subroutine);
+		setValue(oValue, InformObject(InformObject::INTERNAL, folder+":"+subroutine));
 		return true;
 	}
 
@@ -201,7 +201,7 @@ namespace ports
 		return oMeasureValue;
 	}
 
-	auto_ptr<IValueHolderPattern> ValueHolderSubroutine::getValue(const string& who)
+	auto_ptr<IValueHolderPattern> ValueHolderSubroutine::getValue(const InformObject& who)
 	{
 		// this time if an link be set the own value have the same value then the link
 		// maybe it's better if only the linked value be changed
@@ -223,7 +223,7 @@ namespace ports
 
 	}
 
-	void ValueHolderSubroutine::setValue(const IValueHolderPattern& value, const string& who)
+	void ValueHolderSubroutine::setValue(const IValueHolderPattern& value, const InformObject& who)
 	{
 		// this time if an link be set the own value have the same value then the link
 		// maybe it's better if only the linked value be changed

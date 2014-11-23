@@ -250,7 +250,8 @@ namespace design_pattern_world
 				 * @param lock locking mutex for observers
 				 */
 				virtual void informFolders(const vector<pair<IInformerCachePattern*, vector<string> > >& folders,
-								const string& from, const string& as, const bool debug, pthread_mutex_t *lock)= 0;
+								const InformObject& from,
+								const string& as, const bool debug, pthread_mutex_t *lock)= 0;
 				/**
 				 * returning thread id in which thread folder object running
 				 *

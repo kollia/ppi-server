@@ -327,7 +327,8 @@ SHAREDPTR::shared_ptr<IListObjectPattern> ListCalculator::getSubroutine(string* 
 				{
 					SHAREDPTR::shared_ptr<IListObjectPattern> holder;
 
-					holder= SHAREDPTR::shared_ptr<IListObjectPattern>(new ports::SubroutineSubVarHolder(it->portClass.get(), sSubVar));
+					holder= SHAREDPTR::shared_ptr<IListObjectPattern>(
+									new ports::SubroutineSubVarHolder(it->portClass.get(), sSubVar));
 					m_vNewSubObjs.push_back(holder);
 					return holder;
 				}
@@ -433,7 +434,8 @@ bool ListCalculator::variable(string* var, double& dResult)
 		if(oSub != NULL)
 		{
 			m_msoVars[*var]= oSub;
-			result= oSub->getValue("i:"+m_sFolder);
+			result= oSub->getValue(
+							InformObject(InformObject::INTERNAL, m_sFolder));
 			if(	result.lastChanging.isSet() &&
 				(	result.lastChanging > m_nLastChange ||
 					!m_nLastChange.isSet()					)	)
@@ -449,14 +451,16 @@ bool ListCalculator::variable(string* var, double& dResult)
 	{
 		if(found->second)
 		{
-			result= found->second->getValue("i:"+m_sFolder);
+			result= found->second->getValue(
+							InformObject(InformObject::INTERNAL, m_sFolder));
 			if(	result.lastChanging.isSet() &&
 				(	result.lastChanging > m_nLastChange ||
 					!m_nLastChange.isSet()					)	)
 			{
 				m_nLastChange= result.lastChanging;
 				if(CalculatorContainer::doOutput())
-					m_sLastChangingSub= found->second->getFolderName() + ":" + found->second->getSubroutineName();
+					m_sLastChangingSub= found->second->getFolderName()
+					            + ":" + found->second->getSubroutineName();
 			}
 			dResult= result.value;
 			return true;

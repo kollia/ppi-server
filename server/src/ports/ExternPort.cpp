@@ -348,7 +348,7 @@ namespace ports
 		return oRv;
 	}
 
-	auto_ptr<IValueHolderPattern> ExternPort::getValue(const string who)
+	auto_ptr<IValueHolderPattern> ExternPort::getValue(const InformObject& who)
 	{
 		int nvalue;
 		double value;
@@ -357,7 +357,7 @@ namespace ports
 		if(!onlySwitch())
 			return portBase::getValue(who);
 		oGetValue= portBase::getValue(who);
-		if(who.substr(0, 2) == "i:")
+		if(who.getDirection() == InformObject::INTERNAL)
 		{
 			if(oGetValue->getValue())
 				oGetValue->setValue(1);

@@ -20,7 +20,7 @@
 
 namespace ports
 {
-	auto_ptr<IValueHolderPattern> SubroutineSubVarHolder::getValue(const string& who)
+	auto_ptr<IValueHolderPattern> SubroutineSubVarHolder::getValue(const InformObject& who)
 	{
 		auto_ptr<IValueHolderPattern> oMeasureValue;
 

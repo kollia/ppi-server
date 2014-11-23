@@ -49,8 +49,9 @@ namespace util
 			string ownSubroutine;
 			/**
 			 * from which folder:subroutine be changed
+			 * and also from where
 			 */
-			string from;
+			InformObject from;
 			/**
 			 * map of folders which should be informed
 			 */
@@ -95,8 +96,8 @@ namespace util
 		 * @param debug whether subroutine which inform folders, running in debug session
 		 * @param lock locking mutex for observers
 		 */
-		void informFolders(const folders_t& folders, const string& from, const string& as,
-													const bool debug, pthread_mutex_t *lock);
+		void informFolders(const folders_t& folders, const InformObject& from,
+						const string& as, const bool debug, pthread_mutex_t *lock);
 		/**
 		 * arouse informer pool when running
 		 * to inform all other folders and maybe own
@@ -153,7 +154,7 @@ namespace util
 		 * @param threadId when subroutine which inform folders, running in debug session
 		 * @param lock locking mutex for observers
 		 */
-		void informing(const folders_t& folders, const string& from,
+		void informing(const folders_t& folders, const InformObject& from,
 						const string& as, const pid_t& threadId, pthread_mutex_t *lock);
 		/**
 		 * dummy method to ending the thread

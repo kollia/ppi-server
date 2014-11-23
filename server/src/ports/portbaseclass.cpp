@@ -505,7 +505,7 @@ void portBase::noChange()
 	UNLOCK(m_VALUELOCK);
 }
 
-void portBase::setValue(const IValueHolderPattern& value, const string& from)
+void portBase::setValue(const IValueHolderPattern& value, const InformObject& from)
 {
 //#define __moreOutput
 #ifdef __moreOutput
@@ -515,6 +515,8 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 	try{
 		vector<string> from_spl;
 
+		string fromWhere(from.getWhoDescription());
+		InformObject::posPlace_e place(from.getDirection());
 		LOCK(m_VALUELOCK);
 		ppi_value dValue(value.getValue());
 		ppi_value invalue(value.getValue());
@@ -531,12 +533,12 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 			cout << __FILE__ << __LINE__ << endl;
 		}*/
 
-		split(from_spl, from, is_any_of(":"));
+		split(from_spl, fromWhere, is_any_of(":"));
 		if(	m_bOutsideChanged &&
-			from_spl.size() == 3 &&
-			from_spl[0] == "i" &&
-			from_spl[1] == m_sFolder &&
-			from_spl[2] == m_sSubroutine	)
+			from_spl.size() == 2 &&
+			place == InformObject::INTERNAL &&
+			from_spl[0] == m_sFolder &&
+			from_spl[1] == m_sSubroutine					)
 		{
 			m_bOutsideChanged= false;
 		}
@@ -562,7 +564,7 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 				if(m_bSwitch)
 					out() << " defined for binary switch";
 				out() << endl;
-				out() << "        set new value from '" << from << "'" << endl;
+				out() << "        set new value from " << from.toString() << endl;
 				out() << "            Incoming value:" << dec << value.getValue();
 				if(m_bSwitch)
 					out() << " binary " << switchBinStr(value.getValue());
@@ -626,13 +628,12 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 		if(dValue != m_dValue.value)
 		{
 			bool debug(isDebug());
-			string sOwn(m_sFolder+":"+m_sSubroutine);
 			ostringstream output;
 
-			if(	from_spl.size() != 3 ||
-				from_spl[0] != "i" ||
-				from_spl[1] != m_sFolder ||
-				from_spl[2] != m_sSubroutine	)
+			if(	from_spl.size() != 2 ||
+				place != InformObject::INTERNAL ||
+				from_spl[0] != m_sFolder ||
+				from_spl[1] != m_sSubroutine					)
 			{// value was changed not from own subroutine,
 			 // so remember for next pass of subroutine
 			 // because then nothing will be changed, but flag m_bChanged should be set
@@ -658,7 +659,7 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 				m_dValue.lastChanging= changedTime;
 			if(m_bSwitch)
 			{
-				for(map<string, short>::iterator it= m_mdValue.begin(); it != m_mdValue.end(); ++it)
+				for(map<InformObject, short>::iterator it= m_mdValue.begin(); it != m_mdValue.end(); ++it)
 					it->second= static_cast<short>(dValue);
 			}
 
@@ -669,21 +670,21 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 			UNLOCK(m_VALUELOCK);
 
 			if(	m_mvObservers.size() ||
-				from_spl[0] == "e" ||
-				(	from_spl[0] == "i" &&
-					(	from_spl[1] != m_sFolder ||
-						(	from_spl[1] == m_sFolder &&
-							m_nCount < m_poMeasurePattern->getActCount(from_spl[2])	)	)	)	)
+				place != InformObject::INTERNAL ||
+				from_spl[0] != m_sFolder ||
+				m_nCount < m_poMeasurePattern->getActCount(from_spl[1])	)
 			{
 #ifdef __followSETbehaviorToFolder
 				if(	m_bFollow &&
 					__followSETbehaviorFrom <= 3 &&
 					__followSETbehaviorTo >= 3		)
 				{
-					cout << "[3] " << m_sFolder << ":" << m_sSubroutine << " was changed from " << from << endl;
+					cout << "[3] " << m_sFolder << ":" << m_sSubroutine
+									<< " was changed from " << from.toString() << endl;
 				}
 #endif // __followSETbehaviorToFolder
-				getRunningThread()->informFolders(m_mvObservers, from, getSubroutineName(), debug, m_OBSERVERLOCK);
+				getRunningThread()->informFolders(m_mvObservers, from,
+								getSubroutineName(), debug, m_OBSERVERLOCK);
 			}
 			if(	dbvalue != oldMember &&
 				(	m_bWriteDb ||
@@ -712,7 +713,8 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 						<< " inside database to inform all clients" << endl;
 #endif // __moreOutput
 
-			getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "value", dbvalue, /*update to old dValue*/true);
+			getRunningThread()->fillValue(m_sFolder, m_sSubroutine, "value",
+							dbvalue, /*update to old dValue*/true);
 		}else
 		{
 			m_bChanged= false;
@@ -733,7 +735,7 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 		string err;
 		ostringstream msg;
 
-		msg << "set value " << value.getValue() << " from " << from;
+		msg << "set value " << value.getValue() << " from " << from.toString();
 		ex.addMessage(msg.str());
 		err= ex.getTraceString();
 		cerr << endl << err << endl;
@@ -752,13 +754,14 @@ void portBase::setValue(const IValueHolderPattern& value, const string& from)
 	{
 		cout << "stopping inside method setValue from subroutine"
 						<< getFolderName() << ":" << getSubroutineName() << endl;
-		cout << "value be set to " << m_dValue.value << " on " << m_dValue.lastChanging.toString(true) << endl;
+		cout << "value be set to " << m_dValue.value << " on "
+					<< m_dValue.lastChanging.toString(true) << endl;
 		cout << __FILE__ << __LINE__ << endl;
 	}*/
 }
 
 bool portBase::setValue(const string& folder, const string& subroutine,
-				const IValueHolderPattern& value, const string& account)
+				const IValueHolderPattern& value, const InformObject& account)
 {
 	ostringstream msg;
 	SHAREDPTR::shared_ptr<measurefolder_t> pFolder= m_pFolders;
@@ -784,7 +787,7 @@ bool portBase::setValue(const string& folder, const string& subroutine,
 				}
 #endif // __followSETbehaviorToFolder
 
-				it->portClass->setValue(value, "e:"+account);
+				it->portClass->setValue(value, account);
 				return true;
 			}
 		}
@@ -797,18 +800,18 @@ bool portBase::setValue(const string& folder, const string& subroutine,
 	else
 		msg << "subroutine";
 	msg << " can not be found" << endl;
-	msg << "set from '" << account << "'";
+	msg << "set from " << account.toString();
 	TIMELOGEX(LOG_ERROR, "setValue"+folder+":"+subroutine, msg.str(),
 					getRunningThread()->getExternSendDevice());
 	cerr << msg << endl;
 	return false;
 }
 
-auto_ptr<IValueHolderPattern> portBase::getValue(const string& who)
+auto_ptr<IValueHolderPattern> portBase::getValue(const InformObject& who)
 {
 //#undef __moreOutput
 	short nValue;
-	map<string, short>::iterator found;
+	map<InformObject, short>::iterator found;
 	auto_ptr<IValueHolderPattern> oRv;
 
 	oRv= auto_ptr<IValueHolderPattern>(new ValueHolder());
@@ -834,8 +837,9 @@ auto_ptr<IValueHolderPattern> portBase::getValue(const string& who)
 		out() << "        will be ask from '" << who << "'" << endl;
 	}
 #endif // __moreOutput
+
 	if(	m_bSwitch &&
-		who.substr(0, 2) == "e:"	)
+		who.getDirection() != InformObject::INTERNAL	)
 	{
 		nValue= static_cast<short>(m_dValue.value);
 		found= m_mdValue.find(who);
@@ -1066,6 +1070,7 @@ bool portBase::getLinkedValue(const string& type, auto_ptr<IValueHolderPattern>&
 					port= link->getSubroutine(&slink, getObjectFolderID(), /*own folder*/true);
 					if(port != NULL)
 					{
+						InformObject from(InformObject::INTERNAL, foldersub);
 						IInformerCachePattern* cache;
 
 						if(isdebug)
@@ -1073,9 +1078,9 @@ bool portBase::getLinkedValue(const string& type, auto_ptr<IValueHolderPattern>&
 							out() << "value was changed in own subroutine," << endl;
 							out() << "set foreign subroutine " << slink << " to " << dec << val->getValue() << endl;
 						}
-						port->setValue(*val.get(), "i:"+foldersub);
+						port->setValue(*val.get(), from);
 						cache= port->getRunningThread()->getInformerCache(m_sFolder);
-						cache->changedValue(slink, foldersub);
+						cache->changedValue(slink, from);
 					}else
 					{
 						ostringstream err;

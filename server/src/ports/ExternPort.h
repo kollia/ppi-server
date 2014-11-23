@@ -112,10 +112,10 @@ namespace ports
 		 * overwrite portBase class to define access from outside,
 		 * if value defined for switching between 0 and 1
 		 *
-		 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request
+		 * @param who describe who need the value information
 		 * @return current value with last changing time
 		 */
-		virtual auto_ptr<IValueHolderPattern> getValue(const string who);
+		OVERWRITE auto_ptr<IValueHolderPattern> getValue(const InformObject& who);
 		/**
 		 * check whether subroutine need an external owreader server
 		 *

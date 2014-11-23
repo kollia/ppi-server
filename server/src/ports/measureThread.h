@@ -171,7 +171,7 @@ class MeasureThread : 	public Thread,
 		 * @param debug whether subroutine which inform folders, running in debug session
 		 * @param lock locking mutex for observers
 		 */
-		OVERWRITE void informFolders(const folders_t& folders, const string& from,
+		OVERWRITE void informFolders(const folders_t& folders, const InformObject& from,
 											const string& as, const bool debug, pthread_mutex_t *lock);
 		/**
 		 * returning output object to write output inside folder thread
@@ -380,7 +380,7 @@ class MeasureThread : 	public Thread,
 		 * @param starts all starting times with information how inform
 		 * @return counting number
 		 */
-		int getRunningCount(map<ppi_time, vector<string> >& starts);
+		int getRunningCount(map<ppi_time, vector<InformObject> >& starts);
 		/**
 		 * destructor of MeasureThread
 		 */
@@ -597,14 +597,14 @@ class MeasureThread : 	public Thread,
 		/**
 		 * starting times when running will be counted.<br />
 		 * (ppi-client was started with parameter SHOW)<br />
-		 * contain also hwo starting inside vector
+		 * contain also who starting inside vector
 		 */
-		map<ppi_time, vector<string> > m_vStartingCounts;
+		map<ppi_time, vector<InformObject> > m_vStartingCounts;
 		/**
 		 * from which folder:subroutine the thread
 		 * was informed to restart
 		 */
-		vector<string> m_vInformed;
+		vector<InformObject> m_vInformed;
 		/**
 		 * scheduling policy in which folder thread should running
 		 */
@@ -688,7 +688,7 @@ class MeasureThread : 	public Thread,
 		 * @param debug session of debug output
 		 * @return whether folder should start
 		 */
-		bool checkToStart(vector<string>& vInformed, const bool debug);
+		bool checkToStart(vector<InformObject>& vInformed, const bool debug);
 		/**
 		 * write debugging output by start folder thread
 		 */

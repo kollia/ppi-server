@@ -119,12 +119,12 @@ void MeasureThreadCounter::beginCount()
 
 void MeasureThreadCounter::outputCounting(int seconds)
 {
-	typedef map<ppi_time, map<string, vector<string> > > order_type;
+	typedef map<ppi_time, map<string, vector<InformObject> > > order_type;
 	bool bCount(false);
 	int nCount;
 	string folderName;
 	SHAREDPTR::shared_ptr<meash_t> pCurrent;
-	map<ppi_time, vector<string> > starting;
+	map<ppi_time, vector<InformObject> > starting;
 	order_type timeOrder;
 	ostringstream oCountOut;
 
@@ -139,7 +139,7 @@ void MeasureThreadCounter::outputCounting(int seconds)
 			bCount= true;
 			oCountOut << "folder " << folderName <<
 							" running in " << nCount << " times" << endl;
-			for(map<ppi_time, vector<string> >::iterator it= starting.begin();
+			for(map<ppi_time, vector<InformObject> >::iterator it= starting.begin();
 													it != starting.end(); ++it)
 			{
 				timeOrder[it->first][folderName].insert(
@@ -159,7 +159,7 @@ void MeasureThreadCounter::outputCounting(int seconds)
 							it != timeOrder.end(); ++it		)
 			{
 				tout << "     at " << it->first.toString(/*as date*/true);
-				for(map<string, vector<string> >::iterator f= it->second.begin();
+				for(map<string, vector<InformObject> >::iterator f= it->second.begin();
 													f != it->second.end(); ++f	)
 				{
 					string space("                 	          ");
@@ -169,12 +169,12 @@ void MeasureThreadCounter::outputCounting(int seconds)
 					tout << " folder " << f->first << endl;
 					tout << space << "      informed from ";
 					space.append(/*informed from*/20, ' ');
-					for(vector<string>::iterator i= f->second.begin();
+					for(vector<InformObject>::iterator i= f->second.begin();
 									i != f->second.end(); ++i			)
 					{
 						if(i != f->second.begin())
 							tout << space;
-						tout << *i << endl;
+						tout << i->toString() << endl;
 					}
 				}
 			}//foreach(timeOrder)

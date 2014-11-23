@@ -120,26 +120,6 @@ public:
 		 * @param whether should write output
 		 */
 		virtual void setDebug(bool bDebug);
-#if 0
-		/**
-		 * get value from subroutine
-		 *
-		 * @param who define whether intern (i:<foldername>) or extern (e:<username>) request.<br />
-		 * 				This time only defined for external reading over OwPort's.
-		 * @return current value
-		 */
-		virtual IValueHolderPattern& getValue(const string& who);
-		/**
-		 * set value in subroutine.<br />
-		 * All strings from parameter 'from' beginning with an one character type,
-		 * followed from an colon 'r:' by ppi-reader, 'e:' by an account connected over Internet
-		 * or 'i:' by intern folder:subroutine.
-		 *
-		 * @param value value which should be set
-		 * @param from which folder:subroutine or account changing the value
-		 */
-		virtual void setValue(const double value, const string& from, ppi_time changed= ppi_time());
-#endif
 
 	protected:
 		/**

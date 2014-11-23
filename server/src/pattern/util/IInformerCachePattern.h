@@ -40,7 +40,7 @@ namespace design_pattern_world
 			 * @param folder which folder should be informed
 			 * @param from from which folder comes information
 			 */
-			virtual void changedValue(const string& folder, const string& from)= 0;
+			virtual void changedValue(const string& folder, const InformObject& from)= 0;
 			/**
 			 * dummy virtual destructor
 			 */

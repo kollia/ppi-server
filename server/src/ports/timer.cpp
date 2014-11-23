@@ -246,7 +246,9 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 			{
 				ValueHolder nullValue;
 				nullValue.value= -1;
-				setValue(nullValue, "i:"+getFolderName()+":"+getSubroutineName());
+				setValue(nullValue,
+								InformObject(InformObject::INTERNAL,
+												getFolderName()+":"+getSubroutineName()));
 				m_dTimeBefore= -1;
 
 			}//else default value is 0
@@ -582,8 +584,8 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 	auto_ptr<IValueHolderPattern> oMeasureValue;
 
 	//Debug info to stop by right subroutine
-	/*if(	folder == "Raff1_Zeit" &&
-		subroutine == "schliessen"					)
+	/*if(	folder == "power_switch" &&
+		subroutine == "port2_start"					)
 	{
 		cout << folder << ":" << subroutine << endl;
 		cout << __FILE__ << __LINE__ << endl;
@@ -2065,7 +2067,7 @@ double timer::calcNextTime(const bool& start, const bool& debug, ppi_time* actTi
 	return newTime;
 }
 
-auto_ptr<IValueHolderPattern> timer::getValue(const string& who)
+auto_ptr<IValueHolderPattern> timer::getValue(const InformObject& who)
 {
 	long nval;
 	ppi_value value;

@@ -1308,7 +1308,8 @@ bool CommandExec::setValue(const string& command, bool bLog)
 								<< " on " << value.lastChanging.toString(true) << endl;
 		}
 #endif // __followSETbehaviorFrom
-		if(!m_pPort->setValue(spl[0], spl[1], value, "SHELL-command_"+outstr))
+
+		if(!m_pPort->setValue(spl[0], spl[1], value, InformObject(InformObject::SHELL, outstr)))
 		{
 			defSetError(command, "cannot write correctly PPI-SET command over interface to folder-list");
 			return false;

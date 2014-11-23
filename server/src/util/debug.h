@@ -111,16 +111,16 @@
 // separated with an blank -> show message when mutex be locked or unlocked.
 // If no mutex defined it shows all mutex.
 // Also the application want to wait for an condition or arose an condition
-// who is not defined with getMutex("<name>") it showes an error message
+// who is not defined with getMutex("<name>") it shows an error message
 // mutex undefined. If an mutex be set in MUTEXLOCKDEBUG which not exist
-// no mutex be showen, only if an error messages occures for any mutex or it is not defined
-//#define MUTEXLOCKDEBUG "xyz" //STARTSTOPTHREAD SLEEPMUTEX"
+// no mutex be shown, only if an error messages occurs for any mutex or it is not defined
+//#define MUTEXLOCKDEBUG "xyz"
 #endif //MUTEXLOCKDEBUG
 
 #ifndef MUTEXCREATEDEBUG
-// same behivior as MUTEXLOCKDEBUG
+// same behavior as MUTEXLOCKDEBUG
 // but show creation and destroying of mutex or condition
-//#define MUTEXCREATEDEBUG "STARTSTOPTHREAD SLEEPMUTEX"
+//#define MUTEXCREATEDEBUG "xyz"
 #endif // MUTEXCREATEDEBUG
 
 #ifndef _LIRCCLIENTLIBRARY

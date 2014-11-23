@@ -355,55 +355,6 @@ const SHAREDPTR::shared_ptr<measurefolder_t>  switchClass::getFolder(const strin
 	return current;
 }
 
-#if 0
-double switchClass::getValue(const string& who)
-{
-	short nRv(0x00);
-	double dRv;
-	map<string, bool>::iterator found;
-
-	dRv= portBase::getValue(who);
-	if(	m_bSwitch &&
-		!m_bCurrent)
-	{
-		if(	dRv > 0 ||
-			dRv < 0		)
-		{
-			nRv= 0x11;
-		}
-		LOCK(m_VALUELOCK);
-		found= m_msbSValue.find(who);
-		if(found == m_msbSValue.end())
-		{
-			m_msbSValue[who]= false;
-
-		}else if(found->second)
-		{
-			nRv= nRv | 0x10;
-			found->second= false;
-		}
-		UNLOCK(m_VALUELOCK);
-		dRv= static_cast<double>(nRv);
-	}
-	return dRv;
-}
-
-void switchClass::setValue(double value, const string& from, ppi_time changed/*= ppi_time()*/)
-{
-	if(	m_bSwitch &&
-		!m_bCurrent &&
-		(	value > 0 ||
-			value < 0	)	)
-	{
-		LOCK(m_VALUELOCK);
-		for(map<string, bool>::iterator it= m_msbSValue.begin(); it != m_msbSValue.end(); ++it)
-			it->second= true;
-		UNLOCK(m_VALUELOCK);
-	}
-	portBase::setValue(value, from, changed);
-}
-#endif
-
 switchClass::~switchClass()
 {
 	DESTROYMUTEX(m_VALUELOCK);
