@@ -551,6 +551,11 @@ bool CalculatorContainer::calculate(double& dResult)
 {
 	bool correct;
 
+	if(m_sStatement == "")
+	{
+		dResult= 0;
+		return false;
+	}
 	if(m_bOutput)
 	{
 		bool rendered(m_bRendered);

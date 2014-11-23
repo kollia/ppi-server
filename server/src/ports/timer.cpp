@@ -639,7 +639,8 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 				m_nAllowStarting= 1;
 		}
 	}
-	if(!m_bFinished)
+	if(	!m_oFinished.isEmpty() &&
+		!m_bFinished				)
 	{// m_bFinished is only false when waiting for other subroutines in case 3
 		if(debug)
 			out() << "subroutine wait only for finishing of other subroutines" << endl;
