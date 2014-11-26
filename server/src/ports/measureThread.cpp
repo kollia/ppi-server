@@ -837,12 +837,11 @@ bool MeasureThread::execute()
 	vector<ppi_time>::iterator akttime, lasttime;
 
 	// Debug info before measure routine to stop by right folder
-	// after condition
-	if(m_sFolder == "power_switch")
+	/*if(m_sFolder == "power_switch")
 	{
 		cout << "starting folder " << m_sFolder << endl;
 		cout << __FILE__ << __LINE__ << endl;
-	}
+	}*/
 	if(!m_tvStartTime.isSet())
 	{
 		if(!m_tvStartTime.setActTime())
@@ -1049,6 +1048,13 @@ bool MeasureThread::execute()
 				}
 				bHasCondition= true;
 				condRv= TIMECONDITION(m_VALUECONDITION, m_ACTIVATETIME, &waittm);
+				// Debug info after time condition to stop by right folder
+				/*if(m_sFolder == "power_switch")
+				{
+					cout << "starting folder " << m_sFolder << endl;
+					cout << __FILE__ << __LINE__ << endl;
+				}*/
+				debug= isDebug();
 				if(condRv == ETIMEDOUT)
 				{
 					// set timevec (nanoseconds) into timeval (microseconds)
@@ -1129,6 +1135,12 @@ bool MeasureThread::execute()
 				if(isDebug())
 					tout << " ERROR: cannot calculate time of beginning" << endl;
 			}
+			// Debug info after condition to stop by right folder
+			/*if(m_sFolder == "power_switch")
+			{
+				cout << "starting folder " << m_sFolder << endl;
+				cout << __FILE__ << __LINE__ << endl;
+			}*/
 			if(stopping())
 			{
 				UNLOCK(m_ACTIVATETIME);
@@ -1142,6 +1154,7 @@ bool MeasureThread::execute()
 				m_bFolderRunning= true;
 				UNLOCK(m_FOLDERRUNMUTEX);
 			}
+			debug= isDebug();
 			bRun= checkToStart(m_vInformed, debug);
 		}//while(bRun == false)
 		UNLOCK(m_ACTIVATETIME);
