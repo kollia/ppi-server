@@ -120,7 +120,7 @@ public:
 	 * @param pStartFolder full list of folder and subroutines
 	 * @return whether configuration was right done
 	 */
-	virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+	OVERWRITE bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 	/**
 	 * this method will be called from any measure thread to set as observer
 	 * for starting own folder to get value from foreign folder
@@ -128,14 +128,14 @@ public:
 	 *
 	 * @param observer measure thread which containing the own folder
 	 */
-	virtual void setObserver(IMeasurePattern* observer);
+	OVERWRITE void setObserver(IMeasurePattern* observer);
 	/**
 	 * measure new value for subroutine
 	 *
 	 * @param actValue current value
 	 * @return return measured value
 	 */
-	virtual auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue);
+	OVERWRITE auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue);
 	/**
 	 * get value from subroutine
 	 *
@@ -146,23 +146,24 @@ public:
 	/**
 	 * whether subroutine has the incoming sub-variable
 	 *
-	 * @subvar name of sub-variable
-	 * @return whether subroutine has this varibale
+	 * @param subvar name of sub-variable
+	 * @return whether subroutine has this variable
 	 */
-	virtual bool hasSubVar(const string& subvar) const;
+	OVERWRITE bool hasSubVar(const string& subvar) const;
 	/**
-	 * return content of sub-variable from aktual subroutine
+	 * return content of sub-variable from current subroutine
 	 *
-	 * @subvar name of sub-variable
+	 * @param who declare who need the value information
+	 * @param subvar name of sub-variable
 	 * @return value of sub-var
 	 */
-	virtual ppi_value getSubVar(const string& subvar) const;
+	OVERWRITE ppi_value getSubVar(const InformObject& who, const string& subvar) const;
 	/**
 	 * set subroutine for output doing actions
 	 *
 	 * @param whether should write output
 	 */
-	virtual void setDebug(bool bDebug);
+	OVERWRITE void setDebug(bool bDebug);
 	/**
 	 * destructor
 	 */

@@ -71,17 +71,18 @@ namespace design_pattern_world
 			/**
 			 * whether subroutine has the incoming sub-variable
 			 *
-			 * @subvar name of sub-variable
-			 * @return whether subroutine has this varibale
+			 * @param subvar name of sub-variable
+			 * @return whether subroutine has this variable
 			 */
 			virtual bool hasSubVar(const string& subvar) const= 0;
 			/**
-			 * return content of sub-variable from aktual subroutine
+			 * return content of sub-variable from current subroutine
 			 *
-			 * @subvar name of sub-variable
+			 * @param who declare who need the value information
+			 * @param subvar name of sub-variable
 			 * @return value of sub-var
 			 */
-			virtual ppi_value getSubVar(const string& subvar) const= 0;
+			virtual ppi_value getSubVar(const InformObject& who, const string& subvar) const= 0;
 			/**
 			 * return count of subroutine in folder
 			 *

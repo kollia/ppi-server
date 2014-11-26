@@ -203,6 +203,10 @@ protected:
 	 */
 	map<string, string> m_mSubroutineAlias;
 	/**
+	 * predefined string with folder and subroutine
+	 */
+	string m_sFolderSub;
+	/**
 	 * number of folder when inside an object defined
 	 * otherwise 0
 	 */

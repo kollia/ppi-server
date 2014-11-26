@@ -33,6 +33,7 @@ ListCalculator::ListCalculator(const string& folder, const string& subroutine, c
 : CalculatorContainer(need, boolean),
   m_sFolder(folder),
   m_sSubroutine(subroutine),
+  m_sFolderSub(folder+":"+subroutine),
   m_sParameter(param),
   m_oOutput(obj)
 {
@@ -435,7 +436,7 @@ bool ListCalculator::variable(string* var, double& dResult)
 		{
 			m_msoVars[*var]= oSub;
 			result= oSub->getValue(
-							InformObject(InformObject::INTERNAL, m_sFolder));
+							InformObject(InformObject::INTERNAL, m_sFolderSub));
 			if(	result.lastChanging.isSet() &&
 				(	result.lastChanging > m_nLastChange ||
 					!m_nLastChange.isSet()					)	)
@@ -452,7 +453,7 @@ bool ListCalculator::variable(string* var, double& dResult)
 		if(found->second)
 		{
 			result= found->second->getValue(
-							InformObject(InformObject::INTERNAL, m_sFolder));
+							InformObject(InformObject::INTERNAL, m_sFolderSub));
 			if(	result.lastChanging.isSet() &&
 				(	result.lastChanging > m_nLastChange ||
 					!m_nLastChange.isSet()					)	)

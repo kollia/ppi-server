@@ -514,7 +514,7 @@ bool timer::hasSubVar(const string& subvar) const
 	return portBase::hasSubVar(subvar);
 }
 
-ppi_value timer::getSubVar(const string& subvar) const
+ppi_value timer::getSubVar(const InformObject& who, const string& subvar) const
 {
 	short used(0);
 	ppi_value dRv(0);
@@ -524,7 +524,7 @@ ppi_value timer::getSubVar(const string& subvar) const
 	else if(subvar == "startvalue")
 		used= 2;
 	else
-		return portBase::getSubVar(subvar);
+		return portBase::getSubVar(who, subvar);
 	if(used)
 	{
 		LOCK(m_SUBVARLOCK);

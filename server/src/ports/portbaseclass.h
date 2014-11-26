@@ -184,6 +184,11 @@ namespace ports
 			 */
 			bool m_bChanged;
 			/**
+			 * map of subroutine defined
+			 * with last asking for changing
+			 */
+			mutable map<InformObject, ppi_time> m_motChangeingQuestion;
+			/**
 			 * whether the value was'nt changed
 			 * from the own subroutine
 			 */
@@ -328,17 +333,18 @@ namespace ports
 			/**
 			 * whether subroutine has the incoming sub-variable
 			 *
-			 * @subvar name of sub-variable
-			 * @return whether subroutine has this varibale
+			 * @param subvar name of sub-variable
+			 * @return whether subroutine has this variable
 			 */
 			OVERWRITE bool hasSubVar(const string& subvar) const;
 			/**
-			 * return content of sub-variable from actual subroutine
+			 * return content of sub-variable from current subroutine
 			 *
-			 * @subvar name of sub-variable
+			 * @param who declare who need the value information
+			 * @param subvar name of sub-variable
 			 * @return value of sub-var
 			 */
-			OVERWRITE ppi_value getSubVar(const string& subvar) const;
+			OVERWRITE ppi_value getSubVar(const InformObject& who, const string& subvar) const;
 			/**
 			 * return true when subroutine need information from other subroutines by changing.<br />
 			 * otherwise false.

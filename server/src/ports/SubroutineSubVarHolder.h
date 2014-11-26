@@ -73,18 +73,19 @@ namespace ports
 		 * whether subroutine has the incoming sub-variable
 		 *
 		 * @subvar name of sub-variable
-		 * @return whether subroutine has this varibale
+		 * @return whether subroutine has this variable
 		 */
 		virtual bool hasSubVar(const string& subvar) const
 		{ return m_oSubroutine->hasSubVar(subvar); };
 		/**
-		 * return content of sub-variable from aktual subroutine
+		 * return content of sub-variable from current subroutine
 		 *
-		 * @subvar name of sub-variable
+		 * @param who declare who need the value information
+		 * @param subvar name of sub-variable
 		 * @return value of sub-var
 		 */
-		virtual ppi_value getSubVar(const string& subvar) const
-		{ return m_oSubroutine->getSubVar(subvar); };
+		OVERWRITE ppi_value getSubVar(const InformObject& who, const string& subvar) const
+		{ return m_oSubroutine->getSubVar(who, subvar); };
 		/**
 		 * return count of subroutine in folder
 		 *

@@ -25,7 +25,7 @@ namespace ports
 		auto_ptr<IValueHolderPattern> oMeasureValue;
 
 		oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
-		oMeasureValue->setValue(m_oSubroutine->getSubVar(m_sSubVar));
+		oMeasureValue->setValue(m_oSubroutine->getSubVar(who, m_sSubVar));
 		return oMeasureValue;
 	}
 }

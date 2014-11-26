@@ -438,10 +438,13 @@ bool portBase::hasSubVar(const string& subvar) const
 	return false;
 }
 
-ppi_value portBase::getSubVar(const string& subvar) const
+ppi_value portBase::getSubVar(const InformObject& who, const string& subvar) const
 {
 	short used(0);
 	ppi_value dRv(0);
+	ppi_time changed;
+	map<InformObject, ppi_time>::iterator foundChange;
+	map<InformObject, ppi_value>::iterator foundOldVar;
 
 	if(subvar == "changed")
 		used= 1;
@@ -455,10 +458,24 @@ ppi_value portBase::getSubVar(const string& subvar) const
 		switch(used)
 		{
 		case 1:
-			if(m_bChanged)
-				dRv= 1;
-			else
-				dRv= 0;
+			changed= m_dValue.getTime();
+			foundChange= m_motChangeingQuestion.find(who);
+			if(foundChange != m_motChangeingQuestion.end())
+			{
+				if(changed > foundChange->second)
+				{
+					dRv= 1;
+					foundChange->second= changed;
+				}else
+					dRv= 0;
+			}else
+			{
+				m_motChangeingQuestion[who]= changed;
+				if(changed.isSet())
+					dRv= 1;
+				else
+					dRv= 0;
+			}
 			break;
 		case 2:
 			dRv= m_dOldVar;
