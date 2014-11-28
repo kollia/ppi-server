@@ -78,13 +78,24 @@ namespace ports
 				m_oStartTime.clear();
 				if(TIMECONDITION(m_STARTINGCONDITION, m_STARTMUTEX, &tmtime) == ETIMEDOUT)
 				{
+					string out;
 					auto_ptr<IValueHolderPattern> oValue;
 
 					UNLOCK(m_STARTMUTEX);
+					out= "---------------------------------------------------------------------------\n";
+					out+= "---  external started from TIMER subroutine\n";
+					out+= "---  " + m_sFolder + ":" + m_sSubroutine + "\n";
+					m_pValueSet->out() << out << endl;
 					oValue= doHttpConnection(0, m_bDebug);
+					out= "---------------------------------------------------------------------------\n";
+					m_pValueSet->out() << out << endl;
+					ostringstream oout;
+					oout << "run http with " << m_sFolder + ":" + m_sSubroutine + " " << oValue->getValue()
+									<< " " << oValue->getTime().toString(true) << endl;
+					cout << oout.str();
 					m_pValueSet->setValue(m_sFolder, m_sSubroutine, *(oValue.get()),
 									InformObject(InformObject::READWORKER,
-													m_sFolder+":"+m_sSubroutine + "-READ"));
+													m_sFolder+":"+m_sSubroutine	)	);
 					LOCK(m_STARTMUTEX);
 				}
 			}
@@ -257,6 +268,10 @@ namespace ports
 				string request, debugOutStr;
 				ostringstream str;
 
+				oValue->setValue(102);
+				m_pValueSet->setValue(m_sFolder, m_sSubroutine, *oValue.get(),
+								InformObject(	InformObject::READWORKER,
+												m_sFolder + ":" + m_sSubroutine)	);
 				if(	m_eTime == connect ||
 					m_eTime == send			)
 				{
@@ -698,7 +713,7 @@ namespace ports
 				oValue->setValue(400);
 				m_oSocket->close();
 			}
-		}else
+		}else // if(connResult == 0)
 		{
 			string err, sDecoded, sEncoded(m_sAddress.getBaseUri());
 			URL decoded(m_sAddress);

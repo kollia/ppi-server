@@ -48,7 +48,9 @@ namespace ports
 		: switchClass("READ", folderName, subroutineName, objectID),
 		  m_bFirstRun(true),
 		  m_bTimerStart(false),
-		  m_oReader(folderName, subroutineName, this)
+		  m_oReader(folderName, subroutineName, this),
+		  m_bHoldFirstPass(false),
+		  m_HOLDFRISTPASS(Thread::getMutex("HOLDFRISTPASS"))
 		{};
 		/**
 		 * creating object of extended class
@@ -63,7 +65,9 @@ namespace ports
 		: switchClass(type, folderName, subroutineName, objectID),
 		  m_bFirstRun(true),
 		  m_bTimerStart(false),
-		  m_oReader(folderName, subroutineName, this)
+		  m_oReader(folderName, subroutineName, this),
+		  m_bHoldFirstPass(false),
+		  m_HOLDFRISTPASS(Thread::getMutex("HOLDFRISTPASS"))
 		{};
 		/**
 		 * initial extended object to check whether write into database and define range of value.<br />
@@ -73,48 +77,58 @@ namespace ports
 		 * @param pStartFolder reference to all folder
 		 * @return whether initalization was ok
 		 */
-		virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+		OVERWRITE bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 		/**
 		 * measure new value for subroutine
 		 *
 		 * @param actValue current value
 		 * @return measured value with last changing time when not changed by self
 		 */
-		virtual auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue);
+		OVERWRITE auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue);
+		/**
+		 * set value in subroutine.<br />
+		 * All strings from parameter 'from' beginning with an one character type,
+		 * followed from an colon 'r:' by ppi-reader, 'e:' by an account connected over Internet
+		 * or 'i:' by intern folder:subroutine.
+		 *
+		 * @param value value which should be set with last changing time when set, otherwise method create own time
+		 * @param from which folder:subroutine or account changing the value
+		 */
+		OVERWRITE void setValue(const IValueHolderPattern& value, const InformObject& from);
 		/**
 		 * check whether subroutine has possibility to start
 		 * any action per time
 		 *
 		 * @return null string when subroutine can start per time, otherwise an error message string
 		 */
-		virtual string checkStartPossibility();
+		OVERWRITE string checkStartPossibility();
 		/**
 		 * start behavior to starting subroutine per time
 		 *
 		 * @param tm time to starting subroutine action
 		 * @return whether starting was successful
 		 */
-		virtual bool startingBy(const ppi_time& tm)
+		OVERWRITE bool startingBy(const ppi_time& tm)
 		{ return m_oReader.startingBy(tm); };
 		/**
 		 * set subroutine for output doing actions
 		 *
 		 * @param whether should write output
 		 */
-		virtual void setDebug(bool bDebug);
+		OVERWRITE void setDebug(bool bDebug);
 		/**
 		 *  external command to stop ReadWorker thread when running
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual void stop(const bool bWait)
+		OVERWRITE void stop(const bool bWait)
 		{ Read::stop(&bWait); };
 		/**
 		 *  external command to stop ReadWorker thread when running
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
 		 */
-		virtual void stop(const bool *bWait= NULL)
+		OVERWRITE void stop(const bool *bWait= NULL)
 		{ m_oReader.stop(bWait); };
 
 	protected:
@@ -128,7 +142,7 @@ namespace ports
 		 * @param max the maximal value
 		 * @return whether the range is defined or can set all
 		 */
-		virtual bool range(bool& bfloat, double* min, double* max);
+		OVERWRITE bool range(bool& bfloat, double* min, double* max);
 
 	private:
 		/**
@@ -153,6 +167,16 @@ namespace ports
 		 * value of last switch action
 		 */
 		ppi_value m_nDo;
+		/**
+		 * when reading start from external TIMER subroutine
+		 * handle show only that subroutine should holding
+		 * by first passing request code
+		 */
+		bool m_bHoldFirstPass;
+		/**
+		 * mutex to set handle of bHoldFirstPass
+		 */
+		pthread_mutex_t* m_HOLDFRISTPASS;
 	};
 
 } /* namespace ports */

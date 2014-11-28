@@ -17,11 +17,13 @@
  */
 
 #include "../util/GlobalStaticMethods.h"
+#include "../util/properties/PPIConfigFileStructure.h"
 
 #include "read.h"
 
 namespace ports
 {
+	using namespace util;
 	using namespace boost;
 
 	bool Read::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
@@ -29,10 +31,12 @@ namespace ports
 		bool bOk(true);
 		bool bDebugShowContent;
 		bool bHoldConnection;
-		string res;
+		string res, address;
 		ReadWorker::holdTime_e eTime;
-		URL address;
+		URL oAddress;
+		PPIConfigFiles configFiles;
 
+		configFiles= PPIConfigFileStructure::instance();
 		bHoldConnection= properties->haveAction("hold");
 		bDebugShowContent= properties->haveAction("debug");
 		res= properties->getValue("time", /*warning*/false);
@@ -57,7 +61,8 @@ namespace ports
 			}
 		}
 		address= properties->getValue("src", /*warning*/true);
-		if(!m_oReader.initial(address, bHoldConnection, eTime, bDebugShowContent))
+		oAddress= configFiles->createCommand(getFolderName(), getSubroutineName(), "address", address);
+		if(!m_oReader.initial(oAddress, bHoldConnection, eTime, bDebugShowContent))
 			bOk= false;
 
 		if(	properties->getValue("begin", /*warning*/false) != "" ||
@@ -80,9 +85,33 @@ namespace ports
 	auto_ptr<IValueHolderPattern> Read::measure(const ppi_value& actValue)
 	{
 		bool debug(isDebug());
+		bool bHoldFirstPass;
 		ppi_time nullTime;
 		auto_ptr<IValueHolderPattern> oValue;
 
+		if(m_bTimerStart)
+		{
+			LOCK(m_HOLDFRISTPASS);
+			bHoldFirstPass= m_bHoldFirstPass;
+			m_bHoldFirstPass= false;
+			UNLOCK(m_HOLDFRISTPASS);
+
+			oValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
+			if(bHoldFirstPass)
+				oValue->setValue(actValue);
+			if(debug)
+			{
+				ostringstream res;
+
+				res << "result of subroutine ";
+				if(bHoldFirstPass)
+					res << "by first passing is " << actValue;
+				else
+					res << "is 0";
+				out() << res.str() << endl;
+			}
+			return oValue;
+		}
 		oValue= switchClass::measure(m_nDo);
 		if(oValue->getValue() == 0)
 		{
@@ -105,6 +134,23 @@ namespace ports
 	{
 		m_oReader.setDebug(bDebug);
 		switchClass::setDebug(bDebug);
+	}
+
+	void Read::setValue(const IValueHolderPattern& value, const InformObject& from)
+	{
+		/*
+		 * make lock outside from if-sentence
+		 * because otherwise maybe an later
+		 * setting with no READWORKER direction
+		 * can be set first
+		 * while value with READWORKER
+		 * waiting for lock
+		 */
+		LOCK(m_HOLDFRISTPASS);
+		if(from.getDirection() == InformObject::READWORKER)
+			m_bHoldFirstPass= true;
+		switchClass::setValue(value, from);
+		UNLOCK(m_HOLDFRISTPASS);
 	}
 
 	bool Read::range(bool& bfloat, double* min, double* max)
