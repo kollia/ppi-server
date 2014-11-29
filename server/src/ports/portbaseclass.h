@@ -232,9 +232,17 @@ namespace ports
 			 */
 			string m_sMsgHead;
 			/**
-			 * mutex lock for value
+			 * thread id locking object
 			 */
-			pthread_mutex_t *m_VALUELOCK;
+			mutable pid_t m_nLockThread;
+			/**
+			 * lock to make m_nLockThread thread-safe
+			 */
+			mutable pthread_mutex_t *m_THREADLOCKMUTEX;
+			/**
+			 * mutex lock for object to make value consistent
+			 */
+			mutable pthread_mutex_t *m_VALUEOBJECTLOCK;
 			/**
 			 * mutex lock for debug
 			 */
@@ -294,6 +302,30 @@ namespace ports
 			 * @return whether initialization was ok
 			 */
 			virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+			/**
+			 * lock object inside working list
+			 * to make value from begin running consistent
+			 * to end running
+			 */
+			OVERWRITE void lockObject() const;
+			/**
+			 * lock also object inside working list
+			 * like <code>lockObject()</code>
+			 * only defined for <code>IMeasureSet</code> pattern
+			 */
+			inline OVERWRITE void lockMObject() const
+			{ lockObject(); };
+			/**
+			 * unlock object inside working list
+			 */
+			OVERWRITE void unlockObject() const;
+			/**
+			 * unlock also object inside working list
+			 * like <code>unlockObject()</code>
+			 * only defined for <code>IMeasureSet</code> pattern
+			 */
+			inline OVERWRITE void unlockMObject() const
+			{ unlockObject(); };
 			/**
 			 * check whether subroutine has possibility to start
 			 * any action per time

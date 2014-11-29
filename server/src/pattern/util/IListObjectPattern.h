@@ -42,6 +42,16 @@ namespace design_pattern_world
 		{
 			public:
 			/**
+			 * lock object inside working list
+			 * to make value from begin running consistent
+			 * to end running
+			 */
+			virtual void lockObject() const= 0;
+			/**
+			 * unlock object inside working list
+			 */
+			virtual void unlockObject() const= 0;
+			/**
 			 * check whether subroutine need an external owreader server
 			 *
 			 * @return whether need an server

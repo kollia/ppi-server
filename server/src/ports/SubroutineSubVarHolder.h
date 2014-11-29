@@ -37,7 +37,18 @@ namespace ports
 		: m_oSubroutine(oSubroutine),
 		  m_sSubVar(sSubVar)
 		{};
-
+		/**
+		 * lock object inside working list
+		 * to make value from begin running consistent
+		 * to end running
+		 */
+		OVERWRITE void lockObject() const
+		{ m_oSubroutine->lockObject(); };
+		/**
+		 * unlock object inside working list
+		 */
+		OVERWRITE void unlockObject() const
+		{ m_oSubroutine->unlockObject(); };
 		/**
 		 * check whether subroutine need an external owreader server
 		 *

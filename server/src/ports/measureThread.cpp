@@ -1531,6 +1531,7 @@ bool MeasureThread::measure()
 				cout << __FILE__ << __LINE__ << endl;
 				cout << stopfolder << ":" << it->name << endl;
 			}*/
+			it->portClass->lockObject();
 			oldResult= it->portClass->getValue(
 							InformObject(InformObject::INTERNAL, folder));
 			if( debug &&
@@ -1652,6 +1653,7 @@ bool MeasureThread::measure()
 			it->portClass->writeDebugStream();
 			TERMINALEND;
 		}
+		it->portClass->unlockObject();
 		if(stopping())
 			break;
 	}

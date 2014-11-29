@@ -25,6 +25,20 @@ class IOutMeasureSet : public IMeasureSet
 {
 public:
 	/**
+	 * lock object inside working list
+	 * to make value from begin running consistent
+	 * to end running.<br />
+	 * this method is same like method <code>lockObject()</code>
+	 * inside <code>IListObjectPattern</code>
+	 */
+	virtual void lockMObject() const= 0;
+	/**
+	 * unlock object inside working list.<br />
+	 * this method is same like method <code>unlockObject()</code>
+	 * inside <code>IListObjectPattern</code>
+	 */
+	virtual void unlockMObject() const= 0;
+	/**
 	 * returning ostringstream object which should written on right time
 	 * by next pass into Terminal for output on command line
 	 *
