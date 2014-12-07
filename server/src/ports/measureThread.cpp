@@ -1518,6 +1518,7 @@ bool MeasureThread::measure()
 		classdebug= false;
 		if(it->bCorrect)
 		{
+			bool locked;
 			ValueHolder oldResult;
 			ValueHolder result;
 
@@ -1531,7 +1532,7 @@ bool MeasureThread::measure()
 				cout << __FILE__ << __LINE__ << endl;
 				cout << stopfolder << ":" << it->name << endl;
 			}*/
-			it->portClass->lockObject();
+			locked= it->portClass->LOCKOBJECT();
 			oldResult= it->portClass->getValue(
 							InformObject(InformObject::INTERNAL, folder));
 			if( debug &&
@@ -1605,6 +1606,7 @@ bool MeasureThread::measure()
 								InformObject(InformObject::INTERNAL, folder+":"+it->name));
 			else
 				it->portClass->noChange();
+			it->portClass->UNLOCKOBJECT(locked);
 			m_oDbFiller->informDatabase();
 			if(classdebug)
 			{
@@ -1653,7 +1655,6 @@ bool MeasureThread::measure()
 			it->portClass->writeDebugStream();
 			TERMINALEND;
 		}
-		it->portClass->unlockObject();
 		if(stopping())
 			break;
 	}

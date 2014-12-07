@@ -41,14 +41,22 @@ namespace ports
 		 * lock object inside working list
 		 * to make value from begin running consistent
 		 * to end running
+		 *
+		 * @param file in which file this method be called
+		 * @param line on which line in the file this method be called
+		 * @return whether object was locked
 		 */
-		OVERWRITE void lockObject() const
-		{ m_oSubroutine->lockObject(); };
+		OVERWRITE bool lockObject(const string& file, int line)
+		{ return m_oSubroutine->lockObject(file, line); };
 		/**
 		 * unlock object inside working list
+		 *
+		 * @param locked whether object was locked by the last try of lockObject
+		 * @param file in which file this method be called
+		 * @param line on which line in the file this method be called
 		 */
-		OVERWRITE void unlockObject() const
-		{ m_oSubroutine->unlockObject(); };
+		OVERWRITE void unlockObject(bool locked, const string& file, int line)
+		{ m_oSubroutine->unlockObject(locked, file, line); };
 		/**
 		 * check whether subroutine need an external owreader server
 		 *

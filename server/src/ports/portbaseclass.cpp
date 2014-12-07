@@ -78,7 +78,8 @@ portBase::portBase(const string& type, const string& folderName,
 	// do not know access from database
 	m_pbCorrectDevice= auto_ptr<bool>();
 	m_THREADLOCKMUTEX= Thread::getMutex("THREADLOCKMUTEX");
-	m_VALUEOBJECTLOCK= Thread::getMutex("VALUELOCK");
+	m_VALUEOBJECTLOCK= Thread::getMutex("VALUEOBJECTLOCK");
+	m_VALUELOCK= Thread::getMutex("VALUELOCK");
 	m_DEBUG= Thread::getMutex("portBaseDEBUG");
 	m_CORRECTDEVICEACCESS= Thread::getMutex("CORRECTDEVICEACCESS");
 	m_OBSERVERLOCK= Thread::getMutex("OBSERVERLOCK");
@@ -439,32 +440,38 @@ bool portBase::hasSubVar(const string& subvar) const
 	return false;
 }
 
-void portBase::lockObject() const
+bool portBase::lockObject(const string& file, int line)
 {
-	bool bCurrentLock(false);
+	/**
+	 * whether object will be
+	 * currently locked
+	 */
+	bool bRv(false);
+	/**
+	 * own ID of thread
+	 */
 	pid_t threadID(Thread::gettid());
 
 	LOCK(m_THREADLOCKMUTEX);
 	if(m_nLockThread != threadID)
 	{
-		if(m_nLockThread != 0)
-			bCurrentLock= true;
-		if(bCurrentLock)
-			UNLOCK(m_THREADLOCKMUTEX);
-		LOCK(m_VALUEOBJECTLOCK);
-		if(bCurrentLock)
-			LOCK(m_THREADLOCKMUTEX);
+		UNLOCK(m_THREADLOCKMUTEX);
+		Thread::mutex_lock(file, line, m_VALUEOBJECTLOCK);
+		bRv= true;
+		LOCK(m_THREADLOCKMUTEX);
 		m_nLockThread= threadID;
 	}
 	UNLOCK(m_THREADLOCKMUTEX);
-
+	return bRv;
 }
 
-inline void portBase::unlockObject() const
+inline void portBase::unlockObject(bool locked, const string& file, int line)
 {
+	if(!locked)
+		return;
 	LOCK(m_THREADLOCKMUTEX);
-	UNLOCK(m_VALUEOBJECTLOCK);
 	m_nLockThread= 0;
+	Thread::mutex_unlock(file, line, m_VALUEOBJECTLOCK);
 	UNLOCK(m_THREADLOCKMUTEX);
 
 }
@@ -485,7 +492,7 @@ ppi_value portBase::getSubVar(const InformObject& who, const string& subvar) con
 		used= 3;
 	if(used)
 	{
-		lockObject();
+		LOCK(m_VALUELOCK);
 		switch(used)
 		{
 		case 1:
@@ -518,7 +525,7 @@ ppi_value portBase::getSubVar(const InformObject& who, const string& subvar) con
 			dRv= 0;
 			break;
 		}
-		unlockObject();
+		UNLOCK(m_VALUELOCK);
 	}
 	return dRv;
 }
@@ -540,7 +547,9 @@ string portBase::switchBinStr(double value)
 
 void portBase::noChange()
 {
-	lockObject();
+	bool locked;
+
+	locked= LOCKOBJECT();
 	if(m_bOutsideChanged)
 	{// value was changed from outside
 	 // and now by this pass nothing changed
@@ -550,17 +559,19 @@ void portBase::noChange()
 		m_bChanged= true;
 	}else
 		m_bChanged= false;
-	unlockObject();
+	UNLOCKOBJECT(locked);
 }
 
 void portBase::setValue(const IValueHolderPattern& value, const InformObject& from)
 {
+	bool locked;
+	bool bValLocked(false);
 //#define __moreOutput
 #ifdef __moreOutput
 	bool debug(isDebug());
 #endif //__moreOutput
 
-	lockObject();
+	locked= LOCKOBJECT();
 	try{
 		vector<string> from_spl;
 		string fromWhere(from.getWhoDescription());
@@ -568,7 +579,7 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 		ppi_value dValue(value.getValue());
 		ppi_value invalue(value.getValue());
 		ppi_value dbvalue(value.getValue());
-		ppi_value oldMember(m_dValue.value);
+		ppi_value oldMember;
 		ppi_time changedTime(value.getTime());
 
 		// debug stopping
@@ -580,6 +591,9 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 			cout << __FILE__ << __LINE__ << endl;
 		}*/
 
+		LOCK(m_VALUELOCK);
+		bValLocked= true;
+		oldMember= m_dValue.value;
 		split(from_spl, fromWhere, is_any_of(":"));
 		if(	m_bOutsideChanged &&
 			from_spl.size() == 2 &&
@@ -714,7 +728,8 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 			// because when folder has an inform parameter (inside measure.conf)
 			// maybe inform content want to get again own value
 			// and by method getValue() will be lock this mutex again
-			//UNLOCK(m_VALUELOCK); <- maybe do not need for new locking system
+			UNLOCK(m_VALUELOCK);
+			bValLocked= false;
 
 			if(	m_mvObservers.size() ||
 				place != InformObject::INTERNAL ||
@@ -793,6 +808,8 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 		}
 
 	}
+	if(bValLocked)
+		UNLOCK(m_VALUELOCK);
 	// debug stopping
 /*	if(	getFolderName() == "power_switch" &&
 		getSubroutineName() == "port2set"		)
@@ -803,7 +820,7 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 					<< m_dValue.lastChanging.toString(true) << endl;
 		cout << __FILE__ << __LINE__ << endl;
 	}*/
-	unlockObject();
+	UNLOCKOBJECT(locked);
 }
 
 bool portBase::setValue(const string& folder, const string& subroutine,
@@ -861,7 +878,7 @@ auto_ptr<IValueHolderPattern> portBase::getValue(const InformObject& who)
 	auto_ptr<IValueHolderPattern> oRv;
 
 	oRv= auto_ptr<IValueHolderPattern>(new ValueHolder());
-	lockObject();
+	LOCK(m_VALUELOCK);
 	// debug stopping
 /*	if(	getFolderName() == "kalibrierung1" &&
 		getSubroutineName() == "is_calctime_grad"		)
@@ -916,7 +933,7 @@ auto_ptr<IValueHolderPattern> portBase::getValue(const InformObject& who)
 		out() << "-------------------------------------------------------------------" << endl;
 	}
 #endif // __moreOutput
-	unlockObject();
+	UNLOCK(m_VALUELOCK);
 	return oRv;
 }
 
@@ -1375,6 +1392,7 @@ portBase::~portBase()
 
 	DESTROYMUTEX(m_THREADLOCKMUTEX);
 	DESTROYMUTEX(m_VALUEOBJECTLOCK);
+	DESTROYMUTEX(m_VALUELOCK);
 	DESTROYMUTEX(m_DEBUG);
 	DESTROYMUTEX(m_CORRECTDEVICEACCESS);
 	for(it= m_vpoLinks.begin(); it != m_vpoLinks.end(); ++it)

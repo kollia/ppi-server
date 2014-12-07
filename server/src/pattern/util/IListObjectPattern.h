@@ -45,12 +45,20 @@ namespace design_pattern_world
 			 * lock object inside working list
 			 * to make value from begin running consistent
 			 * to end running
+			 *
+			 * @param file in which file this method be called
+			 * @param line on which line in the file this method be called
+			 * @return whether object was locked
 			 */
-			virtual void lockObject() const= 0;
+			virtual bool lockObject(const string& file, int line)= 0;
 			/**
 			 * unlock object inside working list
+			 *
+			 * @param locked whether object was locked by the last try of lockObject
+			 * @param file in which file this method be called
+			 * @param line on which line in the file this method be called
 			 */
-			virtual void unlockObject() const= 0;
+			virtual void unlockObject(bool locked, const string& file, int line)= 0;
 			/**
 			 * check whether subroutine need an external owreader server
 			 *
@@ -294,5 +302,8 @@ namespace design_pattern_world
 		};
 	}
 }
+
+#define LOCKOBJECT() lockObject(__FILE__, __LINE__)
+#define UNLOCKOBJECT(locked) unlockObject(locked, __FILE__, __LINE__)
 
 #endif /*ILISTOBJECTPATTERN_H_*/

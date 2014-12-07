@@ -238,11 +238,16 @@ namespace ports
 			/**
 			 * lock to make m_nLockThread thread-safe
 			 */
-			mutable pthread_mutex_t *m_THREADLOCKMUTEX;
+			pthread_mutex_t *m_THREADLOCKMUTEX;
+			/**
+			 * mutex lock for value reading
+			 */
+			pthread_mutex_t *m_VALUELOCK;
 			/**
 			 * mutex lock for object to make value consistent
+			 * when current subroutine is running
 			 */
-			mutable pthread_mutex_t *m_VALUEOBJECTLOCK;
+			pthread_mutex_t *m_VALUEOBJECTLOCK;
 			/**
 			 * mutex lock for debug
 			 */
@@ -301,31 +306,26 @@ namespace ports
 			 * @param pStartFolder reference to all folder
 			 * @return whether initialization was ok
 			 */
-			virtual bool init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
+			virtual bool init(IActionPropertyPattern* properties,
+							const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder);
 			/**
 			 * lock object inside working list
 			 * to make value from begin running consistent
 			 * to end running
+			 *
+			 * @param file in which file this method be called
+			 * @param line on which line in the file this method be called
+			 * @return whether object was locked
 			 */
-			OVERWRITE void lockObject() const;
-			/**
-			 * lock also object inside working list
-			 * like <code>lockObject()</code>
-			 * only defined for <code>IMeasureSet</code> pattern
-			 */
-			inline OVERWRITE void lockMObject() const
-			{ lockObject(); };
+			OVERWRITE bool lockObject(const string& file, int line);
 			/**
 			 * unlock object inside working list
+			 *
+			 * @param locked whether object was locked by the last try of lockObject
+			 * @param file in which file this method be called
+			 * @param line on which line in the file this method be called
 			 */
-			OVERWRITE void unlockObject() const;
-			/**
-			 * unlock also object inside working list
-			 * like <code>unlockObject()</code>
-			 * only defined for <code>IMeasureSet</code> pattern
-			 */
-			inline OVERWRITE void unlockMObject() const
-			{ unlockObject(); };
+			OVERWRITE void unlockObject(bool locked, const string& file, int line);
 			/**
 			 * check whether subroutine has possibility to start
 			 * any action per time
