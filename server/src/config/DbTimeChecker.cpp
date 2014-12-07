@@ -137,7 +137,8 @@ int DbTimeChecker::execute(const ICommandStructPattern* params, InterlacedProper
 			return EXIT_FAILURE;
 		}
 		m_nDiffer= static_cast<unsigned short>(nDiffer);
-	}
+	}else
+		m_nDiffer= 0;
 	if(	(	m_bExactStopSort ||
 			m_bEstimateTimeSort	) &&
 		!m_bListAll					)
