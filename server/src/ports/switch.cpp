@@ -109,7 +109,15 @@ auto_ptr<IValueHolderPattern> switchClass::measure(const ppi_value& actValue)
 	return measure(actValue, set);
 }
 
-auto_ptr<IValueHolderPattern> switchClass::measure(const ppi_value& actValue, setting& set, const double* newValue/*= NULL*/)
+auto_ptr<IValueHolderPattern> switchClass::measure(const ppi_value& actValue, bool bOutsidePossible)
+{
+	setting set;
+
+	return measure(actValue, set, NULL, bOutsidePossible);
+}
+
+auto_ptr<IValueHolderPattern> switchClass::measure(const ppi_value& actValue, setting& set,
+				const double* newValue/*= NULL*/, bool bOutsidePossible/*= true*/)
 {
 	bool debug(isDebug());
 	bool bbinary(binary());
@@ -144,23 +152,26 @@ auto_ptr<IValueHolderPattern> switchClass::measure(const ppi_value& actValue, se
 			bSwitched= false;
 	}
 
-	if(	bSwitched &&
-		!m_bLastValue	)
-	{// if m_bSwitched is true
-	 // but on the last session it was false
-	 // the variable be set over the server from outside
-		bOutside= true;
-		if(debug)
-			out() << "SWITCH value was enabled from remote access" << endl;
+	if(bOutsidePossible)
+	{
+		if(	bSwitched &&
+			!m_bLastValue	)
+		{// if m_bSwitched is true
+		 // but on the last session it was false
+		 // the variable be set over the server from outside
+			bOutside= true;
+			if(debug)
+				out() << "SWITCH value was enabled from remote access" << endl;
 
-	}else if(	!bSwitched &&
-				m_bLastValue	)
-	{// if m_bSwitched is false
-	 // but on the last session it was true
-	 // the variable be set over the server from outside
-		if(debug)
-			out() << "SWITCH value was disabled from remote access" << endl;
-		bOutside= true;
+		}else if(	!bSwitched &&
+					m_bLastValue	)
+		{// if m_bSwitched is false
+		 // but on the last session it was true
+		 // the variable be set over the server from outside
+			if(debug)
+				out() << "SWITCH value was disabled from remote access" << endl;
+			bOutside= true;
+		}
 	}
 
 

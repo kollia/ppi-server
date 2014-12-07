@@ -97,11 +97,42 @@ public:
 		 * whether actual value be set from BEGIN, WHILE or END
 		 *
 		 * @param actValue current value
-		 * @param set whether value set from begin <code>switchClass::BEGIN</code>, while <code>switchClass::WHILE</code>, end <code>switchClass::END</code> or from none <code>switchClass::NONE</code>
-		 * @param newValue new value when changed and is not the same than content inside
+		 * @param bOutsidePossible whether changing could be from outside
 		 * @return return measured value
 		 */
-		auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue, setting& set, const double* newValue= NULL);
+		auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue, bool bOutsidePossible);
+		/**
+		 * measure also whether switch value is set or not,
+		 * but show in second parameter, maybe for decided class need,
+		 * whether actual value be set from BEGIN, WHILE or END
+		 *
+		 * @param actValue current value
+		 * @param set whether value set from begin <code>switchClass::BEGIN</code>,
+		 *            while <code>switchClass::WHILE</code>,
+		 *            end <code>switchClass::END</code> or from
+		 *            none <code>switchClass::NONE</code>
+		 * @param bOutsidePossible whether changing could be from outside (default is true)
+		 * @return return measured value
+		 */
+		auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue, setting& set, bool bOutsidePossible)
+		{ return measure(actValue, set, NULL, bOutsidePossible); };
+		/**
+		 * measure also whether switch value is set or not,
+		 * but show in second parameter, maybe for decided class need,
+		 * whether actual value be set from BEGIN, WHILE or END
+		 *
+		 * @param actValue current value
+		 * @param set whether value set from begin <code>switchClass::BEGIN</code>,
+		 *            while <code>switchClass::WHILE</code>,
+		 *            end <code>switchClass::END</code> or from
+		 *            none <code>switchClass::NONE</code>
+		 * @param newValue new value from own subroutine which depends from this class
+		 *                 and is not the same than current value inside
+		 * @param bOutsidePossible whether changing could be from outside (default is true)
+		 * @return return measured value
+		 */
+		auto_ptr<IValueHolderPattern> measure(const ppi_value& actValue, setting& set,
+						const double* newValue= NULL, bool bOutsidePossible= true		);
 		/**
 		 * destructor
 		 */
