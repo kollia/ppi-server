@@ -577,7 +577,11 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 	bool bswitch;
 	bool bEndCount(false);
 	bool debug= isDebug();
-	double need, nBeginTime(0);
+	/**
+	 * result of TIMER subroutine
+	 */
+	double nRv;
+	double nBeginTime(0);
 	string subroutine(getSubroutineName()), folder(getFolderName());
 	switchClass::setting set= NONE;
 	ppi_time tmLastSwitchChanged;
@@ -601,10 +605,10 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 		if(debug)
 			out() << msg << endl;
 		if(m_nCaseNr == 5) // measure time inside case of begin/while/end
-			need= 0;
+			nRv= 0;
 		else
-			need= -1;
-		oMeasureValue->setValue(need);
+			nRv= -1;
+		oMeasureValue->setValue(nRv);
 		LOCK(m_SUBVARLOCK);
 		m_bRunTime= false;
 		UNLOCK(m_SUBVARLOCK);
@@ -644,8 +648,8 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 	{// m_bFinished is only false when waiting for other subroutines in case 3
 		if(debug)
 			out() << "subroutine wait only for finishing of other subroutines" << endl;
-		m_oFinished.calculate(need);
-		if(need != 0)
+		m_oFinished.calculate(nRv);
+		if(nRv != 0)
 		{
 			ppi_time changed;
 
@@ -802,7 +806,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 			// for ending or during on
 			ValueHolder oval;
 
-			oval= switchClass::measure(m_dSwitch, set);
+			oval= switchClass::measure(m_dSwitch, set, /*can be outside changed*/false);
 			m_dSwitch= oval.value;
 			if(oval.lastChanging.isSet())
 				tmLastSwitchChanged= oval.lastChanging;
@@ -861,7 +865,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 					{
 						if(debug)
 							out() << "new direction set, check whether TIMER running should start new" << endl;
-						oval= switchClass::measure(m_dSwitch, set, &need);
+						oval= switchClass::measure(m_dSwitch, set, &nRv, /*can be outside changed*/false);
 						m_dSwitch= oval.value;
 						if(oval.lastChanging.isSet())
 							tmLastSwitchChanged= oval.lastChanging;
@@ -925,7 +929,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 				m_dStartValue= actValue;
 				UNLOCK(m_SUBVARLOCK);
 				tv= m_oActTime;
-				need= calcStartTime(debug, actValue, &tv);
+				nRv= calcStartTime(debug, actValue, &tv);
 				if(	debug &&
 					m_sSyncID != ""	)
 				{
@@ -933,10 +937,10 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 				}
 			/* alex 29/8/2013
 			 * set m_bMeasure now inside calcStartTime()
-				if(need == -1)
+				if(nRv == -1)
 				{
 					if(m_nDirection > -2)
-						need= dbValue;
+						nRv= dbValue;
 					m_bMeasure= false;
 				}else
 					m_bMeasure= true;*/
@@ -946,19 +950,19 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 					if(m_bStartExtern)
 					{
 						m_bFinished= false;
-						need= 0;
+						nRv= 0;
 					}else
 					{// error occurred
 						m_bFinished= true;
-						need= -2;
+						nRv= -2;
 					}
 
 				}else //if(m_nAllowStarting == 1)
 				{
-					if(	need == -1 &&
+					if(	nRv == -1 &&
 						m_nDirection > -2	)
 					{
-						need= actValue;
+						nRv= actValue;
 					}
 				}//else if(m_nAllowStarting == 1)
 
@@ -967,7 +971,14 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 			  // now end polling, or begin with new time
 				ppi_time was;
 
-				if(	m_bExactTime)
+				//Debug info to stop by right subroutine
+			/*	if(	folder == "Raff2_Zeit_grad" &&
+					subroutine == "grad_time"					)
+				{
+					cout << folder << ":" << subroutine << endl;
+					cout << __FILE__ << __LINE__ << endl;
+				}*/
+				if(m_bExactTime)
 				{
 					if(m_tmExactStop > m_oActTime)
 					{// waiting microseconds/seconds for exact time
@@ -1013,25 +1024,54 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 						}
 						m_tmExactStop= m_oActTime;
 					}
-				}
+					tmLastSwitchChanged.clear();
+
+				}else // if(m_bExactTime)
+				{
+					ValueHolder oval;
+
+					if(m_nDirection >= 0)
+					{
+						if(debug)
+						{
+							string o("check whether while/end ending before and take this end time when set\n");
+
+							o+= "because no exact action be set";
+							out() << o << endl;
+						}
+						oval= switchClass::measure(m_dSwitch, set, &nRv, /*can be outside changed*/false);
+						if(	oval.value == 0 &&
+							oval.lastChanging.isSet() &&
+							oval.lastChanging < m_tmExactStop	)
+						{
+							tmLastSwitchChanged= oval.lastChanging;
+							m_tmExactStop= tmLastSwitchChanged;
+							if(debug)
+								out() << "take ending time from current while/end state" << endl;
+						}
+					}
+				} // else end  from if(m_bExactTime)
 				if(debug)
 				{
 					string syncID;
+					ostringstream outStr;
 					ppi_time diff;
 
 					diff= m_tmExactStop - m_tmStart;
 					was.tv_sec= m_tmSec;
 					was.tv_usec= m_tmMicroseconds;
-					out() << "reach END of time measuring" << endl;
+					outStr << "reach END of time measuring\n";
 					if(m_sSyncID != "")
-						out() << "stop time BY RUNNING FOLDER ID " << m_sSyncID << endl;
-					out() << "folder was refreshed because time of " << MeasureThread::calcResult(was, m_bSeconds);
-					out() << " seconds was reached" << endl;
-					out() << "  start time (" << MeasureThread::getTimevalString(m_tmStart, /*as date*/true, debug) << ")" << endl;
-					out() << "refresh time (" << MeasureThread::getTimevalString(m_tmStop, /*as date*/true, debug) << ")" << endl;
-					out() << "  actual end (" << MeasureThread::getTimevalString(m_oActTime, /*as date*/true, debug) << ")" << endl;
-					out() << "    want end (" << MeasureThread::getTimevalString(m_tmExactStop, /*as date*/true, debug) << ")" << endl;
-					out() << "         need " << MeasureThread::getTimevalString(diff, /*as date*/false, debug) << " seconds "<< endl;
+						outStr << "stop time BY RUNNING FOLDER ID " + m_sSyncID + "\n";
+					outStr << "folder was refreshed because time of ";
+					outStr << MeasureThread::calcResult(was, m_bSeconds);
+					outStr << " seconds was reached\n";
+					outStr << "  start time (" << m_tmStart.toString(/*as date*/true) << ")\n";
+					outStr << "refresh time (" << m_tmStop.toString(/*as date*/true) << ")\n";
+					outStr << "current time (" << m_oActTime.toString(/*as date*/true) << ")\n";
+					outStr << "    want end (" << m_tmExactStop.toString(/*as date*/true) << ")\n";
+					outStr << "         need " << diff.toString(/*as date*/false) << " seconds";
+					out() << outStr.str() << endl;
 				}
 				if(	m_bPoll &&
 					m_oFinished.isEmpty()	)
@@ -1039,9 +1079,9 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 					ppi_time next(m_oActTime);
 
 					if(m_nDirection == 0)
-						need= 0;
+						nRv= 0;
 					else
-						need= calcNextTime(/*start*/false, debug, &next);
+						nRv= calcNextTime(/*start*/false, debug, &next);
 					if(	m_bSwitchbyTime &&
 						!bNewDirection		)// when new direction set,
 					{						 // asking for during on made also there
@@ -1049,7 +1089,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 
 						if(debug)
 							out() << "look whether should polling time again" << endl;
-						oval= switchClass::measure(m_dSwitch, set, &need);
+						oval= switchClass::measure(m_dSwitch, set, &nRv, /*can be outside changed*/false);
 						m_dSwitch= oval.value;
 						if(oval.lastChanging.isSet())
 							tmLastSwitchChanged= oval.lastChanging;
@@ -1077,47 +1117,64 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 						{
 							was.tv_sec= m_tmSec;
 							was.tv_usec= m_tmMicroseconds;
-							need= MeasureThread::calcResult(was, m_bSeconds);
+							nRv= MeasureThread::calcResult(was, m_bSeconds);
 						}else
-							need= 0;
+							nRv= 0;
 						next= m_oActTime;
 						m_tmStart= m_oActTime;
 						LOCK(m_SUBVARLOCK);
-						m_dStartValue= need;
+						m_dStartValue= nRv;
 						UNLOCK(m_SUBVARLOCK);
-						need= calcStartTime(debug, need, &next);
-						if(need == -1)
+						nRv= calcStartTime(debug, nRv, &next);
+						if(nRv == -1)
 						{
 							if(m_nDirection > -2)
-								need= actValue;
+								nRv= actValue;
 							m_bMeasure= false;
 							bEndCount= true;
 						}else
 							m_bMeasure= true;
 
-					}else
+					}else // if(bswitch)
 					{
 						m_bMeasure= false;
 						bEndCount= true;
 						if(m_nDirection == -2)
-							need= 0;
-					}
-				}else
+							nRv= 0;
+					}// else end of if(bswitch)
+
+				}else // if(m_bPoll)
 				{
 					if(!m_oFinished.isEmpty())
 						m_bFinished= false;
 					m_bMeasure= false;
 					bEndCount= true;
-					if(m_nDirection == 1)
+					if(tmLastSwitchChanged.isSet())
 					{
-						was.tv_sec= m_tmSec;
-						was.tv_usec= m_tmMicroseconds;
-						need= MeasureThread::calcResult(was, m_bSeconds);
+						if(m_nDirection == 0)
+							was= was - (m_tmExactStop - m_tmStart);
+						else
+							was= m_tmExactStop - m_tmStart;
+						nRv= calcNextTime(/*start*/false, debug, &tmLastSwitchChanged);
 					}else
-						need= 0;
-				}
+					{
+						if(m_nDirection == 1)
+						{
+							was.tv_sec= m_tmSec;
+							was.tv_usec= m_tmMicroseconds;
+							nRv= MeasureThread::calcResult(was, m_bSeconds);
+						}else
+							nRv= 0;
+					}
+					/*
+					 * run ending
+					 * so set switch parameter
+					 * to false
+					 */
+					m_dSwitch= 0;
+				} // else end of if(m_bPoll)
 
-			}else
+			}else // if(m_tmStop <= m_oActTime)
 			{ // count down is running
 				if(debug)
 					out() << endl;
@@ -1127,7 +1184,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 					ppi_time next(m_oActTime);
 					ValueHolder oval;
 
-					need= calcNextTime(/*start*/false, debug, &next);
+					nRv= calcNextTime(/*start*/false, debug, &next);
 					if(debug)
 					{
 						out() << "check whether ";
@@ -1137,7 +1194,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 							out() << "count down ";
 						out() << "should during on" << endl;
 					}
-					oval= switchClass::measure(m_dSwitch, set, &need);
+					oval= switchClass::measure(m_dSwitch, set, &nRv, /*can be outside changed*/false);
 					m_dSwitch= oval.value;
 					if(oval.lastChanging.isSet())
 						tmLastSwitchChanged= oval.lastChanging;
@@ -1154,21 +1211,24 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 
 					// reach END of time measuring before finished
 					// erase folder starting because folder run in this case needless
+					if(debug)
+						out() << "erase old time " << m_tmStop.toString(/*as date*/true)
+							<< " for folder starting" << endl;
 					getRunningThread()->eraseActivateTime(folder, m_tmStop);
 					m_bMeasure= false;
 					next= tmLastSwitchChanged;
 					if(next.isSet())
 						m_oActTime= next;
 					if(m_nDirection == -2)
-						need= 0;
+						nRv= 0;
 					else
-						need= calcNextTime(/*start*/false, debug, &next);
+						nRv= calcNextTime(/*start*/false, debug, &next);
 				}else//if(!bswitch)
 				{
 					if(	m_bExactTime &&
 						(	m_tReachedTypes.inPercent < 100	||
 							m_sSyncID != "" 					)	)	// syncID is not null
-					{													// so need new reachend
+					{													// so nRv new reachend
 						ppi_time refreshTime;
 
 						if(m_sSyncID != "") // search only for new time when synchronization ID was changed
@@ -1215,7 +1275,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 						}
 					}
 					next= m_oActTime;
-					need= calcNextTime(/*start*/false, debug, &next);
+					nRv= calcNextTime(/*start*/false, debug, &next);
 				}//else if(!bswitch)
 				if(debug)
 				{
@@ -1224,7 +1284,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 						out() << "WHILE: measuring of time to specific end time is running" << endl;
 						out() << "routine should stop at " << MeasureThread::getTimevalString(m_tmExactStop, /*as date*/true, debug) << endl;
 						out() << "      actually we have " << MeasureThread::getTimevalString(m_oActTime, /*as date*/true, debug) << endl;
-						out() << "folder should start again in " << need << " seconds" << endl;
+						out() << "folder should start again in " << nRv << " seconds" << endl;
 						out() << "    by time (" << MeasureThread::getTimevalString(m_tmStop, /*as date*/true, debug) << ")" << endl;
 					}else
 					{
@@ -1239,7 +1299,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 						out() << "         need " << MeasureThread::getTimevalString(newtime, /*as date*/false, debug) << " seconds "<< endl;
 					}
 				}
-			}
+			} // else end of if(m_tmStop <= m_oActTime)
 		}else
 		{ // m_nCaseNr is 5: measure time inside case of begin/while/end
 			if(m_bMeasure == false)
@@ -1250,7 +1310,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 					out() << "actual time : " << MeasureThread::getTimevalString(m_oActTime, /*as date*/true, debug) << endl;
 					out() << "starting at : " << MeasureThread::getTimevalString(m_tmStart, /*as date*/true, debug) << endl;
 				}
-				need= 0;
+				nRv= 0;
 				m_bMeasure= true;
 				if(debug)
 				{
@@ -1267,8 +1327,8 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 				ValueHolder oval;
 
 				needTime-= m_tmStart;
-				need= MeasureThread::calcResult(needTime, m_bSeconds);
-				oval= switchClass::measure(m_dSwitch, set, &need);
+				nRv= MeasureThread::calcResult(needTime, m_bSeconds);
+				oval= switchClass::measure(m_dSwitch, set, &nRv, /*can be outside changed*/false);
 				m_dSwitch= oval.value;
 				if(oval.lastChanging.isSet())
 					tmLastSwitchChanged= oval.lastChanging;
@@ -1287,7 +1347,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 				}
 				if(debug)
 				{
-					out()  << dec << need << " ";
+					out()  << dec << nRv << " ";
 					if(!m_bSeconds)
 						out() << "micro";
 					out() << "seconds" << endl;
@@ -1302,7 +1362,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 	{
 		if(debug)
 			out() << "no measuring should be done" << endl;
-		need= actValue;
+		nRv= actValue;
 	}
 
 	if(	m_nCaseNr == 5 && // measure time inside case of begin/while/end
@@ -1314,7 +1374,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 		{
 			if(res > 0 || res < 0)
 			{
-				need= 0;
+				nRv= 0;
 				m_bMeasure= false;
 			}
 		}
@@ -1324,28 +1384,28 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 		!m_bMeasure &&
 		!bEndCount &&
 		!(m_dTimeBefore > 0 || m_dTimeBefore < 0) &&
-		!(need > 0 || need < 0)						)
+		!(nRv > 0 || nRv < 0)						)
 	{
-		need= -1;
+		nRv= -1;
 	}
 
-	oMeasureValue->setValue(need);
+	oMeasureValue->setValue(nRv);
 	if(m_bHasLinks)
 	{
 		if(getLinkedValue("TIMER", oMeasureValue, nBeginTime))
 		{
 			m_oActTime= oMeasureValue->getTime();
-			need= oMeasureValue->getValue();
+			nRv= oMeasureValue->getValue();
 			if(debug)
-				out() << "result of time from linked subroutine is " << dec << need << " seconds" << endl;
+				out() << "result of time from linked subroutine is " << dec << nRv << " seconds" << endl;
 
 		}else if(debug)
-				out() << "result of time is " << dec << need << " seconds" << endl;
+				out() << "result of time is " << dec << nRv << " seconds" << endl;
 	}else if(debug)
-		out() << "result of time is " << dec << need << " seconds" << endl;
-	if(m_dTimeBefore != need)
+		out() << "result of time is " << dec << nRv << " seconds" << endl;
+	if(m_dTimeBefore != nRv)
 		oMeasureValue->setTime(m_oActTime);
-	m_dTimeBefore= need;
+	m_dTimeBefore= nRv;
 	LOCK(m_SUBVARLOCK);
 	m_bRunTime= m_bMeasure;
 	UNLOCK(m_SUBVARLOCK);
