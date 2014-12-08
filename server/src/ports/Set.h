@@ -101,6 +101,22 @@ namespace ports
 		 * @return whether the range is defined or can set all
 		 */
 		virtual bool range(bool& bfloat, double* min, double* max);
+		/**
+		 * whether subroutine can be new defined from given other subroutine.<br />
+		 * when own subroutine has to set value in this other subroutine
+		 * which is also from class Set
+		 * and the other subroutine want to set in the same time
+		 * an value in the own subroutine,
+		 * both objects are locked and it cause an dead-lock.<br />
+		 * Except both subroutines are in the same folder.<br />
+		 * But WARNING: there is no check whether incoming subroutine
+		 * is from class Set
+		 *
+		 * @param folder name of folder from other subroutine
+		 * @param subroutine name of subroutine from other
+		 * @return whether possible to set value
+		 */
+		bool possibleSet(const string& folder, const string& subroutine) const;
 	};
 }
 

@@ -22,9 +22,12 @@
 
 #include "Set.h"
 
+#include "../util/GlobalStaticMethods.h"
 #include "../util/thread/Terminal.h"
 
 #include "../pattern/util/LogHolderPattern.h"
+
+#include "../database/logger/lib/logstructures.h"
 
 using namespace boost;
 using namespace boost::algorithm;
@@ -44,11 +47,11 @@ namespace ports
 		ostringstream seterr;
 
 		//Debug info to stop by right subroutine
-		/*if(	getFolderName() == "weather_timecheck" &&
-			getSubroutineName() == "set_back"	)
+	/*	if(	getFolderName() == "Raff1" &&
+			getSubroutineName() == "test_set"	)
 		{
-			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
+			cout << __FILE__ << __LINE__ << endl;
 		}*/
 		nFrom= properties->getPropertyCount("from");
 		nSet= properties->getPropertyCount("set");
@@ -69,7 +72,8 @@ namespace ports
 					trim(spl[0]);
 				if(spl.size() == 2)
 					trim(spl[1]);
-				if(	(	spl.size() == 1 &&
+				if(	spl.size() > 2 ||
+					(	spl.size() == 1 &&
 						spl[0].find(" ") != string::npos	) ||
 					(	spl.size() == 2 &&
 						(	spl[0].find(" ") != string::npos ||
@@ -80,10 +84,10 @@ namespace ports
 					seterr << (n+1) << ". set parameter '"  << sSet;
 					seterr << "' can only be an single [folder:]<sburoutine>." << endl;
 					seterr << "           Do not set any value in this subroutine." << endl;
-					LOG(LOG_ERROR, seterr.str());
 
 				}else
 				{
+					Set* setObject;
 					SHAREDPTR::shared_ptr<IListObjectPattern> port;
 
 					port= m_vpoFrom[0]->getSubroutine(&sSet, getObjectFolderID(), /*own folder*/true);
@@ -92,11 +96,48 @@ namespace ports
 						if(seterr.str() != "")
 							seterr << "           ";
 						seterr << (n+1) << ". set parameter '"  << sSet;
-						seterr << " do not exist." << endl;
-						LOG(LOG_ERROR, seterr.str());
+						seterr << "' do not exist." << endl;
 					}else
-						bAllFault= false;
-					m_vsSet.push_back(sSet);
+					{
+						bool bOk(true);
+
+						/**
+						 * implement setting subroutine
+						 * before ask for possibility
+						 * and remove again when not given
+						 * because by asking for possibility
+						 * maybe method make an check back
+						 * whether setting exist
+						 * and subroutine should exist
+						 * for detecting fault
+						 */
+						m_vsSet.push_back(sSet);
+						if(	spl.size() == 2 &&
+							spl[0] != folderName	)
+						{
+							setObject= dynamic_cast<Set*>(port.get());
+							if(setObject != NULL)
+							{
+								if(!setObject->possibleSet(folderName, subroutineName))
+								{
+									ostringstream msg;
+
+
+									if(seterr.str() != "")
+										seterr << "           ";
+									seterr << "by " << (n+1) << ". set parameter '"  << sSet;
+									seterr << "' can cause an dead-lock" << endl;
+									seterr << "              because other subroutine "
+													"want to set also own subroutine" << endl;
+									bOk= false;
+								}
+							}
+						}
+						if(bOk)
+							bAllFault= false;
+						else
+							m_vsSet.pop_back();
+					}
 				}
 			}
 			if(	nFrom != 1 &&
@@ -144,6 +185,19 @@ namespace ports
 			return false;
 		setValue(oDefault, InformObject(InformObject::INTERNAL,
 						getFolderName()+":"+getSubroutineName()));
+		return true;
+	}
+
+	bool Set::possibleSet(const string& folder, const string& subroutine) const
+	{
+		string sSet(folder + ":" + subroutine);
+		vector<string>::const_iterator found;
+
+		if(folder == getFolderName())
+			return true;
+		found= find(m_vsSet.begin(), m_vsSet.end(), sSet);
+		if(found != m_vsSet.end())
+			return false;
 		return true;
 	}
 
