@@ -543,7 +543,7 @@ namespace util
 		vector<IInterlacedPropertyPattern*> folderSections;
 		vector<IInterlacedPropertyPattern*> *pFolderSections;
 		vector<IInterlacedPropertyPattern*> subSections;
-		SHAREDPTR::shared_ptr<measurefolder_t> aktualFolder= m_tFolderStart;
+		SHAREDPTR::shared_ptr<measurefolder_t> currentFolder= m_tFolderStart;
 		SHAREDPTR::shared_ptr<measurefolder_t> pFirstObjFolder;
 		SHAREDPTR::shared_ptr<IActionPropertyPattern> pHold1OBJfolderprops;
 		secIt oit, fit, defObj;
@@ -585,46 +585,46 @@ namespace util
 				}else
 				{
 					// fill all folders from object
-					aktualFolder= m_tFolderStart;
-					while(aktualFolder->next != NULL)
+					currentFolder= m_tFolderStart;
+					while(currentFolder->next != NULL)
 					{
-						if(aktualFolder->name == firstObjFolder)
+						if(currentFolder->name == firstObjFolder)
 							break;
-						aktualFolder= aktualFolder->next;
+						currentFolder= currentFolder->next;
 					}
 					//cout << "copy all folders from first object folder " << aktualFolder->name << endl;
-					pFirstObjFolder= aktualFolder;
+					pFirstObjFolder= currentFolder;
 					pFirstObjFolder->vsObjFolders= objFolders;
-					aktualFolder= aktualFolder->next;
-					while(aktualFolder != NULL)
+					currentFolder= currentFolder->next;
+					while(currentFolder != NULL)
 					{
-						if(aktualFolder->bDefined == false)
+						if(currentFolder->bDefined == false)
 						{
 							//cout << "fill object folder " << aktualFolder->name << endl;
-							aktualFolder->bCorrect= false;
+							currentFolder->bCorrect= false;
 							pProperty= new ActionProperties;
 							*pProperty= *dynamic_cast<ActionProperties*>(pFirstObjFolder->folderProperties.get());
-							pProperty->add(*dynamic_cast<ActionProperties*>(aktualFolder->folderProperties.get()));
-							aktualFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
-							aktualFolder->subroutines= pFirstObjFolder->subroutines;
+							pProperty->add(*dynamic_cast<ActionProperties*>(currentFolder->folderProperties.get()));
+							currentFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
+							currentFolder->subroutines= pFirstObjFolder->subroutines;
 							/*
 							 * make now for all folder inside object
 							 * new explicit subroutine properties
 							 * to set correct folder name
 							 * for all new subroutines
 							 */
-							for(vector<sub>::iterator it= aktualFolder->subroutines.begin();
-											it != aktualFolder->subroutines.end(); ++it		)
+							for(vector<sub>::iterator it= currentFolder->subroutines.begin();
+											it != currentFolder->subroutines.end(); ++it		)
 							{
 								pProperty= new ActionProperties;
 								*pProperty= *dynamic_cast<ActionProperties*>(it->property.get());
 								it->property= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
-								it->property->setDefault("folder", aktualFolder->name, /*overwrite*/true);
+								it->property->setDefault("folder", currentFolder->name, /*overwrite*/true);
 							}
 							pFirstObjFolder->vsObjFolders= objFolders;
-							aktualFolder->bDefined= true;
+							currentFolder->bDefined= true;
 						}
-						aktualFolder= aktualFolder->next;
+						currentFolder= currentFolder->next;
 					}
 					if(pHold1OBJfolderprops != NULL)
 					{
@@ -711,32 +711,32 @@ namespace util
 					objFolders.push_back(value);
 				if(m_tFolderStart == NULL)
 				{
-					aktualFolder= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
-					m_tFolderStart= aktualFolder;
-					aktualFolder->name= value;
-					aktualFolder->bCorrect= false;
-					aktualFolder->bDefined= false;
-					aktualFolder->nFolderID= nFolderID;
+					currentFolder= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
+					m_tFolderStart= currentFolder;
+					currentFolder->name= value;
+					currentFolder->bCorrect= false;
+					currentFolder->bDefined= false;
+					currentFolder->nFolderID= nFolderID;
 					if(curObj != "NULL")
 					{
-						aktualFolder->nObjectID= nObjFolderID;
-						aktualFolder->sObject= curObj;
+						currentFolder->nObjectID= nObjFolderID;
+						currentFolder->sObject= curObj;
 					}else
-						aktualFolder->nObjectID= 0;
+						currentFolder->nObjectID= 0;
 				}else
 				{
-					aktualFolder= m_tFolderStart;
-					while(aktualFolder->next != NULL)
+					currentFolder= m_tFolderStart;
+					while(currentFolder->next != NULL)
 					{
-						if(aktualFolder->name == value)
+						if(currentFolder->name == value)
 							break;
-						aktualFolder= aktualFolder->next;
+						currentFolder= currentFolder->next;
 					}
-					if(aktualFolder->name == value)
+					if(currentFolder->name == value)
 					{
 						string warn;
 
-						if(aktualFolder->bDefined)
+						if(currentFolder->bDefined)
 						{
 							warn=  "### WARNING: found second folder name '" + value + "'\n";
 							warn+= "             and change all subroutines to new folder!";
@@ -746,30 +746,30 @@ namespace util
 
 					}else
 					{
-						aktualFolder->next= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
-						aktualFolder= aktualFolder->next;
-						aktualFolder->name= value;
-						aktualFolder->bCorrect= false;
-						aktualFolder->bDefined= false;
-						aktualFolder->nFolderID= nFolderID;
+						currentFolder->next= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
+						currentFolder= currentFolder->next;
+						currentFolder->name= value;
+						currentFolder->bCorrect= false;
+						currentFolder->bDefined= false;
+						currentFolder->nFolderID= nFolderID;
 						if(curObj != "NULL")
 						{
-							aktualFolder->nObjectID= nObjFolderID;
-							aktualFolder->sObject= curObj;
+							currentFolder->nObjectID= nObjFolderID;
+							currentFolder->sObject= curObj;
 						}else
-							aktualFolder->nObjectID= 0;
+							currentFolder->nObjectID= 0;
 					}
 				}
 				pProperty= new ActionProperties;
 				*pProperty= *dynamic_cast<ActionProperties*>(*fit);
-				if(	!aktualFolder->bDefined &&
+				if(	!currentFolder->bDefined &&
 					curObj != "NULL" &&
-					aktualFolder->folderProperties != NULL	)
+					currentFolder->folderProperties != NULL	)
 				{// folder is first folder of an object,
 				 // so hold folder properties from actual folder to fill in by filling objects
-					pHold1OBJfolderprops= aktualFolder->folderProperties;
+					pHold1OBJfolderprops= currentFolder->folderProperties;
 				}
-				aktualFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
+				currentFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
 				subSections= (*fit)->getSections();
 				for(secIt sit= subSections.begin(); sit != subSections.end(); ++sit)
 				{
@@ -785,18 +785,18 @@ namespace util
 
 						// create new subroutine
 						value= (*sit)->getSectionValue();
-						glob::replaceName(value, "folder '" + aktualFolder->name + "' for subroutine name");
+						glob::replaceName(value, "folder '" + currentFolder->name + "' for subroutine name");
 #ifdef __reading_pos
 						cout << "                subroutine " << value << endl;
 #endif //__reading_pos
-						for(vector<sub>::iterator it= aktualFolder->subroutines.begin(); it != aktualFolder->subroutines.end(); ++it)
+						for(vector<sub>::iterator it= currentFolder->subroutines.begin(); it != currentFolder->subroutines.end(); ++it)
 						{
 							if(it->name == value)
 							{
 								string err;
 
 								buse= false;
-								err=  "### Error: found ambiguous name \"" + value + "\" in folder " + aktualFolder->name + "\n";
+								err=  "### Error: found ambiguous name \"" + value + "\" in folder " + currentFolder->name + "\n";
 								err+= "           Do not create this subroutine for working!";
 								cerr << err << endl;
 								LOG(LOG_ERROR, err);
@@ -850,7 +850,7 @@ namespace util
 								 * set correct folder name
 								 * for new subroutine properties
 								 */
-								pProperty->setDefault("folder", aktualFolder->name, /*overwrite*/true);
+								pProperty->setDefault("folder", currentFolder->name, /*overwrite*/true);
 								subdir->property= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
 								subdir->name= value;
 								subdir->bCorrect= true;	// set first subroutine to correct,
@@ -865,14 +865,14 @@ namespace util
 								subdir->measuredness= 0;
 								/************************************************************/
 
-								aktualFolder->subroutines.push_back(*subdir.get());
+								currentFolder->subroutines.push_back(*subdir.get());
 							}// if(buse)
 						}// if(buse)
 					}// modifier is subroutine
 				}// iterate subroutines of folder
 				if(!subSections.empty())
-					aktualFolder->bDefined= true;
-				if(aktualFolder->nFolderID != nFolderID)
+					currentFolder->bDefined= true;
+				if(currentFolder->nFolderID != nFolderID)
 				{//first folder of object was defined, do not count object name
 					--nFolderID;//so count ID one back
 				}
