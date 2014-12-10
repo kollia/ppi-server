@@ -607,6 +607,20 @@ namespace util
 							pProperty->add(*dynamic_cast<ActionProperties*>(aktualFolder->folderProperties.get()));
 							aktualFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
 							aktualFolder->subroutines= pFirstObjFolder->subroutines;
+							/*
+							 * make now for all folder inside object
+							 * new explicit subroutine properties
+							 * to set correct folder name
+							 * for all new subroutines
+							 */
+							for(vector<sub>::iterator it= aktualFolder->subroutines.begin();
+											it != aktualFolder->subroutines.end(); ++it		)
+							{
+								pProperty= new ActionProperties;
+								*pProperty= *dynamic_cast<ActionProperties*>(it->property.get());
+								it->property= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
+								it->property->setDefault("folder", aktualFolder->name, /*overwrite*/true);
+							}
 							pFirstObjFolder->vsObjFolders= objFolders;
 							aktualFolder->bDefined= true;
 						}
@@ -616,7 +630,7 @@ namespace util
 					{
 						// fill now properties from 1 folder
 						// defined by reading real 1 folder
-						// into aktual 1 folder object
+						// into current 1 folder object
 						pProperty= dynamic_cast<ActionProperties*>(pFirstObjFolder->folderProperties.get());
 						pProperty->add(*dynamic_cast<ActionProperties*>(pHold1OBJfolderprops.get()));
 						pHold1OBJfolderprops= SHAREDPTR::shared_ptr<IActionPropertyPattern>();
@@ -830,10 +844,13 @@ namespace util
 							/************************************************************/
 							if(buse)
 							{
-								ostringstream sFID, sOID;
-
 								pProperty= new ActionProperties;
 								*pProperty= *dynamic_cast<ActionProperties*>(*sit);
+								/*
+								 * set correct folder name
+								 * for new subroutine properties
+								 */
+								pProperty->setDefault("folder", aktualFolder->name, /*overwrite*/true);
 								subdir->property= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
 								subdir->name= value;
 								subdir->bCorrect= true;	// set first subroutine to correct,
@@ -849,8 +866,8 @@ namespace util
 								/************************************************************/
 
 								aktualFolder->subroutines.push_back(*subdir.get());
-							}
-						}
+							}// if(buse)
+						}// if(buse)
 					}// modifier is subroutine
 				}// iterate subroutines of folder
 				if(!subSections.empty())
