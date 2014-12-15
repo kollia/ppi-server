@@ -440,6 +440,32 @@ bool portBase::hasSubVar(const string& subvar) const
 	return false;
 }
 
+void portBase::setChangedSubVar(IListObjectPattern* subVarObj)
+{
+	m_voChangedSubVars.push_back(subVarObj);
+}
+
+void portBase::actualizeChangedSubVars()
+{
+	auto_ptr<InformObject> informer;
+
+	for(vector<IListObjectPattern*>::iterator it= m_voChangedSubVars.begin();
+					it != m_voChangedSubVars.end(); ++it						)
+	{
+		if(informer.get() == NULL)
+		{
+			/*
+			 * create object of informer
+			 * only when need
+			 * for better performance
+			 */
+			informer= auto_ptr<InformObject>(new InformObject(InformObject::INTERNAL,
+							m_sFolder + ":" + m_sSubroutine));
+		}
+		(*it)->getValue(*informer.get());
+	}
+}
+
 bool portBase::lockObject(const string& file, int line)
 {
 	/**

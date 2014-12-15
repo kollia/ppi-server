@@ -102,6 +102,20 @@ namespace design_pattern_world
 			 */
 			virtual ppi_value getSubVar(const InformObject& who, const string& subvar) const= 0;
 			/**
+			 * write SubroutineSubVarHolder object into subroutine
+			 * when object want to know whether subroutine was changed.<br />
+			 * This behavior is for updating all changed variables
+			 * after subroutine was running
+			 *
+			 * @param subVarObj object of SubroutineSubVarHolder
+			 */
+			virtual void setChangedSubVar(IListObjectPattern* subVarObj)= 0;
+			/**
+			 * actualize all SubroutineSubVarHolder objects,
+			 * which are defined for changing
+			 */
+			virtual void actualizeChangedSubVars()= 0;
+			/**
 			 * return count of subroutine in folder
 			 *
 			 * @return count of subroutine

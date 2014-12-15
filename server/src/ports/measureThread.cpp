@@ -1558,6 +1558,7 @@ bool MeasureThread::measure()
 			}
 			try{
 				result= it->portClass->measure(oldResult.value);
+				it->portClass->actualizeChangedSubVars();
 
 			}catch(SignalException& ex)
 			{

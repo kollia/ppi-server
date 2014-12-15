@@ -33,10 +33,13 @@ namespace ports
 	class SubroutineSubVarHolder : public IListObjectPattern
 	{
 	public:
-		SubroutineSubVarHolder(IListObjectPattern* oSubroutine, const string& sSubVar)
-		: m_oSubroutine(oSubroutine),
-		  m_sSubVar(sSubVar)
-		{};
+		/**
+		 * constructor to define SubVarHolder object
+		 *
+		 * @param oSubroutine subroutine which hold the information for variable with SubVar
+		 * @param sSubVar defined SubVar from script
+		 */
+		SubroutineSubVarHolder(IListObjectPattern* oSubroutine, const string& sSubVar);
 		/**
 		 * lock object inside working list
 		 * to make value from begin running consistent
@@ -105,6 +108,22 @@ namespace ports
 		 */
 		OVERWRITE ppi_value getSubVar(const InformObject& who, const string& subvar) const
 		{ return m_oSubroutine->getSubVar(who, subvar); };
+		/**
+		 * write SubroutineSubVarHolder object into subroutine
+		 * when object want to know whether subroutine was changed.<br />
+		 * This behavior is for updating all changed variables
+		 * after subroutine was running
+		 *
+		 * @param subVarObj object of SubroutineSubVarHolder
+		 */
+		OVERWRITE void setChangedSubVar(IListObjectPattern* subVarObj)
+		{ m_oSubroutine->setChangedSubVar(subVarObj); };
+		/**
+		 * actualize all SubroutineSubVarHolder objects,
+		 * which are defined for changing
+		 */
+		OVERWRITE void actualizeChangedSubVars()
+		{ m_oSubroutine->actualizeChangedSubVars(); };
 		/**
 		 * return count of subroutine in folder
 		 *

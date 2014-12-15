@@ -378,6 +378,20 @@ namespace ports
 			 */
 			OVERWRITE ppi_value getSubVar(const InformObject& who, const string& subvar) const;
 			/**
+			 * write SubroutineSubVarHolder object into subroutine
+			 * when object want to know whether subroutine was changed.<br />
+			 * This behavior is for updating all changed variables
+			 * after subroutine was running
+			 *
+			 * @param subVarObj object of SubroutineSubVarHolder
+			 */
+			OVERWRITE void setChangedSubVar(IListObjectPattern* subVarObj);
+			/**
+			 * actualize all SubroutineSubVarHolder objects,
+			 * which are defined for changing
+			 */
+			OVERWRITE void actualizeChangedSubVars();
+			/**
 			 * return true when subroutine need information from other subroutines by changing.<br />
 			 * otherwise false.
 			 *
@@ -686,6 +700,11 @@ namespace ports
 			 * which link for observer be set
 			 */
 			vector<string>::size_type m_nLinkObserver;
+			/**
+			 * vector of all SubroutineSubVarHolder objects
+			 * which has to actualize after subroutine was running
+			 */
+			vector<IListObjectPattern*> m_voChangedSubVars;
 	};
 }
 
