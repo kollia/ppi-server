@@ -98,7 +98,7 @@ namespace util
 			if(	place == InformObject::INTERNAL ||
 				from.getWhoDescription() != sOwn	)
 			{
-				output << "  was informed from";
+				output << "  was informed from ";
 				output << from.toString() << ":" << endl;
 			}
 		}
