@@ -23,10 +23,7 @@ namespace ports
 	SubroutineSubVarHolder::SubroutineSubVarHolder(IListObjectPattern* oSubroutine, const string& sSubVar)
 	: m_oSubroutine(oSubroutine),
 	  m_sSubVar(sSubVar)
-	{
-		if(sSubVar == "changed")
-			oSubroutine->setChangedSubVar(this);
-	}
+	{}
 
 	auto_ptr<IValueHolderPattern> SubroutineSubVarHolder::getValue(const InformObject& who)
 	{

@@ -48,7 +48,7 @@ public:
 	 * @param param parameter type in the subroutine where the string
 	 * @param need whether string be set in init() method or statement() have to exist
 	 * @param boolean true if result for output should be TRUE or FALSE, otherwise result by output is an double
-	 * @param obj subroutine object for debug output
+	 * @param obj subroutine object for debug output in which running
 	 */
 	ListCalculator(const string& folder, const string& subroutine, const string& param,
 					bool need, bool boolean, IListObjectPattern* obj);

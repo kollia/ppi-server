@@ -33,6 +33,7 @@
 #include "portbaseclass.h"
 
 #include "../util/debugsubroutines.h"
+#include "../util/GlobalStaticMethods.h"
 #include "../util/exception.h"
 #include "../util/thread/Thread.h"
 #include "../util/thread/Terminal.h"
@@ -442,6 +443,24 @@ bool portBase::hasSubVar(const string& subvar) const
 
 void portBase::setChangedSubVar(IListObjectPattern* subVarObj)
 {
+	string byFolder(subVarObj->getFolderName());
+	string bySubroutine(subVarObj->getSubroutineName());
+
+	for(vector<IListObjectPattern*>::iterator it= m_voChangedSubVars.begin();
+					it != m_voChangedSubVars.end(); ++it						)
+	{
+		if(	(*it)->getFolderName() == byFolder &&
+			(*it)->getSubroutineName() == bySubroutine	)
+		{
+			/*
+			 * SubroutineSubVarHolder object
+			 * was before defined
+			 * maybe by different parameters
+			 * from subroutine
+			 */
+			return;
+		}
+	}
 	m_voChangedSubVars.push_back(subVarObj);
 }
 

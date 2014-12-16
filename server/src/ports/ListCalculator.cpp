@@ -226,6 +226,7 @@ SHAREDPTR::shared_ptr<IListObjectPattern> ListCalculator::getSubroutine(string* 
 	vector<string> spl;
 	map<string, string>::iterator found;
 	SHAREDPTR::shared_ptr<measurefolder_t> pFolder= m_pStartFolder;
+	map<string, SHAREDPTR::shared_ptr<IListObjectPattern> >::iterator exist;
 
 	split(spl, *var, is_any_of(":"));
 	if(spl.size() < 2)
@@ -282,6 +283,18 @@ SHAREDPTR::shared_ptr<IListObjectPattern> ListCalculator::getSubroutine(string* 
 	{
 		return SHAREDPTR::shared_ptr<IListObjectPattern>();
 	}
+	exist= m_msoVars.find(*var);
+	if(exist != m_msoVars.end())
+	{
+		/*
+		 * when folder searched before
+		 * do not select subroutine again
+		 * from working list
+		 * or create in second time
+		 * an SubroutineSubVarHolder object
+		 */
+		return exist->second;
+	}
 
 	while(	pFolder &&
 			pFolder->sObject != sFolder &&
@@ -330,6 +343,16 @@ SHAREDPTR::shared_ptr<IListObjectPattern> ListCalculator::getSubroutine(string* 
 
 					holder= SHAREDPTR::shared_ptr<IListObjectPattern>(
 									new ports::SubroutineSubVarHolder(it->portClass.get(), sSubVar));
+					if(sSubVar == "changed")
+					{
+						/*
+						 * by object has to know changing
+						 * write object also into running subroutine
+						 * because after every running
+						 * subroutine has to actualize changed values
+						 */
+						m_oOutput->setChangedSubVar(holder.get());
+					}
 					m_vNewSubObjs.push_back(holder);
 					return holder;
 				}

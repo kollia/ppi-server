@@ -1522,17 +1522,17 @@ bool MeasureThread::measure()
 			ValueHolder oldResult;
 			ValueHolder result;
 
+			locked= it->portClass->LOCKOBJECT();
 			//Debug info to stop always by right folder or subroutine
-		/*	string stopfolder("Raff1_Zeit");
-			string stopsub("grad_timer");
+	/*		string stopfolder("Raff1_Zeit");
+			string stopsub("gradpos");
 			if(	getFolderName() == stopfolder &&
 				( 	stopsub == "" ||
 					it->name == stopsub	)	)
 			{
-				cout << __FILE__ << __LINE__ << endl;
 				cout << stopfolder << ":" << it->name << endl;
+				cout << __FILE__ << __LINE__ << endl;
 			}*/
-			locked= it->portClass->LOCKOBJECT();
 			oldResult= it->portClass->getValue(
 							InformObject(InformObject::INTERNAL, folder));
 			if( debug &&
@@ -1558,7 +1558,6 @@ bool MeasureThread::measure()
 			}
 			try{
 				result= it->portClass->measure(oldResult.value);
-				it->portClass->actualizeChangedSubVars();
 
 			}catch(SignalException& ex)
 			{
@@ -1607,6 +1606,7 @@ bool MeasureThread::measure()
 								InformObject(InformObject::INTERNAL, folder+":"+it->name));
 			else
 				it->portClass->noChange();
+			it->portClass->actualizeChangedSubVars();
 			it->portClass->UNLOCKOBJECT(locked);
 			m_oDbFiller->informDatabase();
 			if(classdebug)
