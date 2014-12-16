@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 							"and show after configuration all first values of defined ports from external readers");
 	params.option("folderstart", "f", "show all folder on command line which are defining and starting");
 	params.option("observers", "o", "show by starting all defined observers for every folder:subroutine");
-	params.option("subroutines", "s", "for option --configure (-s) or --folderstart (-f) show also subroutines\n"
+	params.option("subroutines", "s", "for option --configure (-c) or --folderstart (-f) show also subroutines\n"
 					"(when none of this option be set, also folder configuration will be displayed)");
 	params.option("nodbbegintime", "n", "do not read beginning time from database for subroutines with type TIME\n"
 					"which normally saved as:\n"
