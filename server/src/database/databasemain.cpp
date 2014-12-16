@@ -46,6 +46,23 @@ using namespace boost;
 using namespace util;
 using namespace ppi_database;
 
+string readShell(const string& command)
+{
+	char line[1024];
+	string sRv;
+	FILE *fp;
+
+	fp= popen(command.c_str(), "r");
+	if(fp == NULL)
+		return "unknown";
+	while(fgets(line, sizeof(line), fp))
+	{
+		sRv+= line;
+	}
+	pclose(fp);
+	return sRv;
+}
+
 int main(int argc, char* argv[])
 {
 	/**
@@ -228,6 +245,24 @@ int main(int argc, char* argv[])
 		msg+= "\nThis locking cost performance time";
 		LOG(LOG_WARNING, msg);
 	}
+
+	property=  "    start ppi-server\n";
+	property+= "   ~~~~~~~~~~~~~~~~~~\n\n";
+	property+= "operating-system:  " + readShell("uname -o 2>&1");
+	property= property.substr(0, property.length()-1);
+	property+= "  " + readShell("lsb_release -ds 2>&1");
+	property+= "kernel-release:    " + readShell("uname -r 2>&1");
+	property+= "hardware-platform: " + readShell("uname -i 2>&1");
+//	property+= "machine-hardware:  " + readShell("uname -m 2>&1");
+	property+= "processor:         " + readShell("uname -p 2>&1");
+	property+= "\n";
+	property+= "network-hostname:  " + readShell("uname -n 2>&1");
+/*	property+= "\n";
+	property+= "                   " + readShell("lsb_release -ds 2>&1");
+	property+= "Distributor:       " + readShell("lsb_release -is 2>&1");
+	property+= "Release:           " + readShell("lsb_release -rs 2>&1");
+	property+= "Codename:          " + readShell("lsb_release -cs 2>&1");*/
+	LOG(LOG_INFO, glob::addPrefix("  ", property));
 
 	LOG(LOG_DEBUG, "starting database");
 	starter= new CommunicationThreadStarter(0, nDbConnectors);
