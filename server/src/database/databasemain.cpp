@@ -60,6 +60,7 @@ string readShell(const string& command)
 		sRv+= line;
 	}
 	pclose(fp);
+	trim(sRv);
 	return sRv;
 }
 
@@ -246,23 +247,33 @@ int main(int argc, char* argv[])
 		LOG(LOG_WARNING, msg);
 	}
 
-	property=  "    start ppi-server\n";
-	property+= "   ~~~~~~~~~~~~~~~~~~\n\n";
-	property+= "operating-system:  " + readShell("uname -o 2>&1");
-	property= property.substr(0, property.length()-1);
-	property+= "  " + readShell("lsb_release -ds 2>&1");
-	property+= "kernel-release:    " + readShell("uname -r 2>&1");
-	property+= "hardware-platform: " + readShell("uname -i 2>&1");
-//	property+= "machine-hardware:  " + readShell("uname -m 2>&1");
-	property+= "processor:         " + readShell("uname -p 2>&1");
-	property+= "\n";
-	property+= "network-hostname:  " + readShell("uname -n 2>&1");
-/*	property+= "\n";
-	property+= "                   " + readShell("lsb_release -ds 2>&1");
-	property+= "Distributor:       " + readShell("lsb_release -is 2>&1");
-	property+= "Release:           " + readShell("lsb_release -rs 2>&1");
-	property+= "Codename:          " + readShell("lsb_release -cs 2>&1");*/
-	LOG(LOG_INFO, glob::addPrefix("  ", property));
+	ostringstream platform;
+
+	platform << "          v" << PPI_MAJOR_RELEASE << "."
+					    << PPI_MINOR_RELEASE << "."
+					    << PPI_SUBVERSION << "."
+					    << PPI_PATCH_LEVEL << "."
+					    << PPI_REVISION_NUMBER << endl;
+	if(string(DISTRIBUTION_RELEASE) != "")
+	platform << "          " << DISTRIBUTION_RELEASE << endl;
+	platform << "   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
+	platform << "operating-system:  " + readShell("uname -o 2>&1");
+	platform << "  " + readShell("lsb_release -ds 2>&1") << endl;
+	platform << "kernel-release:    " + readShell("uname -r 2>&1") << endl;
+	platform << "hardware-platform: " + readShell("uname -i 2>&1") << endl;
+//	platform << "machine-hardware:  " + readShell("uname -m 2>&1") << endl;
+	platform << "processor:         " + readShell("uname -p 2>&1") << endl;
+	platform << endl;
+	platform << "network-hostname:  " + readShell("uname -n 2>&1") << endl;
+/*	platform << endl;
+	platform << "                   " + readShell("lsb_release -ds 2>&1") << endl;
+	platform << "Distributor:       " + readShell("lsb_release -is 2>&1") << endl;
+	platform << "Release:           " + readShell("lsb_release -rs 2>&1") << endl;
+	platform << "Codename:          " + readShell("lsb_release -cs 2>&1") << endl;*/
+
+	LOG(LOG_INFO, glob::addPrefix("   ", "    start ppi-server\n" + platform.str()));
+//	LOG(LOG_SERVERINFO, glob::addPrefix("   ", string("    start server-transaction\n") +
+//                                                      "       of ppi-server\n" + platform.str()));
 
 	LOG(LOG_DEBUG, "starting database");
 	starter= new CommunicationThreadStarter(0, nDbConnectors);
