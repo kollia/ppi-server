@@ -64,6 +64,39 @@ string readShell(const string& command)
 	return sRv;
 }
 
+string getProcessors()
+{
+	short count(0);
+	ifstream file;
+	string filename("/proc/stat"), line, cpu;
+	istringstream oline;
+	ostringstream oRv;
+
+	file.open(filename.c_str());
+	if(!file.is_open())
+		return "";
+	oRv.str("");
+	while(getline(file, line))
+	{
+		oline.str(line);
+		oline >> cpu;
+		if(	cpu.size() < 3 ||
+			cpu.substr(0, 3) != "cpu"	)
+		{
+			break;
+		}
+		if(	cpu.size() > 3 &&
+			cpu.substr(0, 3) == "cpu"	)
+		{
+			++count;
+		}
+	}
+	file.close();
+	if(count > 0)
+		oRv << count << " x ";
+	return oRv.str();
+}
+
 int main(int argc, char* argv[])
 {
 	/**
@@ -262,7 +295,7 @@ int main(int argc, char* argv[])
 	platform << "kernel-release:    " + readShell("uname -r 2>&1") << endl;
 	platform << "hardware-platform: " + readShell("uname -i 2>&1") << endl;
 //	platform << "machine-hardware:  " + readShell("uname -m 2>&1") << endl;
-	platform << "processor:         " + readShell("uname -p 2>&1") << endl;
+	platform << "processor:         " + getProcessors() + readShell("uname -p 2>&1") << endl;
 	platform << endl;
 	platform << "network-hostname:  " + readShell("uname -n 2>&1") << endl;
 /*	platform << endl;
