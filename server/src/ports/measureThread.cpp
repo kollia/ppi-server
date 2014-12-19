@@ -457,6 +457,29 @@ EHObj MeasureThread::init(void *arg)
 	{
 		cout << endl;
 	}
+	if(m_bNoDbReading)
+	{
+		bool exist;
+
+		/*
+		 * write for beginning new session
+		 * with no database reading
+		 * folder name into database
+		 * to know that this folder exist
+		 * write 1 when by last beginning
+		 * was written 0
+		 * and 0 when by last written 1
+		 */
+		db->writeIntoDb("folder", folder, "exist");
+		dLength= db->getActEntry(exist, "folder", folder, "exist");
+		if(!exist)
+			dLength= 0;
+		else if(dLength == 0)
+			dLength= 1;
+		else
+			dLength= 0;
+		db->fillValue("folder", folder, "exist", dLength, /*new*/true);
+	}
 	if(m_bNeedLength)
 	{
 		m_tLengthType.runlength= true;
