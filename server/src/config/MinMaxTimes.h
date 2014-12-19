@@ -27,6 +27,25 @@
 
 #include "../util/stream/ppivalues.h"
 
+/*
+ * by setting this definition
+ * do not output any
+ * regular folder, id, policy , times, ...
+ * which made by methods:
+ *           writeStarting()
+ *           writeDifference()
+ *           writeFolderSubroutine()  (not used now)
+ *           writeID()                (not used now)
+ *           listEntries()
+ *           writeStatistic()
+ *           writeEnding()
+ *  this only maybe helpful
+ *  for develop and understand
+ *  behavior of mconfig application
+ */
+//#define __NOOUTPUT_BYRUNNING
+
+
 using namespace std;
 
 	/**

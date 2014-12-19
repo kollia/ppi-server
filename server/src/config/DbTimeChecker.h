@@ -140,6 +140,10 @@ private:
 	 */
 	ppi_time m_oToTime;
 	/**
+	 * all exist folders
+	 */
+	vector<string> m_vsExistFolders;
+	/**
 	 * current kernel policy for folders
 	 */
 	map<string, double > m_mPolicy;

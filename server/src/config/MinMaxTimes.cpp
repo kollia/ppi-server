@@ -79,6 +79,10 @@ void MinMaxTimes::writeStarting() const
 {
 	const t_reachend *first;
 
+#ifdef __NOOUTPUT_BYRUNNING
+	return; // defined on header of MinMaxTimes.h
+#endif
+
 	first= &m_vReachendTimes.front();
 	cout << "Server starting on " << first->tmStart.toString(/*date*/true) << endl;
 	cout << "BEGIN time statistic on " << first->tmFetch.toString(/*date*/true) << endl;
@@ -89,6 +93,10 @@ void MinMaxTimes::writeStarting() const
 void MinMaxTimes::writeFolderSubroutine() const
 {
 	const t_reachend *first;
+
+#ifdef __NOOUTPUT_BYRUNNING
+	return; // defined on header of MinMaxTimes.h
+#endif
 
 	first= &m_vReachendTimes.back();
 	cout << "running folder '" << getFolderSubroutine() << endl;
@@ -101,6 +109,10 @@ void MinMaxTimes::writeID() const
 {
 	const t_reachend *first;
 
+#ifdef __NOOUTPUT_BYRUNNING
+	return; // defined on header of MinMaxTimes.h
+#endif
+
 	first= &m_vReachendTimes.front();
 	cout << "running folder ID " << first->ID << ":" << endl;
 	cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
@@ -109,6 +121,10 @@ void MinMaxTimes::writeID() const
 
 void MinMaxTimes::writeEnding() const
 {
+#ifdef __NOOUTPUT_BYRUNNING
+	return; // defined on header of MinMaxTimes.h
+#endif
+
 	cout << endl;
 	cout << "END time statistic by " << m_tmEndingTime.toString(/*date*/true) << endl;
 	cout << "------------------------------------------------------------------------------------" << endl;
@@ -126,6 +142,10 @@ void MinMaxTimes::writeDifference(long nblock, MinMaxTimes* pLast)
 	bool bunusedPolicy;
 	string sUnusedPolicy;
 	string sNewUsedPolicy;
+
+#ifdef __NOOUTPUT_BYRUNNING
+	return; // defined on header of MinMaxTimes.h
+#endif
 
 	m_bDifference= true;
 	ownObj= &m_vReachendTimes.front();
@@ -321,6 +341,10 @@ void MinMaxTimes::listEntries()
 	double seconds;
 	short nMaxDigits;
 	map<ppi_value, string> mTimeSort;
+
+#ifdef __NOOUTPUT_BYRUNNING
+	return; // defined on header of MinMaxTimes.h
+#endif
 
 	for(vector<t_reachend>::iterator itValue= m_vReachendTimes.begin();
 					itValue != m_vReachendTimes.end(); ++itValue)
@@ -548,6 +572,10 @@ void MinMaxTimes::writeStatistic(bool bfirst, bool bResult, const t_averageVals*
 	bool bNoOptionSet(false);
 	ppi_value nMinLength, nMaxLength;
 	ppi_value nMinEstimate, nMaxEstimate;
+
+#ifdef __NOOUTPUT_BYRUNNING
+	return; // defined on header of MinMaxTimes.h
+#endif
 
 	if(	!m_bListAll &&
 		!m_bInformLate &&

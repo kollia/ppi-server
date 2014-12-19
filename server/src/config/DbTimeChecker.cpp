@@ -435,6 +435,11 @@ DbTimeChecker::vmmdifferDef DbTimeChecker::readDatabase(InterlacedProperties* pr
 	 */
 	bool bInitialing(false);
 	/**
+	 * server read first line of initialing
+	 * where describe to exist folder
+	 */
+	bool bReadFirstExist(true);
+	/**
 	 * whether new calculation beginning
 	 * where reachend and runlength begin
 	 * with null
@@ -499,7 +504,9 @@ DbTimeChecker::vmmdifferDef DbTimeChecker::readDatabase(InterlacedProperties* pr
 
 					if(nValue == -1)
 					{
+						//cout << "new Block" << endl;
 						bInitialing= true;
+						bReadFirstExist= true;
 						tmStartingTime= line->tm;
 						string sStart(tmStartingTime.toString(true));
 
@@ -518,8 +525,39 @@ DbTimeChecker::vmmdifferDef DbTimeChecker::readDatabase(InterlacedProperties* pr
 						struct tm ttime;
 						ostringstream timemsg;
 						string sStart(tmStartingTime.toString(true));
+						map<string, double > mPolicy;
+						map<string, double > mPriority;
+
 
 						bInitialing= false;
+						/*
+						 * check now that only folders
+						 * with policy exists
+						 * which are written inside database
+						 * as exist for current session
+						 */
+						if(!m_vsExistFolders.empty())
+						{
+							vector<string>::iterator found;
+
+							for(map<string, double >::iterator it= m_mPolicy.begin();
+											it != m_mPolicy.end(); ++it				)
+							{
+								found= find(m_vsExistFolders.begin(), m_vsExistFolders.end(), it->first);
+								if(found != m_vsExistFolders.end())
+									mPolicy.insert(pair<string, double >(it->first, it->second));
+							}
+							for(map<string, double >::iterator it= m_mPriority.begin();
+											it != m_mPriority.end(); ++it				)
+							{
+								found= find(m_vsExistFolders.begin(), m_vsExistFolders.end(), it->first);
+								if(found != m_vsExistFolders.end())
+									mPriority.insert(pair<string, double >(it->first, it->second));
+							}
+							m_mPolicy= mPolicy;
+							m_mPriority= mPriority;
+						}
+
 						if(bNewBegin)
 						{
 							bNewBegin= false;
@@ -717,7 +755,16 @@ DbTimeChecker::vmmdifferDef DbTimeChecker::readDatabase(InterlacedProperties* pr
 						{
 							m_mPriority[line->subroutine]= nValue;
 
-						}else if(line->identif == "timerstat")
+						}else if(line->identif == "exist")
+						{
+							if(bReadFirstExist)
+							{
+								m_vsExistFolders.clear();
+								bReadFirstExist= false;
+							}
+							m_vsExistFolders.push_back(line->subroutine);
+
+						}if(line->identif == "timerstat")
 						{
 							m_mmTimerStat[line->folder][line->subroutine]= static_cast<short>(nValue);
 
@@ -802,6 +849,8 @@ void DbTimeChecker::writeEnding(vmmdifferDef* timeBlock, const ppi_time& time, b
 	{
 		for(mdifferDef::iterator iit= oit->second.begin(); iit != oit->second.end(); ++iit)
 		{
+		//	for(map<string, double >::iterator it= m_mPolicy.begin(); it != m_mPolicy.end(); ++it)
+		//		cout << "set policy " << it->first << endl;
 			iit->second.setPolicy(m_mPolicy, m_mPriority, m_vUsePolicy);
 			iit->second.setEndingTime(time, bCrashed);
 		}
