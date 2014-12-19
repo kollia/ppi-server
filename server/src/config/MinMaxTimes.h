@@ -281,6 +281,10 @@ using namespace std;
 		 */
 		ppi_value dAverageInforming;
 		/**
+		 * shortest time of fist informint from TIMER routine
+		 */
+		ppi_value dMinInforming;
+		/**
 		 * longest time of first informing from TIMER routine
 		 */
 		ppi_value dMaxInforming;
@@ -300,6 +304,7 @@ using namespace std;
 		  dLongEstimate(0),
 		  dAverageEstimate(0),
 		  dAverageInforming(0),
+		  dMinInforming(99999),
 		  dMaxInforming(0)
 		{};
 	};
@@ -419,6 +424,8 @@ using namespace std;
 				average->dAverageEstimate= (average->dAverageEstimate + current.wrongreach) / 2;
 				average->dAverageInforming= (average->dAverageInforming + current.informlate) / 2;
 			}
+			if(average->dMinInforming > current.informlate)
+				average->dMinInforming= current.informlate;
 			if(average->dMaxInforming < current.informlate)
 				average->dMaxInforming= current.informlate;
 			if(current.startlate > 0)
@@ -455,11 +462,46 @@ using namespace std;
 				average.dAverageEstimate= (average.dAverageEstimate + current->dAverageEstimate) / 2;
 				average.dAverageInforming= (average.dAverageInforming + current->dAverageInforming) / 2;
 			}
+			if(average.dMinInforming > current->dMinInforming)
+				average.dMinInforming= current->dMinInforming;
 			if(average.dMaxInforming < current->dMaxInforming)
 				average.dMaxInforming= current->dMaxInforming;
 			average.nStopOverrun+= current->nStopOverrun;
 			average.nOverrun+= current->nOverrun;
 		}
+		/**
+		 * get shortest informing time
+		 * of TIMER subroutine
+		 *
+		 * @param values calculated average values
+		 * @return shortest informing time
+		 */
+		ppi_value getMinInforming(const t_averageVals& values) const
+		{
+			if(values.dMinInforming == 99999)
+			{// only one time be set
+				if(m_vReachendTimes.size() == 1)
+					return m_vReachendTimes.front().informlate;
+				return 0;
+			}
+			return values.dMinInforming;
+		};
+		/**
+		 * get maximal time form first informing time of TIMER routine
+		 *
+		 * @param values calculated average values
+		 * @return maximal time
+		 */
+		ppi_value getMaxInforming(const t_averageVals& values) const
+		{
+			if(values.dMaxInforming == 0)
+			{// only one time be set
+				if(m_vReachendTimes.size() == 1)
+					return m_vReachendTimes.front().informlate;
+				return 0;
+			}
+			return values.dMaxInforming;
+		};
 		/**
 		 * get minimal length of time
 		 * after stopping
@@ -568,15 +610,7 @@ using namespace std;
 		 * @return average time
 		 */
 		ppi_value getAverageInforming(const t_averageVals& values) const
-		{ return values.dAverageEstimate; };
-		/**
-		 * get maximal time form first informing time of TIMER routine
-		 *
-		 * @param values calculated average values
-		 * @return maximal time
-		 */
-		ppi_value getMaxInforming(const t_averageVals& values) const
-		{ return values.dAverageEstimate; };
+		{ return values.dAverageInforming; };
 		/**
 		 * set current starting time of server
 		 *
