@@ -545,7 +545,17 @@ ppi_value portBase::getSubVar(const InformObject& who, const string& subvar) con
 			foundChange= m_motChangeingQuestion.find(who);
 			if(foundChange != m_motChangeingQuestion.end())
 			{
-				if(changed > foundChange->second)
+				/*
+				 * ask for different time (!=)
+				 * and not whether subroutine time
+				 * will be greater (>)
+				 * because last change time of subroutine
+				 * can be lower than a changing before
+				 * when subroutine was changed
+				 * from an subroutine with type SET
+				 * where the from properties had older changing times
+				 */
+				if(changed != foundChange->second)
 				{
 					dRv= 1;
 					foundChange->second= changed;
