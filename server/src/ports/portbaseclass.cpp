@@ -553,7 +553,9 @@ ppi_value portBase::getSubVar(const InformObject& who, const string& subvar) con
 				 * can be lower than a changing before
 				 * when subroutine was changed
 				 * from an subroutine with type SET
-				 * where the from properties had older changing times
+				 * which had the action 'fromtime'
+				 * and where this 'from' properties
+				 * had an older changing times
 				 */
 				if(changed != foundChange->second)
 				{

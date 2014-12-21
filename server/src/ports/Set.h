@@ -37,6 +37,13 @@ namespace ports
 		 * array of folder:subroutine strings to be set with value
 		 */
 		vector<string> m_vsSet;
+		/**
+		 * whether should set changing time
+		 * from 'from' property (true)
+		 * into foreign subroutine
+		 * or from begin/while/end properties (false)
+		 */
+		bool m_bFromTime;
 
 	public:
 		/**

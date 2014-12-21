@@ -53,6 +53,7 @@ namespace ports
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
 			cout << __FILE__ << __LINE__ << endl;
 		}*/
+		m_bFromTime= properties->haveAction("fromtime");
 		nFrom= properties->getPropertyCount("from");
 		nSet= properties->getPropertyCount("set");
 		sFrom= properties->needValue("from");
@@ -262,6 +263,8 @@ namespace ports
 									out() << folder << ":";
 								out() << m_vsSet[s] << "'" << endl;
 							}
+							if(!m_bFromTime)
+								oValue.setTime(switchValue.getTime());
 							port->setValue(oValue,
 											InformObject(InformObject::INTERNAL,
 															folder+":"+subroutine));
