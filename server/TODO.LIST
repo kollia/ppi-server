@@ -1,16 +1,62 @@
 
 
 toDo:
-  - writing ncursos possibility for ppi-client
-  - sending debug output over ppi-internet-server
-  - making IPv6 support
-  - making SSL support
-  - writing communication over SOCKET's
-  - making --help usage for ppi-client over own classes of MainParams and ParamCommand
+  ppi-server
+  - subroutine objects of portBaseClass has two methods (getType() and getSubroutineType())
+    which make the same things. remove one of them
+  - make also possible to starting ppi-owreader processes per time over TIMER subroutine
+  - make possible to read current subroutine time into subroutine value
+  - subroutine READ can currently only read from http connection
+    to set query string
+    make possible to read content and evaluate
+    and also to read other connection types
+    maybe read from file or from SOA for WebServices
   - writing man pages for ppi-server (maybe make possibility to write XML-files from MainParams)
+  - generate documentation over doxygen
+  - making --help usage for ppi-client over own classes of MainParams and ParamCommand
+  - writing ncursos/termbox possibility for ppi-client
+  - sending debug output over ppi-internet-server
+  - writing external port creation as plug-in by reading shared objects
+  - writing shared object libppicppclient.so similar to java class at.kolli.automation.client.ClientConnector.java
+  - write methods for ppi_time to calculate also with normally double/integer values
+    and also globally friend functions to calculate ppi_time= timeval/double/integer + ppi_time
+  - finish transforming and receiving IR commands over lirc
+  - write QUICK-GUID documentation for first starting with ppi-server
+  - make possible for ppi-internet-server to hear on both protocols (IPv4/IPv6) in same time
+  - writing communication over SOCKET's
+  - making SSL support
   - make Hudson/Jenkins testing
   - writing unit tests
+  
+  ppi-java-client
+  - refactoring hole process to an MVC-pattern
+  - create Andoid-App with project Tabris from eclipse
 
 known bugs:
+  ppi-server
+  - reading of objectID from OWFS (external port) can be refused
+  - by reading of subroutine READ when action set to hold connection
+    make some problem by reconnect or thinking connection is open
+  - error handling CommandExec->ShellWriter not correct and not documented
+  - when content of inform property for folder is fault
+    user do not see any error or warning
   - CalculatorContainer do not stopping when result is false
-    and an logical and with container follow 
+    and an logical >> and('&') <<  with container follow (see power_switch informing folder)
+  - subroutine SHELL do not use last changing time from begin/while/end parameter
+    for own changing set (and check also whether all other subroutines do right)
+  - by pressing some button in ppi-java-client but not allowed
+    client get no info to jump toggle button again back out
+    maybe set SWITCH routine back to 0 is to fast
+    and give no info to database
+  - by reading properties from measure.conf
+    server do not recognize when an parameter has an content over more rows
+    with beginning quotes, but the ending are forgotten
+    
+
+
+
+
+
+
+
+
