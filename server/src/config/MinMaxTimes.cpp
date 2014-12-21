@@ -570,6 +570,7 @@ short MinMaxTimes::countDigits(int value) const
 void MinMaxTimes::writeStatistic(bool bfirst, bool bResult, const t_averageVals* values) const
 {
 	bool bNoOptionSet(false);
+	ppi_value nMinInform, nMaxInform;
 	ppi_value nMinLength, nMaxLength;
 	ppi_value nMinEstimate, nMaxEstimate;
 
@@ -586,6 +587,8 @@ void MinMaxTimes::writeStatistic(bool bfirst, bool bResult, const t_averageVals*
 		bNoOptionSet= true;
 	}
 
+	nMinInform= getMinInforming(*values);
+	nMaxInform= getMaxInforming(*values);
 	nMinLength= getMinLength(*values);
 	nMaxLength= getMaxLength(*values);
 	nMinEstimate= getMinEstimate(*values);
@@ -608,15 +611,32 @@ void MinMaxTimes::writeStatistic(bool bfirst, bool bResult, const t_averageVals*
 	cout << endl;
 	if(nMinLength != nMaxLength)
 	{
+		if( m_bListAll ||
+			m_bInformLate ||
+			bNoOptionSet	)
+		{
+			cout << "        subroutine informing differ between " << fixed << nMinInform << " and "
+							<< fixed << nMaxInform << " seconds" << endl;
+			if(values->nCount > 1)
+			{
+				cout << "            which has a various differ of " << fixed << (nMaxInform - nMinInform)
+								<< " seconds" << endl;
+				cout << "            and has an average of " << getAverageInforming(*values)
+								<< " seconds" << endl;
+			}
+		}
 		if(	m_bListAll ||
 			m_bExactStop ||
 			bNoOptionSet	)
 		{
 			cout << "        reaching end differ from " << fixed << nMinLength << " to "
-							<< fixed << nMaxLength << " seconds " << endl;
-			cout << "            which is various differ of " << fixed << (nMaxLength - nMinLength) << " seconds" << endl;
+							<< fixed << nMaxLength << " seconds" << endl;
 			if(values->nCount > 1)
+			{
+				cout << "            which has a various differ of " << fixed << (nMaxLength - nMinLength)
+								<< " seconds" << endl;
 				cout << "            and has an average of " << getAverageLength(*values) << " seconds" << endl;
+			}
 		}
 		if(	m_bListAll ||
 			m_bEstimated ||
