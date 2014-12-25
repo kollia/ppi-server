@@ -99,10 +99,13 @@ namespace util
 		setDescription("en", "DbFiller", "sendToDatabase",
 						"by sending method @1 for @2:@3 from working list to database");
 
+		setDescription("en", "DbFillerFactory", "create_object",
+						"can not create object of DbFillerFactory\n"
+						"so fill database DIRECT which maybe cost performance");
 		setDescription("en", "DbFillerFactory", "start",
 						"by try to starting database filler factory");
 		setDescription("en", "DbFiller", "start",
-						"by try to starting database filler thread");
+						"by try to starting database filler thread for folder @1");
 
 		setDescription("en", "MeasureTread", "startInformer",
 						"by try to starting informer thread @1 for folder @2");

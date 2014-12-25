@@ -66,21 +66,33 @@ namespace util
 							cerr << glob::addPrefix("### ERROR: ", msg) << endl;
 							delete __instance;
 							__instance= NULL;
+							threads= -1;
 						}else
 						{
 							log= LOG_WARNING;
 							cout << glob::addPrefix("### ERROR: ", msg) << endl;
-							errHandle.clear();
 						}
 						LOG(log, msg);
 					}
+				}else
+				{
+					string msg;
+
+					errHandle.setError("DbFillerFactory", "create_object");
+					msg= errHandle.getDescription();
+					cout << glob::addPrefix("### ERROR: ", msg) << endl;
+					LOG(LOG_ERROR, msg);
+					threads= -1;
 				}
 			}
 			if(!errHandle.hasError())
+			{
 				oRv= __instance->createCache(threadName);
+				return oRv;
+			}
 		}
 
-		if(!errHandle.hasError())
+		if(threads < 0)
 		{
 			/*
 			 * when folder_db_threads inside server.conf
