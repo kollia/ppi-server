@@ -114,7 +114,7 @@ namespace util
 						" - folder list inform now directly other folders, which has more bad performance");
 
 		setDescription("en", "DbInterface", "sendCommand",
-						"by sending commend '@1' to database server");
+						"by sending commend '@2' to @1");
 
 		setDescription("en", "Shell", "CommandExecStartInit",
 						"by trying to start CommandExec thread for working\n"
