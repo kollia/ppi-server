@@ -366,8 +366,19 @@ bool MeasureThread::setDebug(bool bDebug, bool bInform, const string& subroutine
 		m_bDebug= false;
 	}
 	out << "-------------------------------------------------------------------" << endl;
-	tout << out.str();
-	TERMINALEND;
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+			tout << out.str();
+#ifdef __WRITEDEBUGALLLINES
+			tout << flush;
+#endif // __WRITEDEBUGALLLINES
+			TERMINALEND;
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			ppi_time cur;
+
+			cur.setActTime();
+			fillDebugSession(getFolderName(), "#setDebug", out.str(), &cur);
+#endif
 	UNLOCK(m_DEBUGLOCK);
 	return true;
 }
@@ -763,6 +774,7 @@ folderSpecNeed_t MeasureThread::isFolderRunning(const vector<string>& specs)
 IInformerCachePattern* MeasureThread::getInformerCache(const string& folder)
 {
 	IInformerCachePattern* pRv;
+	ppi_time nullTime;
 
 	pRv= getUsedInformerCache(folder);
 	if(pRv == NULL)
@@ -772,7 +784,7 @@ IInformerCachePattern* MeasureThread::getInformerCache(const string& folder)
 						SHAREDPTR::shared_ptr<MeasureInformerCache>(
 										new MeasureInformerCache(folder, this, m_oInformOutput)	)	);
 		if(getInformeThreadStatement() != "")
-			m_oInformOutput->writeDebugStream();
+			m_oInformOutput->writeDebugStream(nullTime);
 		pRv= static_cast<IInformerCachePattern*>(m_voInformerCaches.back().get());
 		UNLOCK(m_INFORMERCACHECREATION);
 	}
@@ -857,6 +869,7 @@ bool MeasureThread::execute()
 	ppi_time diff_tv;
 	ppi_time currentStart;
 	timespec waittm;
+	string debugstring;
 	vector<ppi_time>::iterator akttime, lasttime;
 
 	// Debug info before measure routine to stop by right folder
@@ -869,17 +882,50 @@ bool MeasureThread::execute()
 	{
 		if(!m_tvStartTime.setActTime())
 		{
-			tout << " ERROR: cannot calculate time of beginning" << endl;
-			tout << " " << m_tvStartTime.errorStr() << endl;
+			string str;
+
+			str=  "cannot calculate global time of beginning\n";
+			str+= " " + m_tvStartTime.errorStr() + "\n";
 			m_tvStartTime.clear();
+			TIMELOG(LOG_ERROR, "global_starttimeset", str);
+			if(debug)
+			{
+				str= glob::addPrefix("### ERROR: ", str);
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+				tout << err;
+#ifdef __WRITEDEBUGALLLINES
+				tout << flush;
+#endif // __WRITEDEBUGALLLINES
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+				debugstring+= str;
+#endif
+			}
 		}
 	}
 	if(debug)
 		doDebugStartingOutput();
 	if(!currentStart.setActTime())
 	{
-		tout << " ERROR: cannot calculate time of beginning" << endl;
-		tout << " " << currentStart.errorStr() << endl;
+		string str;
+
+		str=  "cannot calculate time of beginning\n";
+		str+= " " + m_tvStartTime.errorStr() + "\n";
+		m_tvStartTime.clear();
+		TIMELOG(LOG_ERROR, "starttimeset", str);
+		if(debug)
+		{
+			str= glob::addPrefix("### ERROR: ", str);
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+			tout << err;
+#ifdef __WRITEDEBUGALLLINES
+			tout << flush;
+#endif // __WRITEDEBUGALLLINES
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			debugstring+= str;
+#endif
+		}
 		if(m_tvStartTime.isSet())
 			currentStart= m_tvStartTime;
 		else
@@ -925,12 +971,21 @@ bool MeasureThread::execute()
 		string err("ERROR: cannot calculate ending time of hole folder list from '");
 
 		err+= getFolderName() + "'\n" + m_tvEndTime.errorStr();
+		TIMELOG(LOG_ERROR, "ending_time_" + m_sFolder, err);
 		if(debug)
 		{
-			tout << "--------------------------------------------------------------------" << endl;
-			tout << err << endl;
+			err= "-----------------------------------------------------------------"
+							"---\n" + err + "\n";
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+			tout << err;
+#ifdef __WRITEDEBUGALLLINES
+			tout << flush;
+#endif // __WRITEDEBUGALLLINES
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			debugstring+= err;
+#endif
 		}
-		TIMELOG(LOG_ERROR, "ending_time_" + m_sFolder, err);
 		m_tvEndTime.clear();
 	}
 	diff_tv.clear();
@@ -968,10 +1023,22 @@ bool MeasureThread::execute()
 		out << " folder '" << m_sFolder << "' STOP (" << m_tvEndTime.toString(/*as date*/true) << ")" ;
 		out << "  running time (" << diff_tv.toString(/*as date*/false) << ")" << endl;
 		out << "--------------------------------------------------------------------" << endl;
-		tout << out.str();
-		TERMINALEND;
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+			tout << out.str();
+#ifdef __WRITEDEBUGALLLINES
+			tout << flush;
+#endif // __WRITEDEBUGALLLINES
+			TERMINALEND;
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			debugstring+= out.str();
+			fillDebugSession(getFolderName(), "", debugstring, &m_tvEndTime);
+			debugstring= "";
+#endif
 	}
-	TERMINALEND;
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+			TERMINALEND;
+#endif
 	if(	!m_vtmNextTime.empty() ||
 		!m_osUndefServers.empty()	)
 	{
@@ -1047,7 +1114,17 @@ bool MeasureThread::execute()
 					msg+= "       waiting only for 10 seconds !!!";
 					TIMELOG(LOG_ALERT, "gettimeofday", msg);
 					if(debug)
+					{
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
 						tout << msg << endl;
+#ifdef __WRITEDEBUGALLLINES
+						tout << flush;
+#endif // __WRITEDEBUGALLLINES
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+						debugstring+= msg + "\n";
+#endif
+					}
 					UNLOCK(m_ACTIVATETIME);
 					SLEEP(10);
 					LOCK(m_ACTIVATETIME);
@@ -1096,13 +1173,25 @@ bool MeasureThread::execute()
 				{
 					if(!m_tvStartTime.setActTime())
 					{
-						string msg("### DEBUGGING for folder ");
+						string str;
 
-						msg+= m_sFolder + " is aktivated!\n";
-						msg+= "    ERROR: cannot calculate time of beginning";
-						TIMELOGEX(LOG_ERROR, m_sFolder, msg, getExternSendDevice());
+						str=  "cannot calculate global time of beginning\n";
+						str+= " " + m_tvStartTime.errorStr() + "\n";
+						m_tvStartTime.clear();
+						TIMELOG(LOG_ERROR, "global_starttimeset", str);
 						if(isDebug())
-							tout << " ERROR: cannot calculate time of beginning" << endl;
+						{
+							str= glob::addPrefix("### ERROR: ", str);
+			#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+							tout << err;
+			#ifdef __WRITEDEBUGALLLINES
+							tout << flush;
+			#endif // __WRITEDEBUGALLLINES
+			#endif
+			#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+							debugstring+= str;
+			#endif
+						}
 						m_tvStartTime.clear();
 					}
 					bRun= checkToStart(m_vInformed, debug);
@@ -1150,13 +1239,25 @@ bool MeasureThread::execute()
 			CONDITION(m_VALUECONDITION, m_ACTIVATETIME);
 			if(!m_tvStartTime.setActTime())
 			{
-				string msg("### DEBUGGING for folder ");
+				string str;
 
-				msg+= m_sFolder + " is aktivated!\n";
-				msg+= "    ERROR: cannot calculate time of beginning";
-				TIMELOGEX(LOG_ERROR, m_sFolder, msg, getExternSendDevice());
+				str=  "cannot calculate global time of beginning\n";
+				str+= " " + m_tvStartTime.errorStr() + "\n";
+				m_tvStartTime.clear();
+				TIMELOG(LOG_ERROR, "global_starttimeset", str);
 				if(isDebug())
-					tout << " ERROR: cannot calculate time of beginning" << endl;
+				{
+					str= glob::addPrefix("### ERROR: ", str);
+	#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+					tout << err;
+	#ifdef __WRITEDEBUGALLLINES
+					tout << flush;
+	#endif // __WRITEDEBUGALLLINES
+	#endif
+	#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+					debugstring+= str;
+	#endif
+				}
 			}
 			// Debug info after condition to stop by right folder
 			/*if(m_sFolder == "power_switch")
@@ -1187,6 +1288,13 @@ bool MeasureThread::execute()
 		m_tvStartTime= m_tvEndTime; // after last folder end
 		if(m_nSchedPolicy == SCHED_FIFO)
 			sched_yield();
+	}
+	if(	debug &&
+		debugstring != ""	)
+	{
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+		fillDebugSession(getFolderName(), "", debugstring, &m_tvStartTime);
+#endif
 	}
 	return true;
 }
@@ -1323,15 +1431,22 @@ void MeasureThread::doDebugStartingOutput()
 		msg+= "    ERROR: cannot calculate time of beginning";
 		TIMELOGEX(LOG_ERROR, folder, msg, getExternSendDevice());
 		if(isDebug())
-			tout << " ERROR: cannot calculate time of beginning" << endl;
+			out << " ERROR: cannot calculate time of beginning" << endl;
 		timerclear(&m_tvStartTime);
-
 	}
 	out << " folder START by (";
 	out << m_tvEndTime.toString(/*as date*/true) << ")" << endl;
 	out << "--------------------------------------------------------------------" << endl;
-	tout << out.str();
-	TERMINALEND;
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+			tout << out.str();
+#ifdef __WRITEDEBUGALLLINES
+			tout << flush;
+#endif // __WRITEDEBUGALLLINES
+			TERMINALEND;
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			fillDebugSession(getFolderName(), "", out.str(), &m_tvEndTime);
+#endif
 }
 
 bool MeasureThread::checkToStart(vector<InformObject>& vInformed, const bool debug)
@@ -1457,9 +1572,16 @@ bool MeasureThread::checkToStart(vector<InformObject>& vInformed, const bool deb
 		}//if(debug)
 	}//foreach(mInformed)
 	if(debug)
+	{
 		out << "--------------------------------------------------------------------" << endl;
-	tout << out.str();
-	TERMINALEND;
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+			tout << out.str();
+			TERMINALEND;
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			fillDebugSession(getFolderName(), "#inform", out.str(), &m_tvStartTime);
+#endif
+	}
 	return bDoStart;
 }
 
@@ -1676,7 +1798,7 @@ bool MeasureThread::measure()
 		if(classdebug)
 		{
 			it->portClass->out() << "--------------------------------------------------------------------\n";
-			it->portClass->writeDebugStream();
+			it->portClass->writeDebugStream(tv_start);
 			TERMINALEND;
 		}
 		if(stopping())

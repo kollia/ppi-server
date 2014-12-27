@@ -61,7 +61,7 @@ namespace ppi_database
 		 * @param sProcess name of process current starting.<br />when server is started string should be &quote;finished&quote;
 		 * @param nPercent how much percent of process level be done
 		 */
-		virtual void setServerConfigureStatus(const string& sProcess, const short& nPercent);
+		OVERWRITE void setServerConfigureStatus(const string& sProcess, const short& nPercent);
 		/**
 		 * whether ppi-server is configured
 		 *
@@ -69,19 +69,19 @@ namespace ppi_database
 		 * @param nPercent gives back percent of process level be done
 		 * @return whether server was started
 		 */
-		virtual bool isServerConfigured(string& sProcess, short& nPercent);
+		OVERWRITE bool isServerConfigured(string& sProcess, short& nPercent);
 		/**
 		 * read database on hard disk
 		 *
 		 * @param load show loading progress on command line
 		 * @return whether can read or create database
 		 */
-		virtual bool read(bool load= false);
+		OVERWRITE bool read(bool load= false);
 		/**
 		 * read all content from database
 		 * to get with method <code>getReadSubBlock()</code>
 		 */
-		virtual void readAllContent()
+		OVERWRITE void readAllContent()
 		{ m_bReadContent= true; };
 		/**
 		 * read all actually state of subroutine inside given subroutines fromsub with value from
@@ -93,14 +93,14 @@ namespace ppi_database
 		 * @param to value of subroutine by ending
 		 * @param ncount size of needed blocks
 		 */
-		virtual void readInsideSubroutine(const string& fromsub, const double from, const string& tosub,
+		OVERWRITE void readInsideSubroutine(const string& fromsub, const double from, const string& tosub,
 						const double to, const unsigned short ncount);
 		/**
 		 * return read block of subroutine from before defined reading of begin and end.
 		 *
 		 * @return block of subroutines
 		 */
-		virtual vector<vector<db_t> > getReadSubBlock()
+		OVERWRITE vector<vector<db_t> > getReadSubBlock()
 				{ return m_vvDbEntrys; };
 		/**
 		 * read all actually state of subroutine inside value from and to
@@ -110,7 +110,7 @@ namespace ppi_database
 		 * @param to value of subroutine to end
 		 * @param ncount size of needed blocks
 		 */
-		virtual void readInsideSubroutine(const string& sub, const double from, const double to, const unsigned short ncount)
+		OVERWRITE void readInsideSubroutine(const string& sub, const double from, const double to, const unsigned short ncount)
 		{ readInsideSubroutine(sub, from, sub, to, ncount); };
 		/**
 		 * define which chip OwPort will be use to inform when content on server (owreader) change value
@@ -120,7 +120,7 @@ namespace ppi_database
 		 * @param onServer name of server from which is using chip
 		 * @param chip unique definition of chip
 		 */
-		virtual void useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip);
+		OVERWRITE void useChip(const string& folder, const string& subroutine, const string& onServer, const string& chip);
 		/**
 		 * function set, whether need value in database,
 		 * or will be only set to inform clients for changes
@@ -129,7 +129,7 @@ namespace ppi_database
 		 * @param subroutine mame of the subroutine in the folder
 		 * @param identif identification of writing value
 		 */
-		virtual void writeIntoDb(const string& folder, const string& subroutine, const string& identif= "value");
+		OVERWRITE void writeIntoDb(const string& folder, const string& subroutine, const string& identif= "value");
 		/**
 		 * database service for which changes in subroutines are needed.<br />
 		 * this method define for any specific client which subroutines in folder it does
@@ -139,7 +139,7 @@ namespace ppi_database
 		 * @param name folder and subroutine which are needed, or string 'newentry' if need an new pool of subroutines
 		 * @return whether the subroutine exists
 		 */
-		virtual bool needSubroutines(unsigned long connection, string name);
+		OVERWRITE bool needSubroutines(unsigned long connection, string name);
 		/**
 		 * database service for all changes in subroutines.<br />
 		 * this method returning all changes which are defined with <code>needSubroutines()</code>
@@ -147,7 +147,7 @@ namespace ppi_database
 		 * @param connection id of server connection with client
 		 * @return all changed values
 		 */
-		virtual vector<string> getChangedEntrys(unsigned long connection);
+		OVERWRITE vector<string> getChangedEntrys(unsigned long connection);
 		/**
 		 * set the entry to an measure curve which be
 		 * defined in db_t::identif as <code>def:&lt;curvetype;:&lt;folder&gt;:&lt;subroutine;</code>
@@ -165,7 +165,7 @@ namespace ppi_database
 		 * @param number count of double value which is required
 		 * @return current value of given parameters
 		 */
-		virtual auto_ptr<double> getActEntry(const string& folder, const string& subroutine, const string& identif,
+		OVERWRITE auto_ptr<double> getActEntry(const string& folder, const string& subroutine, const string& identif,
 																			const vector<double>::size_type number= 0);
 		/**
 		 * ask whether entry of folder:subroutine exist
@@ -176,7 +176,7 @@ namespace ppi_database
 		 * @param number count of double value which is required
 		 * @return 5 when device exists correctly, 4 when no physical access exist, 3 when number of value count not exist, 2 when value with identifier not exist, 1 if subroutine not exist and 0 when folder not exist
 		 */
-		virtual unsigned short existEntry(const string& folder, const string& subroutine, const string& identif,
+		OVERWRITE unsigned short existEntry(const string& folder, const string& subroutine, const string& identif,
 																const vector<double>::size_type number= 0);
 		/**
 		 * change the communication ID to an new one
@@ -184,19 +184,19 @@ namespace ppi_database
 		 * @param oldId old communication ID
 		 * @param newId new communication ID
 		 */
-		virtual void changeNeededIds(unsigned long oldId, unsigned long newId);
+		OVERWRITE void changeNeededIds(unsigned long oldId, unsigned long newId);
 		/**
 		 * whether one or more entry's are changed.<br />
 		 * method hold thread in process and return without any result
 		 * when any entry was changed
 		 */
-		virtual void isEntryChanged();
+		OVERWRITE void isEntryChanged();
 		/**
 		 * arouse all condition witch wait of any changes in database.<br />
 		 * This method will be called when any connection from Internet process will be break,
 		 * to ending also this asking connection.
 		 */
-		virtual void arouseChangingPoolCondition();
+		OVERWRITE void arouseChangingPoolCondition();
 		/**
 		 * returns two convert values which have between the given value
 		 *
@@ -205,7 +205,7 @@ namespace ppi_database
 		 * @param value the value which should be between the returned two values
 		 * @return vector of two convert values
 		 */
-		virtual vector<convert_t> getNearest(string subroutine, string definition, double value);
+		OVERWRITE vector<convert_t> getNearest(string subroutine, string definition, double value);
 		/**
 		 * return all folder with subroutines which are use the defined chip
 		 *
@@ -213,7 +213,7 @@ namespace ppi_database
 		 * @param chip the unique define chip
 		 * @return map of folder with subroutines
 		 */
-		virtual map<string, set<string> >* getSubroutines(const string& onServer, const string& chip);
+		OVERWRITE map<string, set<string> >* getSubroutines(const string& onServer, const string& chip);
 		/**
 		 * fill double value into database
 		 *
@@ -229,7 +229,25 @@ namespace ppi_database
 		 * @param values vector of value which should write into database
 		 * @param bNew whether database should actualize value for client default= false
 		 */
-		virtual void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= false);
+		OVERWRITE void fillValue(string folder, string subroutine, string identif,
+						vector<double> values, bool bNew= false);
+		/**
+		 * fill debug session output from folder working list
+		 * into database
+		 *
+		 * @param folder name of debugging folder
+		 * @param subroutine name of debugging subroutine
+		 * @param content output string of debug session
+		 * @param time on which time subroutine proceed
+		 */
+		OVERWRITE void fillDebugSession(const string& folder, const string& subroutine,
+						const string& content, const ppi_time& time);
+		/**
+		 * return queue of hole written debug sessions
+		 *
+		 * @return debug sessions
+		 */
+		OVERWRITE std::auto_ptr<map<string, map<pair<ppi_time, string>, string > > > getDebugSessionQueue();
 		/**
 		 * method to running thread .<br />
 		 * This method starting again when method stop() wasn't call.
@@ -241,17 +259,17 @@ namespace ppi_database
 		 * stop working of database,
 		 * arose all conditions
 		 */
-		virtual bool stop();
+		OVERWRITE bool stop();
 		/**
 		 * method to ending the thread.<br />
 		 * This method will be called if any other or own thread
 		 * calling method stop().
 		 */
-		virtual void ending();
+		OVERWRITE void ending();
 		/**
 		 * destruktor of database
 		 */
-		virtual ~Database();
+		OVERWRITE ~Database();
 
 	protected:
 		/**
@@ -333,6 +351,10 @@ namespace ppi_database
 		 */
 		pthread_mutex_t* m_STOPDB;
 		/**
+		 * mutex of debug session queue
+		 */
+		pthread_mutex_t* m_DEBUGSESSIONQUEMUTEX;
+		/**
 		 * whether database should stopping
 		 */
 		bool m_bDbStop;
@@ -361,6 +383,15 @@ namespace ppi_database
 		 * current state of values
 		 */
 		map<string, map<string, map<string, db_t> > > m_mCurrent;
+		/**
+		 * connection which is allowed
+		 * to reading debug session info
+		 */
+		unsigned long m_nCurDbgSessConnection;
+		/**
+		 * queue of debug session output info
+		 */
+		std::auto_ptr<map<string, map<pair<ppi_time, string>, string > > > m_apmtDebugSession;
 		/**
 		 * variable is set if the database file cannot write.<br />
 		 * The base of case is to write the errormessage only on one time.

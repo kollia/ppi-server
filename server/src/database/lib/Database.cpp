@@ -66,6 +66,7 @@ namespace ppi_database
 		m_bDbStop= false;
 		m_bReadContent= false;
 		m_sConfigureLevel= "NONE";
+		m_nCurDbgSessConnection= 0;
 		prop= "newdbafter";
 		newdbafter= (float)properties->getDouble(prop);
 		if(newdbafter == 0)
@@ -77,6 +78,7 @@ namespace ppi_database
 			m_sMeasureName= string(pHostN);
 		m_sptEntrys= auto_ptr<vector<db_t> >(new vector<db_t>());
 		m_apmmtValueEntrys= auto_ptr<map<string, map<string, db_t> > >(new map<string, map<string, db_t> > ());
+		m_apmtDebugSession= auto_ptr<map<string, map<pair<ppi_time, string>, string > > >(new map<string, map<pair<ppi_time, string>, string > >());
 		m_SERVERSTARTINGMUTEX= Thread::getMutex("SERVERSTARTINGMUTEX");
 		m_DBWRITINGALLOWED= Thread::getMutex("DBWRITINGALLOWED");
 		m_DBENTRYITEMSCOND= Thread::getCondition("DBENTRYITEMSCOND");
@@ -85,6 +87,7 @@ namespace ppi_database
 		m_DBMEASURECURVES= Thread::getMutex("DBMEASURECURVES");
 		m_CHANGINGPOOL= Thread::getMutex("CHANGINGPOOL");
 		m_CHANGINGPOOLCOND= Thread::getCondition("CHANGINGPOOLCOND");
+		m_DEBUGSESSIONQUEMUTEX= Thread::getMutex("DEBUGSESSIONQUEMUTEX");
 		m_STOPDB= Thread::getMutex("STOPDB");
 		m_nAfter= (unsigned int)(newdbafter * 1024 * 1024);// calculation for bytes
 		m_bAnyChanged= false;
@@ -860,6 +863,9 @@ namespace ppi_database
 
 				info << "read_owserver_debuginfo " << i->tm.tv_sec;
 				vsRv.push_back(info.str());
+			}else if(i->identif == "#debugsession")
+			{
+				vsRv.push_back("debugsession");
 			}else
 			{
 				if(	i->folder == ""
@@ -1074,8 +1080,22 @@ namespace ppi_database
 		map<unsigned long, vector<db_t> >::iterator changeIt;
 		vector<string> split;
 
-		if(	name == "newentrys"
-			||
+		if(	name == "stopclient" ||
+			name == "#stopdebugsession"	)
+		{
+			bool bStopped(false);
+
+			LOCK(m_DEBUGSESSIONQUEMUTEX);
+			if(m_nCurDbgSessConnection == connection)
+			{
+				m_nCurDbgSessConnection= 0;
+				bStopped= true;
+			}
+			UNLOCK(m_DEBUGSESSIONQUEMUTEX);
+			if(name == "#stopdebugsession")
+				return bStopped;
+		}
+		if(	name == "newentrys" ||
 			name == "stopclient"	)
 		{
 			LOCK(m_CHANGINGPOOL);
@@ -1125,6 +1145,20 @@ namespace ppi_database
 			m_bAnyChanged= true;
 			UNLOCK(m_CHANGINGPOOL);
 			return true;
+
+		}else if(name == "#debugsession")
+		{
+			bool bRv(true);
+
+			LOCK(m_DEBUGSESSIONQUEMUTEX);
+			if(m_nCurDbgSessConnection != 0)
+			{
+				if(m_nCurDbgSessConnection != connection)
+					bRv= false;
+			}else
+				m_nCurDbgSessConnection= connection;
+			UNLOCK(m_DEBUGSESSIONQUEMUTEX);
+			return bRv;
 		}
 		split= ConfigPropertyCasher::split(name, ":");
 		if(split.size() != 2)
@@ -1621,6 +1655,75 @@ namespace ppi_database
 		return pRv;
 	}
 
+	void Database::fillDebugSession(const string& folder, const string& subroutine,
+					const string& content, const ppi_time& time)
+	{
+		unsigned long nConnection;
+		db_t tChangPool;
+		pair<ppi_time, string> timeSub(time, subroutine);
+		map<string, map<pair<ppi_time, string>, string > >::iterator foundFolder;
+		map<pair<ppi_time, string>, string >::iterator foundTimer;
+		map<unsigned long, vector<db_t> >::iterator foundCon;
+		vector<db_t>::iterator foundEntry;
+
+		LOCK(m_DEBUGSESSIONQUEMUTEX);
+		nConnection= m_nCurDbgSessConnection;
+		if(nConnection > 0)
+		{
+			foundFolder= m_apmtDebugSession->find(folder);
+			if(foundFolder != m_apmtDebugSession->end())
+			{
+				foundTimer= foundFolder->second.find(timeSub);
+				if(foundTimer != foundFolder->second.end())
+				{
+					foundTimer->second+= content;
+				}else
+					(*m_apmtDebugSession)[folder][timeSub]= content;
+			}else
+				(*m_apmtDebugSession)[folder][timeSub]= content;
+		}else
+			m_apmtDebugSession->clear();
+		UNLOCK(m_DEBUGSESSIONQUEMUTEX);
+		if(nConnection == 0)
+			return;
+
+		tChangPool.identif= "#debugsession";
+		tChangPool.bNew= true;
+		tChangPool.device= false;
+		tChangPool.tm.tv_sec= 0;
+		tChangPool.tm.tv_usec= 0;
+		LOCK(m_CHANGINGPOOL);
+		foundCon= m_mvoChanges.find(nConnection);
+		if(foundCon != m_mvoChanges.end())
+		{
+			foundEntry= find(foundCon->second.begin(), foundCon->second.end(), &tChangPool);
+			if(foundEntry == foundCon->second.end())
+				foundCon->second.push_back(tChangPool);
+		}else
+		{
+			vector<db_t> entry;
+
+			entry.push_back(tChangPool);
+			m_mvoChanges[nConnection]= entry;
+		}
+		AROUSEALL(m_CHANGINGPOOLCOND);
+		m_bAnyChanged= true;
+		UNLOCK(m_CHANGINGPOOL);
+	}
+
+	std::auto_ptr<map<string, map<pair<ppi_time, string>, string > > > Database::getDebugSessionQueue()
+	{
+		std::auto_ptr<map<string, map<pair<ppi_time, string>, string > > > mmRv;
+
+		LOCK(m_DEBUGSESSIONQUEMUTEX);
+		mmRv= m_apmtDebugSession;
+		m_apmtDebugSession= auto_ptr<map<string, map<pair<
+						ppi_time, string>, string > > >
+							(new map<string, map<pair<ppi_time, string>, string > >());
+		UNLOCK(m_DEBUGSESSIONQUEMUTEX);
+		return mmRv;
+	}
+
 	bool Database::execute()
 	{
 		bool bNewValue;
@@ -1753,5 +1856,6 @@ namespace ppi_database
 		DESTROYCOND(m_DBENTRYITEMSCOND);
 		DESTROYCOND(m_CHANGINGPOOLCOND);
 		DESTROYMUTEX(m_STOPDB);
+		DESTROYMUTEX(m_DEBUGSESSIONQUEMUTEX);
 	}
 }

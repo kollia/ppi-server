@@ -212,6 +212,18 @@ class MeasureThread : 	public Thread,
 						const vector<double>& dvalues, bool bNew= false)
 		{ m_oDbFiller->fillValue(folder, subroutine, identif, dvalues, bNew); };
 		/**
+		 * fill debug session output from folder working list
+		 * into database
+		 *
+		 * @param folder name of debugging folder
+		 * @param subroutine name of debugging subroutine
+		 * @param content output string of debug session
+		 * @param time on which time subroutine proceed
+		 */
+		OVERWRITE void fillDebugSession(const string& folder, const string& subroutine,
+						const string& content, const IPPITimePattern* time)
+		{ m_oDbFiller->fillDebugSession(folder, subroutine, content, time); };
+		/**
 		 * return actually count of current subroutine
 		 *
 		 * @param subroutine whitch count should be returned when set, elsewhere create new counts

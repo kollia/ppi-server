@@ -19,12 +19,33 @@
 
 
 /**********************************************************************************
+ * whether should do debug session output by
+ *    debugsession_SERVER  -  on command line where server starting
+ *    debugsession_CLIENT  -  send debug output over internet-server to client
+ *    debugsession_BOTH    -  output for SERVER and also CLIENT
+ */
+#define debugsession_SERVER 1
+#define debugsession_CLIENT 2
+#define debugsession_BOTH   3
+//----------------------------
+#ifndef __DEBUGSESSIONOutput
+#define __DEBUGSESSIONOutput  debugsession_CLIENT
+#endif // __DEBUGSESSIONOutput
+
+/**********************************************************************************
  * write subroutine debug output for all lines (necessary for debugging),
  * otherwise write all subroutines output as block after passing
  * (only when subroutine defined as debug session)
  */
 #ifndef __WRITEDEBUGALLLINES
 //#define __WRITEDEBUGALLLINES
+
+#ifdef __WRITEDEBUGALLLINES
+#if (__DEBUGSESSIONOutput == "client")
+#undef __DEBUGSESSIONOutput
+#define __DEBUGSESSIONOutput "both"
+#endif
+#endif // __WRITEDEBUGALLLINES
 #endif // __WRITEDEBUGALLLINES
 
 /**********************************************************************************
@@ -76,6 +97,7 @@
 #define __followSETbehaviorToFolder "power_switch_set"
 #define __followSETbehaviorToSubroutine ""
 #endif // __followSETbehaviorFrom
+
 
 #endif /*DEBUGSUBROUTINES_H_*/
 

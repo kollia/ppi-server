@@ -21,9 +21,12 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+#include "../util/stream/ppivalues.h"
+
 #include "../util/thread/Terminal.h"
 
 #include "../util/exception.h"
+#include "../util/debugsubroutines.h"
 
 #include "Informer.h"
 
@@ -127,18 +130,26 @@ namespace util
 		if(	threadId > 0 &&
 			folders.size() > 0	)
 		{
+			output << "////////////////////////////////////////" << endl;
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
 			bool registeredThread;
 
-			output << "////////////////////////////////////////" << endl;
 			registeredThread= Terminal::instance()->isRegistered(threadId);
 #ifndef TERMINALOUTPUT_ONLY_THRADIDS
 			*Terminal::instance()->out(threadId) << output.str();
 			if(!registeredThread)
 				Terminal::instance()->end(threadId);
-#else
+#else // TERMINALOUTPUT_ONLY_THRADIDS
 			*Terminal::instance()->out(__FILE__, __LINE__, threadId) << output.str();
 			if(!registeredThread)
 				Terminal::instance()->end(__FILE__, __LINE__, threadId);
+#endif // TERMINALOUTPUT_ONLY_THRADIDS
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			ppi_time cur;
+
+			cur.setActTime();
+			m_poMeasurePattern->fillDebugSession(m_sFolder, as, output.str(), &cur);
 #endif
 		}
 		UNLOCK(lock);

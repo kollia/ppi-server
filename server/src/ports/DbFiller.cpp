@@ -38,26 +38,31 @@ namespace util
 	{
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > pMsgQueue;
 		SHAREDPTR::shared_ptr<map<string, db_t>  > pDbQueue;
+		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > > pDebugQueue;
 
 		LOCK(m_SENDQUEUELOCK);
 		while(!m_bHasContent)
 			CONDITION(m_SENDQUEUECONDITION, m_SENDQUEUELOCK);
 		UNLOCK(m_SENDQUEUELOCK);
 
-		m_oCache.getContent(pDbQueue, pMsgQueue);
+		m_oCache.getContent(pDbQueue, pMsgQueue, pDebugQueue);
 		// write all values with identif 'value' from command fillValue()
 		if(	!pDbQueue->empty() ||
-			!pMsgQueue->empty()		)
+			!pMsgQueue->empty()	||
+			!pDebugQueue->empty()	)
 		{
-			sendDirect(pDbQueue, pMsgQueue);
+			sendDirect(pDbQueue, pMsgQueue, pDebugQueue);
 		}
 		return true;
 	}
 
 	void DbFiller::sendDirect(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
-					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue)
+					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
+					SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue)
 	{
 		typedef map<string, db_t>::iterator subIt;
+		typedef map<string, map<pair<ppi_time, string>, string > >::iterator debugIt;
+		typedef map<pair<ppi_time, string>, string >::iterator debugInnerIt;
 		bool bError(false);
 		DbInterface* db;
 		vector<sendingInfo_t>::iterator msgPos;
@@ -109,6 +114,54 @@ namespace util
 		}
 		if(!bError)
 		{
+			for(debugIt dIt= debugQueue->begin(); dIt != debugQueue->end(); ++dIt)
+			{
+				for(debugInnerIt dIIt= dIt->second.begin(); dIIt != dIt->second.end(); ++dIIt)
+				{
+					OMethodStringStream command("fillDebugSession");
+
+					command << dIt->first;
+					command << dIIt->first.second;
+					command << dIIt->second;
+					command << dIIt->first.first;
+					answer= db->sendMethodD("ppi-db-server", command, "", /*answer*/true);
+					for(vector<string>::iterator answ= answer.begin(); answ != answer.end(); ++answ)
+					{
+						err.setErrorStr(*answ);
+						if(err.fail())
+						{// ending only by errors (no warnings)
+							int log;
+							string msg;
+
+							err.addMessage("DbFiller", "sendToDatabase", command.getMethodName()
+											+ "@" + dIt->first + "@" + dIIt->first.second);
+							msg= err.getDescription();
+							if(err.hasError())
+							{
+								log= LOG_ERROR;
+								cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+							}else
+							{
+								log= LOG_WARNING;
+								cout << glob::addPrefix("### WARNING: ", msg) << endl;
+							}
+							LOGEX(log, msg, &m_oCache);
+							if(log == LOG_ERROR)
+							{
+								bError= true;
+								break;
+							}
+						}
+					}
+					if(bError)
+						break;
+				}
+				if(bError)
+					break;
+			}
+		}
+		if(!bError)
+		{
 			for(msgPos= msgQueue->begin(); msgPos != msgQueue->end(); ++msgPos)
 			{
 				OMethodStringStream method(msgPos->method);
@@ -156,9 +209,10 @@ namespace util
 	}
 
 	void DbFiller::getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
-					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue)
+					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
+					SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue)
 	{
-		m_oCache.getContent(dbQueue, msgQueue);
+		m_oCache.getContent(dbQueue, msgQueue, debugQueue);
 	}
 
 	EHObj DbFiller::stop(const bool *bWait/*= NULL*/)

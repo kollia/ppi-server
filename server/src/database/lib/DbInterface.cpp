@@ -326,6 +326,58 @@ namespace ppi_database
 		}
 	}
 
+	void DbInterface::fillDebugSession(const string& folder, const string& subroutine,
+					const string& content, const ppi_time& time)
+	{
+		string msg;
+		SocketErrorHandling err;
+		OMethodStringStream command("fillDebugSession");
+
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		err.setErrorStr(msg);
+		if(err.fail())
+		{
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			msg= err.getDescription();
+			if(err.hasError())
+			{
+				LOG(LOG_ERROR, msg);
+				cerr << glob::addPrefix("### ERROR:", msg) << endl;
+			}else
+			{
+				LOG(LOG_WARNING, msg);
+				cout << glob::addPrefix("### WARNING:", msg) << endl;
+			}
+		}
+	}
+
+	vector<string> DbInterface::getDebugSessionQueue()
+	{
+		SocketErrorHandling err;
+		vector<string> vRv;
+		OMethodStringStream command("getDebugSessionQueue");
+
+		vRv= ExternClientInputTemplate::sendMethod("ppi-db-server", command, "done", true);
+		err.searchResultError(vRv);
+		if(err.fail())
+		{
+			string sRv;
+
+			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());
+			sRv= err.getDescription();
+			if(err.hasError())
+			{
+				LOG(LOG_ERROR, sRv);
+				cerr << glob::addPrefix("### ERROR:", sRv) << endl;
+			}else
+			{
+				LOG(LOG_WARNING, sRv);
+				cout << glob::addPrefix("### WARNING:", sRv) << endl;
+			}
+		}
+		return vRv;
+	}
+
 	string DbInterface::isEntryChanged()
 	{
 		string msg;

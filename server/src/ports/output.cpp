@@ -162,7 +162,9 @@ namespace ports
 	{
 		bool bDebug(isDebug()), ownDebug;
 		auto_ptr<IValueHolderPattern> oMeasureValue;
+		ppi_time startTime;
 
+		startTime.setActTime();
 		oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 		LOCK(m_DEBUG);
 		ownDebug= m_bDebug;
@@ -209,7 +211,7 @@ namespace ports
 				out() << outStr.str() << endl;
 				if(!bDebug)
 				{
-					writeDebugStream();
+					writeDebugStream(startTime);
 					TERMINALEND;
 				}
 			}

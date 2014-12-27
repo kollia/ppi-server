@@ -159,6 +159,92 @@ namespace util
 		fillValue(folder, subroutine, identif, values, bNew);
 	}
 
+	void DbFillerCache::fillDebugSession(const string& folder, const string& subroutine,
+					const string& content, const IPPITimePattern* ptime)
+	{
+		DbInterface* db;
+		OMethodStringStream command("fillValue");
+		map<string, db_t>::iterator foundSub;
+		sendingInfo_t sendInfo;
+		db_t newEntry;
+		ppi_time time(*ptime);
+
+		if(m_bisRunn)
+		{
+//#define __showLOCK
+#ifdef __showLOCK
+			if(getThreadName() == "DbFillerThread_for_Raff1_Zeit")
+			{
+				ostringstream out;
+				out << " Raff1_Zeit LOCK for filling " << identif << " ";
+				for(vector<double>::const_iterator i= dvalues.begin(); i != dvalues.end(); ++i)
+					out << *i << " ";
+				out << " into " << folder << ":" << subroutine << endl;
+				cout << out.str();
+			}
+#endif // __showLOCK
+
+			bool bFillFirstContainer(true);
+			pair<ppi_time, string> timeSub(time, subroutine);
+			map<string, map<pair<ppi_time, string>, string > >::iterator foundFolder;
+			map<pair<ppi_time, string>, string >::iterator foundTimer;
+
+			if(m_pHasContent == NULL)
+			{
+				/*
+				 * cache running with dbFiller ONE
+				 * defined inside server.conf
+				 *
+				 * when dbFiller thread lock currently SENDQUELOCK2
+				 * dbFiller thread was before inside SENDQUELOCK1
+				 * and this locking array should be free now
+				 * fill into m_apmtDebugSession1 container
+				 * otherwise into m_apmtDebugSession2
+				 */
+				if(TRYLOCK(m_SENDQUEUELOCK2) == 0)
+				{
+					foundFolder= m_apmtDebugSession2->find(folder);
+					if(foundFolder != m_apmtDebugSession2->end())
+					{
+						foundTimer= foundFolder->second.find(timeSub);
+						if(foundTimer != foundFolder->second.end())
+						{
+							foundTimer->second+= content;
+						}else
+							(*m_apmtDebugSession2)[folder][timeSub]= content;
+					}else
+						(*m_apmtDebugSession2)[folder][timeSub]= content;
+					UNLOCK(m_SENDQUEUELOCK2);
+					bFillFirstContainer= false;
+				}
+			}
+			if(bFillFirstContainer)
+			{
+				LOCK(m_SENDQUEUELOCK1);
+				foundFolder= m_apmtDebugSession1->find(folder);
+				if(foundFolder != m_apmtDebugSession1->end())
+				{
+					foundTimer= foundFolder->second.find(timeSub);
+					if(foundTimer != foundFolder->second.end())
+					{
+						foundTimer->second+= content;
+					}else
+						(*m_apmtDebugSession1)[folder][timeSub]= content;
+				}else
+					(*m_apmtDebugSession1)[folder][timeSub]= content;
+				if(m_pHasContent)
+					*m_pHasContent= true;
+				UNLOCK(m_SENDQUEUELOCK1);
+			}
+			if(m_dbInform)
+				m_dbInform->informDatabase();
+		}else
+		{
+			db= DbInterface::instance();
+			db->fillDebugSession(folder, subroutine, content, time);
+		}
+	}
+
 	void DbFillerCache::fillValue(const string& folder, const string& subroutine, const string& identif,
 					const vector<double>& dvalues, bool bNew/*= false*/)
 	{
@@ -301,22 +387,35 @@ namespace util
 		return handle;
 	}
 
-	void DbFillerCache::getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
-					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue)
+	void DbFillerCache::getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& valQueue,
+					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
+					SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue)
 	{
+		typedef map<string, map<pair<ppi_time, string>, string > >::iterator folderQueueIt;
+		typedef map<pair<ppi_time, string>, string >::iterator timerQueueIt;
+
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > newMsgQueue1(new vector<sendingInfo_t>());
-		SHAREDPTR::shared_ptr<map<string, db_t>  > newValueEntrys1(new map<string, db_t>());
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > newMsgQueue2(new vector<sendingInfo_t>());
+		SHAREDPTR::shared_ptr<map<string, db_t>  > newValueEntrys1(new map<string, db_t>());
 		SHAREDPTR::shared_ptr<map<string, db_t>  > newValueEntrys2(new map<string, db_t>());
-		SHAREDPTR::shared_ptr<map<string, db_t> > dbQueue2;
+		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >
+									newDebugQueue1(new map<string, map<pair<ppi_time, string>, string > >());
+		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >
+									newDebugQueue2(new map<string, map<pair<ppi_time, string>, string > >());
+		SHAREDPTR::shared_ptr<map<string, db_t> > valQueue2;
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > msgQueue2;
+		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > > debugQueue2;
+		folderQueueIt foundFolder;
+		timerQueueIt foundTimer;
 		map<string, db_t>::iterator found;
 
 		LOCK(m_SENDQUEUELOCK1);
 		msgQueue= m_vsSendingQueue1;
 		m_vsSendingQueue1= newMsgQueue1;
-		dbQueue= m_apmtValueEntrys1;
+		valQueue= m_apmtValueEntrys1;
 		m_apmtValueEntrys1= newValueEntrys1;
+		debugQueue= m_apmtDebugSession1;
+		m_apmtDebugSession1= newDebugQueue1;
 		if(m_pHasContent)
 			*m_pHasContent= false;
 		UNLOCK(m_SENDQUEUELOCK1);
@@ -335,21 +434,40 @@ namespace util
 		LOCK(m_SENDQUEUELOCK2);
 		msgQueue2= m_vsSendingQueue2;
 		m_vsSendingQueue2= newMsgQueue2;
-		dbQueue2= m_apmtValueEntrys2;
+		valQueue2= m_apmtValueEntrys2;
 		m_apmtValueEntrys2= newValueEntrys2;
+		debugQueue2= m_apmtDebugSession2;
+		m_apmtDebugSession2= newDebugQueue2;
 		UNLOCK(m_SENDQUEUELOCK2);
 
-		for(map<string, db_t>::iterator it= dbQueue2->begin(); it != dbQueue2->end(); ++it)
+		for(map<string, db_t>::iterator it= valQueue2->begin(); it != valQueue2->end(); ++it)
 		{
-			found= dbQueue->find(it->first);
-			if(found != dbQueue->end())
+			found= valQueue->find(it->first);
+			if(found != valQueue->end())
 			{	// overwrite entry only when have newer time
 				if(ppi_time(it->second.tm) > found->second.tm)
-					(*dbQueue)[it->first]= it->second;
+					(*valQueue)[it->first]= it->second;
 			}else // or do not exist
-				(*dbQueue)[it->first]= it->second;
+				(*valQueue)[it->first]= it->second;
 		}
 		msgQueue->insert(msgQueue->end(), msgQueue2->begin(), msgQueue2->end());
+		for(folderQueueIt it= debugQueue2->begin(); it != debugQueue2->end(); ++it)
+		{
+			foundFolder= debugQueue->find(it->first);
+			if(foundFolder != debugQueue->end())
+			{
+				for(timerQueueIt tit= it->second.begin(); tit != it->second.end(); ++tit)
+				{
+					foundTimer= foundFolder->second.find(tit->first);
+					if(foundTimer != foundFolder->second.end())
+					{
+						foundTimer->second+= tit->second;
+					}else
+						(*debugQueue)[it->first][tit->first]= tit->second;
+				}
+			}else
+				debugQueue->insert(*it);
+		}
 	}
 
 } /* namespace util */

@@ -32,6 +32,7 @@
 #include "../../util/structures.h"
 
 #include "../../util/stream/ErrorHandling.h"
+#include "../../util/stream/IParameterStringStream.h"
 
 #include "ClientTransaction.h"
 
@@ -341,7 +342,7 @@ namespace server
 		{
 			m_o2Client= auto_ptr<HearingThread>(new HearingThread(descriptor.getHostAddressName(), descriptor.getPort(),
 																							sCommID, user, pwd, m_bOwDebug));
-			m_o2Client->start();
+			(*errHandle)= m_o2Client->start();
 		}
 		return errHandle;
 	}
@@ -357,6 +358,8 @@ namespace server
 		auto_ptr<XMLStartEndTagReader> xmlReader;
 		device_debug_t tdebug;
 		timeval time;
+		string folder, id, subroutine, content;
+		map<string, string> mFolderId;
 		struct tm ttime;
 		char stime[22];
 
@@ -364,6 +367,45 @@ namespace server
 		{
 			do{
 				descriptor >> result;
+				trim(result);
+				if(result == "done")
+					continue;
+				if(result == "ppi-server debugsession")
+				{
+					cout << endl;
+					do{
+						descriptor >> result;
+						trim(result);
+						if(	result != "done" &&
+							result != "stopclient"	)
+						{
+							IParameterStringStream input(result);
+							map<string, string>::iterator found;
+
+							input >> folder;
+							input >> time;
+							input >> subroutine;
+							input >> content;
+							found= mFolderId.find(folder);
+							if(found == mFolderId.end())
+							{
+								ostringstream nr;
+
+								nr << "[" << (mFolderId.size() + 1) << "] ";
+								id= nr.str();
+								mFolderId[folder]= id;
+							}else
+								id= found->second;
+							cout << glob::addPrefix(id, content);
+						}else
+							break;
+					}while(result != "done");
+					if(result == "done")
+					{
+						cout << "$> " << flush;
+						continue;
+					}
+				}
 				if(bHeader)
 				{
 					if(gettimeofday(&time, NULL))
@@ -500,7 +542,7 @@ namespace server
 							bHeader= true;
 						}
 					}else
-						cout << result;
+						cout << result << flush;
 				}
 #ifdef SERVERDEBUG
 				else
@@ -513,12 +555,15 @@ namespace server
 				cout << "### by heareing on server for OWServer debug messages -> connection is broken" << endl;
 			return false;
 		}
+		cout << endl;
+		cout << "stop connection to server by typing 'exit' or 'quit'" << endl;
+		cout << "--------------------------------------------------------" << endl;
 		do{
 			if(m_sCommand == "")
 			{
 				char str[200];
 
-				cout << "$>" << flush;
+				cout << "$> " << flush;
 				while(!(std::cin.getline(str, 199, '\n')))
 				{
 					std::cin.clear();
@@ -527,6 +572,7 @@ namespace server
 					cout << "." << flush;
 				}
 				m_sCommand= str;
+				trim(m_sCommand);
 				if(	m_sCommand == "quit"
 					||
 					m_sCommand == "exit"	)

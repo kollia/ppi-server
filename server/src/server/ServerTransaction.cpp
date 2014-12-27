@@ -35,6 +35,7 @@
 
 #include "../server/libs/client/SocketClientConnection.h"
 
+#include "../util/debugsubroutines.h"
 #include "../util/debugtransaction.h"
 #include "../util/structures.h"
 #include "../util/GlobalStaticMethods.h"
@@ -92,6 +93,7 @@ namespace server
 		descriptor.setBoolean("readdebuginfo", false);
 		descriptor.setBoolean("nextconnection", true);
 		descriptor.setBoolean("finishedloading", false);
+		descriptor.setBoolean("debugsession", false);
 		return errHandle;
 	}
 
@@ -196,16 +198,33 @@ namespace server
 						descriptor.flush();
 					}
 					return true;
-				}
-				if(sendmsg == "serverisstopping")
+
+				}else if(sendmsg == "debugsession")
+				{
+					vector<string> dbg;
+
+					dbg= db->getDebugSessionQueue();
+					descriptor << "ppi-server debugsession";
+					descriptor.endl();
+					for(vector<string>::iterator it= dbg.begin(); it != dbg.end(); ++it)
+					{
+						//cout << *it << endl;
+						descriptor << *it;
+						descriptor.endl();
+					}
+					descriptor << "done";
+					descriptor.endl();
+					descriptor.flush();
+					return true;
+
+				}else if(sendmsg == "serverisstopping")
 					sendmsg= "ERROR 019";
 				sendmsg+= "\n";
 				descriptor << sendmsg;
 				descriptor.flush();
 				//if(descriptor.eof())	// for asking eof() after connection is broken
 										// and server only sending messages kernel throw an exception
-				if( sendmsg == "stopclient\n"
-					||
+				if( sendmsg == "stopclient\n" ||
 					sendmsg == "serverisstopping"	)
 				{
 
@@ -237,6 +256,14 @@ namespace server
 
 			m_fProtocol= 0;
 			db->clearOWDebug(descriptor.getClientID());
+#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			if(descriptor.getBoolean("debugsession"))
+			{
+				descriptor.setBoolean("debugsession", false);
+				db->needSubroutines(descriptor.getClientID(), "#stopdebugsession");
+				db->clearFolderDebug();
+			}
+#endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
 			db->needSubroutines(descriptor.getClientID(), "stopclient");
 			msg= "connection to client:";
 			msg+=  descriptor.getHostAddressName();
@@ -418,6 +445,14 @@ namespace server
 
 			m_fProtocol= 0;
 			db->clearOWDebug(descriptor.getClientID());
+#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			if(descriptor.getBoolean("debugsession"))
+			{
+				descriptor.setBoolean("debugsession", false);
+				db->needSubroutines(descriptor.getClientID(), "#stopdebugsession");
+				db->clearFolderDebug();
+			}
+#endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
 			db->needSubroutines(descriptor.getClientID(), "stopclient");
 			omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
 			if(username != "")
@@ -829,7 +864,8 @@ namespace server
 						server << "owserver-" << ID;
 						if(!db->needSubroutines(descriptor.getClientID(), server.str()))
 						{
-							descriptor << INFOERROR(descriptor, 17, input, "Undefined Error in DbInterface::needSubroutine()");
+							descriptor << INFOERROR(descriptor, 17, input,
+											"Undefined Error in DbInterface::needSubroutine()");
 						}else
 						{
 							sendmsg= "done\n";
@@ -841,43 +877,68 @@ namespace server
 						sendmsg= "done\n";
 						descriptor << sendmsg;
 					}
-				}else
+				}else // form if(sFolderSub == "-ow")
 				{
+					bool bDebugSession(true);
 					vector<string> spl;
 
-					trim(sFolderSub);
-					if(sFolderSub == "")
+#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+					bDebugSession= descriptor.getBoolean("debugsession");
+					if(!bDebugSession)
 					{
-						if(bDebug == false)
+						if(db->needSubroutines(descriptor.getClientID(), "#debugsession"))
 						{
-							db->clearFolderDebug();
-							sendmsg= "done\n";
-							descriptor << sendmsg;
+							descriptor.setBoolean("debugsession", true);
+							bDebugSession= true;
 						}else
-							descriptor << DEBUGERROR(descriptor, 4, input, "no folder or folder:subroutine be given");
-					}else
-					{
-						bool bInform(false);
-
-						if(sFolderSub == "-i")
 						{
-							bInform= true;
-							ss >> sFolderSub;
-							trim(sFolderSub);
+							descriptor << DEBUGERROR(descriptor, 22, input,
+											"only one client has permission to read "
+											"working list debug information");
 						}
-						split(spl, sFolderSub, is_any_of(":"));
-						sFolder= spl[0];
-						if(spl.size() > 1)
-							sSubroutine= spl[1];
-						if(db->existSubroutine(sFolder, sSubroutine))
-						{
-							db->debugSubroutine(bDebug, bInform, sFolder, sSubroutine);
-							sendmsg= "done\n";
-							descriptor << sendmsg;
-						}else
-							descriptor << INFOERROR(descriptor, 5, input, "");
 					}
-				}
+#endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
+					if(bDebugSession)
+					{
+						trim(sFolderSub);
+						if(sFolderSub == "")
+						{
+							if(bDebug == false)
+							{
+#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+								descriptor.setBoolean("debugsession", false);
+								db->needSubroutines(descriptor.getClientID(), "#stopdebugsession");
+#endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
+								db->clearFolderDebug();
+								sendmsg= "done\n";
+								descriptor << sendmsg;
+							}else
+								descriptor << DEBUGERROR(descriptor, 4, input,
+												"no folder or folder:subroutine be given");
+						}else
+						{
+							bool bInform(false);
+
+							if(sFolderSub == "-i")
+							{
+								bInform= true;
+								ss >> sFolderSub;
+								trim(sFolderSub);
+							}
+							split(spl, sFolderSub, is_any_of(":"));
+							sFolder= spl[0];
+							if(spl.size() > 1)
+								sSubroutine= spl[1];
+							if(db->existSubroutine(sFolder, sSubroutine))
+							{
+								db->debugSubroutine(bDebug, bInform, sFolder, sSubroutine);
+								sendmsg= "done\n";
+								descriptor << sendmsg;
+							}else
+								descriptor << INFOERROR(descriptor, 5, input, "");
+						}
+					}// if(bDebugSession)
+				}// end else of if(sFolderSub == "-ow")
 
 			}else if(input.substr(0, 3) == "DIR")
 			{
@@ -1410,6 +1471,9 @@ namespace server
 			break;
 		case 21:
 			str= "unknown options after command SHOW";
+			break;
+		case 22:
+			str= "only one client has permission to read working list debug information";
 			break;
 		default:
 			if(error > 0)

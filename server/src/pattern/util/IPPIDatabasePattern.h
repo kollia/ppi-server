@@ -224,6 +224,23 @@ namespace design_pattern_world
 		 */
 		virtual void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= true)= 0;
 		/**
+		 * fill debug session output from folder working list
+		 * into database
+		 *
+		 * @param folder name of debugging folder
+		 * @param subroutine name of debugging subroutine
+		 * @param content output string of debug session
+		 * @param time on which time subroutine proceed
+		 */
+		virtual void fillDebugSession(const string& folder, const string& subroutine,
+						const string& content, const ppi_time& time)= 0;
+		/**
+		 * return queue of hole written debug sessions
+		 *
+		 * @return debug sessions
+		 */
+		virtual std::auto_ptr<map<string, map<pair<ppi_time, string>, string > > > getDebugSessionQueue()= 0;
+		/**
 		 * whether one or more entry's are changed.<br />
 		 * method hold thread in process and return without any result
 		 * when any entry was changed

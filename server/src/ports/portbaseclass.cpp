@@ -803,7 +803,7 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 				}
 #endif // __followSETbehaviorToFolder
 				getRunningThread()->informFolders(m_mvObservers, from,
-								getSubroutineName(), debug, m_OBSERVERLOCK);
+								m_sSubroutine, debug, m_OBSERVERLOCK);
 			}
 			if(	dbvalue != oldMember &&
 				(	m_bWriteDb ||
@@ -1417,21 +1417,26 @@ bool portBase::onlySwitch()
 ostringstream& portBase::out()
 {
 #ifdef __WRITEDEBUGALLLINES
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
 	string output(m_sStreamObj.str());
 
 	if(output != "")
 	{
 		tout << output;
 		tout << flush;
+#if (__DEBUGSESSIONOutput == debugsession_SERVER)
 		m_sStreamObj.str("");
+#endif
 	}
+#endif
 #endif // __WRITEDEBUGALLLINES
 	return m_sStreamObj;
 }
 
-void portBase::writeDebugStream()
+void portBase::writeDebugStream(const ppi_time& time)
 {
 #ifndef __WRITEDEBUGALLLINES
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
 	string output(m_sStreamObj.str());
 
 	if(output.length() > 0)
@@ -1439,8 +1444,29 @@ void portBase::writeDebugStream()
 		tout << output;
 		tout << flush;
 	}
+#if (__DEBUGSESSIONOutput == debugsession_SERVER)
 	m_sStreamObj.str("");
+#endif
+#endif
 #endif // __WRITEDEBUGALLLINES
+
+#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+	if(!time.isSet())
+	{
+#ifndef __WRITEDEBUGALLLINES
+		string output(m_sStreamObj.str());
+
+		if(output.length() > 0)
+		{
+			tout << output;
+			tout << flush;
+		}
+		m_sStreamObj.str("");
+#endif
+	}else
+		getRunningThread()->fillDebugSession(m_sFolder, m_sSubroutine, m_sStreamObj.str(), &time);
+	m_sStreamObj.str("");
+#endif
 }
 
 portBase::~portBase()

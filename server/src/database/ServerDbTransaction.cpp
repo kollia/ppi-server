@@ -301,6 +301,23 @@ namespace server
 				descriptor << "NULL";
 			}
 
+		}else if(method == "fillDebugSession")
+		{
+			string folder, subroutine, content;
+			ppi_time time;
+
+			db= DatabaseThread::instance()->getDatabaseObj();
+			object >> folder;
+			object >> subroutine;
+			object >> content;
+			object >> time;
+			db->fillDebugSession(folder, subroutine, content, time);
+
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send nothing back to client, was only to fill into database" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
 		}else if(method == "getNearest")
 		{
 			double value;
@@ -910,6 +927,40 @@ namespace server
 				step= 0;
 				break;
 			}
+		}else if(method == "getDebugSessionQueue")
+		{
+			typedef map<string, map<pair<ppi_time, string>, string > > folderStruct;
+			typedef map<pair<ppi_time, string>, string > timerSubStruct;
+			typedef folderStruct::iterator folderIt;
+			typedef timerSubStruct::iterator timerSubIt;
+
+			std::auto_ptr<folderStruct> dbg;
+
+			db= DatabaseThread::instance()->getDatabaseObj();
+			dbg= db->getDebugSessionQueue();
+#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(bDebugOutput)
+				debugSendMsg << "(1-3.) send long debug session answer from ppi-db-server back to client" << endl;
+#endif // __FOLLOWSERVERCLIENTTRANSACTION
+
+			for(folderIt fIt= dbg->begin(); fIt != dbg->end(); ++fIt)
+			{
+				for(timerSubIt tIt= fIt->second.begin(); tIt != fIt->second.end(); ++tIt)
+				{
+					OParameterStringStream res;
+
+					res << fIt->first;// folder
+					res << tIt->first.first; // time
+					res << tIt->first.second; // subroutine
+					res << tIt->second; // debug session output
+					descriptor << res.str();
+					descriptor.endl();
+				}
+			}
+			descriptor << "done";
+	//		descriptor.endl();
+	//		descriptor.flush();
+
 		}else if(method == "getOWDebugInfo")
 		{
 			unsigned short ow;

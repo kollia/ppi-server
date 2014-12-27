@@ -175,7 +175,11 @@ namespace util
 		SHAREDPTR::shared_ptr<map<string, db_t> > dbQueue;
 		vector<SHAREDPTR::shared_ptr<map<string, db_t> > > allDbQueue;
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > msgQueue, allMsgQueue(new vector<sendingInfo_t>());
+		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > > debugQueue;
+		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > > allDebugQueue;
 
+		allDebugQueue= SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >
+						(new map<string, map<pair<ppi_time, string>, string > >());
 		wait.tv_sec= 1;
 		wait.tv_nsec= 0;
 		while(!stopping())
@@ -185,15 +189,18 @@ namespace util
 				LOCK(m_READCACHE);
 				for(cacheIt it= m_mCaches.begin(); it != m_mCaches.end(); ++it)
 				{
-					it->second->getContent(dbQueue, msgQueue);
+					it->second->getContent(dbQueue, msgQueue, debugQueue);
 					if(!dbQueue->empty())
 						allDbQueue.push_back(dbQueue);
 					if(!msgQueue->empty())
 						allMsgQueue->insert(allMsgQueue->end(), msgQueue->begin(), msgQueue->end());
+					if(!debugQueue->empty())
+						allDebugQueue->insert(debugQueue->begin(), debugQueue->end());
 				}
 				UNLOCK(m_READCACHE);
 				if(	!allDbQueue.empty() ||
-					!allMsgQueue->empty()	)
+					!allMsgQueue->empty() ||
+					!allDebugQueue->empty()	)
 				{
 					SHAREDPTR::shared_ptr<map<string, db_t> > wDbQueue(new map<string, db_t>());
 
@@ -202,13 +209,15 @@ namespace util
 						for(vector<SHAREDPTR::shared_ptr<map<string, db_t> > >::iterator it= allDbQueue.begin();
 										it != allDbQueue.end(); ++it)
 						{
-							m_oDbFiller.sendDirect(*it, allMsgQueue);
+							m_oDbFiller.sendDirect(*it, allMsgQueue, allDebugQueue);
 							allMsgQueue->clear();
+							allDebugQueue->clear();
 						}
 					}else
-						m_oDbFiller.sendDirect(wDbQueue, allMsgQueue);
+						m_oDbFiller.sendDirect(wDbQueue, allMsgQueue, allDebugQueue);
 					allMsgQueue->clear();
 					allDbQueue.clear();
+					allDebugQueue->clear();
 					bWritten= true;
 					bFirstOff= true;
 				}else
@@ -218,8 +227,10 @@ namespace util
 				return false;
 			LOCK(m_INFORMDATABASEMUTEX);
 			if(bFirstOff)
+			{
 				RELTIMECONDITION(m_INFORMDATABASECOND, m_INFORMDATABASEMUTEX, &wait);
-			else
+				bFirstOff= false;
+			}else
 				CONDITION(m_INFORMDATABASECOND, m_INFORMDATABASEMUTEX);
 			UNLOCK(m_INFORMDATABASEMUTEX);
 			bWritten= true;

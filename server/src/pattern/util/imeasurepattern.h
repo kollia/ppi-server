@@ -397,6 +397,17 @@ namespace design_pattern_world
 				virtual void fillValue(const string& folder, const string& subroutine, const string& identif,
 								const vector<double>& dvalues, bool bNew= false)= 0;
 				/**
+				 * fill debug session output from folder working list
+				 * into database
+				 *
+				 * @param folder name of debugging folder
+				 * @param subroutine name of debugging subroutine
+				 * @param content output string of debug session
+				 * @param time on which time subroutine proceed
+				 */
+				virtual void fillDebugSession(const string& folder, const string& subroutine,
+								const string& content, const IPPITimePattern* time)= 0;
+				/**
 				 * dummy destructor for pattern
 				 */
 				virtual ~IMeasurePattern() {};

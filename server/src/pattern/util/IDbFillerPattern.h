@@ -96,13 +96,26 @@ public:
 	virtual void fillValue(const string& folder, const string& subroutine, const string& identif,
 					const vector<double>& dvalues, bool bNew= false)= 0;
 	/**
+	 * fill debug session output from folder working list
+	 * into database
+	 *
+	 * @param folder name of debugging folder
+	 * @param subroutine name of debugging subroutine
+	 * @param content output string of debug session
+	 * @param time on which time subroutine proceed
+	 */
+	virtual void fillDebugSession(const string& folder, const string& subroutine,
+					const string& content, const IPPITimePattern* time)= 0;
+	/**
 	 * return filled content from cache
 	 *
 	 * @param dbQueue database queue from cache
 	 * @param msgQueue message queue from cache
+	 * @param debugQueue debug session output queue from cache
 	 */
 	virtual void getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
-					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue)= 0;
+					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
+					SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue)= 0;
 	/**
 	 * remove all content from DbFiller
 	 * and stop thread when one running

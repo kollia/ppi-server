@@ -1413,6 +1413,7 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 	DbInterface* db= DbInterface::instance();
 	vector<string>::size_type nAliasCount;
 	string property("defaultSleep");
+	ppi_time nullTime;
 
 	db->setServerConfigureStatus("folder_conf", 0);
 	firstFolder= PPIConfigFileStructure::instance()->getWorkingList();
@@ -1507,7 +1508,7 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 					correctFolder= true;
 				}else
 					aktualFolder->subroutines[n].bCorrect= false;
-				pobj->writeDebugStream();
+				pobj->writeDebugStream(nullTime);
 				//tout << "-----------" << endl;
 			}else
 			{

@@ -222,9 +222,11 @@ namespace ports
 		/**
 		 * writing into string stream into terminal
 		 * when definition WRITEDEBUGALLLINES not be set
+		 *
+		 * @param time proceed time of subroutine
 		 */
-		virtual void writeDebugStream()
-		{ m_oSubroutine->writeDebugStream(); };
+		virtual void writeDebugStream(const ppi_time& time)
+		{ m_oSubroutine->writeDebugStream(time); };
 		/**
 		 * returning the type of the current object
 		 *

@@ -211,7 +211,25 @@ namespace ppi_database
 		 * @param values vector of value which should write into database
 		 * @param bNew whether database should actualize value for client default= false
 		 */
-		void fillValue(const string& folder, const string& subroutine, const string& identif, const vector<double>& values, bool bNew= false);
+		void fillValue(const string& folder, const string& subroutine, const string& identif,
+						const vector<double>& values, bool bNew= false);
+		/**
+		 * fill debug session output from folder working list
+		 * into database
+		 *
+		 * @param folder name of debugging folder
+		 * @param subroutine name of debugging subroutine
+		 * @param content output string of debug session
+		 * @param time on which time subroutine proceed
+		 */
+		void fillDebugSession(const string& folder, const string& subroutine,
+						const string& content, const ppi_time& time);
+		/**
+		 * return queue of hole written debug sessions
+		 *
+		 * @return debug sessions
+		 */
+		vector<string> getDebugSessionQueue();
 		/**
 		 * ask whether entry of folder:subroutine exist
 		 *
