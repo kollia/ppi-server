@@ -635,7 +635,8 @@ void MinMaxTimes::writeStatistic(bool bfirst, bool bResult, const t_averageVals*
 			{
 				cout << "            which has a various differ of " << fixed << (nMaxLength - nMinLength)
 								<< " seconds" << endl;
-				cout << "            and has an average of " << getAverageLength(*values) << " seconds" << endl;
+				cout << "            and has an average of " << getAverageLength(*values)
+								<< " seconds" << endl;
 			}
 		}
 		if(	m_bListAll ||
@@ -644,7 +645,8 @@ void MinMaxTimes::writeStatistic(bool bfirst, bool bResult, const t_averageVals*
 		{
 			cout << "        wrong estimation differ from " << fixed << nMinEstimate << " to "
 							<< fixed << nMaxEstimate << " seconds" << endl;
-			cout << "            highest wrong estimation " << fixed << getLongestMiscalculated(*values) << " seconds" << endl;
+			cout << "            highest wrong estimation " << fixed <<
+							getLongestMiscalculated(*values) << " seconds" << endl;
 			if(values->nCount > 1)
 			{
 				ppi_value average(getAverageEstimation(*values));
@@ -666,10 +668,12 @@ void MinMaxTimes::writeStatistic(bool bfirst, bool bResult, const t_averageVals*
 			m_bEstimated ||
 			bNoOptionSet	)
 		{
-			cout << "              wrong estimate " << fixed << getLongestMiscalculated(*values) << " seconds" << endl;
+			cout << "              wrong estimate " << fixed << getLongestMiscalculated(*values)
+							<< " seconds" << endl;
 		}
 	}
-	cout << "        the highest minimal time of measured seconds will be " << (nMaxLength + getMaxInforming(*values)) << endl;
+	cout << "        the highest minimal time of measured seconds will be "
+					<< (nMaxLength + nMaxInform) << endl;
 	if(nMinLength != nMaxLength)
 	{
 		cout << "                               which should be in most times "
