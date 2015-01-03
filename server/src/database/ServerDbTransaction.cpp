@@ -211,7 +211,8 @@ namespace server
 			object >> subroutine;
 			command << debug;
 			command << bInform;
-			command << folder;
+			if(folder != "")
+				command << folder;
 			if(subroutine != "")
 				command << subroutine;
 			IMethodStringStream sendMeth(command.str());

@@ -500,7 +500,8 @@ namespace ppi_database
 
 		command << debug;
 		command << bInform;
-		command << folder;
+		if(folder != "")
+			command << folder;
 		if(subroutine != "")
 			command << subroutine;
 		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, false);

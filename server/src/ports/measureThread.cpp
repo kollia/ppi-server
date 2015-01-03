@@ -274,7 +274,8 @@ bool MeasureThread::setDebug(bool bDebug, bool bInform, const string& subroutine
 			it->type != "DEBUG"	)	// which are not from type DEBUG
 		{							// because DEBUG subroutines will be set later and should know
 			if(	subroutine == "" ||	// whether also an other subroutine was set to debug
-				it->name == subroutine	)
+				subroutine == "#AllFolder" ||
+				it->name == subroutine			)
 			{
 				bFound= true;
 				if(it->portClass->isDebug() != bDebug)
@@ -367,17 +368,23 @@ bool MeasureThread::setDebug(bool bDebug, bool bInform, const string& subroutine
 	}
 	out << "-------------------------------------------------------------------" << endl;
 #if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
-			tout << out.str();
+	if(subroutine != "#AllFolder")
+	{
+		tout << out.str();
 #ifdef __WRITEDEBUGALLLINES
-			tout << flush;
+		tout << flush;
 #endif // __WRITEDEBUGALLLINES
-			TERMINALEND;
+		TERMINALEND;
+	}
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
 			ppi_time cur;
 
-			cur.setActTime();
-			fillDebugSession(getFolderName(), "#setDebug", out.str(), &cur);
+			if(subroutine != "#AllFolder")
+			{
+				cur.setActTime();
+				fillDebugSession(getFolderName(), "#setDebug", out.str(), &cur);
+			}
 #endif
 	UNLOCK(m_DEBUGLOCK);
 	return true;
@@ -903,8 +910,6 @@ bool MeasureThread::execute()
 			}
 		}
 	}
-	if(debug)
-		doDebugStartingOutput();
 	if(!currentStart.setActTime())
 	{
 		string str;
@@ -931,6 +936,8 @@ bool MeasureThread::execute()
 		else
 			currentStart.clear();
 	}
+	if(debug)
+		doDebugStartingOutput(currentStart);
 	/*
 	 * do not fill m_tvStartTime
 	 * into vector of m_vStartTimes
@@ -1032,7 +1039,7 @@ bool MeasureThread::execute()
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
 			debugstring+= out.str();
-			fillDebugSession(getFolderName(), "", debugstring, &m_tvEndTime);
+			fillDebugSession(getFolderName(), "#end", debugstring, &m_tvEndTime);
 			debugstring= "";
 #endif
 	}
@@ -1299,7 +1306,7 @@ bool MeasureThread::execute()
 	return true;
 }
 
-void MeasureThread::doDebugStartingOutput()
+void MeasureThread::doDebugStartingOutput(const ppi_time& time)
 {
 	ostringstream out;
 	string folder(getFolderName());
@@ -1445,7 +1452,7 @@ void MeasureThread::doDebugStartingOutput()
 			TERMINALEND;
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-			fillDebugSession(getFolderName(), "", out.str(), &m_tvEndTime);
+			fillDebugSession(getFolderName(), "#start", out.str(), &time);
 #endif
 }
 

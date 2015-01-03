@@ -19,7 +19,8 @@
 
 #include <string>
 
-#include "../../util/thread/Thread.h"
+#include "IHearingThreadPattern.h"
+#include "ClientTransaction.h"
 
 namespace server
 {
@@ -29,6 +30,7 @@ namespace server
  */
 #define BUFLENGTH 100
 
+	using namespace design_pattern_world::util_pattern;
 	/**
 	 * This class create an second connection
 	 * for the client to hear about changes
@@ -36,7 +38,7 @@ namespace server
 	 * @author Alexander Kolli
 	 * @version 1.0
 	 */
-	class HearingThread : public Thread
+	class HearingThread : public IHearingThreadPattern
 	{
 	public:
 		/**
@@ -74,6 +76,14 @@ namespace server
 		 */
 		OVERWRITE bool execute();
 		/**
+		 * returning object of transaction
+		 * which set for hearing thread
+		 *
+		 * @return transaction object
+		 */
+		OVERWRITE ClientTransaction* transObj()
+		{ return m_pTransaction; };
+		/**
 		 * This method will be called if any other or own thread
 		 * calling method stop().
 		 */
@@ -105,6 +115,10 @@ namespace server
 		 * whether the session is set for debug an OWServer
 		 */
 		bool m_bOwDebug;
+		/**
+		 * transaction object of hearing thread
+		 */
+		ClientTransaction* m_pTransaction;
 	};
 
 }

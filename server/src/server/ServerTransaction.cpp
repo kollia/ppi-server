@@ -769,7 +769,28 @@ namespace server
 				else if(user->hasPermission(username, input, "read"))
 					sendmsg= "read";
 				else
-					sendmsg= "none";
+				{
+					unsigned short nExist;
+					string folder, subroutine;
+					vector<string> spl;
+					DbInterface* db= DbInterface::instance();
+
+					split(spl, input, is_any_of(":"));
+					if(spl.size() <= 2)
+					{
+						folder= spl[0];
+						if(spl.size() == 2)
+							subroutine= spl[1];
+						nExist= db->existEntry(folder, subroutine, "value", 0);
+						if(nExist == 0)
+							sendmsg= "noFolder";
+						else if(nExist == 1)
+							sendmsg= "noSubroutine";
+						else
+							sendmsg= "none";
+					}else
+						sendmsg= "ERROR 003";
+				}
 	#ifdef SERVERDEBUG
 				cout << "send: " << sendmsg << endl;
 	#endif // SERVERDEBUG
@@ -901,41 +922,51 @@ namespace server
 					if(bDebugSession)
 					{
 						trim(sFolderSub);
-						if(sFolderSub == "")
+						if(	bDebug == false &&
+							sFolderSub == ""	)
 						{
-							if(bDebug == false)
-							{
 #if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-								descriptor.setBoolean("debugsession", false);
-								db->needSubroutines(descriptor.getClientID(), "#stopdebugsession");
+							descriptor.setBoolean("debugsession", false);
+							db->needSubroutines(descriptor.getClientID(), "#stopdebugsession");
 #endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
-								db->clearFolderDebug();
-								sendmsg= "done\n";
-								descriptor << sendmsg;
-							}else
-								descriptor << DEBUGERROR(descriptor, 4, input,
-												"no folder or folder:subroutine be given");
+							db->clearFolderDebug();
+							sendmsg= "done\n";
+							descriptor << sendmsg;
 						}else
 						{
+							bool bDoDebug(true);
 							bool bInform(false);
 
-							if(sFolderSub == "-i")
+							sFolder= "";
+							sSubroutine= "";
+							if(sFolderSub != "")
 							{
-								bInform= true;
-								ss >> sFolderSub;
-								trim(sFolderSub);
+								if(sFolderSub == "-i")
+								{
+									bInform= true;
+									ss >> sFolderSub;
+									trim(sFolderSub);
+								}
+								if(sFolderSub != "")
+								{
+									split(spl, sFolderSub, is_any_of(":"));
+									sFolder= spl[0];
+									if(spl.size() > 1)
+										sSubroutine= spl[1];
+									if(!db->existSubroutine(sFolder, sSubroutine))
+									{
+										descriptor << INFOERROR(descriptor, 5, input, "");
+										bDoDebug= false;
+									}
+								}
 							}
-							split(spl, sFolderSub, is_any_of(":"));
-							sFolder= spl[0];
-							if(spl.size() > 1)
-								sSubroutine= spl[1];
-							if(db->existSubroutine(sFolder, sSubroutine))
+							if(bDoDebug)
 							{
 								db->debugSubroutine(bDebug, bInform, sFolder, sSubroutine);
 								sendmsg= "done\n";
 								descriptor << sendmsg;
-							}else
-								descriptor << INFOERROR(descriptor, 5, input, "");
+							}
+
 						}
 					}// if(bDebugSession)
 				}// end else of if(sFolderSub == "-ow")

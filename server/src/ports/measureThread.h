@@ -703,8 +703,10 @@ class MeasureThread : 	public Thread,
 		bool checkToStart(vector<InformObject>& vInformed, const bool debug);
 		/**
 		 * write debugging output by start folder thread
+		 *
+		 * @param time current time of starting
 		 */
-		void doDebugStartingOutput();
+		void doDebugStartingOutput(const ppi_time& time);
 };
 
 

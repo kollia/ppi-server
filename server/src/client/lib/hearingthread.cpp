@@ -20,7 +20,6 @@
 #include "../../server/libs/client/SocketClientConnection.h"
 
 #include "hearingthread.h"
-#include "ClientTransaction.h"
 
 using namespace std;
 
@@ -29,7 +28,7 @@ namespace server
 
 	HearingThread::HearingThread(string host, unsigned short port, string communicationID,
 																	string user, string pwd, bool bOwDebug)
-	: Thread("ClientHearingThread")
+	: IHearingThreadPattern("ClientHearingThread")
 	{
 		m_shost= host;
 		m_nPort= port;
@@ -57,8 +56,9 @@ namespace server
 		options.push_back(m_sPwd);
 		if(m_bOwDebug)
 			options.push_back("-ow");
-		clientCon= auto_ptr<SocketClientConnection>(new SocketClientConnection(SOCK_STREAM, m_shost, m_nPort, 5,
-																				new ClientTransaction(options, "")));
+		m_pTransaction= new ClientTransaction(options, "");
+		clientCon= auto_ptr<SocketClientConnection>(new SocketClientConnection(SOCK_STREAM, m_shost, m_nPort,
+																				5, m_pTransaction	));
 		m_pError= clientCon->init();
 		stop();
 		return false;

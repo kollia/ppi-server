@@ -151,7 +151,7 @@ bool Client::execute(const string& workdir, vector<string> options, string comma
 
 				}
 				opIt= ::find(options.begin(), options.end(), "-e");
-				if(opIt != options.end())
+				if(opIt == options.end())
 					cout << errHandle.getDescription() << endl;
 				else
 					cout << errHandle.getErrorStr();

@@ -23,16 +23,16 @@
 #include <vector>
 #include <deque>
 
-#include "hearingthread.h"
+#include "IHearingThreadPattern.h"
+
+#include "../../util/stream/ppivalues.h"
 
 #include "../../pattern/util/IErrorHandlingPattern.h"
 
-#include "../../pattern/server/NoCommunicateTransactionAdapter.h"
 
 //#include "../../portserver/owserver.h"
 
 using namespace std;
-using namespace design_pattern_world::server_pattern;
 using namespace design_pattern_world::util_pattern;
 
 namespace server
@@ -43,7 +43,7 @@ namespace server
 	 * @author Alexander Kolli
 	 * @version 1.0.0
 	 */
-	class ClientTransaction : public NoCommunicateTransferAdapter
+	class ClientTransaction : public IClientTransactionPattern
 	{
 		public:
 			/**
@@ -80,17 +80,111 @@ namespace server
 			bool wasErrorWritten()
 			{ return m_bErrWritten; }
 			/**
+			 * write current prompt
+			 * when no hearing- or user-transaction running
+			 *
+			 * @param str string of new prompt when set, otherwise take default from last written
+			 */
+			OVERWRITE void prompt(const string& str= "");
+			/**
+			 * set whether user transaction running
+			 *
+			 * @param run whether running
+			 */
+			OVERWRITE void runUserTransaction(bool run);
+			/**
+			 * check whether folder:subroutine
+			 * existing currently inside debugging queue
+			 * getting from server
+			 *
+			 * @param folder name of folder
+			 * @param subroutine name of subroutine, when not exist check only for folder
+			 * @return 1 when exist, 0 when not exist but inside queue of want to hold
+			 *         or -1 when not exist and not in queue of wan to hold
+			 */
+			OVERWRITE short exist(const string& folder, const string& subroutine);
+			/**
+			 * set which folder subroutine should be hold
+			 *
+			 * @param folder name of folder
+			 * @param subroutine name of subroutine
+			 */
+			OVERWRITE void setHoldingFolder(const string& folder, const string& subroutine);
+			/**
+			 * set all incoming folder:subroutines from server
+			 * to hold inside queue
+			 */
+			OVERWRITE void allFolderHolding();
+			/**
+			 * clear all folder subroutines which before defined to holding.
+			 * when now folder or subroutine given, clear all
+			 *
+			 * @param folder name of folder
+			 * @param subroutine name of subroutine
+			 */
+			OVERWRITE void clearHoldingFolder(const string& folder, const string& subroutine);
+			/**
+			 * clear all content of debug session
+			 */
+			OVERWRITE void clearDebugSessionContent();
+			/**
+			 * create folder ID
+			 *
+			 * @param folder name of folder
+			 */
+			OVERWRITE string getFolderID(const string& folder);
+			/**
+			 * count from getting debug session info
+			 * how often all folders are running.<br />
+			 * WARNING: method is not thread-safe
+			 * has to lock m_DEBUGSESSIONCHANGES outside
+			 *
+			 * @return map of count for all folders
+			 */
+			OVERWRITE map<string, unsigned long> getRunningFolderList();
+			/**
+			 * write content of debug session.<br />
+			 * when no subroutines be set write hole folder,
+			 * or by no folder write hole content
+			 *
+			 * @param folder name of folder
+			 * @param subroutines vector of subroutines inside folder
+			 * @param show whether should show all, current or new content of folder:subroutines
+			 * @param curTime last time from folder output starting
+			 * @param nr number of shown folder when show was next or previous and curTime is 0
+			 * @return start time of shown folder or null time by not shown or direction all
+			 */
+			OVERWRITE IPPITimePattern* writeDebugSession(const string& folder, vector<string>& subroutines,
+													const direction_e& show, const IPPITimePattern* curTime,
+													const unsigned long nr= 0);
+			/**
 			 * destructor of server transaction
 			 */
 			virtual ~ClientTransaction();
 
 		private:
 			/**
+			 * prompt string to display
+			 * locked by PROMPTMUTEX
+			 */
+			string m_sPrompt;
+			/**
+			 * whether user transaction running
+			 * locked by PROMPTMUTEX
+			 */
+			bool m_bRunUserTrans;
+			/**
+			 * whether hearing transaction running
+			 * locked by PROMPTMUTEX
+			 */
+			bool m_bRunHearTran;
+			/**
 			 * vector of all options be set on the shell
 			 */
 			vector<string> m_vOptions;
 			/**
 			 * command string from shell
+			 * for initialization of ClientTransaction object
 			 */
 			string m_sCommand;
 			/**
@@ -129,7 +223,7 @@ namespace server
 			/**
 			 * object of an second client running inside and thread
 			 */
-			auto_ptr<HearingThread> m_o2Client;
+			auto_ptr<IHearingThreadPattern> m_o2Client;
 			/**
 			 * warning number which can occur outside of ClientTransaction as positive integer
 			 */
@@ -138,7 +232,93 @@ namespace server
 			 * error number which can occur outside of ClientTransaction
 			 */
 			unsigned int m_nOutsideErr;
+			/**
+			 * all folder IDs
+			 */
+			map<string, string> m_mFolderId;
+			/**
+			 * whether should holding all folders
+			 * inside queue
+			 */
+			bool m_bHoldAll;
+			/**
+			 * all folder subroutines
+			 * for debug session
+			 * which should holding before showing
+			 * with current output position
+			 */
+			map<string, map<string, unsigned long> > m_vsHoldFolders;
+			/**
+			 * all hold debug session content
+			 */
+			map<ppi_time, vector<pair< pair<string, string>, string > > > m_mmDebugSession;
+			/**
+			 * time returned from method <code>writeDebugSession()</code>
+			 */
+			ppi_time m_dbgSessTime;
+			/**
+			 * mutex to write clear hold variables
+			 */
+			pthread_mutex_t* m_DEBUGSESSIONCHANGES;
+			/**
+			 * mutex of changing prompt
+			 */
+			pthread_mutex_t* m_PROMPTMUTEX;
 
+			/**
+			 * set whether hearing transaction running
+			 *
+			 * @param run whether running
+			 */
+			void runHearingTransaction(bool run);
+			/**
+			 * hear on terminal input
+			 *
+			 * @param yesno whether should ask only for yes or no
+			 * @param promptStr prompt string before waiting for input
+			 * @return released word, or by yes/no question only 'Y' or 'N' in big letters
+			 */
+			string ask(bool yesno, string promptStr);
+			/**
+			 * transaction protocol between client to server
+			 *
+			 * @param descriptor file handle to get command's and send answer
+			 * @return wether need to hold the connection
+			 */
+			bool userTransfer(IFileDescriptorPattern& descriptor);
+			/**
+			 * transaction protocol between client to server
+			 *
+			 * @param descriptor file handle to get command's and send answer
+			 * @return wether need to hold the connection
+			 */
+			bool hearingTransfer(IFileDescriptorPattern& descriptor);
+			/**
+			 * whether subroutine exist inside vector of subroutines
+			 *
+			 * @param subroutine name of subroutine
+			 * @param subroutines vector where subroutine should exist
+			 * @return whether exist
+			 */
+			bool subroutineSet(const string& subroutine,
+							const vector<string>& subroutines);
+			/**
+			 * writing help usage
+			 *
+			 * @param sfor which helping should write (?, ?value or ?debug)
+			 */
+			void writeHelpUsage(const string& sfor);
+			/**
+			 * whether folder:subroutine
+			 * exist inside ppi-server working list
+			 *
+			 * @param descriptor descriptor to ask ppi-server
+			 * @param folder name of folder
+			 * @param subroutine name of subroutine
+			 * @return whether exist
+			 */
+			bool existOnServer(IFileDescriptorPattern& descriptor,
+							const string& folder, const string& subroutine);
 			/**
 			 * print all ERROR results as translated strings on commandline
 			 *

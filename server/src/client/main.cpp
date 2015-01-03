@@ -228,10 +228,15 @@ void help(char* cpSelf)
 //	printf("                               see also for options -t or -c\n");
 	printf("                CHANGE <username>:<password>\n");
 	printf("                         -     changing user, user name and password is separated with an colon\n");
-	printf("                               this command is only when ppi-server is started with option --wait or --hear");
+	printf("                               this command is only when ppi-server is started with option --wait or --hear\n");
 	printf("                PERMISSION <groupnames>\n");
 	printf("                         -     ask permission for group.\n");
 	printf("                               also more than one groups can be ask, separated with an colon\n");
+	printf("                               RESULT:  write - user has permission to read and write\n");
+	printf("                                        read  - user has only permission to read\n");
+	printf("                                        noSubroutine  - given subroutine do not exist inside folder\n");
+	printf("                                        noFolder      - given Folder do not exist\n");
+	printf("                                        ERROR 003     - fault insert of folder:subroutine\n");
 	printf("                GET <folder>:<subroutine>\n");
 	printf("                         -     get the current value from the subroutines in the folder\n");
 	printf("                               folder and subroutine are separated with an colon\n");
@@ -243,7 +248,7 @@ void help(char* cpSelf)
 	printf("                               for changes\n");
 	printf("                NEWENTRYS\n");
 	printf("                         -     clearing all entry's which are set with the command HEAR\n");
-	printf("                               this command is only when ppi-server is started with option --hear");
+	printf("                               this command is only when ppi-server is started with option --hear\n");
 	printf("                DIR <filter>\n");
 	printf("                         -     shows all files in directory ${workdir}/client which are suitable to given filter\n");
 	printf("                CONTENT <filename>\n");

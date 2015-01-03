@@ -189,18 +189,34 @@ bool ProcessChecker::execute()
 		bool bFound= false, debug, bInform;
 		string folder, subroutine;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
+		ostringstream msg;
+		ppi_time nullTime;
 
 		object >> debug;
 		object >> bInform;
 		object >> folder;
 		object >> subroutine;
+		if(folder == "")
+		{
+			subroutine= "#AllFolder";
+			msg << "set all folder with all subroutines to debug session";
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			pCurMeas->pMeasure->fillDebugSession("all", "#setDebug", msg.str(), &nullTime);
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+			tout << msg.str() << endl;
+			TERMINALEND;
+#endif
+		}
 		while(pCurMeas)
 		{
-			if(pCurMeas->pMeasure->getThreadName() == folder)
+			if( folder == "" ||
+				pCurMeas->pMeasure->getThreadName() == folder	)
 			{
 				pCurMeas->pMeasure->setDebug(debug, bInform, subroutine);
 				bFound= true;
-				break;
+				if(subroutine != "#AllFolder")
+					break;
 			}
 			pCurMeas= pCurMeas->next;
 		}
