@@ -40,8 +40,12 @@ namespace design_pattern_world
 				all= 0,
 				first,
 				previous,
+				previous_changed,
+				previous_unchanged,
 				current,
 				next,
+				next_changed,
+				next_unchanged,
 				last
 			};
 

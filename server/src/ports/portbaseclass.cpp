@@ -1464,7 +1464,29 @@ void portBase::writeDebugStream(const ppi_time& time)
 		m_sStreamObj.str("");
 #endif
 	}else
-		getRunningThread()->fillDebugSession(m_sFolder, m_sSubroutine, m_sStreamObj.str(), &time);
+	{
+		IDbgSessionPattern::dbgSubroutineContent_t content;
+
+		/**
+		 * place of new definition of content are:
+		 * ProcessChecker::execute by method == "debugSubroutine"
+		 * Informer::informing
+		 * MeasureThread::setDebug on method end
+		 * MeasureThread::execute by 2 times
+		 * MeasureThread::doDebugStartingOutput
+		 * MeasureThread::checkToStart
+		 * portBase::writeDebugStream
+		 * ServerDbTransaction::transfer by method == "fillDebugSession"
+		 */
+		content.folder= m_sFolder;
+		content.subroutine= m_sSubroutine;
+		LOCK(m_VALUELOCK);
+		content.value= m_dValue.value;
+		UNLOCK(m_VALUELOCK);
+		content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(time));
+		content.content= m_sStreamObj.str();
+		getRunningThread()->fillDebugSession(content);
+	}
 	m_sStreamObj.str("");
 #endif
 }

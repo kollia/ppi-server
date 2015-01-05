@@ -304,15 +304,36 @@ namespace server
 
 		}else if(method == "fillDebugSession")
 		{
-			string folder, subroutine, content;
 			ppi_time time;
+			IDbgSessionPattern::dbgSubroutineContent_t content;
 
+			/**
+			 * place of new definition of content are:
+			 * ProcessChecker::execute by method == "debugSubroutine"
+			 * Informer::informing
+			 * MeasureThread::setDebug on method end
+			 * MeasureThread::execute by 2 times
+			 * MeasureThread::doDebugStartingOutput
+			 * MeasureThread::checkToStart
+			 * portBase::writeDebugStream
+			 * ServerDbTransaction::transfer by method == "fillDebugSession"
+			 */
+			content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time);
 			db= DatabaseThread::instance()->getDatabaseObj();
-			object >> folder;
-			object >> subroutine;
-			object >> content;
+			/*
+			 * data type order below
+			 * is specified inside follow methods:
+			 * DbInterface::fillDebugSession
+			 * ServerDbTransaction::transfer by method == "fillDebugSession"
+			 * ClientTransaction::hearingTransfer
+			 */
+			object >> content.folder;
+			object >> content.subroutine;
+			object >> content.value;
 			object >> time;
-			db->fillDebugSession(folder, subroutine, content, time);
+			(*content.currentTime)= time;
+			object >> content.content;
+			db->fillDebugSession(content);
 
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			if(bDebugOutput)
@@ -930,12 +951,10 @@ namespace server
 			}
 		}else if(method == "getDebugSessionQueue")
 		{
-			typedef map<string, map<pair<ppi_time, string>, string > > folderStruct;
-			typedef map<pair<ppi_time, string>, string > timerSubStruct;
-			typedef folderStruct::iterator folderIt;
-			typedef timerSubStruct::iterator timerSubIt;
+			typedef IPPIDatabasePattern::debugSessionFolderMap::iterator folderIt;
+			typedef IPPIDatabasePattern::debugSessionSubroutineMap::iterator timerSubIt;
 
-			std::auto_ptr<folderStruct> dbg;
+			std::auto_ptr<IPPIDatabasePattern::debugSessionFolderMap> dbg;
 
 			db= DatabaseThread::instance()->getDatabaseObj();
 			dbg= db->getDebugSessionQueue();
@@ -950,10 +969,11 @@ namespace server
 				{
 					OParameterStringStream res;
 
-					res << fIt->first;// folder
-					res << tIt->first.first; // time
-					res << tIt->first.second; // subroutine
-					res << tIt->second; // debug session output
+					res << tIt->second.folder;
+					res << tIt->second.subroutine;
+					res << tIt->second.value;
+					res << *tIt->second.currentTime;
+					res << tIt->second.content;
 					descriptor << res.str();
 					descriptor.endl();
 				}

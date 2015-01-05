@@ -21,9 +21,11 @@
 
 #include "IErrorHandlingPattern.h"
 #include "IPPIDatabasePattern.h"
+#include "IDbgSessionPattern.h"
 
 #include "../server/IClientSendMethods.h"
 
+using namespace design_pattern_world::util_pattern;
 /**
  * structure for an sending question which need no answer.<br />
  * this will be done from an seperate thread
@@ -46,7 +48,7 @@ struct sendingInfo_t
 	string done;
 };
 
-class IDbFillerInformPattern
+class IDbFillerInformPattern : public IDbgSessionPattern
 {
 public:
 	/**
@@ -64,6 +66,26 @@ class IDbFillerPattern : public design_pattern_world::client_pattern::IClientSen
 						 public IDbFillerInformPattern
 {
 public:
+	/*
+	 * same three typedef definitions
+	 * like IPPIDatabasePattern
+	 */
+	/**
+	 * definition of debug session subroutine
+	 * with subroutine name and time
+	 */
+	typedef pair<ppi_time, string > debugSessionSubroutine;
+	/**
+	 * definition of debug session map for subroutines
+	 * with subroutine name, time and content
+	 */
+	typedef map<debugSessionSubroutine, dbgSubroutineContent_t > debugSessionSubroutineMap;
+	/**
+	 * definition of debug session map for folders
+	 * with folder name, subroutine name, time and content
+	 */
+	typedef map<string, debugSessionSubroutineMap> debugSessionFolderMap;
+
 	/**
 	 * return thread name of DbFiller
 	 */
@@ -99,13 +121,9 @@ public:
 	 * fill debug session output from folder working list
 	 * into database
 	 *
-	 * @param folder name of debugging folder
-	 * @param subroutine name of debugging subroutine
-	 * @param content output string of debug session
-	 * @param time on which time subroutine proceed
+	 * @param content structure of folder:subroutine data from debugging session
 	 */
-	virtual void fillDebugSession(const string& folder, const string& subroutine,
-					const string& content, const IPPITimePattern* time)= 0;
+	virtual void fillDebugSession(const dbgSubroutineContent_t& content)= 0;
 	/**
 	 * return filled content from cache
 	 *
@@ -115,7 +133,7 @@ public:
 	 */
 	virtual void getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
 					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
-					SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue)= 0;
+					SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue)= 0;
 	/**
 	 * remove all content from DbFiller
 	 * and stop thread when one running

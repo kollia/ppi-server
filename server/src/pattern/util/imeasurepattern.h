@@ -29,6 +29,7 @@
 
 #include "IPPIValuesPattern.h"
 #include "IInformerCachePattern.h"
+#include "IDbgSessionPattern.h"
 
 namespace design_pattern_world
 {
@@ -51,7 +52,7 @@ namespace design_pattern_world
 		 * @autor Alexander Kolli
 		 * @version 1.0.0
 		 */
-		class IMeasurePattern
+		class IMeasurePattern : public IDbgSessionPattern
 		{
 			public:
 				/**
@@ -400,13 +401,9 @@ namespace design_pattern_world
 				 * fill debug session output from folder working list
 				 * into database
 				 *
-				 * @param folder name of debugging folder
-				 * @param subroutine name of debugging subroutine
-				 * @param content output string of debug session
-				 * @param time on which time subroutine proceed
+				 * @param content structure of folder:subroutine data from debugging session
 				 */
-				virtual void fillDebugSession(const string& folder, const string& subroutine,
-								const string& content, const IPPITimePattern* time)= 0;
+				virtual void fillDebugSession(const dbgSubroutineContent_t& content)= 0;
 				/**
 				 * dummy destructor for pattern
 				 */

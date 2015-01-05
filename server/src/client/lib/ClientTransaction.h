@@ -28,9 +28,8 @@
 #include "../../util/stream/ppivalues.h"
 
 #include "../../pattern/util/IErrorHandlingPattern.h"
+#include "../../pattern/util/IDbFillerPattern.h"
 
-
-//#include "../../portserver/owserver.h"
 
 using namespace std;
 using namespace design_pattern_world::util_pattern;
@@ -163,6 +162,8 @@ namespace server
 			virtual ~ClientTransaction();
 
 		private:
+			typedef map<ppi_time, vector<IDbFillerPattern::dbgSubroutineContent_t> > debugSessionTimeMap;
+
 			/**
 			 * prompt string to display
 			 * locked by PROMPTMUTEX
@@ -251,7 +252,7 @@ namespace server
 			/**
 			 * all hold debug session content
 			 */
-			map<ppi_time, vector<pair< pair<string, string>, string > > > m_mmDebugSession;
+			debugSessionTimeMap m_mmDebugSession;
 			/**
 			 * time returned from method <code>writeDebugSession()</code>
 			 */

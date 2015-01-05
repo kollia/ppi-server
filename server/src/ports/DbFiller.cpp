@@ -38,7 +38,7 @@ namespace util
 	{
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > pMsgQueue;
 		SHAREDPTR::shared_ptr<map<string, db_t>  > pDbQueue;
-		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > > pDebugQueue;
+		SHAREDPTR::shared_ptr<debugSessionFolderMap> pDebugQueue;
 
 		LOCK(m_SENDQUEUELOCK);
 		while(!m_bHasContent)
@@ -58,11 +58,11 @@ namespace util
 
 	void DbFiller::sendDirect(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
 					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
-					SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue)
+					SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue)
 	{
 		typedef map<string, db_t>::iterator subIt;
-		typedef map<string, map<pair<ppi_time, string>, string > >::iterator debugIt;
-		typedef map<pair<ppi_time, string>, string >::iterator debugInnerIt;
+		typedef debugSessionFolderMap::iterator debugIt;
+		typedef debugSessionSubroutineMap::iterator debugInnerIt;
 		bool bError(false);
 		DbInterface* db;
 		vector<sendingInfo_t>::iterator msgPos;
@@ -118,43 +118,11 @@ namespace util
 			{
 				for(debugInnerIt dIIt= dIt->second.begin(); dIIt != dIt->second.end(); ++dIIt)
 				{
-					OMethodStringStream command("fillDebugSession");
-
-					command << dIt->first;
-					command << dIIt->first.second;
-					command << dIIt->second;
-					command << dIIt->first.first;
-					answer= db->sendMethodD("ppi-db-server", command, "", /*answer*/true);
-					for(vector<string>::iterator answ= answer.begin(); answ != answer.end(); ++answ)
+					if(!db->fillDebugSession(dIIt->second, /*answer*/true))
 					{
-						err.setErrorStr(*answ);
-						if(err.fail())
-						{// ending only by errors (no warnings)
-							int log;
-							string msg;
-
-							err.addMessage("DbFiller", "sendToDatabase", command.getMethodName()
-											+ "@" + dIt->first + "@" + dIIt->first.second);
-							msg= err.getDescription();
-							if(err.hasError())
-							{
-								log= LOG_ERROR;
-								cerr << glob::addPrefix("### ERROR: ", msg) << endl;
-							}else
-							{
-								log= LOG_WARNING;
-								cout << glob::addPrefix("### WARNING: ", msg) << endl;
-							}
-							LOGEX(log, msg, &m_oCache);
-							if(log == LOG_ERROR)
-							{
-								bError= true;
-								break;
-							}
-						}
-					}
-					if(bError)
+						bError= true;
 						break;
+					}
 				}
 				if(bError)
 					break;
@@ -210,7 +178,7 @@ namespace util
 
 	void DbFiller::getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
 					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
-					SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue)
+					SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue)
 	{
 		m_oCache.getContent(dbQueue, msgQueue, debugQueue);
 	}

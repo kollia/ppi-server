@@ -110,14 +110,10 @@ namespace util
 		 * fill debug session output from folder working list
 		 * into database
 		 *
-		 * @param folder name of debugging folder
-		 * @param subroutine name of debugging subroutine
-		 * @param content output string of debug session
-		 * @param time on which time subroutine proceed
+		 * @param content structure of folder:subroutine data from debugging session
 		 */
-		OVERWRITE void fillDebugSession(const string& folder, const string& subroutine,
-						const string& content, const IPPITimePattern* time)
-		{ m_oCache.fillDebugSession(folder, subroutine, content, time); }
+		OVERWRITE void fillDebugSession(const dbgSubroutineContent_t& content)
+		{ m_oCache.fillDebugSession(content); }
 		/**
 		 * informing thread to send entries to database
 		 */
@@ -133,7 +129,7 @@ namespace util
 		 */
 		virtual void getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
 						SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
-						SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue);
+						SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue);
 		/**
 		 * sending database and message values from queue
 		 * directly over interface to database-server
@@ -144,7 +140,7 @@ namespace util
 		 */
 		void sendDirect(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
 						SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
-						SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue);
+						SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue);
 		/**
 		 *  external command to stop thread
 		 *

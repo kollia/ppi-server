@@ -78,7 +78,7 @@ namespace ppi_database
 			m_sMeasureName= string(pHostN);
 		m_sptEntrys= auto_ptr<vector<db_t> >(new vector<db_t>());
 		m_apmmtValueEntrys= auto_ptr<map<string, map<string, db_t> > >(new map<string, map<string, db_t> > ());
-		m_apmtDebugSession= auto_ptr<map<string, map<pair<ppi_time, string>, string > > >(new map<string, map<pair<ppi_time, string>, string > >());
+		m_apmtDebugSession= auto_ptr<debugSessionFolderMap>(new debugSessionFolderMap());
 		m_SERVERSTARTINGMUTEX= Thread::getMutex("SERVERSTARTINGMUTEX");
 		m_DBWRITINGALLOWED= Thread::getMutex("DBWRITINGALLOWED");
 		m_DBENTRYITEMSCOND= Thread::getCondition("DBENTRYITEMSCOND");
@@ -1655,14 +1655,13 @@ namespace ppi_database
 		return pRv;
 	}
 
-	void Database::fillDebugSession(const string& folder, const string& subroutine,
-					const string& content, const ppi_time& time)
+	void Database::fillDebugSession(const IDbgSessionPattern::dbgSubroutineContent_t& content)
 	{
 		unsigned long nConnection;
 		db_t tChangPool;
-		pair<ppi_time, string> timeSub(time, subroutine);
-		map<string, map<pair<ppi_time, string>, string > >::iterator foundFolder;
-		map<pair<ppi_time, string>, string >::iterator foundTimer;
+		pair<ppi_time, string> timeSub(*content.currentTime, content.subroutine);
+		debugSessionFolderMap::iterator foundFolder;
+		debugSessionSubroutineMap::iterator foundTimer;
 		map<unsigned long, vector<db_t> >::iterator foundCon;
 		vector<db_t>::iterator foundEntry;
 
@@ -1670,17 +1669,17 @@ namespace ppi_database
 		nConnection= m_nCurDbgSessConnection;
 		if(nConnection > 0)
 		{
-			foundFolder= m_apmtDebugSession->find(folder);
+			foundFolder= m_apmtDebugSession->find(content.folder);
 			if(foundFolder != m_apmtDebugSession->end())
 			{
 				foundTimer= foundFolder->second.find(timeSub);
 				if(foundTimer != foundFolder->second.end())
 				{
-					foundTimer->second+= content;
+					foundTimer->second.content+= content.content;
 				}else
-					(*m_apmtDebugSession)[folder][timeSub]= content;
+					(*m_apmtDebugSession)[content.folder][timeSub]= content;
 			}else
-				(*m_apmtDebugSession)[folder][timeSub]= content;
+				(*m_apmtDebugSession)[content.folder][timeSub]= content;
 		}else
 			m_apmtDebugSession->clear();
 		UNLOCK(m_DEBUGSESSIONQUEMUTEX);
@@ -1711,15 +1710,13 @@ namespace ppi_database
 		UNLOCK(m_CHANGINGPOOL);
 	}
 
-	std::auto_ptr<map<string, map<pair<ppi_time, string>, string > > > Database::getDebugSessionQueue()
+	std::auto_ptr<Database::debugSessionFolderMap> Database::getDebugSessionQueue()
 	{
-		std::auto_ptr<map<string, map<pair<ppi_time, string>, string > > > mmRv;
+		std::auto_ptr<debugSessionFolderMap> mmRv;
 
 		LOCK(m_DEBUGSESSIONQUEMUTEX);
 		mmRv= m_apmtDebugSession;
-		m_apmtDebugSession= auto_ptr<map<string, map<pair<
-						ppi_time, string>, string > > >
-							(new map<string, map<pair<ppi_time, string>, string > >());
+		m_apmtDebugSession= auto_ptr<debugSessionFolderMap>(new debugSessionFolderMap());
 		UNLOCK(m_DEBUGSESSIONQUEMUTEX);
 		return mmRv;
 	}

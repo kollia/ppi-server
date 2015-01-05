@@ -27,10 +27,14 @@
 
 #include "../../util/properties/measureStructures.h"
 
+#include "IDbgSessionPattern.h"
+
 using namespace std;
 
 namespace design_pattern_world
 {
+	using namespace util_pattern;
+
 	/**
 	 * struct of nessesary items
 	 * to write into database
@@ -94,6 +98,26 @@ namespace design_pattern_world
 	class IPPIDatabasePattern
 	{
 	public:
+		/*
+		 * same three typedef definitions
+		 * like IDbFillerPattern
+		 */
+		/**
+		 * definition of debug session subroutine
+		 * with subroutine name and time
+		 */
+		typedef pair<ppi_time, string > debugSessionSubroutine;
+		/**
+		 * definition of debug session map for subroutines
+		 * with subroutine name, time and content
+		 */
+		typedef map<debugSessionSubroutine, IDbgSessionPattern::dbgSubroutineContent_t > debugSessionSubroutineMap;
+		/**
+		 * definition of debug session map for folders
+		 * with folder name, subroutine name, time and content
+		 */
+		typedef map<string, debugSessionSubroutineMap> debugSessionFolderMap;
+
 		/**
 		 * method for starting ppi-server to define on which level
 		 * position the server is
@@ -222,24 +246,21 @@ namespace design_pattern_world
 		 * @param values vector of value which should write into database
 		 * @param bNew whether database should write only new values default= true
 		 */
-		virtual void fillValue(string folder, string subroutine, string identif, vector<double> values, bool bNew= true)= 0;
+		virtual void fillValue(string folder, string subroutine, string identif,
+						vector<double> values, bool bNew= true)= 0;
 		/**
 		 * fill debug session output from folder working list
 		 * into database
 		 *
-		 * @param folder name of debugging folder
-		 * @param subroutine name of debugging subroutine
-		 * @param content output string of debug session
-		 * @param time on which time subroutine proceed
+		 * @param content structure of folder:subroutine data from debugging session
 		 */
-		virtual void fillDebugSession(const string& folder, const string& subroutine,
-						const string& content, const ppi_time& time)= 0;
+		virtual void fillDebugSession(const IDbgSessionPattern::dbgSubroutineContent_t& content)= 0;
 		/**
 		 * return queue of hole written debug sessions
 		 *
 		 * @return debug sessions
 		 */
-		virtual std::auto_ptr<map<string, map<pair<ppi_time, string>, string > > > getDebugSessionQueue()= 0;
+		virtual std::auto_ptr<debugSessionFolderMap> getDebugSessionQueue()= 0;
 		/**
 		 * whether one or more entry's are changed.<br />
 		 * method hold thread in process and return without any result

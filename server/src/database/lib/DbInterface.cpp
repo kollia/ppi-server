@@ -326,14 +326,25 @@ namespace ppi_database
 		}
 	}
 
-	void DbInterface::fillDebugSession(const string& folder, const string& subroutine,
-					const string& content, const ppi_time& time)
+	bool DbInterface::fillDebugSession(const IDbFillerPattern::dbgSubroutineContent_t& content, bool answer)
 	{
 		string msg;
 		SocketErrorHandling err;
 		OMethodStringStream command("fillDebugSession");
 
-		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, true);
+		/*
+		 * data type order below
+		 * is specified inside follow methods:
+		 * DbInterface::fillDebugSession
+		 * ServerDbTransaction::transfer by method == "fillDebugSession"
+		 * ClientTransaction::hearingTransfer
+		 */
+		command << content.folder;
+		command << content.subroutine;
+		command << content.value;
+		command << *content.currentTime;
+		command << content.content;
+		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, answer);
 		err.setErrorStr(msg);
 		if(err.fail())
 		{
@@ -343,12 +354,14 @@ namespace ppi_database
 			{
 				LOG(LOG_ERROR, msg);
 				cerr << glob::addPrefix("### ERROR:", msg) << endl;
+				return false;
 			}else
 			{
 				LOG(LOG_WARNING, msg);
 				cout << glob::addPrefix("### WARNING:", msg) << endl;
 			}
 		}
+		return true;
 	}
 
 	vector<string> DbInterface::getDebugSessionQueue()

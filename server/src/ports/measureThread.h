@@ -25,6 +25,7 @@
 #include "../pattern/util/IListObjectPattern.h"
 #include "../pattern/util/imeasurepattern.h"
 #include "../pattern/util/IInformerCachePattern.h"
+#include "../pattern/util/IDbFillerPattern.h"
 
 #include "../util/debugsubroutines.h"
 #include "../util/smart_ptr.h"
@@ -215,14 +216,10 @@ class MeasureThread : 	public Thread,
 		 * fill debug session output from folder working list
 		 * into database
 		 *
-		 * @param folder name of debugging folder
-		 * @param subroutine name of debugging subroutine
-		 * @param content output string of debug session
-		 * @param time on which time subroutine proceed
+		 * @param content structure of folder:subroutine data from debugging session
 		 */
-		OVERWRITE void fillDebugSession(const string& folder, const string& subroutine,
-						const string& content, const IPPITimePattern* time)
-		{ m_oDbFiller->fillDebugSession(folder, subroutine, content, time); };
+		OVERWRITE void fillDebugSession(const dbgSubroutineContent_t& content)
+		{ m_oDbFiller->fillDebugSession(content); };
 		/**
 		 * return actually count of current subroutine
 		 *

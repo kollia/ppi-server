@@ -159,15 +159,13 @@ namespace util
 		fillValue(folder, subroutine, identif, values, bNew);
 	}
 
-	void DbFillerCache::fillDebugSession(const string& folder, const string& subroutine,
-					const string& content, const IPPITimePattern* ptime)
+	void DbFillerCache::fillDebugSession(const dbgSubroutineContent_t& content)
 	{
 		DbInterface* db;
 		OMethodStringStream command("fillValue");
 		map<string, db_t>::iterator foundSub;
 		sendingInfo_t sendInfo;
 		db_t newEntry;
-		ppi_time time(*ptime);
 
 		if(m_bisRunn)
 		{
@@ -185,9 +183,9 @@ namespace util
 #endif // __showLOCK
 
 			bool bFillFirstContainer(true);
-			pair<ppi_time, string> timeSub(time, subroutine);
-			map<string, map<pair<ppi_time, string>, string > >::iterator foundFolder;
-			map<pair<ppi_time, string>, string >::iterator foundTimer;
+			debugSessionSubroutine timeSub(*content.currentTime, content.subroutine);
+			debugSessionSubroutineMap::iterator foundTimer;
+			debugSessionFolderMap::iterator foundFolder;
 
 			if(m_pHasContent == NULL)
 			{
@@ -203,17 +201,17 @@ namespace util
 				 */
 				if(TRYLOCK(m_SENDQUEUELOCK2) == 0)
 				{
-					foundFolder= m_apmtDebugSession2->find(folder);
+					foundFolder= m_apmtDebugSession2->find(content.folder);
 					if(foundFolder != m_apmtDebugSession2->end())
 					{
 						foundTimer= foundFolder->second.find(timeSub);
 						if(foundTimer != foundFolder->second.end())
 						{
-							foundTimer->second+= content;
+							foundTimer->second.content+= content.content;
 						}else
-							(*m_apmtDebugSession2)[folder][timeSub]= content;
+							(*m_apmtDebugSession2)[content.folder][timeSub]= content;
 					}else
-						(*m_apmtDebugSession2)[folder][timeSub]= content;
+						(*m_apmtDebugSession2)[content.folder][timeSub]= content;
 					UNLOCK(m_SENDQUEUELOCK2);
 					bFillFirstContainer= false;
 				}
@@ -221,27 +219,27 @@ namespace util
 			if(bFillFirstContainer)
 			{
 				LOCK(m_SENDQUEUELOCK1);
-				foundFolder= m_apmtDebugSession1->find(folder);
+				foundFolder= m_apmtDebugSession1->find(content.folder);
 				if(foundFolder != m_apmtDebugSession1->end())
 				{
 					foundTimer= foundFolder->second.find(timeSub);
 					if(foundTimer != foundFolder->second.end())
 					{
-						foundTimer->second+= content;
+						foundTimer->second.content+= content.content;
 					}else
-						(*m_apmtDebugSession1)[folder][timeSub]= content;
+						(*m_apmtDebugSession1)[content.folder][timeSub]= content;
 				}else
-					(*m_apmtDebugSession1)[folder][timeSub]= content;
+					(*m_apmtDebugSession1)[content.folder][timeSub]= content;
 				if(m_pHasContent)
 					*m_pHasContent= true;
 				UNLOCK(m_SENDQUEUELOCK1);
 			}
 			if(m_dbInform)
 				m_dbInform->informDatabase();
-		}else
+		}else //v if(m_bisRunn)
 		{
 			db= DbInterface::instance();
-			db->fillDebugSession(folder, subroutine, content, time);
+			db->fillDebugSession(content, /*answer*/false);
 		}
 	}
 
@@ -389,22 +387,22 @@ namespace util
 
 	void DbFillerCache::getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& valQueue,
 					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
-					SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue)
+					SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue)
 	{
-		typedef map<string, map<pair<ppi_time, string>, string > >::iterator folderQueueIt;
-		typedef map<pair<ppi_time, string>, string >::iterator timerQueueIt;
+		typedef debugSessionFolderMap::iterator folderQueueIt;
+		typedef debugSessionSubroutineMap::iterator timerQueueIt;
 
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > newMsgQueue1(new vector<sendingInfo_t>());
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > newMsgQueue2(new vector<sendingInfo_t>());
 		SHAREDPTR::shared_ptr<map<string, db_t>  > newValueEntrys1(new map<string, db_t>());
 		SHAREDPTR::shared_ptr<map<string, db_t>  > newValueEntrys2(new map<string, db_t>());
-		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >
-									newDebugQueue1(new map<string, map<pair<ppi_time, string>, string > >());
-		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >
-									newDebugQueue2(new map<string, map<pair<ppi_time, string>, string > >());
+		SHAREDPTR::shared_ptr<debugSessionFolderMap>
+									newDebugQueue1(new debugSessionFolderMap());
+		SHAREDPTR::shared_ptr<debugSessionFolderMap>
+									newDebugQueue2(new debugSessionFolderMap());
 		SHAREDPTR::shared_ptr<map<string, db_t> > valQueue2;
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > msgQueue2;
-		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > > debugQueue2;
+		SHAREDPTR::shared_ptr<debugSessionFolderMap> debugQueue2;
 		folderQueueIt foundFolder;
 		timerQueueIt foundTimer;
 		map<string, db_t>::iterator found;
@@ -461,7 +459,7 @@ namespace util
 					foundTimer= foundFolder->second.find(tit->first);
 					if(foundTimer != foundFolder->second.end())
 					{
-						foundTimer->second+= tit->second;
+						foundTimer->second.content+= tit->second.content;
 					}else
 						(*debugQueue)[it->first][tit->first]= tit->second;
 				}

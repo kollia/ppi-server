@@ -190,7 +190,6 @@ bool ProcessChecker::execute()
 		string folder, subroutine;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
 		ostringstream msg;
-		ppi_time nullTime;
 
 		object >> debug;
 		object >> bInform;
@@ -201,7 +200,25 @@ bool ProcessChecker::execute()
 			subroutine= "#AllFolder";
 			msg << "set all folder with all subroutines to debug session";
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-			pCurMeas->pMeasure->fillDebugSession("all", "#setDebug", msg.str(), &nullTime);
+			IDbFillerPattern::dbgSubroutineContent_t content;
+
+			/**
+			 * place of new definition of content are:
+			 * ProcessChecker::execute by method == "debugSubroutine"
+			 * Informer::informing
+			 * MeasureThread::setDebug on method end
+			 * MeasureThread::execute by 2 times
+			 * MeasureThread::doDebugStartingOutput
+			 * MeasureThread::checkToStart
+			 * portBase::writeDebugStream
+			 * ServerDbTransaction::transfer by method == "fillDebugSession"
+			 */
+			content.folder= "all";
+			content.subroutine= "#setDebug";
+			content.value= 0;
+			content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time);
+			content.content= msg.str();
+			pCurMeas->pMeasure->fillDebugSession(content);
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
 			tout << msg.str() << endl;

@@ -378,12 +378,28 @@ bool MeasureThread::setDebug(bool bDebug, bool bInform, const string& subroutine
 	}
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-			ppi_time cur;
 
 			if(subroutine != "#AllFolder")
 			{
-				cur.setActTime();
-				fillDebugSession(getFolderName(), "#setDebug", out.str(), &cur);
+				dbgSubroutineContent_t content;
+
+				/**
+				 * place of new definition of content are:
+				 * ProcessChecker::execute by method == "debugSubroutine"
+				 * Informer::informing
+				 * MeasureThread::setDebug on method end
+				 * MeasureThread::execute by 2 times
+				 * MeasureThread::doDebugStartingOutput
+				 * MeasureThread::checkToStart
+				 * portBase::writeDebugStream
+				 * ServerDbTransaction::transfer by method == "fillDebugSession"
+				 */
+				content.folder= getFolderName();
+				content.subroutine= "#setDebug";
+				content.value= 0;
+				content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time);
+				content.content= out.str();
+				fillDebugSession(content);
 			}
 #endif
 	UNLOCK(m_DEBUGLOCK);
@@ -1038,8 +1054,26 @@ bool MeasureThread::execute()
 			TERMINALEND;
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+			dbgSubroutineContent_t content;
+
 			debugstring+= out.str();
-			fillDebugSession(getFolderName(), "#end", debugstring, &m_tvEndTime);
+			/**
+			 * place of new definition of content are:
+			 * ProcessChecker::execute by method == "debugSubroutine"
+			 * Informer::informing
+			 * MeasureThread::setDebug on method end
+			 * MeasureThread::execute by 2 times
+			 * MeasureThread::doDebugStartingOutput
+			 * MeasureThread::checkToStart
+			 * portBase::writeDebugStream
+			 * ServerDbTransaction::transfer by method == "fillDebugSession"
+			 */
+			content.folder= getFolderName();
+			content.subroutine= "#end";
+			content.value= 0;
+			content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(m_tvEndTime));
+			content.content= debugstring;
+			fillDebugSession(content);
 			debugstring= "";
 #endif
 	}
@@ -1290,18 +1324,36 @@ bool MeasureThread::execute()
 		}//while(bRun == false)
 		UNLOCK(m_ACTIVATETIME);
 	}
+	if(	debug &&
+		debugstring != ""	)
+	{
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+		dbgSubroutineContent_t content;
+
+		/**
+		 * place of new definition of content are:
+		 * ProcessChecker::execute by method == "debugSubroutine"
+		 * Informer::informing
+		 * MeasureThread::setDebug on method end
+		 * MeasureThread::execute by 2 times
+		 * MeasureThread::doDebugStartingOutput
+		 * MeasureThread::checkToStart
+		 * portBase::writeDebugStream
+		 * ServerDbTransaction::transfer by method == "fillDebugSession"
+		 */
+		content.folder= getFolderName();
+		content.subroutine= "#end";
+		content.value= 0;
+		content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(m_tvEndTime));
+		content.content= debugstring;
+		fillDebugSession(content);
+#endif
+	}
 	if(!bHasCondition)
 	{
 		m_tvStartTime= m_tvEndTime; // after last folder end
 		if(m_nSchedPolicy == SCHED_FIFO)
 			sched_yield();
-	}
-	if(	debug &&
-		debugstring != ""	)
-	{
-#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-		fillDebugSession(getFolderName(), "", debugstring, &m_tvStartTime);
-#endif
 	}
 	return true;
 }
@@ -1452,7 +1504,25 @@ void MeasureThread::doDebugStartingOutput(const ppi_time& time)
 			TERMINALEND;
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-			fillDebugSession(getFolderName(), "#start", out.str(), &time);
+			dbgSubroutineContent_t content;
+
+			/**
+			 * place of new definition of content are:
+			 * ProcessChecker::execute by method == "debugSubroutine"
+			 * Informer::informing
+			 * MeasureThread::setDebug on method end
+			 * MeasureThread::execute by 2 times
+			 * MeasureThread::doDebugStartingOutput
+			 * MeasureThread::checkToStart
+			 * portBase::writeDebugStream
+			 * ServerDbTransaction::transfer by method == "fillDebugSession"
+			 */
+			content.folder= getFolderName();
+			content.subroutine= "#start";
+			content.value= 0;
+			content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(time));
+			content.content= out.str();
+			fillDebugSession(content);
 #endif
 }
 
@@ -1586,7 +1656,25 @@ bool MeasureThread::checkToStart(vector<InformObject>& vInformed, const bool deb
 			TERMINALEND;
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-			fillDebugSession(getFolderName(), "#inform", out.str(), &m_tvStartTime);
+			dbgSubroutineContent_t content;
+
+			/**
+			 * place of new definition of content are:
+			 * ProcessChecker::execute by method == "debugSubroutine"
+			 * Informer::informing
+			 * MeasureThread::setDebug on method end
+			 * MeasureThread::execute by 2 times
+			 * MeasureThread::doDebugStartingOutput
+			 * MeasureThread::checkToStart
+			 * portBase::writeDebugStream
+			 * ServerDbTransaction::transfer by method == "fillDebugSession"
+			 */
+			content.folder= getFolderName();
+			content.subroutine= "#inform";
+			content.value= 0;
+			content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(m_tvStartTime));
+			content.content= out.str();
+			fillDebugSession(content);
 #endif
 	}
 	return bDoStart;

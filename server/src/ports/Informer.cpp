@@ -21,6 +21,8 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+#include "../pattern/util/IDbgSessionPattern.h"
+
 #include "../util/stream/ppivalues.h"
 
 #include "../util/thread/Terminal.h"
@@ -32,6 +34,7 @@
 
 using namespace std;
 using namespace boost::algorithm;
+using namespace design_pattern_world::util_pattern;
 
 namespace util
 {
@@ -146,10 +149,25 @@ namespace util
 #endif // TERMINALOUTPUT_ONLY_THRADIDS
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-			ppi_time cur;
+			IDbgSessionPattern::dbgSubroutineContent_t content;
 
-			cur.setActTime();
-			m_poMeasurePattern->fillDebugSession(m_sFolder, as, output.str(), &cur);
+			/**
+			 * place of new definition of content are:
+			 * ProcessChecker::execute by method == "debugSubroutine"
+			 * Informer::informing
+			 * MeasureThread::setDebug on method end
+			 * MeasureThread::execute by 2 times
+			 * MeasureThread::doDebugStartingOutput
+			 * MeasureThread::checkToStart
+			 * portBase::writeDebugStream
+			 * ServerDbTransaction::transfer by method == "fillDebugSession"
+			 */
+			content.folder= m_sFolder;
+			content.subroutine= as;
+			content.value= 0;
+			content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time);
+			content.content= output.str();
+			m_poMeasurePattern->fillDebugSession(content);
 #endif
 		}
 		UNLOCK(lock);

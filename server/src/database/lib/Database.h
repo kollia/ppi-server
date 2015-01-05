@@ -42,6 +42,7 @@ using namespace design_pattern_world;
 namespace ppi_database
 {
 	using namespace design_pattern_world;
+	using namespace design_pattern_world::util_pattern;
 
 	class Database : public IPPIDatabasePattern
 	{
@@ -235,19 +236,15 @@ namespace ppi_database
 		 * fill debug session output from folder working list
 		 * into database
 		 *
-		 * @param folder name of debugging folder
-		 * @param subroutine name of debugging subroutine
-		 * @param content output string of debug session
-		 * @param time on which time subroutine proceed
+		 * @param content structure of folder:subroutine data from debugging session
 		 */
-		OVERWRITE void fillDebugSession(const string& folder, const string& subroutine,
-						const string& content, const ppi_time& time);
+		OVERWRITE void fillDebugSession(const IDbgSessionPattern::dbgSubroutineContent_t& content);
 		/**
 		 * return queue of hole written debug sessions
 		 *
 		 * @return debug sessions
 		 */
-		OVERWRITE std::auto_ptr<map<string, map<pair<ppi_time, string>, string > > > getDebugSessionQueue();
+		OVERWRITE std::auto_ptr<debugSessionFolderMap> getDebugSessionQueue();
 		/**
 		 * method to running thread .<br />
 		 * This method starting again when method stop() wasn't call.
@@ -391,7 +388,7 @@ namespace ppi_database
 		/**
 		 * queue of debug session output info
 		 */
-		std::auto_ptr<map<string, map<pair<ppi_time, string>, string > > > m_apmtDebugSession;
+		std::auto_ptr<debugSessionFolderMap> m_apmtDebugSession;
 		/**
 		 * variable is set if the database file cannot write.<br />
 		 * The base of case is to write the errormessage only on one time.

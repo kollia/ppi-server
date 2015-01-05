@@ -379,6 +379,7 @@ namespace server
 		string result;
 		// folder list debug session
 		ppi_time time;
+		ppi_value value;
 		string folder, subroutine, content, id;
 		// debug external port server
 		bool bHeader= true;
@@ -410,9 +411,17 @@ namespace server
 						map<string, map<string, unsigned long> >::iterator foundFolder;
 						map<string, unsigned long>::iterator foundSubroutine;
 
+						/*
+						 * data type order below
+						 * is specified inside follow methods:
+						 * DbInterface::fillDebugSession
+						 * ServerDbTransaction::transfer by method == "fillDebugSession"
+						 * ClientTransaction::hearingTransfer
+						 */
 						input >> folder;
-						input >> time;
 						input >> subroutine;
+						input >> value;
+						input >> time;
 						input >> content;
 						LOCK(m_DEBUGSESSIONCHANGES);
 						if(!m_bHoldAll)
@@ -427,21 +436,27 @@ namespace server
 									subroutine == "#end" || // <- entry is stopping of folder list
 									foundSubroutine != foundFolder->second.end())
 								{// folder is set for holding
-									pair<string, string> foldSub(folder, subroutine);
-									pair< pair<string, string>, string > foldCont(foldSub, content);
+									IDbFillerPattern::dbgSubroutineContent_t subCont;
 
-									m_mmDebugSession[time].push_back(foldCont);
+									subCont.folder= folder;
+									subCont.subroutine= subroutine;
+									subCont.value= value;
+									subCont.content= content;
+									m_mmDebugSession[time].push_back(subCont);
 									bWrite= false;
 								}
 							}
 						}else
 						{
-							pair<string, string> foldSub(folder, subroutine);
-							pair< pair<string, string>, string > foldCont(foldSub, content);
-
 							if(subroutine != "#setDebug")
 							{
-								m_mmDebugSession[time].push_back(foldCont);
+								IDbFillerPattern::dbgSubroutineContent_t subCont;
+
+								subCont.folder= folder;
+								subCont.subroutine= subroutine;
+								subCont.value= value;
+								subCont.content= content;
+								m_mmDebugSession[time].push_back(subCont);
 								bWrite= false;
 							}
 						}
@@ -985,9 +1000,125 @@ namespace server
 						iresult >> folderNr;
 						if(iresult.fail())
 						{
-							cout << " no correct folder number defined" << endl;
-							command= "";
-							continue;
+							iresult.clear();
+							secWord= "";
+							iresult >> secWord;
+							if(	secWord == "ch" ||
+								secWord == "changed"	)
+							{
+								if(direction == next)
+									direction= next_changed;
+								else // direction should be previous
+									direction= previous_changed;
+
+							}else if(	secWord == "uch" ||
+										secWord == "unchanged"	)
+							{
+								if(direction == next)
+									direction= next_unchanged;
+								else // direction should be previous
+									direction= previous_unchanged;
+
+							}else
+							{
+								cout << " no correct command or folder number ";
+								cout << " after '" << word << "' defined" << endl;
+								command= "";
+								continue;
+							}
+							if(secWord != "")
+							{
+								bool bFoundSubroutine(false);
+								vector<string>::iterator subIt;
+								/*
+								 * secWord is defined for direction
+								 * with changed or unchanged
+								 * search now for subroutine
+								 * which should be changed/unchanged
+								 */
+								secWord= "";
+								iresult >> secWord;
+								if(vNextSubs[nCurLayer].second.second.empty())
+								{
+									if(secWord != "")
+									{
+										/*
+										 * hole folder should be shown,
+										 * define secWord with folder name
+										 * for later existing check
+										 * and in subroutines queue define
+										 * an '#' before
+										 * to know later inside method writeDebugSession()
+										 * that all subroutines should be shown
+										 * but check for changed/unchanged
+										 * this subroutine with '#'
+										 */
+										vNextSubs[nCurLayer].second.second.push_back("#" + secWord);
+										secWord= vNextSubs[nCurLayer].first
+														+ ":" +secWord;
+										bFoundSubroutine= true;
+									}
+								}else if(vNextSubs[nCurLayer].second.second.size() == 1)
+								{
+									if(	secWord == "" ||
+										secWord == vNextSubs[nCurLayer].second.second[0]	)
+									{
+										bFoundSubroutine= true;
+									}
+								}else
+								{
+									subIt= find(vNextSubs[nCurLayer].second.second.begin(),
+													vNextSubs[nCurLayer].second.second.end(), secWord);
+									if(subIt != vNextSubs[nCurLayer].second.second.end())
+									{
+										bFoundSubroutine= true;
+										if(secWord != vNextSubs[nCurLayer].second.second[0])
+										{
+											vector<string> newVec;
+											/*
+											 * when defined subroutine
+											 * is not as first,
+											 * do this now
+											 * because method writeDebugSession()
+											 * know in this case
+											 * that this first subroutine
+											 * has to check for changed or unchanged
+											 */
+											vNextSubs[nCurLayer].second.second.erase(subIt);
+											newVec.push_back(secWord);
+											newVec.insert(newVec.end(),
+															vNextSubs[nCurLayer].second.second.begin(),
+															vNextSubs[nCurLayer].second.second.end()	);
+										}
+									}
+								}
+								if(!bFoundSubroutine)
+								{
+									if(secWord == "")
+									{
+										cout << " need after command ";
+										if(	direction == next_changed ||
+											direction == previous_changed	)
+										{
+											cout << "'changed' ";
+										}else
+											cout << "'unchanged' ";
+										cout << "an subroutine for check" << endl;
+									}else
+									{
+										cout << " predefined subroutines:" << endl;
+										for(subIt= vNextSubs[nCurLayer].second.second.begin();
+														subIt != vNextSubs[nCurLayer].second.second.end(); ++subIt	)
+										{
+											cout << "             " << *subIt << endl;
+										}
+										cout << " subroutine '" << secWord << "' do not exist " << endl;
+										secWord= "";
+									}
+									command= "";
+									continue;
+								}
+							}
 
 						}else if(folderNr < 1)
 						{
@@ -1004,7 +1135,11 @@ namespace server
 					vector<string> spl;
 
 					if(	direction != all &&
-						direction != current	)
+						direction != current &&
+						direction != next_changed &&
+						direction != next_unchanged &&
+						direction != previous_changed &&
+						direction != previous_unchanged	)
 					{
 						cout << " for command '" << command << "'";
 						cout << " is no definition of folder[:subroutine] allowed" << endl;
@@ -1031,6 +1166,21 @@ namespace server
 						{
 							cout << " '" << folder << ":" << subroutine << "'";
 							cout << " do not exist in folder working list of ppi-server" << endl;
+							if(	direction != next_changed &&
+								direction != next_unchanged &&
+								direction != previous_changed &&
+								direction != previous_unchanged	)
+							{
+								/*
+								 * this point reach only when
+								 * should searching for changed or unchanged
+								 * and no subroutines be defined for folder
+								 * inside subroutine should be one subroutine
+								 * with '#' before
+								 * this will be not need by error
+								 */
+								vNextSubs[nCurLayer].second.second.clear();
+							}
 							command= "";
 							continue;
 						}
@@ -1238,8 +1388,8 @@ namespace server
 	short ClientTransaction::exist(const string& folder, const string& subroutine)
 	{
 		short nExist(0);
-		map<ppi_time, vector<pair< pair<string, string>, string > > >::iterator timeIt;
-		vector<pair< pair<string, string>, string > >::iterator folderIt;
+		debugSessionTimeMap::iterator timeIt;
+		vector<IDbFillerPattern::dbgSubroutineContent_t>::iterator folderIt;
 		map<string, map<string, unsigned long> >::iterator foundFolder;
 		map<string, unsigned long>::iterator foundSubroutine;
 
@@ -1250,8 +1400,8 @@ namespace server
 		{
 			for(folderIt= timeIt->second.begin(); folderIt != timeIt->second.end(); ++folderIt)
 			{
-				if(	folder == folderIt->first.first	&&
-					(	subroutine == folderIt->first.second ||
+				if(	folder == folderIt->folder	&&
+					(	subroutine == folderIt->subroutine ||
 						subroutine == ""						)	)
 				{
 					nExist= 1;
@@ -1474,18 +1624,18 @@ namespace server
 	{
 		unsigned long ulRun;
 		map<string, unsigned long> mRv;
-		map<ppi_time, vector<pair< pair<string, string>, string > > >::iterator timeIt;
-		vector<pair< pair<string, string>, string > >::iterator folderIt;
+		debugSessionTimeMap::iterator timeIt;
+		vector<IDbFillerPattern::dbgSubroutineContent_t>::iterator folderIt;
 
 		for(timeIt= m_mmDebugSession.begin(); timeIt != m_mmDebugSession.end(); ++timeIt)
 		{
 			for(folderIt= timeIt->second.begin(); folderIt != timeIt->second.end(); ++folderIt)
 			{
-				if(folderIt->first.second == "#start")
+				if(folderIt->subroutine == "#start")
 				{
-					ulRun= mRv[folderIt->first.first];
+					ulRun= mRv[folderIt->folder];
 					++ulRun;
-					mRv[folderIt->first.first]= ulRun;
+					mRv[folderIt->folder]= ulRun;
 				}
 			}
 		}
@@ -1512,16 +1662,34 @@ namespace server
 	{
 		bool bDone(false);
 		bool bWritten(false);
+		unsigned long ulFoundPass(0);
 		map<string, bool> vWritten;
-		unsigned long ulRun;
+		bool bFoundChanged(false), bSetValue(false);
+		double dCurrentValue;
+		unsigned long ulRun, ulLastChanged;
 		unsigned long want;
 		ostringstream content;
 		map<string, string> mFolderStart;
 		map<string, unsigned long> folderCount;
 		map<string, unsigned long> mmRunning;
-		map<ppi_time, vector<pair< pair<string, string>, string > > >::iterator timeIt;
-		vector<pair< pair<string, string>, string > >::iterator folderIt;
+		debugSessionTimeMap::iterator timeIt;
+		vector<IDbFillerPattern::dbgSubroutineContent_t>::iterator folderIt;
+		string sFirstSubroutine;
 
+		if(!subroutines.empty())
+		{
+			sFirstSubroutine= subroutines[0];
+			if(sFirstSubroutine.substr(0, 1) == "#")
+			{
+				/*
+				 * first subroutine is behind '#'
+				 * and all subroutines should be shown
+				 * and so clear 'subroutines'
+				 */
+				sFirstSubroutine= sFirstSubroutine.substr(1);
+				subroutines.clear();
+			}
+		}
 		m_dbgSessTime.clear();
 		for(vector<string>::const_iterator it= subroutines.begin();
 						it != subroutines.end(); ++it				)
@@ -1557,18 +1725,67 @@ namespace server
 						 * folder:subroutine when set
 						 */
 						if(	folder == "" || // <- show content of all folders
-							folder == folderIt->first.first	)
+							folder == folderIt->folder	)
 						{
-							if(folderIt->first.second == "#start")
+							if(folderIt->subroutine == "#start")
 							{
 								++want;
-								if(timeIt->first >= *curTime)
+								if(	ulFoundPass == 0 &&
+									timeIt->first >= *curTime	)
 								{
-									if(timeIt->first > *curTime)
-										--want;
-									bDone= true;
-									break;
+									ulFoundPass= want;
+									if(	show != next_changed &&
+										show != next_unchanged	)
+									{
+										if(timeIt->first > *curTime)
+											--want;
+										bDone= true;
+										break;
+									}
 								}
+							}else if(	folder != "" &&
+										sFirstSubroutine == folderIt->subroutine	)
+							{
+								if(bSetValue)
+								{
+									if(	ulFoundPass != 0 &&
+										want > ulFoundPass &&
+										show == next_changed	)
+									{
+										if(	dCurrentValue != folderIt->value)
+										{
+											bFoundChanged= true;
+											bDone= true;
+											break;
+										}
+									}else if(	ulFoundPass != 0 &&
+												want > ulFoundPass &&
+												show == next_unchanged	)
+									{
+										if(dCurrentValue == folderIt->value)
+										{
+											bFoundChanged= true;
+											bDone= true;
+											break;
+										}
+									}else if(show == previous_changed)
+									{
+										if(dCurrentValue != folderIt->value)
+										{// previous changed value
+											ulLastChanged= want;
+											bFoundChanged= true;
+										}
+									}else if(show == previous_unchanged)
+									{
+										if(dCurrentValue == folderIt->value)
+										{// previous unchanged value
+											ulLastChanged= want;
+											bFoundChanged= true;
+										}
+									}
+								}else
+									bSetValue= true;
+								dCurrentValue= folderIt->value;
 							}
 						}
 					}
@@ -1584,12 +1801,12 @@ namespace server
 
 				case next:
 					++want;
-					if(want > folderCount[folderIt->first.first])
+					if(want > folderCount[folderIt->folder])
 					{
 						string msg;
 
 						msg=  " show folder '";
-						msg+= folderIt->first.first;
+						msg+= folderIt->folder;
 						msg+= "' again from begin?\n";
 						runUserTransaction(false);
 						msg= ask(/*YesNo*/true, msg);
@@ -1603,13 +1820,69 @@ namespace server
 					}
 					break;
 
+				case previous_changed:
+				case previous_unchanged:
+					want= ulLastChanged;
+				case next_changed:
+				case next_unchanged:
+					/*
+					 * by next changed/unchanged
+					 * want is calculated pass
+					 * of changed or unchanged
+					 */
+					if(!bFoundChanged)
+					{
+						string msg;
+
+						msg=  " do not found ";
+						if(	show == next_changed ||
+							show == next_unchanged	)
+						{
+							msg+= "next ";
+						}else
+							msg+= "previous ";
+						if(	show == next_changed ||
+							show == previous_changed	)
+						{
+							msg+= "changed ";
+						}else
+							msg+= "unchanged ";
+						msg+= "subroutine\n";
+						msg+= " should be shown the ";
+						if(	show == next_changed ||
+							show == next_unchanged	)
+						{
+							msg+= "last ";
+						}else
+							msg+= "first ";
+						msg+= "one?\n";
+						runUserTransaction(false);
+						msg= ask(/*YesNo*/true, msg);
+						runUserTransaction(true);
+						if(msg == "Y")
+						{
+							if(	show == next_changed ||
+								show == next_unchanged	)
+							{
+								want= folderCount[folder];
+							}else
+								want= 1;
+
+						}else
+						{
+							m_dbgSessTime= *curTime;
+							return &m_dbgSessTime;
+						}
+					}
+					break;
+
 				default:// show == previous
 					if(want <= 1)
 					{
 						string msg;
 
 						msg=  " show folder '";
-						msg+= folderIt->first.first;
+						msg+= folderIt->folder;
 						msg+= "' again from begin?\n";
 						runUserTransaction(false);
 						msg= ask(/*YesNo*/true, msg);
@@ -1619,7 +1892,7 @@ namespace server
 							m_dbgSessTime= *curTime;
 							return &m_dbgSessTime;
 						}
-						want= folderCount[folderIt->first.first];
+						want= folderCount[folderIt->folder];
 					}else
 						--want;
 					break;
@@ -1660,12 +1933,12 @@ namespace server
 				 * folder:subroutine when set
 				 */
 				if(	folder == "" || // <- show content of all folders
-					(	folder == folderIt->first.first &&
-						(	folderIt->first.second == "#start" || // <- entry is starting of folder list
-							folderIt->first.second == "#inform" || // <- entry is start information
+					(	folder == folderIt->folder &&
+						(	folderIt->subroutine == "#start" || // <- entry is starting of folder list
+							folderIt->subroutine == "#inform" || // <- entry is start information
 							                                       //    which can't shown by starting
-							folderIt->first.second == "#end" || // <- entry is stopping of folder list
-							subroutineSet(folderIt->first.second, subroutines)	)	)	)
+							folderIt->subroutine == "#end" || // <- entry is stopping of folder list
+							subroutineSet(folderIt->subroutine, subroutines)	)	)	)
 				{
 					bool bWrite(false);
 
@@ -1676,13 +1949,13 @@ namespace server
 					 * running count
 					 * and current content
 					 */
-					ulRun= mmRunning[folderIt->first.first];
-					if(folderIt->first.second == "#start")
+					ulRun= mmRunning[folderIt->folder];
+					if(folderIt->subroutine == "#start")
 					{
 						++ulRun;
-						mmRunning[folderIt->first.first]= ulRun;
+						mmRunning[folderIt->folder]= ulRun;
 						content << "folder running by " << ulRun << ". time" << endl;
-						content << folderIt->second;
+						content << folderIt->content;
 						m_dbgSessTime= timeIt->first;
 						/*
 						 * when method called to show
@@ -1693,9 +1966,9 @@ namespace server
 						 * when know whether have to writing
 						 */
 						if(show != all)
-							mFolderStart[folderIt->first.first]= content.str();
+							mFolderStart[folderIt->folder]= content.str();
 					}else
-						content << folderIt->second;
+						content << folderIt->content;
 					if(show != all)
 					{
 						/*
@@ -1705,25 +1978,25 @@ namespace server
 						 * be written
 						 */
 
-						if(	folderIt->first.second != "#start" &&
-							folderIt->first.second != "#inform" &&
-							folderIt->first.second != "#end"		)
+						if(	folderIt->subroutine != "#start" &&
+							folderIt->subroutine != "#inform" &&
+							folderIt->subroutine != "#end"		)
 						{
 							if(want == ulRun)
 							{
-								m_vsHoldFolders[folderIt->first.first][folderIt->first.second]= ulRun;
+								m_vsHoldFolders[folderIt->folder][folderIt->subroutine]= ulRun;
 								bWrite= true;
 							}
 						}else
 						{
 							if(!bWritten)
 							{
-								if(folderIt->first.second == "#inform")
+								if(folderIt->subroutine == "#inform")
 								{
 									string sContent;
 
-									sContent= mFolderStart[folderIt->first.first] + content.str();
-									mFolderStart[folderIt->first.first]= sContent;
+									sContent= mFolderStart[folderIt->folder] + content.str();
+									mFolderStart[folderIt->folder]= sContent;
 								}
 
 							}else // subroutine can only be #inform or #end
@@ -1733,26 +2006,26 @@ namespace server
 						bWrite= true;
 					if(bWrite)
 					{
-						string id(getFolderID(folderIt->first.first));
+						string id(getFolderID(folderIt->folder));
 
 						if(	show != all &&
-							mFolderStart[folderIt->first.first] != "" )
+							mFolderStart[folderIt->folder] != "" )
 						{
-							cout << glob::addPrefix(id, mFolderStart[folderIt->first.first]);
-							mFolderStart[folderIt->first.first]= "";
+							cout << glob::addPrefix(id, mFolderStart[folderIt->folder]);
+							mFolderStart[folderIt->folder]= "";
 						}
 						cout << glob::addPrefix(id, content.str());
-						if(	folderIt->first.second != "#start" &&
-							folderIt->first.second != "#inform" &&
-							folderIt->first.second != "#end"		)
+						if(	folderIt->subroutine != "#start" &&
+							folderIt->subroutine != "#inform" &&
+							folderIt->subroutine != "#end"		)
 						{
 							bWritten= true;
-							vWritten[folderIt->first.second]= true;
+							vWritten[folderIt->subroutine]= true;
 						}
 					}
 					if(	bWritten &&
 						show != all &&
-						folderIt->first.second == "#end"	)
+						folderIt->subroutine == "#end"	)
 					{
 						bDone= true;
 						break;

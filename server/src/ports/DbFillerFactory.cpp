@@ -175,11 +175,11 @@ namespace util
 		SHAREDPTR::shared_ptr<map<string, db_t> > dbQueue;
 		vector<SHAREDPTR::shared_ptr<map<string, db_t> > > allDbQueue;
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > msgQueue, allMsgQueue(new vector<sendingInfo_t>());
-		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > > debugQueue;
-		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > > allDebugQueue;
+		SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap> debugQueue;
+		SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap> allDebugQueue;
 
-		allDebugQueue= SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >
-						(new map<string, map<pair<ppi_time, string>, string > >());
+		allDebugQueue= SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap>
+						(new IDbFillerPattern::debugSessionFolderMap());
 		wait.tv_sec= 1;
 		wait.tv_nsec= 0;
 		while(!stopping())

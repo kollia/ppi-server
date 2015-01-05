@@ -48,7 +48,7 @@ namespace util
 		  m_pHasContent(hasContent),
 		  m_vsSendingQueue1(new vector<sendingInfo_t>()),
 		  m_apmtValueEntrys1(new map<string, db_t>()),
-		  m_apmtDebugSession1(new map<string, map<pair<ppi_time, string>, string > >()),
+		  m_apmtDebugSession1(new debugSessionFolderMap()),
 		  m_dbInform(NULL),
 		  m_SENDQUEUELOCK1(queueLock)
 		{};
@@ -69,8 +69,8 @@ namespace util
 		  m_vsSendingQueue2(new vector<sendingInfo_t>()),
 		  m_apmtValueEntrys1(new map<string, db_t>()),
 		  m_apmtValueEntrys2(new map<string, db_t>()),
-		  m_apmtDebugSession1(new map<string, map<pair<ppi_time, string>, string > >()),
-		  m_apmtDebugSession2(new map<string, map<pair<ppi_time, string>, string > >()),
+		  m_apmtDebugSession1(new debugSessionFolderMap()),
+		  m_apmtDebugSession2(new debugSessionFolderMap()),
 		  m_dbInform(dbInform),
 		  m_SENDQUEUELOCK1(Thread::getMutex("SENDQUEUELOCK1")),
 		  m_SENDQUEUELOCK2(Thread::getMutex("SENDQUEUELOCK2"))
@@ -133,13 +133,9 @@ namespace util
 		 * fill debug session output from folder working list
 		 * into database
 		 *
-		 * @param folder name of debugging folder
-		 * @param subroutine name of debugging subroutine
-		 * @param content output string of debug session
-		 * @param ptime on which time subroutine proceed
+		 * @param content structure of folder:subroutine data from debugging session
 		 */
-		OVERWRITE void fillDebugSession(const string& folder, const string& subroutine,
-						const string& content, const IPPITimePattern* ptime);
+		OVERWRITE void fillDebugSession(const dbgSubroutineContent_t& content);
 		/**
 		 * informing thread to send entries to database
 		 */
@@ -153,7 +149,7 @@ namespace util
 		 */
 		virtual void getContent(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
 						SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& valQueue,
-						SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > >& debugQueue);
+						SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue);
 		/**
 		 * remove all content from DbFiller
 		 * and stop thread when one running
@@ -213,11 +209,11 @@ namespace util
 		/**
 		 * first queue of debug session output info
 		 */
-		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > > m_apmtDebugSession1;
+		SHAREDPTR::shared_ptr<debugSessionFolderMap> m_apmtDebugSession1;
 		/**
 		 * second queue of debug session output info
 		 */
-		SHAREDPTR::shared_ptr<map<string, map<pair<ppi_time, string>, string > > > m_apmtDebugSession2;
+		SHAREDPTR::shared_ptr<debugSessionFolderMap> m_apmtDebugSession2;
 		/**
 		 * last answer from sending question
 		 * which need no answer.<br />

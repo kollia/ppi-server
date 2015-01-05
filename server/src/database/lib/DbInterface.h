@@ -25,6 +25,7 @@
 #include <fstream>
 
 #include "../../pattern/util/IMeasureSet.h"
+#include "../../pattern/util/IDbFillerPattern.h"
 
 #include "../../util/properties/measureStructures.h"
 
@@ -217,13 +218,11 @@ namespace ppi_database
 		 * fill debug session output from folder working list
 		 * into database
 		 *
-		 * @param folder name of debugging folder
-		 * @param subroutine name of debugging subroutine
-		 * @param content output string of debug session
-		 * @param time on which time subroutine proceed
+		 * @param content structure of folder:subroutine data from debugging session
+		 * @param answer whether method should wait for answer from database
+		 * @return whether sending to database was correct
 		 */
-		void fillDebugSession(const string& folder, const string& subroutine,
-						const string& content, const ppi_time& time);
+		bool fillDebugSession(const IDbFillerPattern::dbgSubroutineContent_t& content, bool answer);
 		/**
 		 * return queue of hole written debug sessions
 		 *
