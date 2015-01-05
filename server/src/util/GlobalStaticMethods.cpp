@@ -378,6 +378,7 @@ string GlobalStaticMethods::getBinString(const long value, const size_t bits)
 string GlobalStaticMethods::addPrefix(const string& pref, const string& str)
 {
 	string sRv, nullStr;
+	string::size_type strLen(str.length());
 	vector<string> spl;
 
 	nullStr.append(pref.length(), ' ');
@@ -391,8 +392,11 @@ string GlobalStaticMethods::addPrefix(const string& pref, const string& str)
 			sRv+= nullStr + *it;
 		sRv+= "\n";
 	}
-	if(str.substr(str.length() - 1, 1) == "\n")
+	if(	strLen > 0 &&
+		str.substr(str.length() - 1, 1) == "\n"	)
+	{
 		sRv+= "\n";
+	}
 	return sRv;
 }
 
