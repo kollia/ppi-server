@@ -48,6 +48,16 @@ namespace design_pattern_world
 				next_unchanged,
 				last
 			};
+			/**
+			 * structure of which history entry
+			 * want get back
+			 */
+			enum history_get_e
+			{
+				Older= 0,
+				Current,
+				Newer
+			};
 
 			/**
 			 * write current prompt
@@ -56,6 +66,38 @@ namespace design_pattern_world
 			 * @param str string of new prompt when set, otherwise take default from last written
 			 */
 			virtual void prompt(const string& str= "")= 0;
+			/**
+			 * write last line of prompt with result
+			 *
+			 * @param lock whether need an lock to have access to prompting values
+			 * @param cursor current cursor position inside result
+			 * @param str string of new result after prompt
+			 * @param end whether should write new line after last string for ending (default= false)
+			 */
+			virtual void writeLastPromptLine(bool lock,
+							string::size_type cursor= string::npos, const string& str= "", bool end= false)= 0;
+			/**
+			 * set history of written command
+			 *
+			 * @param command current command
+			 * @param pos old position when changed inside history
+			 */
+			virtual void setHistory(const string& command, vector<string>::size_type pos= 0)= 0;
+			/**
+			 * return current history command.<br />
+			 * when count is 0, it will be return the last written command
+			 *
+			 * @param count last getting history before or 0 by none.<br />
+			 *              give back number of history
+			 * @param pos which history entry want to get back
+			 *
+			 * @return history command
+			 */
+			virtual string getHistory(vector<string>::size_type& count, history_get_e pos)= 0;
+			/**
+			 * writing all history commands
+			 */
+			virtual void writeHistory()= 0;
 			/**
 			 * set whether user transaction running
 			 *
@@ -127,6 +169,14 @@ namespace design_pattern_world
 			virtual IPPITimePattern* writeDebugSession(const string& folder, vector<string>& subroutines,
 													const direction_e& show, const IPPITimePattern* curTime,
 													const unsigned long nr= 0)= 0;
+			/**
+			 * hear on terminal input
+			 *
+			 * @param yesno whether should ask only for yes or no
+			 * @param promptStr prompt string before waiting for input
+			 * @return released word, or by yes/no question only 'Y' or 'N' in big letters
+			 */
+			virtual string ask(bool yesno, string promptStr)= 0;
 		};
 
 	} /* namespace util_pattern */

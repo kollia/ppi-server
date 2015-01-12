@@ -18,6 +18,8 @@
 #define CLIENTTRANSACTION_H_
 
 #include <string.h>
+#include <unistd.h>
+#include <termios.h>
 
 #include <string>
 #include <vector>
@@ -85,6 +87,38 @@ namespace server
 			 * @param str string of new prompt when set, otherwise take default from last written
 			 */
 			OVERWRITE void prompt(const string& str= "");
+			/**
+			 * write last line of prompt with result
+			 *
+			 * @param lock whether need an lock to have access to prompting values
+			 * @param cursor current cursor position inside result
+			 * @param str string of new result after prompt
+			 * @param end whether should write new line after last string for ending (default= false)
+			 */
+			OVERWRITE void writeLastPromptLine(bool lock,
+							string::size_type cursor= string::npos, const string& str= "", bool end= false);
+			/**
+			 * set history of written command
+			 *
+			 * @param command current command
+			 * @param pos old position when changed inside history
+			 */
+			OVERWRITE void setHistory(const string& command, vector<string>::size_type pos= 0);
+			/**
+			 * return current history command.<br />
+			 * when count is 0, it will be return the last written command
+			 *
+			 * @param count last getting history before or 0 by none.<br />
+			 *              give back number of history
+			 * @param pos which history entry want to get back
+			 *
+			 * @return history command
+			 */
+			OVERWRITE string getHistory(vector<string>::size_type& count, history_get_e pos);
+			/**
+			 * writing all history commands
+			 */
+			OVERWRITE void writeHistory();
 			/**
 			 * set whether user transaction running
 			 *
@@ -165,10 +199,53 @@ namespace server
 			typedef map<ppi_time, vector<IDbFillerPattern::dbgSubroutineContent_t> > debugSessionTimeMap;
 
 			/**
+			 * whether was reading
+			 * of terminal interface correct
+			 */
+			bool m_bCorrectTC;
+			/**
+			 * whether ppi-client was started
+			 * with an file shifted in it
+			 * like 'ppi-client < file'<br />
+			 * by this case <code>tcgetattr</code>
+			 * give errno ENOTTY
+			 */
+			bool m_bScriptState;
+			/**
+			 * curently changed terminal interface
+			 */
+			//static struct termios m_tCurrentTermios;
+			/**
+			 * terminal interface for backup to reset
+			 */
+			struct termios m_tTermiosBackup;
+			/**
 			 * prompt string to display
 			 * locked by PROMPTMUTEX
 			 */
 			string m_sPrompt;
+			/**
+			 * last line of prompt to display
+			 * locked by PROMPTMUTEX
+			 */
+			string m_sLastPromptLine;
+			/**
+			 * current result after prompt
+			 * locked by PROMPTMUTEX
+			 */
+			string m_sPromptResult;
+			/**
+			 * current cursor position
+			 * inside result
+			 * locked by PROMPTMUTEX
+			 */
+			string::size_type m_nResultPos;
+			/**
+			 * result length after prompt
+			 * from result written before
+			 * locked by PROMPTMUTEX
+			 */
+			string::size_type m_nOldResultLength;
 			/**
 			 * whether user transaction running
 			 * locked by PROMPTMUTEX
@@ -183,6 +260,15 @@ namespace server
 			 * vector of all options be set on the shell
 			 */
 			vector<string> m_vOptions;
+			/**
+			 * vector of history,
+			 * written commands before
+			 */
+			vector<string> m_vHistory;
+			/**
+			 * numbers of changed history
+			 */
+			vector<vector<string>::size_type > m_vChangedHistory;
 			/**
 			 * command string from shell
 			 * for initialization of ClientTransaction object
@@ -279,7 +365,36 @@ namespace server
 			 * @param promptStr prompt string before waiting for input
 			 * @return released word, or by yes/no question only 'Y' or 'N' in big letters
 			 */
-			string ask(bool yesno, string promptStr);
+			OVERWRITE string ask(bool yesno, string promptStr);
+			/**
+			 * reading one character
+			 * or specialcharacter sequence
+			 * from command line
+			 *
+			 * @return integer number of character
+			 */
+			int getch();
+			/**
+			 * read command line terminal interface
+			 * to make possible to reset
+			 */
+			void readTcBackup();
+			/**
+			 * reset command line terminal interface
+			 * to last reading backup
+			 */
+			void resetTc();
+			/**
+			 * set terminal interface on command line
+			 * to currently stdin file descriptor.<br />
+			 * only when reading of <code>readTcBackup()</code> was OK<br />
+			 * see man pages of <code>tcsetattr</code>
+			 *
+			 * @param action like 2. parameter of <code>tcsetattr</code> in man pages
+			 * @param teriosp changed termios structure
+			 * @return whether setting was done
+			 */
+			bool tcsetattr(int action, const struct termios *termiosp);
 			/**
 			 * transaction protocol between client to server
 			 *
@@ -327,8 +442,49 @@ namespace server
 			 * @param result ERROR string with number
 			 */
 			void printError(IFileDescriptorPattern& descriptor, const string& error);
-
-
+			/**
+			 * check whether command has enough parameters
+			 * or not to much.<br />
+			 * Inside parameter 'descriptions' should be
+			 * and description for every parameter after command.
+			 * Which will be displayed when inserted command
+			 * has not enough parameters.
+			 * When an entry inside squared brackets '[]'
+			 * entry is optional
+			 * or when vector has no entries or is an NULL pointer,
+			 * this mean that no parameters are allowed
+			 *
+			 * @param commands vector of command with parameters
+			 * @param errorWritten return back whether an error be written when iserted as false
+			 *                     otherwise it do not write an error
+			 * @param descriptions description for all parameters
+			 * @return whether command count was ok
+			 */
+			bool checkCommandCount(vector<string> commands, bool& errorWritten,
+							vector<string>* descriptions= NULL);
+			/**
+			 * same as method <code>checkCommandCount()</code>
+			 * but check also whether ppi-client was started with option --wait
+			 *
+			 * @param commands vector of command with parameters
+			 * @param errorWritten return back whether an error be written when inserted as false
+			 *                     otherwise it do not write an error
+			 * @param descriptions description for all parameters
+			 * @return whether command count was ok
+			 */
+			bool checkWaitCommandCount(vector<string> commands, bool& errorWritten,
+							vector<string>* descriptions= NULL);
+			/**
+			 * same as method <code>checkCommandCount()</code>
+			 * but check also whether ppi-client was started with option --hear
+			 *
+			 * @param commands vector of command with parameters
+			 * @param error return back whether an error be written when inserted as false
+			 *              otherwise it do not write an error
+			 * @param descriptions description for all parameters
+			 * @return whether command count was ok
+			 */
+			bool checkHearCommandCount(vector<string> commands, bool& error, vector<string>* descriptions= NULL);
 	};
 
 }
