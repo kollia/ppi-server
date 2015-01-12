@@ -944,6 +944,7 @@ namespace server
 								if(sFolderSub == "-i")
 								{
 									bInform= true;
+									sFolderSub= "";
 									ss >> sFolderSub;
 									trim(sFolderSub);
 								}
