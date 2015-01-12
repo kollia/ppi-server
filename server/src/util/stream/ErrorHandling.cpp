@@ -25,11 +25,9 @@ namespace util
 		setDescription("en", "ClientTransaction", "client_send",
 						"by trying to send command to @1:@2");
 		setDescription("en", "ClientTransaction", "tcgetattr",
-						"cannot read terminal interface for password");
+						"cannot read terminal interface");
 		setDescription("en", "ClientTransaction", "tcsetattr",
-						"cannot set terminal interface for blind reading password");
-		setDescription("en", "ClientTransaction", "tcsetattr_back",
-						"cannot set back terminal interface to see on command line typing letters");
+						"cannot set terminal interface");
 		setDescription("en", "ClientTransaction", "get_result",
 						"client get follow answer from server");
 		setDescription("en", "ClientTransaction", "get_result",
