@@ -493,6 +493,7 @@ namespace server
 			if(strings == "ppi-internet-server")
 			{
 				in >> strings;// = 'true'
+				in >> strings;// = 'false'
 				in >> strings;// = 'getErrorString'
 			}
 			in >> errnr;
@@ -847,130 +848,148 @@ namespace server
 				stringstream ss(input);
 				vector<string> values;
 				DbInterface* db= DbInterface::instance();
+				IUserManagementPattern* user;
 
-				if(input.substr(0, 9) == "STOPDEBUG")
-					bDebug= false;
-				ss >> sCommand;
-				ss >> sFolderSub;
-				if(sFolderSub == "-ow")
+				user= UserManagement::instance();
+				if(user->getRootUser() != descriptor.getString("username"))
 				{
-					unsigned short ID;
+					string msg;
 
-					if(ss.eof())
-						ID= 0;
-					else
-						ss >> ID;
-					if(ID == 0)
+					msg+= "client want to debug server with no root user '";
+					msg+= descriptor.getString("username") + "'\n";
+					msg+= "permisson denied";
+					sendmsg= INFOERROR(descriptor, 13, input, msg);
+					glob::stopMessage(msg);
+					descriptor << sendmsg;
+	#ifdef SERVERDEBUG
+					cerr << msg << endl;
+	#endif
+				}else
+				{
+					if(input.substr(0, 9) == "STOPDEBUG")
+						bDebug= false;
+					ss >> sCommand;
+					ss >> sFolderSub;
+					if(sFolderSub == "-ow")
 					{
-						ID= 0;
-						db->clearOWDebug(descriptor.getClientID());
-					}else
-					{
-						if(!db->existOWServer(ID))
-						{
-							ostringstream msg;
+						unsigned short ID;
 
-							msg << "client ask for '";
-							msg << input << "'\ncannot found OWServer with ID ";
-							msg << ID;
-							descriptor << INFOERROR(descriptor, 17, input, msg.str());
+						if(ss.eof())
 							ID= 0;
-						}else
-							db->setOWDebug(ID, descriptor.getClientID(), true);
-					}
-					if(ID != 0)
-					{
-						ostringstream server;
-
-						server << "owserver-" << ID;
-						if(!db->needSubroutines(descriptor.getClientID(), server.str()))
+						else
+							ss >> ID;
+						if(ID == 0)
 						{
-							descriptor << INFOERROR(descriptor, 17, input,
-											"Undefined Error in DbInterface::needSubroutine()");
+							ID= 0;
+							db->clearOWDebug(descriptor.getClientID());
 						}else
 						{
-							sendmsg= "done\n";
-							descriptor << sendmsg;
-						}
-					}else
-					{
-						db->needSubroutines(descriptor.getClientID(), "stopclient");
-						sendmsg= "done\n";
-						descriptor << sendmsg;
-					}
-				}else // form if(sFolderSub == "-ow")
-				{
-					bool bDebugSession(true);
-					vector<string> spl;
-
-#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-					bDebugSession= descriptor.getBoolean("debugsession");
-					if(!bDebugSession)
-					{
-						if(db->needSubroutines(descriptor.getClientID(), "#debugsession"))
-						{
-							descriptor.setBoolean("debugsession", true);
-							bDebugSession= true;
-						}else
-						{
-							descriptor << DEBUGERROR(descriptor, 22, input,
-											"only one client has permission to read "
-											"working list debug information");
-						}
-					}
-#endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
-					if(bDebugSession)
-					{
-						trim(sFolderSub);
-						if(	bDebug == false &&
-							sFolderSub == ""	)
-						{
-#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-							descriptor.setBoolean("debugsession", false);
-							db->needSubroutines(descriptor.getClientID(), "#stopdebugsession");
-#endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
-							db->clearFolderDebug();
-							sendmsg= "done\n";
-							descriptor << sendmsg;
-						}else
-						{
-							bool bDoDebug(true);
-							bool bInform(false);
-
-							sFolder= "";
-							sSubroutine= "";
-							if(sFolderSub != "")
+							if(!db->existOWServer(ID))
 							{
-								if(sFolderSub == "-i")
-								{
-									bInform= true;
-									sFolderSub= "";
-									ss >> sFolderSub;
-									trim(sFolderSub);
-								}
-								if(sFolderSub != "")
-								{
-									split(spl, sFolderSub, is_any_of(":"));
-									sFolder= spl[0];
-									if(spl.size() > 1)
-										sSubroutine= spl[1];
-									if(!db->existSubroutine(sFolder, sSubroutine))
-									{
-										descriptor << INFOERROR(descriptor, 5, input, "");
-										bDoDebug= false;
-									}
-								}
-							}
-							if(bDoDebug)
+								ostringstream msg;
+
+								msg << "client ask for '";
+								msg << input << "'\ncannot found OWServer with ID ";
+								msg << ID;
+								descriptor << INFOERROR(descriptor, 17, input, msg.str());
+								ID= 0;
+							}else
+								db->setOWDebug(ID, descriptor.getClientID(), true);
+						}
+						if(ID != 0)
+						{
+							ostringstream server;
+
+							server << "owserver-" << ID;
+							if(!db->needSubroutines(descriptor.getClientID(), server.str()))
 							{
-								db->debugSubroutine(bDebug, bInform, sFolder, sSubroutine);
+								descriptor << INFOERROR(descriptor, 17, input,
+												"Undefined Error in DbInterface::needSubroutine()");
+							}else
+							{
 								sendmsg= "done\n";
 								descriptor << sendmsg;
 							}
-
+						}else
+						{
+							db->needSubroutines(descriptor.getClientID(), "stopclient");
+							sendmsg= "done\n";
+							descriptor << sendmsg;
 						}
-					}// if(bDebugSession)
-				}// end else of if(sFolderSub == "-ow")
+					}else // form if(sFolderSub == "-ow")
+					{
+						bool bDebugSession(true);
+						vector<string> spl;
+
+	#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+						bDebugSession= descriptor.getBoolean("debugsession");
+						if(!bDebugSession)
+						{
+							if(db->needSubroutines(descriptor.getClientID(), "#debugsession"))
+							{
+								descriptor.setBoolean("debugsession", true);
+								bDebugSession= true;
+							}else
+							{
+								descriptor << DEBUGERROR(descriptor, 22, input,
+												"only one client has permission to read "
+												"working list debug information");
+							}
+						}
+	#endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
+						if(bDebugSession)
+						{
+							trim(sFolderSub);
+							if(	bDebug == false &&
+								sFolderSub == ""	)
+							{
+	#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+								descriptor.setBoolean("debugsession", false);
+								db->needSubroutines(descriptor.getClientID(), "#stopdebugsession");
+	#endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
+								db->clearFolderDebug();
+								sendmsg= "done\n";
+								descriptor << sendmsg;
+							}else
+							{
+								bool bDoDebug(true);
+								bool bInform(false);
+
+								sFolder= "";
+								sSubroutine= "";
+								if(sFolderSub != "")
+								{
+									if(sFolderSub == "-i")
+									{
+										bInform= true;
+										sFolderSub= "";
+										ss >> sFolderSub;
+										trim(sFolderSub);
+									}
+									if(sFolderSub != "")
+									{
+										split(spl, sFolderSub, is_any_of(":"));
+										sFolder= spl[0];
+										if(spl.size() > 1)
+											sSubroutine= spl[1];
+										if(!db->existSubroutine(sFolder, sSubroutine))
+										{
+											descriptor << INFOERROR(descriptor, 5, input, "");
+											bDoDebug= false;
+										}
+									}
+								}
+								if(bDoDebug)
+								{
+									db->debugSubroutine(bDebug, bInform, sFolder, sSubroutine);
+									sendmsg= "done\n";
+									descriptor << sendmsg;
+								}
+
+							}
+						}// if(bDebugSession)
+					}// end else of if(sFolderSub == "-ow")
+				}// end of else if(user == root)
 
 			}else if(input.substr(0, 3) == "DIR")
 			{
