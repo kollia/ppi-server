@@ -256,70 +256,16 @@ namespace server
 			cout << endl << "actual time " << stime << endl;
 			bLogin= false;
 		}
-		if(	m_bWait
-			||
-			bLogin		)
+		if(	!m_bHearing &&
+			(	m_bWait ||
+				bLogin		)	)
 		{
-			int c;
-			struct termios term;
-
 			readTcBackup();
-			term= m_tTermiosBackup;
-			if(user == "")
+			if(!compareUserPassword(descriptor, user))
 			{
-				if(!m_bScriptState)
-					cout << "user: ";
-				getline(std::cin, user);
-				user= ConfigPropertyCasher::trim(user);
-			}
-			if(pwd == "")
-			{
-				if(!m_bScriptState)
-				{
-					term.c_lflag= term.c_lflag & ~ECHO;
-					if(!tcsetattr(TCSAFLUSH, &term))
-					{
-						cout << " WARNING: cannot blanking output" << endl;
-						cout << "          so typing of password is readable" << endl;
-					}
-					cout << "password: " << flush;
-				}
-
-				do{
-					c= getc(stdin);
-					pwd+= c;
-				}while(c != '\n');
-				trim(pwd);
-				if(!m_bScriptState)
-					cout << endl;
-				resetTc();
-			}
-			sSendbuf= "U:";
-			sSendbuf+= user;
-			sSendbuf+= ":";
-			sSendbuf+= pwd;
-#ifdef SERVERDEBUG
-			cout << "send: '" << sSendbuf << "'" << endl;
-#endif // SERVERDEBUG
-			sSendbuf+= "\n";
-			descriptor << sSendbuf;
-			descriptor.flush();
-			descriptor >> result;
-			result= ConfigPropertyCasher::trim(result);
-			errHandle->setErrorStr(result);
-			if(errHandle->fail())
-			{
-				string prefix;
-
+				errHandle->setError("ClientTransaction", "user_password_error");
 				errHandle->addMessage("ClientTransaction", "get_result");
-				m_bErrWritten= true;
-				if(errHandle->hasError())
-					prefix= "ERROR: ";
-				else
-					prefix= "WARNING: ";
-				cerr << glob::addPrefix(prefix, errHandle->getDescription()) << endl;
-				if(errHandle->hasError())
-					return errHandle;
+				return errHandle;
 			}
 		}
 		if(bSecConn)
@@ -655,7 +601,7 @@ namespace server
 						errmsg << "maybe an file was shifted inside ppi-client" << endl;
 						errmsg << "like 'ppi-client -w < any_file'" << endl;
 						errmsg << "without any exit or quite sequence "
-										"inside file as last" << endl;
+										"inside file at last line" << endl;
 					}
 					errmsg << endl;
 					cerr << endl;
@@ -1270,7 +1216,7 @@ namespace server
 				if(checkWaitCommandCount(command, bErrorWritten))
 				{
 					resetTc();
-					org_command= "ending\n";
+					org_command= "ending";
 					descriptor << org_command;
 					descriptor.endl();
 					descriptor.flush();
@@ -1285,6 +1231,31 @@ namespace server
 				if(checkWaitCommandCount(command, bErrorWritten))
 					writeHelpUsage(command[0]);
 
+			}else if(	command[0] == "change" ||
+						command[0] == "CHANGE"	)
+			{
+				paramDefs.push_back("[user]");
+				if(checkWaitCommandCount(command, bErrorWritten, &paramDefs))
+				{
+					struct termios term;
+					string user;
+
+					bSendCommand= false;
+					term= m_tTermiosBackup;
+					resetTc();
+					if(command.size() == 2)
+						user= command[1];
+					compareUserPassword(descriptor, user);
+					if(!m_bScriptState)
+					{
+						termios_flag= m_tTermiosBackup;
+						termios_flag.c_lflag &= ~ICANON;
+						termios_flag.c_lflag &= ~ECHO;
+						//termios_flag.c_cc[VMIN] = 1;
+						//termios_flag.c_cc[VTIME] = 0;
+						tcsetattr(TCSANOW, &termios_flag);
+					}
+				}
 			}else if(	command[0] == "run" ||
 						command[0] == "RUNDEBUG"	)
 			{
@@ -1868,6 +1839,7 @@ namespace server
 						result.substr(0, 8) == "WARNING "	)
 					{
 						printError(descriptor, result);
+						bErrorWritten= true;
 
 					}else if(result == "done")
 					{
@@ -1887,6 +1859,7 @@ namespace server
 							break;
 						}
 					}else if(	m_o2Client.get() &&
+								!bErrorWritten &&
 								(	command[0] == "HOLDDEBUG" ||
 									command[0] == "hold"			)	)
 					{
@@ -2003,8 +1976,10 @@ namespace server
 			cout << "    history   - show all last typed commands with number" << endl;
 			cout << "                which can allocate with '!<number>'" << endl;
 			cout << "    CHANGE <user>" << endl;
-			cout << "    change <user>   - changing user by current session with server" << endl;
-			cout << "                    - after pressing return, will be asked for password" << endl;
+			cout << "    change [user]   - changing user by current session with server" << endl;
+			cout << "                      after pressing return, will be asked for user" << endl;
+			cout << "                      when not written as parameter" << endl;
+			cout << "                      and than for password" << endl;
 
 		}else if(sfor == "?value")
 		{
@@ -2761,6 +2736,85 @@ namespace server
 		UNLOCK(m_PROMPTMUTEX);
 	}
 
+	bool ClientTransaction::compareUserPassword(IFileDescriptorPattern& descriptor, string user)
+	{
+		int c;
+		struct termios term;
+		EHObj errHandle(EHObj(new ErrorHandling));
+		string sSendbuf, pwd, result;
+
+		term= m_tTermiosBackup;
+		if(user == "")
+		{
+			if(!m_bScriptState)
+				cout << "user: ";
+			getline(std::cin, user);
+			trim(user);
+		}
+		if(!m_bScriptState)
+		{
+			term.c_lflag= term.c_lflag & ~ECHO;
+			if(!tcsetattr(TCSAFLUSH, &term))
+			{
+				cout << " WARNING: cannot blanking output" << endl;
+				cout << "          so typing of password is readable" << endl;
+			}
+			cout << "password: " << flush;
+		}
+
+		do{
+			c= getc(stdin);
+			pwd+= c;
+		}while(c != '\n');
+		trim(pwd);
+		if(!m_bScriptState)
+			cout << endl;
+		resetTc();
+
+		sSendbuf= "U:";
+		sSendbuf+= user;
+		sSendbuf+= ":";
+		sSendbuf+= pwd;
+#ifdef SERVERDEBUG
+		cout << "send: '" << sSendbuf << "'" << endl;
+#endif // SERVERDEBUG
+		sSendbuf+= "\n";
+		descriptor << sSendbuf;
+		descriptor.flush();
+		descriptor >> result;
+		trim(result);
+		errHandle->setErrorStr(result);
+		if(	errHandle->fail() ||
+			result.substr(0, 6) == "ERROR " ||
+			result.substr(0, 8) == "WARNING "	)
+		{
+			string prefix;
+			string errmsg;
+
+			errHandle->addMessage("ClientTransaction", "get_result");
+			m_bErrWritten= true;
+			if(	errHandle->hasError() ||
+				result.substr(0, 6) == "ERROR "	)
+			{
+				prefix= "ERROR: ";
+			}else
+				prefix= "WARNING: ";
+			if(errHandle->fail())
+				errmsg= errHandle->getDescription();
+			else
+				errmsg= getError(descriptor, result);
+			cerr << glob::addPrefix(prefix, errmsg) << endl;
+			if(	errHandle->hasError() ||
+				result.substr(0, 6) == "ERROR "	)
+			{
+				if(!errHandle->hasError())
+					errHandle->setError("ClientTransaction", "user_password_error");
+				return false;
+			}
+		}
+		return true;
+	}
+
 	void ClientTransaction::writeLastPromptLine(bool lock,
 					string::size_type cursor/*= string::npos*/, const string& str/*= ""*/, bool end/*= false*/)
 	{
@@ -2826,6 +2880,11 @@ namespace server
 
 	void ClientTransaction::printError(IFileDescriptorPattern& descriptor, const string& error)
 	{
+		cerr << getError(descriptor, error) << endl;
+	}
+
+	string ClientTransaction::getError(IFileDescriptorPattern& descriptor, const string& error)
+	{
 		int nErrorNum;
 		string buffer, str;
 		stringstream ss(error);
@@ -2836,8 +2895,7 @@ namespace server
 		if(	m_bShowENum ||
 			m_bScriptState	)
 		{
-			cerr << error << endl;
-			return;
+			return error;
 		}
 
 		newerr << "GETERRORSTRING ";
@@ -2848,98 +2906,94 @@ namespace server
 		descriptor.flush();
 
 		descriptor >> buffer;
-		if(!descriptor.error())
+		trim(buffer);
+		if(	!descriptor.error() &&
+			buffer != ""			)
 		{
 			trim(buffer);
-			cerr << buffer << endl;
-			return;
+			return buffer;
 		}
-		cerr << "lost connection to server" << endl;
-		cerr << "default error string from 'src/client/lib/ClientTransaction':" << endl;
+		str= "lost connection to server\n";
+		str+= "default error string from 'src/client/lib/ClientTransaction':\n";
 
 		// default error strings
 		// when any go wrong on connection
 		switch(nErrorNum)
 		{
 		case 1:
-			str= "client beginning fault transaction";
-			return;
-
-		case 2:
-			str= "no correct command given";
-			return;
-
-		case 3:
-			nErrorNum= 3;
+			str+= "client beginning fault transaction";
 			break;
 
+		case 2:
+			str+= "no correct command given";
+			break;
+
+	/*	case 3:
+			nErrorNum= 3;
+			break;*/
+
 		case 4:
-			str= "cannot found given folder for operation";
-			return;
+			str+= "cannot found given folder for operation";
+			break;
 
 		case 5:
-			str= "cannot found given subroutine in folder for operation";
+			str+= "cannot found given subroutine in folder for operation";
 			break;
 
 		case 6:
-			str= "Unknown value to set in subroutine";
+			str+= "Unknown value to set in subroutine";
 			break;
 		case 7:
-			str= "no filter be set for read directory";
+			str+= "no filter be set for read directory";
 			break;
 		case 8:
-			str= "cannot read any directory";
+			str+= "cannot read any directory";
 			break;
 		case 9:
-			str= "cannot found given file for read content";
+			str+= "cannot found given file for read content";
 			break;
 		case 10:
-			str= "given ID from client do not exist";
+			str+= "given ID from client do not exist";
 			break;
 		case 11:
 			str= "wrong user or password";
 			break;
 		case 12:
-			str= "do not use error number 12 now";
+			str+= "do not use error number 12 now";
 			break;
 		case 13:
-			str= "user has no permission";
+			str+= "user has no permission";
 			break;
 		case 14:
-			str= "subrutine isn't correct defined by the settings of config file";
+			str+= "subroutine isn't correct defined by the settings of config file";
 			break;
 		case 15:
-			str= "user cannot login as first";
+			str+= "user cannot login as first";
 			break;
 		case 16:
-			str= "subroutine has no correct access to device";
+			str+= "subroutine has no correct access to device";
 			break;
 		case 17:
-			str= "cannot find OWServer for debugging";
+			str+= "cannot find OWServer for debugging";
 			break;
 		case 18:
-			str= "no communication thread is free for answer "
-					"(this case can behavior when the mincommunicationthreads parameter be 0)";
+			str+= "no communication thread is free for answer\n";
+			str+= "(this case can behavior when the mincommunicationthreads parameter be 0)";
 			break;
 		case 19:
-			str= "server will be stopping from administrator";
+			str+= "server will be stopping from administrator";
 			break;
 		case 20:
-			str= "cannot load UserManagement correctly";
+			str+= "cannot load UserManagement correctly";
 			break;
 		case 21:
-			str= "unknown options after command SHOW";
+			str+= "unknown options after command SHOW";
 			break;
 		default:
-			ostringstream ostr;
-
-			ostr << "### error code '" << error << "' is not defined for default" << endl;
-			ostr << "    on file " << __FILE__ << endl;
-			ostr << "   and line " << __LINE__;
-			str= ostr.str();
+			str+= "error code '" + error + "' is not defined for default";
 			break;
 		}
-		cerr << str << endl;
+		return str;
 	}
 
 	ClientTransaction::~ClientTransaction()

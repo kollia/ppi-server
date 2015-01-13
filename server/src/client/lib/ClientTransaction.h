@@ -436,7 +436,24 @@ namespace server
 			bool existOnServer(IFileDescriptorPattern& descriptor,
 							const string& folder, const string& subroutine);
 			/**
-			 * print all ERROR results as translated strings on commandline
+			 * return all ERROR results as translated strings
+			 *
+			 * @param descriptor file handle to get command's and send answer
+			 * @param result ERROR string with number
+			 * @param string from error code
+			 */
+			string getError(IFileDescriptorPattern& descriptor, const string& error);
+			/**
+			 * read password and when not given user
+			 * from command line and compare with server
+			 *
+			 * @param descriptor file handle to compare with server
+			 * @param user name of user or null string
+			 * @return whether entries was correct
+			 */
+			bool compareUserPassword(IFileDescriptorPattern& descriptor, string user);
+			/**
+			 * print all ERROR results as translated strings on command line
 			 *
 			 * @param descriptor file handle to get command's and send answer
 			 * @param result ERROR string with number

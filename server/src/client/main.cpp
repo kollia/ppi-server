@@ -226,9 +226,10 @@ void help(char* cpSelf)
 	printf("                STOP     -     stopping server\n");
 //	printf("                STATUS   -     show how much threads for process are running.\n");
 //	printf("                               see also for options -t or -c\n");
-	printf("                CHANGE <username>:<password>\n");
-	printf("                         -     changing user, user name and password is separated with an colon\n");
+	printf("                CHANGE [username]\n");
+	printf("                         -     changing user, user name and password\n");
 	printf("                               this command is only when ppi-server is started with option --wait or --hear\n");
+	printf("                               (better description will be inside the editor started with describt options)\n");
 	printf("                PERMISSION <groupnames>\n");
 	printf("                         -     ask permission for group.\n");
 	printf("                               also more than one groups can be ask, separated with an colon\n");
@@ -268,10 +269,6 @@ void help(char* cpSelf)
 	printf("                STOPDEBUG [-ow] <folder[:subroutine]/owreaderID>\n");
 	printf("                         -     same as option DEBUG\n");
 	printf("                               but option stopping given debugging from hole folder (<folder) or given subroutine (<folder>:<subroutine>)\n");
-	printf("                GETMINMAXERRORNUMS\n");
-	printf("                         -     return two integer for maximal warning- and error-number.\n");
-	printf("                               The first number is the highest negative warning number (from number to -1) or 0,\n");
-	printf("                               the second the highest positive error number (from 1 to number) or 0\n");
 	printf("                GETERRORSTRING <errornumber>\n");
 	printf("                         -     return for positive errornuber or negative warning number as an string definition\n");
 	printf("\n");
