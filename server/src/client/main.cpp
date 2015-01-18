@@ -24,6 +24,7 @@
 #include <map>
 
 #include "../util/debug.h"
+#include "../util/exception.h"
 #include "../util/stream/ErrorHandling.h"
 #include "../util/thread/ThreadErrorHandling.h"
 #include "../server/libs/SocketErrorHandling.h"
@@ -159,8 +160,19 @@ int main(int argc, char* argv[])
 				++nArcPos;
 			}
 
-			//cout << "command: " << command << endl;
-			bRes= client.execute(workdir, vOptions, command);
+			try{
+				//cout << "command: " << command << endl;
+				bRes= client.execute(workdir, vOptions, command);
+			}catch(SignalException& ex)
+			{
+				ex.printTrace();
+				return EXIT_FAILURE;
+
+			}catch(std::exception& ex)
+			{
+				cout << string(ex.what()) << endl;
+				return EXIT_FAILURE;
+			}
 			if(bRes > 0)
 				return EXIT_FAILURE;
 

@@ -31,6 +31,7 @@
 #include "../../util/XMLStartEndTagReader.h"
 #include "../../util/GlobalStaticMethods.h"
 #include "../../util/structures.h"
+#include "../../util/exception.h"
 
 #include "../../util/stream/ErrorHandling.h"
 #include "../../util/stream/IParameterStringStream.h"
@@ -2863,9 +2864,24 @@ namespace server
 
 	bool ClientTransaction::transfer(IFileDescriptorPattern& descriptor)
 	{
-		if(m_bHearing)
-			return hearingTransfer(descriptor);
-		return userTransfer(descriptor);
+		bool bRv;
+
+		try{
+			if(m_bHearing)
+				bRv= hearingTransfer(descriptor);
+			else
+				bRv= userTransfer(descriptor);
+		}catch(SignalException& ex)
+		{
+			ex.printTrace();
+			exit(EXIT_FAILURE);
+
+		}catch(std::exception& ex)
+		{
+			cout << string(ex.what()) << endl;
+			exit(EXIT_FAILURE);
+		}
+		return bRv;
 	}
 
 	void ClientTransaction::setHoldingFolder(const string& folder, const string& subroutine)
