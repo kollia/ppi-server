@@ -611,6 +611,13 @@ namespace server
 			 * @return current folder name
 			 */
 			string getCurrentFolder() const;
+			/**
+			 * fill command with parameters
+			 * to array of tabulator completion
+			 *
+			 * @param command string of command with parameters
+			 */
+			void command(string command);
 	};
 
 }

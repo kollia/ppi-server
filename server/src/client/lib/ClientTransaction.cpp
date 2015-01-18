@@ -299,176 +299,102 @@ namespace server
 		if(	!m_bHearing &&
 			!errHandle->hasError()	)
 		{
-			get_params_vec_t param1, param2;
+			// helping commands
+			command("?");
+			command("?value");
+			command("?debug");
 
-			// stop command
-			addCommand("STOP");
-			addCommand("stop");
+			// editor commands
+			command("quit");
+			command("exit");
+			command("history");
 
-			// change command
-			addCommand("CHANGE");
-			addCommand("change");
-			// do not need to implement 1. parameter various string on last
+			// editor commands for debug session
+			command("run");
+			command("first");
+			command("last");
+			command("up");
+			command("back");
+			command("clear");
+			command("add #subroutine");
+			command("remove #subroutine");
+			command("save #file");
+			command("load #file");
 
-			// permission command
-			param1.content= NULL;
-			addCommand("PERMISSION", &param1);
-			addParam(&param1, "#folderSub");
-			addCommand("permission", &param1);
+			command("hold #folderSub");
+			command("hold -i #folderSub");
 
-			// GET command
-			param1.content= NULL;
-			addCommand("GET", &param1);
-			addParam(&param1, "#folderSub");
+			command("show");
+			command("show #folder");
+			command("show #folderSub");
 
-			// SET command
-			param1.content= NULL;
-			addCommand("SET", &param1);
-			addParam(&param1, "#folderSub");
-			// do not need to implement 2. parameter various number on last
+			command("current");
+			command("current #folder");
+			command("current #folderSub");
 
-			// HEAR command
-			param1.content= NULL;
-			addCommand("HEAR", &param1);
-			addParam(&param1, "#folderSub");
+			command("next changed #subroutine");
+			command("next unchanged #subroutine");
 
-			// NEWENTRY command
-			addCommand("NEWENTRY");
-			addCommand("newentry");
+			command("previous");
+			command("previous changed #subroutine");
+			command("previous unchanged #subroutine");
 
-			// DIR command
-			addCommand("DIR");
-			addCommand("dir");
-			// do not need to implement 1. parameter various filter string on last
 
-			// CONTENT command
-			addCommand("CONTENT");
-			addCommand("content");
-			// do not need to implement 1. parameter various file name on last
+			// commands sending to server
+			command("CHANGE #string");
+			command("PERMISSION #folderSub");
+			command("GET #folderSub");
+			command("SET #folderSub #string");
+			command("HEAR #folderSub");
+			command("NEWENTRY");
+			command("DIR #string");
+			command("CONTENT #string");
+			command("GETERRORSTRING #string");
 
-			// GETERRORSTRING command
-			addCommand("GETERRORSTRING");
-			addCommand("geterrorstring");
-			addCommand("err");
-			// do not need to implement 1. parameter various error string on last
+			command("DEBUG #folderSub");
+			command("DEBUG -i #folderSub");
+			command("DEBUG -ow #string");
 
-			// editor quit command
-			addCommand("QUIT");
-			addCommand("exit");
+			command("SHOW");
+			command("SHOW #string");
+			command("SHOW -c #string");
 
-			// history command
-			addCommand("history");
-			addCommand("HISTORY");
-
-			// DEBUG command
-			param1.content= NULL;
-			param2.content= NULL;
-			addCommand("DEBUG", &param1);
-			addParam(&param1, "-i", &param2);
-			addParam(&param1, "-ow");
-			addParam(&param2, "#folderSub");
-			addCommand("debug", &param1);
-
-			// HOLDDEBUG command
-			param1.content= NULL;
-			param2.content= NULL;
-			addCommand("HOLDDEBUG", &param1);
-			addParam(&param1, "-i", &param2);
-			addParam(&param2, "#folderSub");
-			addCommand("hold", &param1);
-
-			// RUNDEBUG command
-			addCommand("RUNDEBUG");
-			addCommand("run");
-
-			// SHOW command
-			param1.content= NULL;
-			addCommand("SHOWDEBUG", &param1);
-			addParam(&param1, "-c");
-			addParam(&param1, "#folder");
-			addParam(&param1, "#folderSub");
-			addCommand("show", &param1);
-			// do not need to implement 1. parameter various file name on last
-
-			// SHOW command
-			param1.content= NULL;
-			addCommand("CURDEBUG", &param1);
-			addParam(&param1, "#folder");
-			addParam(&param1, "#folderSub");
-			addCommand("current", &param1);
-			addCommand("cur", &param1);
-
-			// ADDDEBUG command
-			param1.content= NULL;
-			addCommand("ADDDEBUG", &param1);
-			addParam(&param1, "#subroutine");
-
-			// REMOVEDEBUG command
-			param1.content= NULL;
-			addCommand("REMOVEDEBUG", &param1);
-			addParam(&param1, "#subroutine");
-
-			// first command
-			addCommand("first");
-
-			// NEXTDEBUG command
-			param1.content= NULL;
-			param2.content= NULL;
-			addCommand("NEXTDEBUG", &param1);
-			addParam(&param1, "changed", &param2);
-			addParam(&param2, "#folderSub");
-			addParam(&param1, "unchanged", &param2);
-			addCommand("next", &param1);
-
-			// PREVDEBUG command
-			param1.content= NULL;
-			param2.content= NULL;
-			addCommand("PREVDEBUG", &param1);
-			addParam(&param1, "changed", &param2);
-			addParam(&param2, "#folderSub");
-			addParam(&param1, "unchanged", &param2);
-			addCommand("previous", &param1);
-
-			// last command
-			addCommand("last");
-
-			// BACKDEBUG command
-			addCommand("BACKDEBUG");
-			addCommand("back");
-
-			// up command
-			addCommand("up");
-
-			// STOPDEBUG command
-			param1.content= NULL;
-			param2.content= NULL;
-			addCommand("STOPDEBUG", &param1);
-			addParam(&param1, "#folderSub");
-			addParam(&param1, "-ow", &param2);
-			addParam(&param2, "#folderSub");
-			addCommand("stop", &param1);
-
-			// CLEARDEBUG command
-			addCommand("CLEARDEBUG");
-			addCommand("clear");
-
-			// SAVEDEBUG command
-			addCommand("SAVEDEBUG");
-			addCommand("save");
-
-			// LOADDEBUG command
-			param1.content= NULL;
-			addCommand("LOADDEBUG", &param1);
-			addParam(&param1, "#file");
-			addCommand("load", &param1);
-
+			command("STOPDEBUG #folderSub");
+			command("STOPDEBUG -ow #string");
 		}
 		return errHandle;
 	}
 
+	void ClientTransaction::command(string command)
+	{
+		vector<string> spl;
+		get_params_vec_t param, nextParam;
+
+		trim(command);
+		split(spl, command, is_any_of(" \t"), boost::token_compress_on);
+		if(spl.empty())
+			return;
+		for(vector<string>::iterator it= spl.begin();
+						it != spl.end(); ++it		)
+		{
+			if(it == spl.begin())
+			{
+				param.content= NULL;
+				addCommand(*it, &param);
+
+			}else
+			{
+				nextParam.content= NULL;
+				addParam(&param, *it, &nextParam);
+				param.content= nextParam.content;
+			}
+		}
+	}
+
 	void ClientTransaction::addCommand(const string& command, get_params_vec_t* params/*= NULL*/)
 	{
-		m_mUserInteraction[command]= parameter_types();
+		if(m_mUserInteraction.find(command) == m_mUserInteraction.end())
+			m_mUserInteraction[command]= parameter_types();
 		if(params != NULL)
 		{
 			if(params->content != NULL)
@@ -485,11 +411,25 @@ namespace server
 
 	void ClientTransaction::addParam(get_params_vec_t* into, const string& parameter, get_params_vec_t* params/*= NULL*/)
 	{
+		bool bFound(false);
 		parameter_type param;
 
-		param= SHAREDPTR::shared_ptr<params_t>(new params_t);
-		param->param= parameter;
-		into->content->push_back(param);
+		for(vector<parameter_type>::iterator it= into->content->begin();
+						it != into->content->end(); ++it				)
+		{
+			if((*it)->param == parameter)
+			{
+				param= *it;
+				bFound= true;
+				break;
+			}
+		}
+		if(!bFound)
+		{
+			param= parameter_type(new params_t);
+			param->param= parameter;
+			into->content->push_back(param);
+		}
 		if(params != NULL)
 		{
 			if(params->content != NULL)
@@ -1936,8 +1876,7 @@ namespace server
 				if(checkWaitCommandCount(command, bErrorWritten))
 					writeHelpUsage(command[0]);
 
-			}else if(	command[0] == "change" ||
-						command[0] == "CHANGE"	)
+			}else if(command[0] == "CHANGE")
 			{
 				paramDefs.push_back("[user]");
 				if(checkWaitCommandCount(command, bErrorWritten, &paramDefs))
@@ -1961,8 +1900,7 @@ namespace server
 						tcsetattr(TCSANOW, &termios_flag);
 					}
 				}
-			}else if(	command[0] == "run" ||
-						command[0] == "RUNDEBUG"	)
+			}else if(command[0] == "run")
 			{
 				map<string, unsigned long> folderCount;
 
@@ -2017,8 +1955,7 @@ namespace server
 					defcommand= ocommand.str();
 				}
 			}
-			if(	command[0] == "hold" ||
-				command[0] == "HOLDDEBUG"	)
+			if(command[0] == "hold")
 			{
 				if(command.size() > 1)
 				{
@@ -2027,20 +1964,13 @@ namespace server
 				}
 				if(checkHearCommandCount(command, bErrorWritten, &paramDefs))
 				{
-					if(command[0] == "HOLDDEBUG")
-						defcommand= defcommand.substr(4);
+					if(command.size() == 1)
+						defcommand= "DEBUG";// -i";
 					else
 						defcommand= "DEBUG" + defcommand.substr(4);
-		//			if(command.size() == 1)
-		//				defcommand+= " -i";
 				}
 
-			}else if(command[0] == "stop")
-			{
-				defcommand= "STOPDEBUG" + defcommand.substr(4);
-
-			}else if(	command[0] == "add" ||
-						command[0] == "ADDDEBUG"	)
+			}else if(command[0] == "add")
 			{
 				paramDefs.push_back("<subroutine>");
 				if(checkHearCommandCount(command, bErrorWritten, &paramDefs))
@@ -2081,8 +2011,7 @@ namespace server
 				}
 
 			}else if(	command[0] == "rm" ||
-						command[0] == "remove" ||
-						command[0] == "REMOVEDEBUG"	)
+						command[0] == "remove"	)
 			{
 				vector<string>::iterator it;
 
@@ -2129,7 +2058,9 @@ namespace server
 						if(vLayers[nCurLayer].second.second.size() > 1)
 						{
 							vLayers[nCurLayer].second.second.erase(it);
-							defcommand= "CURDEBUG";
+							command.clear();
+							command.push_back("current");
+							defcommand= "current";
 						}else
 						{
 							layerVecDef::size_type nCount(0);
@@ -2163,47 +2094,32 @@ namespace server
 			}
 			if(	bErrorWritten == false &&
 				(	command[0] == "show" ||
-					command[0] == "SHOWDEBUG" ||
-					command[0] == "cur" ||
 					command[0] == "current" ||
-					command[0] == "CURDEBUG" ||
 					command[0] == "next" ||
-					command[0] == "NEXTDEBUG" ||
-					command[0] == "prev" ||
 					command[0] == "previous" ||
-					command[0] == "PREVDEBUG" ||
 					command[0] == "first" ||
-					command[0] == "FIRSTDEBUG" ||
 					command[0] == "last" ||
-					command[0] == "LASTDEBUG"	||
 					command[0] == "up" ||
-					command[0] == "back" ||
-					command[0] == "BACKDEBUG"		)	)
+					command[0] == "back"		)	)
 			{
 				short nExist(-2);
 				direction_e direction;
 				short folderNr(0);
 
 				bSendCommand= false;
-				if(	command[0] == "show" ||
-					command[0] == "SHOWDEBUG"	)
+				if(command[0] == "show")
 				{
 					direction= all;
 
-				}else if(	command[0] == "first" ||
-							command[0] == "FIRSTDEBUG"	)
+				}else if(command[0] == "first")
 				{
 					direction= first;
 
-				}else if(	command[0] == "cur" ||
-							command[0] == "current" ||
-							command[0] == "CURDEBUG" ||
+				}else if(	command[0] == "current" ||
 							command[0] == "up" ||
-							command[0] == "back" ||
-							command[0] == "BACKDEBUG" 	)
+							command[0] == "back"	 	)
 				{
-					if(	command[0] == "back" ||
-						command[0] == "BACKDEBUG"	)
+					if(command[0] == "back")
 					{
 						if(nCurLayer > 0)
 						{
@@ -2231,14 +2147,11 @@ namespace server
 					}
 					direction= current;
 
-				}else if(	command[0] == "next" ||
-							command[0] == "NEXTDEBUG"	)
+				}else if(command[0] == "next")
 				{
 					direction= next;
 
-				}else if(	command[0] == "prev" ||
-							command[0] == "previous" ||
-							command[0] == "PREVDEBUG"		)
+				}else if(	command[0] == "previous")
 				{
 					direction= previous;
 
@@ -2539,8 +2452,7 @@ namespace server
 					}// checkHearCommandCount()
 				}// if(!bErrorWritten)
 
-			}else if(	command[0] == "clear" ||
-						command[0] == "CLEARDEBUG"	)
+			}else if(command[0] == "clear")
 			{
 				bSendCommand= false;
 				if(checkHearCommandCount(command, bErrorWritten))
@@ -2621,9 +2533,8 @@ namespace server
 
 
 					if(	m_o2Client.get() &&
-							!bErrorWritten &&
-							(	command[0] == "HOLDDEBUG" ||
-								command[0] == "hold"			)	)
+						!bErrorWritten &&
+						command[0] == "hold"	)
 					{
 						vector<string> spl;
 
@@ -2733,12 +2644,11 @@ namespace server
 			cout << "    ?debug    - show all commands round "
 							"debug session of working list" << endl;
 			cout << endl;
-			cout << "    quit      - ending connection to server" << endl;
-			cout << "                and abort ppi-client" << endl;
-			cout << "    history   - show all last typed commands with number" << endl;
-			cout << "                which can allocate with '!<number>'" << endl;
-			cout << "    CHANGE <user>" << endl;
-			cout << "    change [user]   - changing user by current session with server" << endl;
+			cout << "    quit            - ending connection to server" << endl;
+			cout << "                      and abort ppi-client" << endl;
+			cout << "    history         - show all last typed commands with number" << endl;
+			cout << "                      which can allocate with '!<number>'" << endl;
+			cout << "    CHANGE [user]   - changing user by current session with server" << endl;
 			cout << "                      after pressing return, will be asked for user" << endl;
 			cout << "                      when not written as parameter" << endl;
 			cout << "                      and than for password" << endl;
@@ -2773,15 +2683,13 @@ namespace server
 				cout << "                    and folder have to be the OWServer ID (owreaderID)." << endl;
 				cout << "                    (the OWServer ID you can see by starting ppi-server on command line after '### starting OWServer)" << endl;
 				cout << "                    both option -i and -ow cannot be used in same time" << endl;
-				cout << "    HOLDDEBUG [-i] <folder[:subroutine]>" << endl;
+				cout << "    hold [-i] <folder[:subroutine]>" << endl;
 				cout << "                -   same as command DEBUG (without possibility of option -ow)" << endl;
 				cout << "                    but debug session output will be saved in the background" << endl;
 				cout << "                    and will be shown only with follow commands" << endl;
 				cout << "                    (command only be allowed when ppi-client started with hearing thread option --hear)" << endl;
-				cout << "    run" << endl;
-				cout << "    RUNDEBUG    -   show all getting debug session folders with count" << endl;
+				cout << "    run         -   show all getting debug session folders with count" << endl;
 				cout << "    show [folder[:subroutine]]" << endl;
-				cout << "    SHOWDEBUG [folder[:subroutine]]" << endl;
 				cout << "                -   show debug session output of working list" << endl;
 				cout << "                    which was set before with HOLDDEBUG into holding state" << endl;
 				cout << "                    to save in background" << endl;
@@ -2789,9 +2697,7 @@ namespace server
 				cout << "                    and an folder and or subroutine given by command" << endl;
 				cout << "                    this will be defined inside current layer" << endl;
 				cout << "                    (command only be allowed when ppi-client started with hearing thread option --hear)" << endl;
-				cout << "    cur [folder[:subroutine]]" << endl;
 				cout << "    current [folder[:subroutine]]" << endl;
-				cout << "    CURDEBUG [folder[:subroutine]]" << endl;
 				cout << "               -    show always only folder or folder:subroutine of debug session" << endl;
 				cout << "                    running by one pass" << endl;
 				cout << "                    by first calling it will take the first pass of folder given name which found" << endl;
@@ -2809,42 +2715,32 @@ namespace server
 				cout << "                    try to show the new folder from same time," << endl;
 				cout << "                    or one step before." << endl;
 				cout << "    add <subroutine>" << endl;
-				cout << "    ADDDEBUG <subroutine>" << endl;
 				cout << "                -   add subroutine to current folder defined with 'CURDEBUG'" << endl;
 				cout << "                    which is defined for listing" << endl;
 				cout << "    rm <subroutine>" << endl;
 				cout << "    remove <subroutine>" << endl;
-				cout << "    REMOVEDEBUG <subroutine>" << endl;
 				cout << "                -   remove the subroutine from current folder defined inside 'CURDEBUG'" << endl;
 				cout << "                    which is defined for listing" << endl;
-				cout << "    next" << endl;
-				cout << "    NEXTDEBUG  -    show also only one subroutine like 'CURDEBUG'" << endl;
+				cout << "    next        -   show also only one subroutine like 'CURDEBUG'" << endl;
 				cout << "                    but always the next one" << endl;
 				cout << "                    after command can also be typed the folder pass" << endl;
 				cout << "                    which want to be shown" << endl;
-				cout << "    prev" << endl;
-				cout << "    previous" << endl;
-				cout << "    PREVDEBUG   -   same as command 'NEXTDEBUG'" << endl;
+				cout << "    previous    -   same as command 'NEXTDEBUG'" << endl;
 				cout << "                    but show the subroutine before" << endl;
 				cout << "                    after command can also be typed the folder pass" << endl;
 				cout << "                    which want to be shown" << endl;
-				cout << "    back" << endl;
-				cout << "    BACKDEBUG   -   go from an new defined layer with 'CURDEBUG'" << endl;
+				cout << "    back        -   go from an new defined layer with 'CURDEBUG'" << endl;
 				cout << "                    back to the last layer with the last time" << endl;
-				cout << "    stop [-ow] <folder[:subroutine]/owreaderID>" << endl;
 				cout << "    STOPDEBUG [-ow] <folder[:subroutine]/owreaderID>" << endl;
 				cout << "                -   stop debugging session for folder:subroutine" << endl;
 				cout << "                    and or saving into background" << endl;
-				cout << "    clear" << endl;
-				cout << "    CLEARDEBUG  -   clear debug content from background" << endl;
+				cout << "    clear       -   clear debug content from background" << endl;
 				cout << "                    but not currently debugging session" << endl;
 	/*			cout << "    save <file>" << endl;
-				cout << "    SAVEDEBUG <file>" << endl;
 				cout << "                -   save all debug session content, since time called," << endl;
 				cout << "                    into given file in same directory where ppi-client was called" << endl;
 				cout << "                    ending by call this command again, call 'STOPDEBUG' or stop editor" << endl;
 				cout << "    load <file>" << endl;
-				cout << "    LOADDEBUG <file>" << endl;
 				cout << "                -   load debug session content which was saved before with 'SAVEDEBUG'" << endl;
 				cout << "                    This is the only one command which can called on beginning" << endl;
 				cout << "                    ('ppi-client LOADDEBUG <file>') where the ppi-server" << endl;
