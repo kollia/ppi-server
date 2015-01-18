@@ -23,6 +23,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 #include <deque>
 
 #include "IHearingThreadPattern.h"
@@ -176,6 +177,32 @@ namespace server
 			 */
 			OVERWRITE map<string, unsigned long> getRunningFolderList();
 			/**
+			 * complete given result with an new tabulator string
+			 * and giving result in same parameter back
+			 *
+			 * @param result current result which will be completed
+			 * @param nPos current position of cursor
+			 * @param count currently count of pressed tabulator before
+			 */
+			void createTabResult(string& result, string::size_type& nPos, short& count);
+			/**
+			 * search in folder list getting from debug session
+			 * for results beginning with given string
+			 *
+			 * @param str folder names should beginning with this string
+			 * @return vector of all possible folders
+			 */
+			OVERWRITE vector<string> getUsableFolders(const string& str);
+			/**
+			 * search in subroutine list from given folder
+			 * fro results beginning with given string
+			 *
+			 * @param folder name of folder from which subroutines should be searched
+			 * @param str subroutine names should beginning with this string
+			 * @return vector of all possible subroutines
+			 */
+			OVERWRITE vector<string> getUsableSubroutines(const string& folder, const string& str);
+			/**
 			 * write content of debug session.<br />
 			 * when no subroutines be set write hole folder,
 			 * or by no folder write hole content
@@ -196,7 +223,29 @@ namespace server
 			virtual ~ClientTransaction();
 
 		private:
+			/**
+			 * parameter of command
+			 * with possible follow parameters
+			 */
+			struct params_t
+			{
+				string param;
+				vector<SHAREDPTR::shared_ptr<params_t> > follow;
+			};
+			struct get_params_vec_t
+			{
+				vector<SHAREDPTR::shared_ptr<params_t> >* content;
+			};
+
 			typedef map<ppi_time, vector<IDbFillerPattern::dbgSubroutineContent_t> > debugSessionTimeMap;
+			/**
+			 * type definition for an parameter pointer
+			 */
+			typedef SHAREDPTR::shared_ptr<params_t> parameter_type;
+			/**
+			 * type definition for an vector of parameter pointer
+			 */
+			typedef vector<parameter_type> parameter_types;
 
 			/**
 			 * whether was reading
@@ -256,6 +305,11 @@ namespace server
 			 * locked by PROMPTMUTEX
 			 */
 			bool m_bRunHearTran;
+			/**
+			 * current folder name in which searching
+			 * with CURDEBUG
+			 */
+			string m_sCurrentFolder;
 			/**
 			 * vector of all options be set on the shell
 			 */
@@ -343,6 +397,16 @@ namespace server
 			 * time returned from method <code>writeDebugSession()</code>
 			 */
 			ppi_time m_dbgSessTime;
+			/**
+			 * all possible commands with possible parameters
+			 * to write inside command line editor
+			 */
+			map<string, parameter_types > m_mUserInteraction;
+			/**
+			 * all folders with subroutines
+			 * getting as debug session from server
+			 */
+			map<string, set<string> > m_mFolderSubs;
 			/**
 			 * mutex to write clear hold variables
 			 */
@@ -444,14 +508,15 @@ namespace server
 			 */
 			string getError(IFileDescriptorPattern& descriptor, const string& error);
 			/**
-			 * read password and when not given user
+			 * read password and user when not inserted than from
 			 * from command line and compare with server
 			 *
 			 * @param descriptor file handle to compare with server
 			 * @param user name of user or null string
+			 * @param pwd password or null string
 			 * @return whether entries was correct
 			 */
-			bool compareUserPassword(IFileDescriptorPattern& descriptor, string user);
+			bool compareUserPassword(IFileDescriptorPattern& descriptor, string& user, string& pwd);
 			/**
 			 * print all ERROR results as translated strings on command line
 			 *
@@ -502,6 +567,50 @@ namespace server
 			 * @return whether command count was ok
 			 */
 			bool checkHearCommandCount(vector<string> commands, bool& error, vector<string>* descriptions= NULL);
+			/**
+			 * add command to allowed list.<br />
+			 * when second parameter 'params' be set
+			 * there will be returned an vector for all parameter
+			 * after command, which can be filled with method <code>addParam()</code>.
+			 * After filling this parameter can be used for other commands
+			 * to implement the filled vector into other commands
+			 * which should doing the same
+			 *
+			 * @param command name of command
+			 * @param params vector of parameters to fill, or when filled add to command
+			 */
+			void addCommand(const string& command, get_params_vec_t* params= NULL);
+			/**
+			 * add parameter into an existing command.<br />
+			 * when third parameter 'params' be set
+			 * this can also use like by method <code>addCommand()</code>
+			 * for more parameters after the current whitch will be set.<br />
+			 * the name of parameter can be an special string
+			 * whitch describe directly or an parameter beginning with an '#'<br />
+			 * '#string' for an undefined string cannot be filled with tabulator<br />
+			 * '#folder' for all 'folders' getting by HOLDDEBUG<br />
+			 * '#subroutine' for all 'subroutines' from current folder<br />
+			 * '#folderSub' for all 'folder:subroutine' strings
+			 *
+			 * @param into vector of parameter where should be filled into
+			 * @param param name of parameter
+			 * @param params vector of followed parameters
+			 */
+			void addParam(get_params_vec_t* into, const string& param, get_params_vec_t* params= NULL);
+			/**
+			 * set current folder in which searching
+			 * with CURDEBUG
+			 *
+			 * @param folder current folder name
+			 */
+			void setCurrentFolder(const string& folder);
+			/**
+			 * select current folder in which searching
+			 * with CURDEBUG
+			 *
+			 * @return current folder name
+			 */
+			string getCurrentFolder() const;
 	};
 
 }

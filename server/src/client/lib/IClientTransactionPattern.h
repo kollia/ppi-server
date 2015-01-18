@@ -155,6 +155,32 @@ namespace design_pattern_world
 			 */
 			virtual map<string, unsigned long> getRunningFolderList()= 0;
 			/**
+			 * complete given result with an new tabulator string
+			 * and giving result in same parameter back
+			 *
+			 * @param result current result which will be completed
+			 * @param nPos current position of cursor
+			 * @param count currently count of pressed tabulator before
+			 */
+			void createTabResult(string& result, string::size_type& nPos, short& count);
+			/**
+			 * search in folder list getting from debug session
+			 * for results beginning with given string
+			 *
+			 * @param str folder names should beginning with this string
+			 * @return vector of all possible folders
+			 */
+			virtual vector<string> getUsableFolders(const string& str)= 0;
+			/**
+			 * search in subroutine list from given folder
+			 * fro results beginning with given string
+			 *
+			 * @param folder name of folder from which subroutines should be searched
+			 * @param str subroutine names should beginning with this string
+			 * @return vector of all possible subroutines
+			 */
+			virtual vector<string> getUsableSubroutines(const string& folder, const string& str)= 0;
+			/**
 			 * write content of debug session.<br />
 			 * when no subroutines be set write hole folder,
 			 * or by no folder write hole content

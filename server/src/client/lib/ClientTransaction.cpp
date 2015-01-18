@@ -14,6 +14,8 @@
  *   You should have received a copy of the Lesser GNU General Public License
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cerrno>
@@ -196,6 +198,23 @@ namespace server
 				res2 >> m_fProtocol;
 				if(res2.fail())
 					bRightServer= false;
+#if 0
+				else
+				{
+					if(m_bHearing)
+					{
+						runHearingTransaction(true);
+						cout << "\n make second ";
+					}else
+						cout << "make ";
+					cout << "connect to server with ID " << sCommID << endl;
+					if(m_bHearing)
+					{
+						runHearingTransaction(false);
+						prompt();
+					}
+				}
+#endif
 			}else
 				bRightServer= false;
 		}
@@ -256,12 +275,11 @@ namespace server
 			cout << endl << "actual time " << stime << endl;
 			bLogin= false;
 		}
-		if(	!m_bHearing &&
-			(	m_bWait ||
-				bLogin		)	)
+		if(	m_bWait ||
+			bLogin		)
 		{
 			readTcBackup();
-			if(!compareUserPassword(descriptor, user))
+			if(!compareUserPassword(descriptor, user, pwd))
 			{
 				errHandle->setError("ClientTransaction", "user_password_error");
 				errHandle->addMessage("ClientTransaction", "get_result");
@@ -277,7 +295,671 @@ namespace server
 			m_o2Client= auto_ptr<IHearingThreadPattern>(pThread);
 			(*errHandle)= pThread->start();
 		}
+		if(	!m_bHearing &&
+			!errHandle->hasError()	)
+		{
+			get_params_vec_t param1, param2;
+
+			// stop command
+			addCommand("STOP");
+			addCommand("stop");
+
+			// change command
+			addCommand("CHANGE");
+			addCommand("change");
+			// do not need to implement 1. parameter various string on last
+
+			// permission command
+			param1.content= NULL;
+			addCommand("PERMISSION", &param1);
+			addParam(&param1, "#folderSub");
+			addCommand("permission", &param1);
+
+			// GET command
+			param1.content= NULL;
+			addCommand("GET", &param1);
+			addParam(&param1, "#folderSub");
+
+			// SET command
+			param1.content= NULL;
+			addCommand("SET", &param1);
+			addParam(&param1, "#folderSub");
+			// do not need to implement 2. parameter various number on last
+
+			// HEAR command
+			param1.content= NULL;
+			addCommand("HEAR", &param1);
+			addParam(&param1, "#folderSub");
+
+			// NEWENTRY command
+			addCommand("NEWENTRY");
+			addCommand("newentry");
+
+			// DIR command
+			addCommand("DIR");
+			addCommand("dir");
+			// do not need to implement 1. parameter various filter string on last
+
+			// CONTENT command
+			addCommand("CONTENT");
+			addCommand("content");
+			// do not need to implement 1. parameter various file name on last
+
+			// GETERRORSTRING command
+			addCommand("GETERRORSTRING");
+			addCommand("geterrorstring");
+			addCommand("err");
+			// do not need to implement 1. parameter various error string on last
+
+			// editor quit command
+			addCommand("QUIT");
+			addCommand("exit");
+
+			// history command
+			addCommand("history");
+			addCommand("HISTORY");
+
+			// DEBUG command
+			param1.content= NULL;
+			param2.content= NULL;
+			addCommand("DEBUG", &param1);
+			addParam(&param1, "-i", &param2);
+			addParam(&param1, "-ow");
+			addParam(&param2, "#folderSub");
+			addCommand("debug", &param1);
+
+			// HOLDDEBUG command
+			param1.content= NULL;
+			param2.content= NULL;
+			addCommand("HOLDDEBUG", &param1);
+			addParam(&param1, "-i", &param2);
+			addParam(&param2, "#folderSub");
+			addCommand("hold", &param1);
+
+			// RUNDEBUG command
+			addCommand("RUNDEBUG");
+			addCommand("run");
+
+			// SHOW command
+			param1.content= NULL;
+			addCommand("SHOWDEBUG", &param1);
+			addParam(&param1, "-c");
+			addParam(&param1, "#folder");
+			addParam(&param1, "#folderSub");
+			addCommand("show", &param1);
+			// do not need to implement 1. parameter various file name on last
+
+			// SHOW command
+			param1.content= NULL;
+			addCommand("CURDEBUG", &param1);
+			addParam(&param1, "#folder");
+			addParam(&param1, "#folderSub");
+			addCommand("current", &param1);
+			addCommand("cur", &param1);
+
+			// ADDDEBUG command
+			param1.content= NULL;
+			addCommand("ADDDEBUG", &param1);
+			addParam(&param1, "#subroutine");
+
+			// REMOVEDEBUG command
+			param1.content= NULL;
+			addCommand("REMOVEDEBUG", &param1);
+			addParam(&param1, "#subroutine");
+
+			// first command
+			addCommand("first");
+
+			// NEXTDEBUG command
+			param1.content= NULL;
+			param2.content= NULL;
+			addCommand("NEXTDEBUG", &param1);
+			addParam(&param1, "changed", &param2);
+			addParam(&param2, "#folderSub");
+			addParam(&param1, "unchanged", &param2);
+			addCommand("next", &param1);
+
+			// PREVDEBUG command
+			param1.content= NULL;
+			param2.content= NULL;
+			addCommand("PREVDEBUG", &param1);
+			addParam(&param1, "changed", &param2);
+			addParam(&param2, "#folderSub");
+			addParam(&param1, "unchanged", &param2);
+			addCommand("previous", &param1);
+
+			// last command
+			addCommand("last");
+
+			// BACKDEBUG command
+			addCommand("BACKDEBUG");
+			addCommand("back");
+
+			// up command
+			addCommand("up");
+
+			// STOPDEBUG command
+			param1.content= NULL;
+			param2.content= NULL;
+			addCommand("STOPDEBUG", &param1);
+			addParam(&param1, "#folderSub");
+			addParam(&param1, "-ow", &param2);
+			addParam(&param2, "#folderSub");
+			addCommand("stop", &param1);
+
+			// CLEARDEBUG command
+			addCommand("CLEARDEBUG");
+			addCommand("clear");
+
+			// SAVEDEBUG command
+			addCommand("SAVEDEBUG");
+			addCommand("save");
+
+			// LOADDEBUG command
+			param1.content= NULL;
+			addCommand("LOADDEBUG", &param1);
+			addParam(&param1, "#file");
+			addCommand("load", &param1);
+
+		}
 		return errHandle;
+	}
+
+	void ClientTransaction::addCommand(const string& command, get_params_vec_t* params/*= NULL*/)
+	{
+		m_mUserInteraction[command]= parameter_types();
+		if(params != NULL)
+		{
+			if(params->content != NULL)
+			{
+				for(parameter_types::iterator it= params->content->begin();
+								it != params->content->end(); ++it			)
+				{
+					m_mUserInteraction[command].push_back(*it);
+				}
+			}else
+				params->content= &m_mUserInteraction[command];
+		}
+	}
+
+	void ClientTransaction::addParam(get_params_vec_t* into, const string& parameter, get_params_vec_t* params/*= NULL*/)
+	{
+		parameter_type param;
+
+		param= SHAREDPTR::shared_ptr<params_t>(new params_t);
+		param->param= parameter;
+		into->content->push_back(param);
+		if(params != NULL)
+		{
+			if(params->content != NULL)
+			{
+				for(parameter_types::iterator it= params->content->begin();
+								it != params->content->end(); ++it			)
+				{
+					param->follow.push_back(*it);
+				}
+			}else
+				params->content= &param->follow;
+		}
+	}
+
+	void ClientTransaction::createTabResult(string& result, string::size_type& nPos, short& count)
+	{
+		bool bFound(false);
+		bool bNStr(false);
+		bool bNFolder(false);
+		bool bNSubs(false);
+		bool bNFolderSubs(false);
+		parameter_types* pCurParamVec;
+		string folder, subroutine;
+		string sCurStr, resBefore, resBehind;
+		string::size_type nLen, nMaxLen, nNewPos(string::npos);
+		vector<string> spl, searchVec;
+		vector<string>::size_type nCommandCount;
+		map<string, parameter_types >::iterator foundCommand;
+
+		if(nPos == result.length())
+			resBefore= result;
+		else if(nPos == 0)
+			resBehind= result;
+		else
+		{
+			resBefore= result.substr(0, nPos);
+			resBehind= result.substr(nPos);
+		}
+		if(nPos > 0)
+		{
+			string dupl(resBefore);
+
+			trim(dupl);
+			split(spl, dupl, is_any_of(" "), boost::token_compress_on);
+			if(resBefore.substr(resBefore.length() - 1, 1) != " ")
+			{
+				sCurStr= spl.back();
+				spl.pop_back();
+			}
+		}
+
+		nCommandCount= spl.size();
+		if(!spl.empty())
+		{
+			foundCommand= m_mUserInteraction.find(spl[0]);
+			if(foundCommand == m_mUserInteraction.end())
+			{
+				/*
+				 * first command not found
+				 * so question of any parameter
+				 * after unknown command
+				 * cannot find anything
+				 */
+				return;
+			}
+			pCurParamVec= &foundCommand->second;
+			for(vector<string>::size_type n= 1; n < nCommandCount; ++n)
+			{
+				bFound= false;
+				for(parameter_types::iterator it= pCurParamVec->begin();
+								it != pCurParamVec->end(); ++it			)
+				{
+					if(	(*it)->param == spl[n] ||
+						(*it)->param == "#string"	)
+					{
+						bFound= true;
+						pCurParamVec= &(*it)->follow;
+						break;
+					}
+				}
+				if(bFound == false)
+				{
+					/*
+					 * one parameter before not found
+					 * so question of any parameter
+					 * after unknown command
+					 * cannot find anything
+					 */
+					return;
+				}
+			}
+		}
+		nLen= sCurStr.length();
+		nMaxLen= 0;
+		bFound= false;
+		if(nCommandCount == 0)
+		{
+			/*
+			 * search for commands
+			 */
+			for(map<string, parameter_types >::iterator it= m_mUserInteraction.begin();
+							it != m_mUserInteraction.end(); ++it						)
+			{
+				if(	it->first.length() >= nLen &&
+					sCurStr == it->first.substr(0, nLen)	)
+				{
+					searchVec.push_back(it->first);
+					if(nMaxLen < it->first.length())
+						nMaxLen= it->first.length();
+					bFound= true;
+
+				}else if(bFound)
+					break;
+			}
+		}else
+		{
+			vector<string> vFolderSubs;
+
+			/*
+			 * search for parameter
+			 * after command
+			 */
+			for(parameter_types::iterator it= pCurParamVec->begin();
+							it != pCurParamVec->end(); ++it			)
+			{
+				if((*it)->param.substr(0, 1) != "#")
+				{
+					if(	(*it)->param.length() >= nLen &&
+						sCurStr == (*it)->param.substr(0, nLen)	)
+					{
+						searchVec.push_back((*it)->param);
+						if(nMaxLen < (*it)->param.length())
+							nMaxLen= (*it)->param.length();
+						bFound= true;
+
+					}else if(bFound)
+						break;
+				}else
+				{
+					if((*it)->param == "#string")
+						bNStr= true;
+					else if((*it)->param == "#folder")
+						bNFolder= true;
+					else if((*it)->param == "#subroutine")
+						bNSubs= true;
+					else if((*it)->param == "#folderSub")
+						bNFolderSubs= true;
+				}
+			}
+			if(	bNStr &&
+				searchVec.empty() &&
+				!bNFolder &&
+				!bNSubs &&
+				!bNFolderSubs		)
+			{
+				/*
+				 * search only for an variable string
+				 * no string with tabulator is found able
+				 */
+				return;
+			}
+			if(bNFolderSubs)
+			{
+				vector<string>::size_type nSize;
+
+				/*
+				 * search for folder with subroutine
+				 * check first whether should search for folders,
+				 * or when an colon be given for subroutines
+				 */
+				split(spl, sCurStr, is_any_of(":"));
+				if(spl.size() == 2)
+				{
+					folder= spl[0];
+					subroutine= spl[1];
+					vFolderSubs= getUsableFolders(folder);
+					nSize= vFolderSubs.size();
+					if(	nSize == 0 ||
+						nSize > 1		)
+					{
+						/*
+						 * from given folder with section of subroutine,
+						 * folder not found
+						 * or folder is not complete
+						 * this can only be wrong
+						 * make no result creation
+						 */
+						return;
+					}
+				}else if(spl.size() > 1)
+				{
+					/*
+					 * folder with section of subroutine
+					 * is given with more than one colon
+					 * this can only be wrong
+					 * make no result creation
+					 */
+					return;
+				}
+			}
+			if(	bNFolder ||
+				(	bNFolderSubs &&
+					folder == ""	)	)
+			{
+				// Usable folders
+				vFolderSubs= getUsableFolders(sCurStr);
+				searchVec.insert(searchVec.end(), vFolderSubs.begin(), vFolderSubs.end());
+			}
+			if(	bNSubs ||
+				(	bNFolderSubs &&
+					folder != ""	)	)
+			{
+				// Usable subroutines
+				if(folder == "")
+				{
+					/*
+					 * subroutine is also not set
+					 */
+					subroutine= sCurStr;
+				}
+				if(	bNSubs &&
+					(	folder == "" ||
+						sCurStr.find(":") == string::npos	)	)
+				{
+					folder= getCurrentFolder();
+					if(folder == "")
+					{
+						writeLastPromptLine(/*lock*/true, nPos, result, /*end*/true);
+						prompt("\n   no current folder for searching subroutine be defined\n"
+										"   please define first with CURDEBUG\n$> "			);
+						writeLastPromptLine(/*lock*/true, nPos, result);
+						return;
+					}
+				}
+				vFolderSubs= getUsableSubroutines(folder, subroutine);
+				searchVec.insert(searchVec.end(), vFolderSubs.begin(), vFolderSubs.end());
+			}
+			if(	bNFolder ||
+				bNSubs ||
+				bNFolderSubs	)
+			{
+				for(vector<string>::iterator it= searchVec.begin();
+								it != searchVec.end(); ++it			)
+				{
+					if(it->length() > nMaxLen)
+						nMaxLen= it->length();
+				}
+			}
+		}
+		if(searchVec.size() > 1)
+		{
+			if(count > 0)
+			{
+				string::size_type columns;
+				string::size_type nCount(0);
+				string out;
+				char *ccolumns;
+
+				ccolumns= getenv("COLUMNS");
+				if(ccolumns != NULL)
+					columns = (string::size_type)atoi(ccolumns);
+				else
+				{
+				    struct winsize w;
+				    if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0)
+				    {
+				    	columns= (string::size_type)w.ws_col;
+				    }else
+				    {
+				    	cout << endl << strerror(errno) << endl;
+				    	columns= 0;
+				    }
+				}
+				nMaxLen= 0;
+				for(vector<string>::iterator it= searchVec.begin();
+								it != searchVec.end(); ++it			)
+				{
+					if(it->length() > nMaxLen)
+						nMaxLen= it->length();
+				}
+				nMaxLen+= 8;
+				if(columns > nMaxLen)
+					columns= columns / nMaxLen;
+				else
+					columns= 1;
+				nMaxLen-= 3;
+				writeLastPromptLine(/*lock*/true, nPos, result, /*end*/true);
+				for(vector<string>::iterator it= searchVec.begin();
+								it != searchVec.end(); ++it			)
+				{
+					string nullStr;
+
+					nullStr.append(nMaxLen - it->length(), ' ');
+					out+= "   " + *it + nullStr;
+					++nCount;
+					if(nCount >= columns)
+					{
+						nCount= 0;
+						out+= "\n";
+					}
+				}
+				out+= "\n$> ";
+				prompt(out);
+				writeLastPromptLine(/*lock*/true, nPos, result);
+				return;
+			}// if(count > 0)
+			if(folder != "")
+			{
+				/*
+				 * search for folder or subroutine
+				 * by splitting or search subroutine
+				 * entries before
+				 * set subroutine as search value
+				 */
+				nLen= subroutine.length();
+			}
+			for(string::size_type n= nLen+1; n <= nMaxLen; ++n)
+			{
+				bFound= true;
+				sCurStr= searchVec[0].substr(0, n);
+				for(vector<string>::iterator it= searchVec.begin();
+								it != searchVec.end(); ++it			)
+				{
+					if(it->substr(0, n) != sCurStr)
+					{
+						bFound= false;
+						nMaxLen= n - 1;
+						break;
+					}
+				}
+				if(!bFound)
+				{
+					sCurStr= searchVec[0].substr(0, nMaxLen);
+					if(nMaxLen > nLen)
+						nNewPos= nPos + (nMaxLen - nLen);
+					break;
+				}else
+					sCurStr= searchVec[0].substr(0, n);
+			}
+			result= resBefore.substr(0, resBefore.length() - nLen) +
+										sCurStr + resBehind;
+
+		}else if(searchVec.size() == 1)
+		{
+			bool bFolderSubComplete(false);
+
+			if(	folder != "" &&
+				bNSubs == false	)
+			{
+				/*
+				 * when folder is'nt an null string
+				 * the result inside searchVec is
+				 * only an subroutine
+				 * when now parameter not defined
+				 * for searching inside subroutines
+				 * (bNSubs == false)
+				 * add to folder subroutine inside searchVec
+				 */
+				folder+= ":" + searchVec[0];
+				bFolderSubComplete= true;
+			}else
+				folder= searchVec[0];
+			result= resBefore.substr(0, resBefore.length() - nLen);
+			result+= folder;
+			if(	bNFolderSubs &&
+				!bFolderSubComplete	)
+			{
+				/*
+				 * if searching for folders
+				 * with subroutines
+				 * add automatically an colon
+				 * to show that now will be searching
+				 * for subroutines
+				 */
+				if(bNFolder)
+				{
+					if(count > 1)
+					{
+						string out;
+
+						out= "\n\nfound correct folder\n";
+						out+= "when should search for subroutines\n";
+						out+= "type now an colon ':'\n";
+						out+= "because also only for an folder can be searched\n";
+						out+= "type space ' ' for finish\n\n";
+						out+= "$> ";
+						prompt(out);
+					}
+				}else
+					result+= ":";
+
+			}else
+				result+= " ";
+			nNewPos= result.length();
+			result+= resBehind;
+		}
+		if(nNewPos != string::npos)
+		{
+			nPos= nNewPos;
+			writeLastPromptLine(/*lock*/true, nPos, result);
+		}
+		if(count < 10)
+			++count;
+		return;
+	}
+
+	void ClientTransaction::setCurrentFolder(const string& folder)
+	{
+		m_sCurrentFolder= folder;
+	}
+
+	string ClientTransaction::getCurrentFolder() const
+	{
+		return m_sCurrentFolder;
+	}
+
+	vector<string> ClientTransaction::getUsableFolders(const string& str)
+	{
+		bool bFound;
+		string::size_type nLen;
+		vector<string> vRv;
+
+		if(m_o2Client.get())
+			return m_o2Client->transObj()->getUsableFolders(str);
+		nLen= str.length();
+		LOCK(m_DEBUGSESSIONCHANGES);
+		for(map<string, set<string> >::iterator it= m_mFolderSubs.begin();
+						it != m_mFolderSubs.end(); ++it						)
+		{
+			if(	it->first.length() >= nLen &&
+				str == it->first.substr(0, nLen)	)
+			{
+				vRv.push_back(it->first);
+				bFound= true;
+
+			}else if(bFound)
+				break;
+		}
+		UNLOCK(m_DEBUGSESSIONCHANGES);
+		return vRv;
+	}
+
+	vector<string> ClientTransaction::getUsableSubroutines(const string& folder, const string& str)
+	{
+		bool bFound;
+		string::size_type nLen;
+		vector<string> vRv;
+		map<string, set<string> >::iterator found;
+
+		if(m_o2Client.get())
+			return m_o2Client->transObj()->getUsableSubroutines(folder, str);
+		nLen= str.length();
+		LOCK(m_DEBUGSESSIONCHANGES);
+		found= m_mFolderSubs.find(folder);
+		if(found != m_mFolderSubs.end())
+		{
+			for(set<string>::iterator it= found->second.begin();
+							it != found->second.end(); ++it			)
+			{
+				if(	it->length() >= nLen &&
+					str == it->substr(0, nLen)	)
+				{
+					vRv.push_back(*it);
+					bFound= true;
+
+				}else if(bFound)
+					break;
+			}
+		}
+		UNLOCK(m_DEBUGSESSIONCHANGES);
+		return vRv;
 	}
 
 	string ClientTransaction::getFolderID(const string& folder)
@@ -350,6 +1032,11 @@ namespace server
 						input >> time;
 						input >> content;
 						LOCK(m_DEBUGSESSIONCHANGES);
+						if(	subroutine.length() > 1 &&
+							subroutine.substr(0, 1) != "#"	)
+						{
+							m_mFolderSubs[folder].insert(subroutine);
+						}
 						if(!m_bHoldAll)
 						{
 							foundFolder= m_vsHoldFolders.find(folder);
@@ -573,6 +1260,7 @@ namespace server
 		string result;
 		string lastCommand;
 		int charNr;
+		short nTabCount(0);
 		bool bSpecial(false);
 		string sSpecial;
 
@@ -627,18 +1315,28 @@ namespace server
 					yesno					)	)
 		{
 			//cout << "- typed (" << charNr << ") " << (char)charNr << endl;
+			if(	!bSpecial &&
+				charNr == 9	)
+			{
+				//cout << "pecial character TAB" << endl;
+				createTabResult(result, nPos, nTabCount);
+				continue;
+
+			}else
+				nTabCount= 0;
 			if(charNr == 27)
 			{
 				/*
 				 * pre-definition for
 				 * all special characters
-				 * only BACK deletion
+				 * only tabulator, BACK deletion
 				 * will be an single character (127)
 				 */
 				bSpecial= true;
 				sSpecial= "";
 
-			}else if(charNr == 127)
+			}else if(	!bSpecial &&
+						charNr == 127	)
 			{
 				//cout << "special character BACK deletion" << endl;
 				if(nPos > 0)
@@ -1122,6 +1820,10 @@ namespace server
 
 	bool ClientTransaction::userTransfer(IFileDescriptorPattern& descriptor)
 	{
+		typedef vector<pair<string, pair<ppi_time, vector<string> > > > layerVecDef;
+		typedef pair<string, pair<ppi_time, vector<string> > > layerDef;
+		typedef pair<ppi_time, vector<string> > layerContentDef;
+
 		bool bErrorWritten;
 		bool bWaitEnd= false;
 		bool bSendCommand(true);
@@ -1131,8 +1833,8 @@ namespace server
 		string sSendbuf;
 		string folder, subroutine;
 		auto_ptr<XMLStartEndTagReader> xmlReader;
-		vector<pair<string, pair<ppi_time, vector<string> > > > vNextSubs;
-		vector<pair<string, vector<string> > >::size_type nCurLayer(0);
+		layerVecDef vLayers;
+		layerVecDef::size_type nCurLayer(0);
 		ppi_time currentTime;
 		struct termios termios_flag;
 
@@ -1170,11 +1872,13 @@ namespace server
 			{
 				runUserTransaction(false);
 				org_command= ask(/*YesNo*/false, "$> ");
+				trim(org_command);
 				if(org_command == "")
 					continue;
 			}
 			runUserTransaction(true);
 			bErrorWritten= false;
+			bSendCommand= true;
 			command.clear();
 			iresult.str(org_command);
 			while(!iresult.eof())
@@ -1238,14 +1942,14 @@ namespace server
 				if(checkWaitCommandCount(command, bErrorWritten, &paramDefs))
 				{
 					struct termios term;
-					string user;
+					string user, pwd;
 
 					bSendCommand= false;
 					term= m_tTermiosBackup;
 					resetTc();
 					if(command.size() == 2)
 						user= command[1];
-					compareUserPassword(descriptor, user);
+					compareUserPassword(descriptor, user, pwd);
 					if(!m_bScriptState)
 					{
 						termios_flag= m_tTermiosBackup;
@@ -1326,8 +2030,8 @@ namespace server
 						defcommand= defcommand.substr(4);
 					else
 						defcommand= "DEBUG" + defcommand.substr(4);
-					if(command.size() == 1)
-						defcommand+= " -i";
+		//			if(command.size() == 1)
+		//				defcommand+= " -i";
 				}
 
 			}else if(command[0] == "stop")
@@ -1342,27 +2046,29 @@ namespace server
 				{
 					vector<string>::iterator found;
 
-					if(	vNextSubs.empty() ||
-						vNextSubs[nCurLayer].first == ""	)
+					if(	vLayers.empty() ||
+						vLayers[nCurLayer].first == ""	)
 					{
 						cout << " no folder:subroutine defined" << endl;
 						cout << " define first with $> CURDEBUG <folder>[:subroutine]" << endl;
 						bErrorWritten= true;
 
-					}else if(!existOnServer(descriptor, vNextSubs[nCurLayer].first, command[1]))
+					}else if(!existOnServer(descriptor, vLayers[nCurLayer].first, command[1]))
 					{
-						cout << " subroutine '" << vNextSubs[nCurLayer].first << ":" << command[1];
+						cout << " subroutine '" << vLayers[nCurLayer].first << ":" << command[1];
 						cout << "' do not exist inside ppi-server working list" << endl;
 						bErrorWritten= true;
 
 					}else
 					{
-						found= find(vNextSubs[nCurLayer].second.second.begin(),
-										vNextSubs[nCurLayer].second.second.end(), command[1]);
-						if(found == vNextSubs[nCurLayer].second.second.end())
+						found= find(vLayers[nCurLayer].second.second.begin(),
+										vLayers[nCurLayer].second.second.end(), command[1]);
+						if(found == vLayers[nCurLayer].second.second.end())
 						{
-							vNextSubs[nCurLayer].second.second.push_back(command[1]);
-							defcommand= "CURDEBUG";
+							vLayers[nCurLayer].second.second.push_back(command[1]);
+							command.clear();
+							command.push_back("current");
+							defcommand= "current";
 
 						}else
 						{
@@ -1370,6 +2076,7 @@ namespace server
 							bErrorWritten= true;
 						}
 					}
+					bSendCommand= false;
 				}
 
 			}else if(	command[0] == "rm" ||
@@ -1383,14 +2090,14 @@ namespace server
 				{
 					bool bRemove(true);
 
-					it= find(vNextSubs[nCurLayer].second.second.begin(),
-									vNextSubs[nCurLayer].second.second.end(), command[1]);
-					if(it == vNextSubs[nCurLayer].second.second.end())
+					it= find(vLayers[nCurLayer].second.second.begin(),
+									vLayers[nCurLayer].second.second.end(), command[1]);
+					if(it == vLayers[nCurLayer].second.second.end())
 					{
 						cout << " current subroutines in folder ";
-						cout << vNextSubs[nCurLayer].first << " are:" << endl;
-						for(it= vNextSubs[nCurLayer].second.second.begin();
-										it != vNextSubs[nCurLayer].second.second.end(); ++it)
+						cout << vLayers[nCurLayer].first << " are:" << endl;
+						for(it= vLayers[nCurLayer].second.second.begin();
+										it != vLayers[nCurLayer].second.second.end(); ++it)
 						{
 							cout << "                                ";
 							cout << *it << endl;
@@ -1400,12 +2107,16 @@ namespace server
 						bErrorWritten= true;
 						bRemove= false;
 
-					}else if(vNextSubs[nCurLayer].second.second.size() == 1)
+					}else if(vLayers[nCurLayer].second.second.size() == 1)
 					{
 						string msg;
 
 						msg=  " only this one subroutine is inside queue\n";
-						msg+= " do you want remove all current debugging?\n";
+						msg+= " do you want remove ";
+						if(nCurLayer == 0)
+							msg+= "all current debugging?\n";
+						else
+							msg+= "the current debugging layer?\n";
 						runUserTransaction(false);
 						msg= ask(/*YesNo*/true, msg);
 						runUserTransaction(true);
@@ -1414,8 +2125,37 @@ namespace server
 					}
 					if(bRemove)
 					{
-						vNextSubs[nCurLayer].second.second.erase(it);
-						defcommand= "CURDEBUG";
+						if(vLayers[nCurLayer].second.second.size() > 1)
+						{
+							vLayers[nCurLayer].second.second.erase(it);
+							defcommand= "CURDEBUG";
+						}else
+						{
+							layerVecDef::size_type nCount(0);
+
+							for(layerVecDef::iterator it= vLayers.begin();
+											it != vLayers.end(); ++it		)
+							{
+								if(nCurLayer == nCount)
+								{
+									vLayers.erase(it);
+									break;
+								}
+							}
+							if(nCurLayer > 0)
+								--nCurLayer;
+							if(!vLayers.empty())
+							{
+								setCurrentFolder(vLayers[nCurLayer].first);
+								command.clear();
+								command.push_back("current");
+								defcommand= "current";
+							}else
+							{
+								setCurrentFolder("");
+								bSendCommand= false;
+							}
+						}
 					}else
 						bSendCommand= false;
 				}// checkHearCommandCount()
@@ -1435,6 +2175,7 @@ namespace server
 					command[0] == "FIRSTDEBUG" ||
 					command[0] == "last" ||
 					command[0] == "LASTDEBUG"	||
+					command[0] == "up" ||
 					command[0] == "back" ||
 					command[0] == "BACKDEBUG"		)	)
 			{
@@ -1456,19 +2197,36 @@ namespace server
 				}else if(	command[0] == "cur" ||
 							command[0] == "current" ||
 							command[0] == "CURDEBUG" ||
+							command[0] == "up" ||
 							command[0] == "back" ||
 							command[0] == "BACKDEBUG" 	)
 				{
 					if(	command[0] == "back" ||
 						command[0] == "BACKDEBUG"	)
 					{
-						if(nCurLayer == 0)
+						if(nCurLayer > 0)
+						{
+							--nCurLayer;
+							setCurrentFolder(vLayers[nCurLayer].first);
+						}else
 						{
 							cout << " no lower layer from an CURDEBUG before exist" << endl;
 							bErrorWritten= true;
 
+						}
+					}
+					if(command[0] == "up")
+					{
+						if((nCurLayer + 1) < vLayers.size())
+						{
+							++nCurLayer;
+							setCurrentFolder(vLayers[nCurLayer].first);
 						}else
-							--nCurLayer;
+						{
+							cout << " no higher layer from an CURDEBUG before exist" << endl;
+							bErrorWritten= true;
+						}
+
 					}
 					direction= current;
 
@@ -1539,7 +2297,7 @@ namespace server
 									 * search now for subroutine
 									 * which should be changed/unchanged
 									 */
-									if(vNextSubs[nCurLayer].second.second.empty())
+									if(vLayers[nCurLayer].second.second.empty())
 									{
 										if(command.size() == 3)
 										{
@@ -1555,30 +2313,30 @@ namespace server
 											 * but check for changed/unchanged
 											 * this subroutine with '#'
 											 */
-											command[1]= vNextSubs[nCurLayer].first + ":";
+											command[1]= vLayers[nCurLayer].first + ":";
 											command[1]+= command[2];
-											vNextSubs[nCurLayer].second.second.push_back("#" + command[2]);
+											vLayers[nCurLayer].second.second.push_back("#" + command[2]);
 											bFoundSubroutine= true;
 										}
-									}else if(vNextSubs[nCurLayer].second.second.size() == 1)
+									}else if(vLayers[nCurLayer].second.second.size() == 1)
 									{
 										if(	command.size() < 3 ||
-											command[2] == vNextSubs[nCurLayer].second.second[0]	)
+											command[2] == vLayers[nCurLayer].second.second[0]	)
 										{
 											bFoundSubroutine= true;
-											command[1]= vNextSubs[nCurLayer].first + ":";
+											command[1]= vLayers[nCurLayer].first + ":";
 											command[1]+= command[2];
 										}
 									}else
 									{
 										if(command.size() == 3)
 										{
-											subIt= find(vNextSubs[nCurLayer].second.second.begin(),
-															vNextSubs[nCurLayer].second.second.end(), command[2]);
-											if(subIt != vNextSubs[nCurLayer].second.second.end())
+											subIt= find(vLayers[nCurLayer].second.second.begin(),
+															vLayers[nCurLayer].second.second.end(), command[2]);
+											if(subIt != vLayers[nCurLayer].second.second.end())
 											{
 												bFoundSubroutine= true;
-												if(command[2] != vNextSubs[nCurLayer].second.second[0])
+												if(command[2] != vLayers[nCurLayer].second.second[0])
 												{
 													vector<string> newVec;
 													/*
@@ -1590,13 +2348,13 @@ namespace server
 													 * that this first subroutine
 													 * has to check for changed or unchanged
 													 */
-													vNextSubs[nCurLayer].second.second.erase(subIt);
+													vLayers[nCurLayer].second.second.erase(subIt);
 													newVec.push_back(command[2]);
 													newVec.insert(newVec.end(),
-																	vNextSubs[nCurLayer].second.second.begin(),
-																	vNextSubs[nCurLayer].second.second.end()	);
+																	vLayers[nCurLayer].second.second.begin(),
+																	vLayers[nCurLayer].second.second.end()	);
 												}
-												command[1]= vNextSubs[nCurLayer].first + ":";
+												command[1]= vLayers[nCurLayer].first + ":";
 												command[1]+= command[2];
 											}
 										}// if(command.size() == 3)
@@ -1616,8 +2374,8 @@ namespace server
 										}else
 										{
 											cout << " predefined subroutines:" << endl;
-											for(subIt= vNextSubs[nCurLayer].second.second.begin();
-															subIt != vNextSubs[nCurLayer].second.second.end(); ++subIt	)
+											for(subIt= vLayers[nCurLayer].second.second.begin();
+															subIt != vLayers[nCurLayer].second.second.end(); ++subIt	)
 											{
 												cout << "             " << *subIt << endl;
 											}
@@ -1682,7 +2440,8 @@ namespace server
 									{
 										cout << " '" << folder << ":" << subroutine << "'";
 										cout << " do not exist in folder working list of ppi-server" << endl;
-										if(	direction != next_changed &&
+										if(	!vLayers.empty() &&
+											direction != next_changed &&
 											direction != next_unchanged &&
 											direction != previous_changed &&
 											direction != previous_unchanged	)
@@ -1695,15 +2454,15 @@ namespace server
 											 * with '#' before
 											 * this will be not need by error
 											 */
-											vNextSubs[nCurLayer].second.second.clear();
+											vLayers[nCurLayer].second.second.clear();
 										}
 										bErrorWritten= true;
 									}
 								}
 								if(	!bErrorWritten &&
 									(	direction == current ||
-										vNextSubs.empty() || // direction is all
-										vNextSubs[nCurLayer].first == ""	)	)
+										vLayers.empty() || // direction is all
+										vLayers[nCurLayer].first == ""	)	)
 								{
 									/*
 									 * implement new folder[:subroutine]
@@ -1714,24 +2473,22 @@ namespace server
 									vector<string> sub;
 									pair<ppi_time, vector<string> > newSub;
 
+									setCurrentFolder(folder);
 									if(subroutine != "")
 										sub.push_back(subroutine);
-									if(	vNextSubs.size() >= (nCurLayer + 1) &&
-										folder != vNextSubs[nCurLayer].first	)
+									if(vLayers.size() > (nCurLayer + 1))
 									{
 										/*
 										 * define new layer
 										 */
 										++nCurLayer;
-									}
-									if(vNextSubs.size() >= (nCurLayer + 1))
-									{
-										vNextSubs[nCurLayer].first= folder;
-										vNextSubs[nCurLayer].second.second= sub;
+										vLayers[nCurLayer].first= folder;
+										vLayers[nCurLayer].second.first= nullTime;
+										vLayers[nCurLayer].second.second= sub;
 									}else
 									{
 										newSub= pair<ppi_time, vector<string> >(nullTime, sub);
-										vNextSubs.push_back(pair<string, pair<ppi_time, vector<string> > >(folder, newSub));
+										vLayers.push_back(pair<string, pair<ppi_time, vector<string> > >(folder, newSub));
 									}
 								} // i(direction == current && folder == "")
 							}
@@ -1739,8 +2496,8 @@ namespace server
 						}else if(!bErrorWritten) // end of if(command.size() > 1)
 						{
 							if(	direction != all &&
-								(	vNextSubs.empty() ||
-									vNextSubs[nCurLayer].first == ""	)	)
+								(	vLayers.empty() ||
+									vLayers[nCurLayer].first == ""	)	)
 							{
 								cout << " no folder:subroutine defined" << endl;
 								cout << " define first with $> CURDEBUG <folder>[:subroutine]" << endl;
@@ -1762,10 +2519,10 @@ namespace server
 
 							if(direction != all)
 							{
-								folder= vNextSubs[nCurLayer].first;
+								folder= vLayers[nCurLayer].first;
 								if(folderNr == 0)
-									newTime= vNextSubs[nCurLayer].second.first;
-								vShowSubroutines= vNextSubs[nCurLayer].second.second;
+									newTime= vLayers[nCurLayer].second.first;
+								vShowSubroutines= vLayers[nCurLayer].second.second;
 
 							}else
 								vShowSubroutines.push_back(subroutine);
@@ -1775,7 +2532,7 @@ namespace server
 								newTime.isSet()		)
 							{
 								if(direction != all)
-									vNextSubs[nCurLayer].second.first= newTime;
+									vLayers[nCurLayer].second.first= newTime;
 							}
 						}// if(!bErrorWritten)
 					}// checkHearCommandCount()
@@ -1788,7 +2545,7 @@ namespace server
 				if(checkHearCommandCount(command, bErrorWritten))
 				{
 					nCurLayer= 0;
-					vNextSubs.clear();
+					vLayers.clear();
 				}
 			}else if(command[0] == "history")
 			{
@@ -1841,11 +2598,7 @@ namespace server
 						printError(descriptor, result);
 						bErrorWritten= true;
 
-					}else if(result == "done")
-					{
-						bWaitEnd= false;
-					}
-					if(xmlReader.get())
+					}else if(xmlReader.get())
 					{
 						result= xmlReader->readLine(result);
 						if(xmlReader->end())
@@ -1858,10 +2611,18 @@ namespace server
 							xmlReader= auto_ptr<XMLStartEndTagReader>();
 							break;
 						}
-					}else if(	m_o2Client.get() &&
-								!bErrorWritten &&
-								(	command[0] == "HOLDDEBUG" ||
-									command[0] == "hold"			)	)
+					}else
+					{
+						bWaitEnd= false;
+						if(result != "done")
+							cout << result << endl;
+					}
+
+
+					if(	m_o2Client.get() &&
+							!bErrorWritten &&
+							(	command[0] == "HOLDDEBUG" ||
+								command[0] == "hold"			)	)
 					{
 						vector<string> spl;
 
@@ -2736,12 +3497,12 @@ namespace server
 		UNLOCK(m_PROMPTMUTEX);
 	}
 
-	bool ClientTransaction::compareUserPassword(IFileDescriptorPattern& descriptor, string user)
+	bool ClientTransaction::compareUserPassword(IFileDescriptorPattern& descriptor, string& user, string& pwd/*= ""*/)
 	{
 		int c;
 		struct termios term;
 		EHObj errHandle(EHObj(new ErrorHandling));
-		string sSendbuf, pwd, result;
+		string sSendbuf, result;
 
 		term= m_tTermiosBackup;
 		if(user == "")
@@ -2751,25 +3512,31 @@ namespace server
 			getline(std::cin, user);
 			trim(user);
 		}
-		if(!m_bScriptState)
+		if(pwd == "")
 		{
-			term.c_lflag= term.c_lflag & ~ECHO;
-			if(!tcsetattr(TCSAFLUSH, &term))
+			if(!m_bScriptState)
 			{
-				cout << " WARNING: cannot blanking output" << endl;
-				cout << "          so typing of password is readable" << endl;
+				term.c_lflag= term.c_lflag & ~ECHO;
+				if(!tcsetattr(TCSAFLUSH, &term))
+				{
+					cout << " WARNING: cannot blanking output" << endl;
+					cout << "          so typing of password is readable" << endl;
+				}
+				cout << "password: " << flush;
 			}
-			cout << "password: " << flush;
-		}
 
-		do{
-			c= getc(stdin);
-			pwd+= c;
-		}while(c != '\n');
+			do{
+				c= getc(stdin);
+				pwd+= c;
+			}while(c != '\n');
+		}
 		trim(pwd);
-		if(!m_bScriptState)
+		if(	!m_bScriptState &&
+			!m_bHearing			)
+		{
 			cout << endl;
-		resetTc();
+			resetTc();
+		}
 
 		sSendbuf= "U:";
 		sSendbuf+= user;
