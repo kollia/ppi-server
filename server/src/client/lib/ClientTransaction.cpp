@@ -48,6 +48,7 @@ namespace server
 	ClientTransaction::ClientTransaction(vector<string> options, string command)
 	: /*m_mOwDevices(),*/ m_mOwMaxTime(), m_mOwMaxCount()
 	{
+		m_bConnected= false;
 		m_bErrWritten= false;
 		m_bWait= false;
 		m_bShowENum= false;
@@ -3450,7 +3451,10 @@ namespace server
 			resetTc();
 		}
 
-		sSendbuf= "U:";
+		if(!m_bConnected)
+			sSendbuf= "U:";
+		else
+			sSendbuf= "CHANGE ";
 		sSendbuf+= user;
 		sSendbuf+= ":";
 		sSendbuf+= pwd;
@@ -3491,6 +3495,7 @@ namespace server
 				return false;
 			}
 		}
+		m_bConnected= true;
 		return true;
 	}
 

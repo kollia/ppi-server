@@ -248,6 +248,11 @@ namespace server
 			typedef vector<parameter_type> parameter_types;
 
 			/**
+			 * whether client is connected
+			 * with server
+			 */
+			bool m_bConnected;
+			/**
 			 * whether was reading
 			 * of terminal interface correct
 			 */
