@@ -448,10 +448,32 @@ namespace server
 	void ClientTransaction::createTabResult(string& result, string::size_type& nPos, short& count)
 	{
 		bool bFound(false);
+		/**
+		 * whether allowed to write
+		 * an various parameter string
+		 * or number
+		 */
 		bool bNStr(false);
+		/**
+		 * whether should be folder names
+		 * inside searching result
+		 */
 		bool bNFolder(false);
+		/**
+		 * whether should be subroutine names
+		 * inside searching result
+		 */
 		bool bNSubs(false);
+		/**
+		 * whether should be folder with
+		 * subroutines inside searching
+		 * result
+		 */
 		bool bNFolderSubs(false);
+		/**
+		 * whether an normal parameter found
+		 */
+		bool bFoundParameter(false);
 		parameter_types* pCurParamVec;
 		string folder, subroutine;
 		string sCurStr, resBefore, resBehind;
@@ -564,9 +586,9 @@ namespace server
 						searchVec.push_back((*it)->param);
 						if(nMaxLen < (*it)->param.length())
 							nMaxLen= (*it)->param.length();
-						bFound= true;
+						bFoundParameter= true;
 
-					}else if(bFound)
+					}else if(bFoundParameter)
 						break;
 				}else
 				{
@@ -660,7 +682,7 @@ namespace server
 					{
 						writeLastPromptLine(/*lock*/true, nPos, result, /*end*/true);
 						prompt("\n   no current folder for searching subroutine be defined\n"
-										"   please define first with CURDEBUG\n$> "			);
+										"   please define first with current <folder>[:subroutine]\n$> "			);
 						writeLastPromptLine(/*lock*/true, nPos, result);
 						return;
 					}
@@ -796,7 +818,8 @@ namespace server
 			result= resBefore.substr(0, resBefore.length() - nLen);
 			result+= folder;
 			if(	bNFolderSubs &&
-				!bFolderSubComplete	)
+				!bFolderSubComplete	&&
+				!bFoundParameter		)
 			{
 				/*
 				 * if searching for folders
@@ -804,6 +827,10 @@ namespace server
 				 * add automatically an colon
 				 * to show that now will be searching
 				 * for subroutines
+				 * but do this only when not also
+				 * single folder names allowed
+				 * or founded result is an
+				 * predefined parameter
 				 */
 				if(bNFolder)
 				{
@@ -820,7 +847,14 @@ namespace server
 						prompt(out);
 					}
 				}else
+				{
+					vector<string> res;
+
 					result+= ":";
+					res= getUsableSubroutines(folder, "");
+					if(res.size() == 1)
+						result+= res[0] + " ";
+				}
 
 			}else
 				result+= " ";
@@ -1982,7 +2016,7 @@ namespace server
 						vLayers[nCurLayer].first == ""	)
 					{
 						cout << " no folder:subroutine defined" << endl;
-						cout << " define first with $> CURDEBUG <folder>[:subroutine]" << endl;
+						cout << " define first with $> current <folder>[:subroutine]" << endl;
 						bErrorWritten= true;
 
 					}else if(!existOnServer(descriptor, vLayers[nCurLayer].first, command[1]))
@@ -2128,7 +2162,7 @@ namespace server
 							setCurrentFolder(vLayers[nCurLayer].first);
 						}else
 						{
-							cout << " no lower layer from an CURDEBUG before exist" << endl;
+							cout << " no lower layer from command 'current' before exist" << endl;
 							bErrorWritten= true;
 
 						}
@@ -2141,7 +2175,7 @@ namespace server
 							setCurrentFolder(vLayers[nCurLayer].first);
 						}else
 						{
-							cout << " no higher layer from an CURDEBUG before exist" << endl;
+							cout << " no higher layer from command 'current' before exist" << endl;
 							bErrorWritten= true;
 						}
 
@@ -2415,7 +2449,7 @@ namespace server
 									vLayers[nCurLayer].first == ""	)	)
 							{
 								cout << " no folder:subroutine defined" << endl;
-								cout << " define first with $> CURDEBUG <folder>[:subroutine]" << endl;
+								cout << " define first with $> current <folder>[:subroutine]" << endl;
 								bErrorWritten= true;
 							}
 						} // end of else from secWord != ""
@@ -2694,7 +2728,7 @@ namespace server
 				cout << "                -   show debug session output of working list" << endl;
 				cout << "                    which was set before with HOLDDEBUG into holding state" << endl;
 				cout << "                    to save in background" << endl;
-				cout << "                    when before no 'CURDEBUG' defined, or removed," << endl;
+				cout << "                    when before no 'current' defined, or removed," << endl;
 				cout << "                    and an folder and or subroutine given by command" << endl;
 				cout << "                    this will be defined inside current layer" << endl;
 				cout << "                    (command only be allowed when ppi-client started with hearing thread option --hear)" << endl;
@@ -2702,27 +2736,23 @@ namespace server
 				cout << "               -    show always only folder or folder:subroutine of debug session" << endl;
 				cout << "                    running by one pass" << endl;
 				cout << "                    by first calling it will take the first pass of folder given name which found" << endl;
-				cout << "                    CURDEBUG show always the folder by same pass" << endl;
+				cout << "                    the command 'current' show always the folder by same pass" << endl;
 				cout << "                    with below commands you can navigate thru the others" << endl;
-				cout << "                    by typing again you can leaf the info of folder:subroutine" << endl;
-				cout << "                    because the system remember the last entry" << endl;
-				cout << "                    when typing command again with info of folder and or subroutine," << endl;
-				cout << "                    when the folder is the same, all subroutines defined with ADDDEBUG (see below)" << endl;
-				cout << "                    will be removed and the new one will be shown." << endl;
-				cout << "                    Otherwise, by an new folder, it will be created an new layer" << endl;
+				cout << "                    when typing command again with other info of folder and or subroutine," << endl;
+				cout << "                    it will be created an new layer" << endl;
 				cout << "                    with the new folder and or subroutine," << endl;
-				cout << "                    in which you can go back with 'BACKDEBUG' in a later time." << endl;
-				cout << "                    In this case, when an other folder was taken, the client" << endl;
-				cout << "                    try to show the new folder from same time," << endl;
+				cout << "                    in which you can go back with command 'back' in a later time." << endl;
+				cout << "                    In this case, when create an new layer, the client" << endl;
+				cout << "                    try to show the new folder:subroutine from same time," << endl;
 				cout << "                    or one step before." << endl;
 				cout << "    add <subroutine>" << endl;
-				cout << "                -   add subroutine to current folder defined with 'CURDEBUG'" << endl;
+				cout << "                -   add subroutine to current folder defined with 'current'" << endl;
 				cout << "                    which is defined for listing" << endl;
 				cout << "    rm <subroutine>" << endl;
 				cout << "    remove <subroutine>" << endl;
-				cout << "                -   remove the subroutine from current folder defined inside 'CURDEBUG'" << endl;
+				cout << "                -   remove the subroutine from current folder defined inside 'current'" << endl;
 				cout << "                    which is defined for listing" << endl;
-				cout << "    next        -   show also only one subroutine like 'CURDEBUG'" << endl;
+				cout << "    next        -   show also only one subroutine like 'current'" << endl;
 				cout << "                    but always the next one" << endl;
 				cout << "                    after command can also be typed the folder pass" << endl;
 				cout << "                    which want to be shown" << endl;
@@ -2730,8 +2760,10 @@ namespace server
 				cout << "                    but show the subroutine before" << endl;
 				cout << "                    after command can also be typed the folder pass" << endl;
 				cout << "                    which want to be shown" << endl;
-				cout << "    back        -   go from an new defined layer with 'CURDEBUG'" << endl;
+				cout << "    back        -   go from an new defined layer with 'current'" << endl;
 				cout << "                    back to the last layer with the last time" << endl;
+				cout << "    up          -   go from the current layer up to the next" << endl;
+				cout << "                    which before leafe with 'back'" << endl;
 				cout << "    STOPDEBUG [-ow] <folder[:subroutine]/owreaderID>" << endl;
 				cout << "                -   stop debugging session for folder:subroutine" << endl;
 				cout << "                    and or saving into background" << endl;
