@@ -3418,7 +3418,6 @@ namespace server
 		}
 		LOCK(m_DEBUGSESSIONCHANGES);
 		m_mmDebugSession.clear();
-		m_bHoldAll= false;
 		UNLOCK(m_DEBUGSESSIONCHANGES);
 	}
 
