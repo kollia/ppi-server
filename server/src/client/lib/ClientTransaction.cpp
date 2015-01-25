@@ -2088,7 +2088,7 @@ namespace server
 
 						}else
 						{
-							cout(" subroutine '" + command[1] + "' was added before");
+							cout(" subroutine '" + command[1] + "' was added before\n");
 							bErrorWritten= true;
 						}
 					}
@@ -2225,7 +2225,7 @@ namespace server
 							setCurrentFolder(vLayers[nCurLayer].first);
 						}else
 						{
-							cout(" no higher layer from command 'current' before exist");
+							cout(" no higher layer from command 'current' before exist\n");
 							bErrorWritten= true;
 						}
 
@@ -2526,7 +2526,7 @@ namespace server
 						{
 							cout(string(" '") + folder + ":" + subroutine + "'"
 									" exist inside ppi-server, but is not defined for holding\n"
-									" type first $> hold " + folder + ":" + subroutine			);
+									" type first $> hold " + folder + ":" + subroutine + "\n"	);
 							bErrorWritten= true;
 						}
 						if(!bErrorWritten)
@@ -3987,14 +3987,15 @@ namespace server
 				m_sLastPromptLine= "";
 			}
 		}
+		if( str != "" &&
+			m_sAddPromptString != ""	)
+		{
+			m_sPrompt= m_sAddPromptString + m_sPrompt;
+			m_sAddPromptString= "";
+		}
 		if(	!m_bRunHearTran &&
 			!m_bRunUserTrans	)
 		{
-			if(m_sAddPromptString != "")
-			{
-				m_sPrompt= m_sAddPromptString + m_sPrompt;
-				m_sAddPromptString= "";
-			}
 			if(m_sPrompt != "")
 				std::cout << m_sPrompt;
 			writeLastPromptLine(/*lock*/false);
