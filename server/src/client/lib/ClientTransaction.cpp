@@ -2472,7 +2472,7 @@ namespace server
 									 * into current output queue when folder was same
 									 * otherwise make an new layer
 									 */
-									ppi_time nullTime;
+									ppi_time startTime;
 									vector<string> sub;
 									pair<ppi_time, vector<string> > newSub;
 
@@ -2482,15 +2482,29 @@ namespace server
 									if(vLayers.size() > (nCurLayer + 1))
 									{
 										/*
-										 * define new layer
+										 * write new folder:subroutine
+										 * into next higher layer
 										 */
+										startTime= vLayers[nCurLayer].second.first;
 										++nCurLayer;
 										vLayers[nCurLayer].first= folder;
-										vLayers[nCurLayer].second.first= nullTime;
+										vLayers[nCurLayer].second.first= startTime;
 										vLayers[nCurLayer].second.second= sub;
 									}else
 									{
-										newSub= pair<ppi_time, vector<string> >(nullTime, sub);
+										/*
+										 * define new layer
+										 */
+										if(!vLayers.empty())
+										{
+											startTime= vLayers[nCurLayer].second.first;
+											++nCurLayer;
+											/*
+											 * otherwise starting time stay by null
+											 * to show the first folder entry
+											 */
+										}
+										newSub= pair<ppi_time, vector<string> >(startTime, sub);
 										vLayers.push_back(pair<string, pair<ppi_time, vector<string> > >(folder, newSub));
 									}
 								} // i(direction == current && folder == "")
