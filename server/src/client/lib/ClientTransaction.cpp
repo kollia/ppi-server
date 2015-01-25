@@ -641,6 +641,23 @@ namespace server
 					subroutine= spl[1];
 					vFolderSubs= getUsableFolders(folder);
 					nSize= vFolderSubs.size();
+					if(nSize > 1)
+					{
+						/*
+						 * more than one folder be found
+						 * search whether one folder in queue
+						 * is same than given
+						 */
+						for(vector<string>::iterator it= vFolderSubs.begin();
+										it != vFolderSubs.end(); ++it		)
+						{
+							if(*it == folder)
+							{
+								nSize= 1;
+								break;
+							}
+						}
+					}
 					if(	nSize == 0 ||
 						nSize > 1		)
 					{
@@ -1993,7 +2010,7 @@ namespace server
 							std::cout << "   " << it->second << "  " << it->first << endl;
 						}
 					}else
-						std::cout << " no folders running since starting or last CLEARDEBUG" << endl;
+						std::cout << " no folders running since starting or last 'clear'" << endl;
 				}//checkHearCommandCount
 
 			}else if(	command[0] == "DIR" ||
