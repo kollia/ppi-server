@@ -2561,6 +2561,7 @@ namespace server
 				if(checkHearCommandCount(command, bErrorWritten))
 				{
 					nCurLayer= 0;
+					clearDebugSessionContent();
 					vLayers.clear();
 				}
 			}else if(command[0] == "history")
