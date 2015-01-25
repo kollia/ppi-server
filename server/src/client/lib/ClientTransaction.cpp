@@ -1593,7 +1593,7 @@ namespace server
 	{
 		if(m_o2Client.get())
 		{
-			m_o2Client->transObj()->setHistory(command);
+			m_o2Client->transObj()->setHistory(command, pos);
 			return;
 		}
 		if(	pos >= 1000 &&
