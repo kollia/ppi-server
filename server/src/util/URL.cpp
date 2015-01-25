@@ -264,12 +264,10 @@ namespace util {
 				//printf ("%s\n", dirName->d_name);
 				file= dirName->d_name;
 				fileLen= file.length();
-				if(	file.substr(0, beginfilterLen) == beginfilter
-					&&
+				if(	file.substr(0, beginfilterLen) == beginfilter &&
 					(	fileLen == beginfilterLen
 						||
-						(	//fileLen == (beginfilterLen + 14 + endfilterLen)
-							//&&
+						(	fileLen >= endfilterLen &&
 							file.substr(fileLen - endfilterLen) == endfilter	)	)	)
 				{
 					string date(file.substr(beginfilterLen, 14));
