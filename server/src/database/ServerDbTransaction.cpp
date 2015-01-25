@@ -326,6 +326,8 @@ namespace server
 			 * DbInterface::fillDebugSession
 			 * ServerDbTransaction::transfer by method == "fillDebugSession"
 			 * ClientTransaction::hearingTransfer
+			 * ClientTransaction::saveFile
+			 * ClientTransaction::loadFile
 			 */
 			object >> content.folder;
 			object >> content.subroutine;

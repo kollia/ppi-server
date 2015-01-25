@@ -25,6 +25,8 @@
 #include <vector>
 #include <set>
 #include <deque>
+#include <iostream>
+#include <fstream>
 
 #include "IHearingThreadPattern.h"
 
@@ -99,6 +101,12 @@ namespace server
 			OVERWRITE void writeLastPromptLine(bool lock,
 							string::size_type cursor= string::npos, const string& str= "", bool end= false);
 			/**
+			 * print string by next call of method <code>prompt()</code> or <code>ask()</code>
+			 *
+			 * @param str string which should be printed
+			 */
+			OVERWRITE void cout(const string& str);
+			/**
 			 * set history of written command
 			 *
 			 * @param command current command
@@ -155,8 +163,9 @@ namespace server
 			 *
 			 * @param folder name of folder
 			 * @param subroutine name of subroutine
+			 * @return whether after clearing all holding of debug session queue is empty
 			 */
-			OVERWRITE void clearHoldingFolder(const string& folder, const string& subroutine);
+			OVERWRITE bool clearHoldingFolder(const string& folder, const string& subroutine);
 			/**
 			 * clear all content of debug session
 			 */
@@ -169,13 +178,12 @@ namespace server
 			OVERWRITE string getFolderID(const string& folder);
 			/**
 			 * count from getting debug session info
-			 * how often all folders are running.<br />
-			 * WARNING: method is not thread-safe
-			 * has to lock m_DEBUGSESSIONCHANGES outside
+			 * how often all folders are running.
 			 *
+			 * @param locked whether DEBUGSESSIONCHANGES locked before
 			 * @return map of count for all folders
 			 */
-			OVERWRITE map<string, unsigned long> getRunningFolderList();
+			OVERWRITE map<string, unsigned long> getRunningFolderList(bool locked);
 			/**
 			 * complete given result with an new tabulator string
 			 * and giving result in same parameter back
@@ -217,6 +225,33 @@ namespace server
 			OVERWRITE IPPITimePattern* writeDebugSession(const string& folder, vector<string>& subroutines,
 													const direction_e& show, const IPPITimePattern* curTime,
 													const unsigned long nr= 0);
+			/**
+			 * check whether getting debug session queue from server
+			 * is empty
+			 *
+			 * @return whether queue is empty
+			 */
+			OVERWRITE bool emptyDbgQueue() const;
+			/**
+			 * save current or follow debug session queue with ending <code>.dbgsession</code>
+			 * into file on current file system where client started
+			 *
+			 * @param file name of file where should stored
+			 * @return whether saving was correct done
+			 */
+			OVERWRITE bool saveFile(const string& file);
+			/**
+			 * close opened file to store debug session content
+			 */
+			OVERWRITE void closeFile();
+			/**
+			 * load before saved debug session from file system
+			 * where client was started
+			 *
+			 * @param file name of file which should loaded
+			 * @return whether loading was correct done
+			 */
+			OVERWRITE bool loadFile(const string& file);
 			/**
 			 * destructor of server transaction
 			 */
@@ -278,6 +313,11 @@ namespace server
 			 * locked by PROMPTMUTEX
 			 */
 			string m_sPrompt;
+			/**
+			 * additional output string
+			 * before prompt
+			 */
+			string m_sAddPromptString;
 			/**
 			 * last line of prompt to display
 			 * locked by PROMPTMUTEX
@@ -412,6 +452,11 @@ namespace server
 			 * getting as debug session from server
 			 */
 			map<string, set<string> > m_mFolderSubs;
+			/**
+			 * file to store debug session content
+			 * getting from server
+			 */
+			ofstream m_oStoreFile;
 			/**
 			 * mutex to write clear hold variables
 			 */
@@ -623,6 +668,15 @@ namespace server
 			 * @param command string of command with parameters
 			 */
 			void command(string command);
+			/**
+			 * send command to server
+			 *
+			 * @param descriptor open file descriptor to server
+			 * @param command string of command sending
+			 * @param bWaitEnd whether answer of server is for more rows and ending with done
+			 * @return whether an error occurred
+			 */
+			bool send(IFileDescriptorPattern& descriptor, const string& command, bool bWaitEnd);
 	};
 
 }

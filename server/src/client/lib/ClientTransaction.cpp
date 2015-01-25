@@ -28,9 +28,11 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include "../../util/debug.h"
 #include "../../util/XMLStartEndTagReader.h"
 #include "../../util/GlobalStaticMethods.h"
 #include "../../util/structures.h"
+#include "../../util/URL.h"
 #include "../../util/exception.h"
 
 #include "../../util/stream/ErrorHandling.h"
@@ -170,7 +172,7 @@ namespace server
 	while(x < 3)
 	{
 #ifdef SERVERDEBUG
-	cout << "send: " << sSendbuf;
+	std::cout << "send: " << sSendbuf;
 #endif // SERVERDEBUG
 		descriptor << sSendbuf;
 		descriptor.flush();
@@ -178,7 +180,7 @@ namespace server
 		descriptor >> result;
 		result= ConfigPropertyCasher::trim(result);
 #ifdef SERVERDEBUG
-	cout << "get: " << result << endl;
+	std::cout << "get: " << result << endl;
 #endif // SERVERDEBUG
 
 		if(	result.length() < 18
@@ -206,10 +208,10 @@ namespace server
 					if(m_bHearing)
 					{
 						runHearingTransaction(true);
-						cout << "\n make second ";
+						std::cout << "\n make second ";
 					}else
-						cout << "make ";
-					cout << "connect to server with ID " << sCommID << endl;
+						std::cout << "make ";
+					std::cout << "connect to server with ID " << sCommID << endl;
 					if(m_bHearing)
 					{
 						runHearingTransaction(false);
@@ -224,7 +226,7 @@ namespace server
 			&&
 			result == ""	)
 		{
-			cout << "ERROR: get no result from server\ntry again later" << endl;
+			std::cout << "ERROR: get no result from server\ntry again later" << endl;
 			++x;
 			sleep(1);
 		}else
@@ -262,7 +264,7 @@ namespace server
 			if(errHandle->hasError())
 				cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
 			else
-				cout << glob::addPrefix("WARNING: ", errHandle->getDescription()) << endl;
+				std::cout << glob::addPrefix("WARNING: ", errHandle->getDescription()) << endl;
 			m_bErrWritten= true;
 			return errHandle;
 		}
@@ -274,7 +276,7 @@ namespace server
 
 			t= time(NULL);
 			strftime(stime, sizeof(stime), "%H:%M:%S %d.%m.%Y", localtime(&t));
-			cout << endl << "actual time " << stime << endl;
+			std::cout << endl << "actual time " << stime << endl;
 			bLogin= false;
 		}
 		if(	m_bWait ||
@@ -471,6 +473,12 @@ namespace server
 		 */
 		bool bNFolderSubs(false);
 		/**
+		 * whether should be file names
+		 * from current directory
+		 * inside searching result
+		 */
+		bool bNFiles(false);
+		/**
 		 * whether an normal parameter found
 		 */
 		bool bFoundParameter(false);
@@ -482,7 +490,7 @@ namespace server
 		vector<string>::size_type nCommandCount;
 		map<string, parameter_types >::iterator foundCommand;
 
-		if(nPos == result.length())
+		if(nPos >= result.length())
 			resBefore= result;
 		else if(nPos == 0)
 			resBehind= result;
@@ -600,13 +608,16 @@ namespace server
 						bNSubs= true;
 					else if((*it)->param == "#folderSub")
 						bNFolderSubs= true;
+					else if((*it)->param == "#file")
+						bNFiles= true;
 				}
 			}
 			if(	bNStr &&
 				searchVec.empty() &&
 				!bNFolder &&
 				!bNSubs &&
-				!bNFolderSubs		)
+				!bNFolderSubs &&
+				!bNFiles			)
 			{
 				/*
 				 * search only for an variable string
@@ -690,6 +701,27 @@ namespace server
 				vFolderSubs= getUsableSubroutines(folder, subroutine);
 				searchVec.insert(searchVec.end(), vFolderSubs.begin(), vFolderSubs.end());
 			}
+			if(bNFiles)
+			{
+				const string extension(".dbgsession");
+				const string::size_type extLen(extension.length());
+				string::size_type fileLen;
+				map<string, string> dir;
+
+				dir= URL::readDirectory("./", sCurStr, extension);
+				for(map<string, string>::iterator it= dir.begin();
+								it != dir.end(); ++it				)
+				{
+					fileLen= it->second.length();
+					if(	fileLen > extLen &&
+						it->second.substr(fileLen - extLen) == extension	)
+					{
+						searchVec.push_back(it->second.substr(0, fileLen - extLen));
+						if((fileLen - extLen) > nMaxLen)
+							nMaxLen= fileLen - extLen;
+					}
+				}
+			}
 			if(	bNFolder ||
 				bNSubs ||
 				bNFolderSubs	)
@@ -722,7 +754,7 @@ namespace server
 				    	columns= (string::size_type)w.ws_col;
 				    }else
 				    {
-				    	cout << endl << strerror(errno) << endl;
+				    	std::cout << endl << strerror(errno) << endl;
 				    	columns= 0;
 				    }
 				}
@@ -1001,6 +1033,8 @@ namespace server
 						 * DbInterface::fillDebugSession
 						 * ServerDbTransaction::transfer by method == "fillDebugSession"
 						 * ClientTransaction::hearingTransfer
+						 * ClientTransaction::saveFile
+						 * ClientTransaction::loadFile
 						 */
 						input >> folder;
 						input >> subroutine;
@@ -1008,6 +1042,8 @@ namespace server
 						input >> time;
 						input >> content;
 						LOCK(m_DEBUGSESSIONCHANGES);
+						if(m_oStoreFile.is_open())
+							m_oStoreFile << result << endl;
 						if(	subroutine.length() > 1 &&
 							subroutine.substr(0, 1) != "#"	)
 						{
@@ -1045,6 +1081,7 @@ namespace server
 								subCont.subroutine= subroutine;
 								subCont.value= value;
 								subCont.content= content;
+								subCont.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(time));
 								m_mmDebugSession[time].push_back(subCont);
 								bWrite= false;
 							}
@@ -1056,9 +1093,9 @@ namespace server
 							{
 								runHearingTransaction(true);
 								bFirstOutput= false;
-								cout << endl;
+								std::cout << endl;
 							}
-							cout << glob::addPrefix(id, content);
+							std::cout << glob::addPrefix(id, content);
 						}
 						UNLOCK(m_DEBUGSESSIONCHANGES);
 					}
@@ -1081,19 +1118,19 @@ namespace server
 				runHearingTransaction(true);
 				if(gettimeofday(&time, NULL))
 				{
-					cout << "XX:XX:xx (cannot calculate time)" << endl;
+					std::cout << "XX:XX:xx (cannot calculate time)" << endl;
 				}else
 				{
 					if(localtime_r(&time.tv_sec, &ttime) != NULL)
 					{
 						strftime(stime, 21, "%H:%M:%S", &ttime);
-						cout << stime << endl;
+						std::cout << stime << endl;
 					}else
-						cout << "XX:XX:xx (cannot calculate time)" << endl;
+						std::cout << "XX:XX:xx (cannot calculate time)" << endl;
 				}
-				cout << "Nr.| CALL | last call        |    value     |  every   | need time | length time "
+				std::cout << "Nr.| CALL | last call        |    value     |  every   | need time | length time "
 					"| act. | chip ID / pin" << endl;
-				cout << "---------------------------------------------------------------------------------"
+				std::cout << "---------------------------------------------------------------------------------"
 					"------------------------------" << endl;
 				bHeader= false;
 			}
@@ -1106,7 +1143,7 @@ namespace server
 						string device;
 						istringstream devString(result);
 
-						//cout << endl << result;
+						//std::cout << endl << result;
 						devString >> tdebug.id;
 						devString >> tdebug.btime;
 						devString >> tdebug.act_tm.tv_sec;
@@ -1137,94 +1174,94 @@ namespace server
 						nmsec= tdebug.utime / 1000 - (nsec * 1000);
 						nusec= tdebug.utime - (nmsec * 1000) - (nsec * 1000000);
 
-						cout.fill('0');
-						cout.width(3);
-						cout << dec << tdebug.id << " ";
-						cout.fill(' ');
-						cout.width(5);
-						cout << tdebug.count << "   ";
+						std::cout.fill('0');
+						std::cout.width(3);
+						std::cout << dec << tdebug.id << " ";
+						std::cout.fill(' ');
+						std::cout.width(5);
+						std::cout << tdebug.count << "   ";
 						if(tdebug.btime)
 						{
 							long msec, usec;
 
 							strftime(buf, sizeof(buf), "%H:%M:%S", localtime(&tdebug.act_tm.tv_sec));
-							cout << buf << " ";
+							std::cout << buf << " ";
 							msec= tdebug.act_tm.tv_usec / 1000;
 							usec= tdebug.act_tm.tv_usec - (msec * 1000);
-							cout.fill('0');
-							cout.width(3);
-							cout << dec << msec << " ";
-							cout.width(3);
-							cout << dec << usec << "   ";
+							std::cout.fill('0');
+							std::cout.width(3);
+							std::cout << dec << msec << " ";
+							std::cout.width(3);
+							std::cout << dec << usec << "   ";
 
 						}else
-							cout << "-------- --- ---   ";
+							std::cout << "-------- --- ---   ";
 						if(tdebug.read)
 							sDo= "read ";
 						else
 							sDo= "write";
-						cout.setf(ios_base::fixed);
-						cout.fill(' ');
+						std::cout.setf(ios_base::fixed);
+						std::cout.fill(' ');
 						if(tdebug.ok)
 						{
-							cout.precision(6);
-							cout.width(12);
-							cout << dec << tdebug.value << "   ";
+							std::cout.precision(6);
+							std::cout.width(12);
+							std::cout << dec << tdebug.value << "   ";
 						}else
-							cout << "cannot " << sDo << "   ";
+							std::cout << "cannot " << sDo << "   ";
 						if(tdebug.read)
 						{
-							cout.precision(4);
-							cout.width(8);
-							cout << dec << tdebug.cache << "   ";
+							std::cout.precision(4);
+							std::cout.width(8);
+							std::cout << dec << tdebug.cache << "   ";
 						}else
 						{
-							cout.width(4);
-							cout << dec << tdebug.priority << "       ";
+							std::cout.width(4);
+							std::cout << dec << tdebug.priority << "       ";
 						}
 						if(tdebug.btime)
 						{
-							cout.fill('0');
-							cout.width(2);
-							cout << dec << nsec << " ";
-							cout.width(3);
-							cout << dec << nmsec << " ";
-							cout.width(3);
-							cout << dec << nusec << "   ";
+							std::cout.fill('0');
+							std::cout.width(2);
+							std::cout << dec << nsec << " ";
+							std::cout.width(3);
+							std::cout << dec << nmsec << " ";
+							std::cout.width(3);
+							std::cout << dec << nusec << "   ";
 
 						}else
-							cout << "-- --- ---   ";
+							std::cout << "-- --- ---   ";
 						// measure max time
 						nsec= m_mOwMaxTime[tdebug.id] / 1000000;
 						nmsec= m_mOwMaxTime[tdebug.id] / 1000 - (nsec * 1000);
 						nusec= m_mOwMaxTime[tdebug.id] - (nmsec * 1000) - (nsec * 1000000);
-						cout.fill('0');
-						cout.width(2);
-						cout << dec << nsec << " ";
-						cout.width(3);
-						cout << dec << nmsec << " ";
-						cout.width(3);
-						cout << dec << nusec << "   ";
+						std::cout.fill('0');
+						std::cout.width(2);
+						std::cout << dec << nsec << " ";
+						std::cout.width(3);
+						std::cout << dec << nmsec << " ";
+						std::cout.width(3);
+						std::cout << dec << nusec << "   ";
 
-						cout << sDo << " '" << tdebug.device << "'" << endl;
+						std::cout << sDo << " '" << tdebug.device << "'" << endl;
 					}else
 					{
-						cout << endl;
+						std::cout << endl;
 						bHeader= true;
 						prompt();
 					}
 				}else
-					cout << result << endl;
+					std::cout << result << endl;
 			}
 #ifdef SERVERDEBUG
 			else
-				cout << "### server has stop hearing thread" << endl;
+				std::cout << "### server has stop hearing thread" << endl;
 #endif // SERVERDEBUG
 		}while(	!descriptor.eof()
 				&&
 				result != "stopclient"	);
 		if(descriptor.eof())
-			cout << "### by heareing on server for OWServer debug messages -> connection is broken" << endl;
+			std::cout << "### by heareing on server for OWServer debug messages -> connection is broken" << endl;
 		return false;
 	}
 
@@ -1242,6 +1279,7 @@ namespace server
 
 		if(yesno)
 			promptStr+= " (Y/N) ";
+		runUserTransaction(false);
 		prompt(promptStr);
 		if(!m_bCorrectTC)
 		{
@@ -1276,6 +1314,7 @@ namespace server
 				}
 				++count;
 			}// while(result == "")
+			runUserTransaction(true);
 			return result;
 		}
 		result= "";
@@ -1290,11 +1329,11 @@ namespace server
 					 */
 					yesno					)	)
 		{
-			//cout << "- typed (" << charNr << ") " << (char)charNr << endl;
+			//std::cout << "- typed (" << charNr << ") " << (char)charNr << endl;
 			if(	!bSpecial &&
 				charNr == 9	)
 			{
-				//cout << "pecial character TAB" << endl;
+				//std::cout << "pecial character TAB" << endl;
 				createTabResult(result, nPos, nTabCount);
 				continue;
 
@@ -1314,7 +1353,7 @@ namespace server
 			}else if(	!bSpecial &&
 						charNr == 127	)
 			{
-				//cout << "special character BACK deletion" << endl;
+				//std::cout << "special character BACK deletion" << endl;
 				if(nPos > 0)
 				{
 					string out;
@@ -1334,7 +1373,7 @@ namespace server
 				{
 					if(sSpecial == "[A")
 					{
-						//cout << "special character UP" << endl;
+						//std::cout << "special character UP" << endl;
 						if(!yesno)
 						{
 							if(nHistoryPos == 0)
@@ -1352,7 +1391,7 @@ namespace server
 
 					}else if(sSpecial == "[B")
 					{
-						//cout << "special character DOWN" << endl;
+						//std::cout << "special character DOWN" << endl;
 						if(!yesno)
 						{
 							if(nHistoryPos == 0)
@@ -1374,14 +1413,14 @@ namespace server
 
 					}else if(sSpecial == "[C")
 					{
-						//cout << "special character RIGHT" << endl;
+						//std::cout << "special character RIGHT" << endl;
 						if(nPos < result.length())
 							++nPos;
 						bSpecial= false;
 
 					}else if(sSpecial == "[D")
 					{
-						//cout << "special character LEFT" << endl;
+						//std::cout << "special character LEFT" << endl;
 						if(!yesno)
 						{
 							if(nPos > 0)
@@ -1391,13 +1430,13 @@ namespace server
 
 					}else if(sSpecial == "[H")
 					{
-						//cout << "special character Pos1" << endl;
+						//std::cout << "special character Pos1" << endl;
 						nPos= 0;
 						bSpecial= false;
 
 					}else if(sSpecial == "[F")
 					{
-						//cout << "special character End" << endl;
+						//std::cout << "special character End" << endl;
 						nPos= result.length();
 						bSpecial= false;
 
@@ -1405,12 +1444,12 @@ namespace server
 					{
 						if(sSpecial == "[2~")
 						{
-							//cout << "special character Insert" << endl;
+							//std::cout << "special character Insert" << endl;
 							bSpecial= false;
 
 						}else if(sSpecial == "[3~")
 						{
-							//cout << "special character Del" << endl;
+							//std::cout << "special character Del" << endl;
 							if(!yesno)
 							{
 								if(nPos < result.length())
@@ -1427,12 +1466,12 @@ namespace server
 
 						}else if(sSpecial == "[5~")
 						{
-							//cout << "special character screen UP" << endl;
+							//std::cout << "special character screen UP" << endl;
 							bSpecial= false;
 
 						}else if(sSpecial == "[6~")
 						{
-							//cout << "special character screen DOWN" << endl;
+							//std::cout << "special character screen DOWN" << endl;
 							bSpecial= false;
 
 						}else
@@ -1490,7 +1529,8 @@ namespace server
 				writeLastPromptLine(/*lock*/true, nPos, result);
 		}// end of getch()
 		writeLastPromptLine(/*lock*/true, nPos, result, /*end*/true);
-		//cout << "end of ask '" << result << "'" << endl;
+		//std::cout << "end of ask '" << result << "'" << endl;
+		runUserTransaction(true);
 		return result;
 	}
 
@@ -1580,7 +1620,7 @@ namespace server
 			count > m_vHistory.size() + 1000 -1	)
 		{
 			count= m_vHistory.size() + 1000;
-			//cout << "set count to " << count << endl;
+			//std::cout << "set count to " << count << endl;
 
 		}else if(count < 1000 )
 			count= 1000;
@@ -1654,16 +1694,16 @@ namespace server
 			for(vector<string>::iterator it= m_vHistory.begin();
 							it != m_vHistory.end(); ++it)
 			{
-				cout << n;
+				std::cout << n;
 				if(find(m_vChangedHistory.begin(), m_vChangedHistory.end(), n) != m_vChangedHistory.end())
-					cout << "*";
+					std::cout << "*";
 				else
-					cout << " ";
-				cout << " " << *it << endl;
+					std::cout << " ";
+				std::cout << " " << *it << endl;
 				++n;
 			}
 		}else
-			cout << " no history exist" << endl;
+			std::cout << " no history exist" << endl;
 	}
 
 	bool ClientTransaction::checkCommandCount(vector<string> commands,
@@ -1671,6 +1711,7 @@ namespace server
 	{
 		bool bRv(true);
 		unsigned short n;
+		ostringstream out;
 		vector<string>::size_type nMaxParams(0), nMinParams(0);
 		vector<string>::size_type nCommandCount(commands.size());
 
@@ -1696,67 +1737,68 @@ namespace server
 			bRv= false;
 			if(!writtenError)
 			{
-				cout << "   ";
+				out << "   ";
 				if(	nMaxParams == 0 ||
 					(nCommandCount -1) < nMaxParams	)
 				{
-					cout << "after ";
+					out << "after ";
 				}
-				cout << "command '" << commands[0] << "' ";
+				out << "command '" << commands[0] << "' ";
 				if(nMaxParams == 0)
 				{
-					cout << "cannot be any parameter" << endl;
+					out << "cannot be any parameter" << endl;
 
 				}else
 				{
 					if((nCommandCount -1) > nMaxParams)
-						cout << "can only has ";
+						out << "can only has ";
 					else
-						cout << "has to exist ";
+						out << "has to exist ";
 					if(nMaxParams == 1)
-						cout << "one ";
+						out << "one ";
 					else if(nMaxParams == 2)
-						cout << "two ";
+						out << "two ";
 					else if(nMaxParams == 3)
-						cout << "three ";
+						out << "three ";
 					else
-						cout << nMaxParams << " ";
-					cout << "parameter";
+						out << nMaxParams << " ";
+					out << "parameter";
 					if(nMaxParams > 1)
 					{
-						cout << "s" << endl;
+						out << "s" << endl;
 						n= 1;
 						for(vector<string>::iterator it= descriptions->begin();
 										it != descriptions->end(); ++it)
 						{
-							cout << "     " << n << ". as '" << *it << "'";
+							out << "     " << n << ". as '" << *it << "'";
 							if(	it->length() > 2 &&
 								it->substr(0,1) == "[" &&
 								it->substr(it->length() - 1, 1) == "]"	)
 							{
-								cout << "  optional";
+								out << "  optional";
 							}
-							cout << endl;
+							out << endl;
 							++n;
 						}
 					}else
 					{
 						if((nCommandCount -1) > nMaxParams)
-							cout << " can only be an ";
+							out << " can only be an ";
 						else
-							cout << " has to be an ";
+							out << " has to be an ";
 						if(	(*descriptions)[1].length() > 2 &&
 							(*descriptions)[1].substr(0,1) == "[" &&
 							(*descriptions)[1].substr((*descriptions)[1].length() - 1, 1) == "]"	)
 						{
-							cout << "optional ";
+							out << "optional ";
 						}
-						cout << "parameter as '" << (*descriptions)[1] << "'" << endl;
+						out << "parameter as '" << (*descriptions)[1] << "'" << endl;
 					}
 				}
 				writtenError= true;
 			}
 		}
+		cout(out.str());
 		if(descriptions != NULL)
 			descriptions->clear();
 		return bRv;
@@ -1769,8 +1811,8 @@ namespace server
 		{
 			if(!errorWritten)
 			{
-				cout << " ppi-client not defined to read more than one commands" << endl;
-				cout << " command only usable by starting client with option --wait" << endl;
+				cout("   ppi-client not defined to read more than one commands\n"
+						"   command only usable by starting client with option --wait\n");
 				errorWritten= true;
 			}
 			return false;
@@ -1785,8 +1827,8 @@ namespace server
 		{
 			if(!errorWritten)
 			{
-				cout << " ppi-client not defined with second connection to server" << endl;
-				cout << " command only usable by starting client with option --hear" << endl;
+				cout("   ppi-client not defined with second connection to server\n"
+						"   command only usable by starting client with option --hear\n");
 				errorWritten= true;
 			}
 			return false;
@@ -1803,12 +1845,13 @@ namespace server
 		bool bErrorWritten;
 		bool bWaitEnd= false;
 		bool bSendCommand(true);
+		bool bReadDbgSessionContent(false);
+		bool bDebSessionContentLoaded(false);
 		string logMsg, result, org_command, defcommand;
 		vector<string> command;
 		vector<string> paramDefs;
 		string sSendbuf;
 		string folder, subroutine;
-		auto_ptr<XMLStartEndTagReader> xmlReader;
 		layerVecDef vLayers;
 		layerVecDef::size_type nCurLayer(0);
 		ppi_time currentTime;
@@ -1827,18 +1870,18 @@ namespace server
 		if(	m_bWait &&
 			!m_bScriptState	)
 		{
-			cout << endl;
-			cout << "stop connection to server by typing 'exit' or 'quit'" << endl;
-			cout << "for help type '?'";
+			std::cout << endl;
+			std::cout << "stop connection to server by typing 'exit' or 'quit'" << endl;
+			std::cout << "for help type '?'";
 			if(m_o2Client.get())
-				cout << ", ";
+				std::cout << ", ";
 			else
-				cout << " or ";
-			cout << "'?value'";
+				std::cout << " or ";
+			std::cout << "'?value'";
 			if(m_o2Client.get())
-				cout << " or '?debug'";
-			cout << endl;
-			cout << "--------------------------------------------------------" << endl;
+				std::cout << " or '?debug'";
+			std::cout << endl;
+			std::cout << "--------------------------------------------------------" << endl;
 		}
 		org_command= m_sCommand;
 		do{
@@ -1846,14 +1889,13 @@ namespace server
 
 			if(org_command == "")
 			{
-				runUserTransaction(false);
 				org_command= ask(/*YesNo*/false, "$> ");
 				trim(org_command);
 				if(org_command == "")
 					continue;
 			}
-			runUserTransaction(true);
 			bErrorWritten= false;
+			bWaitEnd= false;
 			bSendCommand= true;
 			command.clear();
 			iresult.str(org_command);
@@ -1874,7 +1916,7 @@ namespace server
 					nr < 1001 ||
 					(org_command= getHistory(nr, Current)) == ""	)
 				{
-					cout << " no correct number given for history command" << endl;
+					cout(" no correct number given for history command\n");
 					org_command= "";
 					continue;
 				}
@@ -1942,32 +1984,23 @@ namespace server
 				bSendCommand= false;
 				if(checkHearCommandCount(command, bErrorWritten))
 				{
-					LOCK(m_DEBUGSESSIONCHANGES);
-					folderCount= getRunningFolderList();
-					UNLOCK(m_DEBUGSESSIONCHANGES);
-
+					folderCount= getRunningFolderList(/*locked*/false);
 					if(!folderCount.empty())
 					{
 						for(map<string, unsigned long>::iterator it= folderCount.begin();
 										it != folderCount.end(); ++it			)
 						{
-							cout << "   " << it->second << "  " << it->first << endl;
+							std::cout << "   " << it->second << "  " << it->first << endl;
 						}
 					}else
-						cout << " no folders running since starting or last CLEARDEBUG" << endl;
+						std::cout << " no folders running since starting or last CLEARDEBUG" << endl;
 				}//checkHearCommandCount
-			}else
 
-			if(	command[0] == "DIR" ||
-				command[0] == "status"	)
+			}else if(	command[0] == "DIR" ||
+						command[0] == "status"	)
 			{
 				if(checkCommandCount(command, bErrorWritten))
 					bWaitEnd= true;
-			}else if(command[0] == "CONTENT")
-			{
-				paramDefs.push_back("[path/]<file name>");
-				if(checkCommandCount(command, bErrorWritten, &paramDefs))
-					xmlReader= auto_ptr<XMLStartEndTagReader>(new XMLStartEndTagReader());
 			}
 
 			if(command[0] == "GETERRORSTRING ")
@@ -1989,20 +2022,37 @@ namespace server
 					ocommand << com << " " << number;
 					defcommand= ocommand.str();
 				}
-			}
-			if(command[0] == "hold")
+			}else if(command[0] == "hold")
 			{
 				if(command.size() > 1)
 				{
-					paramDefs.push_back("[inform option]");
+					paramDefs.push_back("[inform option ( -i ) ]");
 					paramDefs.push_back("<folder>:<subroutine>");
 				}
 				if(checkHearCommandCount(command, bErrorWritten, &paramDefs))
 				{
-					if(command.size() == 1)
-						defcommand= "DEBUG";// -i";
-					else
-						defcommand= "DEBUG" + defcommand.substr(4);
+					string sdo("Y");
+
+					if(bDebSessionContentLoaded)
+					{
+						sdo= ask(/*YesNo*/true, "   some debug session content is loaded from hard disk\n"
+									"   do you want remove?");
+						if(sdo == "Y")
+						{
+							bDebSessionContentLoaded= false;
+							clearDebugSessionContent();
+							clearHoldingFolder("", "");
+						}
+					}
+					if(sdo == "Y")
+					{
+						bReadDbgSessionContent= true;
+						if(command.size() == 1)
+							defcommand= "DEBUG";// -i";
+						else
+							defcommand= "DEBUG" + defcommand.substr(4);
+					}else
+						bSendCommand= false;
 				}
 
 			}else if(command[0] == "add")
@@ -2015,14 +2065,14 @@ namespace server
 					if(	vLayers.empty() ||
 						vLayers[nCurLayer].first == ""	)
 					{
-						cout << " no folder:subroutine defined" << endl;
-						cout << " define first with $> current <folder>[:subroutine]" << endl;
+						cout("   no folder:subroutine defined\n"
+								"   define first with $> current <folder>[:subroutine]\n");
 						bErrorWritten= true;
 
 					}else if(!existOnServer(descriptor, vLayers[nCurLayer].first, command[1]))
 					{
-						cout << " subroutine '" << vLayers[nCurLayer].first << ":" << command[1];
-						cout << "' do not exist inside ppi-server working list" << endl;
+						cout(" subroutine '" + vLayers[nCurLayer].first + ":" + command[1]
+						       + "' do not exist inside ppi-server working list\n");
 						bErrorWritten= true;
 
 					}else
@@ -2038,7 +2088,7 @@ namespace server
 
 						}else
 						{
-							cout << " subroutine '" << command[1] << "' was added before" << endl;
+							cout(" subroutine '" + command[1] + "' was added before");
 							bErrorWritten= true;
 						}
 					}
@@ -2049,6 +2099,7 @@ namespace server
 						command[0] == "remove"	)
 			{
 				vector<string>::iterator it;
+				ostringstream out;
 
 				paramDefs.push_back("<subroutine>");
 				if(checkHearCommandCount(command, bErrorWritten, &paramDefs))
@@ -2059,16 +2110,17 @@ namespace server
 									vLayers[nCurLayer].second.second.end(), command[1]);
 					if(it == vLayers[nCurLayer].second.second.end())
 					{
-						cout << " current subroutines in folder ";
-						cout << vLayers[nCurLayer].first << " are:" << endl;
+						out << " current subroutines in folder ";
+						out << vLayers[nCurLayer].first << " are:" << endl;
 						for(it= vLayers[nCurLayer].second.second.begin();
 										it != vLayers[nCurLayer].second.second.end(); ++it)
 						{
-							cout << "                                ";
-							cout << *it << endl;
+							out << "                                ";
+							out << *it << endl;
 						}
-						cout << " cannot find given subroutine '" << command[1];
-						cout << "' inside queue" << endl;
+						out << " cannot find given subroutine '" << command[1];
+						out << "' inside queue" << endl;
+						cout(out.str());
 						bErrorWritten= true;
 						bRemove= false;
 
@@ -2082,9 +2134,7 @@ namespace server
 							msg+= "all current debugging?\n";
 						else
 							msg+= "the current debugging layer?\n";
-						runUserTransaction(false);
 						msg= ask(/*YesNo*/true, msg);
-						runUserTransaction(true);
 						if(msg == "N")
 							bRemove= false;
 					}
@@ -2162,7 +2212,7 @@ namespace server
 							setCurrentFolder(vLayers[nCurLayer].first);
 						}else
 						{
-							cout << " no lower layer from command 'current' before exist" << endl;
+							cout(" no lower layer from command 'current' before exist\n");
 							bErrorWritten= true;
 
 						}
@@ -2175,7 +2225,7 @@ namespace server
 							setCurrentFolder(vLayers[nCurLayer].first);
 						}else
 						{
-							cout << " no higher layer from command 'current' before exist" << endl;
+							cout(" no higher layer from command 'current' before exist");
 							bErrorWritten= true;
 						}
 
@@ -2274,7 +2324,7 @@ namespace server
 										{
 											bFoundSubroutine= true;
 											command[1]= vLayers[nCurLayer].first + ":";
-											command[1]+= command[2];
+											command[1]+= vLayers[nCurLayer].second.second[0];
 										}
 									}else
 									{
@@ -2302,6 +2352,7 @@ namespace server
 													newVec.insert(newVec.end(),
 																	vLayers[nCurLayer].second.second.begin(),
 																	vLayers[nCurLayer].second.second.end()	);
+													vLayers[nCurLayer].second.second= newVec;
 												}
 												command[1]= vLayers[nCurLayer].first + ":";
 												command[1]+= command[2];
@@ -2310,26 +2361,29 @@ namespace server
 									}
 									if(!bFoundSubroutine)
 									{
+										ostringstream out;
+
 										if(command.size() < 3)
 										{
-											cout << " need after command ";
+											out << " need after command ";
 											if(	direction == next_changed ||
 												direction == previous_changed	)
 											{
-												cout << "'changed' ";
+												out << "'changed' ";
 											}else
-												cout << "'unchanged' ";
-											cout << "an subroutine for check" << endl;
+												out << "'unchanged' ";
+											out << "an subroutine for check" << endl;
 										}else
 										{
-											cout << " predefined subroutines:" << endl;
+											out << " predefined subroutines:" << endl;
 											for(subIt= vLayers[nCurLayer].second.second.begin();
 															subIt != vLayers[nCurLayer].second.second.end(); ++subIt	)
 											{
-												cout << "             " << *subIt << endl;
+												out << "             " << *subIt << endl;
 											}
-											cout << " subroutine '" << command[2] << "' do not exist " << endl;
+											out << " subroutine '" << command[2] << "' do not exist " << endl;
 										}
+										cout(out.str());
 										bErrorWritten= true;
 									}
 								}else// if(bChangedUnchanged
@@ -2338,14 +2392,14 @@ namespace server
 									iresult >> folderNr;
 									if(iresult.fail())
 									{
-										cout << " no correct command or folder number ";
-										cout << " after '" << command[0] << "' defined" << endl;
+										cout(" no correct command or folder number "
+												" after '" + command[0] + "' defined\n");
 										bErrorWritten= true;
 
 									}else if(folderNr < 1)
 									{
-										cout << " folder number after '" << command[0];
-										cout << " has to be greater than 0" << endl;
+										cout(" folder number after '" + command[0] +
+												" has to be greater than 0\n");
 										bErrorWritten= true;
 									}
 								}
@@ -2363,8 +2417,8 @@ namespace server
 								direction != previous_changed &&
 								direction != previous_unchanged	)
 							{
-								cout << " for command '" << command[0] << "'";
-								cout << " is no definition of folder[:subroutine] allowed" << endl;
+								cout(" for command '" + command[0] + "'"
+										" is no definition of folder[:subroutine] allowed\n");
 								bErrorWritten= true;
 
 							}else
@@ -2387,8 +2441,8 @@ namespace server
 									 */
 									if(!existOnServer(descriptor, folder, subroutine))
 									{
-										cout << " '" << folder << ":" << subroutine << "'";
-										cout << " do not exist in folder working list of ppi-server" << endl;
+										cout(" '" + folder + ":" + subroutine + "'"
+												" do not exist in folder working list of ppi-server\n");
 										if(	!vLayers.empty() &&
 											direction != next_changed &&
 											direction != next_unchanged &&
@@ -2448,17 +2502,17 @@ namespace server
 								(	vLayers.empty() ||
 									vLayers[nCurLayer].first == ""	)	)
 							{
-								cout << " no folder:subroutine defined" << endl;
-								cout << " define first with $> current <folder>[:subroutine]" << endl;
+								cout(" no folder:subroutine defined,\n"
+										" define first with $> current <folder>[:subroutine]\n");
 								bErrorWritten= true;
 							}
 						} // end of else from secWord != ""
 						if(	!bErrorWritten &&
 							nExist == -1		)
 						{
-							cout << " '" << folder << ":" << subroutine << "'";
-							cout << " exist inside ppi-server, but is not defined for holding" << endl;
-							cout << " type first $> HOLDDEBUG " << folder << ":" << subroutine << endl;
+							cout(string(" '") + folder + ":" + subroutine + "'"
+									" exist inside ppi-server, but is not defined for holding\n"
+									" type first $> hold " + folder + ":" + subroutine			);
 							bErrorWritten= true;
 						}
 						if(!bErrorWritten)
@@ -2513,73 +2567,115 @@ namespace server
 					org_command= "";
 					continue;
 				}
+			}else if(command[0] == "save")
+			{
+				bSendCommand= false;
+				paramDefs.push_back("file name");
+				if(checkHearCommandCount(command, bErrorWritten, &paramDefs))
+				{
+					string answer("Y");
+					string file(command[1] + ".dbgsession");
+					map<string, string> dir;
+
+					dir= URL::readDirectory(/*path*/"./", /*beginfilter*/"", ".dbgsession");
+					for(map<string, string>::iterator it= dir.begin();
+									it != dir.end(); ++it				)
+					{
+						if(it->second == file)
+						{
+							answer= ask(/*YesNo*/true, "   file exist on harddisk\n"
+											"   do you want replace ");
+							break;
+						}
+					}
+					if(answer == "Y")
+					{
+						bErrorWritten= !saveFile(command[1]);
+						if(	!bErrorWritten &&
+							!bReadDbgSessionContent	)
+						{
+							cout("   WARNING: no debug session content is define to get from server\n"
+									"            please define with hold or DEBUG\n");
+						}
+					}
+				}
+			}else if(command[0] == "load")
+			{
+				bSendCommand= false;
+				paramDefs.push_back("file name");
+				if(checkHearCommandCount(command, bErrorWritten, &paramDefs))
+				{
+					string answer("Y");
+
+					if(	bReadDbgSessionContent ||
+						bDebSessionContentLoaded	)
+					{
+						string msg("do you want to stop all debug session content reading from ");
+
+						if(bDebSessionContentLoaded)
+							msg+= "hard disk before?\n";
+						else
+							msg+= "server before?\n";
+						answer= ask(/*YesNo*/true, msg);
+						if(answer == "Y")
+						{
+							bErrorWritten= send(descriptor, "STOPDEBUG", /*bWaitEnd*/false);
+							if(!bErrorWritten)
+							{
+								clearDebugSessionContent();
+								clearHoldingFolder("", "");
+								vLayers.clear();
+							}else
+								cout("   cannot stop debug session on server\n");
+						}
+					}
+					if(	answer == "Y" &&
+						!bErrorWritten	)
+					{
+						bErrorWritten= !loadFile(command[1]);
+						if(!bErrorWritten)
+							bDebSessionContentLoaded= true;
+					}
+				}
+			}
+			if(	command[0] == "DEBUG" &&
+				bDebSessionContentLoaded	)
+			{
+				string sdo;
+
+				sdo= ask(/*YesNo*/true, "   some debug session content is loaded from hard disk\n"
+								"   do you want remove?");
+				if(sdo == "Y")
+				{
+					bDebSessionContentLoaded= false;
+					clearDebugSessionContent();
+					clearHoldingFolder("", "");
+				}
 			}
 			if(	!bErrorWritten &&
 				bSendCommand		)
 			{
-#ifdef SERVERDEBUG
-				cout << "send: '" << m_sCommand << "'" << endl;
-#endif // SERVERDEBUG
+				/// send command to ppi-server
+				bErrorWritten= send(descriptor, defcommand, bWaitEnd);
 
-				descriptor << defcommand;
-				descriptor.endl();
-				descriptor.flush();
-
-				do{
-					descriptor >> result;
-					trim(result);
-	#ifdef SERVERDEBUG
-					cout << "get: " << result << endl;
-	#endif // SERVERDEBUG
-
-					if(descriptor.eof())
+				if(	m_o2Client.get() &&
+					!bErrorWritten		)
+				{
+					if(command[0] == "DEBUG")
 					{
-						cerr << endl;
-						cerr << "ERROR: lost connection to server" << endl;
-						if(m_o2Client.get())
-							m_o2Client->stop(/*wait*/true);
-						return false;
-					}
-					if(	result.substr(0, 6) == "ERROR " ||
-						result.substr(0, 8) == "WARNING "	)
-					{
-						printError(descriptor, result);
-						bErrorWritten= true;
-
-					}else if(xmlReader.get())
-					{
-						result= xmlReader->readLine(result);
-						if(xmlReader->end())
-						{
-							string error;
-
-							error= xmlReader->error();
-							if(error != "")
-								printError(descriptor, error);
-							xmlReader= auto_ptr<XMLStartEndTagReader>();
-							break;
-						}
-					}else
-					{
-						bWaitEnd= false;
-						if(result != "done")
-							cout << result << endl;
-					}
-
-
-					if(	m_o2Client.get() &&
-						!bErrorWritten &&
-						command[0] == "hold"	)
+						bReadDbgSessionContent= true;
+					}else if(command[0] == "hold")
 					{
 						vector<string> spl;
 
+						bReadDbgSessionContent= true;
 						if(command.size() > 1)
 						{
 							/*
-							 * second word after HOLDDEBUG
+							 * second word after hold
 							 * should be always correct <folder>:<subroutine>
 							 * because server do not return error
-							 * when write DEBUG command
+							 * when write DEBUG command was correct
 							 */
 							split(spl, command[1], is_any_of(":"));
 							setHoldingFolder(spl[0], spl[1]);
@@ -2589,11 +2685,34 @@ namespace server
 							m_bHoldAll= true;
 							allFolderHolding();
 						}
-					}
-			//		if(result != "done")
-			//			cout << result << endl;
-				}while(	bWaitEnd ||
-						xmlReader.get()	);
+					}else// if(command[0] == "hold")
+					if(command[0] == "STOPDEBUG")
+					{
+						if(command.size() > 1)
+						{
+							vector<string> spl;
+
+							/*
+							 * second word after STOPDEBUG
+							 * should be always correct <folder>:<subroutine>
+							 * because server do not return error
+							 * when was done
+							 */
+							split(spl, command[1], is_any_of(":"));
+							if(clearHoldingFolder(spl[0], spl[1]))
+							{
+								bReadDbgSessionContent= false;
+								closeFile();
+							}
+
+						}else
+						{
+							bReadDbgSessionContent= false;
+							clearHoldingFolder("", "");
+							closeFile();
+						}
+					}// if(command[0] == "STOPDEBUG")
+				}// if(!bErrorWritten)
 			}// if(bSendCommand)
 			setHistory(org_command);
 			org_command= "";
@@ -2602,6 +2721,398 @@ namespace server
 
 		descriptor << "ending\n";
 		descriptor.flush();
+		return true;
+	}
+
+	bool ClientTransaction::send(IFileDescriptorPattern& descriptor, const string& command, bool bWaitEnd)
+	{
+		auto_ptr<XMLStartEndTagReader> xmlReader;
+		bool bError(false);
+		string result;
+
+		if(command.substr(0, 8) == "CONTENT ")
+			xmlReader= auto_ptr<XMLStartEndTagReader>(new XMLStartEndTagReader());
+
+#ifdef SERVERDEBUG
+		std::cout << "send: '" << command << "'" << endl;
+#endif // SERVERDEBUG
+
+		descriptor << command;
+		descriptor.endl();
+		descriptor.flush();
+
+		do{
+			descriptor >> result;
+			trim(result);
+#ifdef SERVERDEBUG
+			std::cout << "get: " << result << endl;
+#endif // SERVERDEBUG
+
+			if(descriptor.eof())
+			{
+				cerr << endl;
+				cerr << "ERROR: lost connection to server" << endl;
+				if(m_o2Client.get())
+					m_o2Client->stop(/*wait*/true);
+				return false;
+			}
+			if(	result.substr(0, 6) == "ERROR " ||
+				result.substr(0, 8) == "WARNING "	)
+			{
+				printError(descriptor, result);
+				if(result.substr(0, 6) == "ERROR ")
+					bError= true;
+
+			}else if(xmlReader.get())
+			{
+				result= xmlReader->readLine(result);
+				if(xmlReader->end())
+				{
+					string error;
+
+					error= xmlReader->error();
+					if(error != "")
+						printError(descriptor, error);
+					xmlReader= auto_ptr<XMLStartEndTagReader>();
+					break;
+				}
+			}else
+			{
+				bWaitEnd= false;
+				if(result != "done")
+					cout(string("   ") + result + "\n");
+			}
+		}while(	bWaitEnd ||
+				xmlReader.get()	);
+		return bError;
+	}
+
+	void ClientTransaction::closeFile()
+	{
+		if(m_o2Client.get())
+		{
+			m_o2Client->transObj()->closeFile();
+			return;
+		}
+
+		LOCK(m_DEBUGSESSIONCHANGES);
+		m_oStoreFile.close();
+		UNLOCK(m_DEBUGSESSIONCHANGES);
+	}
+
+	bool ClientTransaction::loadFile(const string& file)
+	{
+		bool bOk;
+		ifstream handle;
+		int major_release, minor_release, subversion;
+		int patch_level, revision;
+		float protocol;
+		string read;
+		vector<pair<string, string> > vProtocol;
+
+		if(m_o2Client.get())
+			return m_o2Client->transObj()->loadFile(file);
+
+		LOCK(m_DEBUGSESSIONCHANGES);
+		handle.open(string(file + ".dbgsession").c_str());
+		if(!handle.is_open())
+		{
+			cerr << "   cannot open file" << endl;
+			cerr << "   " << BaseErrorHandling::getErrnoString(errno) << endl;
+			UNLOCK(m_DEBUGSESSIONCHANGES);
+			return false;
+		}
+		bOk= false;
+		handle >> read;
+		if(read == "ppi-server")
+		{
+			istringstream iread;
+
+			handle >> read;
+			if(read.substr(0, 1) == "v")
+			{
+				iread.str(read.substr(1));
+				iread >> major_release;
+				if(!iread.eof())
+				{
+					iread >> read;
+					if(read.substr(0, 1) == ".")
+					{
+						iread.clear();
+						iread.str(read.substr(1));
+						iread >> minor_release;
+						if(!iread.eof())
+						{
+							iread >> read;
+							if(read.substr(0, 1) == ".")
+							{
+								iread.clear();
+								iread.str(read.substr(1));
+								iread >> subversion;
+								if(!iread.eof())
+								{
+									iread >> read;
+									if(read.substr(0, 1) == ".")
+									{
+										iread.clear();
+										iread.str(read.substr(1));
+										iread >> patch_level;
+										if(!iread.eof())
+										{
+											iread >> read;
+											if(read.substr(0, 1) == ":")
+											{
+												iread.clear();
+												iread.str(read.substr(1));
+												iread >> revision;
+												if(!handle.eof())
+												{
+													handle >> read;
+													if(read.substr(0, 1) == "p")
+													{
+														iread.clear();
+														iread.str(read.substr(1));
+														iread >> protocol;
+														if(!iread.fail())
+															bOk= true;
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		if(bOk)
+		{
+			vector<string> spl;
+
+			bOk= false;
+			getline(handle, read);// <- first should be ending of line
+			getline(handle, read);
+			trim(read);
+			split(spl, read, is_any_of(" ,()"), boost::token_compress_on);
+			spl.pop_back();// <- last string should be an null string ( because after ')' )
+			if((spl.size() % 2) == 1)
+			{
+				vector<string>::iterator it;
+
+				it= spl.begin();
+				while(it != spl.end())
+				{
+					if(it == spl.begin())
+					{
+						if(*it != "store:")
+						{
+							/*
+							 * first splitting string
+							 * has to be 'store:'
+							 * otherwise an fault occurred
+							 */
+							break;
+						}
+						++it;
+					}else
+					{
+						string field;
+
+						bOk= true;
+						field= *it;
+						++it;
+						if(it != spl.end())
+							vProtocol.push_back(pair<string, string>(field, *it));
+						else
+						{
+							bOk= false;
+							break;
+						}
+						++it;
+					}
+
+				}
+			}
+		}
+		if(bOk)
+		{
+			vector<string>::size_type fields(0);
+
+			bOk= false;
+			/*
+			 * check now whether
+			 * fields from protocol
+			 * are OK
+			 */
+			if(protocol == 1.0)
+			{
+				fields= 5;
+				if(vProtocol.size() == fields)
+				{
+					if(	vProtocol[0].first == "folder" &&
+						vProtocol[0].second == "string" &&
+						vProtocol[1].first == "subroutine" &&
+						vProtocol[1].second == "string" &&
+						vProtocol[2].first == "value" &&
+						vProtocol[2].second == "double" &&
+						vProtocol[3].first == "time" &&
+						vProtocol[3].second == "timeval" &&
+						vProtocol[4].first == "content" &&
+						vProtocol[4].second == "string"		)
+					{
+						bOk= true;
+					}
+				}
+			}
+		}
+		if(bOk == false)
+		{
+			cerr << "   file is not from ppi-server" << endl;
+			cerr << "   or is corrupt" << endl;
+			handle.close();
+			UNLOCK(m_DEBUGSESSIONCHANGES);
+			return false;
+		}
+		/*
+		 * read now hole content
+		 * from file
+		 */
+		if(bOk)
+		{
+			unsigned short nReadLine;
+
+			bOk= true;
+			nReadLine= 1;
+			std::cout << "." << flush;
+			while(!handle.eof())
+			{
+				getline(handle, read);
+				trim(read);
+				if(	read != "" &&
+					read.substr(0, 1) != "#"	)
+				{
+					ppi_time currentTime;
+					IParameterStringStream result(read);
+					IDbFillerPattern::dbgSubroutineContent_t sub;
+
+					result >> sub.folder;
+					if(!result.fail())
+						result >> sub.subroutine;
+					if(!result.fail())
+						result >> sub.value;
+					if(!result.fail())
+						result >> currentTime;
+					if(!result.fail())
+					{
+						sub.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(currentTime));
+						result >> sub.content;
+					}
+					if(!result.fail())
+					{
+						m_mmDebugSession[currentTime].push_back(sub);
+						m_mFolderSubs[sub.folder].insert(sub.subroutine);
+					}else
+						bOk= false;
+					if(nReadLine > 100)
+					{
+						std::cout << "." << flush;
+						nReadLine= 0;
+					}
+					++nReadLine;
+				}// if(	read != "" && read.substr(0, 1) != "#" )
+			}// while(!handle.eof())
+			if(bOk)
+				std::cout << " OK";
+			std::cout << endl;
+		}// if(bOk)
+		if(bOk == false)
+		{
+			if(!m_mmDebugSession.empty())
+			{
+				cerr << "   some lines of file are corrupt" << endl;
+				cerr << "   maybe no correct result can be shown" << endl;
+				bOk= true;
+			}else
+				cerr << "   file is corrupt" << endl;
+		}
+		handle.close();
+		UNLOCK(m_DEBUGSESSIONCHANGES);
+		return bOk;
+	}
+
+	bool ClientTransaction::saveFile(const string& file)
+	{
+		unsigned short nWriteLines(0);
+
+		if(m_o2Client.get())
+			return m_o2Client->transObj()->saveFile(file);
+
+		LOCK(m_DEBUGSESSIONCHANGES);
+		m_oStoreFile.open(string(file + ".dbgsession").c_str(), ios::trunc);
+		if(m_oStoreFile.fail())
+		{
+			cerr << "   cannot store file on hard disk" << endl;
+			cerr << "   " << BaseErrorHandling::getErrnoString(errno) << endl;
+			UNLOCK(m_DEBUGSESSIONCHANGES);
+			return false;
+		}
+		m_oStoreFile << "ppi-server  ";
+		m_oStoreFile << "v" << PPI_MAJOR_RELEASE << "." << PPI_MINOR_RELEASE;
+		m_oStoreFile << "." << PPI_SUBVERSION << "." << PPI_PATCH_LEVEL;
+		m_oStoreFile << ":" << PPI_REVISION_NUMBER;
+		m_oStoreFile << "  p" << PPI_SERVER_PROTOCOL << endl;
+		m_oStoreFile << "store: folder(string), subroutine(string),";
+		m_oStoreFile << " value(double), time(timeval), content(string)" << endl;
+		if(!m_mmDebugSession.empty())
+		{
+			string answer;
+
+			answer= ask(/*YesNo*/true, "   should be stored also current debug session content\n"
+							"   getting from Server? ");
+			if(answer == "Y")
+			{
+				IDbFillerPattern::dbgSubroutineContent_t subCont;
+
+				for(debugSessionTimeMap::iterator tit= m_mmDebugSession.begin();
+								tit != m_mmDebugSession.end(); ++tit									)
+				{
+					for(vector<IDbFillerPattern::dbgSubroutineContent_t>::iterator it= tit->second.begin();
+									it != tit->second.end(); ++it											)
+					{
+						ppi_time currentTime;
+						OParameterStringStream input;
+
+						/*
+						 * data type order below
+						 * is specified inside follow methods:
+						 * DbInterface::fillDebugSession
+						 * ServerDbTransaction::transfer by method == "fillDebugSession"
+						 * ClientTransaction::hearingTransfer
+						 * ClientTransaction::saveFile
+						 * ClientTransaction::loadFile
+						 */
+						input << it->folder;
+						input << it->subroutine;
+						input << it->value;
+						if(it->currentTime.get() != NULL)
+							currentTime= *it->currentTime;
+						input << currentTime;
+						input << it->content;
+						m_oStoreFile << input.str() << endl;
+						if(nWriteLines > 100)
+						{
+							std::cout << "." << flush;
+							nWriteLines= 0;
+						}
+						++nWriteLines;
+					}
+				}
+				std::cout << " OK" << endl;
+			}
+		}
+		UNLOCK(m_DEBUGSESSIONCHANGES);
 		return true;
 	}
 
@@ -2672,122 +3183,122 @@ namespace server
 	{
 		if(sfor == "?")
 		{
-			cout << endl;
-			cout << "    ?         - show this help" << endl;
-			cout << "    ?value    - show all commands round of values "
+			std::cout << endl;
+			std::cout << "    ?         - show this help" << endl;
+			std::cout << "    ?value    - show all commands round of values "
 							"inside ppi-server" << endl;
-			cout << "    ?debug    - show all commands round "
+			std::cout << "    ?debug    - show all commands round "
 							"debug session of working list" << endl;
-			cout << endl;
-			cout << "    quit            - ending connection to server" << endl;
-			cout << "                      and abort ppi-client" << endl;
-			cout << "    history         - show all last typed commands with number" << endl;
-			cout << "                      which can allocate with '!<number>'" << endl;
-			cout << "    CHANGE [user]   - changing user by current session with server" << endl;
-			cout << "                      after pressing return, will be asked for user" << endl;
-			cout << "                      when not written as parameter" << endl;
-			cout << "                      and than for password" << endl;
+			std::cout << endl;
+			std::cout << "    quit            - ending connection to server" << endl;
+			std::cout << "                      and abort ppi-client" << endl;
+			std::cout << "    history         - show all last typed commands with number" << endl;
+			std::cout << "                      which can allocate with '!<number>'" << endl;
+			std::cout << "    CHANGE [user]   - changing user by current session with server" << endl;
+			std::cout << "                      after pressing return, will be asked for user" << endl;
+			std::cout << "                      when not written as parameter" << endl;
+			std::cout << "                      and than for password" << endl;
 
 		}else if(sfor == "?value")
 		{
-			cout << endl;
-			cout << "    GET <folder>:<subroutine>" << endl;
-			cout << "          -     get the current value from the subroutines in the folder" << endl;
-			cout << "                folder and subroutine are separated with an colon" << endl;
-			cout << "    SET <folder>:<subroutine> <value>" << endl;
-			cout << "          -     set the given value from given subroutine in given folder" << endl;
-			cout << "    HEAR <folder>:<subroutine>" << endl;
-			cout << "          -     if the client has set an second connection with option --hear," << endl;
-			cout << "                client can order with this command to hear on the given folder:subroutine's" << endl;
-			cout << "                 for changes" << endl;
-			cout << "    NEWENTRYS" << endl;
-			cout << "          -     clearing all entry's which are set with the command HEAR" << endl;
-			cout << "                this command is only when ppi-server is started with option --hear" << endl;
+			std::cout << endl;
+			std::cout << "    GET <folder>:<subroutine>" << endl;
+			std::cout << "          -     get the current value from the subroutines in the folder" << endl;
+			std::cout << "                folder and subroutine are separated with an colon" << endl;
+			std::cout << "    SET <folder>:<subroutine> <value>" << endl;
+			std::cout << "          -     set the given value from given subroutine in given folder" << endl;
+			std::cout << "    HEAR <folder>:<subroutine>" << endl;
+			std::cout << "          -     if the client has set an second connection with option --hear," << endl;
+			std::cout << "                client can order with this command to hear on the given folder:subroutine's" << endl;
+			std::cout << "                 for changes" << endl;
+			std::cout << "    NEWENTRYS" << endl;
+			std::cout << "          -     clearing all entry's which are set with the command HEAR" << endl;
+			std::cout << "                this command is only when ppi-server is started with option --hear" << endl;
 
 		}else if(sfor == "?debug")
 		{
 			if(m_o2Client.get())
 			{
-				cout << endl;
-				cout << "    DEBUG [-i|-ow] <folder[:subroutine]/owreaderID>" << endl;
-				cout << "                -   show by running server debugging messages for given folder and subroutine" << endl;
-				cout << "                    when no subroutine given, the hole folder is set for debugging" << endl;
-				cout << "                    by add option -i, when for folder defined an inform parameter" << endl;
-				cout << "                    show this calculation also by debug output." << endl;
-				cout << "                    if option -ow be set client get DEBUG info for benchmark of external ports" << endl;
-				cout << "                    and folder have to be the OWServer ID (owreaderID)." << endl;
-				cout << "                    (the OWServer ID you can see by starting ppi-server on command line after '### starting OWServer)" << endl;
-				cout << "                    both option -i and -ow cannot be used in same time" << endl;
-				cout << "    hold [-i] <folder[:subroutine]>" << endl;
-				cout << "                -   same as command DEBUG (without possibility of option -ow)" << endl;
-				cout << "                    but debug session output will be saved in the background" << endl;
-				cout << "                    and will be shown only with follow commands" << endl;
-				cout << "                    (command only be allowed when ppi-client started with hearing thread option --hear)" << endl;
-				cout << "    run         -   show all getting debug session folders with count" << endl;
-				cout << "    show [folder[:subroutine]]" << endl;
-				cout << "                -   show debug session output of working list" << endl;
-				cout << "                    which was set before with HOLDDEBUG into holding state" << endl;
-				cout << "                    to save in background" << endl;
-				cout << "                    when before no 'current' defined, or removed," << endl;
-				cout << "                    and an folder and or subroutine given by command" << endl;
-				cout << "                    this will be defined inside current layer" << endl;
-				cout << "                    (command only be allowed when ppi-client started with hearing thread option --hear)" << endl;
-				cout << "    current [folder[:subroutine]]" << endl;
-				cout << "               -    show always only folder or folder:subroutine of debug session" << endl;
-				cout << "                    running by one pass" << endl;
-				cout << "                    by first calling it will take the first pass of folder given name which found" << endl;
-				cout << "                    the command 'current' show always the folder by same pass" << endl;
-				cout << "                    with below commands you can navigate thru the others" << endl;
-				cout << "                    when typing command again with other info of folder and or subroutine," << endl;
-				cout << "                    it will be created an new layer" << endl;
-				cout << "                    with the new folder and or subroutine," << endl;
-				cout << "                    in which you can go back with command 'back' in a later time." << endl;
-				cout << "                    In this case, when create an new layer, the client" << endl;
-				cout << "                    try to show the new folder:subroutine from same time," << endl;
-				cout << "                    or one step before." << endl;
-				cout << "    add <subroutine>" << endl;
-				cout << "                -   add subroutine to current folder defined with 'current'" << endl;
-				cout << "                    which is defined for listing" << endl;
-				cout << "    rm <subroutine>" << endl;
-				cout << "    remove <subroutine>" << endl;
-				cout << "                -   remove the subroutine from current folder defined inside 'current'" << endl;
-				cout << "                    which is defined for listing" << endl;
-				cout << "    next        -   show also only one subroutine like 'current'" << endl;
-				cout << "                    but always the next one" << endl;
-				cout << "                    after command can also be typed the folder pass" << endl;
-				cout << "                    which want to be shown" << endl;
-				cout << "    previous    -   same as command 'NEXTDEBUG'" << endl;
-				cout << "                    but show the subroutine before" << endl;
-				cout << "                    after command can also be typed the folder pass" << endl;
-				cout << "                    which want to be shown" << endl;
-				cout << "    back        -   go from an new defined layer with 'current'" << endl;
-				cout << "                    back to the last layer with the last time" << endl;
-				cout << "    up          -   go from the current layer up to the next" << endl;
-				cout << "                    which before leafe with 'back'" << endl;
-				cout << "    STOPDEBUG [-ow] <folder[:subroutine]/owreaderID>" << endl;
-				cout << "                -   stop debugging session for folder:subroutine" << endl;
-				cout << "                    and or saving into background" << endl;
-				cout << "    clear       -   clear debug content from background" << endl;
-				cout << "                    but not currently debugging session" << endl;
-	/*			cout << "    save <file>" << endl;
-				cout << "                -   save all debug session content, since time called," << endl;
-				cout << "                    into given file in same directory where ppi-client was called" << endl;
-				cout << "                    ending by call this command again, call 'STOPDEBUG' or stop editor" << endl;
-				cout << "    load <file>" << endl;
-				cout << "                -   load debug session content which was saved before with 'SAVEDEBUG'" << endl;
-				cout << "                    This is the only one command which can called on beginning" << endl;
-				cout << "                    ('ppi-client LOADDEBUG <file>') where the ppi-server" << endl;
-				cout << "                    not need to run" << endl;*/
+				std::cout << endl;
+				std::cout << "    DEBUG [-i|-ow] <folder[:subroutine]/owreaderID>" << endl;
+				std::cout << "                -   show by running server debugging messages for given folder and subroutine" << endl;
+				std::cout << "                    when no subroutine given, the hole folder is set for debugging" << endl;
+				std::cout << "                    by add option -i, when for folder defined an inform parameter" << endl;
+				std::cout << "                    show this calculation also by debug output." << endl;
+				std::cout << "                    if option -ow be set client get DEBUG info for benchmark of external ports" << endl;
+				std::cout << "                    and folder have to be the OWServer ID (owreaderID)." << endl;
+				std::cout << "                    (the OWServer ID you can see by starting ppi-server on command line after '### starting OWServer)" << endl;
+				std::cout << "                    both option -i and -ow cannot be used in same time" << endl;
+				std::cout << "    hold [-i] <folder[:subroutine]>" << endl;
+				std::cout << "                -   same as command DEBUG (without possibility of option -ow)" << endl;
+				std::cout << "                    but debug session output will be saved in the background" << endl;
+				std::cout << "                    and will be shown only with follow commands" << endl;
+				std::cout << "                    (command only be allowed when ppi-client started with hearing thread option --hear)" << endl;
+				std::cout << "    run         -   show all getting debug session folders with count" << endl;
+				std::cout << "    show [folder[:subroutine]]" << endl;
+				std::cout << "                -   show debug session output of working list" << endl;
+				std::cout << "                    which was set before with HOLDDEBUG into holding state" << endl;
+				std::cout << "                    to save in background" << endl;
+				std::cout << "                    when before no 'current' defined, or removed," << endl;
+				std::cout << "                    and an folder and or subroutine given by command" << endl;
+				std::cout << "                    this will be defined inside current layer" << endl;
+				std::cout << "                    (command only be allowed when ppi-client started with hearing thread option --hear)" << endl;
+				std::cout << "    current [folder[:subroutine]]" << endl;
+				std::cout << "               -    show always only folder or folder:subroutine of debug session" << endl;
+				std::cout << "                    running by one pass" << endl;
+				std::cout << "                    by first calling it will take the first pass of folder given name which found" << endl;
+				std::cout << "                    the command 'current' show always the folder by same pass" << endl;
+				std::cout << "                    with below commands you can navigate thru the others" << endl;
+				std::cout << "                    when typing command again with other info of folder and or subroutine," << endl;
+				std::cout << "                    it will be created an new layer" << endl;
+				std::cout << "                    with the new folder and or subroutine," << endl;
+				std::cout << "                    in which you can go back with command 'back' in a later time." << endl;
+				std::cout << "                    In this case, when create an new layer, the client" << endl;
+				std::cout << "                    try to show the new folder:subroutine from same time," << endl;
+				std::cout << "                    or one step before." << endl;
+				std::cout << "    add <subroutine>" << endl;
+				std::cout << "                -   add subroutine to current folder defined with 'current'" << endl;
+				std::cout << "                    which is defined for listing" << endl;
+				std::cout << "    rm <subroutine>" << endl;
+				std::cout << "    remove <subroutine>" << endl;
+				std::cout << "                -   remove the subroutine from current folder defined inside 'current'" << endl;
+				std::cout << "                    which is defined for listing" << endl;
+				std::cout << "    next        -   show also only one subroutine like 'current'" << endl;
+				std::cout << "                    but always the next one" << endl;
+				std::cout << "                    after command can also be typed the folder pass" << endl;
+				std::cout << "                    which want to be shown" << endl;
+				std::cout << "    previous    -   same as command 'NEXTDEBUG'" << endl;
+				std::cout << "                    but show the subroutine before" << endl;
+				std::cout << "                    after command can also be typed the folder pass" << endl;
+				std::cout << "                    which want to be shown" << endl;
+				std::cout << "    back        -   go from an new defined layer with 'current'" << endl;
+				std::cout << "                    back to the last layer with the last time" << endl;
+				std::cout << "    up          -   go from the current layer up to the next" << endl;
+				std::cout << "                    which before leafe with 'back'" << endl;
+				std::cout << "    STOPDEBUG [-ow] <folder[:subroutine]/owreaderID>" << endl;
+				std::cout << "                -   stop debugging session for folder:subroutine" << endl;
+				std::cout << "                    and or saving into background" << endl;
+				std::cout << "    clear       -   clear debug content from background" << endl;
+				std::cout << "                    but not currently debugging session" << endl;
+				std::cout << "    save <file>" << endl;
+				std::cout << "                -   save all debug session content, since time called," << endl;
+				std::cout << "                    into given file in same directory where ppi-client was called" << endl;
+				std::cout << "                    ending by call this command again, call 'STOPDEBUG' or stop editor" << endl;
+				std::cout << "    load <file>" << endl;
+				std::cout << "                -   load debug session content which was saved before with 'save'" << endl;
+				std::cout << "                    This is the only one command which can called on beginning" << endl;
+				std::cout << "                    ('ppi-client load <file>') where the ppi-server" << endl;
+				std::cout << "                    not need to run" << endl;
 
 			}else // if(m_o2Client.get())
 			{
-				cout << "   all debugging commands only available" << endl;
-				cout << "   when client was started with option --hear" << endl;
+				std::cout << "   all debugging commands only available" << endl;
+				std::cout << "   when client was started with option --hear" << endl;
 			}
 		}else
 		{
-			cout << endl;
-			cout << " no helping defined for '" << sfor << "'" << endl;
+			std::cout << endl;
+			std::cout << " no helping defined for '" << sfor << "'" << endl;
 		}
 	}
 
@@ -2807,7 +3318,7 @@ namespace server
 
 		}catch(std::exception& ex)
 		{
-			cout << string(ex.what()) << endl;
+			std::cout << string(ex.what()) << endl;
 			exit(EXIT_FAILURE);
 		}
 		return bRv;
@@ -2827,16 +3338,14 @@ namespace server
 		UNLOCK(m_DEBUGSESSIONCHANGES);
 	}
 
-	void ClientTransaction::clearHoldingFolder(const string& folder, const string& subroutine)
+	bool ClientTransaction::clearHoldingFolder(const string& folder, const string& subroutine)
 	{
+		bool bRv(false);
 		map<string, map<string, unsigned long> >::iterator foundFolder;
 		map<string, unsigned long>::iterator foundSubroutine;
 
 		if(m_o2Client.get())
-		{
-			m_o2Client->transObj()->clearHoldingFolder(folder, subroutine);
-			return;
-		}
+			return m_o2Client->transObj()->clearHoldingFolder(folder, subroutine);
 		LOCK(m_DEBUGSESSIONCHANGES);
 		if(folder != "")
 		{
@@ -2853,9 +3362,19 @@ namespace server
 				}else
 					m_vsHoldFolders.erase(foundFolder);
 			}
+			if(m_vsHoldFolders.empty())
+			{
+				m_bHoldAll= false;
+				bRv= true;
+			}
 		}else
+		{
 			m_vsHoldFolders.clear();
+			m_bHoldAll= false;
+			bRv= true;
+		}
 		UNLOCK(m_DEBUGSESSIONCHANGES);
+		return bRv;
 	}
 
 	void ClientTransaction::clearDebugSessionContent()
@@ -2867,10 +3386,24 @@ namespace server
 		}
 		LOCK(m_DEBUGSESSIONCHANGES);
 		m_mmDebugSession.clear();
+		m_bHoldAll= false;
 		UNLOCK(m_DEBUGSESSIONCHANGES);
 	}
 
-	map<string, unsigned long> ClientTransaction::getRunningFolderList()
+	bool ClientTransaction::emptyDbgQueue() const
+	{
+		bool bRv(false);
+
+		if(m_o2Client.get())
+			return m_o2Client->transObj()->emptyDbgQueue();
+		LOCK(m_DEBUGSESSIONCHANGES);
+		if(m_vsHoldFolders.empty())
+			bRv= true;
+		UNLOCK(m_DEBUGSESSIONCHANGES);
+		return bRv;
+	}
+
+	map<string, unsigned long> ClientTransaction::getRunningFolderList(bool locked)
 	{
 		unsigned long ulRun;
 		map<string, unsigned long> mRv;
@@ -2878,7 +3411,9 @@ namespace server
 		vector<IDbFillerPattern::dbgSubroutineContent_t>::iterator folderIt;
 
 		if(m_o2Client.get())
-			return m_o2Client->transObj()->getRunningFolderList();
+			return m_o2Client->transObj()->getRunningFolderList(locked);
+		if(!locked)
+			LOCK(m_DEBUGSESSIONCHANGES);
 		for(timeIt= m_mmDebugSession.begin(); timeIt != m_mmDebugSession.end(); ++timeIt)
 		{
 			for(folderIt= timeIt->second.begin(); folderIt != timeIt->second.end(); ++folderIt)
@@ -2891,6 +3426,8 @@ namespace server
 				}
 			}
 		}
+		if(!locked)
+			UNLOCK(m_DEBUGSESSIONCHANGES);
 		return mRv;
 	}
 
@@ -2956,7 +3493,7 @@ namespace server
 		 * inside lock, because result
 		 * should be unique with output content
 		 */
-		folderCount= getRunningFolderList();
+		folderCount= getRunningFolderList(/*locked*/true);
 		/*
 		 * check first which folder pass
 		 * should be written
@@ -3059,12 +3596,11 @@ namespace server
 					{
 						string msg;
 
-						msg=  " show folder '";
+						msg=  " reaching end of folder\n";
+						msg+= " show folder '";
 						msg+= folderIt->folder;
 						msg+= "' again from begin?\n";
-						runUserTransaction(false);
 						msg= ask(/*YesNo*/true, msg);
-						runUserTransaction(true);
 						if(msg == "N")
 						{
 							m_dbgSessTime= *curTime;
@@ -3111,9 +3647,7 @@ namespace server
 						}else
 							msg+= "first ";
 						msg+= "one?\n";
-						runUserTransaction(false);
 						msg= ask(/*YesNo*/true, msg);
-						runUserTransaction(true);
 						if(msg == "Y")
 						{
 							if(	show == next_changed ||
@@ -3137,12 +3671,11 @@ namespace server
 					{
 						string msg;
 
+						msg=  " reaching first entry of folder\n";
 						msg=  " show folder '";
 						msg+= folderIt->folder;
-						msg+= "' again from begin?\n";
-						runUserTransaction(false);
+						msg+= "' again from end?\n";
 						msg= ask(/*YesNo*/true, msg);
-						runUserTransaction(true);
 						if(msg == "N")
 						{
 							m_dbgSessTime= *curTime;
@@ -3162,9 +3695,11 @@ namespace server
 				{
 					if(nr > folderCount[folder])
 					{
-						cout << " only " << folderCount[folder];
-						cout << " folder count of '";
-						cout << folder << "' do exist" << endl;
+						ostringstream out;
+
+						out << "   only " << folderCount[folder];
+						out << " folder count of '" << folder << "' do exist" << endl;
+						cout(out.str());
 						m_dbgSessTime= *curTime;
 						UNLOCK(m_DEBUGSESSIONCHANGES);
 						return &m_dbgSessTime;
@@ -3269,10 +3804,10 @@ namespace server
 						if(	show != all &&
 							mFolderStart[folderIt->folder] != "" )
 						{
-							cout << glob::addPrefix(id, mFolderStart[folderIt->folder]);
+							std::cout << glob::addPrefix(id, mFolderStart[folderIt->folder]);
 							mFolderStart[folderIt->folder]= "";
 						}
-						cout << glob::addPrefix(id, content.str());
+						std::cout << glob::addPrefix(id, content.str());
 						if(	folderIt->subroutine != "#start" &&
 							folderIt->subroutine != "#inform" &&
 							folderIt->subroutine != "#end"		)
@@ -3298,33 +3833,38 @@ namespace server
 		UNLOCK(m_DEBUGSESSIONCHANGES);
 		if(!bWritten)
 		{
-			cout << "no debug session content ";
+			ostringstream out;
+
+			out << "no debug session content ";
 			if(folder == "")
-				cout << "from working list exist" << endl;
+				out << "from working list exist" << endl;
 			else
 			{
-				cout << " exist by ";
+				out << " exist by ";
 				if(subroutines.size() != 1)
-					cout << "folder ";
-				cout << folder;
+					out << "folder ";
+				out << folder;
 				if(subroutines.size() > 1)
 				{
-					cout << " with follow subroutines:" << endl;
+					out << " with follow subroutines:" << endl;
 					for(vector<string>::const_iterator it= subroutines.begin();
 									it != subroutines.end(); ++it				)
 					{
-						cout << "                     " << *it << endl;
+						out << "                     " << *it << endl;
 					}
 				}else if(subroutines.size() == 1)
-					cout << ":" << subroutines[0] << endl;
+					out << ":" << subroutines[0] << endl;
 				else
-					cout << endl;
+					out << endl;
 			}
+			cout(out.str());
+
 		}else if(show != all)
 		{
 			bool moreThanOne(false);
 			string noWrite;
 			string notWritten;
+			ostringstream out;
 
 			for(map<string, bool>::iterator it= vWritten.begin();
 							it != vWritten.end(); ++it				)
@@ -3340,16 +3880,17 @@ namespace server
 			if(noWrite != "")
 			{
 				if(moreThanOne)
-					cout << " follow subroutines ";
+					out << " follow subroutines ";
 				else
-					cout << " subroutine '" << noWrite << "' ";
-				cout << "wasn't inside current folder pass" << endl;
-				cout << " of debug session getting from server";
+					out << " subroutine '" << noWrite << "' ";
+				out << "wasn't inside current folder pass" << endl;
+				out << " of debug session getting from server";
 				if(moreThanOne)
-					cout << ":";
-				cout << endl;
+					out << ":";
+				out << endl;
 				if(moreThanOne)
-					cout << notWritten;
+					out << notWritten;
+				cout(out.str());
 			}
 		}
 		if(	show == all &&
@@ -3387,7 +3928,7 @@ namespace server
 			result.substr(0, 7) == "WARNING"	)
 		{
 			if(result != "ERROR 003")
-				cout << result << endl;
+				cout(string("   ") + result +"\n");
 		}
 		return false;
 	}
@@ -3435,8 +3976,13 @@ namespace server
 		if(	!m_bRunHearTran &&
 			!m_bRunUserTrans	)
 		{
+			if(m_sAddPromptString != "")
+			{
+				m_sPrompt= m_sAddPromptString + m_sPrompt;
+				m_sAddPromptString= "";
+			}
 			if(m_sPrompt != "")
-				cout << m_sPrompt;
+				std::cout << m_sPrompt;
 			writeLastPromptLine(/*lock*/false);
 		}
 		UNLOCK(m_PROMPTMUTEX);
@@ -3453,7 +3999,7 @@ namespace server
 		if(user == "")
 		{
 			if(!m_bScriptState)
-				cout << "user: ";
+				prompt("user: ");
 			getline(std::cin, user);
 			trim(user);
 		}
@@ -3461,13 +4007,16 @@ namespace server
 		{
 			if(!m_bScriptState)
 			{
+				string msg;
+
 				term.c_lflag= term.c_lflag & ~ECHO;
 				if(!tcsetattr(TCSAFLUSH, &term))
 				{
-					cout << " WARNING: cannot blanking output" << endl;
-					cout << "          so typing of password is readable" << endl;
+					msg+= " WARNING: cannot blanking output\n";
+					msg+= "          so typing of password is readable\n";
 				}
-				cout << "password: " << flush;
+				msg+= "password: ";
+				prompt(msg);
 			}
 
 			do{
@@ -3479,7 +4028,7 @@ namespace server
 		if(	!m_bScriptState &&
 			!m_bHearing			)
 		{
-			cout << endl;
+			std::cout << endl;
 			resetTc();
 		}
 
@@ -3491,7 +4040,7 @@ namespace server
 		sSendbuf+= ":";
 		sSendbuf+= pwd;
 #ifdef SERVERDEBUG
-		cout << "send: '" << sSendbuf << "'" << endl;
+		std::cout << "send: '" << sSendbuf << "'" << endl;
 #endif // SERVERDEBUG
 		sSendbuf+= "\n";
 		descriptor << sSendbuf;
@@ -3548,7 +4097,7 @@ namespace server
 			!m_bRunHearTran	)
 		{
 			sNullStr.append(m_nOldResultLength, ' ');
-			cout << "\r" << m_sLastPromptLine << sNullStr << flush;
+			std::cout << "\r" << m_sLastPromptLine << sNullStr << std::flush;
 		}
 		if(cursor != string::npos)
 		{
@@ -3561,18 +4110,30 @@ namespace server
 		}
 		if(!m_bRunHearTran)
 		{
-			cout << "\r" << m_sLastPromptLine << m_sPromptResult << flush;
+			std::cout << "\r" << m_sLastPromptLine << m_sPromptResult << flush;
 			if(end)
-				cout << endl;
+				std::cout << endl;
 			else if(m_sPromptResult.length() > m_nResultPos)
 			{
-				cout << "\r" << m_sLastPromptLine;
-				cout << m_sPromptResult.substr(0, m_nResultPos) << flush;
+				std::cout << "\r" << m_sLastPromptLine;
+				std::cout << m_sPromptResult.substr(0, m_nResultPos) << flush;
 			}
 		}
 
 		if(lock)
 			UNLOCK(m_PROMPTMUTEX);
+	}
+
+	void ClientTransaction::cout(const string& str)
+	{
+		if(m_o2Client.get())
+		{
+			m_o2Client->transObj()->cout(str);
+			return;
+		}
+		LOCK(m_PROMPTMUTEX);
+		m_sAddPromptString+= str;
+		UNLOCK(m_PROMPTMUTEX);
 	}
 
 	void ClientTransaction::runUserTransaction(bool run)

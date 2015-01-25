@@ -77,6 +77,12 @@ namespace design_pattern_world
 			virtual void writeLastPromptLine(bool lock,
 							string::size_type cursor= string::npos, const string& str= "", bool end= false)= 0;
 			/**
+			 * print string by next call of method <code>prompt()</code> or <code>ask()</code>
+			 *
+			 * @param str string which should be printed
+			 */
+			virtual void cout(const string& str)= 0;
+			/**
 			 * set history of written command
 			 *
 			 * @param command current command
@@ -133,8 +139,9 @@ namespace design_pattern_world
 			 *
 			 * @param folder name of folder
 			 * @param subroutine name of subroutine
+			 * @return whether after clearing all holding of debug session queue is empty
 			 */
-			virtual void clearHoldingFolder(const string& folder, const string& subroutine)= 0;
+			virtual bool clearHoldingFolder(const string& folder, const string& subroutine)= 0;
 			/**
 			 * clear all content of debug session
 			 */
@@ -147,13 +154,12 @@ namespace design_pattern_world
 			virtual string getFolderID(const string& folder)= 0;
 			/**
 			 * count from getting debug session info
-			 * how often all folders are running.<br />
-			 * WARNING: method is not thread-safe
-			 * has to lock m_DEBUGSESSIONCHANGES outside
+			 * how often all folders are running.
 			 *
+			 * @param locked whether DEBUGSESSIONCHANGES locked before
 			 * @return map of count for all folders
 			 */
-			virtual map<string, unsigned long> getRunningFolderList()= 0;
+			virtual map<string, unsigned long> getRunningFolderList(bool locked)= 0;
 			/**
 			 * complete given result with an new tabulator string
 			 * and giving result in same parameter back
@@ -203,6 +209,33 @@ namespace design_pattern_world
 			 * @return released word, or by yes/no question only 'Y' or 'N' in big letters
 			 */
 			virtual string ask(bool yesno, string promptStr)= 0;
+			/**
+			 * check whether getting debug session queue from server
+			 * is empty
+			 *
+			 * @return whether queue is empty
+			 */
+			virtual bool emptyDbgQueue() const= 0;
+			/**
+			 * save current or follow debug session queue with ending <code>.dbgsession</code>
+			 * into file on current file system where client started
+			 *
+			 * @param file name of file where should stored
+			 * @return whether saving was correct done
+			 */
+			virtual bool saveFile(const string& file)= 0;
+			/**
+			 * close opened file to store debug session content
+			 */
+			virtual void closeFile()= 0;
+			/**
+			 * load before saved debug session from file system
+			 * where client was started
+			 *
+			 * @param file name of file which should loaded
+			 * @return whether loading was correct done
+			 */
+			virtual bool loadFile(const string& file)= 0;
 		};
 
 	} /* namespace util_pattern */

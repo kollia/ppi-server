@@ -338,6 +338,8 @@ namespace ppi_database
 		 * DbInterface::fillDebugSession
 		 * ServerDbTransaction::transfer by method == "fillDebugSession"
 		 * ClientTransaction::hearingTransfer
+		 * ClientTransaction::saveFile
+		 * ClientTransaction::loadFile
 		 */
 		command << content.folder;
 		command << content.subroutine;
