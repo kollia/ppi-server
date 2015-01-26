@@ -69,6 +69,12 @@ namespace server
 			 */
 			virtual bool transfer(IFileDescriptorPattern& descriptor);
 			/**
+			 * remove hearing transaction
+			 * to reach from user transaction
+			 */
+			void removeHearThread()
+			{ m_o2Client= SHAREDPTR::shared_ptr<IHearingThreadPattern>(); };
+			/**
 			 * set warning and error number which can occur outside of ClientTransaction
 			 *
 			 * @param warning highest warning number as positive integer
@@ -90,6 +96,12 @@ namespace server
 			 * @param str string of new prompt when set, otherwise take default from last written
 			 */
 			OVERWRITE void prompt(const string& str= "");
+			/**
+			 * set prompt string to writing with prompt
+			 *
+			 * @param str string of new prompt
+			 */
+			void setPromptString(const string& str= "");
 			/**
 			 * write last line of prompt with result
 			 *
@@ -407,9 +419,14 @@ namespace server
 			 */
 			map<unsigned short, deque<unsigned short> > m_mOwMaxCount;
 			/**
-			 * object of an second client running inside and thread
+			 * object of an second client running inside thread
 			 */
-			auto_ptr<IHearingThreadPattern> m_o2Client;
+			SHAREDPTR::shared_ptr<IHearingThreadPattern> m_oHearObj;
+			/**
+			 * second pointer to hearing object
+			 * to reach from user transaction
+			 */
+			SHAREDPTR::shared_ptr<IHearingThreadPattern> m_o2Client;
 			/**
 			 * warning number which can occur outside of ClientTransaction as positive integer
 			 */

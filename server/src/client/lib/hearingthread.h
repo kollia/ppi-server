@@ -49,9 +49,11 @@ namespace server
 		 * @param communicationID ID which should send to server
 		 * @param user user for second connection
 		 * @param pwd password for second connection
+		 * @param pUser object of user transaction
 		 * @param bOwDebug whether the session is set for debug an OWServer
 		 */
-		HearingThread(string host, unsigned short port, string communicationID, string user, string pwd, bool bOwDebug);
+		HearingThread(string host, unsigned short port, string communicationID,
+						string user, string pwd, ClientTransaction* pUser, bool bOwDebug);
 		/**
 		 * Destructor of HearingThread
 		 */
@@ -82,7 +84,7 @@ namespace server
 		 * @return transaction object
 		 */
 		OVERWRITE ClientTransaction* transObj()
-		{ return m_pTransaction; };
+		{ return m_pHearTransaction; };
 		/**
 		 * This method will be called if any other or own thread
 		 * calling method stop().
@@ -118,7 +120,11 @@ namespace server
 		/**
 		 * transaction object of hearing thread
 		 */
-		ClientTransaction* m_pTransaction;
+		ClientTransaction* m_pHearTransaction;
+		/**
+		 * transaction object of user thread
+		 */
+		ClientTransaction* m_pUserTransaction;
 	};
 
 }

@@ -295,8 +295,9 @@ namespace server
 			HearingThread* pThread;
 
 			pThread= new HearingThread(descriptor.getHostAddressName(), descriptor.getPort(),
-							sCommID, user, pwd, m_bOwDebug);
-			m_o2Client= auto_ptr<IHearingThreadPattern>(pThread);
+							sCommID, user, pwd, this, m_bOwDebug);
+			m_oHearObj= SHAREDPTR::shared_ptr<IHearingThreadPattern>(pThread);
+			m_o2Client= m_oHearObj;
 			(*errHandle)= pThread->start();
 		}
 		if(	!m_bHearing &&
@@ -1016,6 +1017,7 @@ namespace server
 		string folder, subroutine, content, id;
 		// debug external port server
 		bool bHeader= true;
+		bool bErrorWritten(false);
 		long nsec, nmsec, nusec;
 		//timeval time;
 		char buf[10];
@@ -1025,6 +1027,7 @@ namespace server
 		device_debug_t tdebug;
 
 		do{
+			bErrorWritten= false;
 			descriptor >> result;
 			trim(result);
 			if(result == "done")
@@ -1128,31 +1131,64 @@ namespace server
 					continue;
 				}
 			}
-			if(result == "stopclient")
-				bHeader= false;
-			if(bHeader)
+			if(	result == "stopclient" ||
+				(	result.length() > 5 &&
+					result.substr(0, 5) == "ERROR"	) ||
+				(	result.length() > 7 &&
+					result.substr(0, 7) == "WARNING"	)	)
 			{
-				runHearingTransaction(true);
-				if(gettimeofday(&time, NULL))
+				bool bError(false);
+
+				if(	result.length() > 5 &&
+					result.substr(0, 5) == "ERROR"	)
 				{
-					std::cout << "XX:XX:xx (cannot calculate time)" << endl;
-				}else
-				{
-					if(localtime_r(&time.tv_sec, &ttime) != NULL)
-					{
-						strftime(stime, 21, "%H:%M:%S", &ttime);
-						std::cout << stime << endl;
-					}else
-						std::cout << "XX:XX:xx (cannot calculate time)" << endl;
+					bError= true;
 				}
-				std::cout << "Nr.| CALL | last call        |    value     |  every   | need time | length time "
-					"| act. | chip ID / pin" << endl;
-				std::cout << "---------------------------------------------------------------------------------"
-					"------------------------------" << endl;
-				bHeader= false;
+				runHearingTransaction(true);
+				std::cout << endl;
+				if(result != "stopclient")
+				{
+					if(result != "ERROR 019")
+						std::cout << "Uncaught ";
+					if(bError)
+						std::cout << "ERROR ";
+					else
+						std::cout << "WARNING ";
+					std::cout << "message by hearing thread getting from server" << endl;
+					printError(descriptor, result);
+				}else
+					std::cout << " server stopping regular hearing thread" << endl;
+				if(	result != "stopclient"	&&
+					result != "ERROR 019"		)
+				{
+					runHearingTransaction(false);
+					prompt();
+				}
+				bErrorWritten= true;
 			}
-			if(result != "stopclient")
+			if(!bErrorWritten)
 			{
+				if(m_bOwDebug && bHeader)
+				{
+					runHearingTransaction(true);
+					if(gettimeofday(&time, NULL))
+					{
+						std::cout << "XX:XX:xx (cannot calculate time)" << endl;
+					}else
+					{
+						if(localtime_r(&time.tv_sec, &ttime) != NULL)
+						{
+							strftime(stime, 21, "%H:%M:%S", &ttime);
+							std::cout << stime << endl;
+						}else
+							std::cout << "XX:XX:xx (cannot calculate time)" << endl;
+					}
+					std::cout << "Nr.| CALL | last call        |    value     |  every   | need time | length time "
+						"| act. | chip ID / pin" << endl;
+					std::cout << "---------------------------------------------------------------------------------"
+						"------------------------------" << endl;
+					bHeader= false;
+				}
 				if(m_bOwDebug && result.substr(0, 1) != "0")
 				{
 					if(result != "done\n")
@@ -1274,11 +1310,17 @@ namespace server
 			else
 				std::cout << "### server has stop hearing thread" << endl;
 #endif // SERVERDEBUG
-		}while(	!descriptor.eof()
-				&&
-				result != "stopclient"	);
+		}while(	!descriptor.eof() &&
+				result != "stopclient" &&
+				result != "ERROR 019"		);
 		if(descriptor.eof())
-			std::cout << "### by heareing on server for OWServer debug messages -> connection is broken" << endl;
+		{
+			std::cout << endl;
+			std::cout << "### by heareing on server on second connection "
+							"-> connection is broken" << endl;
+		}
+		runHearingTransaction(false);
+		prompt();
 		return false;
 	}
 
@@ -3964,16 +4006,8 @@ namespace server
 		return false;
 	}
 
-	void ClientTransaction::prompt(const string& str/*= ""*/)
+	void ClientTransaction::setPromptString(const string& str)
 	{
-		if(m_bScriptState)
-			return;
-		if(m_o2Client.get())
-		{
-			m_o2Client->transObj()->prompt(str);
-			return;
-		}
-		LOCK(m_PROMPTMUTEX);
 		if(str != "")
 		{
 			vector<string>::size_type nLen;
@@ -4010,6 +4044,27 @@ namespace server
 			m_sPrompt= m_sAddPromptString + m_sPrompt;
 			m_sAddPromptString= "";
 		}
+	}
+
+	void ClientTransaction::prompt(const string& str/*= ""*/)
+	{
+		if(m_bScriptState)
+			return;
+		if(m_o2Client.get())
+		{
+			/**
+			 * set prompt string
+			 * also inside user thread,
+			 * because when hearing thread
+			 * stopping, user thread
+			 * should also know from current prompt
+			 */
+			setPromptString(str);
+			m_o2Client->transObj()->prompt(str);
+			return;
+		}
+		LOCK(m_PROMPTMUTEX);
+		setPromptString(str);
 		if(	!m_bRunHearTran &&
 			!m_bRunUserTrans	)
 		{

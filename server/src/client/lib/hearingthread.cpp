@@ -27,7 +27,7 @@ namespace server
 {
 
 	HearingThread::HearingThread(string host, unsigned short port, string communicationID,
-																	string user, string pwd, bool bOwDebug)
+											string user, string pwd, ClientTransaction* pUser, bool bOwDebug)
 	: IHearingThreadPattern("ClientHearingThread")
 	{
 		m_shost= host;
@@ -39,6 +39,7 @@ namespace server
 		m_sPwd= "-p ";
 		m_sPwd+= pwd;
 		m_bOwDebug= bOwDebug;
+		m_pUserTransaction= pUser;
 	}
 
 	EHObj HearingThread::init(void* args)
@@ -50,7 +51,7 @@ namespace server
 		options.push_back(m_sPwd);
 		if(m_bOwDebug)
 			options.push_back("-ow");
-		m_pTransaction= new ClientTransaction(options, "");
+		m_pHearTransaction= new ClientTransaction(options, "");
 		return m_pError;
 	}
 
@@ -59,7 +60,7 @@ namespace server
 		auto_ptr<SocketClientConnection> clientCon;
 
 		clientCon= auto_ptr<SocketClientConnection>(new SocketClientConnection(SOCK_STREAM, m_shost, m_nPort,
-																				5, m_pTransaction	));
+																				5, m_pHearTransaction	));
 		m_pError= clientCon->init();
 		stop();
 		return true;
@@ -67,6 +68,7 @@ namespace server
 
 	void HearingThread::ending()
 	{
+		m_pUserTransaction->removeHearThread();
 	}
 
 	HearingThread::~HearingThread()
