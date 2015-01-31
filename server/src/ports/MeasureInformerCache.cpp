@@ -109,7 +109,7 @@ namespace util
 			if(debug)
 			{
 				m_oInformOutput->out() << "--------------------------------------------------------------" << endl;
-				m_oInformOutput->writeDebugStream(time);
+				m_oInformOutput->writeDebugStream();
 				if(!bReg)
 					TERMINALEND;
 			}

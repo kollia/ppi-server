@@ -18,6 +18,8 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#include "../util/debugsubroutines.h"
+
 #include "ReadWorker.h"
 
 namespace ports
@@ -62,6 +64,44 @@ namespace ports
 		return true;
 	}
 
+	void ReadWorker::fillDebug(const string& str)
+	{
+#ifdef __WRITEDEBUGALLLINES
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH )
+
+		m_pValueSet->out() << out << endl;
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT )
+		m_sDebugOutput+= str;
+#endif
+#else // __WRITEDEBUGALLLINES
+		m_sDebugOutput+= str;
+#endif // __WRITEDEBUGALLLINES
+	}
+
+	void ReadWorker::writeDebug(const IValueHolderPattern* value/*= NULL*/)
+	{
+		if(m_sDebugOutput != "")
+		{
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH )
+
+		m_pValueSet->out() << m_sDebugOutput;
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT )
+
+		if(value != NULL)
+		{
+			m_pValueSet->fillDebugSession(
+							m_sFolder, m_sSubroutine,
+							value->getValue(), m_sDebugOutput	);
+		}else
+			m_pValueSet->out() << m_sDebugOutput;
+
+#endif
+		}
+		m_sDebugOutput= "";
+	}
+
 	bool ReadWorker::runnable()
 	{
 		LOCK(m_STARTMUTEX);
@@ -80,22 +120,28 @@ namespace ports
 				{
 					string out;
 					auto_ptr<IValueHolderPattern> oValue;
+					ppi_time startTime;
+					startTime.setActTime();
 
 					UNLOCK(m_STARTMUTEX);
-					out= "---------------------------------------------------------------------------\n";
-					out+= "---  external started from TIMER subroutine\n";
-					out+= "---  " + m_sFolder + ":" + m_sSubroutine + "\n";
-					m_pValueSet->out() << out << endl;
+					if(m_bDebug)
+					{
+						out= "---------------------------------------------------------------------------\n";
+						out+= "---  external READER started from TIMER subroutine\n";
+						out+= "---  " + m_sFolder + ":" + m_sSubroutine + "\n";
+						fillDebug(out);
+					}
 					oValue= doHttpConnection(0, m_bDebug);
-					out= "---------------------------------------------------------------------------\n";
-					m_pValueSet->out() << out << endl;
-					ostringstream oout;
-					oout << "run http with " << m_sFolder + ":" + m_sSubroutine + " " << oValue->getValue()
-									<< " " << oValue->getTime().toString(true) << endl;
-					cout << oout.str();
 					m_pValueSet->setValue(m_sFolder, m_sSubroutine, *(oValue.get()),
 									InformObject(InformObject::READWORKER,
 													m_sFolder+":"+m_sSubroutine	)	);
+					if(m_bDebug)
+					{
+						oValue->setTime(startTime);
+						out= "---------------------------------------------------------------------------\n";
+						fillDebug(out);
+						writeDebug(oValue.get());
+					}
 					LOCK(m_STARTMUTEX);
 				}
 			}
@@ -133,7 +179,7 @@ namespace ports
 				err+= currentTime.errorStr() + "\n";
 				err+= "so take current subroutine changing time";
 				if(debug)
-					m_pValueSet->out() << err << endl;
+					fillDebug(err);
 				TIMELOG(LOG_WARNING, "start-time-set", err);
 			}
 			oValue->setTime(currentTime);
@@ -244,7 +290,7 @@ namespace ports
 						outstr= "\nReinitialize ";
 					outstr+= "connection to server ";
 					outstr+= m_sAddress.getHost();
-					m_pValueSet->out() << outstr << endl;
+					fillDebug(outstr + "\n");
 				}
 				errHandle= m_oSocket->init();
 				if(errHandle->hasError())
@@ -252,7 +298,7 @@ namespace ports
 			}else
 			{
 				if(debug)
-					m_pValueSet->out() << "Try to take existing connection to server" << endl;
+					fillDebug("Try to take existing connection to server\n");
 //				connResult= m_oSocket->reconnect();
 //				if(connResult == 28/*EISCONN*/)	// The socket is already connected.
 //					connResult= 0;				// but do not read correctly (don't know why)
@@ -289,9 +335,9 @@ namespace ports
 
 						err+= m_sFolder + ":" + m_sSubroutine + "\n";
 						err+= currentTime.errorStr() + "\n";
-						err+= "so take current subroutine changing time";
+						err+= "so take current subroutine changing time\n";
 						if(debug)
-							m_pValueSet->out() << err << endl;
+							fillDebug(err);
 						TIMELOG(LOG_WARNING, "connect-time-set", err);
 					}
 					oValue->setTime(currentTime);
@@ -363,9 +409,9 @@ namespace ports
 
 							err+= m_sFolder + ":" + m_sSubroutine + "\n";
 							err+= currentTime.errorStr() + "\n";
-							err+= "so take current subroutine changing time";
+							err+= "so take current subroutine changing time\n";
 							if(debug)
-								m_pValueSet->out() << err << endl;
+								fillDebug(err);
 							TIMELOG(LOG_WARNING, "send-time-set", err);
 
 						}else if(oValue->getTime().isSet())
@@ -398,17 +444,11 @@ namespace ports
 					 // reconnect client to server
 						if(debug)
 						{
-							m_pValueSet->out() << debugOutStr << endl;
-							m_pValueSet->out() << "ERROR by reading answer, get no content -> so close connection to "
-									<< m_sAddress.getHost() << endl;
-							m_pValueSet->out() << "try again" << endl;
-
-							cout << debugOutStr << endl;
-							cout << "ERROR by reading answer, get no content -> so close connection to "
-									<< m_sAddress.getHost() << endl;
-							cout << "try again" << endl;
-							cout << "content '" << result << "'" << endl;
-
+							fillDebug(debugOutStr + "\n"
+									"ERROR by reading answer, get no content "
+											"-> so close connection to "
+											+ m_sAddress.getHost() + "\n"
+															"try again\n"		);
 						}
 						bHoldConnection= false;
 						continue;
@@ -420,17 +460,14 @@ namespace ports
 					errStr+= m_sAddress.getHost();
 					if(debug)
 					{
-						m_pValueSet->out() << debugOutStr << endl;
-						m_pValueSet->out() << errStr << endl;
+						fillDebug(debugOutStr + "\n" + errStr + "\n");
 					}
 					TIMELOG(LOG_ERROR, "null-content-reading", errStr);
-					if(debug)
-						m_pValueSet->out() << debugOutStr << endl;
 					connResult= -1;
 					break;
 				}
 				if(debug)
-					m_pValueSet->out() << debugOutStr << endl;
+					fillDebug(debugOutStr + "\n");
 
 				output.str(result);
 				output >> res;
@@ -441,7 +478,7 @@ namespace ports
 					errStr=  "ERROR: get answer from no HTTP server, close connection\n";
 					errStr+= "       server answered with '" + result + "'";
 					if(debug)
-						m_pValueSet->out() << errStr << endl;
+						fillDebug(errStr + "\n");
 					errStr+= "inside subroutine " + m_sFolder + ":" + m_sSubroutine + "\n";
 					errStr+= "for request of '" + m_sAddress.getBaseUri() + "'";
 					TIMELOG(LOG_ERROR, "wrong-server-answer", errStr);
@@ -454,9 +491,9 @@ namespace ports
 				oValue->setValue(static_cast<ppi_value>(nRetCode));
 				if(debug)
 				{
-					m_pValueSet->out() << "subroutine get answer from server" << endl;
-					m_pValueSet->out() << "HEADER:" << endl;
-					m_pValueSet->out() << result << endl;
+					fillDebug("subroutine get answer from server\n"
+									"HEADER:\n" +
+									result + "\n"					);
 				}
 			}// if(connResult == 0)
 			break;
@@ -492,8 +529,7 @@ namespace ports
 					errStr+= m_sAddress.getHost() + "\n";
 					if(debug)
 					{
-						m_pValueSet->out() << debugOutStr << endl;
-						m_pValueSet->out() << errStr;
+						fillDebug(debugOutStr + "\n" + errStr + "\n");
 					}
 					errStr+= "inside subroutine " + m_sFolder + ":" + m_sSubroutine + "\n";
 					errStr+= "for request of '" + m_sAddress.getBaseUri() + "'";
@@ -616,8 +652,7 @@ namespace ports
 			if(	debug &&
 				debugOutStr != ""	)
 			{
-				m_pValueSet->out() << debugOutStr << endl;
-				cout << debugOutStr << endl;
+				fillDebug(debugOutStr + "\n");
 			}
 
 			if(bHeadEnd)
@@ -632,7 +667,7 @@ namespace ports
 						err+= currentTime.errorStr() + "\n";
 						err+= "so take current subroutine changing time";
 						if(debug)
-							m_pValueSet->out() << err << endl;
+							fillDebug(err + "\n");
 						TIMELOG(LOG_WARNING, "end-time-set", err);
 					}
 					oValue->setTime(currentTime);
@@ -694,8 +729,7 @@ namespace ports
 						outstr+= seconds[2].toString(/*as date*/false) + " seconds by "
 												+ connectTime[3].toString(/*as date*/true);
 					outstr+="\n";
-					m_pValueSet->out() << outstr << endl;
-					cout << outstr << endl;
+					fillDebug(outstr + "\n");
 				}
 				if(!bHoldConnection)
 					m_oSocket->close();
@@ -706,7 +740,7 @@ namespace ports
 				warn= "connection to '" + m_sAddress.getBaseUri();
 				warn+= "' get no correct answer";
 				if(debug)
-					m_pValueSet->out() << warn << endl;
+					fillDebug(warn + "\n");
 				LOG(LOG_WARNING, warn);
 				currentTime.clear();
 				oValue->setTime(currentTime);
@@ -729,7 +763,7 @@ namespace ports
 				err+= "\n" + errHandle->getDescription();
 			}
 			if(debug)
-				m_pValueSet->out() << err << endl;
+				fillDebug(err + "\n");
 			LOG(LOG_ERROR, err);
 			currentTime.clear();
 			oValue->setTime(currentTime);

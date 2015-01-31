@@ -475,10 +475,18 @@ namespace ports
 			/**
 			 * writing into string stream into terminal
 			 * when definition WRITEDEBUGALLLINES not be set
-			 *
-			 * @param time proceed time of subroutine
 			 */
-			virtual void writeDebugStream(const ppi_time& time);
+			virtual void writeDebugStream();
+			/**
+			 * fill debug session for sending to client
+			 *
+			 * @param folder on which folder execute
+			 * @param subroutine on which subroutine execute
+			 * @param value by which value execute
+			 * @param content which content execute
+			 */
+			OVERWRITE void fillDebugSession(const string& folder, const string& subroutine,
+							const ppi_value& value, const string& content);
 			/**
 			 * returning the type of the current object
 			 *

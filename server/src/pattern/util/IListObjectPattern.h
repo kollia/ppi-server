@@ -201,10 +201,8 @@ namespace design_pattern_world
 			/**
 			 * writing into string stream into terminal
 			 * when definition WRITEDEBUGALLLINES not be set
-			 *
-			 * @param time proceed time of subroutine
 			 */
-			virtual void writeDebugStream(const ppi_time& time)= 0;
+			virtual void writeDebugStream()= 0;
 			/**
 			 * returning the type of the current object
 			 *

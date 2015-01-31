@@ -115,6 +115,10 @@ namespace ports
 		 */
 		auto_ptr<IValueHolderPattern> doHttpConnection(const ppi_value& curValue, bool debug);
 		/**
+		 * write debug string to output
+		 */
+		void writeDebug(const IValueHolderPattern* value= NULL);
+		/**
 		 *  external command to stop thread
 		 *
 		 * @param bWait calling rutine should wait until the thread is stopping
@@ -142,6 +146,12 @@ namespace ports
 		 * working routine of callback class
 		 */
 		OVERWRITE bool runnable();
+		/**
+		 * fill string for debug session
+		 *
+		 * @param str string to fill
+		 */
+		void fillDebug(const string& str);
 
 	private:
 		/**
@@ -203,6 +213,10 @@ namespace ports
 		 * time to starting read routine
 		 */
 		ppi_time m_oStartTime;
+		/**
+		 * output string for debug session
+		 */
+		string m_sDebugOutput;
 		/**
 		 * mutex for starting per time
 		 */

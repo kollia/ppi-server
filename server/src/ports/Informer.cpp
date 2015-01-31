@@ -21,12 +21,15 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+#include "../database/logger/lib/logstructures.h"
+#include "../pattern/util/LogHolderPattern.h"
 #include "../pattern/util/IDbgSessionPattern.h"
 
 #include "../util/stream/ppivalues.h"
 
 #include "../util/thread/Terminal.h"
 
+#include "../util/GlobalStaticMethods.h"
 #include "../util/exception.h"
 #include "../util/debugsubroutines.h"
 
@@ -150,7 +153,17 @@ namespace util
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
 			IDbgSessionPattern::dbgSubroutineContent_t content;
+			ppi_time cur;
 
+			cur.setActTime();
+			if(cur.error())
+			{
+				string err("cannot create current time for debugging session\n");
+
+				err+= cur.errorStr();
+				cout << glob::addPrefix("### WARNING: ", err) << endl;
+				TIMELOG(LOG_WARNING, "informerdebugsessiontime", err);
+			}
 			/**
 			 * place of new definition of content are:
 			 * ProcessChecker::execute by method == "debugSubroutine"
@@ -165,7 +178,7 @@ namespace util
 			content.folder= m_sFolder;
 			content.subroutine= as;
 			content.value= 0;
-			content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time);
+			content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(cur));
 			content.content= output.str();
 			m_poMeasurePattern->fillDebugSession(content);
 #endif

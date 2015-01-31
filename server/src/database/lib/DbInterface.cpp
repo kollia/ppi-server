@@ -331,6 +331,7 @@ namespace ppi_database
 		string msg;
 		SocketErrorHandling err;
 		OMethodStringStream command("fillDebugSession");
+		ppi_time cur;
 
 		/*
 		 * data type order below
@@ -344,7 +345,21 @@ namespace ppi_database
 		command << content.folder;
 		command << content.subroutine;
 		command << content.value;
-		command << *content.currentTime;
+		if(	content.currentTime == NULL ||
+			content.currentTime->isSet()	)
+		{
+			cur.setActTime();
+			if(cur.error())
+			{
+				string err("cannot create current time for debugging session\n");
+
+				err+= cur.errorStr();
+				cout << glob::addPrefix("### WARNING: ", err) << endl;
+				TIMELOG(LOG_WARNING, "debugsessiontime_dbinterface", err);
+			}
+			command << cur;
+		}else
+			command << *content.currentTime;
 		command << content.content;
 		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, answer);
 		err.setErrorStr(msg);

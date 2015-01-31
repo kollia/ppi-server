@@ -797,7 +797,6 @@ folderSpecNeed_t MeasureThread::isFolderRunning(const vector<string>& specs)
 IInformerCachePattern* MeasureThread::getInformerCache(const string& folder)
 {
 	IInformerCachePattern* pRv;
-	ppi_time nullTime;
 
 	pRv= getUsedInformerCache(folder);
 	if(pRv == NULL)
@@ -807,7 +806,7 @@ IInformerCachePattern* MeasureThread::getInformerCache(const string& folder)
 						SHAREDPTR::shared_ptr<MeasureInformerCache>(
 										new MeasureInformerCache(folder, this, m_oInformOutput)	)	);
 		if(getInformeThreadStatement() != "")
-			m_oInformOutput->writeDebugStream(nullTime);
+			m_oInformOutput->writeDebugStream();
 		pRv= static_cast<IInformerCachePattern*>(m_voInformerCaches.back().get());
 		UNLOCK(m_INFORMERCACHECREATION);
 	}
@@ -1893,7 +1892,7 @@ bool MeasureThread::measure()
 		if(classdebug)
 		{
 			it->portClass->out() << "--------------------------------------------------------------------\n";
-			it->portClass->writeDebugStream(tv_start);
+			it->portClass->writeDebugStream();
 			TERMINALEND;
 		}
 		if(stopping())

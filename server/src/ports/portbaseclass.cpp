@@ -1433,27 +1433,13 @@ ostringstream& portBase::out()
 	return m_sStreamObj;
 }
 
-void portBase::writeDebugStream(const ppi_time& time)
+void portBase::writeDebugStream()
 {
+	if(m_sStreamObj.eof())
+		return;
+	try{
 #ifndef __WRITEDEBUGALLLINES
 #if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
-	string output(m_sStreamObj.str());
-
-	if(output.length() > 0)
-	{
-		tout << output;
-		tout << flush;
-	}
-#if (__DEBUGSESSIONOutput == debugsession_SERVER)
-	m_sStreamObj.str("");
-#endif
-#endif
-#endif // __WRITEDEBUGALLLINES
-
-#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
-	if(!time.isSet())
-	{
-#ifndef __WRITEDEBUGALLLINES
 		string output(m_sStreamObj.str());
 
 		if(output.length() > 0)
@@ -1461,34 +1447,95 @@ void portBase::writeDebugStream(const ppi_time& time)
 			tout << output;
 			tout << flush;
 		}
+#if (__DEBUGSESSIONOutput == debugsession_SERVER)
 		m_sStreamObj.str("");
 #endif
-	}else
-	{
-		IDbgSessionPattern::dbgSubroutineContent_t content;
-
-		/**
-		 * place of new definition of content are:
-		 * ProcessChecker::execute by method == "debugSubroutine"
-		 * Informer::informing
-		 * MeasureThread::setDebug on method end
-		 * MeasureThread::execute by 2 times
-		 * MeasureThread::doDebugStartingOutput
-		 * MeasureThread::checkToStart
-		 * portBase::writeDebugStream
-		 * ServerDbTransaction::transfer by method == "fillDebugSession"
-		 */
-		content.folder= m_sFolder;
-		content.subroutine= m_sSubroutine;
-		LOCK(m_VALUELOCK);
-		content.value= m_dValue.value;
-		UNLOCK(m_VALUELOCK);
-		content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(time));
-		content.content= m_sStreamObj.str();
-		getRunningThread()->fillDebugSession(content);
-	}
-	m_sStreamObj.str("");
 #endif
+#endif // __WRITEDEBUGALLLINES
+
+#if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+
+		if(getRunningThread() == NULL)
+		{
+#ifndef __WRITEDEBUGALLLINES
+			string output(m_sStreamObj.str());
+
+			if(output.length() > 0)
+			{
+				tout << output;
+				tout << flush;
+			}
+			m_sStreamObj.str("");
+#endif
+		}else
+		{
+			ppi_value value;
+
+			LOCK(m_VALUELOCK);
+			value= m_dValue.value;
+			UNLOCK(m_VALUELOCK);
+			fillDebugSession(m_sFolder, m_sSubroutine, value, m_sStreamObj.str());
+			m_sStreamObj.str("");
+		}
+#endif
+	}catch(SignalException& ex)
+	{
+		string err;
+
+		ex.addMessage("try to write debug session info for '" + m_sFolder + ":" + m_sSubroutine + "'");
+		err= ex.getTraceString();
+		cerr << endl << err << endl;
+		try{
+			LOG(LOG_ALERT, err);
+		}catch(...)
+		{
+			cerr << endl << "ERROR: catch exception by trying to log error message" << endl;
+		}
+
+	}
+}
+
+void portBase::fillDebugSession(const string& folder, const string& subroutine,
+				const ppi_value& value, const string& contentStr)
+{
+	IDbgSessionPattern::dbgSubroutineContent_t content;
+
+	/**
+	 * place of new definition of content are:
+	 * DbInterface::fillDebugSession
+	 * ProcessChecker::execute by method == "debugSubroutine"
+	 * Informer::informing
+	 * MeasureThread::setDebug on method end
+	 * MeasureThread::execute by 2 times
+	 * MeasureThread::doDebugStartingOutput
+	 * MeasureThread::checkToStart
+	 * portBase::writeDebugStream
+	 * ServerDbTransaction::transfer by method == "fillDebugSession"
+	 */
+	content.folder= folder;
+	content.subroutine= subroutine;
+	content.value= value;
+	try{
+		ppi_time cur;
+
+		cur.setActTime();
+		if(cur.error())
+		{
+			string err("cannot create current time for debugging session\n");
+
+			err+= cur.errorStr();
+			cout << glob::addPrefix("### WARNING: ", err) << endl;
+			TIMELOG(LOG_WARNING, "debugsessiontime", err);
+		}
+		content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(cur));
+
+	}catch(SignalException& ex)
+	{
+		ex.addMessage("create shared pointer for ppi_time");
+		throw ex;
+	}
+	content.content= contentStr;
+	getRunningThread()->fillDebugSession(content);
 }
 
 portBase::~portBase()

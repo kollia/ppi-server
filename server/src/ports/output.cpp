@@ -211,7 +211,7 @@ namespace ports
 				out() << outStr.str() << endl;
 				if(!bDebug)
 				{
-					writeDebugStream(startTime);
+					writeDebugStream();
 					TERMINALEND;
 				}
 			}

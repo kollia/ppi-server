@@ -125,6 +125,7 @@ namespace ports
 		}
 		m_nDo= 1;
 		oValue= m_oReader.doHttpConnection(actValue, debug);
+		m_oReader.writeDebug();
 		if(debug)
 			out() << "result of subroutine is " << oValue->getValue() << endl;
 		return oValue;
