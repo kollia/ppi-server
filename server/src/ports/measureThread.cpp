@@ -1753,6 +1753,7 @@ bool MeasureThread::measure()
 			notime= true;
 		}
 	}
+	m_oInformOutput->actualizeChangedSubVars();
 	for(vector<sub>::iterator it= m_pvtSubroutines->begin(); it != m_pvtSubroutines->end(); ++it)
 	{
 		classdebug= false;
