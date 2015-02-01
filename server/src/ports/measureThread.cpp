@@ -110,6 +110,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 	m_nFolderCPUtime= folderCPUtime;
 	m_nSchedPolicy= SCHED_OTHER;
 	m_nSchedPriority= 0;
+	m_oInformOutput->setRunningThread(this);
 	pCurrent= pFolderStart;
 	while(pCurrent)
 	{
