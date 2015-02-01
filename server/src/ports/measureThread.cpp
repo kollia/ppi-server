@@ -75,8 +75,8 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
   m_oToSubExp(__followSETbehaviorToSubroutine),
 #endif
   m_sFolder(threadname),
-  m_oRunnThread(threadname, "parameter_run", "run", false, true, pFolderStart->subroutines[0].portClass.get()),
-  m_oInformOutput(new Output(threadname, threadname, /*objectID*/0)),
+  m_oRunnThread(threadname, "#run", "run", false, true, pFolderStart->subroutines[0].portClass.get()),
+  m_oInformOutput(new Output(threadname, "#inform", /*objectID*/0)),
   m_ACTIVATETIME(Thread::getMutex("ACTIVATETIME")),
   m_FOLDERRUNMUTEX(Thread::getMutex("FOLDERRUNMUTEX")),
   m_DEBUGLOCK(Thread::getMutex("DEBUGLOCK")),
@@ -1670,7 +1670,7 @@ bool MeasureThread::checkToStart(vector<InformObject>& vInformed, const bool deb
 			 * ServerDbTransaction::transfer by method == "fillDebugSession"
 			 */
 			content.folder= getFolderName();
-			content.subroutine= "#inform";
+			content.subroutine= "#started";
 			content.value= 0;
 			content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(m_tvStartTime));
 			content.content= out.str();
