@@ -396,9 +396,9 @@ string GlobalStaticMethods::addPrefix(const string& pref, const string& str)
 	if(	resLen > 0 &&
 		sRv.substr(resLen - 1, 1) == "\n" &&
 		(	strLen == 0 ||
-			(	str.substr(str.length() - 1, 1) != "\n"	)	)	)
+			str.substr(strLen - 1, 1) != "\n"	)	)
 	{
-		sRv= sRv.substr(resLen - 1, 1);
+		sRv= sRv.substr(0, resLen - 1);
 	}
 	return sRv;
 }
