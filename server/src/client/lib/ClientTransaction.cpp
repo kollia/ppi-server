@@ -52,6 +52,7 @@ namespace server
 	{
 		m_bConnected= false;
 		m_bErrWritten= false;
+		m_bCorrectTC= false;
 		m_bWait= false;
 		m_bShowENum= false;
 		m_vOptions= options;
@@ -1628,10 +1629,17 @@ namespace server
 			errHandle->setErrnoError("ClientTransaction", "tcsetattr", errno);
 			cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
 			m_bErrWritten= true;
-			m_bCorrectTC= false;
+			correctTC(false);
 			return false;
 		}
 		return true;
+	}
+
+	void ClientTransaction::correctTC(bool read)
+	{
+		m_bCorrectTC= true;
+		if(m_o2Client.get())
+			m_o2Client->transObj()->correctTC(read);
 	}
 
 	void ClientTransaction::readTcBackup()
@@ -1639,12 +1647,11 @@ namespace server
 		EHObj errHandle(EHObj(new ErrorHandling));
 		int nErrno(0);
 
-		m_bCorrectTC= true;
 		m_bScriptState= false;
 		if((::tcgetattr(STDIN_FILENO, &m_tTermiosBackup)) < 0)
 		{
 			nErrno= errno;
-			m_bCorrectTC= false;
+			correctTC(false);
 			if(nErrno != ENOTTY)/* Not a typewriter */
 			{
 				errHandle->setErrnoError("ClientTransaction", "tcgetattr", nErrno);
@@ -1652,7 +1659,8 @@ namespace server
 				m_bErrWritten= true;
 			}else
 				m_bScriptState= true;
-		}
+		}else
+			correctTC(true);
 	}
 
 	void ClientTransaction::setHistory(const string& command, vector<string>::size_type pos/*= 0*/)
@@ -1908,6 +1916,7 @@ namespace server
 		typedef pair<string, pair<ppi_time, vector<string> > > layerDef;
 		typedef pair<ppi_time, vector<string> > layerContentDef;
 
+		bool bFirst(true);
 		bool bErrorWritten;
 		bool bWaitEnd= false;
 		bool bSendCommand(true);
@@ -1932,6 +1941,7 @@ namespace server
 			//termios_flag.c_cc[VTIME] = 0;
 			tcsetattr(TCSANOW, &termios_flag);
 		}
+		correctTC(m_bCorrectTC);
 		if(	m_bWait &&
 			!m_bScriptState	)
 		{
@@ -1958,6 +1968,11 @@ namespace server
 				trim(org_command);
 				if(org_command == "")
 					continue;
+				if(bFirst)
+				{
+					correctTC(m_bCorrectTC);
+					bFirst= false;
+				}
 			}
 			bErrorWritten= false;
 			bWaitEnd= false;

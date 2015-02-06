@@ -77,6 +77,15 @@ namespace design_pattern_world
 			virtual void writeLastPromptLine(bool lock,
 							string::size_type cursor= string::npos, const string& str= "", bool end= false)= 0;
 			/**
+			 * set handle for termios reading
+			 * whether was written ok.<br />
+			 * this only be useful when second connection
+			 * for hearing be started
+			 *
+			 * @param read whether was written ok
+			 */
+			virtual void correctTC(bool read)= 0;
+			/**
 			 * print string by next call of method <code>prompt()</code> or <code>ask()</code>
 			 *
 			 * @param str string which should be printed

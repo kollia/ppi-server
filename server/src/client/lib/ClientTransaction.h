@@ -517,6 +517,15 @@ namespace server
 			 */
 			int getch();
 			/**
+			 * set handle for termios reading
+			 * whether was written ok.<br />
+			 * this only be useful when second connection
+			 * for hearing be started
+			 *
+			 * @param read whether was written ok
+			 */
+			OVERWRITE void correctTC(bool read);
+			/**
 			 * read command line terminal interface
 			 * to make possible to reset
 			 */
