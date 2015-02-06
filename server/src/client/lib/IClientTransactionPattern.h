@@ -157,9 +157,11 @@ namespace design_pattern_world
 			 * how often all folders are running.
 			 *
 			 * @param locked whether DEBUGSESSIONCHANGES locked before
+			 * @param outside whether should be included external running subroutines
+			 * @return map of count for all folders
 			 * @return map of count for all folders
 			 */
-			virtual map<string, unsigned long> getRunningFolderList(bool locked)= 0;
+			virtual map<string, unsigned long> getRunningFolderList(bool locked, bool outside= false)= 0;
 			/**
 			 * complete given result with an new tabulator string
 			 * and giving result in same parameter back

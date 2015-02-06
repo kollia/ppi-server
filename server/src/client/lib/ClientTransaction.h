@@ -17,6 +17,16 @@
 #ifndef CLIENTTRANSACTION_H_
 #define CLIENTTRANSACTION_H_
 
+/**
+ * display counting
+ * of external subroutines
+ * and folder running
+ * by method writeDebugSession()
+ * when set by compiling
+ * this parameter to one
+ */
+#define __DISPLAY_COUNTING 0
+
 #include <string.h>
 #include <unistd.h>
 #include <termios.h>
@@ -42,7 +52,7 @@ using namespace design_pattern_world::util_pattern;
 namespace server
 {
 	/**
-	 * initialication transaction from server to client
+	 * Initialization transaction from server to client
 	 *
 	 * @author Alexander Kolli
 	 * @version 1.0.0
@@ -193,9 +203,10 @@ namespace server
 			 * how often all folders are running.
 			 *
 			 * @param locked whether DEBUGSESSIONCHANGES locked before
+			 * @param outside whether should be included external running subroutines
 			 * @return map of count for all folders
 			 */
-			OVERWRITE map<string, unsigned long> getRunningFolderList(bool locked);
+			OVERWRITE map<string, unsigned long> getRunningFolderList(bool locked, bool outside= false);
 			/**
 			 * complete given result with an new tabulator string
 			 * and giving result in same parameter back
