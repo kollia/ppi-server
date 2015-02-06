@@ -282,7 +282,11 @@ namespace server
 		if(	m_bWait ||
 			bLogin		)
 		{
-			readTcBackup();
+			if(	m_bWait &&
+				!m_bHearing	)
+			{
+				readTcBackup();
+			}
 			if(!compareUserPassword(descriptor, user, pwd))
 			{
 				errHandle->setError("ClientTransaction", "user_password_error");
@@ -1118,7 +1122,7 @@ namespace server
 								bFirstOutput= false;
 								std::cout << endl;
 							}
-							std::cout << glob::addPrefix(id, content);
+							std::cout << glob::addPrefix(id, content) << endl;
 						}
 						UNLOCK(m_DEBUGSESSIONCHANGES);
 					}
@@ -1919,7 +1923,6 @@ namespace server
 		ppi_time currentTime;
 		struct termios termios_flag;
 
-		readTcBackup();
 		if(!m_bScriptState)
 		{
 			termios_flag= m_tTermiosBackup;
