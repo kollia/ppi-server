@@ -104,7 +104,7 @@ namespace util
 		{// thread id only set by debugging session
 			output << "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" << endl;
 			output << "  " << sOwn << " was changed" << endl;
-			if(	place == InformObject::INTERNAL ||
+			if(	place != InformObject::INTERNAL ||
 				from.getWhoDescription() != sOwn	)
 			{
 				output << "  was informed from ";
