@@ -99,8 +99,7 @@ namespace util
 
 					bReg= Terminal::instance()->isRegistered(Thread::gettid());
 					out= "--------------------------------------------------------------\n";
-					out+= "t:" + time.toString(/*ad date*/true) + "INFORMED folder ";
-					out+= getFolderName() + " from " + from.toString();
+					out+= "INFORM " + folder + " from " + from.toString();
 					m_oInformOutput->out() << out << endl;
 				}else
 					debug= false;
