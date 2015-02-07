@@ -83,7 +83,6 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
   m_WANTINFORM(Thread::getMutex("WANTINFORM")),
   m_INFORMERCACHECREATION(Thread::getMutex("INFORMERCACHECREATION")),
   m_VALUECONDITION(Thread::getCondition("VALUECONDITION")),
-  m_oInformer(threadname, this),
   m_oDbFiller(DbFillerFactory::getInstance(threadname, PPIConfigFileStructure::instance()->getFolderDbThreads()))
 {
 	string run;
@@ -132,6 +131,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 					trim(*it);
 			}
 			m_sInformeThreadStatement= pCurrent->folderProperties->getValue("inform", /*warning*/false);
+			m_oInformer= SHAREDPTR::shared_ptr<Informer>(new Informer(threadname, this));
 			run= pCurrent->folderProperties->getValue("policy", /*warning*/false);
 			if(run != "")
 			{
@@ -216,22 +216,22 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 				}
 			}
 			break;
-		}
+		}// if(pCurrent->name == threadname)
 		pCurrent= pCurrent->next;
-	}
+	}// while(pCurrent)
 	if(PPIConfigFileStructure::instance()->needInformThreads())
 	{
-		m_pError= m_oInformer.start();
+		m_pError= m_oInformer->start();
 		if(m_pError->fail())
 		{
 			string err;
 
 			if(m_pError->hasError())
 				m_pError->addMessage("MeasureThread", "startInformerErr",
-								m_oInformer.getThreadName() + "@" + threadname);
+								m_oInformer->getThreadName() + "@" + threadname);
 			else
 				m_pError->addMessage("MeasureThread", "startInformer",
-								m_oInformer.getThreadName() + "@" + threadname);
+								m_oInformer->getThreadName() + "@" + threadname);
 			err= m_pError->getDescription();
 			cout << glob::addPrefix("### WARNING: ", err) << endl;
 			LOG(LOG_WARNING, err);
@@ -860,8 +860,8 @@ void MeasureThread::removeObserverCache(const string& folder)
 void MeasureThread::informFolders(const folders_t& folders, const InformObject& from,
 										const string& as, const bool debug, pthread_mutex_t *lock)
 {
-	m_oInformer.informFolders(folders, from, as, debug, lock);
-	if(m_oInformer.running())
+	m_oInformer->informFolders(folders, from, as, debug, lock);
+	if(m_oInformer->running())
 	{
 		vector<string> spl;
 		string inform(from.getWhoDescription());
@@ -880,7 +880,7 @@ void MeasureThread::informFolders(const folders_t& folders, const InformObject& 
 		if(	from.getDirection() != InformObject::INTERNAL ||
 			spl[0] != m_sFolder								)
 		{
-			m_oInformer.arouseInformerThread();
+			m_oInformer->arouseInformerThread();
 		}
 	}
 }
@@ -1900,7 +1900,7 @@ bool MeasureThread::measure()
 		if(stopping())
 			break;
 	}
-	m_oInformer.arouseInformerThread();
+	m_oInformer->arouseInformerThread();
 	return true;
 }
 

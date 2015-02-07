@@ -669,7 +669,7 @@ class MeasureThread : 	public Thread,
 		/**
 		 * thread to inform other and own folder when one subroutine changing
 		 */
-		Informer m_oInformer;
+		SHAREDPTR::shared_ptr<Informer> m_oInformer;
 		/**
 		 * database filler pool
 		 */
