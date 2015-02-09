@@ -116,7 +116,7 @@ namespace ports
 		 *
 		 * @param subVarObj object of SubroutineSubVarHolder
 		 */
-		OVERWRITE void setChangedSubVar(IListObjectPattern* subVarObj)
+		OVERWRITE void setChangedSubVar(SHAREDPTR::shared_ptr<IListObjectPattern> subVarObj)
 		{ m_oSubroutine->setChangedSubVar(subVarObj); };
 		/**
 		 * actualize all SubroutineSubVarHolder objects,
@@ -345,7 +345,10 @@ namespace ports
 		/**
 		 * dummy destructor for pattern
 		 */
-		virtual ~SubroutineSubVarHolder() {};
+		virtual ~SubroutineSubVarHolder()
+		{
+			cout << "removing SubVarHolder " << getFolderName() << ":" << getSubroutineName() << endl;
+		};
 
 	private:
 		/**

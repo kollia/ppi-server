@@ -109,7 +109,7 @@ namespace design_pattern_world
 			 *
 			 * @param subVarObj object of SubroutineSubVarHolder
 			 */
-			virtual void setChangedSubVar(IListObjectPattern* subVarObj)= 0;
+			virtual void setChangedSubVar(SHAREDPTR::shared_ptr<IListObjectPattern> subVarObj)= 0;
 			/**
 			 * actualize all SubroutineSubVarHolder objects,
 			 * which are defined for changing

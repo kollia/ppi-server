@@ -351,7 +351,7 @@ SHAREDPTR::shared_ptr<IListObjectPattern> ListCalculator::getSubroutine(string* 
 						 * because after every running
 						 * subroutine has to actualize changed values
 						 */
-						m_oOutput->setChangedSubVar(holder.get());
+						m_oOutput->setChangedSubVar(holder);
 					}
 					m_vNewSubObjs.push_back(holder);
 					return holder;

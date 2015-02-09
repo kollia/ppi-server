@@ -385,7 +385,7 @@ namespace ports
 			 *
 			 * @param subVarObj object of SubroutineSubVarHolder
 			 */
-			OVERWRITE void setChangedSubVar(IListObjectPattern* subVarObj);
+			OVERWRITE void setChangedSubVar(SHAREDPTR::shared_ptr<IListObjectPattern> subVarObj);
 			/**
 			 * actualize all SubroutineSubVarHolder objects,
 			 * which are defined for changing
@@ -714,7 +714,7 @@ namespace ports
 			 * vector of all SubroutineSubVarHolder objects
 			 * which has to actualize after subroutine was running
 			 */
-			vector<IListObjectPattern*> m_voChangedSubVars;
+			vector<SHAREDPTR::shared_ptr<IListObjectPattern> > m_voChangedSubVars;
 	};
 }
 

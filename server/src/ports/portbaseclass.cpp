@@ -441,12 +441,19 @@ bool portBase::hasSubVar(const string& subvar) const
 	return false;
 }
 
-void portBase::setChangedSubVar(IListObjectPattern* subVarObj)
+void portBase::setChangedSubVar(SHAREDPTR::shared_ptr<IListObjectPattern> subVarObj)
 {
+	vector<SHAREDPTR::shared_ptr<IListObjectPattern> >::iterator it;
 	string byFolder(subVarObj->getFolderName());
 	string bySubroutine(subVarObj->getSubroutineName());
 
-	for(vector<IListObjectPattern*>::iterator it= m_voChangedSubVars.begin();
+	if(	getSubroutineName() == "#inform"		)
+	{
+		cout << __FILE__ << __LINE__ << endl;
+		cout << "set subVar object by informing folder " << getFolderName();
+		cout << " in " << byFolder << ":" << bySubroutine << endl;
+	}
+	for(it= m_voChangedSubVars.begin();
 					it != m_voChangedSubVars.end(); ++it						)
 	{
 		if(	(*it)->getFolderName() == byFolder &&
@@ -466,9 +473,10 @@ void portBase::setChangedSubVar(IListObjectPattern* subVarObj)
 
 void portBase::actualizeChangedSubVars()
 {
+	vector<SHAREDPTR::shared_ptr<IListObjectPattern> >::iterator it;
 	auto_ptr<InformObject> informer;
 
-	for(vector<IListObjectPattern*>::iterator it= m_voChangedSubVars.begin();
+	for(it= m_voChangedSubVars.begin();
 					it != m_voChangedSubVars.end(); ++it						)
 	{
 		if(informer.get() == NULL)
