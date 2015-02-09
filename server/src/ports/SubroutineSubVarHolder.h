@@ -198,6 +198,12 @@ namespace ports
 		virtual string getPermissionGroups()
 		{ return m_oSubroutine->getPermissionGroups(); };
 		/**
+		 * set ending of configuration when folder thread
+		 * of measuring starting
+		 */
+		virtual void endOfConfigure()
+		{ m_oSubroutine->endOfConfigure(); };
+		/**
 		 * set subroutine for output doing actions
 		 *
 		 * @param whether should write output
@@ -345,10 +351,7 @@ namespace ports
 		/**
 		 * dummy destructor for pattern
 		 */
-		virtual ~SubroutineSubVarHolder()
-		{
-			cout << "removing SubVarHolder " << getFolderName() << ":" << getSubroutineName() << endl;
-		};
+		virtual ~SubroutineSubVarHolder() {};
 
 	private:
 		/**

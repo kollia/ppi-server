@@ -1118,6 +1118,18 @@ bool Starter::execute(const IOptionStructPattern* commands)
 		{
 			if(bFolderStart)
 				cout << "                     " << aktFolder->name << endl;
+			/*
+			 * set all subroutines of folder
+			 * to has ending configuration
+			 * this means, now all subroutine output
+			 * writing over an client
+			 */
+			for(vector<sub>::iterator it= aktFolder->subroutines.begin();
+							it != aktFolder->subroutines.end(); ++it	)
+			{
+				if(it->bCorrect)
+					it->portClass->endOfConfigure();
+			}
 			createThread= true;
 			pCurrentMeasure->pMeasure->start(&bSubroutines);
 		}

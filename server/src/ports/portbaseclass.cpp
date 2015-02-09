@@ -66,6 +66,7 @@ portBase::portBase(const string& type, const string& folderName,
 	m_dMin= 1;
 	m_dMax= 0;
 	m_bSwitch= false;
+	m_bConfigure= true;
 	m_bDebug= false;
 	m_sType= type;
 	m_sFolder= folderName;
@@ -447,12 +448,6 @@ void portBase::setChangedSubVar(SHAREDPTR::shared_ptr<IListObjectPattern> subVar
 	string byFolder(subVarObj->getFolderName());
 	string bySubroutine(subVarObj->getSubroutineName());
 
-	if(	getSubroutineName() == "#inform"		)
-	{
-		cout << __FILE__ << __LINE__ << endl;
-		cout << "set subVar object by informing folder " << getFolderName();
-		cout << " in " << byFolder << ":" << bySubroutine << endl;
-	}
 	for(it= m_voChangedSubVars.begin();
 					it != m_voChangedSubVars.end(); ++it						)
 	{
@@ -1344,6 +1339,13 @@ string portBase::getSubroutineName() const
 	return m_sSubroutine;
 }
 
+void portBase::endOfConfigure()
+{
+	LOCK(m_DEBUG);
+	m_bConfigure= false;
+	UNLOCK(m_DEBUG);
+}
+
 void portBase::setDebug(bool bDebug)
 {
 	m_oLinkWhile.doOutput(bDebug);
@@ -1443,11 +1445,15 @@ ostringstream& portBase::out()
 
 void portBase::writeDebugStream()
 {
+	bool bWriteTerminal(false);
+	bool bWriteOverClient(false);
+
 	if(m_sStreamObj.eof())
 		return;
 	try{
 #ifndef __WRITEDEBUGALLLINES
 #if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+		bWriteTerminal= true;
 		string output(m_sStreamObj.str());
 
 		if(output.length() > 0)
@@ -1462,8 +1468,19 @@ void portBase::writeDebugStream()
 #endif // __WRITEDEBUGALLLINES
 
 #if (__DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+		bWriteOverClient= true;
+#endif
 
-		if(getRunningThread() == NULL)
+		LOCK(m_DEBUG);
+		if(	m_bConfigure ||
+			getRunningThread() == NULL	)
+		{
+			bWriteTerminal= true;
+			bWriteOverClient= false;
+		}
+		UNLOCK(m_DEBUG);
+
+		if(bWriteTerminal == true)
 		{
 #ifndef __WRITEDEBUGALLLINES
 			string output(m_sStreamObj.str());
@@ -1475,7 +1492,8 @@ void portBase::writeDebugStream()
 			}
 			m_sStreamObj.str("");
 #endif
-		}else
+		}
+		if(bWriteOverClient == true)
 		{
 			ppi_value value;
 
@@ -1485,7 +1503,6 @@ void portBase::writeDebugStream()
 			fillDebugSession(m_sFolder, m_sSubroutine, value, m_sStreamObj.str());
 			m_sStreamObj.str("");
 		}
-#endif
 	}catch(SignalException& ex)
 	{
 		string err;

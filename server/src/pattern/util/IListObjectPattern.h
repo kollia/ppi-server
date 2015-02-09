@@ -180,6 +180,11 @@ namespace design_pattern_world
 			 */
 			virtual string getPermissionGroups()= 0;
 			/**
+			 * set ending of configuration when folder thread
+			 * of measuring starting
+			 */
+			virtual void endOfConfigure()= 0;
+			/**
 			 * set subroutine for output doing actions
 			 *
 			 * @param whether should write output

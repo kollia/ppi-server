@@ -153,6 +153,11 @@ namespace ports
 			 */
 			bool m_bDefined;
 			/**
+			 * whether subroutine defined for configuration
+			 * before measure thread of folder starting
+			 */
+			bool m_bConfigure;
+			/**
 			 * whether set DEBUG over server for this folder
 			 */
 			bool m_bDebug;
@@ -453,6 +458,11 @@ namespace ports
 			//bool doForAfterContact();
 			//void setAfterContact(const map<unsigned long, unsigned> &ports, const set<Pins> &pins);
 			//void noAfterContactPublication();
+			/**
+			 * set ending of configuration when folder thread
+			 * of measuring starting
+			 */
+			virtual void endOfConfigure();
 			/**
 			 * set subroutine for output doing actions
 			 *
