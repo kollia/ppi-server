@@ -628,6 +628,7 @@ EHObj MeasureThread::init(void *arg)
 		if(exist && value != 0)
 			db->fillValue("folder", m_sFolder, "priority", 0);
 	}
+	m_oInformOutput->writeDebugStream();
 	m_oInformOutput->endOfConfigure();
 	return m_pError;
 }
