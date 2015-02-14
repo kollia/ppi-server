@@ -198,30 +198,31 @@ namespace util
 						allDebugQueue->insert(debugQueue->begin(), debugQueue->end());
 				}
 				UNLOCK(m_READCACHE);
-				if(	!allDbQueue.empty() ||
-					!allMsgQueue->empty() ||
-					!allDebugQueue->empty()	)
-				{
-					SHAREDPTR::shared_ptr<map<string, db_t> > wDbQueue(new map<string, db_t>());
 
-					if(!allDbQueue.empty())
+				SHAREDPTR::shared_ptr<map<string, db_t> > nullDbQueue(new map<string, db_t>());
+				SHAREDPTR::shared_ptr<vector<sendingInfo_t> > nullMsgQueue(new vector<sendingInfo_t>());
+				SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap> nullDebugQueue
+												(new IDbFillerPattern::debugSessionFolderMap());
+
+				bWritten= false;
+				if(!allDbQueue.empty())
+				{
+					for(vector<SHAREDPTR::shared_ptr<map<string, db_t> > >::iterator it= allDbQueue.begin();
+									it != allDbQueue.end(); ++it)
 					{
-						for(vector<SHAREDPTR::shared_ptr<map<string, db_t> > >::iterator it= allDbQueue.begin();
-										it != allDbQueue.end(); ++it)
-						{
-							m_oDbFiller.sendDirect(*it, allMsgQueue, allDebugQueue);
-							allMsgQueue->clear();
-							allDebugQueue->clear();
-						}
-					}else
-						m_oDbFiller.sendDirect(wDbQueue, allMsgQueue, allDebugQueue);
-					allMsgQueue->clear();
+						m_oDbFiller.sendDirect(*it, nullMsgQueue, nullDebugQueue);
+					}
 					allDbQueue.clear();
-					allDebugQueue->clear();
 					bWritten= true;
 					bFirstOff= true;
-				}else
-					bWritten= false;
+				}
+				if(	!allMsgQueue->empty() ||
+					!allDebugQueue->empty()	)
+				{
+					m_oDbFiller.sendDirect(nullDbQueue, allMsgQueue, allDebugQueue);
+					bWritten= true;
+					bFirstOff= true;
+				}
 			}// while(bWritten)
 			if(stopping())
 				return false;

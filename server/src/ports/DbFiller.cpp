@@ -36,26 +36,41 @@ namespace util
 {
 	bool DbFiller::execute()
 	{
-		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > pMsgQueue;
 		SHAREDPTR::shared_ptr<map<string, db_t>  > pDbQueue;
+		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > pMsgQueue;
+		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > allMsgQueue(new vector<sendingInfo_t>());
 		SHAREDPTR::shared_ptr<debugSessionFolderMap> pDebugQueue;
+		SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap> allDebugQueue;
 
+		allDebugQueue= SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap>
+						(new IDbFillerPattern::debugSessionFolderMap());
 		LOCK(m_SENDQUEUELOCK);
 		while(!m_bHasContent)
 			CONDITION(m_SENDQUEUECONDITION, m_SENDQUEUELOCK);
 		UNLOCK(m_SENDQUEUELOCK);
 
-		m_oCache.getContent(pDbQueue, pMsgQueue, pDebugQueue);
-		// write all values with identif 'value' from command fillValue()
-		if(	!pDbQueue->empty() ||
-			!pMsgQueue->empty()	||
-			!pDebugQueue->empty()	)
-		{
-			sendDirect(pDbQueue, pMsgQueue, pDebugQueue);
-		}
+		do{
+			m_oCache.getContent(pDbQueue, pMsgQueue, pDebugQueue);
+			if(!pMsgQueue->empty())
+				allMsgQueue->insert(allMsgQueue->end(), pMsgQueue->begin(), pMsgQueue->end());
+			if(!pDebugQueue->empty())
+				allDebugQueue->insert(pDebugQueue->begin(), pDebugQueue->end());
+			// write all values with identif 'value' from command fillValue()
+			sendDirect(pDbQueue, allMsgQueue, allDebugQueue);
+
+		}while(	!pDbQueue->empty() ||
+				!allMsgQueue->empty()	||
+				!allDebugQueue->empty()	);
 		return true;
 	}
 
+/*
+ * define showSendingCount to 1
+ * when want to see how much
+ * debug sessions will be sending
+ * currently to database
+ */
+#define __showSendingCount 0
 	void DbFiller::sendDirect(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
 					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
 					SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue)
@@ -64,11 +79,110 @@ namespace util
 		typedef debugSessionFolderMap::iterator debugIt;
 		typedef debugSessionSubroutineMap::iterator debugInnerIt;
 		bool bError(false);
+		/**
+		 * when follow seconds
+		 * getting no new debug session
+		 * for sending
+		 * set count to send by one pass (m_nSendingCount)
+		 * back to beginning sending (m_nBeginSendingCount)
+		 */
+		const time_t nEmptySetBack(10);
+		/**
+		 * grow sending count (m_nSendingCount)
+		 * with follow counts
+		 * when debug session count
+		 * greater than nGrowByMore
+		 */
+		const size_t nGrowCount(3);
+		/**
+		 * grow sending count (m_nSendingCount)
+		 * when debug session count
+		 * greater then follow counts
+		 */
+		const size_t nGrowByMore(50);
 		DbInterface* db;
+		size_t nDebugQueueSize;
+		ppi_time currentTime;
 		vector<sendingInfo_t>::iterator msgPos;
+		vector<vector<sendingInfo_t>::iterator> sendedMsgs;
+		vector<debugIt> sendedDebug;
 		vector<string> answer;
 		ErrorHandling err;
 
+		/*
+		 * secure option when to much entries
+		 * inside debugQueue
+		 * when more than 100 add 3 to do more by one pass
+		 */
+		currentTime.setActTime();
+		nDebugQueueSize= debugQueue->size();
+		if(nDebugQueueSize < msgQueue->size())
+			nDebugQueueSize= msgQueue->size();
+#if(__showSendingCount)
+		ostringstream out;
+#endif // if(__showSendingCount)
+
+		if(nDebugQueueSize > 0)
+		{
+			if(nDebugQueueSize > nGrowByMore)
+			{
+#if(__showSendingCount)
+				out << "++ grow sending for " << nGrowCount << " counts";
+				out << " because " << nGrowByMore << " was under run" << endl;
+#endif // if(__showSendingCount)
+				m_nSendingCount+= nGrowCount;
+
+			}else if(	m_nSendingCount > m_nBeginSendingCount &&
+						nDebugQueueSize < nGrowByMore						)
+			{
+				ppi_time tcheck;
+
+				tcheck.tv_sec= nEmptySetBack;
+				if(ppi_time(currentTime - m_tLastDbgSend) >= tcheck)
+				{
+#if(__showSendingCount)
+					out << "-- set sending count back to begin, because longer then ";
+					out << tcheck.toString(false) << " seconds no message come in" << endl;
+#endif // if(__showSendingCount)
+					m_nSendingCount= m_nBeginSendingCount;
+
+				}else
+				{
+					if(m_nSendingCount < (m_nBeginSendingCount + nGrowCount + 1))
+					{
+#if(__showSendingCount)
+						out << "-- set sending count back to begin by low count\n";
+#endif // if(__showSendingCount)
+						m_nSendingCount= m_nBeginSendingCount;
+					}else
+					{
+#if(__showSendingCount)
+						out << "-- make sending count lower of ";
+						out << nGrowCount << " counts";
+						out << " because " << nGrowByMore << " was overrun" << endl;
+#endif // if(__showSendingCount)
+						m_nSendingCount-= nGrowCount;
+					}
+				}
+			}// if( nDebugQueueSize < nGrowByMore )
+		}// if(currentTime >= tGrowCheck)
+		if(nDebugQueueSize > 0)
+			m_tLastDbgSend= currentTime;
+#if(__showSendingCount)
+		if(nDebugQueueSize > 0)
+		{
+			out << "exist " << nDebugQueueSize << " msg entries";
+			out << ", sending " << m_nSendingCount;
+			out << " [" << Thread::gettid() << "] ";
+			out << currentTime.toString(true) << endl;
+			cout << out.str();
+		}
+#endif // if(__showSendingCount)
+
+
+		/*
+		 * fill into database
+		 */
 		db= DbInterface::instance();
 		for(subIt sIt= dbQueue->begin(); sIt != dbQueue->end(); ++sIt)
 		{
@@ -114,22 +228,7 @@ namespace util
 		}
 		if(!bError)
 		{
-			for(debugIt dIt= debugQueue->begin(); dIt != debugQueue->end(); ++dIt)
-			{
-				for(debugInnerIt dIIt= dIt->second.begin(); dIIt != dIt->second.end(); ++dIIt)
-				{
-					if(!db->fillDebugSession(dIIt->second, /*answer*/true))
-					{
-						bError= true;
-						break;
-					}
-				}
-				if(bError)
-					break;
-			}
-		}
-		if(!bError)
-		{
+			dbQueue->clear();
 			for(msgPos= msgQueue->begin(); msgPos != msgQueue->end(); ++msgPos)
 			{
 				OMethodStringStream method(msgPos->method);
@@ -164,6 +263,49 @@ namespace util
 				}
 				if(bError)
 					break;
+				/*
+				 * send only nSendingCount messages
+				 * because database entries from dbQueue
+				 * are more important
+				 */
+				sendedMsgs.push_back(msgPos);
+				if(sendedMsgs.size() >= m_nSendingCount)
+					break;
+			}
+			for(vector<vector<sendingInfo_t>::iterator>::iterator it= sendedMsgs.begin();
+							it != sendedMsgs.end(); ++it								)
+			{
+				msgQueue->erase(*it);
+			}
+		}
+		if(!bError)
+		{
+
+			for(debugIt dIt= debugQueue->begin(); dIt != debugQueue->end(); ++dIt)
+			{
+				for(debugInnerIt dIIt= dIt->second.begin(); dIIt != dIt->second.end(); ++dIIt)
+				{
+					if(!db->fillDebugSession(dIIt->second, /*answer*/true))
+					{
+						bError= true;
+						break;
+					}
+				}
+				if(bError)
+					break;
+				/*
+				 * send only nSendingCount debug information
+				 * because database entries from dbQueue
+				 * are more important
+				 */
+				sendedDebug.push_back(dIt);
+				if(sendedDebug.size() >= m_nSendingCount)
+					break;
+			}
+			for(vector<debugIt>::iterator it= sendedDebug.begin();
+							it != sendedDebug.end(); ++it		)
+			{
+				debugQueue->erase(*it);
 			}
 		}
 	}

@@ -52,7 +52,9 @@ namespace util
 		  m_SENDQUEUELOCK(Thread::getMutex("SENDQUEUELOCK")),
 		  m_SENDQUEUECONDITION(Thread::getCondition("SENDQUEUECONDITION")),
 		  m_bHasContent(false),
-		  m_oCache("DbFillerCache_for_" + threadName, m_SENDQUEUELOCK, &m_bHasContent)
+		  m_oCache("DbFillerCache_for_" + threadName, m_SENDQUEUELOCK, &m_bHasContent),
+		  m_nBeginSendingCount(1),
+		  m_nSendingCount(m_nBeginSendingCount)
 		{};
 		/**
 		 * return thread name of DbFiller
@@ -215,6 +217,22 @@ namespace util
 		 * when DbFiller threads should running for every folder
 		 */
 		DbFillerCache m_oCache;
+		/**
+		 * begin sending count when object of DbFiller start
+		 * or last passing was longer then 10 seconds
+		 */
+		const size_t m_nBeginSendingCount;
+		/**
+		 * sending count by send debug information
+		 * by one pass of queue.<br />
+		 * should be grow up when to much entries exist
+		 */
+		size_t m_nSendingCount;
+		/**
+		 * last sending time
+		 * of debug session content
+		 */
+		ppi_time m_tLastDbgSend;
 
 		/**
 		 * cache running inside an DbFiller
