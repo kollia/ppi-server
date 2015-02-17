@@ -207,6 +207,14 @@ namespace util
 		 * condition to wait for new sending messages
 		 */
 		pthread_cond_t* m_SENDQUEUECONDITION;
+#if( __showSendingCount == 1 || __showSendingCount == 3 )
+		/**
+		 * count folders by sending
+		 * to database
+		 * when __showSendingCount defined
+		 */
+		map<string, short> m_mFolderCount;
+#endif // #if( __showSendingCount == 1 || __showSendingCount == 3 )
 		/**
 		 * whether cache has any content<br />
 		 * has to be locked inside SENDQUEUELOCK

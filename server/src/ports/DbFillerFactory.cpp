@@ -173,13 +173,14 @@ namespace util
 		bool bWritten(true);
 		bool bFirstOff(true);// <- set true because on first time should wait also 1 second
 		SHAREDPTR::shared_ptr<map<string, db_t> > dbQueue;
-		vector<SHAREDPTR::shared_ptr<map<string, db_t> > > allDbQueue;
-		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > msgQueue, allMsgQueue(new vector<sendingInfo_t>());
+		SHAREDPTR::shared_ptr<map<string, db_t> > allDbQueue;
+		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > msgQueue;
 		SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap> debugQueue;
-		SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap> allDebugQueue;
 
-		allDebugQueue= SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap>
-						(new IDbFillerPattern::debugSessionFolderMap());
+		allDbQueue= SHAREDPTR::shared_ptr<map<string, db_t> >(new map<string, db_t>());
+		msgQueue= SHAREDPTR::shared_ptr<vector<sendingInfo_t> >(new vector<sendingInfo_t>());
+		debugQueue= SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap>
+											(new IDbFillerPattern::debugSessionFolderMap());
 		wait.tv_sec= 1;
 		wait.tv_nsec= 0;
 		while(!stopping())
@@ -191,35 +192,34 @@ namespace util
 				{
 					it->second->getContent(dbQueue, msgQueue, debugQueue);
 					if(!dbQueue->empty())
-						allDbQueue.push_back(dbQueue);
-					if(!msgQueue->empty())
-						allMsgQueue->insert(allMsgQueue->end(), msgQueue->begin(), msgQueue->end());
-					if(!debugQueue->empty())
-						allDebugQueue->insert(debugQueue->begin(), debugQueue->end());
+					{
+						typedef map<string, db_t>::iterator subIt;
+						string sFolderSub;
+						subIt found;
+
+						for(subIt sIt= dbQueue->begin(); sIt != dbQueue->end(); ++sIt)
+						{
+							sFolderSub= sIt->second.folder + ":" + sIt->second.subroutine;
+							found= allDbQueue->find(sFolderSub);
+							if(found != allDbQueue->end())
+							{
+								if(ppi_time(sIt->second.tm) > found->second.tm)
+								{
+									found->second= sIt->second;
+								}
+							}else
+								(*allDbQueue)[sFolderSub]= sIt->second;
+						}
+					}
 				}
 				UNLOCK(m_READCACHE);
 
-				SHAREDPTR::shared_ptr<map<string, db_t> > nullDbQueue(new map<string, db_t>());
-				SHAREDPTR::shared_ptr<vector<sendingInfo_t> > nullMsgQueue(new vector<sendingInfo_t>());
-				SHAREDPTR::shared_ptr<IDbFillerPattern::debugSessionFolderMap> nullDebugQueue
-												(new IDbFillerPattern::debugSessionFolderMap());
-
 				bWritten= false;
-				if(!allDbQueue.empty())
+				if(	!allDbQueue->empty() ||
+					!msgQueue->empty() ||
+					!debugQueue->empty()	)
 				{
-					for(vector<SHAREDPTR::shared_ptr<map<string, db_t> > >::iterator it= allDbQueue.begin();
-									it != allDbQueue.end(); ++it)
-					{
-						m_oDbFiller.sendDirect(*it, nullMsgQueue, nullDebugQueue);
-					}
-					allDbQueue.clear();
-					bWritten= true;
-					bFirstOff= true;
-				}
-				if(	!allMsgQueue->empty() ||
-					!allDebugQueue->empty()	)
-				{
-					m_oDbFiller.sendDirect(nullDbQueue, allMsgQueue, allDebugQueue);
+					m_oDbFiller.sendDirect(allDbQueue, msgQueue, debugQueue);
 					bWritten= true;
 					bFirstOff= true;
 				}

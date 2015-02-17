@@ -64,13 +64,6 @@ namespace util
 		return true;
 	}
 
-/*
- * define showSendingCount to 1
- * when want to see how much
- * debug sessions will be sending
- * currently to database
- */
-#define __showSendingCount 0
 	void DbFiller::sendDirect(SHAREDPTR::shared_ptr<map<string, db_t> >& dbQueue,
 					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
 					SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue)
@@ -118,18 +111,18 @@ namespace util
 		nDebugQueueSize= debugQueue->size();
 		if(nDebugQueueSize < msgQueue->size())
 			nDebugQueueSize= msgQueue->size();
-#if(__showSendingCount)
+#if(__showSendingCount > 1)
 		ostringstream out;
-#endif // if(__showSendingCount)
+#endif // if(__showSendingCount > 1)
 
 		if(nDebugQueueSize > 0)
 		{
 			if(nDebugQueueSize > nGrowByMore)
 			{
-#if(__showSendingCount)
+#if(__showSendingCount > 1)
 				out << "++ grow sending for " << nGrowCount << " counts";
 				out << " because " << nGrowByMore << " was under run" << endl;
-#endif // if(__showSendingCount)
+#endif // if(__showSendingCount > 1)
 				m_nSendingCount+= nGrowCount;
 
 			}else if(	m_nSendingCount > m_nBeginSendingCount &&
@@ -140,27 +133,27 @@ namespace util
 				tcheck.tv_sec= nEmptySetBack;
 				if(ppi_time(currentTime - m_tLastDbgSend) >= tcheck)
 				{
-#if(__showSendingCount)
+#if(__showSendingCount > 1)
 					out << "-- set sending count back to begin, because longer then ";
 					out << tcheck.toString(false) << " seconds no message come in" << endl;
-#endif // if(__showSendingCount)
+#endif // if(__showSendingCount > 1)
 					m_nSendingCount= m_nBeginSendingCount;
 
 				}else
 				{
 					if(m_nSendingCount < (m_nBeginSendingCount + nGrowCount + 1))
 					{
-#if(__showSendingCount)
+#if(__showSendingCount > 1)
 						out << "-- set sending count back to begin by low count\n";
-#endif // if(__showSendingCount)
+#endif // if(__showSendingCount > 1)
 						m_nSendingCount= m_nBeginSendingCount;
 					}else
 					{
-#if(__showSendingCount)
+#if(__showSendingCount > 1)
 						out << "-- make sending count lower of ";
 						out << nGrowCount << " counts";
 						out << " because " << nGrowByMore << " was overrun" << endl;
-#endif // if(__showSendingCount)
+#endif // if(__showSendingCount > 1)
 						m_nSendingCount-= nGrowCount;
 					}
 				}
@@ -168,7 +161,7 @@ namespace util
 		}// if(currentTime >= tGrowCheck)
 		if(nDebugQueueSize > 0)
 			m_tLastDbgSend= currentTime;
-#if(__showSendingCount)
+#if(__showSendingCount > 1)
 		if(nDebugQueueSize > 0)
 		{
 			out << "exist " << nDebugQueueSize << " msg entries";
@@ -177,7 +170,7 @@ namespace util
 			out << currentTime.toString(true) << endl;
 			cout << out.str();
 		}
-#endif // if(__showSendingCount)
+#endif // if(__showSendingCount > 1)
 
 
 		/*
@@ -280,11 +273,31 @@ namespace util
 		}
 		if(!bError)
 		{
-
 			for(debugIt dIt= debugQueue->begin(); dIt != debugQueue->end(); ++dIt)
 			{
 				for(debugInnerIt dIIt= dIt->second.begin(); dIIt != dIt->second.end(); ++dIIt)
 				{
+#if( __showSendingCount == 1 || __showSendingCount == 3 )
+					if(dIIt->second.subroutine == "#setDebug")
+					{
+						for(map<string, short>::iterator it= m_mFolderCount.begin();
+										it != m_mFolderCount.end(); ++it				)
+						{
+							cout << "get " << it->second << " "
+											<< it->first << " folders" << endl;
+						}
+						m_mFolderCount.clear();
+
+					}else if(dIIt->second.subroutine == "#start")
+					{
+						short count(0);
+
+						if(m_mFolderCount.find(dIIt->second.folder) != m_mFolderCount.end())
+							count= m_mFolderCount[dIIt->second.folder];
+						++count;
+						m_mFolderCount[dIIt->second.folder]= count;
+					}
+#endif // #if(__showSendingCount == 1 || __showSendingCount == 3)
 					if(!db->fillDebugSession(dIIt->second, /*answer*/true))
 					{
 						bError= true;

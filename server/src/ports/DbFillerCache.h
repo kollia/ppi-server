@@ -21,6 +21,21 @@
 
 #include <string>
 
+/*
+ * define showSendingCount to 1
+ * when want to see on command line
+ * how much folders with subroutine #start
+ * DbFiller get from running folder structure
+ * and send to database
+ * (seen by sending second hold or DEBUG)
+ * define to 2
+ * when want to see how much
+ * debug sessions will be sending
+ * currently info messages by one pass to database
+ * and define to 3 by both
+ */
+#define __showSendingCount 1
+
 #include "../pattern/util/IPPIDatabasePattern.h"
 #include "../pattern/util/IDbFillerPattern.h"
 
@@ -151,6 +166,14 @@ namespace util
 						SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& valQueue,
 						SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue);
 		/**
+		 * add debug session queue to exist map
+		 *
+		 * @param from new debug session queue
+		 * @param toExist existing debug session queue
+		 */
+		void addDebugSession(SHAREDPTR::shared_ptr<debugSessionFolderMap>& from,
+						SHAREDPTR::shared_ptr<debugSessionFolderMap>& toExist	);
+		/**
 		 * remove all content from DbFiller
 		 * and stop thread when one running
 		 *
@@ -170,6 +193,14 @@ namespace util
 		};
 
 	private:
+#if( __showSendingCount == 1 || __showSendingCount == 3 )
+		/**
+		 * count folders by sending
+		 * to database
+		 * when __showSendingCount defined
+		 */
+		map<string, pair<short, short> > m_mFolderCount;
+#endif // #if( __showSendingCount == 1 || __showSendingCount == 3 )
 		/**
 		 * name of cache for which folder
 		 */

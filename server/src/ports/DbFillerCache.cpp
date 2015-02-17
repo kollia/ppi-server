@@ -159,14 +159,37 @@ namespace util
 		fillValue(folder, subroutine, identif, values, bNew);
 	}
 
-	void DbFillerCache::fillDebugSession(const dbgSubroutineContent_t& content)
+	void DbFillerCache::fillDebugSession(const IDbgSessionPattern::dbgSubroutineContent_t& content)
 	{
 		DbInterface* db;
 		OMethodStringStream command("fillValue");
 		map<string, db_t>::iterator foundSub;
 		sendingInfo_t sendInfo;
 		db_t newEntry;
+#if( __showSendingCount == 1 || __showSendingCount == 3 )
+		map<string, pair<short, short> >::iterator foundFolderCount;
 
+		if(content.subroutine == "#setDebug")
+		{
+			for(map<string, pair<short, short> >::iterator it= m_mFolderCount.begin();
+							it != m_mFolderCount.end(); ++it				)
+			{
+				cout << "get debug sessions content " << it->second.first
+								<< " in queue 1 and " << it->second.second
+								<< " in queue 2 for folder " << it->first << endl;
+			}
+			m_mFolderCount.clear();
+
+		}else if(content.subroutine == "#start")
+		{
+			foundFolderCount= m_mFolderCount.find(content.folder);
+			if(foundFolderCount == m_mFolderCount.end())
+			{
+				m_mFolderCount[content.folder]= pair<short, short>(0, 0);
+				foundFolderCount= m_mFolderCount.find(content.folder);
+			}
+		}
+#endif // #if( __showSendingCount == 1 || __showSendingCount == 3 )
 		if(m_bisRunn)
 		{
 //#define __showLOCK
@@ -201,6 +224,10 @@ namespace util
 				 */
 				if(TRYLOCK(m_SENDQUEUELOCK2) == 0)
 				{
+#if( __showSendingCount == 1 || __showSendingCount == 3 )
+					if(content.subroutine == "#start")
+						++foundFolderCount->second.second;
+#endif // #if( __showSendingCount == 1 || __showSendingCount == 3 )
 					foundFolder= m_apmtDebugSession2->find(content.folder);
 					if(foundFolder != m_apmtDebugSession2->end())
 					{
@@ -211,7 +238,9 @@ namespace util
 						}else
 							(*m_apmtDebugSession2)[content.folder][timeSub]= content;
 					}else
+					{
 						(*m_apmtDebugSession2)[content.folder][timeSub]= content;
+					}
 					UNLOCK(m_SENDQUEUELOCK2);
 					bFillFirstContainer= false;
 				}
@@ -219,6 +248,10 @@ namespace util
 			if(bFillFirstContainer)
 			{
 				LOCK(m_SENDQUEUELOCK1);
+#if( __showSendingCount == 1 || __showSendingCount == 3 )
+				if(content.subroutine == "#start")
+					++foundFolderCount->second.first;
+#endif // #if( __showSendingCount == 1 || __showSendingCount == 3 )
 				foundFolder= m_apmtDebugSession1->find(content.folder);
 				if(foundFolder != m_apmtDebugSession1->end())
 				{
@@ -301,10 +334,13 @@ namespace util
 
 						}else
 						{
-							foundSub->second.values= dvalues;
-							foundSub->second.tm.tv_sec= tm.tv_sec;
-							foundSub->second.tm.tv_usec= tm.tv_usec;
-							foundSub->second.bNew= bNew;
+							if(tm > foundSub->second.tm)
+							{
+								foundSub->second.values= dvalues;
+								foundSub->second.tm.tv_sec= tm.tv_sec;
+								foundSub->second.tm.tv_usec= tm.tv_usec;
+								foundSub->second.bNew= bNew;
+							}
 						}
 						UNLOCK(m_SENDQUEUELOCK2);
 						bFillFirstContainer= false;
@@ -330,10 +366,13 @@ namespace util
 
 					}else
 					{
-						foundSub->second.values= dvalues;
-						foundSub->second.tm.tv_sec= tm.tv_sec;
-						foundSub->second.tm.tv_usec= tm.tv_usec;
-						foundSub->second.bNew= bNew;
+						if(tm > foundSub->second.tm)
+						{
+							foundSub->second.values= dvalues;
+							foundSub->second.tm.tv_sec= tm.tv_sec;
+							foundSub->second.tm.tv_usec= tm.tv_usec;
+							foundSub->second.bNew= bNew;
+						}
 					}
 					if(m_pHasContent)
 						*m_pHasContent= true;
@@ -389,9 +428,6 @@ namespace util
 					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
 					SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue)
 	{
-		typedef debugSessionFolderMap::iterator folderQueueIt;
-		typedef debugSessionSubroutineMap::iterator timerQueueIt;
-
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > newMsgQueue1(new vector<sendingInfo_t>());
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > newMsgQueue2(new vector<sendingInfo_t>());
 		SHAREDPTR::shared_ptr<map<string, db_t>  > newValueEntrys1(new map<string, db_t>());
@@ -401,23 +437,25 @@ namespace util
 		SHAREDPTR::shared_ptr<debugSessionFolderMap>
 									newDebugQueue2(new debugSessionFolderMap());
 		SHAREDPTR::shared_ptr<map<string, db_t> > valQueue2;
+		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > msgQueue1;
 		SHAREDPTR::shared_ptr<vector<sendingInfo_t> > msgQueue2;
+		SHAREDPTR::shared_ptr<debugSessionFolderMap> debugQueue1;
 		SHAREDPTR::shared_ptr<debugSessionFolderMap> debugQueue2;
-		folderQueueIt foundFolder;
-		timerQueueIt foundTimer;
 		map<string, db_t>::iterator found;
 
 		LOCK(m_SENDQUEUELOCK1);
-		msgQueue= m_vsSendingQueue1;
-		m_vsSendingQueue1= newMsgQueue1;
 		valQueue= m_apmtValueEntrys1;
 		m_apmtValueEntrys1= newValueEntrys1;
-		debugQueue= m_apmtDebugSession1;
+		msgQueue1= m_vsSendingQueue1;
+		m_vsSendingQueue1= newMsgQueue1;
+		debugQueue1= m_apmtDebugSession1;
 		m_apmtDebugSession1= newDebugQueue1;
 		if(m_pHasContent)
 			*m_pHasContent= false;
 		UNLOCK(m_SENDQUEUELOCK1);
 
+		msgQueue->insert(msgQueue->end(), msgQueue1->begin(), msgQueue1->end());
+		addDebugSession(debugQueue1, debugQueue);
 		if(m_pHasContent != NULL)
 		{
 			/*
@@ -449,10 +487,22 @@ namespace util
 				(*valQueue)[it->first]= it->second;
 		}
 		msgQueue->insert(msgQueue->end(), msgQueue2->begin(), msgQueue2->end());
-		for(folderQueueIt it= debugQueue2->begin(); it != debugQueue2->end(); ++it)
+		addDebugSession(debugQueue2, debugQueue);
+	}
+
+	void DbFillerCache::addDebugSession(SHAREDPTR::shared_ptr<debugSessionFolderMap>& from,
+									SHAREDPTR::shared_ptr<debugSessionFolderMap>& toExist	)
+	{
+		typedef debugSessionFolderMap::iterator folderQueueIt;
+		typedef debugSessionSubroutineMap::iterator timerQueueIt;
+
+		folderQueueIt foundFolder;
+		timerQueueIt foundTimer;
+
+		for(folderQueueIt it= from->begin(); it != from->end(); ++it)
 		{
-			foundFolder= debugQueue->find(it->first);
-			if(foundFolder != debugQueue->end())
+			foundFolder= toExist->find(it->first);
+			if(foundFolder != toExist->end())
 			{
 				for(timerQueueIt tit= it->second.begin(); tit != it->second.end(); ++tit)
 				{
@@ -461,10 +511,10 @@ namespace util
 					{
 						foundTimer->second.content+= tit->second.content;
 					}else
-						(*debugQueue)[it->first][tit->first]= tit->second;
+						(*toExist)[it->first][tit->first]= tit->second;
 				}
 			}else
-				debugQueue->insert(*it);
+				toExist->insert(*it);
 		}
 	}
 
