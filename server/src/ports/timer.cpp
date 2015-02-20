@@ -44,8 +44,8 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	string folder(getFolderName()), subroutine(getSubroutineName());
 
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "display_settings" &&
-		getSubroutineName() == "activate"					)
+/*	if(	getFolderName() == "Raff1_port" &&
+		getSubroutineName() == "grad_time"					)
 	{
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
 		cout << __FILE__ << __LINE__ << endl;
@@ -501,6 +501,7 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		dTimerStat= 3;// external starting
 	db->writeIntoDb(folder, subroutine, "timerstat");
 	db->fillValue(folder, subroutine, "timerstat", dTimerStat, /*new*/true);
+	m_dStartValue= getValue(InformObject(InformObject::INTERNAL, getFolderName()))->getValue();
 	return bOk;
 }
 
@@ -1374,6 +1375,9 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 		if(debug)
 			out() << "no measuring should be done" << endl;
 		nRv= actValue;
+		LOCK(m_SUBVARLOCK);
+		m_dStartValue= actValue;
+		UNLOCK(m_SUBVARLOCK);
 	}
 
 	if(	m_nCaseNr == 5 && // measure time inside case of begin/while/end
@@ -2159,22 +2163,14 @@ auto_ptr<IValueHolderPattern> timer::getValue(const InformObject& who)
 	return oGetValue;
 }
 
-#if 0
-void timer::setValue(double value, const string& from, ppi_time changed/*= ppi_time()*/)
+void timer::setValue(const IValueHolderPattern& value, const InformObject& from)
 {
-	if(	!m_bTimeMeasure &&
-		value > 0 &&
-		from != "i:"+getFolderName()+":"+getSubroutineName()	)
-	{
-
-		next.tv_sec= m_tmSec;
-		next.tv_usec= m_tmMicroseconds;
-		timeradd(&m_tmStart, &next, &m_tmStart);
-		need= MeasureThread::calcResult(next);
-		getRunningThread()->nextActivateTime(getFolderName(), m_tmStart);
-	}
+	switchClass::setValue(value, from);
+	LOCK(m_SUBVARLOCK);
+	if(!m_bRunTime)
+		m_dStartValue= getValue(InformObject(InformObject::INTERNAL, getFolderName()))->getValue();
+	UNLOCK(m_SUBVARLOCK);
 }
-#endif
 
 void timer::setDebug(bool bDebug)
 {
