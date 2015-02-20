@@ -34,7 +34,7 @@
  * currently info messages by one pass to database
  * and define to 3 by both
  */
-#define __showSendingCount 1
+#define __showSendingCount 0
 
 #include "../pattern/util/IPPIDatabasePattern.h"
 #include "../pattern/util/IDbFillerPattern.h"
