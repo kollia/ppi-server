@@ -328,6 +328,7 @@ namespace ppi_database
 
 	bool DbInterface::fillDebugSession(const IDbFillerPattern::dbgSubroutineContent_t& content, bool answer)
 	{
+		const size_t maxlen(3000);
 		string msg;
 		SocketErrorHandling err;
 		OMethodStringStream command("fillDebugSession");
@@ -346,7 +347,7 @@ namespace ppi_database
 		command << content.subroutine;
 		command << content.value;
 		if(	content.currentTime == NULL ||
-			content.currentTime->isSet()	)
+			!content.currentTime->isSet()	)
 		{
 			cur.setActTime();
 			if(cur.error())
@@ -360,9 +361,57 @@ namespace ppi_database
 			command << cur;
 		}else
 			command << *content.currentTime;
-		command << content.content;
-		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, answer);
-		err.setErrorStr(msg);
+		if(content.content.length() > maxlen)
+		{
+			string str(content.content);
+			string currentSend;
+			size_t minus;
+			size_t len= str.length();
+
+			/*
+			 * split content length by filling debug session
+			 * when content longer then maxlen ( define 3000 first
+			 *                                   for my computer
+			 *                                   2 x 2100 MB x64
+			 *                                   this length was possible )
+			 * because when command was to long
+			 * there was sending problems
+			 * toDo: maybe better resolution
+			 *       by do not make send request over
+			 *       over fputs and fgets
+			 *       which work with cache
+			 */
+			while(len > maxlen)
+			{
+				OMethodStringStream send(command.str());
+
+				minus= maxlen;
+				do{
+					currentSend= str.substr(0, minus);
+					--minus;
+				}while(currentSend.substr(minus) == "\\");
+				++minus;
+				str= str.substr(minus);
+				len= str.length();
+				send << currentSend;
+				msg= ExternClientInputTemplate::sendMethod("ppi-db-server", send, answer);
+				err.setErrorStr(msg);
+				if(err.fail())
+					break;
+			}
+			if(!err.fail())
+			{
+				command << str;
+				msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, answer);
+				err.setErrorStr(msg);
+			}
+
+		}else
+		{
+			command << content.content;
+			msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, answer);
+			err.setErrorStr(msg);
+		}
 		if(err.fail())
 		{
 			err.addMessage("DbInterface", "sendCommand", "database server@" + command.getMethodName());

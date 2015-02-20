@@ -336,6 +336,7 @@ namespace server
 			(*content.currentTime)= time;
 			object >> content.content;
 			db->fillDebugSession(content);
+			descriptor << "done";
 
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			if(bDebugOutput)
