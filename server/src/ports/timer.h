@@ -130,6 +130,17 @@ public:
 	 */
 	OVERWRITE void setObserver(IMeasurePattern* observer);
 	/**
+	 * set value in subroutine.<br />
+	 * All strings from parameter 'from' beginning with an one character type,
+	 * followed from an colon 'r:' by ppi-reader, 'e:' by an account connected over Internet
+	 * or 'i:' by intern folder:subroutine.
+	 *
+	 * @param value value which should be set with last changing time when set,
+	 *              otherwise method create own time
+	 * @param from which folder:subroutine or account changing the value
+	 */
+	OVERWRITE void setValue(const IValueHolderPattern& value, const InformObject& from);
+	/**
 	 * measure new value for subroutine
 	 *
 	 * @param actValue current value
