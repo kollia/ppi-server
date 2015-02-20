@@ -855,7 +855,15 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 					m_nDirection= 1;
 				else
 					m_nDirection= 0;
-				if(	m_nDirection != oldDirection &&
+				if(debug)
+				{
+					if(direct > 0)
+						out() << "direction is set to count the time up to full time" << endl;
+					else
+						out() << "direction is set to count the time down to 0" << endl;
+				}
+				if(	m_bMeasure == true &&
+					m_nDirection != oldDirection &&
 					oldDirection > -1				)
 				{
 					ValueHolder oval;
@@ -867,10 +875,13 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 							out() << "new direction set, check whether TIMER running should start new" << endl;
 						oval= switchClass::measure(m_dSwitch, set, &nRv, /*can be outside changed*/false);
 						m_dSwitch= oval.value;
-						if(oval.lastChanging.isSet())
-							tmLastSwitchChanged= oval.lastChanging;
-						else
-							tmLastSwitchChanged= m_oActTime;
+						if(m_dSwitch == 0)
+						{
+							if(oval.lastChanging.isSet())
+								tmLastSwitchChanged= oval.lastChanging;
+							else
+								tmLastSwitchChanged= m_oActTime;
+						}
 						if(m_dSwitch > 0)
 							bswitch= true;
 						else
