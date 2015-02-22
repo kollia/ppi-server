@@ -61,8 +61,11 @@ namespace server
 		m_bOwDebug= false;
 		m_fProtocol= 0;
 		m_bHoldAll= false;
+		m_bServerLoad= false;
+		m_sServerLoadStep= 1;
 		m_DEBUGSESSIONCHANGES= Thread::getMutex("DEBUGSESSIONCHANGES");
 		m_PROMPTMUTEX= Thread::getMutex("PROMPTMUTEX");
+		m_LOADMUTEX= Thread::getMutex("LOADMUTEX");
 	}
 
 	EHObj ClientTransaction::init(IFileDescriptorPattern& descriptor)
@@ -1019,7 +1022,7 @@ namespace server
 		// folder list debug session
 		ppi_time time;
 		ppi_value value;
-		string folder, subroutine, defSub, content, id;
+		string folder, subroutine, content, id;
 		// debug external port server
 		bool bHeader= true;
 		bool bErrorWritten(false);
@@ -1033,10 +1036,12 @@ namespace server
 
 		do{
 			bErrorWritten= false;
+			load(/*get from server*/false);
 			descriptor >> result;
 			trim(result);
 			if(result == "done")
 				continue;
+			load(/*get from server*/true);
 			if(result == "ppi-server debugsession")
 			{
 				bool bFirstOutput(true);
@@ -1052,6 +1057,7 @@ namespace server
 						map<string, map<string, unsigned long> >::iterator foundFolder;
 						map<string, unsigned long>::iterator foundSubroutine;
 
+						load(/*get from server*/true);
 						/*
 						 * data type order below
 						 * is specified inside follow methods:
@@ -1069,23 +1075,17 @@ namespace server
 						LOCK(m_DEBUGSESSIONCHANGES);
 						if(m_oStoreFile.is_open())
 							m_oStoreFile << result << endl;
-						if(	subroutine.length() > 10 &&
-							subroutine.substr(0, 10) == "#external_"	)
+						if(	subroutine.length() > 1 &&
+							subroutine.substr(0, 1) != "#"	)
 						{
-							defSub= subroutine.substr(10);
-						}else
-							defSub= subroutine;
-						if(	defSub.length() > 1 &&
-							defSub.substr(0, 1) != "#"	)
-						{
-							m_mFolderSubs[folder].insert(defSub);
+							m_mFolderSubs[folder].insert(subroutine);
 						}
 						if(!m_bHoldAll)
 						{
 							foundFolder= m_vsHoldFolders.find(folder);
 							if(foundFolder != m_vsHoldFolders.end())
 							{
-								foundSubroutine= foundFolder->second.find(defSub);
+								foundSubroutine= foundFolder->second.find(subroutine);
 								if(	foundSubroutine != foundFolder->second.end() ||
 									subroutine.substr(0, 1) == "#"					)
 								{// folder is set for holding
@@ -4316,10 +4316,47 @@ namespace server
 		return true;
 	}
 
+	void ClientTransaction::load(bool get)
+	{
+		ppi_time current, next;
+
+		next.tv_sec= 0;
+		next.tv_usec= 500000;
+		LOCK(m_LOADMUTEX);
+		if(!get)
+		{
+			unsigned short before(m_sServerLoadStep);
+
+			m_bServerLoad= false;
+			m_tLastLoad.clear();
+			UNLOCK(m_LOADMUTEX);
+			if(before > 0)
+				writeLastPromptLine(/*need lock*/true);
+			return;
+		}
+		if(current.setActTime())
+		{
+			if(	m_tLastLoad.isSet() &&
+				next > (current - m_tLastLoad)	)
+			{
+				UNLOCK(m_LOADMUTEX);
+				return;
+			}
+			m_tLastLoad= current;
+		}
+		m_bServerLoad= true;
+		++m_sServerLoadStep;
+		if(m_sServerLoadStep > 4)
+			m_sServerLoadStep= 1;
+		UNLOCK(m_LOADMUTEX);
+		writeLastPromptLine(/*need lock*/true);
+	}
+
 	void ClientTransaction::writeLastPromptLine(bool lock,
 					string::size_type cursor/*= string::npos*/, const string& str/*= ""*/, bool end/*= false*/)
 	{
 		string sNullStr;
+		string sload;
 
 		if(m_o2Client.get())
 		{
@@ -4329,11 +4366,35 @@ namespace server
 		if(lock)
 			LOCK(m_PROMPTMUTEX);
 
+		LOCK(m_LOADMUTEX);
+		if(m_bServerLoad)
+		{
+			switch(m_sServerLoadStep)
+			{
+			case 1:
+				sload= "- ";
+				break;
+			case 2:
+				sload= "\\ ";
+				break;
+			case 3:
+				sload= "| ";
+				break;
+			case 4:
+				sload= "/ ";
+				break;
+			default:
+				sload= "  ";
+				break;
+			}
+		}else
+			sload= "  ";
+		UNLOCK(m_LOADMUTEX);
 		if(	cursor != string::npos &&
 			!m_bRunHearTran	)
 		{
 			sNullStr.append(m_nOldResultLength, ' ');
-			std::cout << "\r" << m_sLastPromptLine << sNullStr << std::flush;
+			std::cout << "\r" << sload << m_sLastPromptLine << sNullStr << std::flush;
 		}
 		if(cursor != string::npos)
 		{
@@ -4346,13 +4407,19 @@ namespace server
 		}
 		if(!m_bRunHearTran)
 		{
-			std::cout << "\r" << m_sLastPromptLine << m_sPromptResult << flush;
+			ostringstream out;
+
+			out << "\r";
+			out << sload << m_sLastPromptLine << m_sPromptResult;
+			std::cout << out.str() << flush;
 			if(end)
 				std::cout << endl;
 			else if(m_sPromptResult.length() > m_nResultPos)
 			{
-				std::cout << "\r" << m_sLastPromptLine;
-				std::cout << m_sPromptResult.substr(0, m_nResultPos) << flush;
+				out.str("");
+				out << "\r" << sload << m_sLastPromptLine;
+				out << m_sPromptResult.substr(0, m_nResultPos);
+				std::cout << out.str() << flush;
 			}
 		}
 
@@ -4517,6 +4584,7 @@ namespace server
 		}
 		DESTROYMUTEX(m_DEBUGSESSIONCHANGES);
 		DESTROYMUTEX(m_PROMPTMUTEX);
+		DESTROYMUTEX(m_LOADMUTEX);
 	}
 
 }

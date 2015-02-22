@@ -486,6 +486,19 @@ namespace server
 			 */
 			ofstream m_oStoreFile;
 			/**
+			 * whether should be shown
+			 * content loading from server
+			 */
+			bool m_bServerLoad;
+			/**
+			 * steps of loading content from server
+			 */
+			unsigned short m_sServerLoadStep;
+			/**
+			 * last time of new step setting
+			 */
+			ppi_time m_tLastLoad;
+			/**
 			 * mutex to write clear hold variables
 			 */
 			pthread_mutex_t* m_DEBUGSESSIONCHANGES;
@@ -493,6 +506,11 @@ namespace server
 			 * mutex of changing prompt
 			 */
 			pthread_mutex_t* m_PROMPTMUTEX;
+			/**
+			 * mutex to set handle for loading
+			 * content from server
+			 */
+			pthread_mutex_t* m_LOADMUTEX;
 
 			/**
 			 * set whether hearing transaction running
@@ -508,6 +526,13 @@ namespace server
 			 * @return released word, or by yes/no question only 'Y' or 'N' in big letters
 			 */
 			OVERWRITE string ask(bool yesno, string promptStr);
+			/**
+			 * set new loading step from server
+			 * or signal end of load
+			 *
+			 * @param get whether client get content form server
+			 */
+			void load(bool get);
 			/**
 			 * reading one character
 			 * or specialcharacter sequence
