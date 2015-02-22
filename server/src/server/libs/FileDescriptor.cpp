@@ -76,11 +76,14 @@ namespace server
 		bool locked(true);
 		char *res;
 		char buf[501];
-		string::size_type bufLen= (sizeof(buf)-2);
-		string sread;
+		string::size_type endPos;
+		string::size_type bufLen(sizeof(buf)-2);
+		string sread, process;
 
 		m_nErr= 0;
-		reader= "";
+		process= getString("process") + ":";
+		process+= getString("client");
+		reader= m_sLastRead[process];
 		if(eof())
 			return;
 
@@ -88,11 +91,18 @@ namespace server
 			locked= false;// lock done, so lock wasn't set
 		UNLOCK(m_THREADSAVEMETHODS);
 		do{
-			res= fgets(buf, bufLen+1, m_pFile);
+			res= fgets(buf, bufLen, m_pFile);
 			sread= (res != NULL) ? string(res) : string("");
-			reader+= sread;
+			endPos= sread.find("\n");
+			if(	endPos != string::npos &&
+				endPos < (sread.length() - 1)	)
+			{
+				reader+= sread.substr(0, endPos + 1);
+				m_sLastRead[process]= sread.substr(endPos + 1);
+			}else
+				reader+= sread;
 
-		}while(!eof() && sread.length() == bufLen && sread.substr(bufLen-1, 1) != "\n");
+		}while(!eof() && endPos == string::npos);
 		if(locked)
 			LOCK(m_THREADSAVEMETHODS);
 /*		if(res == NULL)
@@ -110,7 +120,8 @@ namespace server
 		{
 			error();
 //			m_bEOF= true;
-		}
+		}else if(writer.find("\n") != string::npos)
+			flush();
 	}
 
 	inline void FileDescriptor::endl()

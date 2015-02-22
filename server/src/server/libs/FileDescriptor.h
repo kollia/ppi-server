@@ -417,6 +417,13 @@ namespace server
 			 */
 			FILE* m_pFile;
 			/**
+			 * cache for last reading
+			 * when found some characters
+			 * after carriage return.
+			 * split for every process and client
+			 */
+			map<string, string> m_sLastRead;
+			/**
 			 * signal end of file.
 			 */
 //			mutable bool m_bEOF;
