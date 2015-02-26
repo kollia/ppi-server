@@ -71,8 +71,9 @@ namespace server
 		m_pSocketError->clear();
 		if(m_pDescriptor)
 		{
-			if(m_pDescriptor->error())
+			if(m_pDescriptor->hasError())
 			{
+				m_pSocketError= m_pDescriptor->getErrorObj();
 				close();
 			}else
 			{
@@ -198,7 +199,6 @@ namespace server
 		int con;
 		int errsv;
 		string msg;
-		FILE* fp;
 		time_t t, nt;
 
 		time(&t);
@@ -227,24 +227,12 @@ namespace server
 							"connect", errsv, decl.str());
 			return false;
 		}
-		fp= fdopen (m_kSocket.serverSocket, "w+");
-		if(fp != NULL)
-		{
-			m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>(new FileDescriptor(	NULL,
+		m_pDescriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>(new FileDescriptor(	NULL,
 																							m_pTransfer,
-																							fp,
+																							m_kSocket.serverSocket,
 																							m_sHost,
 																							m_nPort,
 																							m_nTimeout	));
-		}else
-		{
-			int errno_nr(errno);
-			ostringstream decl;
-
-			decl << m_sHost << "@" << m_nPort;
-			m_pSocketError->setErrnoError("SocketClientConnection", "fdopen", errno_nr, decl.str());
-			return false;
-		}
 		m_pSocketError= m_pDescriptor->init();
 		if(m_pSocketError->hasError())
 		{

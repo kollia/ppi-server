@@ -431,8 +431,8 @@ namespace ports
 				}
 				trim(result);
 				if(	berror ||
-					descriptor->error() ||
-					result == ""			)
+					result == "" ||
+					descriptor->eof()	)
 				{
 					string errStr;
 
@@ -444,11 +444,14 @@ namespace ports
 					 // reconnect client to server
 						if(debug)
 						{
-							fillDebug(debugOutStr + "\n"
-									"ERROR by reading answer, get no content "
-											"-> so close connection to "
-											+ m_sAddress.getHost() + "\n"
-															"try again\n"		);
+							debugOutStr+= "\n"
+								"ERROR by reading answer, get no content "
+										"-> so close connection to "
+										+ m_sAddress.getHost() + "\n"
+														"try again\n";
+							if(descriptor->fail())
+								debugOutStr+= descriptor->getErrorDescription() + "\n";
+							fillDebug(debugOutStr);
 						}
 						bHoldConnection= false;
 						continue;
@@ -467,7 +470,12 @@ namespace ports
 					break;
 				}
 				if(debug)
-					fillDebug(debugOutStr + "\n");
+				{
+					debugOutStr+= "\n";
+					if(descriptor->hasWarning())
+						debugOutStr+= descriptor->getErrorDescription() + "\n";
+					fillDebug(debugOutStr);
+				}
 
 				output.str(result);
 				output >> res;
@@ -517,7 +525,7 @@ namespace ports
 					berror= true;
 				}
 				if(	berror ||
-					descriptor->error())
+					descriptor->hasError())
 				{
 					string errStr;
 
@@ -529,12 +537,20 @@ namespace ports
 					errStr+= m_sAddress.getHost() + "\n";
 					if(debug)
 					{
-						fillDebug(debugOutStr + "\n" + errStr + "\n");
+						debugOutStr+= "\n";
+						if(descriptor->hasError())
+							debugOutStr+= descriptor->getErrorDescription() + "\n";
+						debugOutStr+= errStr + "\n";
+						fillDebug(debugOutStr);
 					}
 					errStr+= "inside subroutine " + m_sFolder + ":" + m_sSubroutine + "\n";
 					errStr+= "for request of '" + m_sAddress.getBaseUri() + "'";
 					LOG(LOG_ERROR, errStr);
 					break;
+				}else if(	debug &&
+							descriptor->hasWarning()	)
+				{
+					fillDebug(descriptor->getErrorDescription() + "\n");
 				}
 				if(!bHeadEnd)
 				{

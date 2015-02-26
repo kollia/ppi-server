@@ -56,6 +56,11 @@ void SocketErrorHandling::read()
 	setDescription("en", "SocketServerConnection", "fdopen",
 					"cannot open descriptor to write/read on host '@1' with port @2 by follow error:");
 
+	setDescription("en", "FileDescription", "write",
+					"by writing to host '@1:@2' over transaction '@3'");
+	setDescription("en", "FileDescription", "read",
+					"by reading from host '@1:@2' over transaction '@3'");
+
 	setDescription("en", "OutsideClientTransaction", "init",
 					"object of OutsideClientTransaction is not defined to handle transactions");
 	setDescription("en", "OutsideClientTransaction", "descriptor",
@@ -101,9 +106,11 @@ void SocketErrorHandling::read()
 					"by trying to process executable '@1'");
 
 	setDescription("en", "ServerMethodTransaction", "stream_end",
-					"inside @1 connection ID:@2 from @3 to @4 reaching end of stream '@5'");
-	setDescription("en", "ServerMethodTransaction", "descriptor_get",
-					"inside @1 connection ID:@2 from @3 to @4 is broken");
+					"inside @1 connection ID:@2 from @3 to @4 reaching end of stream after '@5'");
+	setDescription("en", "ServerMethodTransaction", "descriptor_warning",
+					"inside @1 connection ID:@2 from @3 to @4 has warning");
+	setDescription("en", "ServerMethodTransaction", "descriptor_error",
+					"inside @1 connection ID:@2 from @3 to @4 has broken error");
 
 	setDescription("en", "ServerThread", "accept",
 					"Server @1 try to accept communication to @2:@3");
@@ -143,14 +150,19 @@ bool SocketErrorHandling::setAddrError(const string& classname, const string& er
 	if(!setErrnoError(classname, error_string, errno_nr, decl))
 		return false;
 	m_tError.type= specific_error;
-	m_tError.adderror= "getaddrinfo" + oerror.str();
+	if(classname == "FileDescriptor")
+	{
+		m_tError.adderror= "FileDescriptor_";
+		m_tError.adderror+= error_string;
+	}else
+		m_tError.adderror= "getaddrinfo" + oerror.str();
 	return true;
 }
 
 string SocketErrorHandling::getErrorDescriptionString(errorVals_t error) const
 {
 	string::size_type nMethodLen;
-	string sRv, err;
+	string sRv;
 
 	if(error.type == specific_error)
 	{
@@ -172,6 +184,87 @@ string SocketErrorHandling::getErrorDescriptionString(errorVals_t error) const
 				sRv+= gai_strerror(error_nr);
 			else
 				sRv+= getErrnoString(error.errno_nr);
+		}else
+		{
+			sRv= "FileDescriptor";
+			nMethodLen= sRv.length();
+			if(	error.adderror.length() >= nMethodLen &&
+				error.adderror.substr(0, nMethodLen) == sRv)
+			{
+				bool read(true);
+
+				if(error.adderror.substr(nMethodLen) == "write")
+					read= false;
+				switch(error.errno_nr)
+				{
+				case EAGAIN:
+					sRv= "The file descriptor fd refers to a file other than a socket "
+									"and has been marked nonblocking (O_NONBLOCK), "
+									"and the ";
+					if(read)
+						sRv+= "read ";
+					else
+						sRv+= "write ";
+					sRv+= "would block.";
+					break;
+				case EBADF:
+					sRv= "The file descriptor is not valid or is not open for ";
+					if(read)
+						sRv+= "reading.";
+					else
+						sRv+= "writing.";
+					break;
+				case EFAULT:
+					sRv= "buffer is outside your accessible address space.";
+					break;
+				case EFBIG: // only writing
+					sRv= "An attempt was made to write a file that exceeds the "
+									"implementation-defined maximum file size or "
+									"the process's file size limit, or to write "
+									"at a position past the maximum allowed offset.";
+					break;
+				case EINTR:
+					sRv= "The call was interrupted by a signal before any data was read; see signal(7).";
+					break;
+				case EINVAL:
+					sRv= "The file descriptor is attached to an object which is unsuitable for reading; "
+									"or the file was opened with the O_DIRECT flag, "
+									"and either the address speci‐fied in buffer, "
+									"the value specified in count, or the current file offset "
+									"is not suitably aligned.";
+					break;
+				case EIO:
+					sRv= "I/O error. This will happen for example when the process is in a "
+									"background process group, tries to read from its controlling tty, "
+									"and either it is ignoring or blocking SIGTTIN or its "
+									"process group is orphaned. It may also occur when there "
+									"is a low-level  I/O  error  while reading from a disk or tape.";
+					break;
+				case EISDIR: // only for reading
+					sRv= "The file descriptor refers to a directory.";
+					break;
+				case ENOSPC: // only for writing
+					sRv= "The device containing the file referred to by file descriptor"
+									" has no room for the data.";
+					break;
+				case EPIPE: // only for writing
+					sRv= "The file descriptor is connected to a pipe or socket whose reading "
+									"end is closed. When this happens the writing process "
+									"will also receive a SIGPIPE signal.\n"
+									"(Thus, the write return value is seen only if the "
+									"program catches, blocks or ignores this signal.)";
+					break;
+
+				default:
+					if(error.type == specific_error)
+						error.type= errno_error;
+					else
+						error.type= errno_warning;
+					sRv= "";
+					break;
+				}
+			}else
+				sRv= "";
 		}
 	}
 	if(sRv == "")

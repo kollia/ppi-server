@@ -50,8 +50,10 @@ namespace server
 			 * stadard constructor to forwarding
 			 */
 			FileDescriptor()
-			:	m_nTimeout(0)
-			{ initial(NULL, NULL, NULL, "", 0); };
+			:	m_bEOF(false),
+			 	m_nTimeout(0),
+			 	m_bAutoSending(true)
+			{ initial(NULL, NULL, 0, "", 0); };
 			/**
 			 * constructor to initial FILE and current host address
 			 *
@@ -61,9 +63,11 @@ namespace server
 			 * @param address incoming host address
 			 * @param timeout waiting seconds if no second client thread waiting for answers
 			 */
-			FileDescriptor(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address,
+			FileDescriptor(IServerPattern* server, ITransferPattern* transfer, int file, string address,
 					const unsigned short port, const unsigned int timeout)
-			:	m_nTimeout(timeout)
+			:	m_bEOF(false),
+			 	m_nTimeout(timeout),
+			 	m_bAutoSending(true)
 			{ initial(server, transfer, file, address, port); };
 			/**
 			 * initial ITransferPattern with this FileDescriptor
@@ -80,29 +84,71 @@ namespace server
 			virtual void operator >> (string &reader);
 			/**
 			 * operator value write string into transaction
-			 * when line be ending (with carriage return) or by flush command.
+			 * for sending
 			 *
 			 * @param writer write value to transaction file
 			 */
 			virtual void operator << (const string& writer);
 			/**
+			 * sending request to client or server
+			 */
+			virtual void flush();
+			/**
+			 * whether descriptor is defined for automatic
+			 * sending by every carriage return.<br />
+			 * default is true
+			 *
+			 * @param automatic whether should be defined for automatic sending
+			 */
+			virtual void flushing(bool automatic)
+			{ m_bAutoSending= automatic; };
+			/**
 			 * creating an carriage return with flush
 			 */
 			virtual void endl();
 			/**
-			 * flush the string inside to client
-			 */
-			virtual void flush();
-			/**
-			 * whether end of file is reached
+			 * whether other part of connection
+			 * will be lost or connection end
+			 * with an error
 			 *
 			 * @return end of file reached
 			 */
 			virtual bool eof() const;
 			/**
-			 * test file handle of error
+			 * whether current object has an error or warning
+			 *
+			 * @return whether error exist
 			 */
-			virtual int error() const;
+			virtual bool fail() const
+			{ return m_oSocketError.fail(); };
+			/**
+			 * whether current object has an error
+			 *
+			 * @return whether error exist
+			 */
+			virtual bool hasError() const
+			{ return m_oSocketError.hasError(); };
+			/**
+			 * whether current object has an warning
+			 *
+			 * @return whether warning exist
+			 */
+			virtual bool hasWarning() const
+			{ return m_oSocketError.hasWarning(); };
+			/**
+			 * returning error or warning description
+			 * form current object
+			 *
+			 * @return error description
+			 */
+			virtual string getErrorDescription() const
+			{ return m_oSocketError.getDescription(); };
+			/**
+			 * return error / warning object
+			 *
+			 * @return error handling object
+			 */
+			virtual EHObj getErrorObj() const;
 			/**
 			 * get name of host address from client
 			 *
@@ -415,7 +461,7 @@ namespace server
 			/**
 			 * file handle to connection over IP
 			 */
-			FILE* m_pFile;
+			int m_nFd;
 			/**
 			 * cache for last reading
 			 * when found some characters
@@ -426,11 +472,11 @@ namespace server
 			/**
 			 * signal end of file.
 			 */
-//			mutable bool m_bEOF;
+			bool m_bEOF;
 			/**
 			 * holds error number
 			 */
-			mutable int m_nErr;
+			SocketErrorHandling m_oSocketError;
 			/**
 			 * boolean values set from ITransferPattern object
 			 */
@@ -476,10 +522,6 @@ namespace server
 			 */
 			map<string, string> m_mString;
 			/**
-			 * string sending from an other client
-			 */
-			string m_sSendString;
-			/**
 			 * Whether sending client wait for answer
 			 */
 			bool m_bWait;
@@ -507,6 +549,21 @@ namespace server
 			 * waiting for answers
 			 */
 			const unsigned int m_nTimeout;
+			/**
+			 * whether descriptor is defined for automatic
+			 * sending by every carriage return
+			 */
+			bool m_bAutoSending;
+			/**
+			 * transaction cash to sending over connection
+			 */
+			string m_sSendTransaction;
+			/**
+			 * string transaction from an other client
+			 * inside an other thread
+			 * (no transfer over an connection)
+			 */
+			string m_sSendString;
 
 			/**
 			 * constructor initialization for object
@@ -517,7 +574,7 @@ namespace server
 			 * @param address incoming host address
 			 * @param timeout waiting seconds if no second client thread waiting for answers
 			 */
-			void initial(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address,
+			void initial(IServerPattern* server, ITransferPattern* transfer, int file, string address,
 					const unsigned short port);
 			/**
 			 * search other client which hearing to give answer

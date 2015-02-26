@@ -77,7 +77,6 @@ namespace server
 	{
 		bool bRun= true;
 		bool bwait= true;
-		int nError;
 		string::size_type pos;
 		string input, wasinput;
 		string process;
@@ -109,9 +108,7 @@ namespace server
 			cout << out.str();
 		}
 #endif // debug
-		nError= descriptor.error();
-		if(	descriptor.eof() ||
-			nError != 0			)
+		if(descriptor.eof())
 		{
 			unsigned int ID;
 			int log;
@@ -125,16 +122,23 @@ namespace server
 			process= descriptor.getString("process");
 			decl << descriptor.getServerObject()->getName() << "@" << ID;
 			decl << "@" << client << "@" << process;
-			if(nError == 0)
+			if(!descriptor.fail())
 			{
 				decl << "@" << input;
 				m_pSockError->setWarning("ServerMethodTransaction", "stream_end", decl.str());
 				log= LOG_INFO;
 			}else
 			{
-				m_pSockError->setErrnoError("ServerMethodTransaction", "stream_error",
-								descriptor.error(), decl.str());
-				log= LOG_ERROR;
+				m_pSockError= descriptor.getErrorObj();
+				if(descriptor.hasError())
+				{
+					m_pSockError->addMessage("ServerMethodTransaction", "stream_error", decl.str());
+					log= LOG_ERROR;
+				}else
+				{
+					m_pSockError->addMessage("ServerMethodTransaction", "stream_warning", decl.str());
+					log= LOG_WARNING;
+				}
 			}
 			LOG(log, m_pSockError->getDescription() + "\n -> so close connection");
 			m_pSockError->clear();
@@ -406,43 +410,61 @@ namespace server
 					endString != wasinput	)
 			{
 				descriptor >> input;
-				if(descriptor.eof())
+				if(descriptor.fail())
 				{
+					int log;
 					unsigned int ID;
 					string process, client;
 					vector<string> answer;
-					ostringstream msg;
+					ostringstream decl;
 					IMethodStringStream oInit("init");
 
 					ID= descriptor.getClientID();
 					process= descriptor.getString("process");
 					client= descriptor.getString("client");
-					msg << "WARNING: conection " << ID;
-					msg << " in " << descriptor.getServerObject()->getName();
-					msg << " from client " << client;
-					msg << " in process " << process << " is broken by";
-					if(descriptor.error())
-						msg << " an undefined ERROR";
-					else
-						msg << " ending of stream";
-					msg << endl << "         so close connection";
-					LOG(LOG_INFO, msg.str());
+					decl << descriptor.getServerObject()->getName() << "@" << ID;
+					decl << "@" << client << "@" << process;
+					if(!descriptor.fail())
+					{
+						decl << "@" << input;
+						m_pSockError->setWarning("ServerMethodTransaction", "stream_end", decl.str());
+						log= LOG_INFO;
+					}else
+					{
+						m_pSockError= descriptor.getErrorObj();
+						if(descriptor.hasError())
+						{
+							m_pSockError->addMessage("ServerMethodTransaction", "stream_error", decl.str());
+							log= LOG_ERROR;
+						}else
+						{
+							m_pSockError->addMessage("ServerMethodTransaction", "stream_warning", decl.str());
+							log= LOG_WARNING;
+						}
+					}
+					decl.str(m_pSockError->getDescription());
 #ifdef ALLOCATEONMETHODSERVER
-					msg << endl;
 					if(	string("") == ALLOCATEONMETHODSERVER ||
 						descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER	)
 					{
 						cerr << "connection to server " << descriptor.getServerObject()->getName() << endl;
-						cerr << msg.str();
+						cerr << decl.str();
 					}
 #endif // ALLOCATEONMETHODSERVER
-					descriptor.setBoolean("access", false);
-					oInit.createSyncID();
-					answer= descriptor.sendToOtherClient(client, oInit, true, "");
-					oInit.removeSyncID();
-					connectionEnding(ID, process, client);
-					dissolveConnection(descriptor);
-					return false;
+					if(log != LOG_WARNING)
+					{
+						decl << endl;
+						decl << " -> so close connection";
+						LOG(log, decl.str());
+						descriptor.setBoolean("access", false);
+						oInit.createSyncID();
+						answer= descriptor.sendToOtherClient(client, oInit, true, "");
+						oInit.removeSyncID();
+						connectionEnding(ID, process, client);
+						dissolveConnection(descriptor);
+						return false;
+					}
+					LOG(log, decl.str());
 				}
 				trim(input);
 				wasinput= input;

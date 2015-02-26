@@ -37,7 +37,6 @@ namespace server
 	{
 		char ip_address[INET6_ADDRSTRLEN];
 		string msg;
-		FILE* fp;
 		SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
 		POS("#server#wait-client");
 		m_kSocket.bindSocket = ::accept(m_kSocket.serverSocket,
@@ -56,16 +55,6 @@ namespace server
 								"maybe server will be ending");
 			return m_pSocketError;
 		}
-		fp = fdopen (m_kSocket.bindSocket, "w+");
-		if(fp == NULL)
-		{
-			int error(errno);
-			ostringstream decl;
-
-			decl << m_sHost << "@" << m_nPort;
-			m_pSocketError->setErrnoError("SocketServerConnection", "fdopen", error, decl.str());
-			return m_pSocketError;
-		}
 		inet_ntop(m_kSocket.ss_family, &m_kSocket.rec_addres.sin_addr, ip_address, INET6_ADDRSTRLEN);
 		POSS("#server#has-client", ip_address);
 	#ifdef SERVERDEBUG
@@ -75,7 +64,7 @@ namespace server
 	#endif // SERVERDEBUG
 		descriptor= SHAREDPTR::shared_ptr<IFileDescriptorPattern>(new FileDescriptor(	m_pServer,
 																						m_pTransfer,
-																						fp,
+																						m_kSocket.bindSocket,
 																						ip_address,
 																						m_nPort,
 																						m_nTimeout	));

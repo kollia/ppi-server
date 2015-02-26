@@ -4487,7 +4487,7 @@ namespace server
 
 		descriptor >> buffer;
 		trim(buffer);
-		if(	!descriptor.error() &&
+		if(	!descriptor.fail() &&
 			buffer != ""			)
 		{
 			trim(buffer);

@@ -255,6 +255,7 @@ int main(int argc, char* argv[])
 #include "server/libs/client/SocketClientConnection.h"
 #include "server/libs/server/TcpServerConnection.h"
 #include "util/smart_ptr.h"
+#include <boost/algorithm/string/trim.hpp>
 // for testing on streams
 #include "util/properties/interlacedproperties.h"
 // for check thread creation
@@ -456,6 +457,7 @@ void tests(const string& workdir, int argc, char* argv[])
 		string command;
 		string value;
 	    SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
+	    ErrorHandling error;
 
 	    if (argc == 2)
 	    {
@@ -468,55 +470,74 @@ void tests(const string& workdir, int argc, char* argv[])
 														10			);
 
 	    		//connection.newTranfer(new ClientTransaction());
-	    		if(!client.init())
+	    		error= client.init();
+	    		if(!error.fail())
 	    		{
 	    			descriptor= client.getDescriptor();
 	    			cout << "client send: \"Hallo Du!\"" << endl;
+	    			cout << "client send: \"Wie geht es Dir\"" << endl;
 	    			(*descriptor) << "Hallo Du!\nWie geht es Dir\nden";
 	    			(*descriptor) << " heute?";
+	    			cout << "client send: \"den heute?" << endl;
 	    			descriptor->endl();
 	    			descriptor->flush();
 	    			if(!descriptor->eof())
 	    			{
 						(*descriptor) >> value;
-						cout << value << endl;
+						boost::trim(value);
+						cout << "client get message: \"" << value << "\"" << endl;
 						descriptor->closeConnection();
 	    			}else
+	    			{
+	    				if(descriptor->fail())
+	    					cout << descriptor->getErrorDescription() << endl;
 	    				cout << "server close to early connection" << endl;
-	    		}
+	    			}
+	    		}else
+	    			cout << error.getDescription() << endl;
 
 	    	}else if(command == "server")
 	    	{
+
 	    		server::TcpServerConnection connection(	"127.0.0.1",
 														20000,
 														10,
 														NULL	);
 
-	    		if(!connection.init())
+	    		error= connection.init();
+	    		if(!error.fail())
 	    		{
-	    			if(!connection.accept())
+	    			error= connection.accept();
+	    			if(!error.fail())
 	    			{
-	    				short count(1), maxcount(3);
+	    				short count(1), maxcount(4);
 
 	    				descriptor= connection.getDescriptor();
 	    				while(	!descriptor->eof() &&
-	    						count < maxcount		)
+	    						count <= maxcount		)
 	    				{
 	    					(*descriptor) >> value;
-	    					cout << "Server get message " << value << endl;
+	    					boost::trim(value);
+	    					cout << "Server get message: \"" << value << "\"" << endl;
 	    					++count;
 	    				}
 	    				if(!descriptor->eof())
 	    				{
-							cout << "server send back: Server got message" << endl;
+							cout << "server send back: \"Server got message\"" << endl;
 							(*descriptor) << "Server got message";
 							descriptor->endl();
 							descriptor->unlock();
 							descriptor->closeConnection();
 	    				}else
+	    				{
+	    					if(descriptor->fail())
+	    						cout << descriptor->getErrorDescription() << endl;
 	    					cout << "client close to early connection" << endl;
-	    			}
-	    		}
+	    				}
+	    			}else
+		    			cout << error.getDescription() << endl;
+	    		}else
+	    			cout << error.getDescription() << endl;
 	    	}else
 	    		fprintf(stderr,"usage %s [server|client]\n", argv[0]);
 	    }else

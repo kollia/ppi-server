@@ -16,6 +16,8 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
+#include <limits.h>
 
 #include <iostream>
 #include <utility>
@@ -39,7 +41,7 @@ using namespace boost;
 
 namespace server
 {
-	void FileDescriptor::initial(IServerPattern* server, ITransferPattern* transfer, FILE* file, string address,
+	void FileDescriptor::initial(IServerPattern* server, ITransferPattern* transfer, int file, string address,
 			const unsigned short port)
 	{
 		m_pTransfer= transfer;
@@ -49,8 +51,7 @@ namespace server
 		m_bFileAccess= true;
 		m_sAddress= address;
 		m_nPort= port;
-		m_pFile= file;
-//		m_bEOF= false;
+		m_nFd= file;
 		m_CONNECTIONIDACCESS= Thread::getMutex("CONNECTIONIDACCESS");
 		m_SENDSTRING= Thread::getMutex("SENDSTRING");
 		m_THREADSAVEMETHODS= Thread::getMutex("THREADSAVEMETHODS");
@@ -60,30 +61,43 @@ namespace server
 
 	EHObj FileDescriptor::init()
 	{
-		EHObj pRv;
+		EHObj pRv(new SocketErrorHandling);
 
 		LOCK(m_THREADSAVEMETHODS);
 		if(m_pTransfer)
-			pRv= m_pTransfer->init(*this);
-		else
-			pRv= EHObj(new SocketErrorHandling);
+		{
+			m_oSocketError= m_pTransfer->init(*this);
+			(*pRv)= m_oSocketError;
+		}
 		UNLOCK(m_THREADSAVEMETHODS);
+		return pRv;
+	}
+
+	EHObj FileDescriptor::getErrorObj() const
+	{
+		EHObj pRv(new SocketErrorHandling);
+
+		(*pRv)= m_oSocketError;
 		return pRv;
 	}
 
 	void FileDescriptor::operator >> (string &reader)
 	{
 		bool locked(true);
-		char *res;
-		char buf[501];
+		ssize_t getLen(0);
+		char buf[1026];
 		string::size_type endPos;
 		string::size_type bufLen(sizeof(buf)-2);
 		string sread, process;
 
-		m_nErr= 0;
+		if(bufLen > SSIZE_MAX)
+			bufLen= SSIZE_MAX;
 		process= getString("process") + ":";
 		process+= getString("client");
-		reader= m_sLastRead[process];
+		sread= m_sLastRead[process];
+		if(sread != "")
+			getLen= sread.length();
+		reader= "";
 		if(eof())
 			return;
 
@@ -91,8 +105,30 @@ namespace server
 			locked= false;// lock done, so lock wasn't set
 		UNLOCK(m_THREADSAVEMETHODS);
 		do{
-			res= fgets(buf, bufLen, m_pFile);
-			sread= (res != NULL) ? string(res) : string("");
+			if(getLen <= 0)
+			{// otherwise an string was reading before
+				getLen= read(m_nFd, buf, bufLen);
+				if(getLen > 0)
+				{
+					buf[getLen]= '\0';
+					sread= buf;
+
+				}else if(getLen < 0)
+				{
+					ostringstream decl;
+
+					decl << getHostAddressName() << "@";
+					decl << getPort() << "@";
+					decl << getTransactionName();
+					m_oSocketError.setAddrError("FileDescriptor", "read", 0,
+									errno, decl.str());
+					break;
+				}else
+				{// get null string
+					sread= "";
+					m_bEOF= true;
+				}
+			}
 			endPos= sread.find("\n");
 			if(	endPos != string::npos &&
 				endPos < (sread.length() - 1)	)
@@ -100,75 +136,66 @@ namespace server
 				reader+= sread.substr(0, endPos + 1);
 				m_sLastRead[process]= sread.substr(endPos + 1);
 			}else
+			{
 				reader+= sread;
+				m_sLastRead[process]= "";
+			}
+			getLen= 0;
 
-		}while(!eof() && endPos == string::npos);
+		}while(endPos == string::npos && !eof());
 		if(locked)
 			LOCK(m_THREADSAVEMETHODS);
-/*		if(res == NULL)
-		{
-			reader= "";
-			m_bEOF= true;
-			return;
-		}*/
 	}
 
 	void FileDescriptor::operator << (const string& writer)
 	{
-		m_nErr= 0;
-		if(fputs(writer.c_str(), m_pFile) < 0)
+		m_sSendTransaction+= writer;
+		if(	m_bAutoSending &&
+			writer.find('\n') != string::npos	)
 		{
-			error();
-//			m_bEOF= true;
-		}else if(writer.find("\n") != string::npos)
 			flush();
+		}
+	}
+
+	inline bool FileDescriptor::eof() const
+	{
+		if(m_oSocketError.hasError())
+			return true;
+		return m_bEOF;
+	}
+
+	void FileDescriptor::flush()
+	{
+		ssize_t writeLen;
+		string::size_type len;
+
+		if(eof())
+			return;
+		while(!m_sSendTransaction.empty())
+		{
+			len= m_sSendTransaction.length();
+			writeLen= write(m_nFd, m_sSendTransaction.c_str(), len);
+			if(writeLen < 0)
+			{
+				ostringstream decl;
+
+				decl << getHostAddressName() << "@";
+				decl << getPort() << "@";
+				decl << getTransactionName();
+				m_oSocketError.setAddrError("FileDescriptor", "write", 0,
+								errno, decl.str());
+				break;
+
+			}else if(static_cast<size_t>(writeLen) < len)
+				m_sSendTransaction= m_sSendTransaction.substr(writeLen);
+			else
+				m_sSendTransaction= "";
+		}
 	}
 
 	inline void FileDescriptor::endl()
 	{
 		(*this) << "\n";
-		flush();
-	}
-
-	inline bool FileDescriptor::eof() const
-	{
-//		if(m_bEOF)
-//			return true;
-		if(feof(m_pFile) != 0)
-		{
-//			m_bEOF= true;
-			return true;
-		}
-		return false;
-	}
-
-	inline int FileDescriptor::error() const
-	{
-		if(m_nErr != 0)
-			return m_nErr;
-		m_nErr= ferror(m_pFile);
-		if(m_nErr != 0)
-		{
-			if(errno != 0)
-				m_nErr= errno;
-			else
-				m_nErr= EBADFD;
-			clearerr(m_pFile);
-		}
-		return m_nErr;
-	}
-
-	void FileDescriptor::flush()
-	{
-		m_nErr= 0;
-		try{
-			fflush(m_pFile);
-		}catch(...)
-		{
-			// undefined error on stream
-			// maybe connection to client was broken
-			error();
-		}
 	}
 
 	string FileDescriptor::getHostAddressName() const
@@ -754,7 +781,7 @@ namespace server
 		LOCK(m_THREADSAVEMETHODS);
 		if(m_bFileAccess)
 		{
-			fclose(m_pFile);
+			//fclose(m_nFd);
 			m_bFileAccess= false;
 			AROUSEALL(m_SENDSTRINGCONDITION);
 			AROUSEALL(m_GETSTRINGCONDITION);

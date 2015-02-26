@@ -50,8 +50,8 @@ namespace design_pattern_world
 				 */
 				virtual EHObj init()= 0;
 				/**
-				 * operator writing string value into the param,
-				 * witch comming over the transaction
+				 * operator value write string into transaction
+				 * for sending
 				 *
 				 * @param reader contains after call the value
 				 */
@@ -63,24 +63,60 @@ namespace design_pattern_world
 				 */
 				virtual void operator << (const string& writer)= 0;
 				/**
+				 * sending request to client or server
+				 */
+				virtual void flush()= 0;
+				/**
+				 * whether descriptor is defined for automatic
+				 * sending by every carriage return.<br />
+				 * default is true
+				 *
+				 * @param automatic whether should be defined for automatic sending
+				 */
+				virtual void flushing(bool automatic)= 0;
+				/**
 				 * creating an carrage return with flush
 				 */
 				virtual void endl()= 0;
 				/**
-				 * flush the string inside to client
-				 */
-				virtual void flush()= 0;
-				/**
-				 * whether end of file is reached
+				 * whether other part of connection
+				 * will be lost or connection end
+				 * with an error
 				 *
 				 * @return end of file reached
 				 */
 				virtual bool eof() const= 0;
 				/**
-				 * get error number if any errno occurred,
-				 * elsewhere 0
+				 * whether current object has an error or warning
+				 *
+				 * @return whether error exist
 				 */
-				virtual int error() const= 0;
+				virtual bool fail() const= 0;
+				/**
+				 * whether current object has an error
+				 *
+				 * @return whether error exist
+				 */
+				virtual bool hasError() const= 0;
+				/**
+				 * whether current object has an warning
+				 *
+				 * @return whether warning exist
+				 */
+				virtual bool hasWarning() const= 0;
+				/**
+				 * return error / warning object
+				 *
+				 * @return error handling object
+				 */
+				virtual EHObj getErrorObj() const= 0;
+				/**
+				 * returning error or warning description
+				 * form current object
+				 *
+				 * @return error description
+				 */
+				virtual string getErrorDescription() const= 0;
 				/**
 				 * get name of host address from connected part (client or server)
 				 *
