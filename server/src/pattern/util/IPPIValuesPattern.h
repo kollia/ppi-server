@@ -19,11 +19,16 @@
 #ifndef IPPIVALUESPATTERN_H_
 #define IPPIVALUESPATTERN_H_
 
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+
 #include <sys/time.h>
 
 #include <string>
+#include <vector>
 
 using namespace std;
+using namespace boost;
 
 /**
  * type of handled value inside ppi-server
@@ -155,6 +160,78 @@ public:
 			sRv+= "'";
 		return sRv;
 	 };
+
+	 /**
+	  * return short definition of hole object+
+	  * to convert after transfer back into object
+	  *
+	  * @return short definition
+	  */
+	 string getDefString() const
+	 {
+		 string sRv;
+
+		switch(m_eDirection)
+		{
+		case INTERNAL:
+			sRv= "INTERNAL|";
+			break;
+		case EXTERNAL:
+			sRv= "EXTERNAL|";
+			break;
+		case TIMECONDITION:
+			sRv= "TIMECONDITION|";
+			break;
+		case SHELL:
+			sRv= "SHELL|'";
+			break;
+		case READWORKER:
+			sRv= "READWORKER|";
+			break;
+		case READER:
+			sRv= "READER|";
+			break;
+		default:
+			sRv= "NOSET|";
+			break;
+		}
+		sRv+= m_sDescription;
+		return sRv;
+	 }
+
+	 /**
+	  * read after transaction
+	  * InformObjct string from getDefString
+	  * to create again an Object
+	  */
+	 void readDefString(const string& defString)
+	 {
+		 vector<string> spl;
+
+		 m_sDescription= "";
+		 if(defString == "")
+		 {
+			 m_eDirection= NOSET;
+			 return;
+		 }
+		 split(spl, defString, is_any_of("|"));
+		 if(spl[0] == "INTERNAL")
+			 m_eDirection= INTERNAL;
+		 else if(spl[0] == "EXTERNAL")
+			 m_eDirection= EXTERNAL;
+		 else if(spl[0] == "TIMECONDITION")
+			 m_eDirection= TIMECONDITION;
+		 else if(spl[0] == "SHELL")
+			 m_eDirection= SHELL;
+		 else if(spl[0] == "READWORKER")
+			 m_eDirection= READWORKER;
+		 else if(spl[0] == "READER")
+			 m_eDirection= READER;
+		 else if(spl[0] == "NOSET")
+			 m_eDirection= NOSET;
+		 if(spl.size() > 1)
+			 m_sDescription= spl[1];
+	 }
 
 	 /**
 	  * operator for container to know
