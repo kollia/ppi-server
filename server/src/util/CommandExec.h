@@ -96,9 +96,10 @@ public:
 	 *
 	 * @param tm time to starting subroutine action
 	 * @param command which command should starting
+	 * @param from which subroutine starting external run
 	 * @return when starting was successful 1 otherwise 0
 	 */
-	int startingBy(const ppi_time& tm, const string& command);
+	int startingBy(const ppi_time& tm, const string& command, const InformObject& from);
 	/**
 	 * whether thread waiting for new command to run
 	 *
@@ -229,6 +230,11 @@ private:
 	 * time to starting shell command per time
 	 */
 	ppi_time m_oStartTime;
+	/**
+	 * which subroutine starting
+	 * external run
+	 */
+	InformObject m_oExternalStarting;
 	/**
 	 * command to execute
 	 */

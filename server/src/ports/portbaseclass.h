@@ -342,9 +342,10 @@ namespace ports
 			 * start behavior to starting subroutine per time
 			 *
 			 * @param tm time to starting subroutine action
+			 * @param from which subroutine starting external run
 			 * @return whether starting was successful
 			 */
-			virtual bool startingBy(const ppi_time& tm);
+			virtual bool startingBy(const ppi_time& tm, const InformObject& from);
 			/**
 			 * whether subroutine is defined as binary
 			 *

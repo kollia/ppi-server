@@ -56,9 +56,10 @@ public:
 	 * start behavior to starting subroutine per time
 	 *
 	 * @param tm time to starting subroutine action
+	 * @param from which subroutine starting external run
 	 * @return whether starting was successful
 	 */
-	virtual bool startingBy(const ppi_time& tm);
+	virtual bool startingBy(const ppi_time& tm, const InformObject& from);
 	/**
 	 * measure new value for subroutine
 	 *
@@ -207,6 +208,11 @@ private:
 	 * for starting from any TIMER routine
 	 */
 	bool m_bStarting;
+	/**
+	 * which subroutine starting
+	 * external run
+	 */
+	InformObject m_oExternalStarting;
 	/**
 	 * whether ending script should write error return value (!= 0)
 	 * into log file

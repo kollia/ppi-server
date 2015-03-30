@@ -103,9 +103,10 @@ namespace ports
 		 * start behavior to starting subroutine per time
 		 *
 		 * @param tm time to starting subroutine action
+		 * @param from which subroutine starting external run
 		 * @return whether starting was successful
 		 */
-		bool startingBy(const ppi_time& tm);
+		bool startingBy(const ppi_time& tm, const InformObject& from);
 		/**
 		 * make http connection with set parameters
 		 *
@@ -213,6 +214,11 @@ namespace ports
 		 * time to starting read routine
 		 */
 		ppi_time m_oStartTime;
+		/**
+		 * which subroutine starting
+		 * external run
+		 */
+		InformObject m_oExternalStarting;
 		/**
 		 * output string for debug session
 		 */

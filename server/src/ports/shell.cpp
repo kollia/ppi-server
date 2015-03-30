@@ -213,7 +213,7 @@ string Shell::checkStartPossibility()
 	return sRv.str();
 }
 
-bool Shell::startingBy(const ppi_time& tm)
+bool Shell::startingBy(const ppi_time& tm, const InformObject& from)
 {
 	bool bRv(false);
 	bool bDebug(isDebug());
@@ -221,6 +221,8 @@ bool Shell::startingBy(const ppi_time& tm)
 
 	LOCK(m_WRITTENVALUES);
 	bRv= m_bStarting;
+	if(!bRv)
+		m_oExternalStarting= from;
 	UNLOCK(m_WRITTENVALUES);
 	if(bRv)
 	{
@@ -230,6 +232,7 @@ bool Shell::startingBy(const ppi_time& tm)
 
 			command= getFolderName() + " " + getSubroutineName();
 			command+= " starting " + tm.toString(/*as date*/true);
+			command+= " " + from.getDefString();
 			if(m_pOWServer->command_exec(false, command, result, m_bMore))
 				bRv= false;
 		}else
@@ -517,6 +520,8 @@ int Shell::inlineStarting(const string& action, string command, vector<string>& 
 	short count(0), runCount(0);
 	SHAREDPTR::shared_ptr<CommandExec> thread;
 	typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
+	bool bReadInform(false);
+	InformObject oExternalStarting;
 
 	if(m_sBeginCom != "")
 		++count;
@@ -605,6 +610,11 @@ int Shell::inlineStarting(const string& action, string command, vector<string>& 
 	{
 		LOCK(m_WRITTENVALUES);
 		m_msdWritten.clear();
+		if(action == "starting")
+		{
+			oExternalStarting= m_oExternalStarting;
+			bReadInform= true;
+		}
 		UNLOCK(m_WRITTENVALUES);
 	}
 	if(action == "begincommand")
@@ -624,8 +634,15 @@ int Shell::inlineStarting(const string& action, string command, vector<string>& 
 	m_bMore= !m_bLastRes;
 	//cout << "--- run '" << command << "' of " << getFolderName() << ":" << getSubroutineName() << endl;
 	if(action == "starting")
-		res= thread->startingBy(tm, command);
-	else
+	{
+		if(!bReadInform)
+		{
+			LOCK(m_WRITTENVALUES);
+			oExternalStarting= m_oExternalStarting;
+			UNLOCK(m_WRITTENVALUES);
+		}
+		res= thread->startingBy(tm, command, oExternalStarting);
+	}else
 		res= CommandExec::command_exec(thread, command, result, m_bMore, m_bWait, m_bBlock, bDebug);
 	do{// remove all not needed threads from vector
 		bchangedVec= false;

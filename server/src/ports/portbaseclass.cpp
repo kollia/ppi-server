@@ -161,7 +161,7 @@ string portBase::checkStartPossibility()
 	return sRv.str();
 }
 
-bool portBase::startingBy(const ppi_time& tm)
+bool portBase::startingBy(const ppi_time& tm, const InformObject& from)
 {
 	return false;
 }

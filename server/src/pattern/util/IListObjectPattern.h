@@ -83,9 +83,10 @@ namespace design_pattern_world
 			 * start behavior to starting subroutine per time
 			 *
 			 * @param tm time to starting subroutine action
+			 * @param from which subroutine starting external run
 			 * @return whether starting was successful
 			 */
-			virtual bool startingBy(const ppi_time& tm)= 0;
+			virtual bool startingBy(const ppi_time& tm, const InformObject& from)= 0;
 			/**
 			 * whether subroutine has the incoming sub-variable
 			 *

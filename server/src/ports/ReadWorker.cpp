@@ -55,10 +55,11 @@ namespace ports
 		return true;
 	}
 
-	bool ReadWorker::startingBy(const ppi_time& tm)
+	bool ReadWorker::startingBy(const ppi_time& tm, const InformObject& from)
 	{
 		LOCK(m_STARTMUTEX);
 		m_oStartTime= tm;
+		m_oExternalStarting= from;
 		AROUSE(m_STARTINGCONDITION);
 		UNLOCK(m_STARTMUTEX);
 		return true;
@@ -123,14 +124,14 @@ namespace ports
 					ppi_time startTime;
 					startTime.setActTime();
 
-					UNLOCK(m_STARTMUTEX);
 					if(m_bDebug)
 					{
 						out= "---------------------------------------------------------------------------\n";
-						out+= "---  external READER started from TIMER subroutine\n";
-						out+= "---  " + m_sFolder + ":" + m_sSubroutine + "\n";
+						out+= "---  external READER " + m_sFolder + ":" + m_sSubroutine + "\n";
+						out+= "---  was started from " + m_oExternalStarting.toString() + "\n";
 						fillDebug(out);
 					}
+					UNLOCK(m_STARTMUTEX);
 					oValue= doHttpConnection(0, m_bDebug);
 					m_pValueSet->setValue(m_sFolder, m_sSubroutine, *(oValue.get()),
 									InformObject(InformObject::READWORKER,

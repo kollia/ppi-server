@@ -1692,7 +1692,9 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 						out() << "no next measure time be set, starting currently external subroutine" << endl;
 					m_tmExactStop= m_tmStart;
 					m_tmStop= m_tmExactStop;
-					m_bStartExtern= m_pStartObj->startingBy(m_tmExactStop);
+					m_bStartExtern= m_pStartObj->startingBy(m_tmExactStop,
+									InformObject(InformObject::INTERNAL,
+									getFolderName()+":"+getSubroutineName()));
 					if(	!m_bStartExtern &&
 						debug										)
 					{
@@ -1851,7 +1853,9 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 			}// else if(calc > 0)
 		}else//if(m_nAllowStarting != 1)
 		{
-			m_bStartExtern= m_pStartObj->startingBy(m_tmExactStop);
+			m_bStartExtern= m_pStartObj->startingBy(m_tmExactStop,
+							InformObject(InformObject::INTERNAL,
+							getFolderName()+":"+getSubroutineName()));
 			if(	!m_bStartExtern &&
 				debug										)
 			{

@@ -171,6 +171,7 @@ namespace ports
 		typedef vector<SHAREDPTR::shared_ptr<CommandExec> >::iterator thIt;
 		typedef map<string, SHAREDPTR::shared_ptr<CommandExec> >::iterator blIt;
 		PPIConfigFiles configFiles;
+		InformObject oExternalStarting;
 
 		configFiles= PPIConfigFileStructure::instance();
 		get >> folder;
@@ -189,6 +190,10 @@ namespace ports
 
 				bStarting= true;
 				nCommand= 2;
+				/*
+				 * reading time string
+				 * by 3 parts
+				 */
 				get >> time;
 				get >> sline;
 				time+= " " + sline;
@@ -206,6 +211,11 @@ namespace ports
 					LOG(LOG_ALERT, msg.str());
 					return -3;
 				}
+				/*
+				 * creating InformObject
+				 * from rest of string
+				 */
+				oExternalStarting.readDefString(get.str());
 				sline= "command";
 
 			}else if(sline == "begincommand")
@@ -331,7 +341,7 @@ namespace ports
 		if(bStarting)
 		{
 			nRv= 0;
-			if(!thread->startingBy(tmStarting, execute))
+			if(!thread->startingBy(tmStarting, execute, oExternalStarting))
 				nRv= -4;
 		}else
 			nRv= CommandExec::command_exec(thread, execute, result, more, wait, block, debug);

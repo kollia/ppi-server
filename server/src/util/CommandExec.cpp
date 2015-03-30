@@ -453,7 +453,7 @@ bool CommandExec::wait()
 	return bWait;
 }
 
-int CommandExec::startingBy(const ppi_time& tm, const string& command)
+int CommandExec::startingBy(const ppi_time& tm, const string& command, const InformObject& from)
 {
 	int nRv;
 
@@ -466,12 +466,13 @@ int CommandExec::startingBy(const ppi_time& tm, const string& command)
 			nRv= 1;
 			m_oStartTime= tm;
 			m_sCommand= command;
+			m_oExternalStarting= from;
 			AROUSEALL(m_WAITFORRUNGCONDITION);
 		}else
 			nRv= 0;
+		UNLOCK(m_WAITMUTEX);
 	}else
 		nRv= 0;
-	UNLOCK(m_WAITMUTEX);
 	return nRv;
 }
 
@@ -499,8 +500,6 @@ bool CommandExec::execute()
 	while(	m_sCommand == "" &&
 			!stopping()			)
 	{
-		if(m_sSubroutine == "grad_timer")
-			cout << "grad_timer wait for condition" << endl;
 		CONDITION(m_WAITFORRUNGCONDITION, m_WAITMUTEX);
 	}
 	if(m_oStartTime.isSet())

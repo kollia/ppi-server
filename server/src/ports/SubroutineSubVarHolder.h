@@ -87,10 +87,11 @@ namespace ports
 		 * start behavior to starting subroutine per time
 		 *
 		 * @param tm time to starting subroutine action
+		 * @param from which subroutine starting external run
 		 * @return whether starting was successful
 		 */
-		virtual bool startingBy(const ppi_time& tm)
-		{ return m_oSubroutine->startingBy(tm); };
+		virtual bool startingBy(const ppi_time& tm, const InformObject& from)
+		{ return m_oSubroutine->startingBy(tm, from); };
 		/**
 		 * whether subroutine has the incoming sub-variable
 		 *

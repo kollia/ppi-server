@@ -162,7 +162,7 @@ public:
 	 };
 
 	 /**
-	  * return short definition of hole object+
+	  * return short definition of hole object
 	  * to convert after transfer back into object
 	  *
 	  * @return short definition
