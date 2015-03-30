@@ -66,7 +66,7 @@ template <class SignalExceptionClass> class SignalTranslator
      }
  };
 
-class SignalException : public exception
+class SignalException : public std::exception
 {
 	public:
 		SignalException() throw();
