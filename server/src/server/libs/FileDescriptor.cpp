@@ -29,6 +29,7 @@
 #include "../../pattern/server/IServerCommunicationStarterPattern.h"
 
 #include "../../util/debugtransaction.h"
+#include "../../util/GlobalStaticMethods.h"
 
 #include "../../util/stream/OMethodStringStream.h"
 
@@ -135,11 +136,39 @@ namespace server
 			{
 				reader+= sread.substr(0, endPos + 1);
 				m_sLastRead[process]= sread.substr(endPos + 1);
+#if 0
+				ostringstream sout;
+				ostringstream thread;
+				size_t readerLen(reader.length());
+
+				if(glob::getProcessName() != "ppi-client")
+				{
+					thread << "[" << glob::getProcessName() << " ("<< Thread::gettid() << ")] ";
+					sout << "FileDescriptor cutting string of length " << reader.length() << " --\n";
+					sout << "from |" + reader.substr(0, 10);
+					if(readerLen > 10)
+					{
+						sout << " -- to -- ";
+						if((readerLen - 10) > 10)
+							sout << reader.substr(reader.length() - 10);
+						else
+							sout << reader.substr(10);
+					}
+					sout << "|cut by|" + m_sLastRead[process].substr(0, 10) + " ...\n";
+					if(endPos > 10)
+						endPos-= 10;
+					else
+						endPos= 0;
+					sout << " original ... " + sread.substr(endPos, 20) + " ...\n";
+					std::cout << glob::addPrefix(thread.str(), sout.str());
+				}
+#endif
 			}else
 			{
 				reader+= sread;
 				m_sLastRead[process]= "";
 			}
+			sread= "";
 			getLen= 0;
 
 		}while(endPos == string::npos && !eof());
