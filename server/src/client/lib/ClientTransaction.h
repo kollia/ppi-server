@@ -246,7 +246,7 @@ namespace server
 			 * @return start time of shown folder or null time by not shown or direction all
 			 */
 			OVERWRITE IPPITimePattern* writeDebugSession(const string& folder, vector<string>& subroutines,
-													const direction_e& show, const IPPITimePattern* curTime,
+													const direction_t show, IPPITimePattern* curTime,
 													const unsigned long nr= 0);
 			/**
 			 * check whether getting debug session queue from server
@@ -281,6 +281,9 @@ namespace server
 			virtual ~ClientTransaction();
 
 		private:
+			typedef map<ppi_time,
+						SHAREDPTR::shared_ptr<
+							IDbFillerPattern::dbgSubroutineContent_t> > dbSubroutineInfoType;
 			/**
 			 * parameter of command
 			 * with possible follow parameters
@@ -294,8 +297,84 @@ namespace server
 			{
 				vector<SHAREDPTR::shared_ptr<params_t> >* content;
 			};
+			struct sorted_debugSessions_t
+			{
+				/**
+				 * time of starting folder
+				 */
+				ppi_time tm_start;
+				/**
+				 * time of ending folder
+				 */
+				ppi_time tm_end;
+				/**
+				 * all trying inform folder to start
+				 */
+				dbSubroutineInfoType inform;
+				/**
+				 * all external running subroutines
+				 * before starting folder
+				 */
+				dbSubroutineInfoType external;
+				/**
+				 * one folder running from
+				 * start to end
+				 */
+				dbSubroutineInfoType folder;
+			};
+			/**
+			 * structure by finding position of subroutine
+			 */
+			struct found_subroutine_t
+			{
+				/**
+				 * inside which vector
+				 * subroutine found
+				 */
+				action_e vector;
+				/**
+				 * first subroutine
+				 * inside vector
+				 */
+				dbSubroutineInfoType::iterator first;
+				/**
+				 * previous subroutine
+				 */
+				dbSubroutineInfoType::iterator previous;
+				/**
+				 * founded subroutine
+				 */
+				dbSubroutineInfoType::iterator found;
+				/**
+				 * count of subroutine
+				 * inside inform or external vector
+				 */
+				size_t count;
+				/**
+				 * last subroutine
+				 * from vector
+				 */
+				dbSubroutineInfoType::iterator last;
+			};
 
-			typedef map<ppi_time, vector<IDbFillerPattern::dbgSubroutineContent_t> > debugSessionTimeMap;
+			/**
+			 * full debug session content map
+			 * sorted by time
+			 */
+			typedef map<ppi_time, vector<
+							SHAREDPTR::shared_ptr<
+								IDbFillerPattern::dbgSubroutineContent_t> > > debugSessionTimeMap;
+			typedef vector<
+							SHAREDPTR::shared_ptr<
+								IDbFillerPattern::dbgSubroutineContent_t> > sharedDebugSessionVec;
+			/**
+			 * sorted debug session content per folder
+			 * spited to inform external and running subroutines inside time
+			 */
+			typedef map<string, map<ppi_time, sorted_debugSessions_t> > sortedDebugSessionMap;
+			typedef map<string, map<ppi_time, sorted_debugSessions_t> >::iterator sortedFolderSessionIterator;
+			typedef map<ppi_time, sorted_debugSessions_t>::iterator folderSessionIterator;
+			typedef map<ppi_time, sorted_debugSessions_t>::reverse_iterator folderSessionReverseIterator;
 			/**
 			 * type definition for an parameter pointer
 			 */
@@ -467,6 +546,13 @@ namespace server
 			 */
 			debugSessionTimeMap m_mmDebugSession;
 			/**
+			 * hold debug sessions
+			 * inside an sorted map<br />
+			 * <code>map&lt; 'folder', map&lt; 'end time',
+			 *      'debug content splitting as informed/external/subroutines' &gt; &gt;</code>
+			 */
+			sortedDebugSessionMap m_mSortedSessions;
+			/**
 			 * time returned from method <code>writeDebugSession()</code>
 			 */
 			ppi_time m_dbgSessTime;
@@ -594,6 +680,41 @@ namespace server
 			 */
 			bool subroutineSet(const string& subroutine,
 							const vector<string>& subroutines);
+			/**
+			 * whether inside folder vector
+			 * exist any subroutine from vector
+			 *
+			 * @param folder vector of subroutines
+			 * @param subroutines vector where one of them should exist
+			 * @return whether exist
+			 */
+			bool subroutineSet(const dbSubroutineInfoType& folder,
+							const vector<string>& subroutines);
+			/**
+			 * implement subroutine getting from server
+			 * or loaded from hard disk
+			 * inside an sorted array of subroutines
+			 *
+			 * @param content structure of info about the read subroutine
+			 */
+			void implementFolderSorting(
+							SHAREDPTR::shared_ptr<
+								IDbFillerPattern::dbgSubroutineContent_t> content);
+			/**
+			 * search subroutine with current time
+			 * and return an structure with found pointer
+			 * and inside which vector found (inform, external or folders)
+			 *
+			 * @param curTime currently time for searching
+			 * @param folderObj iterator for currently folder object where searching
+			 * @param subroutines for which subroutines searching
+			 * @param pos which position should be searching, when action 'none' and direction all'
+			 *            searching for current time
+			 * @return structure where found
+			 */
+			found_subroutine_t currentSubroutineTyp(IPPITimePattern* curTime,
+													folderSessionIterator folderObj,
+													vector<string>& subroutines		);
 			/**
 			 * writing help usage
 			 *

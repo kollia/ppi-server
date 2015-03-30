@@ -25,6 +25,7 @@
 
 #include "../util/debug.h"
 #include "../util/exception.h"
+#include "../util/GlobalStaticMethods.h"
 #include "../util/stream/ErrorHandling.h"
 #include "../util/thread/ThreadErrorHandling.h"
 #include "../server/libs/SocketErrorHandling.h"
@@ -51,6 +52,7 @@ int main(int argc, char* argv[])
 	thread::ThreadErrorHandling thErrHandle;
 	SocketErrorHandling sockErrHandle;
 
+	glob::processName("ppi-client");
 	errHandle.read();
 	thErrHandle.read();
 	sockErrHandle.read();

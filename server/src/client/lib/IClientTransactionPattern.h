@@ -40,13 +40,29 @@ namespace design_pattern_world
 				all= 0,
 				first,
 				previous,
-				previous_changed,
-				previous_unchanged,
 				current,
 				next,
-				next_changed,
-				next_unchanged,
 				last
+			};
+			/**
+			 * currently action of direction
+			 */
+			enum action_e
+			{
+				none= 0,
+				inform,
+				external,
+				folder,
+				changed, // also folder
+				unchanged // same
+			};
+			/**
+			 * structure of direction with action
+			 */
+			struct direction_t
+			{
+				direction_e direction;
+				action_e action;
 			};
 			/**
 			 * structure of which history entry
@@ -210,7 +226,7 @@ namespace design_pattern_world
 			 * @return start time of shown folder or null time by not shown or direction all
 			 */
 			virtual IPPITimePattern* writeDebugSession(const string& folder, vector<string>& subroutines,
-													const direction_e& show, const IPPITimePattern* curTime,
+													direction_t show, IPPITimePattern* curTime,
 													const unsigned long nr= 0)= 0;
 			/**
 			 * hear on terminal input

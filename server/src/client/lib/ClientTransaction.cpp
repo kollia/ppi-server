@@ -1016,6 +1016,93 @@ namespace server
 		return sRv;
 	}
 
+	void ClientTransaction::implementFolderSorting(
+					SHAREDPTR::shared_ptr<
+						IDbFillerPattern::dbgSubroutineContent_t> content)
+	{
+		sortedFolderSessionIterator foundFolder;
+		folderSessionIterator foundFolderObj;
+		static map<string, bool> mFolderRun;
+		map<string, bool>::iterator itFolderRun;
+		static map<string, ppi_time> mLastImplement;
+		map<string, ppi_time>::iterator itLastImplement;
+
+#if 0
+		/*
+		 * debug
+		 * definition
+		 */
+		if(content->folder == "Raff1_port")
+		{
+			std::cout << "implement " << content->folder << ":" << content->subroutine;
+			std::cout << "  " << content->currentTime->toString(true) << std::endl;
+			if(content->subroutine == "#start")
+				std::cout << flush;
+		}
+#endif
+		itFolderRun= mFolderRun.find(content->folder);
+		if(itFolderRun == mFolderRun.end())
+		{
+			mFolderRun[content->folder]= false;
+			itFolderRun= mFolderRun.find(content->folder);
+		}
+		if(content->subroutine == "#start")
+			itFolderRun->second= true;
+		else if(content->subroutine == "#end")
+			itFolderRun->second= false;
+		if(content->subroutine.substr(0, 1) != "#")
+			m_mFolderSubs[content->folder].insert(content->subroutine);
+		m_mmDebugSession[*content->currentTime].push_back(content);
+		foundFolder= m_mSortedSessions.find(content->folder);
+		if(foundFolder == m_mSortedSessions.end())
+		{
+			m_mSortedSessions[content->folder]= map<ppi_time, sorted_debugSessions_t>();
+			foundFolder= m_mSortedSessions.find(content->folder);
+		}
+		itLastImplement= mLastImplement.find(content->folder);
+		if(itLastImplement == mLastImplement.end())
+		{
+			foundFolder->second[*content->currentTime]= sorted_debugSessions_t();
+			foundFolderObj= foundFolder->second.find(*content->currentTime);
+			mLastImplement[content->folder]= *content->currentTime;
+			itLastImplement= mLastImplement.find(content->folder);
+			if(content->subroutine == "#end")
+				mLastImplement.erase(itLastImplement);
+		}else
+		{
+			foundFolderObj= foundFolder->second.find(itLastImplement->second);
+			if(content->subroutine == "#end")
+			{
+				/*
+				 * shift folder object from current time inserted
+				 * to new time of start
+				 */
+				foundFolder->second[*content->currentTime]= foundFolderObj->second;
+				foundFolder->second.erase(foundFolderObj);
+				foundFolderObj= foundFolder->second.find(*content->currentTime);
+				itLastImplement->second= *content->currentTime;
+				mLastImplement.erase(itLastImplement);
+			}
+
+		}
+		if(	itFolderRun->second == true ||
+			content->subroutine == "#end"	)
+		{
+			/*
+			 * implement also #inform subroutine
+			 * inside folder content
+			 * when #start be defined
+			 */
+			foundFolderObj->second.folder[*content->currentTime]= content;
+
+		}else if(content->subroutine == "#inform")
+		{
+			foundFolderObj->second.inform[*content->currentTime]= content;
+
+		}else
+			foundFolderObj->second.external[*content->currentTime]= content;
+	}
+
 	bool ClientTransaction::hearingTransfer(IFileDescriptorPattern& descriptor)
 	{
 		string result;
@@ -1033,6 +1120,8 @@ namespace server
 		struct tm ttime;
 		string sDo;
 		device_debug_t tdebug;
+		map<string, sorted_debugSessions_t> preDefSessions;
+		map<string, sorted_debugSessions_t>::iterator foundFolder;
 
 		do{
 			bErrorWritten= false;
@@ -1089,13 +1178,20 @@ namespace server
 								if(	foundSubroutine != foundFolder->second.end() ||
 									subroutine.substr(0, 1) == "#"					)
 								{// folder is set for holding
-									IDbFillerPattern::dbgSubroutineContent_t subCont;
-									debugSessionTimeMap oif;
-									subCont.folder= folder;
-									subCont.subroutine= subroutine;
-									subCont.value= value;
-									subCont.content= content;
-									m_mmDebugSession[time].push_back(subCont);
+									SHAREDPTR::shared_ptr<
+										IDbFillerPattern::dbgSubroutineContent_t> subCont;
+
+									subCont= SHAREDPTR::shared_ptr<
+													IDbFillerPattern::dbgSubroutineContent_t>
+															(new IDbFillerPattern::dbgSubroutineContent_t);
+									subCont->folder= folder;
+									subCont->subroutine= subroutine;
+									subCont->value= value;
+									subCont->content= content;
+									subCont->currentTime=
+										SHAREDPTR::shared_ptr<IPPITimePattern>
+															(new ppi_time(time));
+									implementFolderSorting(subCont);
 									bWrite= false;
 								}
 							}
@@ -1103,14 +1199,20 @@ namespace server
 						{
 							if(subroutine != "#setDebug")
 							{
-								IDbFillerPattern::dbgSubroutineContent_t subCont;
+								SHAREDPTR::shared_ptr<
+									IDbFillerPattern::dbgSubroutineContent_t> subCont;
 
-								subCont.folder= folder;
-								subCont.subroutine= subroutine;
-								subCont.value= value;
-								subCont.content= content;
-								subCont.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(time));
-								m_mmDebugSession[time].push_back(subCont);
+								subCont= SHAREDPTR::shared_ptr<
+												IDbFillerPattern::dbgSubroutineContent_t>
+														(new IDbFillerPattern::dbgSubroutineContent_t);
+								subCont->folder= folder;
+								subCont->subroutine= subroutine;
+								subCont->value= value;
+								subCont->content= content;
+								subCont->currentTime=
+									SHAREDPTR::shared_ptr<IPPITimePattern>
+														(new ppi_time(time));
+								implementFolderSorting(subCont);
 								bWrite= false;
 							}
 						}
@@ -2268,17 +2370,19 @@ namespace server
 					command[0] == "back"		)	)
 			{
 				short nExist(-2);
-				direction_e direction;
+				direction_t direction;
 				short folderNr(0);
 
+				direction.direction= all;
+				direction.action= none;
 				bSendCommand= false;
 				if(command[0] == "show")
 				{
-					direction= all;
+					direction.direction= all;
 
 				}else if(command[0] == "first")
 				{
-					direction= first;
+					direction.direction= first;
 
 				}else if(	command[0] == "current" ||
 							command[0] == "up" ||
@@ -2310,27 +2414,27 @@ namespace server
 						}
 
 					}
-					direction= current;
+					direction.direction= current;
 
 				}else if(command[0] == "next")
 				{
-					direction= next;
+					direction.direction= next;
 
 				}else if(	command[0] == "previous")
 				{
-					direction= previous;
+					direction.direction= previous;
 
 				}else
-					direction= last;
+					direction.direction= last;
 				if(!bErrorWritten)
 				{
-					if(	direction == all ||
-						direction == current	)
+					if(	direction.direction == all ||
+						direction.direction == current	)
 					{
 						paramDefs.push_back("[ <folder>:<subroutine> ]");
 
-					}else if(	direction == next ||
-								direction == previous	)
+					}else if(	direction.direction == next ||
+								direction.direction == previous	)
 					{
 						paramDefs.push_back("[ folder number or 'changed/unchanged' ]");
 						paramDefs.push_back("[ <subroutine> when not "
@@ -2342,8 +2446,8 @@ namespace server
 						subroutine= "";
 						if(command.size() > 1)
 						{
-							if(	direction == next ||
-								direction == previous	)
+							if(	direction.direction == next ||
+								direction.direction == previous	)
 							{
 								bool bChangedUnchanged(false);
 
@@ -2351,19 +2455,13 @@ namespace server
 									command[1] == "changed"	)
 								{
 									bChangedUnchanged= true;
-									if(direction == next)
-										direction= next_changed;
-									else // direction should be previous
-										direction= previous_changed;
+									direction.action= changed;
 
 								}else if(	command[1] == "uch" ||
 											command[1] == "unchanged"	)
 								{
 									bChangedUnchanged= true;
-									if(direction == next)
-										direction= next_unchanged;
-									else // direction should be previous
-										direction= previous_unchanged;
+									direction.action= unchanged;
 
 								}
 								if(bChangedUnchanged)
@@ -2446,8 +2544,7 @@ namespace server
 										if(command.size() < 3)
 										{
 											out << " need after command ";
-											if(	direction == next_changed ||
-												direction == previous_changed	)
+											if(direction.action == changed)
 											{
 												out << "'changed' ";
 											}else
@@ -2490,12 +2587,10 @@ namespace server
 						{
 							vector<string> spl;
 
-							if(	direction != all &&
-								direction != current &&
-								direction != next_changed &&
-								direction != next_unchanged &&
-								direction != previous_changed &&
-								direction != previous_unchanged	)
+							if(	direction.direction != all &&
+								direction.direction != current &&
+								direction.action != changed &&
+								direction.action != unchanged		)
 							{
 								cout(" for command '" + command[0] + "'"
 										" is no definition of folder[:subroutine] allowed\n");
@@ -2524,10 +2619,8 @@ namespace server
 										cout(" '" + folder + ":" + subroutine + "'"
 												" do not exist in folder working list of ppi-server\n");
 										if(	!vLayers.empty() &&
-											direction != next_changed &&
-											direction != next_unchanged &&
-											direction != previous_changed &&
-											direction != previous_unchanged	)
+											direction.action != changed &&
+											direction.action != unchanged )
 										{
 											/*
 											 * this point reach only when
@@ -2543,7 +2636,7 @@ namespace server
 									}
 								}
 								if(	!bErrorWritten &&
-									(	direction == current ||
+									(	direction.direction == current ||
 										vLayers.empty() || // direction is all
 										vLayers[nCurLayer].first == ""	)	)
 								{
@@ -2592,7 +2685,7 @@ namespace server
 
 						}else if(!bErrorWritten) // end of if(command.size() > 1)
 						{
-							if(	direction != all &&
+							if(	direction.direction != all &&
 								(	vLayers.empty() ||
 									vLayers[nCurLayer].first == ""	)	)
 							{
@@ -2614,7 +2707,7 @@ namespace server
 							ppi_time newTime;
 							vector<string> vShowSubroutines;
 
-							if(direction != all)
+							if(direction.direction != all)
 							{
 								folder= vLayers[nCurLayer].first;
 								if(folderNr == 0)
@@ -2625,10 +2718,10 @@ namespace server
 								vShowSubroutines.push_back(subroutine);
 							newTime= *writeDebugSession(
 											folder, vShowSubroutines, direction, &newTime, folderNr	);
-							if(	direction == all ||
+							if(	direction.direction == all ||
 								newTime.isSet()		)
 							{
-								if(direction != all)
+								if(direction.direction != all)
 									vLayers[nCurLayer].second.first= newTime;
 							}
 						}// if(!bErrorWritten)
@@ -3096,24 +3189,27 @@ namespace server
 				{
 					ppi_time currentTime;
 					IParameterStringStream result(read);
-					IDbFillerPattern::dbgSubroutineContent_t sub;
+					SHAREDPTR::shared_ptr<
+						IDbFillerPattern::dbgSubroutineContent_t> sub;
 
-					result >> sub.folder;
+					sub= SHAREDPTR::shared_ptr<
+									IDbFillerPattern::dbgSubroutineContent_t>
+											(new IDbFillerPattern::dbgSubroutineContent_t);
+					result >> sub->folder;
 					if(!result.fail())
-						result >> sub.subroutine;
+						result >> sub->subroutine;
 					if(!result.fail())
-						result >> sub.value;
+						result >> sub->value;
 					if(!result.fail())
 						result >> currentTime;
 					if(!result.fail())
 					{
-						sub.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(currentTime));
-						result >> sub.content;
+						sub->currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time(currentTime));
+						result >> sub->content;
 					}
 					if(!result.fail())
 					{
-						m_mmDebugSession[currentTime].push_back(sub);
-						m_mFolderSubs[sub.folder].insert(sub.subroutine);
+						implementFolderSorting(sub);
 					}else
 						bOk= false;
 					if(nReadLine > 100)
@@ -3179,7 +3275,7 @@ namespace server
 				for(debugSessionTimeMap::iterator tit= m_mmDebugSession.begin();
 								tit != m_mmDebugSession.end(); ++tit									)
 				{
-					for(vector<IDbFillerPattern::dbgSubroutineContent_t>::iterator it= tit->second.begin();
+					for(sharedDebugSessionVec::iterator it= tit->second.begin();
 									it != tit->second.end(); ++it											)
 					{
 						ppi_time currentTime;
@@ -3194,13 +3290,13 @@ namespace server
 						 * ClientTransaction::saveFile
 						 * ClientTransaction::loadFile
 						 */
-						input << it->folder;
-						input << it->subroutine;
-						input << it->value;
-						if(it->currentTime.get() != NULL)
-							currentTime= *it->currentTime;
+						input << (*it)->folder;
+						input << (*it)->subroutine;
+						input << (*it)->value;
+						if((*it)->currentTime.get() != NULL)
+							currentTime= *(*it)->currentTime;
 						input << currentTime;
-						input << it->content;
+						input << (*it)->content;
 						m_oStoreFile << input.str() << endl;
 						if(nWriteLines > 100)
 						{
@@ -3221,7 +3317,7 @@ namespace server
 	{
 		short nExist(0);
 		debugSessionTimeMap::iterator timeIt;
-		vector<IDbFillerPattern::dbgSubroutineContent_t>::iterator folderIt;
+		sharedDebugSessionVec::iterator folderIt;
 		map<string, map<string, unsigned long> >::iterator foundFolder;
 		map<string, unsigned long>::iterator foundSubroutine;
 
@@ -3234,8 +3330,8 @@ namespace server
 		{
 			for(folderIt= timeIt->second.begin(); folderIt != timeIt->second.end(); ++folderIt)
 			{
-				if(	folder == folderIt->folder	&&
-					(	subroutine == folderIt->subroutine ||
+				if(	folder == (*folderIt)->folder	&&
+					(	subroutine == (*folderIt)->subroutine ||
 						subroutine == ""						)	)
 				{
 					nExist= 1;
@@ -3407,20 +3503,40 @@ namespace server
 	{
 		bool bRv;
 
-		try{
-			if(m_bHearing)
+		if(m_bHearing)
+		{
+			try{
 				bRv= hearingTransfer(descriptor);
-			else
-				bRv= userTransfer(descriptor);
-		}catch(SignalException& ex)
-		{
-			ex.printTrace();
-			exit(EXIT_FAILURE);
 
-		}catch(std::exception& ex)
+			}catch(SignalException& ex)
+			{
+				ex.addMessage("reading second connection from server");
+				ex.printTrace();
+				bRv= true;
+
+			}catch(std::exception& ex)
+			{
+				std::cout << "std exception by reading second connection from server" << endl;
+				std::cout << string(ex.what()) << endl;
+				bRv= true;
+			}
+		}else
 		{
-			std::cout << string(ex.what()) << endl;
-			exit(EXIT_FAILURE);
+			try{
+				bRv= userTransfer(descriptor);
+
+			}catch(SignalException& ex)
+			{
+				ex.addMessage("inside editor");
+				ex.printTrace();
+				exit(EXIT_FAILURE);
+
+			}catch(std::exception& ex)
+			{
+				std::cout << "std exception inside editor" << endl;
+				std::cout << string(ex.what()) << endl;
+				exit(EXIT_FAILURE);
+			}
 		}
 		return bRv;
 	}
@@ -3487,6 +3603,7 @@ namespace server
 		}
 		LOCK(m_DEBUGSESSIONCHANGES);
 		m_mmDebugSession.clear();
+		m_mSortedSessions.clear();
 		UNLOCK(m_DEBUGSESSIONCHANGES);
 	}
 
@@ -3509,36 +3626,56 @@ namespace server
 		map<string, bool> mFoundStart;
 		map<string, unsigned long> mRv;
 		debugSessionTimeMap::iterator timeIt;
-		vector<IDbFillerPattern::dbgSubroutineContent_t>::iterator folderIt;
+		sharedDebugSessionVec::iterator folderIt;
 
 		if(m_o2Client.get())
 			return m_o2Client->transObj()->getRunningFolderList(locked, outside);
 		if(!locked)
 			LOCK(m_DEBUGSESSIONCHANGES);
+		for(sortedFolderSessionIterator fIt= m_mSortedSessions.begin();
+						fIt != m_mSortedSessions.end(); ++fIt			)
+		{
+			unsigned long count(0);
+
+			for(folderSessionIterator oIt= fIt->second.begin();
+							oIt != fIt->second.end(); ++oIt		)
+			{
+				if(!oIt->second.folder.empty())
+					++count;
+			}
+			mRv[fIt->first]= count;
+		}
+		if(!outside)
+		{
+			if(!locked)
+				UNLOCK(m_DEBUGSESSIONCHANGES);
+			return mRv;
+		}
+		mRv.clear();
 		for(timeIt= m_mmDebugSession.begin(); timeIt != m_mmDebugSession.end(); ++timeIt)
 		{
 			for(folderIt= timeIt->second.begin(); folderIt != timeIt->second.end(); ++folderIt)
 			{
 				map<string, bool>::iterator found;
 
-				found= mFoundStart.find(folderIt->folder);
+				found= mFoundStart.find((*folderIt)->folder);
 				if(found == mFoundStart.end())
 				{
-					mFoundStart[folderIt->folder]= false;
-					found= mFoundStart.find(folderIt->folder);
+					mFoundStart[(*folderIt)->folder]= false;
+					found= mFoundStart.find((*folderIt)->folder);
 				}
-				if(	folderIt->subroutine == "#start" ||
+				if(	(*folderIt)->subroutine == "#start" ||
 					(	outside == true &&
 						found->second == false &&
-						folderIt->subroutine != "#started"	)	)
+						(*folderIt)->subroutine != "#started"	)	)
 				{
-					ulRun= mRv[folderIt->folder];
+					ulRun= mRv[(*folderIt)->folder];
 					++ulRun;
-					mRv[folderIt->folder]= ulRun;
-					if(folderIt->subroutine == "#start")
+					mRv[(*folderIt)->folder]= ulRun;
+					if((*folderIt)->subroutine == "#start")
 						found->second= true;
 				}
-				if(folderIt->subroutine == "#end")
+				if((*folderIt)->subroutine == "#end")
 					found->second= false;
 			}
 		}
@@ -3560,567 +3697,792 @@ namespace server
 		return false;
 	}
 
+	bool ClientTransaction::subroutineSet(const dbSubroutineInfoType& folder,
+					const vector<string>& subroutines)
+	{
+		for(dbSubroutineInfoType::const_iterator it= folder.begin();
+						it != folder.end(); ++it				)
+		{
+			if(subroutineSet(it->second->subroutine, subroutines))
+				return true;
+		}
+		return false;
+	}
+
+	ClientTransaction::found_subroutine_t ClientTransaction::currentSubroutineTyp(
+															IPPITimePattern* curTime,
+															folderSessionIterator folderObj,
+															vector<string>& subroutines		)
+	{
+		found_subroutine_t tRv, nearest;
+		dbSubroutineInfoType::iterator it, previous;
+
+		nearest.vector= none;
+		/*
+		 * search inside
+		 * informer subroutines
+		 */
+		tRv.vector= none;
+		tRv.first= folderObj->second.inform.begin();
+		tRv.previous= tRv.first;
+		tRv.last= folderObj->second.inform.end();
+		tRv.count= 0;
+		previous= tRv.previous;
+		for(it= tRv.first; it != tRv.last; ++it	)
+		{
+			if(it->first <= *curTime)
+			{
+				tRv.vector= inform;
+				tRv.previous= previous;
+				tRv.found= it;
+				if(it->first == *curTime)
+					return tRv;
+			}else
+				break;
+			previous= it;
+			++tRv.count;
+		}
+		if(tRv.vector != none)
+			nearest= tRv;
+		/*
+		 * search inside
+		 * external subroutines
+		 */
+		tRv.vector= none;
+		tRv.first= folderObj->second.external.end();
+		tRv.previous= tRv.first;
+		tRv.last= folderObj->second.external.end();
+		tRv.count= 0;
+		previous= folderObj->second.external.begin();
+		dbSubroutineInfoType::iterator nextPrevious= previous;
+		for(it= folderObj->second.external.begin();
+			it != folderObj->second.external.end(); ++it	)
+		{
+			if(subroutineSet(it->second->subroutine, subroutines))
+			{
+				if(tRv.first == folderObj->second.external.end())
+				{
+					tRv.first= it;
+					tRv.previous= it;
+					previous= it;
+					nextPrevious= it;
+				}
+				if(it->first <= *curTime)
+				{
+					tRv.vector= external;
+					tRv.previous= previous;
+					tRv.found= it;
+					previous= nextPrevious;
+					nextPrevious= it;
+				}
+				++tRv.count;
+				tRv.last= it;
+			}
+		}
+		if(tRv.vector != none)
+		{
+			if(tRv.last != folderObj->second.external.end())
+				++tRv.last;
+			if(	nearest.vector == none ||
+				ppi_time(*curTime - tRv.found->first) <=
+							ppi_time(*curTime - nearest.found->first)	)
+			{
+				nearest= tRv;
+			}
+		}
+		if(	tRv.vector != none &&
+			tRv.found->first == *curTime	)
+		{
+			return tRv;
+		}
+		/*
+		 * search inside
+		 * running subroutines
+		 * between folder starting and ending
+		 */
+		tRv.vector= none;
+		tRv.first= folderObj->second.folder.begin();
+		tRv.previous= tRv.last;
+		tRv.last= folderObj->second.folder.end();
+		tRv.count= 0;
+		for(it= tRv.first; it != tRv.last; ++it	)
+		{
+			if(	(	subroutines.empty() &&
+					it->second->subroutine == "#start"	) ||
+				(	!subroutines.empty() &&
+					it->second->subroutine == subroutines[0]	)	)
+			{
+				/*
+				 * search always only
+				 * for first subroutine
+				 */
+				tRv.vector= folder;
+				tRv.previous= previous;
+				tRv.found= it;
+				if(it->first == *curTime)
+					return tRv;
+				break;
+			}
+		}
+		if(	tRv.vector != none &&
+			(	nearest.vector == none ||
+				ppi_time(*curTime - tRv.found->first) <=
+						ppi_time(*curTime - nearest.found->first)	)	)
+		{
+			nearest= tRv;
+		}
+		return nearest;
+	}
+
+
+
 	IPPITimePattern* ClientTransaction::writeDebugSession(const string& folder,
 					vector<string>& subroutines,
-					const direction_e& show, const IPPITimePattern* curTime,
+					const direction_t show, IPPITimePattern* curTime,
 					const unsigned long nr/*= 0*/)
 	{
-		bool bDone(false), bFinished(false), bFoundStart(false);
-		bool bWritten(false), bDisplaySharedTags(false);
-		unsigned long ulFoundPass(0);
-		unsigned long ulFolderRun(0);
-		unsigned long ulPrevious(0);
-		unsigned int uiExternal(0);
-		unsigned int uiExternalRun(0);
-		unsigned int uiTryStart(0);
-		unsigned int uiTryStartRun(0);
-		map<string, bool> vWritten;
-		bool bFoundChanged(false), bSetValue(false);
-		double dCurrentValue;
-		unsigned long ulRun, ulLastChanged;
-		unsigned long want;
+		bool bDisplayedContent(false);
+		bool bFoundCurrentFolder(false);
+		size_t nOutput, nFolderOutput, existFolderObjs;
+		size_t nLastChangedFolder, nLastUnchangedFolder;
+		direction_t make;
+		IPPITimePattern* pRv;
+		ppi_time incommingTime;
 		ostringstream content;
-		//map<string, string> mFolderStart;
-		map<string, unsigned long> folderCount;
-		map<string, unsigned long> mmRunning;
-		debugSessionTimeMap::iterator timeIt;
-		vector<IDbFillerPattern::dbgSubroutineContent_t>::iterator folderIt;
-		string sFirstSubroutine;
+		sortedFolderSessionIterator currFolderIt;
+		dbSubroutineInfoType::iterator showSubroutine, endSubroutine;
+		folderSessionIterator showContent, previousContent;
+		folderSessionIterator lastChangedContent, lastUnchangedContent;
+		map<ppi_time,
+			SHAREDPTR::shared_ptr<
+				IDbFillerPattern::dbgSubroutineContent_t> >::
+					iterator innerIt;
+		static ppi_time nullTime;
 
 		if(m_o2Client.get())
 			return m_o2Client->transObj()->writeDebugSession(folder, subroutines, show, curTime, nr);
+
 		std::cout << endl;
-		if(!subroutines.empty())
+		incommingTime= *curTime;
+		make.direction= show.direction;
+		make.action= show.action;
+		pRv= &nullTime;
+		LOCK(m_DEBUGSESSIONCHANGES);
+		currFolderIt= m_mSortedSessions.find(folder);
+		if(currFolderIt == m_mSortedSessions.end())
 		{
-			sFirstSubroutine= subroutines[0];
-			if(sFirstSubroutine.substr(0, 1) == "#")
+			std::cout << "  folder " << folder << " isn't inside "
+							"loaded debug content from server" << endl;
+			return pRv;
+		}
+		do{// while(!bDisplayedContent);
+			if(make.direction == last)
+			{
+				folderSessionReverseIterator oIt;
+
+				/*
+				 * search for
+				 * last entry
+				 */
+				nFolderOutput= currFolderIt->second.size();
+				oIt= currFolderIt->second.rbegin();
+				while(oIt != currFolderIt->second.rend())
+				{
+					if(!oIt->second.folder.empty())
+					{
+						make.action= IClientTransactionPattern::folder;
+						++oIt;
+						showContent= oIt.base();
+						break;
+
+					}else if(subroutineSet(oIt->second.external, subroutines))
+					{
+						make.action= external;
+						++oIt;
+						showContent= oIt.base();
+						break;
+					}else if(!oIt->second.inform.empty())
+					{
+						make.action= inform;
+						++oIt;
+						showContent= oIt.base();
+						break;
+					}
+					--nFolderOutput;
+					++oIt;
+				}// reverse iteration of curFolderIt
+				if(oIt == currFolderIt->second.rend())
+				{
+					showContent= currFolderIt->second.begin();
+					make.action= inform;
+				}
+			}else // if(make.direction == last)
 			{
 				/*
-				 * first subroutine is behind '#'
-				 * and all subroutines should be shown
-				 * and so clear 'subroutines'
+				 * as first searching
+				 * correct folder object
+				 * where defined inform, external and
+				 * all subroutines from one folder
+				 * from start to end
 				 */
-				sFirstSubroutine= sFirstSubroutine.substr(1);
-				subroutines.clear();
-			}
-		}
-		m_dbgSessTime.clear();
-		for(vector<string>::const_iterator it= subroutines.begin();
-						it != subroutines.end(); ++it				)
-		{
-			vWritten[*it]= false;
-		}
-		LOCK(m_DEBUGSESSIONCHANGES);
-		/*
-		 * getRunningFolderList has to be called
-		 * inside lock, because result
-		 * should be unique with output content
-		 */
-		folderCount= getRunningFolderList(/*locked*/true, /*outside*/true);
-		/*
-		 * check first which folder pass
-		 * should be written
-		 */
-		if(show != all)
-		{
-			if(	show != first &&
-				show != last &&
-				curTime->isSet() &&
-				nr == 0				)
-			{
-				want= 0;
-				bFinished= false;
-				bDone= false;
-				bFoundStart= false;
-				for(timeIt= m_mmDebugSession.begin(); timeIt != m_mmDebugSession.end(); ++timeIt)
-				{
-					for(folderIt= timeIt->second.begin(); folderIt != timeIt->second.end(); ++folderIt)
-					{
-						/*
-						 * write out only correct
-						 * folder:subroutine when set
-						 */
-						if(	folder == "" || // <- show content of all folders
-							folder == folderIt->folder	)
-						{
-							if(bDone == false)
-							{
-								if(folderIt->subroutine == "#start")
-									bFoundStart= true;
-								if(	folderIt->subroutine == "#start" ||
-									(	!bFoundStart &&
-										folderIt->subroutine != "#started" &&
-										(	folderIt->subroutine == "#inform" ||
-											(	folderIt->subroutine.substr(0, 1) != "#" &&
-												subroutineSet(folderIt->subroutine, subroutines)	)	)	)	)
-								{
-									if(folderIt->subroutine == "#start")
-									{
-										uiTryStart= 0;
-										uiExternal= 0;
+				nFolderOutput= 0;
+				nLastChangedFolder= 0;
+				nLastUnchangedFolder= 0;
+				endSubroutine= currFolderIt->second.begin()->second.inform.end();
+				showSubroutine= endSubroutine;
+				showContent= currFolderIt->second.end();
+				lastChangedContent= showContent;
+				lastUnchangedContent= showContent;
+				previousContent= currFolderIt->second.end();
+				do{
+					folderSessionIterator oIt= currFolderIt->second.begin();
 
-									}else if(folderIt->subroutine == "#inform")
-										++uiTryStart;
-									else
-										++uiExternal;
-									++want;
-									if(	ulFoundPass == 0 &&
-										timeIt->first >= *curTime	)
-									{
-										ulFoundPass= want;
-										if(	show != next_changed &&
-											show != next_unchanged	)
-										{
-											if(timeIt->first > *curTime)
-												--want;
-											bDone= true;
-										}
-									}else
-										ulPrevious= want;
-								}else if(	bFoundStart &&
-											folder != "" &&
-											sFirstSubroutine == folderIt->subroutine	)
+					while(oIt != currFolderIt->second.end())
+					{
+						++nFolderOutput;
+						if(	!curTime->isSet() ||
+							make.direction == first	)
+						{
+							if(	make.action == changed ||
+								make.action == unchanged	)
+							{
+								make.action= ClientTransaction::folder;
+
+							}else if(make.action == none)
+								make.action= inform;
+							showContent= oIt;
+							nFolderOutput= 1;
+							break;
+
+						}else if(	!bFoundCurrentFolder &&
+									(	*curTime < oIt->first ||	// when no subroutine exist inside folder
+										oIt->second.folder.empty()	)	) // last entry be reached
+						{
+							found_subroutine_t dir;
+
+							showContent= oIt;
+							dir= currentSubroutineTyp(curTime, oIt, subroutines);
+							if(make.direction != current)
+							{
+								if(	dir.vector == inform ||
+									dir.vector == external	)
 								{
-									if(bSetValue)
+									if(	show.action == changed ||
+										show.action == unchanged	)
 									{
-										if(	ulFoundPass != 0 &&
-											want > ulFoundPass &&
-											show == next_changed	)
+										std::cout << "  displayed ";
+										if(dir.vector == inform)
+											std::cout << "information output ";
+										else
+											std::cout << "  external folder ";
+										std::cout << "has no value for stepping by ";
+										if(show.action == unchanged)
+											std::cout << "un";
+										std::cout << "changed" << endl;
+										std::cout << "  please go first to any folder "
+														"running inside start/end routine" << endl;
+										UNLOCK(m_DEBUGSESSIONCHANGES);
+										pRv= &incommingTime;
+										return pRv;
+									}
+									if(make.direction == next)
+									{
+										if(dir.found != dir.last)
+											++dir.found;
+										if(dir.found == dir.last)
 										{
-											if(	dCurrentValue != folderIt->value)
+											showContent= oIt;
+											make.direction= first;
+											if(dir.vector == inform)
 											{
-												bFoundChanged= true;
-												bDone= true;
-											}
-										}else if(	ulFoundPass != 0 &&
-													want > ulFoundPass &&
-													show == next_unchanged	)
+												make.action= external;
+											}else
+												make.action= IClientTransactionPattern::folder;
+										}else
 										{
-											if(dCurrentValue == folderIt->value)
-											{
-												bFoundChanged= true;
-												bDone= true;
-											}
-										}else if(show == previous_changed)
-										{
-											if(dCurrentValue != folderIt->value)
-											{// previous changed value
-												ulLastChanged= want;
-												bFoundChanged= true;
-											}
-										}else if(show == previous_unchanged)
-										{
-											if(dCurrentValue == folderIt->value)
-											{// previous unchanged value
-												ulLastChanged= want;
-												bFoundChanged= true;
-											}
+											make.action= dir.vector;
+											showSubroutine= dir.found;
 										}
 									}else
-										bSetValue= true;
-									dCurrentValue= folderIt->value;
+									{
+										make.action= dir.vector;
+										if(dir.first == dir.found)
+										{
+											if(dir.vector == external)
+											{
+												if(!oIt->second.inform.empty())
+												{
+													dbSubroutineInfoType::reverse_iterator it;
+
+													it= oIt->second.inform.rbegin();
+													++it;
+													showSubroutine= it.base();
+													make.action= inform;
+												}else
+												{
+													showContent= previousContent;
+													make.action= IClientTransactionPattern::folder;
+												}
+											}else
+											{
+												--nFolderOutput;
+												showContent= previousContent;
+												make.action= IClientTransactionPattern::folder;
+											}
+										}else
+											showSubroutine= dir.previous;
+									}
+								}
+								if(dir.vector == IClientTransactionPattern::folder)
+								{
+									if(make.direction == next)
+									{
+										if(	make.action != changed &&
+											make.action != unchanged	)
+										{
+											++oIt;
+											++nFolderOutput;
+											make.direction= first;
+											make.action= inform;
+										}
+										showContent= oIt;
+
+									}else if(make.direction == previous)
+									{
+										if(make.action == changed)
+										{
+											make.action= dir.vector;
+											nFolderOutput= nLastChangedFolder;
+											showContent= lastChangedContent;
+											break;
+
+										}else if(make.action == unchanged)
+										{
+											make.action= dir.vector;
+											nFolderOutput= nLastUnchangedFolder;
+											showContent= lastUnchangedContent;
+											break;
+
+										}else
+										{
+											showContent= oIt;
+											if(subroutineSet(oIt->second.external, subroutines))
+											{
+												vector<string>::iterator found;
+												dbSubroutineInfoType::reverse_iterator it;
+
+												make.action= external;
+												for(it= oIt->second.external.rbegin();
+																it != oIt->second.external.rend(); ++it						)
+												{
+													found= find(subroutines.begin(), subroutines.end(),
+																	it->second->subroutine);
+													if(found != subroutines.end())
+													{
+														++it;
+														showSubroutine= it.base();
+														break;
+													}
+												}
+											}else if(!oIt->second.inform.empty())
+											{
+												dbSubroutineInfoType::reverse_iterator it;
+
+												it= oIt->second.inform.rbegin();
+												++it;
+												showSubroutine= it.base();
+												make.action= inform;
+											}else
+											{
+												--nFolderOutput;
+												showContent= previousContent;
+												make.action= IClientTransactionPattern::folder;
+											}
+										}
+									}
 								}
 
-							}else // if(bDone == false)
+							}else // if(make.direction != current)
 							{
-								if(bFoundStart == false)
+								if(	dir.vector == inform ||
+									dir.vector == external	)
 								{
-									if(folderIt->subroutine == "#start")
+									if(dir.found == dir.last)
 									{
-										bFinished= true;
-										break;
-
-									}else if(folderIt->subroutine == "#inform")
-										++uiTryStart;
-									else
-										++uiExternal;
-								}else
+										make.direction= first;
+										make.action= external;
+										showContent= oIt;
+										dir.vector= IClientTransactionPattern::folder;
+									}else
+									{
+										make.action= dir.vector;
+										showSubroutine= dir.found;
+									}
+								}
+								if(dir.vector == IClientTransactionPattern::folder)
+									showContent= oIt;
+							}// end else if(make.direction != current)
+							if(	show.action == changed ||
+								show.action == unchanged	)
+							{
+								make.action= IClientTransactionPattern::folder;
+								if(show.direction == previous)
+									break;
+								bFoundCurrentFolder= true;
+								showContent= oIt;
+								for(dbSubroutineInfoType::iterator it= oIt->second.folder.begin();
+												it != oIt->second.folder.end(); ++it				)
 								{
-									bFinished= true;
+									if(it->second->subroutine == subroutines[0])
+									{
+										showSubroutine= it;
+										break;
+									}
+								}
+							}else
+								break;
+						}
+						previousContent= oIt;
+						++oIt;
+						if(	( 	make.direction == previous &&
+								(	make.action == changed ||
+									make.action == unchanged	)	) ||
+							(	bFoundCurrentFolder &&
+								oIt != currFolderIt->second.end()	)	)
+						{
+							long curVal, oldVal;
+							dbSubroutineInfoType::iterator it;
+
+							for(it= oIt->second.folder.begin();
+									it != oIt->second.folder.end(); ++it	)
+							{
+								if(it->second->subroutine == subroutines[0])
+									break;
+							}
+							/*
+							 * compare only with the first 4 precision
+							 * after decimal point
+							 * toDo: maybe it's not enough
+							 *       by my test there was 6 precision OK
+							 *       but I take 4, because that will be shown
+							 *       inside timer subroutine as result
+							 */
+							curVal= static_cast<long>(it->second->value * 10000);
+							if(showSubroutine != endSubroutine)
+								oldVal= static_cast<long>(showSubroutine->second->value * 10000);
+							else
+								oldVal= curVal;
+							if(oldVal != curVal)
+							{
+								showSubroutine= it;
+								nLastChangedFolder= nFolderOutput;
+								lastChangedContent= previousContent;
+								if(	show.action == changed &&
+									show.direction == next		)
+								{
+									++nFolderOutput;
+									showContent= oIt;
+									break;
+								}
+							}else
+							{
+								showSubroutine= it;
+								nLastUnchangedFolder= nFolderOutput + 1;
+								lastUnchangedContent= oIt;
+								if(	show.direction == next &&
+									show.action == unchanged	)
+								{
+									++nFolderOutput;
+									showContent= oIt;
 									break;
 								}
 							}
-							if(	!bFoundStart &&
-								ulFoundPass == 0 &&
-								folderIt->subroutine != "#started" &&
-								folderIt->subroutine != "#inform" &&
-								!subroutineSet(folderIt->subroutine, subroutines)	)
+						}
+					}// while(oIt != currFolderIt->second.end())
+					if(	(	showContent == currFolderIt->second.end() &&
+							showSubroutine == endSubroutine				) ||
+						(	show.direction == next &&
+							oIt == currFolderIt->second.end() &&
+							(	show.action == changed ||
+								show.action == unchanged	)		) ||
+						(	show.direction == previous &&
+							showContent == currFolderIt->second.begin() &&
+							(	show.action == changed ||
+								show.action == unchanged	)				)	)
+					{
+						string msg;
+
+						if(	make.direction == next ||
+							make.direction == first		)
+						{
+							msg=  " reaching end of folders\n";
+							msg+= " show folder '";
+							msg+= folder;
+							msg+= "' again from begin?\n";
+							msg= ask(/*YesNo*/true, msg);
+							if(msg == "Y")
 							{
-								++want;
+								nFolderOutput= 0;
+								make.direction= first;
+								make.action= show.action;
+								showContent= currFolderIt->second.end();
+								showSubroutine= endSubroutine;
+
+							}else if(	show.action != changed &&
+										show.action != unchanged	)
+							{
+								UNLOCK(m_DEBUGSESSIONCHANGES);
+								pRv= &incommingTime;
+								return pRv;
 							}
-							if(folderIt->subroutine == "#end")
-								bFoundStart= false;
-						}
-					}
-					if(bFinished)
-						break;
-				}
-				switch(show)
-				{
-				case current:
-					if(want == 0)
-						want= 1;
-					break;
-
-				case next:
-					++want;
-					if(want > folderCount[folder])
-					{
-						string msg;
-
-						msg=  " reaching end of folder\n";
-						msg+= " show folder '";
-						msg+= folder;
-						msg+= "' again from begin?\n";
-						msg= ask(/*YesNo*/true, msg);
-						if(msg == "N")
+						}else if(make.direction == previous)
 						{
-							m_dbgSessTime= *curTime;
-							UNLOCK(m_DEBUGSESSIONCHANGES);
-							return &m_dbgSessTime;
-						}
-						want= 1;
-					}
-					break;
-
-				case previous_changed:
-				case previous_unchanged:
-					want= ulLastChanged;
-				case next_changed:
-				case next_unchanged:
-					/*
-					 * by next changed/unchanged
-					 * want is calculated pass
-					 * of changed or unchanged
-					 */
-					if(!bFoundChanged)
-					{
-						string msg;
-
-						msg=  " do not found ";
-						if(	show == next_changed ||
-							show == next_unchanged	)
-						{
-							msg+= "next ";
-						}else
-							msg+= "previous ";
-						if(	show == next_changed ||
-							show == previous_changed	)
-						{
-							msg+= "changed ";
-						}else
-							msg+= "unchanged ";
-						msg+= "subroutine\n";
-						msg+= " should be shown the ";
-						if(	show == next_changed ||
-							show == next_unchanged	)
-						{
-							msg+= "last ";
-						}else
-							msg+= "first ";
-						msg+= "one?\n";
-						msg= ask(/*YesNo*/true, msg);
-						if(msg == "Y")
-						{
-							if(	show == next_changed ||
-								show == next_unchanged	)
+							msg=  " reaching begin of folders\n";
+							msg+= " show folder '";
+							msg+= folder;
+							msg+= "' again from end?\n";
+							msg= ask(/*YesNo*/true, msg);
+							if(msg == "Y")
 							{
-								want= folderCount[folder];
-							}else
-								want= 1;
+								make.direction= last;
+								make.action= show.action;
+								break;
 
-						}else
-						{
-							m_dbgSessTime= *curTime;
-							UNLOCK(m_DEBUGSESSIONCHANGES);
-							return &m_dbgSessTime;
-						}
-					}
-					break;
-
-				default:// show == previous
-					if(ulPrevious == 0)
-					{
-						string msg;
-
-						msg=  " reaching first entry of folder\n";
-						msg=  " show folder '";
-						msg+= folder;
-						msg+= "' again from end?\n";
-						msg= ask(/*YesNo*/true, msg);
-						if(msg == "N")
-						{
-							m_dbgSessTime= *curTime;
-							UNLOCK(m_DEBUGSESSIONCHANGES);
-							return &m_dbgSessTime;
-						}
-						want= folderCount[folderIt->folder];
-					}else
-						want= ulPrevious;
-					break;
-				}
-			}else // from show != first && show != last && curTime->isSet()
-			{
-				if(	nr > 0 &&
-					(	show == next ||
-						show == previous	)	)
-				{
-					if(nr > folderCount[folder])
-					{
-						ostringstream out;
-
-						out << "   only " << folderCount[folder];
-						out << " folder count of '" << folder << "' do exist" << endl;
-						cout(out.str());
-						m_dbgSessTime= *curTime;
-						UNLOCK(m_DEBUGSESSIONCHANGES);
-						return &m_dbgSessTime;
-					}
-					want= nr;
-
-				}else if(show == last)
-					want= folderCount[folder];
-				else
-				{
-					want= 1;
-					bDone= false;
-					for(timeIt= m_mmDebugSession.begin(); timeIt != m_mmDebugSession.end(); ++timeIt)
-					{
-						for(folderIt= timeIt->second.begin(); folderIt != timeIt->second.end(); ++folderIt)
+							}else if(	show.action != changed &&
+										show.action != unchanged	)
+							{
+								UNLOCK(m_DEBUGSESSIONCHANGES);
+								pRv= &incommingTime;
+								return pRv;
+							}
+						}else if(make.direction == current)
 						{
 							/*
-							 * write out only correct
-							 * folder:subroutine when set
+							 * last time of subroutine
+							 * was overrun
+							 * so show now the last one
 							 */
-							if(	folder == "" || // <- show content of all folders
-								folder == folderIt->folder	)
-							{
-								if(folderIt->subroutine == "#start")
-								{
-									bDone= true;
-									break;
-								}
-								if(folderIt->subroutine == "#inform")
-									++uiTryStart;
-								else if(folderIt->subroutine != "#started")
-									++uiExternal;
-
-							}
-						}
-						if(bDone)
+							make.direction= last;
 							break;
+						}else
+						{
+							/*
+							 * unknown direction
+							 * was set
+							 */
+							std::cout << "  reach begin/end of folders (unknown direction)" << endl;
+							UNLOCK(m_DEBUGSESSIONCHANGES);
+							pRv= &incommingTime;
+							return pRv;
+						}
 					}
-				}// else end of if(show == last)
-			}// else end of if(show != first && show != last && curTime->isSet())
-		}// else end of if(show != all)
-		/*
-		 * output now all content
-		 * which need
-		 */
-		bool bWrite(false);
-		bDone= false;
-		bFinished= false;
-		bFoundStart= false;
-		ulFolderRun= 0;
-#if __DISPLAY_COUNTING
-		std::cout << "count " << folderCount[folder] << " entries, want show " << want << "." << endl;
-#endif // __DISPLAY_COUNTING
-		for(timeIt= m_mmDebugSession.begin(); timeIt != m_mmDebugSession.end(); ++timeIt)
-		{
-			for(folderIt= timeIt->second.begin(); folderIt != timeIt->second.end(); ++folderIt)
+				}while(	showContent == currFolderIt->second.end() &&
+						showSubroutine == endSubroutine					);
+				if(make.direction == last)
+					continue;
+			} // end else of if(make.direction == last)
+
+			existFolderObjs= currFolderIt->second.size();
+			if(currFolderIt->second.rbegin()->second.folder.empty())
+				--existFolderObjs;
+			/*
+			 * try to display first
+			 * from inform vector
+			 */
+			if(	make.action == inform &&
+				showContent != currFolderIt->second.end() &&
+				!showContent->second.inform.empty()			)
 			{
-				/*
-				 * write out only correct
-				 * folder:subroutine when set
-				 */
-				if(	folder == "" || // <- show content of all folders
-					folder == folderIt->folder	)
+				nOutput= 0;
+				for(innerIt= showContent->second.inform.begin();
+								innerIt != showContent->second.inform.end(); ++innerIt	)
 				{
-					if(bDone == false)
+					++nOutput;
+					if(	!curTime->isSet() ||
+						make.direction == first ||
+						make.direction == last ||
+						innerIt == showSubroutine	)
 					{
 						content.str("");
-						/*
-						 * create first
-						 * current folder
-						 * running count
-						 * and current content
-						 */
-						if(folderIt->subroutine == "#start")
+						content << nOutput << ". try from ";
+						content << showContent->second.inform.size();
+						content << " to start folder ";
+						if(nFolderOutput > existFolderObjs)
+							content << "after last running" << endl;
+						else
+							content << "of " << nFolderOutput << ". run" << endl;
+						content << innerIt->second->content << endl;
+						pRv= &(*innerIt->second->currentTime);
+						bDisplayedContent= true;
+						if(make.direction != last)
 						{
-							bFoundStart= true;
-							++ulFolderRun;
-							uiTryStartRun= 0;
-							uiExternalRun= 0;
-
-						}else if(folderIt->subroutine == "#inform")
-							++uiTryStartRun;
-						else if(!bFoundStart)
-							++uiExternalRun;
-						ulRun= mmRunning[folderIt->folder];
-						if(ulRun == 0)
-							ulRun= 1;
-						if(	!bWrite &&
-							want <= ulRun &&
-							folderIt->subroutine != "#started" &&
-							(	folderIt->subroutine.substr(0, 1) == "#" ||
-								subroutineSet(folderIt->subroutine, subroutines)	)	)
-						{
-							mmRunning[folderIt->folder]= ulRun;
-							m_vsHoldFolders[folderIt->folder][folderIt->subroutine]= ulRun;
-							bWrite= true;
-							if(!bFoundStart)
-							{
-								if(folderIt->subroutine == "#inform")
-								{
-									content << uiTryStartRun << ". try from " << uiTryStart << " to ";
-								}else
-								{
-									content << uiExternalRun << ". of " << uiExternal
-													<< " external subroutine running before ";
-								}
-								content << "start folder of " << (ulFolderRun + 1) << ". run" << endl;
-							}else
-								content << "folder running by " << ulFolderRun << ". time" << endl;
-							m_dbgSessTime= timeIt->first;
-							if(!m_dbgSessTime.isSet())
-							{// set 1 mikrosecound for next display
-								m_dbgSessTime.tv_usec= 1;
-							}
-
-						}
-						if(	bWrite  &&
-							(	folderIt->subroutine.substr(0, 1) == "#" ||
-								subroutineSet(folderIt->subroutine, subroutines)	)	)
-						{
-							string id(getFolderID(folderIt->folder));
-							string output;
-
-							content << folderIt->content;
-							output= content.str();
-							trim(output);
-							std::cout << glob::addPrefix(id, output + "\n");
-							bWritten= true;
-							if(folderIt->subroutine.substr(0, 1) != "#")
-								vWritten[folderIt->subroutine]= true;
-							else
-								bDisplaySharedTags= true;
-						}
-						if(	bWritten &&
-							show != all &&
-							(	folderIt->subroutine == "#end" ||
-								!bFoundStart						)	)
-						{
-							/*
-							 * stop output
-							 * when end of folder found
-							 * or by every regular subroutine (no # on begin)
-							 * outside of start - end from folder
-							 * should be an external running subroutine
-							 */
-							bDone= true;
-
-						}else if(	folderIt->subroutine != "#started" &&
-									(	folderIt->subroutine == "#end" ||
-										bFoundStart == false				)	)
-						{
-							++ulRun;
-							mmRunning[folderIt->folder]= ulRun;
-#if __DISPLAY_COUNTING
-							if(!bFoundStart)
-								std::cout << "count subroutine " << folderIt->subroutine << endl;
-							else
-								std::cout << "count folder" << endl;
-#endif // __DISPLAY_COUNTING
-							bFoundStart= false;
-						}
-					}else// if(bDone == false)
-					{
-						if(folderIt->subroutine != "#started")
-						{
-							bFinished= true;
+							std::cout << glob::addPrefix(getFolderID(folder), content.str());
 							break;
 						}
-						std::cout << glob::addPrefix(getFolderID(folderIt->folder),
-										folderIt->content + "\n");
 					}
-				}// if(	folder == "" || folder == folderIt->folder	)
-			}// for each all times
-			if(bFinished)
-				break;
-		}
-#if __DISPLAY_COUNTING
-		std::cout << "displayed " << want << endl;
-#endif // __DISPLAY_COUNTING
-		UNLOCK(m_DEBUGSESSIONCHANGES);
-		if(!bWritten)
-		{
-			ostringstream out;
-
-			out << "no debug session content ";
-			if(folder == "")
-				out << "from working list exist" << endl;
-			else
-			{
-				out << " exist by ";
-				if(subroutines.size() != 1)
-					out << "folder ";
-				out << folder;
-				if(subroutines.size() > 1)
+				}
+				if(	make.direction == last &&
+					bDisplayedContent			)
 				{
-					out << " with follow subroutines:" << endl;
-					for(vector<string>::const_iterator it= subroutines.begin();
-									it != subroutines.end(); ++it				)
-					{
-						out << "                     " << *it << endl;
-					}
-				}else if(subroutines.size() == 1)
-					out << ":" << subroutines[0] << endl;
-				else
-					out << endl;
-			}
-			cout(out.str());
-
-		}else if(show != all)
-		{
-			bool moreThanOne(false);
-			string noWrite;
-			string notWritten;
-			ostringstream out;
-
-			for(map<string, bool>::iterator it= vWritten.begin();
-							it != vWritten.end(); ++it				)
-			{
-				if(it->second == false)
-				{
-					if(noWrite != "")
-						moreThanOne= true;
-					noWrite= it->first;
-					notWritten+= "                     " + it->first + "\n";
+					std::cout << glob::addPrefix(getFolderID(folder), content.str());
 				}
 			}
-			if(	!bDisplaySharedTags &&
-				noWrite != ""			)
+			/*
+			 * than try to display
+			 * from external vector
+			 */
+			if(	!bDisplayedContent &&
+				make.action <= external &&
+				showContent != currFolderIt->second.end() &&
+				!showContent->second.external.empty()		)
 			{
-				if(moreThanOne)
-					out << " follow subroutines ";
-				else
-					out << " subroutine '" << noWrite << "' ";
-				out << "wasn't inside current folder pass" << endl;
-				out << " of debug session getting from server";
-				if(moreThanOne)
-					out << ":";
-				out << endl;
-				if(moreThanOne)
-					out << notWritten;
-				cout(out.str());
+				size_t count(0);
+				string sSubroutine;
+
+				nOutput= 0;
+				/*
+				 * there is no break inside while routine
+				 * because at all count for existing
+				 * correct external subroutines
+				 */
+				innerIt= showContent->second.external.begin();
+				while(innerIt != showContent->second.external.end())
+				{
+					if(subroutineSet(innerIt->second->subroutine, subroutines))
+					{
+						++count;
+						if(	make.direction == last ||
+							(	(	!curTime->isSet() ||
+									make.direction == first	||
+									innerIt == showSubroutine	) &&
+								sSubroutine.empty()						)	)
+						{
+							nOutput= count;
+							sSubroutine= innerIt->second->content;
+							pRv= &(*innerIt->second->currentTime);
+							bDisplayedContent= true;
+						}
+					}
+					++innerIt;
+				}
+				if(!sSubroutine.empty())
+				{
+					content << nOutput << ". of ";
+					content << count;
+					content << " external subroutine running ";
+					if(nFolderOutput <=  existFolderObjs)
+					{
+						content << "before start folder of ";
+						content << nFolderOutput << ". run" << endl;
+					}else
+						content << "after last folder running" << endl;
+					content << sSubroutine << endl;
+					std::cout << glob::addPrefix(getFolderID(folder), content.str());
+				}
 			}
-		}
-		if(	show == all &&
-			!bWritten		)
-		{
-			m_dbgSessTime.clear();
-		}
-		return &m_dbgSessTime;
+			/*
+			 * and at last
+			 * try to display
+			 * subroutines between start and end
+			 */
+			if(	!bDisplayedContent &&
+				make.action <= IClientTransactionPattern::folder &&
+				showContent != currFolderIt->second.end() &&
+				!showContent->second.folder.empty()					)
+			{
+				content << "start " << nFolderOutput << ". folder of ";
+				content << existFolderObjs << endl;
+				for(innerIt= showContent->second.folder.begin();
+								innerIt != showContent->second.folder.end(); ++innerIt	)
+				{
+					if(	innerIt->second->subroutine == "#inform" ||
+						innerIt->second->subroutine == "#start" ||
+						innerIt->second->subroutine	== "#started" ||
+						innerIt->second->subroutine == "#end" ||
+						subroutineSet(innerIt->second->subroutine, subroutines)	)
+					{
+						bDisplayedContent= true;
+						content << innerIt->second->content << endl;
+						std::cout << glob::addPrefix(getFolderID(folder), content.str());
+						if(	(	subroutines.empty() &&
+								innerIt->second->subroutine == "#start"	) ||
+							(	!subroutines.empty() &&
+								innerIt->second->subroutine == subroutines[0]	)	)
+						{
+							pRv= &(*innerIt->second->currentTime);
+						}
+						content.str("");
+					}
+				}
+			}
+			if(!bDisplayedContent)
+			{
+				string msg;
+
+				if(	make.direction == next ||
+					make.direction == first	)
+				{
+					/*
+					 * when direction is first
+					 * is meaning make from next
+					 * action external/folder or inform
+					 * the first entry
+					 * so direction meaning is also next direction
+					 */
+					msg=  " reaching end of folders\n";
+					msg+= " show folder '";
+					msg+= folder;
+					msg+= "' again from begin?\n";
+					msg= ask(/*YesNo*/true, msg);
+					if(msg == "Y")
+					{
+						make.direction= first;
+						make.action= show.action;
+					}else
+						break;
+				}else if(	make.direction == previous ||
+							make.direction == last		)
+				{
+					/*
+					 * when direction is last
+					 * is meaning make from previous
+					 * action external/inform or folder
+					 * the last entry
+					 * so direction meaning is also previous direction
+					 */
+					msg=  " reaching begin of folders\n";
+					msg+= " show folder '";
+					msg+= folder;
+					msg+= "' again from end?\n";
+					msg= ask(/*YesNo*/true, msg);
+					if(msg == "Y")
+					{
+						make.direction= last;
+						make.action= show.action;
+					}else
+						break;
+				}else if( make.direction == current)
+				{
+					/*
+					 * last subroutine
+					 * had no content
+					 * so show now the last one
+					 * with content
+					 */
+					make.direction= last;
+				}else
+				{
+					/*
+					 * unknown direction
+					 * was set
+					 */
+					std::cout << "  reach begin/end of folders (unknown direction)" << endl;
+					break;
+				}
+			}
+		}while(!bDisplayedContent);
+		UNLOCK(m_DEBUGSESSIONCHANGES);
+		return pRv;
 	}
 
 	bool ClientTransaction::existOnServer(IFileDescriptorPattern& descriptor,
