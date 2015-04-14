@@ -53,7 +53,8 @@ namespace design_pattern_world
 				inform,
 				external,
 				folder,
-				changed, // also folder
+				folder_external, // folder and external
+				changed, // only folder
 				unchanged // same
 			};
 			/**

@@ -324,7 +324,15 @@ namespace server
 			// editor commands for debug session
 			command("run");
 			command("first");
+			command("first inform");
+			command("first external");
+			command("first folder-");
+			command("first folder");
 			command("last");
+			command("last inform");
+			command("last external");
+			command("last folder-");
+			command("last folder");
 			command("up");
 			command("back");
 			command("clear");
@@ -336,18 +344,23 @@ namespace server
 			command("hold #folderSub");
 			command("hold -i #folderSub");
 
-			command("show");
-			command("show #folder");
-			command("show #folderSub");
-
 			command("current");
 			command("current #folder");
 			command("current #folderSub");
 
+			command("next");
+			command("next inform");
+			command("next external #subroutine");
+			command("next folder- #subroutine");// <- folder without external
+			command("next folder #subroutine");// <- folder with external
 			command("next changed #subroutine");
 			command("next unchanged #subroutine");
 
 			command("previous");
+			command("previous inform");
+			command("previous external #subroutine");
+			command("previous folder- #subroutine");// <- folder without external
+			command("previous folder #subroutine");// <- folder with external
 			command("previous changed #subroutine");
 			command("previous unchanged #subroutine");
 
@@ -2133,7 +2146,7 @@ namespace server
 			{
 				bSendCommand= false;
 				if(checkWaitCommandCount(command, bErrorWritten))
-					writeHelpUsage(command[0]);
+					writeHelpUsage(command[0], (m_o2Client.get() != NULL));
 
 			}else if(command[0] == "CHANGE")
 			{
@@ -2277,8 +2290,7 @@ namespace server
 					bSendCommand= false;
 				}
 
-			}else if(	command[0] == "rm" ||
-						command[0] == "remove"	)
+			}else if(command[0] == "remove")
 			{
 				vector<string>::iterator it;
 				ostringstream out;
@@ -2360,8 +2372,7 @@ namespace server
 				}// checkHearCommandCount()
 			}
 			if(	bErrorWritten == false &&
-				(	command[0] == "show" ||
-					command[0] == "current" ||
+				(	command[0] == "current" ||
 					command[0] == "next" ||
 					command[0] == "previous" ||
 					command[0] == "first" ||
@@ -2376,11 +2387,7 @@ namespace server
 				direction.direction= all;
 				direction.action= none;
 				bSendCommand= false;
-				if(command[0] == "show")
-				{
-					direction.direction= all;
-
-				}else if(command[0] == "first")
+				if(command[0] == "first")
 				{
 					direction.direction= first;
 
@@ -2436,9 +2443,14 @@ namespace server
 					}else if(	direction.direction == next ||
 								direction.direction == previous	)
 					{
-						paramDefs.push_back("[ folder number or 'changed/unchanged' ]");
+						paramDefs.push_back("[ folder number or 'inform/external/folder-/folder/changed/unchanged' ]");
 						paramDefs.push_back("[ <subroutine> when not "
 										"only one defined to show by changed/unchanged ]");
+
+					}else if(	direction.direction == first ||
+								direction.direction == last		)
+					{
+						paramDefs.push_back("[ inform, external, folder or folder- ]");
 					}
 					if(checkHearCommandCount(command, bErrorWritten, &paramDefs))
 					{
@@ -2447,18 +2459,38 @@ namespace server
 						if(command.size() > 1)
 						{
 							if(	direction.direction == next ||
-								direction.direction == previous	)
+								direction.direction == previous ||
+								direction.direction == first ||
+								direction.direction == last			)
 							{
 								bool bChangedUnchanged(false);
 
-								if(	command[1] == "ch" ||
-									command[1] == "changed"	)
+								if(command[1] == "inform")
+								{
+									direction.action= inform;
+
+								}else if(command[1] == "external")
+								{
+									direction.action= external;
+
+								}else if(command[1] == "folder-")
+								{
+									direction.action= ClientTransaction::folder;
+
+								}else if(command[1] == "folder")
+								{
+									direction.action= folder_external;
+
+								}else if(	command[1] == "changed" &&
+											direction.direction != first &&
+											direction.direction != last		)
 								{
 									bChangedUnchanged= true;
 									direction.action= changed;
 
-								}else if(	command[1] == "uch" ||
-											command[1] == "unchanged"	)
+								}else if(	command[1] == "unchanged" &&
+											direction.direction != first &&
+											direction.direction != last		)
 								{
 									bChangedUnchanged= true;
 									direction.action= unchanged;
@@ -2563,9 +2595,17 @@ namespace server
 										cout(out.str());
 										bErrorWritten= true;
 									}
-								}else// if(bChangedUnchanged
+								}// if(bChangedUnchanged
+								if(	!bErrorWritten &&
+									!bChangedUnchanged &&
+									(	direction.action == none ||
+										command.size() == 3			)	)
 								{
-									iresult.str(command[1]);
+									int pos(1);
+
+									if(command.size() == 3)
+										pos= 2;
+									iresult.str(command[pos]);
 									iresult >> folderNr;
 									if(iresult.fail())
 									{
@@ -2583,14 +2623,17 @@ namespace server
 							}// if(direction == next || direction == previous)
 						}
 						if(	!bErrorWritten &&
-							command.size() > 1	)
+							command.size() > 1 &&
+							(	direction.action == none ||
+								command.size() > 2			)	)
 						{
 							vector<string> spl;
 
 							if(	direction.direction != all &&
 								direction.direction != current &&
-								direction.action != changed &&
-								direction.action != unchanged		)
+								folderNr == 0 &&
+								(	direction.action == none ||
+									command.size() > 2				)	)
 							{
 								cout(" for command '" + command[0] + "'"
 										" is no definition of folder[:subroutine] allowed\n");
@@ -2598,7 +2641,11 @@ namespace server
 
 							}else
 							{
-								split(spl, command[1], is_any_of(":"));
+								int pos(1);
+
+								if(direction.action != none)
+									pos= 2;
+								split(spl, command[pos], is_any_of(":"));
 								folder= spl[0];
 								if(spl.size() > 1)
 									subroutine= spl[1];
@@ -3376,7 +3423,7 @@ namespace server
 		UNLOCK(m_DEBUGSESSIONCHANGES);
 	}
 
-	void ClientTransaction::writeHelpUsage(const string& sfor)
+	void ClientTransaction::writeHelpUsage(const string& sfor, bool editor)
 	{
 		if(sfor == "?")
 		{
@@ -3384,8 +3431,11 @@ namespace server
 			std::cout << "    ?         - show this help" << endl;
 			std::cout << "    ?value    - show all commands round of values "
 							"inside ppi-server" << endl;
-			std::cout << "    ?debug    - show all commands round "
+			if(editor)
+			{
+				std::cout << "    ?debug    - show all commands round "
 							"debug session of working list" << endl;
+			}
 			std::cout << endl;
 			std::cout << "    quit            - ending connection to server" << endl;
 			std::cout << "                      and abort ppi-client" << endl;
@@ -3414,7 +3464,7 @@ namespace server
 
 		}else if(sfor == "?debug")
 		{
-			if(m_o2Client.get())
+			if(editor)
 			{
 				std::cout << endl;
 				std::cout << "    DEBUG [-i|-ow] <folder[:subroutine]/owreaderID>" << endl;
@@ -3456,18 +3506,36 @@ namespace server
 				std::cout << "    add <subroutine>" << endl;
 				std::cout << "                -   add subroutine to current folder defined with 'current'" << endl;
 				std::cout << "                    which is defined for listing" << endl;
-				std::cout << "    rm <subroutine>" << endl;
 				std::cout << "    remove <subroutine>" << endl;
 				std::cout << "                -   remove the subroutine from current folder defined inside 'current'" << endl;
 				std::cout << "                    which is defined for listing" << endl;
-				std::cout << "    next        -   show also only one subroutine like 'current'" << endl;
+				std::cout << "    first [type]" << endl;
+				std::cout << "                -   show first subroutine of folder when no type be set" << endl;
+				std::cout << "                    (additional optional second [type] parameter see by command 'next')" << endl;
+				std::cout << "    next [type] -   show also only one subroutine like 'current'" << endl;
 				std::cout << "                    but always the next one" << endl;
 				std::cout << "                    after command can also be typed the folder pass" << endl;
 				std::cout << "                    which want to be shown" << endl;
-				std::cout << "    previous    -   same as command 'NEXTDEBUG'" << endl;
+				std::cout << "                    additional type can be:" << endl;
+				std::cout << "                      inform    - for folder information of change from" << endl;
+				std::cout << "                                  other folder or external clients" <<endl;
+				std::cout << "                      external  - for external started changing of subroutine content" << endl;
+				std::cout << "                                  can be changed from other folder" << endl;
+				std::cout << "                                  or started from an TIMER subroutine" << endl;
+				std::cout << "                      folder-   - show only folder between folder start and stop" << endl;
+				std::cout << "                                  (because an minus ('-') is followed after type name 'folder')" << endl;
+				std::cout << "                      folder    - show only folder or external content (no inform)" << endl;
+				std::cout << "                      <number>  - show the next folder (like folder-) on given position" << endl;
+				std::cout << "                   > next types only usable inside folder <" << endl;
+				std::cout << "                      changed   - show the next or previous subroutine which is changed" << endl;
+				std::cout << "                      unchanged - show the next or previous unchanged subroutine" << endl;
+				std::cout << "    previous [type]   -   same as command 'NEXTDEBUG'" << endl;
 				std::cout << "                    but show the subroutine before" << endl;
 				std::cout << "                    after command can also be typed the folder pass" << endl;
 				std::cout << "                    which want to be shown" << endl;
+				std::cout << "                    (additional optional second [type] parameter see by command 'next' before)" << endl;
+				std::cout << "    last [type] -   show last subroutine of folder when no type be set" << endl;
+				std::cout << "                    (additional optional second [type] parameter see by command 'next' before)" << endl;
 				std::cout << "    back        -   go from an new defined layer with 'current'" << endl;
 				std::cout << "                    back to the last layer with the last time" << endl;
 				std::cout << "    up          -   go from the current layer up to the next" << endl;
@@ -3527,14 +3595,16 @@ namespace server
 
 			}catch(SignalException& ex)
 			{
-				ex.addMessage("inside editor");
+				ex.addMessage("working inside editor");
 				ex.printTrace();
+				resetTc();
 				exit(EXIT_FAILURE);
 
 			}catch(std::exception& ex)
 			{
 				std::cout << "std exception inside editor" << endl;
 				std::cout << string(ex.what()) << endl;
+				resetTc();
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -3776,6 +3846,7 @@ namespace server
 					nextPrevious= it;
 				}
 				++tRv.count;
+				previous= it;
 				tRv.last= it;
 			}
 		}
@@ -3845,6 +3916,7 @@ namespace server
 		bool bFoundCurrentFolder(false);
 		size_t nOutput, nFolderOutput, existFolderObjs;
 		size_t nLastChangedFolder, nLastUnchangedFolder;
+		size_t nLastInformFolder, nLastExternalFolder;
 		direction_t make;
 		IPPITimePattern* pRv;
 		ppi_time incommingTime;
@@ -3853,6 +3925,7 @@ namespace server
 		dbSubroutineInfoType::iterator showSubroutine, endSubroutine;
 		folderSessionIterator showContent, previousContent;
 		folderSessionIterator lastChangedContent, lastUnchangedContent;
+		folderSessionIterator lastInformContent, lastExternalContent;
 		map<ppi_time,
 			SHAREDPTR::shared_ptr<
 				IDbFillerPattern::dbgSubroutineContent_t> >::
@@ -3888,26 +3961,58 @@ namespace server
 				oIt= currFolderIt->second.rbegin();
 				while(oIt != currFolderIt->second.rend())
 				{
-					if(!oIt->second.folder.empty())
+					if(make.action == none)
 					{
-						make.action= IClientTransactionPattern::folder;
-						++oIt;
-						showContent= oIt.base();
-						break;
+						if(!oIt->second.folder.empty())
+						{
+							make.action= IClientTransactionPattern::folder;
+							++oIt;
+							showContent= oIt.base();
+							break;
 
-					}else if(subroutineSet(oIt->second.external, subroutines))
+						}else if(subroutineSet(oIt->second.external, subroutines))
+						{
+							make.action= external;
+							++oIt;
+							showContent= oIt.base();
+							break;
+
+						}else if(!oIt->second.inform.empty())
+						{
+							make.action= inform;
+							++oIt;
+							showContent= oIt.base();
+							break;
+						}
+					}else // if(make.action == none)
 					{
-						make.action= external;
-						++oIt;
-						showContent= oIt.base();
-						break;
-					}else if(!oIt->second.inform.empty())
-					{
-						make.action= inform;
-						++oIt;
-						showContent= oIt.base();
-						break;
-					}
+						if(	(	make.action == ClientTransaction::folder ||
+								make.action == folder_external				) &&
+							!oIt->second.folder.empty()							)
+						{
+							make.action= IClientTransactionPattern::folder;
+							++oIt;
+							showContent= oIt.base();
+							break;
+						}
+						if(	(	make.action == external ||
+								make.action == folder_external	) &&
+							subroutineSet(oIt->second.external, subroutines)	)
+						{
+							make.action= external;
+							++oIt;
+							showContent= oIt.base();
+							break;
+						}
+						if(	make.action == inform &&
+							!oIt->second.inform.empty()	)
+						{
+							make.action= inform;
+							++oIt;
+							showContent= oIt.base();
+							break;
+						}
+					} // end else from if(make.action == none)
 					--nFolderOutput;
 					++oIt;
 				}// reverse iteration of curFolderIt
@@ -3933,6 +4038,8 @@ namespace server
 				showContent= currFolderIt->second.end();
 				lastChangedContent= showContent;
 				lastUnchangedContent= showContent;
+				lastInformContent= showContent;
+				lastExternalContent= showContent;
 				previousContent= currFolderIt->second.end();
 				do{
 					folderSessionIterator oIt= currFolderIt->second.begin();
@@ -3964,53 +4071,170 @@ namespace server
 							dir= currentSubroutineTyp(curTime, oIt, subroutines);
 							if(make.direction != current)
 							{
-								if(	dir.vector == inform ||
-									dir.vector == external	)
+								if(	(	dir.vector == inform ||
+										dir.vector == external	) &&
+									(	show.action == changed ||
+										show.action == unchanged	)	)
 								{
-									if(	show.action == changed ||
-										show.action == unchanged	)
+									std::cout << "  displayed ";
+									if(dir.vector == inform)
+										std::cout << "information output ";
+									else
+										std::cout << "  external folder ";
+									std::cout << "has no value for stepping by ";
+									if(show.action == unchanged)
+										std::cout << "un";
+									std::cout << "changed" << endl;
+									std::cout << "  please go first to any folder "
+													"running inside start/end routine" << endl;
+									UNLOCK(m_DEBUGSESSIONCHANGES);
+									pRv= &incommingTime;
+									return pRv;
+								}
+								if(	make.direction == next &&
+									show.action != changed &&
+									show.action != unchanged	)
+								{
+									make.action= show.action;
+									make.direction= show.direction;
+									showContent= oIt;
+									showSubroutine= getNextSubroutine(	make,
+																		nFolderOutput,
+																		showContent,
+																		currFolderIt->second.end(),
+																		dir,
+																		endSubroutine,
+																		subroutines					);
+								}else // if(make.direction == next)
+								{
+									if(	show.action == ClientTransaction::folder ||
+										(	show.action == folder_external &&
+											(	dir.vector != ClientTransaction::folder ||
+												!subroutineSet(oIt->second.external, subroutines)	) &&
+											(	dir.vector != external ||
+												dir.found == dir.first		)							)	)
 									{
-										std::cout << "  displayed ";
-										if(dir.vector == inform)
-											std::cout << "information output ";
-										else
-											std::cout << "  external folder ";
-										std::cout << "has no value for stepping by ";
-										if(show.action == unchanged)
-											std::cout << "un";
-										std::cout << "changed" << endl;
-										std::cout << "  please go first to any folder "
-														"running inside start/end routine" << endl;
-										UNLOCK(m_DEBUGSESSIONCHANGES);
-										pRv= &incommingTime;
-										return pRv;
-									}
-									if(make.direction == next)
-									{
-										if(dir.found != dir.last)
-											++dir.found;
-										if(dir.found == dir.last)
-										{
-											showContent= oIt;
-											make.direction= first;
-											if(dir.vector == inform)
-											{
-												make.action= external;
-											}else
-												make.action= IClientTransactionPattern::folder;
-										}else
-										{
-											make.action= dir.vector;
-											showSubroutine= dir.found;
-										}
+										--nFolderOutput;
+										showContent= previousContent;
+										make.action= IClientTransactionPattern::folder;
+
 									}else
 									{
-										make.action= dir.vector;
-										if(dir.first == dir.found)
+										if(	show.action != none &&
+											show.action != dir.vector &&
+											(	show.action != folder_external ||
+												dir.vector == inform				)	)
 										{
-											if(dir.vector == external)
+											if(show.action < dir.vector)
 											{
-												if(!oIt->second.inform.empty())
+												make.action= show.action;
+												if(show.action == inform)
+												{
+													dbSubroutineInfoType::reverse_iterator it;
+
+													if(oIt->second.inform.empty())
+													{
+														nFolderOutput= nLastInformFolder;
+														showContent= lastInformContent;
+													}else
+														showContent= oIt;
+													if(showContent != currFolderIt->second.end())
+													{
+														it= showContent->second.inform.rbegin();
+														++it;
+														showSubroutine= it.base();
+													}
+													make.action= inform;
+
+												}else if(show.action == external)
+												{
+													showContent= oIt;
+													if(subroutineSet(oIt->second.external, subroutines))
+													{
+														vector<string>::iterator found;
+														dbSubroutineInfoType::reverse_iterator it;
+
+														make.action= external;
+														for(it= oIt->second.external.rbegin();
+																		it != oIt->second.external.rend(); ++it						)
+														{
+															found= find(subroutines.begin(), subroutines.end(),
+																			it->second->subroutine);
+															if(found != subroutines.end())
+															{
+																++it;
+																showSubroutine= it.base();
+																break;
+															}
+														}
+													}else
+													{
+														dbSubroutineInfoType::reverse_iterator it;
+
+														nFolderOutput= nLastExternalFolder;
+														showContent= lastExternalContent;
+														if(showContent != currFolderIt->second.end())
+														{
+															for(it= showContent->second.external.rbegin();
+																			it != showContent->second.external.rend();
+																			++it										)
+															{
+																if(subroutineSet(it->second->subroutine, subroutines))
+																	break;
+															}
+															++it;
+															showSubroutine= it.base();
+														}
+														make.action= external;
+													}
+												}
+											}else
+											{
+												if(show.action == external)
+												{
+													dbSubroutineInfoType::reverse_iterator it;
+
+													nFolderOutput= nLastExternalFolder;
+													showContent= lastExternalContent;
+													if(showContent != currFolderIt->second.end())
+													{
+														for(it= showContent->second.external.rbegin();
+																		it != showContent->second.external.rend();
+																		++it										)
+														{
+															if(subroutineSet(it->second->subroutine, subroutines))
+																break;
+														}
+														++it;
+														showSubroutine= it.base();
+													}
+													make.action= external;
+												}
+											}
+										}else
+										{
+											if(dir.vector == ClientTransaction::folder)
+											{
+												showContent= oIt;
+												if(subroutineSet(oIt->second.external, subroutines))
+												{
+													vector<string>::iterator found;
+													dbSubroutineInfoType::reverse_iterator it;
+
+													make.action= external;
+													for(it= oIt->second.external.rbegin();
+																	it != oIt->second.external.rend(); ++it						)
+													{
+														found= find(subroutines.begin(), subroutines.end(),
+																		it->second->subroutine);
+														if(found != subroutines.end())
+														{
+															++it;
+															showSubroutine= it.base();
+															break;
+														}
+													}
+												}else if(!oIt->second.inform.empty())
 												{
 													dbSubroutineInfoType::reverse_iterator it;
 
@@ -4020,34 +4244,87 @@ namespace server
 													make.action= inform;
 												}else
 												{
+													--nFolderOutput;
 													showContent= previousContent;
 													make.action= IClientTransactionPattern::folder;
 												}
 											}else
 											{
-												--nFolderOutput;
-												showContent= previousContent;
-												make.action= IClientTransactionPattern::folder;
+												make.action= dir.vector;
+												if(dir.first == dir.found)
+												{
+													if(dir.vector == external)
+													{
+														dbSubroutineInfoType::reverse_iterator it;
+
+														if(show.action == external)
+														{
+															nFolderOutput= nLastExternalFolder;
+															showContent= lastExternalContent;
+															if(showContent != currFolderIt->second.end())
+															{
+																for(it= showContent->second.external.rbegin();
+																				it != showContent->second.external.rend();
+																				++it										)
+																{
+																	if(subroutineSet(it->second->subroutine, subroutines))
+																		break;
+																}
+																++it;
+																showSubroutine= it.base();
+															}
+															make.action= external;
+														}else
+														{
+															dbSubroutineInfoType::reverse_iterator it;
+
+															if(oIt->second.inform.empty())
+															{
+																nFolderOutput= nLastInformFolder;
+																showContent= lastInformContent;
+															}else
+																showContent= oIt;
+															if(showContent != currFolderIt->second.end())
+															{
+																it= showContent->second.inform.rbegin();
+																++it;
+																showSubroutine= it.base();
+															}
+															make.action= inform;
+														}
+													}else
+													{
+														if(	show.action == none)
+														{
+															--nFolderOutput;
+															showContent= previousContent;
+															make.action= IClientTransactionPattern::folder;
+
+														}else if( show.action == inform)
+														{
+															dbSubroutineInfoType::reverse_iterator it;
+
+															nFolderOutput= nLastInformFolder;
+															showContent= lastInformContent;
+															if(showContent != currFolderIt->second.end())
+															{
+																it= showContent->second.inform.rbegin();
+																++it;
+																showSubroutine= it.base();
+															}
+															make.action= inform;
+															//make.direction= last;
+														}
+													}
+												}else
+													showSubroutine= dir.previous;
 											}
-										}else
-											showSubroutine= dir.previous;
+										}
 									}
 								}
 								if(dir.vector == IClientTransactionPattern::folder)
 								{
-									if(make.direction == next)
-									{
-										if(	make.action != changed &&
-											make.action != unchanged	)
-										{
-											++oIt;
-											++nFolderOutput;
-											make.direction= first;
-											make.action= inform;
-										}
-										showContent= oIt;
-
-									}else if(make.direction == previous)
+									if(make.direction == previous)
 									{
 										if(make.action == changed)
 										{
@@ -4063,42 +4340,17 @@ namespace server
 											showContent= lastUnchangedContent;
 											break;
 
-										}else
+								//		}else if(make.action == ClientTransaction::folder)
+										}/*else if(	show.action == ClientTransaction::folder ||
+													(	show.action == folder_external &&
+														(	dir.vector != ClientTransaction::folder ||
+															!subroutineSet(oIt->second.external, subroutines)	) &&
+														(	dir.vector != external ||
+															dir.found == dir.first		)							)	)
 										{
-											showContent= oIt;
-											if(subroutineSet(oIt->second.external, subroutines))
-											{
-												vector<string>::iterator found;
-												dbSubroutineInfoType::reverse_iterator it;
-
-												make.action= external;
-												for(it= oIt->second.external.rbegin();
-																it != oIt->second.external.rend(); ++it						)
-												{
-													found= find(subroutines.begin(), subroutines.end(),
-																	it->second->subroutine);
-													if(found != subroutines.end())
-													{
-														++it;
-														showSubroutine= it.base();
-														break;
-													}
-												}
-											}else if(!oIt->second.inform.empty())
-											{
-												dbSubroutineInfoType::reverse_iterator it;
-
-												it= oIt->second.inform.rbegin();
-												++it;
-												showSubroutine= it.base();
-												make.action= inform;
-											}else
-											{
-												--nFolderOutput;
-												showContent= previousContent;
-												make.action= IClientTransactionPattern::folder;
-											}
-										}
+											//--nFolderOutput;
+											showContent= previousContent;
+										}*/
 									}
 								}
 
@@ -4143,6 +4395,17 @@ namespace server
 								break;
 						}
 						previousContent= oIt;
+						if(!oIt->second.inform.empty())
+						{
+							nLastInformFolder= nFolderOutput;
+							lastInformContent= oIt;
+						}
+						if(	!oIt->second.external.empty() &&
+							subroutineSet(oIt->second.external, subroutines)	)
+						{
+							nLastExternalFolder= nFolderOutput;
+							lastExternalContent= oIt;
+						}
 						++oIt;
 						if(	( 	make.direction == previous &&
 								(	make.action == changed ||
@@ -4289,7 +4552,9 @@ namespace server
 			 * try to display first
 			 * from inform vector
 			 */
-			if(	make.action == inform &&
+			if(	make.action <= inform &&
+				(	show.action == none ||
+					show.action == inform	) &&
 				showContent != currFolderIt->second.end() &&
 				!showContent->second.inform.empty()			)
 			{
@@ -4332,7 +4597,11 @@ namespace server
 			 * from external vector
 			 */
 			if(	!bDisplayedContent &&
-				make.action <= external &&
+				(	make.action <= external ||
+					make.action == folder_external	) &&
+				(	show.action == none ||
+					show.action == external ||
+					show.action == folder_external	) &&
 				showContent != currFolderIt->second.end() &&
 				!showContent->second.external.empty()		)
 			{
@@ -4386,9 +4655,13 @@ namespace server
 			 * subroutines between start and end
 			 */
 			if(	!bDisplayedContent &&
-				make.action <= IClientTransactionPattern::folder &&
+				(	make.action <= IClientTransactionPattern::folder ||
+					make.action == folder_external						) &&
+					(	show.action == none ||
+						show.action == ClientTransaction::folder ||
+						show.action == folder_external				) &&
 				showContent != currFolderIt->second.end() &&
-				!showContent->second.folder.empty()					)
+				!showContent->second.folder.empty()							)
 			{
 				content << "start " << nFolderOutput << ". folder of ";
 				content << existFolderObjs << endl;
@@ -4483,6 +4756,169 @@ namespace server
 		}while(!bDisplayedContent);
 		UNLOCK(m_DEBUGSESSIONCHANGES);
 		return pRv;
+	}
+
+	ClientTransaction::dbSubroutineInfoType::iterator
+		ClientTransaction::getNextSubroutine(	direction_t& show,
+												size_t& nCurFolder,
+												folderSessionIterator& curContent,
+												const folderSessionIterator& endContent,
+												const found_subroutine_t& foundSubroutine,
+												const dbSubroutineInfoType::iterator endSubroutine,
+												const vector<string>& subroutines					)
+	{
+		bool bFound;
+		dbSubroutineInfoType::iterator iRv= endSubroutine;
+
+		if(show.action == none)
+		{
+			if(foundSubroutine.vector == ClientTransaction::folder)
+			{
+				++nCurFolder;
+				++curContent;
+				show.action= inform;
+				show.direction= first;
+				return iRv;
+			}
+			show.action= foundSubroutine.vector;
+			iRv= foundSubroutine.found;
+			++iRv;
+			if(iRv != foundSubroutine.last)
+				return iRv;
+			/*
+			 * make next action
+			 */
+			if(	show.action == inform &&
+				subroutineSet(curContent->second.external, subroutines)	)
+			{
+				show.action= external;
+				iRv= curContent->second.external.begin();
+				return iRv;
+			}
+			/*
+			 * show.action should be external
+			 * where next is ClientTransaction::folder
+			 * or ahow.action is inform
+			 * and external vector has no subroutines
+			 * to display
+			 */
+			show.action= ClientTransaction::folder;
+			iRv= endSubroutine;
+			return iRv;
+		}// if(show.action == none)
+		bFound= false;
+		if(	(	foundSubroutine.vector == show.action ||
+				(	show.action == folder_external &&
+					(	foundSubroutine.vector == external ||
+						foundSubroutine.vector == ClientTransaction::folder	)	)	) &&
+			foundSubroutine.found != foundSubroutine.last								)
+		{
+			if(foundSubroutine.vector != ClientTransaction::folder)
+			{
+				iRv= foundSubroutine.found;
+				++iRv;
+				if(iRv != foundSubroutine.last)
+					bFound= true;
+			}
+			if(	bFound == false &&
+				(	foundSubroutine.vector == ClientTransaction::folder ||
+					(	foundSubroutine.vector == external &&
+						show.action == folder_external			)			)	)
+			{
+				if(foundSubroutine.vector != external)
+				{
+					++nCurFolder;
+					++curContent;
+				}
+				if(show.action == folder_external)
+				{
+					show.action= external;
+					if(foundSubroutine.vector == ClientTransaction::folder)
+						show.direction= first;
+				}else
+					show.action= ClientTransaction::folder;
+				bFound= true;
+			}
+		}
+		if(!bFound)
+		{
+			bool bFirst(true);
+
+			do{
+				bFound= false;
+				if(curContent != endContent)
+				{
+					switch(show.action)
+					{
+					case inform:
+						if(!curContent->second.inform.empty())
+							bFound= true;
+						break;
+					case external:
+						if(subroutineSet(curContent->second.external, subroutines))
+							bFound= true;
+						break;
+					case ClientTransaction::folder:
+						bFound= true;
+						break;
+					case folder_external:
+						show.action= external;
+						if(subroutineSet(curContent->second.external, subroutines))
+							bFound= true;
+						else if(!curContent->second.folder.empty())
+							bFound= true;
+						break;
+					default:
+						bFound= false;
+						break;
+					}
+					if(bFirst)
+					{
+						if(	foundSubroutine.vector >= show.action ||
+							(	show.action == folder_external &&
+								foundSubroutine.vector == ClientTransaction::folder	)	)
+						{
+							bFound= false;
+						}
+						bFirst= false;
+					}
+					if(!bFound)
+					{
+						++nCurFolder;
+						++curContent;
+					}
+				}
+
+			}while(	curContent != endContent &&
+					bFound == false				);
+			if(curContent != endContent)
+			{
+				switch(show.action)
+				{
+				case inform:
+					iRv= curContent->second.inform.begin();
+					break;
+				case external:
+					for(dbSubroutineInfoType::iterator it= curContent->second.external.begin();
+									it != curContent->second.external.end(); ++it				)
+					{
+						if(subroutineSet(it->second->subroutine, subroutines))
+						{
+							iRv= it;
+							break;
+						}
+					}
+					break;
+				case ClientTransaction::folder:
+					iRv= endSubroutine;
+					break;
+				default:
+					iRv= endSubroutine;
+					break;
+				}
+			}
+		}
+		return iRv;
 	}
 
 	bool ClientTransaction::existOnServer(IFileDescriptorPattern& descriptor,

@@ -31,9 +31,11 @@
 #include "../server/libs/SocketErrorHandling.h"
 
 #include "Client.h"
+#include "lib/ClientTransaction.h"
 
 using namespace std;
 using namespace util;
+using namespace server;
 
 void usage(void);
 void help(char* cpSelf);
@@ -142,7 +144,6 @@ int main(int argc, char* argv[])
 			param == "CONTENT" ||
 			param == "DIR" ||
 			param == "SHOW" ||
-			param == "DEBUG" ||
 			param == "STOPDEBUG" ||
 			param == "GETMINMAXERRORNUMS" ||
 			param == "GETERRORSTRING" ||
@@ -207,83 +208,91 @@ int main(int argc, char* argv[])
 
 void usage()
 {
-	printf("no correct command be set\n");
-	printf("type -? for help\n");
+	std::cout << "no correct command be set\n";
+	std::cout << "type -? for help\n";
 }
 
 void help(char* cpSelf)
 {
-	printf("\n");
-	printf("syntax:  %s [options] [command]\n", cpSelf);
-	printf("\n");
-	printf("       options:\n");
-	printf("            -?  --help         - show this help.\n");
-	printf("            -u  --user         - set user for client,\n");
-	printf("                                 if no user be set, client ask for user when command isn't start/stop/restart\n");
-	printf("                                 password will be always asked and cannot insert in command\n");
-	printf("            -e  --errornums    - show only error numbers by get an error or warning from server,\n");
-	printf("                                 otherwise the client display an error or warning description\n");
-	printf("            -w  --wait         - hold transaction to server, where the user can write more than one command like an command line\n");
-	printf("                                 after them user only must type commands\n");
-	printf("                                 ending with 'quit' or 'exit'\n");
-	printf("            -h  --hear         - same as before (--wait) but also client starts\n");
-	printf("                                 an second connection to server,\n");
-	printf("                                 where the client get changes which are set before\n");
-	printf("                                 with the command 'HEAR'\n");
-//	printf("            -t  --thread       - display by status info all threads with running information,\n");
-//	printf("                                 otherwise the command status tell only how much threads on an process running\n");
-//	printf("            -c  --client       - like --thread but also display all communication-threads with which client-ID they are connected,\n");
-//	printf("                                 or it displays for no client\n");
-//	printf("            -p  --pid          - display by status info all process id's separated in own rows\n");
-	printf("\n");
-	printf("       command:\n");
-	printf("                STOP     -     stopping server\n");
-//	printf("                STATUS   -     show how much threads for process are running.\n");
-//	printf("                               see also for options -t or -c\n");
-	printf("                CHANGE [username]\n");
-	printf("                         -     changing user, user name and password\n");
-	printf("                               this command is only when ppi-server is started with option --wait or --hear\n");
-	printf("                               (better description will be inside the editor started with describt options)\n");
-	printf("                PERMISSION <groupnames>\n");
-	printf("                         -     ask permission for group.\n");
-	printf("                               also more than one groups can be ask, separated with an colon\n");
-	printf("                               RESULT:  write - user has permission to read and write\n");
-	printf("                                        read  - user has only permission to read\n");
-	printf("                                        noSubroutine  - given subroutine do not exist inside folder\n");
-	printf("                                        noFolder      - given Folder do not exist\n");
-	printf("                                        ERROR 003     - fault insert of folder:subroutine\n");
-	printf("                GET <folder>:<subroutine>\n");
-	printf("                         -     get the current value from the subroutines in the folder\n");
-	printf("                               folder and subroutine are separated with an colon\n");
-	printf("                SET <folder>:<subroutine> <value>\n");
-	printf("                         -     set the given value from given subroutine in given folder\n");
-	printf("                HEAR <folder>:<subroutine>\n");
-	printf("                         -     if the client has set an second connection with option --hear,\n");
-	printf("                               client can order with this command to hear on the given folder:subroutine's\n");
-	printf("                               for changes\n");
-	printf("                NEWENTRYS\n");
-	printf("                         -     clearing all entry's which are set with the command HEAR\n");
-	printf("                               this command is only when ppi-server is started with option --hear\n");
-	printf("                DIR <filter>\n");
-	printf("                         -     shows all files in directory ${workdir}/client which are suitable to given filter\n");
-	printf("                CONTENT <filename>\n");
-	printf("                         -     send the file content of the given filename under ${workdir}/client\n");
-	printf("                SHOW [-c] <seconds>\n");
-	printf("                         -     show on command line which folder threads how often running\n");
-	printf("                               measure the count inside given seconds\n");
-	printf("                               when option -c be set, wait until given SET command from any client\n");
-	printf("                DEBUG [-i|-ow] <folder[:subroutine]/owreaderID>\n");
-	printf("                         -     show by running server debugging messages for given folder and subroutine\n");
-	printf("                               when no subroutine given, the hole folder is set for debugging\n");
-	printf("                               by add option -i, when for folder defined an inform parameter\n");
-	printf("                               show this calculation also by debug output.\n");
-	printf("                               if option -ow be set client get DEBUG info for benchmark owreader\n");
-	printf("                               and folder have to be the OWServer ID (owreaderID).\n");
-	printf("                               (the OWServer ID you can see by starting ppi-server on command line after '### starting OWServer)\n");
-	printf("                STOPDEBUG [-ow] <folder[:subroutine]/owreaderID>\n");
-	printf("                         -     same as option DEBUG\n");
-	printf("                               but option stopping given debugging from hole folder (<folder) or given subroutine (<folder>:<subroutine>)\n");
-	printf("                GETERRORSTRING <errornumber>\n");
-	printf("                         -     return for positive errornuber or negative warning number as an string definition\n");
-	printf("\n");
+	std::cout << "" << endl;
+	std::cout << "syntax:  " << *cpSelf << " [options] [command]\n";
+	std::cout << endl;
+	std::cout << "       options:" << endl;
+	std::cout << "            -?  --help         - show this help." << endl;
+	std::cout << "            -u  --user         - set user for client," << endl;
+	std::cout << "                                 if no user be set, client ask for user when command isn't start/stop/restart" << endl;
+	std::cout << "                                 password will be always asked and cannot insert in command" << endl;
+	std::cout << "            -e  --errornums    - show only error numbers by get an error or warning from server," << endl;
+	std::cout << "                                 otherwise the client display an error or warning description" << endl;
+	std::cout << "            -w  --wait         - hold transaction to server, where the user can write more than one command like an command line" << endl;
+	std::cout << "                                 after them user only must type commands" << endl;
+	std::cout << "                                 ending with 'quit' or 'exit'" << endl;
+	std::cout << "            -h  --hear         - same as before (--wait) but also client starts" << endl;
+	std::cout << "                                 an second connection to server," << endl;
+	std::cout << "                                 where the client get changes which are set before" << endl;
+	std::cout << "                                 with the command 'HEAR'" << endl;
+//	std::cout << "            -t  --thread       - display by status info all threads with running information," << endl;
+//	std::cout << "                                 otherwise the command status tell only how much threads on an process running" << endl;
+//	std::cout << "            -c  --client       - like --thread but also display all communication-threads with which client-ID they are connected," << endl;
+//	std::cout << "                                 or it displays for no client" << endl;
+//	std::cout << "            -p  --pid          - display by status info all process id's separated in own rows" << endl;
+	std::cout << endl;
+	std::cout << "       command:" << endl;
+	std::cout << "                STOP     -     stopping server" << endl;
+//	std::cout << "                STATUS   -     show how much threads for process are running." << endl;
+//	std::cout << "                               see also for options -t or -c" << endl;
+	std::cout << "                CHANGE [username]" << endl;
+	std::cout << "                         -     changing user, user name and password" << endl;
+	std::cout << "                               this command is only when ppi-server is started with option --wait or --hear" << endl;
+	std::cout << "                               (better description will be inside the editor started with describt options)" << endl;
+	std::cout << "                PERMISSION <groupnames>" << endl;
+	std::cout << "                         -     ask permission for group." << endl;
+	std::cout << "                               also more than one groups can be ask, separated with an colon" << endl;
+	std::cout << "                               RESULT:  write - user has permission to read and write" << endl;
+	std::cout << "                                        read  - user has only permission to read" << endl;
+	std::cout << "                                        noSubroutine  - given subroutine do not exist inside folder" << endl;
+	std::cout << "                                        noFolder      - given Folder do not exist" << endl;
+	std::cout << "                                        ERROR 003     - fault insert of folder:subroutine" << endl;
+	std::cout << "                GET <folder>:<subroutine>" << endl;
+	std::cout << "                         -     get the current value from the subroutines in the folder" << endl;
+	std::cout << "                               folder and subroutine are separated with an colon" << endl;
+	std::cout << "                SET <folder>:<subroutine> <value>" << endl;
+	std::cout << "                         -     set the given value from given subroutine in given folder" << endl;
+	std::cout << "                HEAR <folder>:<subroutine>" << endl;
+	std::cout << "                         -     if the client has set an second connection with option --hear," << endl;
+	std::cout << "                               client can order with this command to hear on the given folder:subroutine's" << endl;
+	std::cout << "                               for changes" << endl;
+	std::cout << "                NEWENTRYS" << endl;
+	std::cout << "                         -     clearing all entry's which are set with the command HEAR" << endl;
+	std::cout << "                               this command is only when ppi-server is started with option --hear" << endl;
+	std::cout << "                DIR <filter>" << endl;
+	std::cout << "                         -     shows all files in directory ${workdir}/client which are suitable to given filter" << endl;
+	std::cout << "                CONTENT <filename>" << endl;
+	std::cout << "                         -     send the file content of the given filename under ${workdir}/client" << endl;
+	std::cout << "                SHOW [-c] <seconds>" << endl;
+	std::cout << "                         -     show on command line which folder threads how often running" << endl;
+	std::cout << "                               measure the count inside given seconds" << endl;
+	std::cout << "                               when option -c be set, wait until given SET command from any client" << endl;
+	std::cout << "                DEBUG [-i|-ow] <folder[:subroutine]/owreaderID>" << endl;
+	std::cout << "                         -     show by running server debugging messages for given folder and subroutine" << endl;
+	std::cout << "                               when no subroutine given, the hole folder is set for debugging" << endl;
+	std::cout << "                               by add option -i, when for folder defined an inform parameter" << endl;
+	std::cout << "                               show this calculation also by debug output." << endl;
+	std::cout << "                               if option -ow be set client get DEBUG info for benchmark owreader" << endl;
+	std::cout << "                               and folder have to be the OWServer ID (owreaderID)." << endl;
+	std::cout << "                               (the OWServer ID you can see by starting ppi-server on command line after '### starting OWServer)" << endl;
+	std::cout << "                STOPDEBUG [-ow] <folder[:subroutine]/owreaderID>" << endl;
+	std::cout << "                         -     same as option DEBUG" << endl;
+	std::cout << "                               but option stopping given debugging from hole folder (<folder) or given subroutine (<folder>:<subroutine>)" << endl;
+	std::cout << "                GETERRORSTRING <errornumber>" << endl;
+	std::cout << "                         -     return for positive errornuber or negative warning number as an string definition" << endl;
+	std::cout << "                load     -     load before saved file with extension .dbgsession" << endl;
+	std::cout << "                               see command below inside editor use" << endl;
+	std::cout << endl;
+	std::cout << "        __________________________________________________________________________________________________________________________________" << endl;
+	std::cout << "        follow commands are only usable" << endl;
+	std::cout << "        inside editor, stared with option --hear:" << endl;
+	std::cout << endl;
+	ClientTransaction::writeHelpUsage("?debug", /*editor*/true);
+	std::cout << endl;
 }

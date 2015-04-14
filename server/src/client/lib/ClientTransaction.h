@@ -151,6 +151,13 @@ namespace server
 			 */
 			OVERWRITE void writeHistory();
 			/**
+			 * writing help usage
+			 *
+			 * @param sfor which helping should write (?, ?value or ?debug)
+			 * @param editor whether application was started with option --hear
+			 */
+			static void writeHelpUsage(const string& sfor, bool editor);
+			/**
 			 * set whether user transaction running
 			 *
 			 * @param run whether running
@@ -716,11 +723,27 @@ namespace server
 													folderSessionIterator folderObj,
 													vector<string>& subroutines		);
 			/**
-			 * writing help usage
+			 * go to next subroutine which should be displayed
 			 *
-			 * @param sfor which helping should write (?, ?value or ?debug)
+			 * @param show which type of subroutine should be shown as next.
+			 * @param nCurFolder current folder count of polling
+			 * @param curContent current folder of polling,
+			 *                   which contain inform-, external- and folder-subroutines.
+			 *                   Changing to content which should be shown
+			 * @param endContent end of polling folder iterator
+			 * @param foundSubroutine current founded subroutine inside curContent
+			 * @param endSubroutine last subroutine defined for non exist
+			 * @param subroutines all subroutines which should be able to display
+			 * @return subroutine which should be shown
 			 */
-			void writeHelpUsage(const string& sfor);
+			dbSubroutineInfoType::iterator
+					getNextSubroutine(	direction_t& show,
+										size_t& nCurFolder,
+										folderSessionIterator& curContent,
+										const folderSessionIterator& endContent,
+										const found_subroutine_t& foundSubroutine,
+										const dbSubroutineInfoType::iterator endSubroutine,
+										const vector<string>& subroutines					);
 			/**
 			 * whether folder:subroutine
 			 * exist inside ppi-server working list
