@@ -50,10 +50,17 @@ namespace util
 		ErrorHandling(const string& ownClassName, IErrorHandlingPattern* other)
 		: BaseErrorHandling("ErrorHandling", other)
 		{};
+
+	protected:
+		/**
+		 * create new own object to read error/warning messages
+		 */
+		virtual IErrorHandlingPattern* createObj()
+		{ return new ErrorHandling(); };
 		/**
 		 * define all internal error descriptions
 		 */
-		OVERWRITE void read();
+		OVERWRITE void createMessages();
 	};
 
 } /* namespace util */

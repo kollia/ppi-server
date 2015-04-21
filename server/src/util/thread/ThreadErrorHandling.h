@@ -53,10 +53,6 @@ namespace util
 			: BaseErrorHandling("TreadErrorHandling", other)
 			{};
 			/**
-			 * define all internal error descriptions
-			 */
-			OVERWRITE void read();
-			/**
 			 * returning error description
 			 * form current object
 			 *
@@ -92,6 +88,17 @@ namespace util
 			 */
 			OVERWRITE bool setPThreadWarning(const string& classname, const string& method,
 							const string& warn_string, int error_nr, const string& decl= "");
+
+		protected:
+			/**
+			 * create new own object to read error/warning messages
+			 */
+			virtual IErrorHandlingPattern* createObj()
+			{ return new ThreadErrorHandling(); };
+			/**
+			 * define all internal error descriptions
+			 */
+			OVERWRITE void createMessages();
 		};
 
 	} /* namespace thread */

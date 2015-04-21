@@ -30,6 +30,8 @@
 
 #include "BaseErrorHandling.h"
 
+#include "../exception.h"
+
 namespace util
 {
 	using namespace boost;
@@ -40,7 +42,9 @@ namespace util
 	 * to holding all different
 	 * existing error handling objects
 	 */
-	map<string, IErrorHandlingPattern*> BaseErrorHandling::m_msoHanlingObjects= map<string, IErrorHandlingPattern*>();
+	map<string, SHAREDPTR::shared_ptr<IErrorHandlingPattern> >
+					BaseErrorHandling::m_msoHanlingObjects=
+					map<string, SHAREDPTR::shared_ptr<IErrorHandlingPattern> >();
 	/**
 	 * initializing of global static
 	 * map for BaseErrorHandling
@@ -50,6 +54,7 @@ namespace util
 	map<string, vector<string> > BaseErrorHandling::m_msvGroups= map<string, vector<string> >();
 
 	pthread_mutex_t* BaseErrorHandling::m_OBJECTSMUTEX= Thread::getMutex("OBJECTSMUTEX");
+	pthread_mutex_t* BaseErrorHandling::m_GROUPSMUTEX= Thread::getMutex("GROUPSMUTEX");
 	pthread_mutex_t* BaseErrorHandling::m_ERRNOMUTEX= Thread::getMutex("ERRNOMUTEX");
 
 	BaseErrorHandling::BaseErrorHandling(const string& ownClassName, const string& error/*= ""*/)
@@ -61,7 +66,26 @@ namespace util
 			setErrorStr(error);
 		else
 			clear();
-		add(this);
+	}
+
+	void BaseErrorHandling::read()
+	{
+		LOCK(m_OBJECTSMUTEX);
+		if(m_msoHanlingObjects.find(m_sOwnClassName) == m_msoHanlingObjects.end())
+		{
+			IErrorHandlingPattern* obj;
+			BaseErrorHandling* myObj;
+			SHAREDPTR::shared_ptr<IErrorHandlingPattern> smart;
+
+			obj= createObj();
+			myObj= dynamic_cast<BaseErrorHandling*>(obj);
+			myObj->createMessages();
+			smart= SHAREDPTR::shared_ptr<IErrorHandlingPattern>(obj);
+			m_msoHanlingObjects.insert
+				(pair<string, SHAREDPTR::shared_ptr<IErrorHandlingPattern> >
+														(m_sOwnClassName, smart));
+		}
+		UNLOCK(m_OBJECTSMUTEX);
 	}
 
 	BaseErrorHandling::BaseErrorHandling(const string& ownClassName, IErrorHandlingPattern* other)
@@ -114,22 +138,6 @@ namespace util
 	void BaseErrorHandling::set(const IErrorHandlingPattern* other)
 	{
 		setErrorStr(other->getErrorStr());
-	}
-
-	bool BaseErrorHandling::add(IErrorHandlingPattern* other)
-	{
-		bool bRv(false);
-		string otherClassName;
-
-		otherClassName= other->getErrorClassName();
-		LOCK(m_OBJECTSMUTEX);
-		if(m_msoHanlingObjects.find(otherClassName) == m_msoHanlingObjects.end())
-		{
-			m_msoHanlingObjects.insert(pair<string, IErrorHandlingPattern*>(otherClassName, other));
-			bRv= true;
-		}
-		UNLOCK(m_OBJECTSMUTEX);
-		return bRv;
 	}
 
 	void BaseErrorHandling::clear()
@@ -237,7 +245,7 @@ namespace util
 	{
 		map<string, vector<string> >::iterator found;
 
-		LOCK(m_OBJECTSMUTEX);
+		LOCK(m_GROUPSMUTEX);
 		found= m_msvGroups.find(groupname);
 		if(found != m_msvGroups.end())
 		{
@@ -253,7 +261,7 @@ namespace util
 			}
 		}else
 			m_msvGroups.insert(pair<string, vector<string> >(groupname, classnames));
-		UNLOCK(m_OBJECTSMUTEX);
+		UNLOCK(m_GROUPSMUTEX);
 	}
 
 	bool BaseErrorHandling::hasGroupError(const string& groupname) const
@@ -261,11 +269,11 @@ namespace util
 		map<string, vector<string> >::iterator found;
 		vector<string> classes;
 
-		LOCK(m_OBJECTSMUTEX);
+		LOCK(m_GROUPSMUTEX);
 		found= m_msvGroups.find(groupname);
 		if(found != m_msvGroups.end())
 			classes= found->second;
-		UNLOCK(m_OBJECTSMUTEX);
+		UNLOCK(m_GROUPSMUTEX);
 
 		for(vector<string>::iterator it= classes.begin();
 						it != classes.end(); ++it	)
@@ -281,11 +289,11 @@ namespace util
 		map<string, vector<string> >::iterator found;
 		vector<string> classes;
 
-		LOCK(m_OBJECTSMUTEX);
+		LOCK(m_GROUPSMUTEX);
 		found= m_msvGroups.find(groupname);
 		if(found != m_msvGroups.end())
 			classes= found->second;
-		UNLOCK(m_OBJECTSMUTEX);
+		UNLOCK(m_GROUPSMUTEX);
 
 		for(vector<string>::iterator it= classes.begin();
 						it != classes.end(); ++it	)
@@ -591,7 +599,7 @@ namespace util
 
 	string BaseErrorHandling::getGroupErrorDescription() const
 	{
-		typedef map<string, IErrorHandlingPattern*> objects_typ;
+		typedef map<string, SHAREDPTR::shared_ptr<IErrorHandlingPattern> > objects_typ;
 		string sRv;
 		errorVals_t error;
 
@@ -622,9 +630,22 @@ namespace util
 					for(objects_typ::iterator it= m_msoHanlingObjects.begin();
 									it != m_msoHanlingObjects.end(); ++it	)
 					{
+						try{
 						add= it->second->getErrorDescriptionString(error);
 						if(add != "")
 							break;
+						}catch(SignalException& ex)
+						{
+							string msg;
+
+							msg= "Handling object " + it->first;
+							msg+= " where object is ";
+							if(it->second != NULL)
+								msg+= "not ";
+							msg+= "NULL";
+							ex.addMessage(msg);
+							throw ex;
+						}
 					}
 					UNLOCK(m_OBJECTSMUTEX);
 					if(add == "")
@@ -739,7 +760,7 @@ namespace util
 
 	string BaseErrorHandling::getDescription() const
 	{
-		typedef map<string, IErrorHandlingPattern*> objects_typ;
+		typedef map<string, SHAREDPTR::shared_ptr<IErrorHandlingPattern> > objects_typ;
 		string sRv, sGroups;
 
 		if(m_tError.type == NO)

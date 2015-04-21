@@ -27,6 +27,8 @@
 
 #include "../../pattern/util/IErrorHandlingPattern.h"
 
+#include "../smart_ptr.h"
+
 #include "../thread/Thread.h"
 
 namespace util
@@ -53,7 +55,6 @@ namespace util
 		 * @param other other object of error handling class
 		 */
 		BaseErrorHandling(const string& ownClassName, IErrorHandlingPattern* other);
-
 		/**
 		 * set content of other object
 		 * from error handling pattern
@@ -62,6 +63,10 @@ namespace util
 		 * @param other base error handling object
 		 */
 		void set(const IErrorHandlingPattern* other);
+		/**
+		 * read all error warning descriptions
+		 */
+		void read();
 		/**
 		 * operator to initialize with object
 		 * from error handling pattern
@@ -121,14 +126,6 @@ namespace util
 		 * back to no error
 		 */
 		OVERWRITE void clear();
-		/**
-		 * add other error handling object
-		 * to own only when not implemented before
-		 *
-		 * @param other other object of error handling class
-		 * @return whether object was add to own
-		 */
-		virtual bool add(IErrorHandlingPattern* other);
 		/**
 		 * write normal error into class
 		 *
@@ -316,10 +313,6 @@ namespace util
 		 */
 		static string getErrnoString(int errnoNr);
 		/**
-		 * define all internal error descriptions
-		 */
-		virtual void read()= 0;
-		/**
 		 * select from m_mmmsDescriptions map
 		 * defined original description string
 		 * with Declarations occurs from error
@@ -348,6 +341,14 @@ namespace util
 		 */
 		vector<base_errors_t> m_tGroups;
 
+		/**
+		 * create new own object to read error/warning messages
+		 */
+		virtual IErrorHandlingPattern* createObj()= 0;
+		/**
+		 * define all internal error descriptions
+		 */
+		virtual void createMessages()= 0;
 		/**
 		 * set string of error description
 		 * into current error object
@@ -416,16 +417,20 @@ namespace util
 		/**
 		 * all other error handling classes
 		 */
-		static map<string, IErrorHandlingPattern*> m_msoHanlingObjects;
+		static map<string, SHAREDPTR::shared_ptr<IErrorHandlingPattern> > m_msoHanlingObjects;
 		/**
 		 * all group definitions for classes
 		 */
 		static map<string, vector<string> > m_msvGroups;
 
 		/**
-		 * mutex to lock over static members
+		 * mutex to lock over static object members
 		 */
 		static pthread_mutex_t* m_OBJECTSMUTEX;
+		/**
+		 * mutex to lock over static group member
+		 */
+		static pthread_mutex_t* m_GROUPSMUTEX;
 		/**
 		 * mutex to own lock by method strerror()
 		 * for errno

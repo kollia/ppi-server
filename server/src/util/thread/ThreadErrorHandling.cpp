@@ -22,7 +22,7 @@ namespace util
 {
 	namespace thread
 	{
-		void ThreadErrorHandling::read()
+		void ThreadErrorHandling::createMessages()
 		{
 			setDescription("en", "Thread", "start",
 							"thread running currently");

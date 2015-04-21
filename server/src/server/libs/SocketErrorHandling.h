@@ -59,10 +59,6 @@ public:
 	 */
 	OVERWRITE string getErrorDescriptionString(errorVals_t error) const;
 	/**
-	 * define all internal error descriptions
-	 */
-	OVERWRITE void read();
-	/**
 	 * search inside an result array of strings
 	 * for first error or warning
 	 * and set into object
@@ -86,6 +82,16 @@ public:
 	OVERWRITE bool setAddrError(const string& classname, const string& error_string,
 					int error_nr, int errno_nr, const string& decl= "");
 
+protected:
+	/**
+	 * create new own object to read error/warning messages
+	 */
+	virtual IErrorHandlingPattern* createObj()
+	{ return new SocketErrorHandling(); };
+	/**
+	 * define all internal error descriptions
+	 */
+	OVERWRITE void createMessages();
 };
 
 #endif /* SOCKETERRORHANDLING_H_ */

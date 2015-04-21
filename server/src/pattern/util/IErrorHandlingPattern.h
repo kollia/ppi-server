@@ -185,14 +185,6 @@ namespace design_pattern_world
 			 */
 			virtual void clear()= 0;
 			/**
-			 * add other error handling object
-			 * to own only when not implemented before
-			 *
-			 * @param other other object of error handling class
-			 * @return whether object was add to own
-			 */
-			virtual bool add(IErrorHandlingPattern* other)= 0;
-			/**
 			 * define group name for more classes.<br />
 			 * this will be helpful when error asking question of <code>hasError()</code>
 			 * should made over more classes, and maybe in the feature

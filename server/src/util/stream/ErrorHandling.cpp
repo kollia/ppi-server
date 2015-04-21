@@ -20,7 +20,7 @@
 
 namespace util
 {
-	void ErrorHandling::read()
+	void ErrorHandling::createMessages()
 	{
 		setDescription("en", "ClientTransaction", "client_send",
 						"by trying to send command to @1:@2");

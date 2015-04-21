@@ -22,7 +22,7 @@
 
 #include "SocketErrorHandling.h"
 
-void SocketErrorHandling::read()
+void SocketErrorHandling::createMessages()
 {
 	vector<string> classes;
 
@@ -105,12 +105,20 @@ void SocketErrorHandling::read()
 	setDescription("en", "ProcessStarter", "execv",
 					"by trying to process executable '@1'");
 
+	setDescription("en", "ServerMethodTransaction", "noTransfer",
+					"transfer method from class ServerMethodTransaction have to be overloaded");
 	setDescription("en", "ServerMethodTransaction", "stream_end",
 					"inside @1 connection ID:@2 from @3 to @4 reaching end of stream after '@5'");
 	setDescription("en", "ServerMethodTransaction", "descriptor_warning",
 					"inside @1 connection ID:@2 from @3 to @4 has warning");
 	setDescription("en", "ServerMethodTransaction", "descriptor_error",
 					"inside @1 connection ID:@2 from @3 to @4 has broken error");
+	setDescription("en", "ServerMethodTransaction", "noAccess",
+					"client has no access to server '@1'");
+	setDescription("en", "ServerMethodTransaction", "loosAccess",
+					"client '@1' from process '@2' lost connection to server '@2' before");
+	setDescription("en", "ServerMethodTransaction", "unknownCommand",
+					"@1 get unknown command '@2' from client @3");
 
 	setDescription("en", "ServerThread", "accept",
 					"Server @1 try to accept communication to @2:@3");
@@ -139,6 +147,11 @@ void SocketErrorHandling::read()
 	setDescription("en", "ServerDbTransaction", "getStatusInfo_owreader",
 					"by trying to get status info from port server @1\n"
 					"get unknown answer '@2'");
+
+	setDescription("en", "FileDescriptor", "nullString",
+					"reading from connection @1:@2 over '@3' get an null string");
+	setDescription("en", "FileDescriptor", "noConnect",
+					"connection @1:@2 over '@3' was closed or is refused");
 }
 
 bool SocketErrorHandling::setAddrError(const string& classname, const string& error_string,
