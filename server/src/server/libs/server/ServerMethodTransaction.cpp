@@ -34,6 +34,7 @@
 #include "../../../pattern/server/IClientHolderPattern.h"
 #include "../../../pattern/server/IServerPattern.h"
 
+#include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/debugtransaction.h"
 #include "../../../util/structures.h"
 
@@ -120,6 +121,9 @@ namespace server
 			ID= descriptor.getClientID();
 			client= descriptor.getString("client");
 			process= descriptor.getString("process");
+			//cout << ">>> client " << descriptor.getString("client");
+			//cout << " from process " << descriptor.getString("process");
+			//cout << " loose access to server " << descriptor.getServerObject()->getName() << endl;
 			decl << descriptor.getServerObject()->getName() << "@" << ID;
 			decl << "@" << client << "@" << process;
 			if(!descriptor.fail())
@@ -234,14 +238,31 @@ namespace server
 			}
 			if(access == false)
 			{
-				descriptor << "ERROR 002\n";
-				descriptor.flush();
+				string client, process, server;
+				SocketErrorHandling handle;
+
+				client= descriptor.getString("client");
+				process= descriptor.getString("process");
+				server= descriptor.getServerObject()->getName();
+				if(client != "")
+				{
+					ostringstream decl;
+
+					decl << client << "@" << process << "@" << server;
+					handle.setError("ServerMethodTransaction", "loosAccess", decl.str());
+				}else
+					handle.setError("ServerMethodTransaction", "noAccess", server);
+				descriptor << handle.getErrorStr();
+				descriptor.endl();
 				descriptor.setBoolean("asker", true);
 				descriptor.setBoolean("access", false);
-				descriptor.setBoolean("own", false);
-				descriptor.setString("client", "");
+				//descriptor.setBoolean("own", false);
+				//descriptor.setString("client", "");
 				return false;
 			}
+			//cout << ">>> client " << descriptor.getString("client");
+			//cout << " from process " << descriptor.getString("process");
+			//cout << " get access to server " << descriptor.getServerObject()->getName() << endl;
 			descriptor.setBoolean("access", true);
 			if(client == descriptor.getServerObject()->getName())
 				descriptor.setBoolean("own", true);
@@ -284,7 +305,7 @@ namespace server
 			descriptor.setBoolean("asker", true);
 			descriptor.setBoolean("access", false);
 			descriptor.setBoolean("own", false);
-			descriptor.setString("client", "");
+			//descriptor.setString("client", "");
 			descriptor << "done\n";
 			descriptor.flush();
 			return false;
@@ -332,7 +353,14 @@ namespace server
 				return false;
 			}else
 			{
-				descriptor << "ERROR 001\n";
+				ostringstream decl;
+
+				decl << descriptor.getServerObject()->getName();
+				decl << "@" << input;
+				decl << "@" << descriptor.getString("client");
+				m_pSockError->setWarning("ServerMethodTransaction", "unknownCommand", decl.str());
+				descriptor << m_pSockError->getErrorStr();
+				descriptor.endl();
 				used= true;
 			}
 			if(used)
@@ -703,7 +731,8 @@ namespace server
 	bool ServerMethodTransaction::transfer(IFileDescriptorPattern& descriptor, IMethodStringStream& method)
 	{
 		// dummy method to overwrite from any child class
-		descriptor << "ERROR 003";
+		m_pSockError->setError("ServerMethodTransaction", "noTransfer");
+		descriptor << m_pSockError->getErrorStr();
 		descriptor.endl();
 		descriptor.flush();
 		return true;
