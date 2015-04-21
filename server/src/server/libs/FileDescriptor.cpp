@@ -114,20 +114,38 @@ namespace server
 					buf[getLen]= '\0';
 					sread= buf;
 
-				}else if(getLen < 0)
+				}else
 				{
+					int nErrno(errno);
 					ostringstream decl;
 
 					decl << getHostAddressName() << "@";
 					decl << getPort() << "@";
 					decl << getTransactionName();
-					m_oSocketError.setAddrError("FileDescriptor", "read", 0,
-									errno, decl.str());
-					break;
-				}else
-				{// get null string
+					if(getLen < 0)
+					{
+						if(	nErrno != EAGAIN &&
+							nErrno != EWOULDBLOCK	)
+						{
+							m_oSocketError.setAddrError("FileDescriptor", "read", 0,
+											nErrno, decl.str());
+						}
+					}else
+					{// get null string, connection is broken
+						m_oSocketError.setError("FileDescriptor", "noConnect", decl.str());
+					}
 					sread= "";
-					m_bEOF= true;
+					if(	getLen == 0 ||
+						(	nErrno != EAGAIN &&
+							nErrno != EWOULDBLOCK	)	)
+					{
+						if(m_sLastRead[process] != "")
+						{
+							reader+= m_sLastRead[process];
+							m_sLastRead[process]= "";
+						}
+						break;
+					}
 				}
 			}
 			endPos= sread.find("\n");
@@ -188,9 +206,9 @@ namespace server
 
 	inline bool FileDescriptor::eof() const
 	{
-		if(m_oSocketError.hasError())
+		if(m_oSocketError.hasError("FileDescriptor", "noConnect"))
 			return true;
-		return m_bEOF;
+		return false;
 	}
 
 	void FileDescriptor::flush()
@@ -789,7 +807,10 @@ namespace server
 		string name;
 
 		LOCK(m_THREADSAVEMETHODS);
-		name= m_pTransfer->getTransactionName(*this);
+		if(m_pTransfer)
+			name= m_pTransfer->getTransactionName(*this);
+		else
+			name= "[no transfer set for descriptor]";
 		UNLOCK(m_THREADSAVEMETHODS);
 		return name;
 	}
@@ -810,7 +831,7 @@ namespace server
 		LOCK(m_THREADSAVEMETHODS);
 		if(m_bFileAccess)
 		{
-			//fclose(m_nFd);
+			::close(m_nFd);
 			m_bFileAccess= false;
 			AROUSEALL(m_SENDSTRINGCONDITION);
 			AROUSEALL(m_GETSTRINGCONDITION);

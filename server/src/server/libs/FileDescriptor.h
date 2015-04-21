@@ -50,8 +50,7 @@ namespace server
 			 * stadard constructor to forwarding
 			 */
 			FileDescriptor()
-			:	m_bEOF(false),
-			 	m_nTimeout(0),
+			:	m_nTimeout(0),
 			 	m_bAutoSending(true)
 			{ initial(NULL, NULL, 0, "", 0); };
 			/**
@@ -65,8 +64,7 @@ namespace server
 			 */
 			FileDescriptor(IServerPattern* server, ITransferPattern* transfer, int file, string address,
 					const unsigned short port, const unsigned int timeout)
-			:	m_bEOF(false),
-			 	m_nTimeout(timeout),
+			:	m_nTimeout(timeout),
 			 	m_bAutoSending(true)
 			{ initial(server, transfer, file, address, port); };
 			/**
@@ -469,10 +467,6 @@ namespace server
 			 * split for every process and client
 			 */
 			map<string, string> m_sLastRead;
-			/**
-			 * signal end of file.
-			 */
-			bool m_bEOF;
 			/**
 			 * holds error number
 			 */
