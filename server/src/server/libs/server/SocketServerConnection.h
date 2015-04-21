@@ -84,6 +84,10 @@ namespace server
 			 */
 			virtual void close();
 			/**
+			 * close only binded socket to server
+			 */
+			virtual void closeBind();
+			/**
 			 * destructor of SocketServerConnection
 			 */
 			virtual ~SocketServerConnection();
