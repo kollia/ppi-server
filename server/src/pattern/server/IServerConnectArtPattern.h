@@ -53,6 +53,10 @@ namespace design_pattern_world
 			 */
 			virtual EHObj accept()= 0;
 			/**
+			 * close only binded socket to server
+			 */
+			virtual void closeBind()= 0;
+			/**
 			 * destructor for pattern
 			 */
 			virtual ~IServerConnectArtPattern() {};

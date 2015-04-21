@@ -139,8 +139,13 @@ namespace server
 
 	void SocketServerConnection::close()
 	{
-		::close(m_kSocket.bindSocket);
+		closeBind();
 		SocketClientConnection::close();
+	}
+
+	void SocketServerConnection::closeBind()
+	{
+		::close(m_kSocket.bindSocket);
 	}
 
 	SocketServerConnection::~SocketServerConnection()
