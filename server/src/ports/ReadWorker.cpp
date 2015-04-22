@@ -127,8 +127,8 @@ namespace ports
 					if(m_bDebug)
 					{
 						out= "---------------------------------------------------------------------------\n";
-						out+= "---  external READER " + m_sFolder + ":" + m_sSubroutine + "\n";
-						out+= "---  was started from " + m_oExternalStarting.toString() + "\n";
+						out+= "---  " + m_sFolder + ":" + m_sSubroutine + " from type READ\n";
+						out+= "---  was started external from " + m_oExternalStarting.toString() + "\n";
 						fillDebug(out);
 					}
 					UNLOCK(m_STARTMUTEX);
