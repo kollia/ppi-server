@@ -83,45 +83,82 @@ int main(int argc, char* argv[])
 	try
 	{
 		vector<string> vOptions;
+		string::size_type len;
 
-		if(param.substr(0, 1) == "-")
+		len= param.length();
+		if(	len > 1 &&
+			param.substr(0, 1) == "-"	)
 		{
 			do{
-				if(param == "--help")
-					param= "-?";
-				else if(param == "--user")
-					param= "-u";
-				else if(param == "--errornums")
-					param= "-e";
-				else if(param == "--wait")
-					param= "-w";
-				else if(param == "--hear")
-					param= "-h";
-				else if(param == "--thread")
-					param= "-t";
-				else if(param == "--client")
-					param= "-c";
-				else if(param == "--pid")
-					param= "-p";
-				if(	param == "-w" ||
-					param == "-h"	)
+				len= param.length();
+				if(	len > 2 &&
+					param.substr(0, 2) == "--"	)
 				{
-					bWait= true;
-				}
-				if(	param == "-f" ||
-					param == "-u"	)
+					if(param == "--help")
+						param= "?";
+					else if(param == "--user")
+						param= "u";
+					else if(param == "--errornums")
+						param= "e";
+					else if(param == "--wait")
+						param= "w";
+					else if(param == "--hear")
+						param= "h";
+			/*		else if(param == "--thread")
+						param= "t";
+					else if(param == "--client")
+						param= "c";
+					else if(param == "--pid")
+						param= "p";*/
+					else
+					{
+						std::cout << "unknow option " << param << endl;
+						std::cout << "   type -? for help\n";
+						return EXIT_FAILURE;
+					}
+
+				}else
+					param= param.substr(1);
+				len= param.length();
+				for(string::size_type c= 0; c < len; c++)
 				{
-					param+= " ";
-					++nArcPos;
-					param+= argv[nArcPos];
+					string impl;
+
+					if(	param.substr(c, 1) == "w" ||
+						param.substr(c, 1) == "h"	)
+					{
+						bWait= true;
+						impl= "-" + param.substr(c, 1);
+
+					}else if(	param.substr(c, 1) == "f" ||
+								param.substr(c, 1) == "u"	)
+					{
+						impl= "-" + param.substr(c, 1) + " ";
+						++nArcPos;
+						impl+= argv[nArcPos];
+
+					}else if(param.substr(c, 1) == "?")
+					{
+						help(argv[0]);
+						return EXIT_SUCCESS;
+
+					}else if(param.substr(c, 1) == "e")
+					{
+						impl= "-" + param.substr(c, 1);
+					}else
+					{
+						std::cout << "unknow option -" << param.substr(c, 1) << endl;
+						std::cout << "   type -? for help\n";
+						return EXIT_FAILURE;
+					}
+					vOptions.push_back(impl);
 				}
-				vOptions.push_back(param);
 				++nArcPos;
 				if(nArcPos >= argc)
 					break;
 				param= argv[nArcPos];
-			}while(	nArcPos < argc
-					&&
+
+			}while(	nArcPos < argc &&
 					param.substr(0, 1) == "-"	);
 		}
 
@@ -147,6 +184,7 @@ int main(int argc, char* argv[])
 			param == "STOPDEBUG" ||
 			param == "GETMINMAXERRORNUMS" ||
 			param == "GETERRORSTRING" ||
+			param == "load" ||
 			(	bWait
 				&&
 				(	param == ""	||
