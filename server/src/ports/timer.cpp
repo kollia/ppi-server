@@ -1277,6 +1277,12 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 							<< " for folder starting" << endl;
 					getRunningThread()->eraseActivateTime(folder, m_tmStop);
 					m_bMeasure= false;
+					if(m_nAllowStarting < 1)
+					{
+						LOCK(m_SUBVARLOCK);
+						m_bRunTime= false;
+						UNLOCK(m_SUBVARLOCK);
+					}
 					next= tmLastSwitchChanged;
 					if(next.isSet())
 						m_oActTime= next;
