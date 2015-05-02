@@ -29,6 +29,22 @@
 
 #include "IDbgSessionPattern.h"
 
+/*
+ * define showSendingCount to 1
+ * when want to see on command line
+ * how much folders with subroutine #start
+ * DbFiller send to database,
+ * get database from ppi-server working list
+ * and get ppi-internet-server from database
+ * (seen by sending second hold or DEBUG from ppi-client)
+ * define to 2
+ * when want to see how much
+ * debug sessions will be sending
+ * currently info messages by one pass to database
+ * and define to 3 by both
+ */
+#define __showSendingCount 0
+
 using namespace std;
 
 namespace design_pattern_world

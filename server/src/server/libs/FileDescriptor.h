@@ -27,6 +27,9 @@
 #include "../../util/smart_ptr.h"
 #include "../../util/thread/Thread.h"
 #include "../../util/stream/IMethodStringStream.h"
+#if(__DEBUGLASTREADWRITECHECK)
+#include "../../util/stream/ppivalues.h"
+#endif // __DEBUGLASTREADWRITECHECK
 
 using namespace std;
 using namespace util;
@@ -466,7 +469,7 @@ namespace server
 			 * after carriage return.
 			 * split for every process and client
 			 */
-			map<string, string> m_sLastRead;
+			map<string, string> m_mLastRead;
 			/**
 			 * holds error number
 			 */
@@ -558,6 +561,24 @@ namespace server
 			 * (no transfer over an connection)
 			 */
 			string m_sSendString;
+#if (__DEBUGLASTREADWRITECHECK)
+			/**
+			 * definition of last reading
+			 * from socket
+			 */
+			string m_sLastRead;
+			string m_sLastReadCommand;
+			ppi_time m_tLastRead;
+			string m_sReadLengths;
+			/**
+			 * definition of last writing
+			 * on socket
+			 */
+			string m_sLastWrite;
+			string m_sLastWriteCommand;
+			ppi_time m_tLastWrite;
+			string m_sWriteLengths;
+#endif //__DEBUGLASTREADWRITECHECK
 
 			/**
 			 * constructor initialization for object

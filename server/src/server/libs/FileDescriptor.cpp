@@ -90,12 +90,17 @@ namespace server
 		string::size_type endPos;
 		string::size_type bufLen(sizeof(buf)-2);
 		string sread, process;
+#if (__DEBUGLASTREADWRITECHECK)
+		bool bbool, first(true);
+		string sbuf;
+		ostringstream lengths;
+#endif // __DEBUGLASTREADWRITECHECK
 
 		if(bufLen > SSIZE_MAX)
 			bufLen= SSIZE_MAX;
 		process= getString("process") + ":";
 		process+= getString("client");
-		sread= m_sLastRead[process];
+		sread= m_mLastRead[process];
 		if(sread != "")
 			getLen= sread.length();
 		reader= "";
@@ -113,6 +118,39 @@ namespace server
 				{
 					buf[getLen]= '\0';
 					sread= buf;
+#if (__DEBUGLASTREADWRITECHECK)
+					m_tLastRead.setActTime();
+					if(first)
+					{
+						istringstream stream(sread);
+						m_sReadLengths= "";
+						m_sLastReadCommand= "";
+						stream >> sbuf;// to process
+						if(!stream.fail())
+						{
+							stream >> std::boolalpha >> bbool;// need answer
+							if(!stream.fail())
+							{
+								stream >> std::boolalpha >> bbool;// more than one rows
+								if(!stream.fail() && bbool)
+									stream >> sbuf;// end command of more rows
+								if(!stream.fail())
+									stream >> m_sLastReadCommand;
+							}
+						}
+						first= false;
+					}
+					lengths.str("");
+					lengths << getLen << ", ";
+					m_sReadLengths+= lengths.str();
+					if(sread.length() > 25)
+					{
+						m_sLastRead= sread.substr(0, 5);
+						m_sLastRead+= " < ... > ";
+						m_sLastRead+= sread.substr(sread.length() - 20);
+					}else
+						m_sLastRead= sread;
+#endif //__DEBUGLASTREADWRITECHECK
 
 				}else
 				{
@@ -139,10 +177,10 @@ namespace server
 						(	nErrno != EAGAIN &&
 							nErrno != EWOULDBLOCK	)	)
 					{
-						if(m_sLastRead[process] != "")
+						if(m_mLastRead[process] != "")
 						{
-							reader+= m_sLastRead[process];
-							m_sLastRead[process]= "";
+							reader+= m_mLastRead[process];
+							m_mLastRead[process]= "";
 						}
 						break;
 					}
@@ -153,7 +191,7 @@ namespace server
 				endPos < (sread.length() - 1)	)
 			{
 				reader+= sread.substr(0, endPos + 1);
-				m_sLastRead[process]= sread.substr(endPos + 1);
+				m_mLastRead[process]= sread.substr(endPos + 1);
 #if 0
 				ostringstream sout;
 				ostringstream thread;
@@ -172,7 +210,7 @@ namespace server
 						else
 							sout << reader.substr(10);
 					}
-					sout << "|cut by|" + m_sLastRead[process].substr(0, 10) + " ...\n";
+					sout << "|cut by|" + m_mLastRead[process].substr(0, 10) + " ...\n";
 					if(endPos > 10)
 						endPos-= 10;
 					else
@@ -184,7 +222,7 @@ namespace server
 			}else
 			{
 				reader+= sread;
-				m_sLastRead[process]= "";
+				m_mLastRead[process]= "";
 			}
 			sread= "";
 			getLen= 0;
@@ -215,6 +253,11 @@ namespace server
 	{
 		ssize_t writeLen;
 		string::size_type len;
+#if (__DEBUGLASTREADWRITECHECK)
+		bool bbool, first(true);
+		string sbuf;
+		ostringstream lengths;
+#endif // __DEBUGLASTREADWRITECHECK
 
 		if(eof())
 			return;
@@ -222,6 +265,51 @@ namespace server
 		{
 			len= m_sSendTransaction.length();
 			writeLen= write(m_nFd, m_sSendTransaction.c_str(), len);
+#if (__DEBUGLASTREADWRITECHECK)
+			string buf(m_sSendTransaction.substr(0, writeLen));
+
+			m_tLastWrite.setActTime();
+			if(first)
+			{
+				istringstream stream(m_sSendTransaction);
+
+				m_sWriteLengths= "";
+				m_sLastWriteCommand= "";
+				stream >> sbuf;// to process
+				if(!stream.fail())
+				{
+					stream >> std::boolalpha >> bbool;// need answer
+					if(!stream.fail())
+					{
+						stream >> std::boolalpha >> bbool;// more than one rows
+						if(!stream.fail() && bbool)
+							stream >> sbuf;// end command of more rows
+						if(!stream.fail())
+							stream >> m_sLastWriteCommand;
+					}
+				}
+				first= false;
+			}
+			lengths.str("");
+			lengths << writeLen << ":" << len << ", ";
+			m_sWriteLengths+= lengths.str();
+			if(writeLen > 0)
+			{
+				if(buf.length() > 25)
+				{
+					m_sLastWrite= buf.substr(0, 5);
+					m_sLastWrite+= " < ... > ";
+					m_sLastWrite+= buf.substr(buf.length() - 20);
+				}else
+					m_sLastWrite= buf;
+			}else
+			{
+				ostringstream out;
+
+				out << "error by length(" << writeLen << ") " << strerror(errno);
+				m_sLastWrite= out.str();
+			}
+#endif //__DEBUGLASTREADWRITECHECK
 			if(writeLen < 0)
 			{
 				ostringstream decl;

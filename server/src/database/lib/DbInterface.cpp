@@ -405,6 +405,40 @@ namespace ppi_database
 				cout << glob::addPrefix("### WARNING:", sRv) << endl;
 			}
 		}
+#if( __showSendingCount == 1 || __showSendingCount == 3 )
+		else
+		{
+			string folder, subroutine;
+
+			for(vector<string>::iterator it= vRv.begin();
+							it != vRv.end(); ++it			)
+			{
+				IParameterStringStream stream(*it);
+
+				stream >> folder;
+				stream >> subroutine;
+				if(subroutine == "#setDebug")
+				{
+					for(map<string, short>::iterator it= m_mFolderCount.begin();
+									it != m_mFolderCount.end(); ++it				)
+					{
+						cout << "internet-server getting " << it->second << " "
+										<< it->first << " folder #start from database" << endl;
+					}
+					m_mFolderCount.clear();
+
+				}else if(subroutine == "#start")
+				{
+					short count(0);
+
+					if(m_mFolderCount.find(folder) != m_mFolderCount.end())
+						count= m_mFolderCount[folder];
+					++count;
+					m_mFolderCount[folder]= count;
+				}
+			}
+		}
+#endif // #if(__showSendingCount == 1 || __showSendingCount == 3)
 		return vRv;
 	}
 

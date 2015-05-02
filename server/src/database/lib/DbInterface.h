@@ -487,6 +487,14 @@ namespace ppi_database
 		 * single instance of DbInterface
 		 */
 		static map<short, DbInterface*> _instance;
+#if( __showSendingCount == 1 || __showSendingCount == 3 )
+		/**
+		 * count folders by sending
+		 * to database
+		 * when __showSendingCount defined
+		 */
+		map<string, short> m_mFolderCount;
+#endif // #if( __showSendingCount == 1 || __showSendingCount == 3 )
 
 		/**
 		 * return used connection for sending requests

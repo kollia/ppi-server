@@ -21,21 +21,6 @@
 
 #include <string>
 
-/*
- * define showSendingCount to 1
- * when want to see on command line
- * how much folders with subroutine #start
- * DbFiller get from running folder structure
- * and send to database
- * (seen by sending second hold or DEBUG)
- * define to 2
- * when want to see how much
- * debug sessions will be sending
- * currently info messages by one pass to database
- * and define to 3 by both
- */
-#define __showSendingCount 0
-
 #include "../pattern/util/IPPIDatabasePattern.h"
 #include "../pattern/util/IDbFillerPattern.h"
 

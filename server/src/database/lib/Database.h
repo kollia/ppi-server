@@ -385,6 +385,14 @@ namespace ppi_database
 		 * to reading debug session info
 		 */
 		unsigned long m_nCurDbgSessConnection;
+#if( __showSendingCount == 1 || __showSendingCount == 3 )
+		/**
+		 * count folders by sending
+		 * to database
+		 * when __showSendingCount defined
+		 */
+		map<string, short> m_mFolderCount;
+#endif // #if( __showSendingCount == 1 || __showSendingCount == 3 )
 		/**
 		 * queue of debug session output info
 		 */

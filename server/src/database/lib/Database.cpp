@@ -1664,11 +1664,38 @@ namespace ppi_database
 		debugSessionSubroutineMap::iterator foundTimer;
 		map<unsigned long, vector<db_t> >::iterator foundCon;
 		vector<db_t>::iterator foundEntry;
+		static bool first(true);
 
+		if(first)
+		{
+			cout << "[" << Thread::gettid() << "] Database::fillDebugSession" << endl;
+			first= false;
+		}
 		LOCK(m_DEBUGSESSIONQUEMUTEX);
 		nConnection= m_nCurDbgSessConnection;
 		if(nConnection > 0)
 		{
+#if( __showSendingCount == 1 || __showSendingCount == 3 )
+			if(content.subroutine == "#setDebug")
+			{
+				for(map<string, short>::iterator it= m_mFolderCount.begin();
+								it != m_mFolderCount.end(); ++it				)
+				{
+					cout << "database getting " << it->second << " "
+									<< it->first << " folder #start from ppi-server" << endl;
+				}
+				m_mFolderCount.clear();
+
+			}else if(content.subroutine == "#start")
+			{
+				short count(0);
+
+				if(m_mFolderCount.find(content.folder) != m_mFolderCount.end())
+					count= m_mFolderCount[content.folder];
+				++count;
+				m_mFolderCount[content.folder]= count;
+			}
+#endif // #if(__showSendingCount == 1 || __showSendingCount == 3)
 			foundFolder= m_apmtDebugSession->find(content.folder);
 			if(foundFolder != m_apmtDebugSession->end())
 			{

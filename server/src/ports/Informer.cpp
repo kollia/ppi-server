@@ -153,9 +153,12 @@ namespace util
 #endif
 #if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
 			IDbgSessionPattern::dbgSubroutineContent_t content;
-			ppi_time cur;
+			ppi_time cur, microSec;
 
+			microSec.tv_sec= 0;
+			microSec.tv_usec= 5;
 			cur.setActTime();
+			cur+= microSec;
 			if(cur.error())
 			{
 				string err("cannot create current time for debugging session\n");
