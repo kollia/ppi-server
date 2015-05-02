@@ -228,8 +228,9 @@ add_subdirectory( src/ports/subroutines ) # ppiportssubroutine need: ---
 add_subdirectory( src/util/stream ) # ppistreamutil need: ---
 add_subdirectory( src/util/properties ) # ppipropertyutil need: ppistreamutil ppipattern
 add_subdirectory( src/util ) # ppiutil need: ppipropertyutil ppistreamutil ppipattern
-add_subdirectory( src/portserver/libs/chipaccess ) # need: ppiutil
 add_subdirectory( src/util/thread ) # ppithreadutil need: rt ppiutil ppipattern
+add_subdirectory( src/portserver/libs/chipaccess ) # need: ppiutil
+
 add_subdirectory( src/server/libs ) # ppiserverlib need: ppithreadutil
 add_subdirectory( src/server/libs/client ) # ppiserverlibclient need: ppiserverlib
 add_subdirectory( src/util/process ) # ppiprocessutil need: ppistreamutil ppithreadutil ppiserverlibclient
