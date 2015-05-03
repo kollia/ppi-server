@@ -41,6 +41,20 @@
 #include "ClientTransaction.h"
 #include "hearingthread.h"
 
+/**
+ * show by writing debug session
+ * also time of written
+ * and also times of #start by loading
+ * form hard disk or directly from server
+ */
+#define __SHOWORDEREDTIMES 0
+/**
+ * show loading of starting folders
+ * only by specific folder of __SPECIFICLOAD
+ * when not defined, show all folders
+ */
+//#define __SPECIFICLOAD "Raff1_Zeit"
+
 using namespace std;
 using namespace util;
 using namespace boost;
@@ -1075,9 +1089,21 @@ namespace server
 		itLastImplement= mLastImplement.find(content->folder);
 		if(itLastImplement == mLastImplement.end())
 		{
-			foundFolder->second[*content->currentTime]= sorted_debugSessions_t();
-			foundFolderObj= foundFolder->second.find(*content->currentTime);
-			mLastImplement[content->folder]= *content->currentTime;
+			ppi_time tmImpl(*content->currentTime), addTime;
+
+			/**
+			 * when an object folder with current time exist
+			 * add 1 microsecond for new implementation
+			 * because otherwise before defined object folder
+			 * will be overwritten
+			 */
+			addTime.tv_sec= 0;
+			addTime.tv_usec= 1;
+			while(foundFolder->second.find(tmImpl) != foundFolder->second.end())
+				tmImpl+= addTime;
+			foundFolder->second[tmImpl]= sorted_debugSessions_t();
+			foundFolderObj= foundFolder->second.find(tmImpl);
+			mLastImplement[content->folder]= tmImpl;
 			itLastImplement= mLastImplement.find(content->folder);
 			if(content->subroutine == "#end")
 				mLastImplement.erase(itLastImplement);
@@ -1092,6 +1118,20 @@ namespace server
 				 */
 				foundFolder->second[*content->currentTime]= foundFolderObj->second;
 				foundFolder->second.erase(foundFolderObj);
+#if(__SHOWORDEREDTIMES)
+#ifdef __SPECIFICLOAD
+				if(content->folder == __SPECIFICLOAD)
+#endif // #ifdef __SPECIFICLOAD
+				{
+					std::cout << "    move created content from "
+						<< itLastImplement->second.toString(/*as date*/true)
+						<< " to "
+						<< content->currentTime->toString(/*as date*/true) << endl;
+					std::cout << "    " << content->folder << " has now "
+						<< m_mSortedSessions[content->folder].size()
+						<< " objects from start to end" << endl;
+				}
+#endif // #if(__SHOWORDEREDTIMES)
 				foundFolderObj= foundFolder->second.find(*content->currentTime);
 				itLastImplement->second= *content->currentTime;
 				mLastImplement.erase(itLastImplement);
@@ -3256,6 +3296,19 @@ namespace server
 					}
 					if(!result.fail())
 					{
+#if(__SHOWORDEREDTIMES)
+						if(	sub->subroutine == "#start"
+#ifdef __SPECIFICLOAD
+							&& sub->folder == __SPECIFICLOAD
+#endif // #ifdef __SPECIFICLOAD
+																)
+						{
+							std::cout << "reading starting folder from folder "
+											<< sub->folder << " at "
+											<< sub->currentTime->toString(/*as date*/true)
+											<< endl;
+						}
+#endif // if(__SHOWORDEREDTIMES)
 						implementFolderSorting(sub);
 					}else
 						bOk= false;
@@ -3707,11 +3760,31 @@ namespace server
 		{
 			unsigned long count(0);
 
+#if(__SHOWORDEREDTIMES)
+#ifdef __SPECIFICLOAD
+			if(fIt->first == __SPECIFICLOAD)
+#endif // #ifdef __SPECIFICLOAD
+			{
+				std::cout << " " << fIt->first << endl;
+			}
+#endif // if(__SHOWORDEREDTIMES)
 			for(folderSessionIterator oIt= fIt->second.begin();
 							oIt != fIt->second.end(); ++oIt		)
 			{
 				if(!oIt->second.folder.empty())
+				{
 					++count;
+#if(__SHOWORDEREDTIMES)
+#ifdef __SPECIFICLOAD
+					if(fIt->first == __SPECIFICLOAD)
+#endif // #ifdef __SPECIFICLOAD
+					{
+						std::cout << "    reading " <<
+							oIt->second.folder.begin()->first.toString(/*as date*/true) <<
+							" on END time " << oIt->first.toString(/*as date*/true) << endl;
+					}
+#endif // if(__SHOWORDEREDTIMES)
+				}
 			}
 			mRv[fIt->first]= count;
 		}
@@ -4577,6 +4650,12 @@ namespace server
 						else
 							content << "of " << nFolderOutput << ". run" << endl;
 						content << innerIt->second->content << endl;
+#if(__SHOWORDEREDTIMES)
+						content << "^^^ ";
+						content << innerIt->second->subroutine << " at "
+										<< innerIt->second->currentTime->toString(/*as date*/true)
+										<< " ^^^" << endl;
+#endif // #if(__SHOWORDEREDTIMES)
 						pRv= &(*innerIt->second->currentTime);
 						bDisplayedContent= true;
 						if(make.direction != last)
@@ -4628,6 +4707,16 @@ namespace server
 						{
 							nOutput= count;
 							sSubroutine= innerIt->second->content;
+							trim(sSubroutine);
+							sSubroutine+= "\n";
+#if(__SHOWORDEREDTIMES)
+							sSubroutine+= "^^^ ";
+							if(innerIt->second->subroutine.substr(0, 1) != "#")
+								sSubroutine+= "subroutine ";
+							sSubroutine+= innerIt->second->subroutine + " at "
+											+ innerIt->second->currentTime->toString(/*as date*/true)
+											+ " ^^^\n";
+#endif // #if(__SHOWORDEREDTIMES)
 							pRv= &(*innerIt->second->currentTime);
 							bDisplayedContent= true;
 						}
@@ -4674,8 +4763,19 @@ namespace server
 						innerIt->second->subroutine == "#end" ||
 						subroutineSet(innerIt->second->subroutine, subroutines)	)
 					{
+						string sContent(innerIt->second->content);
+
 						bDisplayedContent= true;
-						content << innerIt->second->content << endl;
+						trim(sContent);
+						content << sContent << endl;
+#if(__SHOWORDEREDTIMES)
+						content << "^^^ ";
+						if(innerIt->second->subroutine.substr(0, 1) != "#")
+							content << "subroutine ";
+						content << innerIt->second->subroutine << " at "
+										<< innerIt->second->currentTime->toString(/*as date*/true)
+										<< " ^^^" << endl;
+#endif // #if(__SHOWORDEREDTIMES)
 						std::cout << glob::addPrefix(getFolderID(folder), content.str());
 						if(	(	subroutines.empty() &&
 								innerIt->second->subroutine == "#start"	) ||
