@@ -1139,7 +1139,8 @@ namespace server
 
 		}
 		if(	itFolderRun->second == true ||
-			content->subroutine == "#end"	)
+			content->subroutine == "#end" ||
+			content->subroutine == "#started"	)
 		{
 			/*
 			 * implement also #inform subroutine
