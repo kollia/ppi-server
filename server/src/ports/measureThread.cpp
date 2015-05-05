@@ -316,7 +316,8 @@ bool MeasureThread::setDebug(bool bDebug, bool bInform, const string& subroutine
 			it->type == "DEBUG"	)
 		{
 			if(	subroutine == "" ||
-				it->name == subroutine	)
+				subroutine == "#AllFolder" ||
+				it->name == subroutine			)
 			{
 				if(it->portClass->isDebug() != bDebug)
 					out << "       in subroutine " << it->name << endl;
@@ -1767,8 +1768,8 @@ bool MeasureThread::measure()
 
 			locked= it->portClass->LOCKOBJECT();
 			//Debug info to stop always by right folder or subroutine
-	/*		string stopfolder("Raff1_Zeit");
-			string stopsub("gradpos");
+	/*		string stopfolder("Raff1_port");
+			string stopsub("start_error");
 			if(	getFolderName() == stopfolder &&
 				( 	stopsub == "" ||
 					it->name == stopsub	)	)
