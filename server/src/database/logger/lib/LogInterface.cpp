@@ -34,6 +34,7 @@ namespace logger
 		m_poChecker(NULL)
 	{
 		m_WRITELOOP= Thread::getMutex("WRITELOOP");
+		m_TIMECHECKMUTEX= Thread::getMutex("TIMECHECKMUTEX");
 	}
 
 	LogInterface::~LogInterface()
@@ -45,6 +46,8 @@ namespace logger
 			m_poChecker->stop(/*wait*/true);
 			delete m_poChecker;
 		}
+		DESTROYMUTEX(m_WRITELOOP);
+		DESTROYMUTEX(m_TIMECHECKMUTEX);
 	}
 
 	bool LogInterface::openedConnection()
@@ -217,6 +220,7 @@ namespace logger
 			bool bFound= false;
 			unsigned int nTLSize= m_vtTimeLog.size();
 
+			LOCK(m_TIMECHECKMUTEX);
 			for(unsigned int count= 0; count < nTLSize; count++)
 			{
 				if(	log.thread == m_vtTimeLog[count].thread
@@ -253,6 +257,7 @@ namespace logger
 				tOld.tmold= log.tmnow;
 				m_vtTimeLog.push_back(tOld);
 			}
+			UNLOCK(m_TIMECHECKMUTEX);
 		}
 		if(!bWrite)
 			return;

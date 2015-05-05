@@ -173,6 +173,10 @@ namespace logger
 			 */
 			pthread_mutex_t* m_WRITELOOP;
 			/**
+			 * mutex to lock map of time checking
+			 */
+			pthread_mutex_t* m_TIMECHECKMUTEX;
+			/**
 			 * function to inform whether own object is usable
 			 */
 			void (*m_funcUsable)(bool);
