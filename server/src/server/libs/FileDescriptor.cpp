@@ -87,25 +87,39 @@ namespace server
 		bool locked(true);
 		ssize_t getLen(0);
 		char buf[1026];
+		//char buf[4];
 		string::size_type endPos;
 		string::size_type bufLen(sizeof(buf)-2);
-		string sread, process;
+		string sread;
+		//string process;
 #if (__DEBUGLASTREADWRITECHECK)
-		bool bbool, first(true);
+//		bool bbool, first(true);
 		string sbuf;
 		ostringstream lengths;
+
+		m_sReadLengths= "";
 #endif // __DEBUGLASTREADWRITECHECK
 
 		if(bufLen > SSIZE_MAX)
 			bufLen= SSIZE_MAX;
-		process= getString("process") + ":";
-		process+= getString("client");
-		sread= m_mLastRead[process];
+//		process= getString("process") + ":";
+//		process+= getString("client");
+		sread= m_mLastRead;//[process];
+		//m_mLastRead[process]= "";
+		m_mLastRead= "";
 		if(sread != "")
 			getLen= sread.length();
 		reader= "";
-		if(eof())
+		if(fail())
+		{
+			/*
+			 * when connection was fail
+			 * give also last reading
+			 * content back
+			 */
+			reader= sread;
 			return;
+		}
 
 		if(TRYLOCK(m_THREADSAVEMETHODS) == 0)
 			locked= false;// lock done, so lock wasn't set
@@ -119,11 +133,11 @@ namespace server
 					buf[getLen]= '\0';
 					sread= buf;
 #if (__DEBUGLASTREADWRITECHECK)
-					m_tLastRead.setActTime();
+			/*		m_tLastRead.setActTime();
 					if(first)
 					{
 						istringstream stream(sread);
-						m_sReadLengths= "";
+
 						m_sLastReadCommand= "";
 						stream >> sbuf;// to process
 						if(!stream.fail())
@@ -139,7 +153,7 @@ namespace server
 							}
 						}
 						first= false;
-					}
+					}*/
 					lengths.str("");
 					lengths << getLen << ", ";
 					m_sReadLengths+= lengths.str();
@@ -177,10 +191,18 @@ namespace server
 						(	nErrno != EAGAIN &&
 							nErrno != EWOULDBLOCK	)	)
 					{
-						if(m_mLastRead[process] != "")
+						if(locked)
 						{
-							reader+= m_mLastRead[process];
-							m_mLastRead[process]= "";
+							LOCK(m_THREADSAVEMETHODS);
+							locked= false;
+						}
+						//if(m_mLastRead[process] != "")
+						if(m_mLastRead != "")
+						{
+							//reader+= m_mLastRead[process];
+							reader+= m_mLastRead;
+							//m_mLastRead[process]= "";
+							m_mLastRead= "";
 						}
 						break;
 					}
@@ -190,8 +212,14 @@ namespace server
 			if(	endPos != string::npos &&
 				endPos < (sread.length() - 1)	)
 			{
+				if(locked)
+				{
+					LOCK(m_THREADSAVEMETHODS);
+					locked= false;
+				}
 				reader+= sread.substr(0, endPos + 1);
-				m_mLastRead[process]= sread.substr(endPos + 1);
+				//m_mLastRead[process]= sread.substr(endPos + 1);
+				m_mLastRead= sread.substr(endPos + 1);
 #if 0
 				ostringstream sout;
 				ostringstream thread;
@@ -222,14 +250,23 @@ namespace server
 			}else
 			{
 				reader+= sread;
-				m_mLastRead[process]= "";
 			}
 			sread= "";
 			getLen= 0;
 
-		}while(endPos == string::npos && !eof());
+		}while(endPos == string::npos && !fail());
 		if(locked)
 			LOCK(m_THREADSAVEMETHODS);
+		if(	fail() &&
+			m_mLastRead != ""	)
+		{
+			/*
+			 * when connection fail
+			 * give also rest of string back
+			 */
+			reader+= m_mLastRead;
+			m_mLastRead= "";
+		}
 	}
 
 	void FileDescriptor::operator << (const string& writer)
@@ -254,9 +291,11 @@ namespace server
 		ssize_t writeLen;
 		string::size_type len;
 #if (__DEBUGLASTREADWRITECHECK)
-		bool bbool, first(true);
+//		bool bbool, first(true);
 		string sbuf;
 		ostringstream lengths;
+
+		m_sWriteLengths= "";
 #endif // __DEBUGLASTREADWRITECHECK
 
 		if(eof())
@@ -268,12 +307,11 @@ namespace server
 #if (__DEBUGLASTREADWRITECHECK)
 			string buf(m_sSendTransaction.substr(0, writeLen));
 
-			m_tLastWrite.setActTime();
+	/*		m_tLastWrite.setActTime();
 			if(first)
 			{
 				istringstream stream(m_sSendTransaction);
 
-				m_sWriteLengths= "";
 				m_sLastWriteCommand= "";
 				stream >> sbuf;// to process
 				if(!stream.fail())
@@ -289,7 +327,7 @@ namespace server
 					}
 				}
 				first= false;
-			}
+			}*/
 			lengths.str("");
 			lengths << writeLen << ":" << len << ", ";
 			m_sWriteLengths+= lengths.str();

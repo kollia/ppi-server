@@ -469,7 +469,8 @@ namespace server
 			 * after carriage return.
 			 * split for every process and client
 			 */
-			map<string, string> m_mLastRead;
+			//map<string, string> m_mLastRead;
+			string m_mLastRead;
 			/**
 			 * holds error number
 			 */
@@ -567,16 +568,16 @@ namespace server
 			 * from socket
 			 */
 			string m_sLastRead;
-			string m_sLastReadCommand;
-			ppi_time m_tLastRead;
+			//string m_sLastReadCommand;
+			//ppi_time m_tLastRead;
 			string m_sReadLengths;
 			/**
 			 * definition of last writing
 			 * on socket
 			 */
 			string m_sLastWrite;
-			string m_sLastWriteCommand;
-			ppi_time m_tLastWrite;
+			//string m_sLastWriteCommand;
+			//ppi_time m_tLastWrite;
 			string m_sWriteLengths;
 #endif //__DEBUGLASTREADWRITECHECK
 
