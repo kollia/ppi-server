@@ -474,11 +474,10 @@ void tests(const string& workdir, int argc, char* argv[])
 	    		if(!error.fail())
 	    		{
 	    			descriptor= client.getDescriptor();
-	    			cout << "client send: \"Hallo Du!\"" << endl;
-	    			cout << "client send: \"Wie geht es Dir\"" << endl;
-	    			(*descriptor) << "Hallo Du!\nWie geht es Dir\nden";
+	    			cout << "client send: \"Hallo Du\\nWie geht es Dir\\nden\"" << endl;
+	    			(*descriptor) << "Hallo Du\nWie geht es Dir\nden";
+	    			cout << "client send: \" heute?\\n\"" << endl;
 	    			(*descriptor) << " heute?";
-	    			cout << "client send: \"den heute?" << endl;
 	    			descriptor->endl();
 	    			descriptor->flush();
 	    			if(!descriptor->eof())
@@ -510,7 +509,7 @@ void tests(const string& workdir, int argc, char* argv[])
 	    			error= connection.accept();
 	    			if(!error.fail())
 	    			{
-	    				short count(1), maxcount(4);
+	    				short count(1), maxcount(3);
 
 	    				descriptor= connection.getDescriptor();
 	    				while(	!descriptor->eof() &&
