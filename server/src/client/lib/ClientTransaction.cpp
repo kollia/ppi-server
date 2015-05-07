@@ -4493,8 +4493,35 @@ namespace server
 							for(it= oIt->second.folder.begin();
 									it != oIt->second.folder.end(); ++it	)
 							{
-								if(it->second->subroutine == subroutines[0])
-									break;
+								/*
+								 * when begin of content form subroutine
+								 * is "\\\\\\\\\\\\\\\\\\\\" subroutine
+								 * is an external part of only changing
+								 * value, this is not the correct subroutine content
+								 * so this one is not the correct one
+								 */
+								if(	it->second->subroutine == subroutines[0] &&
+									it->second->content.substr(0, 10) != "\\\\\\\\\\\\\\\\\\\\"	)
+								{
+									vector<string> spl;
+
+									/*
+									 * when third row of content begin with "was started external
+									 * subroutine is an external running part of type READ
+									 * so this one is not the correct one
+									 * toDo: in next time should make better
+									 *       when debug session from server
+									 *       sending also type of subroutine
+									 *       and more information whether subroutine
+									 *       was running by external
+									 */
+									split(spl, it->second->content, is_any_of("\n"));
+									if(	spl.size() < 3 ||
+										spl[2].substr(0, 25) != "---  was started external"	)
+									{
+										break;
+									}
+								}
 							}
 							/*
 							 * compare only with the first 4 precision
@@ -4748,8 +4775,7 @@ namespace server
 				(	make.action <= IClientTransactionPattern::folder ||
 					make.action == folder_external						) &&
 					(	show.action == none ||
-						show.action == ClientTransaction::folder ||
-						show.action == folder_external				) &&
+						show.action >= ClientTransaction::folder ) &&
 				showContent != currFolderIt->second.end() &&
 				!showContent->second.folder.empty()							)
 			{
@@ -4775,6 +4801,7 @@ namespace server
 							content << "subroutine ";
 						content << innerIt->second->subroutine << " at "
 										<< innerIt->second->currentTime->toString(/*as date*/true)
+										<< " with value " << innerIt->second->value
 										<< " ^^^" << endl;
 #endif // #if(__SHOWORDEREDTIMES)
 						std::cout << glob::addPrefix(getFolderID(folder), content.str());
