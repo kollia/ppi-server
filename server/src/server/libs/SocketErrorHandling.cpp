@@ -60,6 +60,12 @@ void SocketErrorHandling::createMessages()
 					"by writing to host '@1:@2' over transaction '@3'");
 	setDescription("en", "FileDescription", "read",
 					"by reading from host '@1:@2' over transaction '@3'");
+	setDescription("en", "FileDescriptor", "nullString",
+					"reading from connection @1:@2 over '@3' get an null string");
+	setDescription("en", "FileDescriptor", "noConnect",
+					"connection @1:@2 over '@3' was closed or is refused");
+	setDescription("en", "FileDescriptor", "noHearingClient",
+					"do not find any hearing client of @1");
 
 	setDescription("en", "OutsideClientTransaction", "init",
 					"object of OutsideClientTransaction is not defined to handle transactions");
@@ -109,9 +115,9 @@ void SocketErrorHandling::createMessages()
 					"transfer method from class ServerMethodTransaction have to be overloaded");
 	setDescription("en", "ServerMethodTransaction", "stream_end",
 					"inside @1 connection ID:@2 from @3 to @4 reaching end of stream after '@5'");
-	setDescription("en", "ServerMethodTransaction", "descriptor_warning",
+	setDescription("en", "ServerMethodTransaction", "stream_warning",
 					"inside @1 connection ID:@2 from @3 to @4 has warning");
-	setDescription("en", "ServerMethodTransaction", "descriptor_error",
+	setDescription("en", "ServerMethodTransaction", "stream_error",
 					"inside @1 connection ID:@2 from @3 to @4 has broken error");
 	setDescription("en", "ServerMethodTransaction", "noAccess",
 					"client has no access to server '@1'");
@@ -147,11 +153,6 @@ void SocketErrorHandling::createMessages()
 	setDescription("en", "ServerDbTransaction", "getStatusInfo_owreader",
 					"by trying to get status info from port server @1\n"
 					"get unknown answer '@2'");
-
-	setDescription("en", "FileDescriptor", "nullString",
-					"reading from connection @1:@2 over '@3' get an null string");
-	setDescription("en", "FileDescriptor", "noConnect",
-					"connection @1:@2 over '@3' was closed or is refused");
 }
 
 bool SocketErrorHandling::setAddrError(const string& classname, const string& error_string,

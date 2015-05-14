@@ -577,9 +577,11 @@ namespace server
 		m_pHearingClient= getOtherHearingClient(definition);
 		if(m_pHearingClient == NULL)
 		{
-			//std::cout << "found no client, return message ERROR 001" << std::endl;
+			SocketErrorHandling errHandle;
+
+			errHandle.setError("FileDescriptor", "noHearingClient", definition);
 			LOCK(m_THREADSAVEMETHODS);
-			answer.push_back("ERROR 001");
+			answer.push_back(errHandle.getErrorStr());
 			return answer;
 		}
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
@@ -948,6 +950,8 @@ namespace server
 		LOCK(m_THREADSAVEMETHODS);
 		if(m_pTransfer)
 			bRv= m_pTransfer->transfer(*this);
+		if(!bRv)
+			m_oSocketError= m_pTransfer->getErrorObj();
 		UNLOCK(m_THREADSAVEMETHODS);
 		return bRv;
 	}
