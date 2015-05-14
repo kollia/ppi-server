@@ -336,10 +336,26 @@ namespace util
 					OutsideClientTransaction* transaction, const string& command)
 	{
 		int bRv(true);
+		SHAREDPTR::shared_ptr<IFileDescriptorPattern> descriptor;
 
 		try{
 			if(transaction)
 				transaction->closeConnection(command);
+			m_pSocketError= connection->init();
+			if(m_pSocketError->fail())
+				bRv= false;
+			if(	bRv &&
+				!transaction	)
+			{
+				descriptor= connection->getDescriptor();
+				(*descriptor) << command;
+				if(command.substr(command.length()-1) != "\n")
+					descriptor->endl();
+				descriptor->flush();
+			}
+			connection->close();
+			connection->newTranfer(NULL, /*delete old*/true);
+
 		}catch(SignalException& ex)
 		{
 			ex.addMessage("try to close transaction connection for Interface " + m_sProcess + "::" + m_sName);
@@ -348,15 +364,6 @@ namespace util
 			m_pSocketError->setError("ExternClientInputTemplate", "closeConnection",
 							m_sProcess + "@" + m_sName);
 			bRv= false;
-		}
-		// unknown error setting from commit release before 956
-		// do not know why want to reinitialize connection
-		//if(!connection->init())
-		//	nRv= 3;
-		if(connection)
-		{
-			connection->close();
-			connection->newTranfer(NULL, /*delete old*/true);
 		}
 		return bRv;
 	}
@@ -555,12 +562,18 @@ namespace util
 	ExternClientInputTemplate::~ExternClientInputTemplate()
 	{
 		m_oAnswerSender.stop(true);
-		closeSendConnection();
-		closeGetConnection();
 		if(m_oSendConnect)
+		{
+			if(m_oSendConnect->connected())
+				closeSendConnection();
 			delete m_oSendConnect;
+		}
 		if(m_oGetConnect)
+		{
+			if(m_oGetConnect->connected())
+				closeGetConnection();
 			delete m_oGetConnect;
+		}
 		DESTROYMUTEX(m_SENDMETHODLOCK);
 		DESTROYMUTEX(m_GETQUESTIONLOCK);
 	}
