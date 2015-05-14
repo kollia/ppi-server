@@ -111,6 +111,15 @@ class Starter
 		 * @return pointer to entry, or point of last
 		 */
 		vector<pair<string, PortTypes> >::iterator find(vector<pair<string, PortTypes> >& vec, string port);
+		/**
+		 * show output on command line when ALLOCATEONMETHODSERVER from debugtransaction.h defined
+		 * how many client should produced inside ppi-db-server
+		 *
+		 * @param content string content shown inside debugging area
+		 *                or '#begin'/'#end' for beginning or ending of area
+		 * @return output row
+		 */
+		string createClientConfigString(const string& content) const;
 
 	protected:
 		//bool openPort(unsigned long nPort, int nBaud, char cParitaetsbit, unsigned short nDatabits, unsigned short nStopbit);

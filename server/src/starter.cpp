@@ -35,6 +35,7 @@
 #include "pattern/util/LogHolderPattern.h"
 
 #include "util/debug.h"
+#include "util/debugtransaction.h"
 #include "util/GlobalStaticMethods.h"
 #include "util/smart_ptr.h"
 #include "util/URL.h"
@@ -87,6 +88,49 @@ using namespace user;
 using namespace std;
 using namespace logger;
 
+
+string Starter::createClientConfigString(const string& content) const
+{
+	string output;
+#ifdef ALLOCATEONMETHODSERVER
+	string::size_type characters= 85;
+
+	if(content == "#end")
+	{
+		output+= "***";
+		for(string::size_type c= 0; c < characters; ++c)
+			output+= " ";
+		output+= "***\n";
+	}
+	if(	content == "#begin" ||
+		content == "#end"		)
+	{
+		for(string::size_type c= 0; c < (3 + characters + 3); ++c)
+			output+= "*";
+	}
+	if(content == "#begin")
+	{
+		output+= "\n***";
+		for(string::size_type c= 0; c < characters; ++c)
+			output+= " ";
+		output+= "***";
+	}
+	if(	content == "#begin" ||
+		content == "#end"		)
+	{
+		return output;
+	}
+	output+= "***";
+	output+= content;
+	if(content.length() < characters)
+	{
+		for(string::size_type c= 0; c < (characters - content.length()); ++c)
+			output+= " ";
+	}
+	output+= "***";
+#endif // ALLOCATEONMETHODSERVER
+	return output;
+}
 
 bool Starter::execute(const IOptionStructPattern* commands)
 {
@@ -267,35 +311,50 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			++nOWReader;
 	}
 
-	//*	for all processes without db-server and internet-server to give answers
-	//		ppi-server(ProcessChecker), ppi-owreader
-	nDbConnectors= 1 + nOWReader;
-
-	//*		for all process an db client but the internet-server needs an second for callback routines (second connection by client)
-	//			ppi-server, ppi-internet-server, ppi-owreader
-	nDbConnectors+= 1 + 2 + nOWReader;
-
-	//*		for all one wire server (ppi-owreader) are needs the polling action list in ppi-server an OWInterface
-	nDbConnectors+= nOWReader;
-
-#ifdef ALLOCATEONMETHODSERVER
-	short spaces= 14;
+	string output;
 	ostringstream conns;
 
-	conns << nDbConnectors;
-	cout << " ******************************************************************" << endl;
-	cout << " ***                                                            ***" << endl;
-	cout << " ***   for database server are "
-						   << conns.str() << " clients configured";
-	for(short c= 0; c < (spaces - (short)conns.str().size()); ++c)
-		cout << " ";
-	cout <<                                                                 "***" << endl;
-	cout << " ***   now also 2 extra for testing                             ***" << endl;
-	cout << " ***   whether really this count be needed                      ***" << endl;
-	cout << " ***                                                            ***" << endl;
-	cout << " ******************************************************************" << endl;
+	nDbConnectors= 0;
+	conns.str("");
+	conns << "       1 for working list (ppi-server[DbInterface]) to inform database";
+	nDbConnectors+= 1;
+	output+= createClientConfigString(conns.str()) + "\n";
+	conns.str("");
+	conns << "       1 for internet server [DbInterface] to get information from database";
+	nDbConnectors+= 1;
+	output+= createClientConfigString(conns.str()) + "\n";
+	conns.str("");
+	conns << "       1 for internet server [DbInterface] to know whether any changing was made";
+	nDbConnectors+= 1;
+	output+= createClientConfigString(conns.str()) + "\n";
+	conns.str("");
+	conns << "       " << nOWReader << " external server (OWReader[OWServerQuestion-x]) for answering";
+	nDbConnectors+= nOWReader;
+	output+= createClientConfigString(conns.str()) + "\n";
+	conns.str("");
+	conns << "       " << nOWReader << " external server (OWReader[DbInterface]) to inform database";
+	nDbConnectors+= nOWReader;
+	output+= createClientConfigString(conns.str()) + "\n";
+	conns.str("");
+	conns << "       " << nOWReader << " external server (OWReader[OWInterface]) needs polling action list";
+	nDbConnectors+= nOWReader;
+	output+= createClientConfigString(conns.str()) + "\n";
+	conns.str("");
+	conns << "       1 ppi-server [ProcessChecker] for answering";
+	nDbConnectors+= 1;
+	output+= createClientConfigString(conns.str()) + "\n";
+
 	// only for debugging to know whether the allocated connections to db are ok
+#ifdef ALLOCATEONMETHODSERVER
+	cout << createClientConfigString("#begin") << endl;
+	conns.str("");
+	conns << "   for database server are " << nDbConnectors << " clients configured";
+	cout << createClientConfigString(conns.str()) << endl;
+	cout << output;
 	nDbConnectors+= 2;
+	cout << createClientConfigString("   now also 2 extra for testing") << endl;
+	cout << createClientConfigString("   whether really this count be needed") << endl;
+	cout << createClientConfigString("#end") << endl;
 #endif // ALLOCATEONMETHODSERVER
 	//*********************************************************************************
 
