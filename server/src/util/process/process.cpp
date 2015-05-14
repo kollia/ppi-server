@@ -166,8 +166,7 @@ namespace util
 			return m_pSocketError;
 		answer= sendMethod(m_sToClient, init, true);
 		m_pSocketError->setErrorStr(answer);
-		if(m_pSocketError->hasError())
-			errorHandling= closeSendConnection();
+		errorHandling= closeSendConnection();
 		if(m_pSocketError->fail())
 		{
 			m_pSocketError->addMessage("process", "check", getProcessName() + "@" + m_sToClient);
