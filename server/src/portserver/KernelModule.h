@@ -43,7 +43,7 @@ namespace server {
 		 * @param readcache mutex variable to lock reading chips
 		 * @param priorityconf condition to awake when new devices be to read
 		 */
-		KernelModule(const string& servertype, IChipAccessPattern* chipaccess,
+		KernelModule(const string& servertype, SHAREDPTR::shared_ptr<IChipAccessPattern> chipaccess,
 				pthread_mutex_t* readcache, pthread_cond_t* prioritycond);
 		/**
 		 * fill with chip's which should read in <code>kernelmodule()</code> from <code>IChipAccessPattern</code>
@@ -125,7 +125,7 @@ namespace server {
 		 * module to have access to extern chips or board
 		 * need methods <code>kernelmodule()</code> and <code>read()</code>
 		 */
-		IChipAccessPattern* m_poChipAccess;
+		SHAREDPTR::shared_ptr<IChipAccessPattern> m_poChipAccess;
 		/**
 		 * all chips should be read over an kernel module
 		 */

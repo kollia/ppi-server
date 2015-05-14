@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 	bool bfreeze= false;
 	unsigned short nServerID;
 	unsigned short commport;
-	int nLogAllSec, nRv;
+	int nLogAllSec, nRv(EXIT_SUCCESS);
 	ostringstream usestring;
 	string commhost, servertype, questionservername("OwServerQuestion-");
 	string workdir, defaultuser, shelluser;
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 	vector<string> vParams;
 	PPIConfigFiles configFiles;
 	DbInterface *db;
-	IChipAccessPattern* accessPort;
+	SHAREDPTR::shared_ptr<IChipAccessPattern> accessPort;
 	auto_ptr<OwServerQuestions> pQuestions;
 	map<string, uid_t> users;
 	ErrorHandling errHandle;
@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
 					exit(EXIT_FAILURE);
 				}
 				servertype= "SHELL";
-				accessPort= new ShellWriter(nServerID, argv[3]);
+				accessPort= SHAREDPTR::shared_ptr<IChipAccessPattern>(new ShellWriter(nServerID, argv[3]));
 				shelluser= argv[3];
 				bConf= true;
 
@@ -215,7 +215,7 @@ int main(int argc, char* argv[])
 				}
 				if(argc >= needArgc && sPorts.size() > 0)
 				{
-					accessPort= new ExternPorts(sPorts, type); // object will be given as pointer into OWServer, need no auto_ptr
+					accessPort= SHAREDPTR::shared_ptr<IChipAccessPattern>(new ExternPorts(sPorts, type));
 					bConf= true;
 				}else
 				{
@@ -226,7 +226,7 @@ int main(int argc, char* argv[])
 			}else if(strncmp(argv[2], "LIRC", vLength[2]) == 0)
 			{
 				servertype= "LIRC";
-				accessPort= new LircClient();
+				accessPort= SHAREDPTR::shared_ptr<IChipAccessPattern>(new LircClient());
 				bConf= true;
 
 			}
@@ -245,7 +245,8 @@ int main(int argc, char* argv[])
 					first= adapters.begin();
 					maximconf= *first;
 					adapters.erase(first);
-					accessPort= new MaximChipAccess(servertype, maximconf, &adapters); // object will be given as pointer into OWServer, need no auto_ptr
+					accessPort= SHAREDPTR::shared_ptr<IChipAccessPattern>
+						(new MaximChipAccess(servertype, maximconf, &adapters));
 					bConf= true;
 				}else
 				{
@@ -273,7 +274,7 @@ int main(int argc, char* argv[])
 					usestring << nJumper;
 					if(	nJumper >= 0 && nJumper <= 3)
 					{
-						accessPort= new VellemannK8055(nJumper); // object will be given as pointer into OWServer, need no auto_ptr
+						accessPort= SHAREDPTR::shared_ptr<IChipAccessPattern>(new VellemannK8055(nJumper));
 						bConf= true;
 					}
 				}
@@ -306,225 +307,251 @@ int main(int argc, char* argv[])
 		}
 		LOG(LOG_ALERT, error.str());
 		cerr << error.str() << endl;
-		return EXIT_FAILURE;
 	}
 
-
+	int nErr(0);
 	string value, property;
 	ostringstream output;
 	Properties newProp;
 	const IPropertyPattern* pProp;
 
-	output << "    one wire reader";
-	owserver= auto_ptr<OWServer>(new OWServer(nServerID, servertype, accessPort));
-	output << " with name '" << owserver->getServerDescription();
-	output << "' and ID '" << dec << nServerID << "'" << endl;
-	output << "    " << usestring.str();
-	if(strncmp(argv[2], "maxim", vLength[2]) != 0)
-		output << endl;
-	cout << output.str();
-
-	if(servertype != "SHELL")
+	if(!bConf)
+		nErr= LOG_ALERT;
+	if(nErr == 0)
 	{
-		pProp= configFiles->getExternalPortProperties(servertype);
-		if(pProp != NULL)
+		output << "    one wire reader";
+		owserver= auto_ptr<OWServer>(new OWServer(nServerID, servertype, accessPort));
+		output << " with name '" << owserver->getServerDescription();
+		output << "' and ID '" << dec << nServerID << "'" << endl;
+		output << "    " << usestring.str();
+		if(strncmp(argv[2], "maxim", vLength[2]) != 0)
+			output << endl;
+		cout << output.str();
+
+		if(servertype != "SHELL")
 		{
-			// copy all properties with value in new Properties object
-			// because start method of Thread object allow no const object
-			while((property= pProp->nextProp()) != "")
+			pProp= configFiles->getExternalPortProperties(servertype);
+			if(pProp != NULL)
 			{
-				value= pProp->getValue(property);
-				newProp.setDefault(property, value);
+				// copy all properties with value in new Properties object
+				// because start method of Thread object allow no const object
+				while((property= pProp->nextProp()) != "")
+				{
+					value= pProp->getValue(property);
+					newProp.setDefault(property, value);
+				}
 			}
 		}
-	}
-	newProp.setDefault("confpath", configFiles->getConfigPath(), /*overwrite*/false);
-	try{
+		newProp.setDefault("confpath", configFiles->getConfigPath(), /*overwrite*/false);
+		try{
+			EHObj err;
 
-		if(owserver->start(&newProp) != 0)
-			return EXIT_FAILURE;
-
-	}catch(SignalException &ex)
-	{
-		string msg;
-
-		ex.printTrace();
-		msg= "catch exception inside running main thread of one wire server\n";
-		msg+= "  so do not run server from type " + servertype + " any more and STOPPING";
-		cerr << endl << endl << msg << endl << endl;
-		LOG(LOG_ALERT, msg);
-		exit(EXIT_FAILURE);
-
-	}catch(std::exception &ex)
-	{
-		string msg;
-
-		msg= "get std exception by running OwServerQuestions object\n";
-		msg+= *ex.what() + "\n";
-		msg+= "so stopping hole aplication of owreader";
-		cerr << endl << endl << "### ERROR: " << msg << endl << endl;
-		LOG(LOG_ALERT, msg);
-		exit(EXIT_FAILURE);
-	}
-
-	LOG(LOG_INFO, "starting owreader object for extern interfaces\n\n" + output.str());
-
-	questionservername+= argv[1];
-	pQuestions= auto_ptr<OwServerQuestions>(new OwServerQuestions(	"ppi-owreader", questionservername,
-																	new SocketClientConnection(	SOCK_STREAM,
-																								commhost,
-																								commport,
-																								10			),
-																	owserver.get()								));
-
-
-	const IPropertyPattern* pPortProps;
-
-	if(servertype != "SHELL")
-	{
-		if(	servertype == "MPORT" ||
-			servertype == "RWPORT"	)
-		{
-			pPortProps= configFiles->getExternalPortProperties("PORT");
-		}else
-			pPortProps= configFiles->getExternalPortProperties(servertype);
-		if(pPortProps)
-		{
-			defaultuser= pPortProps->getValue("runuser", /*warning*/false);
-			if(defaultuser != "")
+			err= owserver->start(&newProp);
+			if(err->fail())
 			{
-				users.clear();
-				users[defaultuser]= 0;
-				if(!glob::readPasswd(configFiles->getPasswdFile(), users))
-				{
-					string msg1("defined user '");
-					string msg2("so external reader running as default user for external readers (defaultextuser)");
+				string errType("### WARNING: ");
+				string sErr("By starting: ");
 
-					msg1+= defaultuser + "' for external interface " + servertype;
-					msg1+= " is not registered correctly inside operating system\n";
-					cout << "### WARNING: " << msg1;
-					cout << "             " << msg2 << endl;
-					LOG(LOG_WARNING, msg1 + msg2);
-					defaultuser= "";
+				if(err->hasError())
+				{
+					nErr= LOG_ERROR;
+					errType= "### ERROR: ";
+				}else
+					nErr= LOG_WARNING;
+				sErr+= output.str() + "\n";
+				sErr+= err->getDescription();
+				LOG(nErr, sErr);
+				cout << glob::addPrefix(errType, sErr) << endl;
+				return EXIT_FAILURE;
+			}
+
+		}catch(SignalException &ex)
+		{
+			string msg;
+
+			ex.printTrace();
+			msg= "catch exception inside running main thread of one wire server\n";
+			msg+= "  so do not run server from type " + servertype + " any more and STOPPING";
+			cerr << endl << endl << msg << endl << endl;
+			LOG(LOG_ALERT, msg);
+			exit(EXIT_FAILURE);
+
+		}catch(std::exception &ex)
+		{
+			string msg;
+
+			msg= "get std exception by running OwServerQuestions object\n";
+			msg+= *ex.what() + "\n";
+			msg+= "so stopping hole aplication of owreader";
+			cerr << endl << endl << "### ERROR: " << msg << endl << endl;
+			LOG(LOG_ALERT, msg);
+			exit(EXIT_FAILURE);
+		}
+
+		LOG(LOG_INFO, "starting owreader object for extern interfaces\n\n" + output.str());
+
+		questionservername+= argv[1];
+		pQuestions= auto_ptr<OwServerQuestions>(new OwServerQuestions(	"ppi-owreader", questionservername,
+																		new SocketClientConnection(	SOCK_STREAM,
+																									commhost,
+																									commport,
+																									10			),
+																		owserver.get()								));
+
+
+		const IPropertyPattern* pPortProps;
+
+		if(servertype != "SHELL")
+		{
+			if(	servertype == "MPORT" ||
+				servertype == "RWPORT"	)
+			{
+				pPortProps= configFiles->getExternalPortProperties("PORT");
+			}else
+				pPortProps= configFiles->getExternalPortProperties(servertype);
+			if(pPortProps)
+			{
+				defaultuser= pPortProps->getValue("runuser", /*warning*/false);
+				if(defaultuser != "")
+				{
+					users.clear();
+					users[defaultuser]= 0;
+					if(!glob::readPasswd(configFiles->getPasswdFile(), users))
+					{
+						string msg1("defined user '");
+						string msg2("so external reader running as default user for external readers (defaultextuser)");
+
+						msg1+= defaultuser + "' for external interface " + servertype;
+						msg1+= " is not registered correctly inside operating system\n";
+						cout << "### WARNING: " << msg1;
+						cout << "             " << msg2 << endl;
+						LOG(LOG_WARNING, msg1 + msg2);
+						defaultuser= "";
+					}
+				}
+			}
+			if(defaultuser == "")
+			{
+				defaultuser= configFiles->getExternalPortUser();
+				if(defaultuser != "")
+				{
+					users.clear();
+					users[defaultuser]= 0;
+					if(!glob::readPasswd(configFiles->getPasswdFile(), users))
+					{
+						string msg1("defined default user '");
+						string msg2("so external reader running as default user '");
+
+						msg1+= defaultuser + "' for external interfaces";
+						msg1+= " is not registered correctly inside operating system\n";
+						msg2+= configFiles->getDefaultUser() + "'";
+						cout << "### WARNING: " << msg1;
+						cout << "             " << msg2 << endl;
+						LOG(LOG_WARNING, msg1 + msg2);
+						defaultuser= "";
+					}
 				}
 			}
 		}
 		if(defaultuser == "")
-		{
-			defaultuser= configFiles->getExternalPortUser();
-			if(defaultuser != "")
-			{
-				users.clear();
-				users[defaultuser]= 0;
-				if(!glob::readPasswd(configFiles->getPasswdFile(), users))
-				{
-					string msg1("defined default user '");
-					string msg2("so external reader running as default user '");
-
-					msg1+= defaultuser + "' for external interfaces";
-					msg1+= " is not registered correctly inside operating system\n";
-					msg2+= configFiles->getDefaultUser() + "'";
-					cout << "### WARNING: " << msg1;
-					cout << "             " << msg2 << endl;
-					LOG(LOG_WARNING, msg1 + msg2);
-					defaultuser= "";
-				}
-			}
-		}
-	}
-	if(defaultuser == "")
-		defaultuser= configFiles->getDefaultUser();
-	users[defaultuser]= 0;
-	if(servertype == "SHELL")
-		users[shelluser]= 0;
-	if(	!glob::readPasswd(configFiles->getPasswdFile(), users) ||
-		servertype != "SHELL"												)
-	{
+			defaultuser= configFiles->getDefaultUser();
+		users[defaultuser]= 0;
 		if(servertype == "SHELL")
+			users[shelluser]= 0;
+		if(	!glob::readPasswd(configFiles->getPasswdFile(), users) ||
+			servertype != "SHELL"												)
 		{
-			string msg;
+			if(servertype == "SHELL")
+			{
+				string msg;
 
-			msg=  "### WARNING: do not found user id for user " + shelluser + " inside passwd\n";
-			msg+= "             so set process to default user " + defaultuser;
-			LOG(LOG_WARNING, msg);
-			cout << msg << endl;
-		}
-		if(setuid(users[defaultuser]) != 0)
-		{
-			string err;
-
-			err=  "### ERROR: cannot set process to default user " + defaultuser + "\n";
-			err+= "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
-			LOG(LOG_ALERT, err);
-			cerr << err << endl;
-			exit(EXIT_FAILURE);
-		}
-	}else
-	{
-		if(setuid(users[shelluser]) != 0)
-		{
-			string err;
-
-			err=  "### ERROR: cannot set process to user " + shelluser + " so set to default user " + defaultuser + "\n";
-			err+= "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
-			LOG(LOG_ERROR, err);
-			cerr << err << endl;
+				msg=  "### WARNING: do not found user id for user " + shelluser + " inside passwd\n";
+				msg+= "             so set process to default user " + defaultuser;
+				LOG(LOG_WARNING, msg);
+				cout << msg << endl;
+			}
 			if(setuid(users[defaultuser]) != 0)
 			{
+				string err;
+
 				err=  "### ERROR: cannot set process to default user " + defaultuser + "\n";
 				err+= "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
 				LOG(LOG_ALERT, err);
 				cerr << err << endl;
-				exit(EXIT_FAILURE);
+				nRv= EXIT_FAILURE;
 			}
-		}
-	}
-
-	try{
-		nRv= EXIT_SUCCESS;
-		errHandle= pQuestions->run();
-		if(errHandle.fail())
+		}else
 		{
-			int log;
-			string msg;
+			if(setuid(users[shelluser]) != 0)
+			{
+				string err;
 
-			errHandle.addMessage("owreadermain", "run", owserver->getServerDescription());
-			msg= errHandle.getDescription();
-			if(errHandle.hasError())
-			{
-				log= LOG_ERROR;
-				cerr << glob::addPrefix("### ERROR: ", msg) << endl;
-			}else
-			{
-				log= LOG_WARNING;
-				cout << glob::addPrefix("### WARNING: ", msg) << endl;
+				err=  "### ERROR: cannot set process to user " + shelluser + " so set to default user " + defaultuser + "\n";
+				err+= "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
+				LOG(LOG_ERROR, err);
+				cerr << err << endl;
+				if(setuid(users[defaultuser]) != 0)
+				{
+					err=  "### ERROR: cannot set process to default user " + defaultuser + "\n";
+					err+= "    ERRNO: " + BaseErrorHandling::getErrnoString(errno);
+					LOG(LOG_ALERT, err);
+					cerr << err << endl;
+					nRv= EXIT_FAILURE;
+				}
 			}
-			LOG(log, msg);
-			errHandle.clear();
-			nRv= EXIT_FAILURE;
 		}
 
-	}catch(SignalException &ex)
-	{
-		string msg;
+		if(nRv == EXIT_SUCCESS)
+		{
+			try{
+				nRv= EXIT_SUCCESS;
+				errHandle= pQuestions->run();
+				if(errHandle.fail())
+				{
+					int log;
+					string msg;
 
-		ex.addMessage("catch exception inside hearing of questions from other processes\n"
-						"so STOPPING one wire server from type " + servertype);
-		msg= ex.getTraceString();
-		cerr << endl << endl << msg << endl << endl;
-		LOG(LOG_ALERT, msg);
+					errHandle.addMessage("owreadermain", "run", owserver->getServerDescription());
+					msg= errHandle.getDescription();
+					if(errHandle.hasError())
+					{
+						log= LOG_ERROR;
+						cerr << glob::addPrefix("### ERROR: ", msg) << endl;
+					}else
+					{
+						log= LOG_WARNING;
+						cout << glob::addPrefix("### WARNING: ", msg) << endl;
+					}
+					LOG(log, msg);
+					errHandle.clear();
+					nRv= EXIT_FAILURE;
+				}
 
-	}catch(std::exception &ex)
-	{
-		string msg;
+			}catch(SignalException &ex)
+			{
+				string msg;
 
-		msg= "get std exception by running OwServerQuestions object\n";
-		msg+= "what(): " + string(ex.what()) + "\n";
-		msg+= "so stopping hole aplication of owreader";
-		cerr << endl << endl << "### ERROR: " << msg << endl << endl;
-		LOG(LOG_ALERT, msg);
+				ex.addMessage("catch exception inside hearing of questions from other processes\n"
+								"so STOPPING one wire server from type " + servertype);
+				msg= ex.getTraceString();
+				cerr << endl << endl << msg << endl << endl;
+				LOG(LOG_ALERT, msg);
+				nRv= EXIT_FAILURE;
+
+			}catch(std::exception &ex)
+			{
+				string msg;
+
+				msg= "get std exception by running OwServerQuestions object\n";
+				msg+= "what(): " + string(ex.what()) + "\n";
+				msg+= "so stopping hole aplication of owreader";
+				cerr << endl << endl << "### ERROR: " << msg << endl << endl;
+				LOG(LOG_ALERT, msg);
+				nRv= EXIT_FAILURE;
+			}
+		}
+		errHandle= owserver->stop();
 	}
-	errHandle= owserver->stop();
 	DbInterface::deleteAll();
 	if(errHandle.fail())
 	{
@@ -534,8 +561,14 @@ int main(int argc, char* argv[])
 		msg= errHandle.getDescription();
 		cout << glob::addPrefix("### WARNING: ", msg) << endl;
 		LOG(LOG_WARNING, msg);
+		nRv= EXIT_FAILURE;
 	}
 
+	if(	nErr != 0 &&
+		nRv == EXIT_SUCCESS	)
+	{
+		nRv= EXIT_FAILURE;
+	}
 	pQuestions= auto_ptr<OwServerQuestions>();// delete OwServerQuestions before OWServer
 	glob::stopMessage("### ending correctly ppi-owreader process for library '" + servertype + "'", /*all process names*/true);
 	return nRv;

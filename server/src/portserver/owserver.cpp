@@ -40,13 +40,14 @@ using namespace ppi_database;
 
 namespace server
 {
-	OWServer::OWServer(const unsigned short ID, const string& type, IChipAccessPattern* accessPattern)
+	OWServer::OWServer(const unsigned short ID, const string& type,
+					SHAREDPTR::shared_ptr<IChipAccessPattern> accessPattern)
 	:	Thread("OwfsServer", /*wait for init*/false),
 		m_nServerID(ID),
 		m_sServerType(type),
 		m_bConnected(false),
 		m_bAllInitial(false),
-		m_poChipAccess(auto_ptr<IChipAccessPattern>(accessPattern)),
+		m_poChipAccess(accessPattern),
 		m_bKernel(false),
 		m_bKernelOnly(true),
 		m_bPollRead(false)

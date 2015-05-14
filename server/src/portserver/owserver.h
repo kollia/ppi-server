@@ -75,7 +75,8 @@ namespace server
 		 * @param type type of server
 		 * @param accessPattern pattern to access on the device
 		 */
-		OWServer(const unsigned short ID, const string& type, IChipAccessPattern* accessPattern);
+		OWServer(const unsigned short ID, const string& type,
+						SHAREDPTR::shared_ptr<IChipAccessPattern> accessPattern);
 		/**
 		 * server description for external library port reader
 		 *
@@ -421,7 +422,7 @@ namespace server
 		/**
 		 * access pattern interface to extern chip
 		 */
-		auto_ptr<IChipAccessPattern> m_poChipAccess;
+		SHAREDPTR::shared_ptr<IChipAccessPattern> m_poChipAccess;
 		/**
 		 * whether owreader should read any chip from m_vkernelR;
 		 */

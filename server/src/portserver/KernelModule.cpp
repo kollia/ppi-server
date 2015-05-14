@@ -15,7 +15,7 @@ namespace server {
 
 	using namespace ppi_database;
 
-	KernelModule::KernelModule(const string& servertype, IChipAccessPattern* chipaccess,
+	KernelModule::KernelModule(const string& servertype, SHAREDPTR::shared_ptr<IChipAccessPattern> chipaccess,
 			pthread_mutex_t* readcache, pthread_cond_t* prioritycond)
 	:	Thread("KernelModule"),
 		m_sServerType(servertype),
