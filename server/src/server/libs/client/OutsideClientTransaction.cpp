@@ -175,7 +175,7 @@ namespace server
 			m_bHold= true;//for new beginning
 			return false;
 		}// if(m_bHold)
-		return true;
+		return !m_pSocketError->hasError();
 	}
 
 	EHObj OutsideClientTransaction::init(IFileDescriptorPattern& descriptor)

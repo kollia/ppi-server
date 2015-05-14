@@ -93,6 +93,13 @@ namespace server
 			 */
 			OVERWRITE bool transfer(IFileDescriptorPattern& descriptor);
 			/**
+			 * return error / warning object
+			 *
+			 * @return error handling object
+			 */
+			virtual EHObj getErrorObj() const
+			{ return m_pSocketError; };
+			/**
 			 * destructor of client transaction
 			 */
 			virtual ~OutsideClientTransaction() {};

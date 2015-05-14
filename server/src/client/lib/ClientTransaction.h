@@ -72,6 +72,13 @@ namespace server
 			 */
 			OVERWRITE EHObj init(IFileDescriptorPattern& descriptor);
 			/**
+			 * return error / warning object
+			 *
+			 * @return error handling object
+			 */
+			virtual EHObj getErrorObj() const
+			{ return m_pError; };
+			/**
 			 * transaction protocol between client to server
 			 *
 			 * @param descriptor file handle to get command's and send answer
@@ -286,6 +293,12 @@ namespace server
 			 * destructor of server transaction
 			 */
 			virtual ~ClientTransaction();
+
+		protected:
+			/**
+			 * error handling object
+			 */
+			EHObj m_pError;
 
 		private:
 			typedef map<ppi_time,

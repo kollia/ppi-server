@@ -72,7 +72,8 @@ using namespace boost;
 namespace server
 {
 	ServerTransaction::ServerTransaction(const uid_t uid)
-	:	m_uid(uid),
+	:	m_pSocketError(EHObj(new SocketErrorHandling)),
+	 	m_uid(uid),
 	 	m_bFinished(false),
 	 	m_bStopServer(false),
 	 	m_fProtocol(0)
@@ -83,8 +84,6 @@ namespace server
 
 	EHObj ServerTransaction::init(IFileDescriptorPattern& descriptor)
 	{
-		EHObj errHandle(EHObj(new SocketErrorHandling));
-
 		descriptor.setString("username", "");
 		descriptor.setBoolean("speaker", false);
 		descriptor.setBoolean("access", false);
@@ -94,7 +93,7 @@ namespace server
 		descriptor.setBoolean("nextconnection", true);
 		descriptor.setBoolean("finishedloading", false);
 		descriptor.setBoolean("debugsession", false);
-		return errHandle;
+		return m_pSocketError;
 	}
 
 	bool ServerTransaction::transfer(IFileDescriptorPattern& descriptor)

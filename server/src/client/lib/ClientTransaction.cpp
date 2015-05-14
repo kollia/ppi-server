@@ -62,7 +62,9 @@ using namespace boost;
 namespace server
 {
 	ClientTransaction::ClientTransaction(vector<string> options, string command)
-	: /*m_mOwDevices(),*/ m_mOwMaxTime(), m_mOwMaxCount()
+	: m_pError(EHObj(new ErrorHandling)),
+	  m_mOwMaxTime(),
+	  m_mOwMaxCount()
 	{
 		m_bConnected= false;
 		m_bErrWritten= false;
@@ -84,7 +86,6 @@ namespace server
 
 	EHObj ClientTransaction::init(IFileDescriptorPattern& descriptor)
 	{
-		EHObj errHandle(EHObj(new ErrorHandling));
 		short x= 0;
 		/**
 		 * unique ID get from server
@@ -255,9 +256,9 @@ namespace server
 		result == ""	)
 	{
 		m_bErrWritten= true;
-		errHandle->setError("ClientTransaction", "get_result");
-		cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
-		return errHandle;
+		m_pError->setError("ClientTransaction", "get_result");
+		cerr << glob::addPrefix("ERROR: ", m_pError->getDescription()) << endl;
+		return m_pError;
 	}
 		if(!bRightServer)
 		{
@@ -265,8 +266,8 @@ namespace server
 			ostringstream decl;
 
 			decl << descriptor.getHostAddressName() << "@" << descriptor.getPort();
-			errHandle->setErrorStr(result);
-			if(!errHandle->fail())
+			m_pError->setErrorStr(result);
+			if(!m_pError->fail())
 			{
 				if(result.length() > 20)
 					result= result.substr(0, 20) + " ...";
@@ -274,17 +275,17 @@ namespace server
 				if(nPos != string::npos)
 					result= result.substr(0, nPos-1) + " ...";
 				decl << "@" << result;
-				errHandle->setError("ClientTransaction", "undefined_server", decl.str());
+				m_pError->setError("ClientTransaction", "undefined_server", decl.str());
 			}else
 			{
-				errHandle->addMessage("ClientTransaction", "client_send", decl.str());
+				m_pError->addMessage("ClientTransaction", "client_send", decl.str());
 			}
-			if(errHandle->hasError())
-				cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
+			if(m_pError->hasError())
+				cerr << glob::addPrefix("ERROR: ", m_pError->getDescription()) << endl;
 			else
-				std::cout << glob::addPrefix("WARNING: ", errHandle->getDescription()) << endl;
+				std::cout << glob::addPrefix("WARNING: ", m_pError->getDescription()) << endl;
 			m_bErrWritten= true;
-			return errHandle;
+			return m_pError;
 		}
 
 		if(bStatus)
@@ -307,9 +308,9 @@ namespace server
 			}
 			if(!compareUserPassword(descriptor, user, pwd))
 			{
-				errHandle->setError("ClientTransaction", "user_password_error");
-				errHandle->addMessage("ClientTransaction", "get_result");
-				return errHandle;
+				m_pError->setError("ClientTransaction", "user_password_error");
+				m_pError->addMessage("ClientTransaction", "get_result");
+				return m_pError;
 			}
 		}
 		if(bSecConn)
@@ -320,10 +321,10 @@ namespace server
 							sCommID, user, pwd, this, m_bOwDebug);
 			m_oHearObj= SHAREDPTR::shared_ptr<IHearingThreadPattern>(pThread);
 			m_o2Client= m_oHearObj;
-			(*errHandle)= pThread->start();
+			(*m_pError)= pThread->start();
 		}
 		if(	!m_bHearing &&
-			!errHandle->hasError()	)
+			!m_pError->hasError()	)
 		{
 			// helping commands
 			command("?");
@@ -401,7 +402,7 @@ namespace server
 			command("STOPDEBUG #folderSub");
 			command("STOPDEBUG -ow #string");
 		}
-		return errHandle;
+		return m_pError;
 	}
 
 	void ClientTransaction::command(string command)
@@ -1515,11 +1516,10 @@ namespace server
 				if(count > 1000)
 				{
 					ostringstream errmsg;
-					ErrorHandling errHandle;
 
-					errHandle.setErrnoError("ClientTransaction", "tcgetattr", ENOTTY);/* Not a typewriter */
+					m_pError->setErrnoError("ClientTransaction", "tcgetattr", ENOTTY);/* Not a typewriter */
 					errmsg << "getline() " << __FILE__ << "  line " << __LINE__ << endl;
-					errmsg << errHandle.getDescription();
+					errmsg << m_pError->getDescription();
 					if(m_bScriptState)
 					{
 						errmsg << endl << endl;
@@ -1776,14 +1776,12 @@ namespace server
 
 	bool ClientTransaction::tcsetattr(int action, const struct termios *termiosp)
 	{
-		EHObj errHandle(EHObj(new ErrorHandling));
-
 		if(!m_bCorrectTC)
 			return false;
 		if((::tcsetattr(STDIN_FILENO, action, termiosp)) < 0)
 		{
-			errHandle->setErrnoError("ClientTransaction", "tcsetattr", errno);
-			cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
+			m_pError->setErrnoError("ClientTransaction", "tcsetattr", errno);
+			cerr << glob::addPrefix("ERROR: ", m_pError->getDescription()) << endl;
 			m_bErrWritten= true;
 			correctTC(false);
 			return false;
@@ -1800,7 +1798,6 @@ namespace server
 
 	void ClientTransaction::readTcBackup()
 	{
-		EHObj errHandle(EHObj(new ErrorHandling));
 		int nErrno(0);
 
 		m_bScriptState= false;
@@ -1810,8 +1807,8 @@ namespace server
 			correctTC(false);
 			if(nErrno != ENOTTY)/* Not a typewriter */
 			{
-				errHandle->setErrnoError("ClientTransaction", "tcgetattr", nErrno);
-				cerr << glob::addPrefix("ERROR: ", errHandle->getDescription()) << endl;
+				m_pError->setErrnoError("ClientTransaction", "tcgetattr", nErrno);
+				cerr << glob::addPrefix("ERROR: ", m_pError->getDescription()) << endl;
 				m_bErrWritten= true;
 			}else
 				m_bScriptState= true;
@@ -5154,7 +5151,6 @@ namespace server
 	{
 		int c;
 		struct termios term;
-		EHObj errHandle(EHObj(new ErrorHandling));
 		string sSendbuf, result;
 
 		term= m_tTermiosBackup;
@@ -5209,32 +5205,32 @@ namespace server
 		descriptor.flush();
 		descriptor >> result;
 		trim(result);
-		errHandle->setErrorStr(result);
-		if(	errHandle->fail() ||
+		m_pError->setErrorStr(result);
+		if(	m_pError->fail() ||
 			result.substr(0, 6) == "ERROR " ||
 			result.substr(0, 8) == "WARNING "	)
 		{
 			string prefix;
 			string errmsg;
 
-			errHandle->addMessage("ClientTransaction", "get_result");
+			m_pError->addMessage("ClientTransaction", "get_result");
 			m_bErrWritten= true;
-			if(	errHandle->hasError() ||
+			if(	m_pError->hasError() ||
 				result.substr(0, 6) == "ERROR "	)
 			{
 				prefix= "ERROR: ";
 			}else
 				prefix= "WARNING: ";
-			if(errHandle->fail())
-				errmsg= errHandle->getDescription();
+			if(m_pError->fail())
+				errmsg= m_pError->getDescription();
 			else
 				errmsg= getError(descriptor, result);
 			cerr << glob::addPrefix(prefix, errmsg) << endl;
-			if(	errHandle->hasError() ||
+			if(	m_pError->hasError() ||
 				result.substr(0, 6) == "ERROR "	)
 			{
-				if(!errHandle->hasError())
-					errHandle->setError("ClientTransaction", "user_password_error");
+				if(!m_pError->hasError())
+					m_pError->setError("ClientTransaction", "user_password_error");
 				return false;
 			}
 		}

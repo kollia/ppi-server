@@ -51,6 +51,12 @@ namespace design_pattern_world
 				 */
 				virtual bool transfer(IFileDescriptorPattern& descriptor)= 0;
 				/**
+				 * return error / warning object
+				 *
+				 * @return error handling object
+				 */
+				virtual EHObj getErrorObj() const= 0;
+				/**
 				 * returning name of transaction
 				 *
 				 * @param descriptor file handle to get variables

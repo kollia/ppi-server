@@ -109,7 +109,7 @@ namespace server
 			cout << out.str();
 		}
 #endif // debug
-		if(descriptor.eof())
+		if(descriptor.fail())
 		{
 			unsigned int ID;
 			int log;
@@ -126,7 +126,7 @@ namespace server
 			//cout << " loose access to server " << descriptor.getServerObject()->getName() << endl;
 			decl << descriptor.getServerObject()->getName() << "@" << ID;
 			decl << "@" << client << "@" << process;
-			if(!descriptor.fail())
+			if(descriptor.eof())
 			{
 				decl << "@" << input;
 				m_pSockError->setWarning("ServerMethodTransaction", "stream_end", decl.str());
@@ -145,16 +145,14 @@ namespace server
 				}
 			}
 			LOG(log, m_pSockError->getDescription() + "\n -> so close connection");
-			m_pSockError->clear();
 #ifdef ALLOCATEONMETHODSERVER
-			msg << endl;
 			if(	string(ALLOCATEONMETHODSERVER) == "" ||
 				descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
 			{
-				cerr << "connection to server " << descriptor.getServerObject()->getName() << endl;
-				cerr << msg.str();
+				cerr << m_pSockError->getDescription() << endl;
 			}
 #endif // ALLOCATEONMETHODSERVER
+			m_pSockError->clear();
 			descriptor.setBoolean("access", false);
 			oInit.createSyncID();
 			answer= descriptor.sendToOtherClient(client, oInit, true, "");

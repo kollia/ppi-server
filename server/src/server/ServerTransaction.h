@@ -48,6 +48,13 @@ namespace server
 			 */
 			virtual EHObj init(IFileDescriptorPattern& descriptor);
 			/**
+			 * return error / warning object
+			 *
+			 * @return error handling object
+			 */
+			virtual EHObj getErrorObj() const
+			{ return m_pSocketError; };
+			/**
 			 * transaction protocol between Server and Client<br /><br />
 			 * <table>
 			 *   <tr>
@@ -290,6 +297,12 @@ namespace server
 			 * destructor of server transaction
 			 */
 			virtual ~ServerTransaction();
+
+		protected:
+			/**
+			 * socket error handling
+			 */
+			EHObj m_pSocketError;
 
 		private:
 			/**

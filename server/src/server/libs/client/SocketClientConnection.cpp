@@ -82,8 +82,10 @@ namespace server
 				hold= m_pDescriptor->transfer();
 				if(!hold)
 				{
-					m_pSocketError->setWarning("SocketClientConnection", "transfer",
-								m_pDescriptor->getHostAddressName());
+					m_pSocketError= m_pDescriptor->getErrorObj();
+					if(m_pSocketError->fail())
+						m_pSocketError->addMessage("SocketClientConnection",
+										"transfer", m_pDescriptor->getHostAddressName());
 					close();
 				}
 				return m_pSocketError;
@@ -244,8 +246,12 @@ namespace server
 			bool hold;
 
 			hold= m_pDescriptor->transfer();
+			if(!hold)
+				m_pSocketError= m_pDescriptor->getErrorObj();
 			if(m_pSocketError->hasError())
 			{
+				m_pSocketError->addMessage("SocketClientConnection", "transfer",
+								m_pDescriptor->getHostAddressName());
 				close();
 				return false;
 			}

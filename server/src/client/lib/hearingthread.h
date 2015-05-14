@@ -71,6 +71,13 @@ namespace server
 		 */
 		OVERWRITE EHObj init(void *args);
 		/**
+		 * return error / warning object
+		 *
+		 * @return error handling object
+		 */
+		virtual EHObj getErrorObj() const
+		{ return m_pError; };
+		/**
 		 * This method starting again when ending with code 0 or lower for warnings
 		 * and if the method stop() isn't called.
 		 *

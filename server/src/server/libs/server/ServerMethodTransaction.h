@@ -218,6 +218,13 @@ namespace server
 			 */
 			OVERWRITE EHObj init(IFileDescriptorPattern& descriptor);
 			/**
+			 * return error / warning object
+			 *
+			 * @return error handling object
+			 */
+			virtual EHObj getErrorObj() const
+			{ return m_pSockError; };
+			/**
 			 * method transaction protocol between Server and Client
 			 *
 			 * @param descriptor file handle to get command's and send answer
