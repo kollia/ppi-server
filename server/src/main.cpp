@@ -461,6 +461,7 @@ void tests(const string& workdir, int argc, char* argv[])
 
 	    if (argc == 2)
 	    {
+	    	glob::setSignals("ppi-server");
 	    	command= argv[1];
 	    	if(command == "client")
 	    	{
@@ -478,8 +479,8 @@ void tests(const string& workdir, int argc, char* argv[])
 	    			(*descriptor) << "Hallo Du\nWie geht es Dir\nden";
 	    			cout << "client send: \" heute?\\n\"" << endl;
 	    			(*descriptor) << " heute?";
-	    			descriptor->endl();
-	    			descriptor->flush();
+	    			//descriptor->endl();
+	    			//descriptor->flush();
 	    			if(!descriptor->eof())
 	    			{
 						(*descriptor) >> value;
