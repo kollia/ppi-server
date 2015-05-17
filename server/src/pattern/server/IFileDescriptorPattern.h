@@ -25,13 +25,6 @@
 
 #include "../util/IErrorHandlingPattern.h"
 
-/**
- * make debug check for
- * last writing and reading
- * when definition is 1
- */
-#define __DEBUGLASTREADWRITECHECK 0
-
 using namespace std;
 using namespace util;
 

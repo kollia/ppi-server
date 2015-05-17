@@ -44,6 +44,8 @@ void SocketErrorHandling::createMessages()
 					"by trying to connect while @1 seconds on server host '@2' port @3 follow error occurred:");
 	setDescription("en", "SocketClientConnection", "fdopen",
 					"cannot open descriptor to write/read on host '@1' with port @2 by follow error:");
+	setDescription("en", "SocketClientConnection", "noDescriptor",
+					"no descriptor was created, use first method init()");
 
 	setDescription("en", "SocketConnection", "reuse",
 					"cannot set socket option to reuse on host '@1' and port @2 to check always to be alive");
@@ -57,13 +59,17 @@ void SocketErrorHandling::createMessages()
 					"cannot open descriptor to write/read on host '@1' with port @2 by follow error:");
 
 	setDescription("en", "FileDescription", "write",
+					"by writing over host '@1:@2'");
+	setDescription("en", "FileDescription", "transWrite",
 					"by writing to host '@1:@2' over transaction '@3'");
 	setDescription("en", "FileDescription", "read",
+					"by reading from host '@1:@2'");
+	setDescription("en", "FileDescription", "transRead",
 					"by reading from host '@1:@2' over transaction '@3'");
-	setDescription("en", "FileDescriptor", "nullString",
-					"reading from connection @1:@2 over '@3' get an null string");
 	setDescription("en", "FileDescriptor", "noConnect",
-					"connection @1:@2 over '@3' was closed or is refused");
+					"connection from host @1:@2 was closed or is refused");
+	setDescription("en", "FileDescriptor", "transNoConnect",
+					"connection from host @1:@2 over transaction '@3' was closed or is refused");
 	setDescription("en", "FileDescriptor", "noHearingClient",
 					"do not find any hearing client of @1");
 

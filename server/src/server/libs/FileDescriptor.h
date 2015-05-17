@@ -24,6 +24,13 @@
 #include "../../pattern/util/IErrorHandlingPattern.h"
 #include "../../pattern/server/IFileDescriptorPattern.h"
 
+/**
+ * make debug check for
+ * last writing and reading
+ * when definition is 1
+ */
+#define __DEBUGLASTREADWRITECHECK 0
+
 #include "../../util/smart_ptr.h"
 #include "../../util/thread/Thread.h"
 #include "../../util/stream/IMethodStringStream.h"
@@ -49,6 +56,17 @@ namespace server
 	class FileDescriptor : public IFileDescriptorPattern
 	{
 		public:
+#if (__DEBUGLASTREADWRITECHECK)
+		/**
+		 * structure of last reading and writing content
+		 */
+		struct lastReadWrite_t
+		{
+			deque<pair<ppi_time, string> > lastRead;
+			deque<pair<ppi_time, string> > lastWrite;
+		};
+#endif // __DEBUGLASTREADWRITECHECK
+
 			/**
 			 * stadard constructor to forwarding
 			 */
@@ -70,6 +88,17 @@ namespace server
 			:	m_nTimeout(timeout),
 			 	m_bAutoSending(true)
 			{ initial(server, transfer, file, address, port); };
+#if (__DEBUGLASTREADWRITECHECK)
+			/**
+			 * define last writing for signal SIGHUP
+			 */
+			static void setWriting(const string& write);
+			/**
+			 * define last reading for signal SIGHUP
+			 */
+			static void setReading(const string& read);
+#endif // __DEBUGLASTREADWRITECHECK
+
 			/**
 			 * initial ITransferPattern with this FileDescriptor
 			 *
@@ -408,6 +437,24 @@ namespace server
 			 */
 			virtual ~FileDescriptor();
 
+		protected:
+			/**
+			 * returning name of transaction.<br />
+			 * Method is not thread save.
+			 *
+			 * @return name
+			 */
+			string getITransactionName() const;
+			/**
+			 * unlock THREADSAVEMETHODS when own thread has locked.
+			 * this will be done because operator of shifting in ('<<')
+			 * and out ('>>') can be done also from outside
+			 * with no transfer object set
+			 *
+			 * @return whether lock was set from own thread
+			 */
+			bool unlockTHREADSAVEMETHODS(const string& file, int line);
+
 		private:
 			/**
 			 * mutex lock handle for changing or reading connection ID
@@ -422,6 +469,12 @@ namespace server
 			 */
 			pthread_mutex_t *m_THREADSAVEMETHODS;
 			/**
+			 * mutex lock for knowing
+			 * which thread locking currently
+			 * lock of THREADSAVEMETHODS
+			 */
+			pthread_mutex_t *m_LOCKSM;
+			/**
 			 * condition handle to wait for answer while was sending an string from an other client
 			 */
 			pthread_cond_t *m_SENDSTRINGCONDITION;
@@ -429,6 +482,12 @@ namespace server
 			 * condition handle to wait for an string from an other client
 			 */
 			pthread_cond_t *m_GETSTRINGCONDITION;
+
+			/**
+			 * which thread locking currently
+			 * THREADSAVEMETHODS
+			 */
+			mutable pid_t m_nLockSM;
 			/**
 			 * transaction from server to client or backward
 			 */
@@ -564,21 +623,10 @@ namespace server
 			string m_sSendString;
 #if (__DEBUGLASTREADWRITECHECK)
 			/**
-			 * definition of last reading
-			 * from socket
+			 * mutex lock to write last reading or writing
+			 * from FileDescriptor
 			 */
-			string m_sLastRead;
-			//string m_sLastReadCommand;
-			//ppi_time m_tLastRead;
-			string m_sReadLengths;
-			/**
-			 * definition of last writing
-			 * on socket
-			 */
-			string m_sLastWrite;
-			//string m_sLastWriteCommand;
-			//ppi_time m_tLastWrite;
-			string m_sWriteLengths;
+			static pthread_mutex_t* m_SIGNALLOCK;
 #endif //__DEBUGLASTREADWRITECHECK
 
 			/**
@@ -607,9 +655,23 @@ namespace server
 			 * @param endString if sending client want an array, this is the last string for ending
 			 * @return answer from client
 			 */
-			virtual vector<string> sendString(const IMethodStringStream& str, const bool& wait, const string& endString);
+			virtual vector<string> sendString(const IMethodStringStream& str,
+							const bool& wait, const string& endString);
+#if (__DEBUGLASTREADWRITECHECK)
+			/**
+			 * map of last writing and reading content
+			 * sorted by thread ID
+			 */
+			static map<pid_t, lastReadWrite_t> m_mLastReadWrite;
+			/**
+			 * signal converting for SIGHUP
+			 */
+			static void SIGHUPconverting(int nSignal);
+#endif // __DEBUGLASTREADWRITECHECK
 	};
 
 }
+
+#define UNLOCK_THREADSAVEMETHODS() unlockTHREADSAVEMETHODS(__FILE__, __LINE__)
 
 #endif /*FILEDESCRIPTOR_H_*/

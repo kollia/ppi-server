@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
+#include <csignal>
 
 #include <iostream>
 #include <utility>
@@ -42,6 +43,12 @@ using namespace boost;
 
 namespace server
 {
+#if (__DEBUGLASTREADWRITECHECK)
+	pthread_mutex_t* FileDescriptor::m_SIGNALLOCK= Thread::getMutex("SIGNALLOCK");
+	map<pid_t, FileDescriptor::lastReadWrite_t> FileDescriptor::m_mLastReadWrite=
+					map<pid_t, FileDescriptor::lastReadWrite_t>();
+#endif // __DEBUGLASTREADWRITECHECK
+
 	void FileDescriptor::initial(IServerPattern* server, ITransferPattern* transfer, int file, string address,
 			const unsigned short port)
 	{
@@ -53,23 +60,92 @@ namespace server
 		m_sAddress= address;
 		m_nPort= port;
 		m_nFd= file;
+		m_nLockSM= 0;
 		m_CONNECTIONIDACCESS= Thread::getMutex("CONNECTIONIDACCESS");
 		m_SENDSTRING= Thread::getMutex("SENDSTRING");
 		m_THREADSAVEMETHODS= Thread::getMutex("THREADSAVEMETHODS");
+		m_LOCKSM= Thread::getMutex("LOCKSM");
 		m_SENDSTRINGCONDITION= Thread::getCondition("SENDSTRINGCONDITION");
 		m_GETSTRINGCONDITION= Thread::getCondition("GETSTRINGCONDITION");
+
+#if (__DEBUGLASTREADWRITECHECK)
+		if(signal(SIGHUP, SIGHUPconverting) == SIG_ERR)
+			glob::printSigError("SIGHUP", "SocketClientConnection");
+#endif // __DEBUGLASTREADWRITECHECK
 	}
+
+#if (__DEBUGLASTREADWRITECHECK)
+	void FileDescriptor::SIGHUPconverting(int signal)
+	{
+		ostringstream output;
+		pid_t id(Thread::gettid());
+
+		/*
+		 * signal should be always SIGHUP
+		 */
+		output << "----------------------------------------------------------------------------" << std::endl;
+		output << " thread [" << id << "]" << std::endl;
+		LOCK(m_SIGNALLOCK);
+		for(deque<pair<ppi_time, string> >::iterator it= m_mLastReadWrite[id].lastRead.begin();
+						it != m_mLastReadWrite[id].lastRead.end(); ++it			)
+		{
+			output << "last read " << it->first.toString(/*date*/true) << ":" << std::endl;
+			output << ">>'" << it->second << "'<<" << std::endl;
+		}
+		for(deque<pair<ppi_time, string> >::iterator it= m_mLastReadWrite[id].lastWrite.begin();
+						it != m_mLastReadWrite[id].lastWrite.end(); ++it			)
+		{
+			output << "last write " << it->first.toString(/*date*/true) << ":" << std::endl;
+			output << ">>'" << it->second << "'<<" << std::endl;
+		}
+		UNLOCK(m_SIGNALLOCK);
+		output << "----------------------------------------------------------------------------" << std::endl;
+		cout << output.str();
+	}
+
+	void FileDescriptor::setWriting(const string& write)
+	{
+		pid_t id(Thread::gettid());
+		ppi_time tm;
+
+		tm.setActTime();
+		LOCK(m_SIGNALLOCK);
+		m_mLastReadWrite[id].lastWrite.push_back(pair<ppi_time, string>(tm, write));
+		if(m_mLastReadWrite[id].lastWrite.size() > 3)
+			m_mLastReadWrite[id].lastWrite.pop_front();
+		UNLOCK(m_SIGNALLOCK);
+	}
+
+	void FileDescriptor::setReading(const string& read)
+	{
+		pid_t id(Thread::gettid());
+		ppi_time tm;
+
+		tm.setActTime();
+		LOCK(m_SIGNALLOCK);
+		m_mLastReadWrite[id].lastRead.push_back(pair<ppi_time, string>(tm, read));
+		if(m_mLastReadWrite[id].lastRead.size() > 10)
+			m_mLastReadWrite[id].lastRead.pop_front();
+		UNLOCK(m_SIGNALLOCK);
+	}
+#endif // __DEBUGLASTREADWRITECHECK
 
 	EHObj FileDescriptor::init()
 	{
 		EHObj pRv(new SocketErrorHandling);
 
 		LOCK(m_THREADSAVEMETHODS);
+		LOCK(m_LOCKSM);
+		m_nLockSM= Thread::gettid();
+		UNLOCK(m_LOCKSM);
 		if(m_pTransfer)
 		{
 			m_oSocketError= m_pTransfer->init(*this);
 			(*pRv)= m_oSocketError;
 		}
+		LOCK(m_LOCKSM);
+		m_nLockSM= 0;
+		UNLOCK(m_LOCKSM);
 		UNLOCK(m_THREADSAVEMETHODS);
 		return pRv;
 	}
@@ -82,23 +158,57 @@ namespace server
 		return pRv;
 	}
 
+	bool FileDescriptor::unlockTHREADSAVEMETHODS(const string& file, int line)
+	{
+		bool locked;
+		bool ownLock;
+
+		if(Thread::mutex_trylock(file, line, m_THREADSAVEMETHODS) == EBUSY)
+		{
+			/*
+			 * lock for THREADSAVEMETHODS is set
+			 * so check no whether own thread
+			 * has it locked
+			 */
+			Thread::mutex_lock(file, line, m_LOCKSM);
+			if(m_nLockSM == Thread::gettid())
+			{
+				locked= true;
+				ownLock= true;
+			}else
+			{
+				locked= false;
+				ownLock= false;
+			}
+			Thread::mutex_unlock(file, line, m_LOCKSM);
+		}else
+		{
+			/*
+			 * lock done from own thread,
+			 * so lock wasn't set
+			 */
+			ownLock= true;
+			locked= false;
+		}
+		if(ownLock)
+		{
+			Thread::mutex_lock(file, line, m_LOCKSM);
+			m_nLockSM= 0;
+			Thread::mutex_unlock(file, line, m_LOCKSM);
+			Thread::mutex_unlock(file, line, m_THREADSAVEMETHODS);
+		}
+		return locked;
+	}
+
 	void FileDescriptor::operator >> (string &reader)
 	{
-		bool locked(true);
+		bool locked;
 		ssize_t getLen(0);
 		char buf[1026];
 		//char buf[4];
 		string::size_type endPos;
 		string::size_type bufLen(sizeof(buf)-2);
 		string sread;
-		//string process;
-#if (__DEBUGLASTREADWRITECHECK)
-//		bool bbool, first(true);
-		string sbuf;
-		ostringstream lengths;
-
-		m_sReadLengths= "";
-#endif // __DEBUGLASTREADWRITECHECK
 
 		if(bufLen > SSIZE_MAX)
 			bufLen= SSIZE_MAX;
@@ -121,9 +231,7 @@ namespace server
 			return;
 		}
 
-		if(TRYLOCK(m_THREADSAVEMETHODS) == 0)
-			locked= false;// lock done, so lock wasn't set
-		UNLOCK(m_THREADSAVEMETHODS);
+		locked= UNLOCK_THREADSAVEMETHODS();
 		do{
 			if(getLen <= 0)
 			{// otherwise an string was reading before
@@ -133,59 +241,43 @@ namespace server
 					buf[getLen]= '\0';
 					sread= buf;
 #if (__DEBUGLASTREADWRITECHECK)
-			/*		m_tLastRead.setActTime();
-					if(first)
-					{
-						istringstream stream(sread);
-
-						m_sLastReadCommand= "";
-						stream >> sbuf;// to process
-						if(!stream.fail())
-						{
-							stream >> std::boolalpha >> bbool;// need answer
-							if(!stream.fail())
-							{
-								stream >> std::boolalpha >> bbool;// more than one rows
-								if(!stream.fail() && bbool)
-									stream >> sbuf;// end command of more rows
-								if(!stream.fail())
-									stream >> m_sLastReadCommand;
-							}
-						}
-						first= false;
-					}*/
-					lengths.str("");
-					lengths << getLen << ", ";
-					m_sReadLengths+= lengths.str();
-					if(sread.length() > 25)
-					{
-						m_sLastRead= sread.substr(0, 5);
-						m_sLastRead+= " < ... > ";
-						m_sLastRead+= sread.substr(sread.length() - 20);
-					}else
-						m_sLastRead= sread;
+					setReading(sread);
 #endif //__DEBUGLASTREADWRITECHECK
 
 				}else
 				{
 					int nErrno(errno);
+					string errStr;
 					ostringstream decl;
 
 					decl << getHostAddressName() << "@";
-					decl << getPort() << "@";
-					decl << getTransactionName();
-					if(getLen < 0)
+					decl << getPort();
+					if(m_pTransfer)
+						decl << "@" << getTransactionName();
+					if(	getLen < 0 ||
+						nErrno != 0	)
 					{
 						if(	nErrno != EAGAIN &&
 							nErrno != EWOULDBLOCK	)
 						{
-							m_oSocketError.setAddrError("FileDescriptor", "read", 0,
+							if(m_pTransfer)
+								errStr= "transRead";
+							else
+								errStr= "read";
+							m_oSocketError.setAddrError("FileDescriptor", errStr, 0,
 											nErrno, decl.str());
 						}
 					}else
 					{// get null string, connection is broken
-						m_oSocketError.setError("FileDescriptor", "noConnect", decl.str());
+						if(m_pTransfer)
+							errStr= "transNoConnect";
+						else
+							errStr= "noConnect";
+						m_oSocketError.setError("FileDescriptor", errStr, decl.str());
 					}
+#if (__DEBUGLASTREADWRITECHECK)
+					setReading(string("error reading:: ")+m_oSocketError.getDescription());
+#endif //__DEBUGLASTREADWRITECHECK
 					sread= "";
 					if(	getLen == 0 ||
 						(	nErrno != EAGAIN &&
@@ -194,6 +286,9 @@ namespace server
 						if(locked)
 						{
 							LOCK(m_THREADSAVEMETHODS);
+							LOCK(m_LOCKSM);
+							m_nLockSM= Thread::gettid();
+							UNLOCK(m_LOCKSM);
 							locked= false;
 						}
 						//if(m_mLastRead[process] != "")
@@ -215,38 +310,13 @@ namespace server
 				if(locked)
 				{
 					LOCK(m_THREADSAVEMETHODS);
+					LOCK(m_LOCKSM);
+					m_nLockSM= Thread::gettid();
+					UNLOCK(m_LOCKSM);
 					locked= false;
 				}
 				reader+= sread.substr(0, endPos + 1);
-				//m_mLastRead[process]= sread.substr(endPos + 1);
 				m_mLastRead= sread.substr(endPos + 1);
-#if 0
-				ostringstream sout;
-				ostringstream thread;
-				size_t readerLen(reader.length());
-
-				if(glob::getProcessName() != "ppi-client")
-				{
-					thread << "[" << glob::getProcessName() << " ("<< Thread::gettid() << ")] ";
-					sout << "FileDescriptor cutting string of length " << reader.length() << " --\n";
-					sout << "from |" + reader.substr(0, 10);
-					if(readerLen > 10)
-					{
-						sout << " -- to -- ";
-						if((readerLen - 10) > 10)
-							sout << reader.substr(reader.length() - 10);
-						else
-							sout << reader.substr(10);
-					}
-					sout << "|cut by|" + m_mLastRead[process].substr(0, 10) + " ...\n";
-					if(endPos > 10)
-						endPos-= 10;
-					else
-						endPos= 0;
-					sout << " original ... " + sread.substr(endPos, 20) + " ...\n";
-					std::cout << glob::addPrefix(thread.str(), sout.str());
-				}
-#endif
 			}else
 			{
 				reader+= sread;
@@ -256,7 +326,12 @@ namespace server
 
 		}while(endPos == string::npos && !fail());
 		if(locked)
+		{
 			LOCK(m_THREADSAVEMETHODS);
+			LOCK(m_LOCKSM);
+			m_nLockSM= Thread::gettid();
+			UNLOCK(m_LOCKSM);
+		}
 		if(	fail() &&
 			m_mLastRead != ""	)
 		{
@@ -290,13 +365,6 @@ namespace server
 	{
 		ssize_t writeLen;
 		string::size_type len;
-#if (__DEBUGLASTREADWRITECHECK)
-//		bool bbool, first(true);
-		string sbuf;
-		ostringstream lengths;
-
-		m_sWriteLengths= "";
-#endif // __DEBUGLASTREADWRITECHECK
 
 		if(eof())
 			return;
@@ -304,65 +372,48 @@ namespace server
 		{
 			len= m_sSendTransaction.length();
 			writeLen= write(m_nFd, m_sSendTransaction.c_str(), len);
-#if (__DEBUGLASTREADWRITECHECK)
-			string buf(m_sSendTransaction.substr(0, writeLen));
-
-	/*		m_tLastWrite.setActTime();
-			if(first)
-			{
-				istringstream stream(m_sSendTransaction);
-
-				m_sLastWriteCommand= "";
-				stream >> sbuf;// to process
-				if(!stream.fail())
-				{
-					stream >> std::boolalpha >> bbool;// need answer
-					if(!stream.fail())
-					{
-						stream >> std::boolalpha >> bbool;// more than one rows
-						if(!stream.fail() && bbool)
-							stream >> sbuf;// end command of more rows
-						if(!stream.fail())
-							stream >> m_sLastWriteCommand;
-					}
-				}
-				first= false;
-			}*/
-			lengths.str("");
-			lengths << writeLen << ":" << len << ", ";
-			m_sWriteLengths+= lengths.str();
-			if(writeLen > 0)
-			{
-				if(buf.length() > 25)
-				{
-					m_sLastWrite= buf.substr(0, 5);
-					m_sLastWrite+= " < ... > ";
-					m_sLastWrite+= buf.substr(buf.length() - 20);
-				}else
-					m_sLastWrite= buf;
-			}else
-			{
-				ostringstream out;
-
-				out << "error by length(" << writeLen << ") " << strerror(errno);
-				m_sLastWrite= out.str();
-			}
-#endif //__DEBUGLASTREADWRITECHECK
 			if(writeLen < 0)
 			{
 				ostringstream decl;
 
 				decl << getHostAddressName() << "@";
-				decl << getPort() << "@";
-				decl << getTransactionName();
-				m_oSocketError.setAddrError("FileDescriptor", "write", 0,
-								errno, decl.str());
+				decl << getPort();
+				if(m_pTransfer)
+				{
+					bool locked;
+
+					locked= UNLOCK_THREADSAVEMETHODS();
+					decl << "@" << getITransactionName();
+					m_oSocketError.setAddrError("FileDescriptor", "transWrite", 0,
+									errno, decl.str());
+					if(locked)
+					{
+						LOCK(m_THREADSAVEMETHODS);
+						LOCK(m_LOCKSM);
+						m_nLockSM= Thread::gettid();
+						UNLOCK(m_LOCKSM);
+					}
+				}else
+					m_oSocketError.setAddrError("FileDescriptor", "write", 0,
+									errno, decl.str());
+#if (__DEBUGLASTREADWRITECHECK)
+				setWriting(string("writing ERROR:: ")+m_oSocketError.getDescription());
+#endif //__DEBUGLASTREADWRITECHECK
 				break;
 
-			}else if(static_cast<size_t>(writeLen) < len)
-				m_sSendTransaction= m_sSendTransaction.substr(writeLen);
-			else
-				m_sSendTransaction= "";
+			}else
+			{
+#if (__DEBUGLASTREADWRITECHECK)
+				if(writeLen == 0)
+					setWriting(string("write 0 should:: ")+m_sSendTransaction);
+				else
+					setWriting(m_sSendTransaction.substr(0, writeLen));
+#endif //__DEBUGLASTREADWRITECHECK
+				if(static_cast<size_t>(writeLen) < len)
+					m_sSendTransaction= m_sSendTransaction.substr(writeLen);
+				else
+					m_sSendTransaction= "";
+			}
 		}
 	}
 
@@ -573,6 +624,9 @@ namespace server
 	{
 		vector<string> answer;
 
+		LOCK(m_LOCKSM);
+		m_nLockSM= 0;
+		UNLOCK(m_LOCKSM);
 		UNLOCK(m_THREADSAVEMETHODS);
 		m_pHearingClient= getOtherHearingClient(definition);
 		if(m_pHearingClient == NULL)
@@ -581,6 +635,9 @@ namespace server
 
 			errHandle.setError("FileDescriptor", "noHearingClient", definition);
 			LOCK(m_THREADSAVEMETHODS);
+			LOCK(m_LOCKSM);
+			m_nLockSM= Thread::gettid();
+			UNLOCK(m_LOCKSM);
 			answer.push_back(errHandle.getErrorStr());
 			return answer;
 		}
@@ -597,6 +654,9 @@ namespace server
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 		answer= m_pHearingClient->sendString(str, wait, endString);
 		LOCK(m_THREADSAVEMETHODS);
+		LOCK(m_LOCKSM);
+		m_nLockSM= Thread::gettid();
+		UNLOCK(m_LOCKSM);
 		return answer;
 	}
 
@@ -822,9 +882,15 @@ namespace server
 					UNLOCK(m_SENDSTRING);
 					return "";
 				}
+				LOCK(m_LOCKSM);
+				m_nLockSM= 0;
+				UNLOCK(m_LOCKSM);
 				UNLOCK(m_THREADSAVEMETHODS);
 				CONDITION(m_GETSTRINGCONDITION, m_SENDSTRING);
 				LOCK(m_THREADSAVEMETHODS);
+				LOCK(m_LOCKSM);
+				m_nLockSM= Thread::gettid();
+				UNLOCK(m_LOCKSM);
 			}
 		}
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
@@ -925,9 +991,26 @@ namespace server
 		bool bRv;
 
 		LOCK(m_THREADSAVEMETHODS);
+		LOCK(m_LOCKSM);
+		m_nLockSM= Thread::gettid();
+		UNLOCK(m_LOCKSM);
 		bRv= m_pTransfer->isClient(*this, definition);
+		LOCK(m_LOCKSM);
+		m_nLockSM= 0;
+		UNLOCK(m_LOCKSM);
 		UNLOCK(m_THREADSAVEMETHODS);
 		return bRv;
+	}
+
+	string FileDescriptor::getITransactionName() const
+	{
+		string name;
+
+		if(m_pTransfer)
+			name= m_pTransfer->getTransactionName(*this);
+		else
+			name= "[no transfer set for descriptor]";
+		return name;
 	}
 
 	string FileDescriptor::getTransactionName() const
@@ -935,10 +1018,13 @@ namespace server
 		string name;
 
 		LOCK(m_THREADSAVEMETHODS);
-		if(m_pTransfer)
-			name= m_pTransfer->getTransactionName(*this);
-		else
-			name= "[no transfer set for descriptor]";
+		LOCK(m_LOCKSM);
+		m_nLockSM= Thread::gettid();
+		UNLOCK(m_LOCKSM);
+		name= getITransactionName();
+		LOCK(m_LOCKSM);
+		m_nLockSM= 0;
+		UNLOCK(m_LOCKSM);
 		UNLOCK(m_THREADSAVEMETHODS);
 		return name;
 	}
@@ -948,10 +1034,18 @@ namespace server
 		bool bRv(true);
 
 		LOCK(m_THREADSAVEMETHODS);
+		LOCK(m_LOCKSM);
+		m_nLockSM= Thread::gettid();
+		UNLOCK(m_LOCKSM);
 		if(m_pTransfer)
+		{
 			bRv= m_pTransfer->transfer(*this);
-		if(!bRv)
-			m_oSocketError= m_pTransfer->getErrorObj();
+			if(!bRv)
+				m_oSocketError= m_pTransfer->getErrorObj();
+		}
+		LOCK(m_LOCKSM);
+		m_nLockSM= 0;
+		UNLOCK(m_LOCKSM);
 		UNLOCK(m_THREADSAVEMETHODS);
 		return bRv;
 	}
@@ -959,16 +1053,25 @@ namespace server
 	void FileDescriptor::closeConnection()
 	{
 		LOCK(m_THREADSAVEMETHODS);
+		LOCK(m_LOCKSM);
+		m_nLockSM= Thread::gettid();
+		UNLOCK(m_LOCKSM);
 		if(m_bFileAccess)
 		{
 			::close(m_nFd);
 			m_bFileAccess= false;
 			AROUSEALL(m_SENDSTRINGCONDITION);
 			AROUSEALL(m_GETSTRINGCONDITION);
+			LOCK(m_LOCKSM);
+			m_nLockSM= 0;
+			UNLOCK(m_LOCKSM);
 			UNLOCK(m_THREADSAVEMETHODS);
 			usleep(10000);	// to give foreign clients and own
 			return;			// an chance to ending correctly
 		}
+		LOCK(m_LOCKSM);
+		m_nLockSM= 0;
+		UNLOCK(m_LOCKSM);
 		UNLOCK(m_THREADSAVEMETHODS);
 	}
 
@@ -978,6 +1081,7 @@ namespace server
 		DESTROYMUTEX(m_SENDSTRING);
 		DESTROYMUTEX(m_CONNECTIONIDACCESS);
 		DESTROYMUTEX(m_THREADSAVEMETHODS);
+		DESTROYMUTEX(m_LOCKSM);
 		DESTROYCOND(m_SENDSTRINGCONDITION);
 		DESTROYCOND(m_GETSTRINGCONDITION);
 	}
