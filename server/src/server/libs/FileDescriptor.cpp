@@ -25,6 +25,8 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#include "../../pattern/util/LogHolderPattern.h"
+
 #include "../../pattern/server/ITransferPattern.h"
 #include "../../pattern/server/IClientHolderPattern.h"
 #include "../../pattern/server/IServerCommunicationStarterPattern.h"
@@ -594,10 +596,10 @@ namespace server
 		if(client == NULL)
 		{
 			time_t t, nt;
+			ostringstream allocateOutput;
 
-#ifdef ALLOCATEONMETHODSERVER
-			std::cout << "no client found for " << definition << " search again for " << m_nTimeout << " seconds " << std::endl;
-#endif // ALLOCATEONMETHODSERVER
+			allocateOutput << "no client found for " << definition
+							<< " search again for " << m_nTimeout << " seconds " << std::endl;
 			time(&nt);
 			time(&t);
 			while(	client == NULL
@@ -606,9 +608,13 @@ namespace server
 					&&
 					(t - nt) < (time_t)m_nTimeout	)
 			{
+				allocateOutput << "wait for client " << definition << " since "
+								<< (t - nt) << " seconds" << std::endl;
 #ifdef ALLOCATEONMETHODSERVER
-				std::cout << "wait for client " << definition << " since " << (t - nt) << " seconds" << std::endl;
+				cout << allocateOutput << std::endl;
 #endif // ALLOCATEONMETHODSERVER
+				LOG(LOG_DEBUG, allocateOutput.str());
+				allocateOutput.str("");
 				sleep(1);
 				client= starter->getClient(definition, this);
 				time(&t);

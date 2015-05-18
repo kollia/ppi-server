@@ -213,6 +213,7 @@ namespace server
 		{
 			bool access= true;
 			vector<string> SplitVec;
+			ostringstream allocateOutput;
 
 			if(client == "")
 				access= false;
@@ -267,20 +268,22 @@ namespace server
 			descriptor << "done\n";
 			descriptor.flush();
 			allocateConnection(descriptor);
+			allocateOutput << "connection to server " << descriptor.getServerObject()->getName() << endl;
+			allocateOutput << "[" << Thread::gettid() << "] allocate ";
+			if(descriptor.getBoolean("asker"))
+				allocateOutput << "sending ";
+			else
+				allocateOutput << "answer ";
+			allocateOutput << "conection " << descriptor.getClientID();
+			allocateOutput << " in " << descriptor.getServerObject()->getName();
+			allocateOutput << " from client " << descriptor.getString("client");
+			allocateOutput << " in process " << descriptor.getString("process");
+			LOG(LOG_DEBUG, allocateOutput.str());
 #ifdef ALLOCATEONMETHODSERVER
 			if(	string(ALLOCATEONMETHODSERVER) == "" ||
 				descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
 			{
-				cout << "connection to server " << descriptor.getServerObject()->getName() << endl;
-				cout << "allocate ";
-				if(descriptor.getBoolean("asker"))
-					cout << "sending ";
-				else
-					cout << "answer ";
-				cout << "conection " << descriptor.getClientID();
-				cout << " in " << descriptor.getServerObject()->getName();
-				cout << " from client " << descriptor.getString("client");
-				cout << " in process " << descriptor.getString("process") << endl;
+				cout << allocateOutput.str() << endl;
 			}
 #endif // ALLOCATEONMETHODSERVER
 			return true;
@@ -289,14 +292,18 @@ namespace server
 			&&
 			input == "ending"			)
 		{
+			ostringstream allocateOutput;
+
+			allocateOutput << "connection to server " << descriptor.getServerObject()->getName() << endl;
+			allocateOutput << "finish connection with ID " << descriptor.getClientID();
+			allocateOutput << "  from client " << descriptor.getString("client");
+			allocateOutput << " in process " << descriptor.getString("process");
+			LOG(LOG_DEBUG, allocateOutput.str());
 #ifdef ALLOCATEONMETHODSERVER
 			if(	string(ALLOCATEONMETHODSERVER) == "" ||
 				descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
 			{
-				cout << "connection to server " << descriptor.getServerObject()->getName() << endl;
-				cout << "finish connection with ID " << descriptor.getClientID();
-				cout << "  from client " << descriptor.getString("client");
-				cout << " in process " << descriptor.getString("process") << endl;
+				cout << allocateOutput.str() << endl;
 			}
 #endif // ALLOCATEONMETHODSERVER
 			dissolveConnection(descriptor);

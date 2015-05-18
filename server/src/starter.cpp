@@ -92,7 +92,6 @@ using namespace logger;
 string Starter::createClientConfigString(const string& content) const
 {
 	string output;
-#ifdef ALLOCATEONMETHODSERVER
 	string::size_type characters= 85;
 
 	if(content == "#end")
@@ -128,7 +127,6 @@ string Starter::createClientConfigString(const string& content) const
 			output+= " ";
 	}
 	output+= "***";
-#endif // ALLOCATEONMETHODSERVER
 	return output;
 }
 
@@ -311,50 +309,54 @@ bool Starter::execute(const IOptionStructPattern* commands)
 			++nOWReader;
 	}
 
-	string output;
+	//*********************************************************************************
+	string allocateOutput;
 	ostringstream conns;
 
 	nDbConnectors= 0;
 	conns.str("");
 	conns << "       1 for working list (ppi-server[DbInterface]) to inform database";
 	nDbConnectors+= 1;
-	output+= createClientConfigString(conns.str()) + "\n";
+	allocateOutput+= createClientConfigString(conns.str()) + "\n";
 	conns.str("");
 	conns << "       1 for internet server [DbInterface] to get information from database";
 	nDbConnectors+= 1;
-	output+= createClientConfigString(conns.str()) + "\n";
+	allocateOutput+= createClientConfigString(conns.str()) + "\n";
 	conns.str("");
 	conns << "       1 for internet server [DbInterface] to know whether any changing was made";
 	nDbConnectors+= 1;
-	output+= createClientConfigString(conns.str()) + "\n";
+	allocateOutput+= createClientConfigString(conns.str()) + "\n";
 	conns.str("");
 	conns << "       " << nOWReader << " external server (OWReader[OWServerQuestion-x]) for answering";
 	nDbConnectors+= nOWReader;
-	output+= createClientConfigString(conns.str()) + "\n";
+	allocateOutput+= createClientConfigString(conns.str()) + "\n";
 	conns.str("");
 	conns << "       " << nOWReader << " external server (OWReader[DbInterface]) to inform database";
 	nDbConnectors+= nOWReader;
-	output+= createClientConfigString(conns.str()) + "\n";
+	allocateOutput+= createClientConfigString(conns.str()) + "\n";
 	conns.str("");
 	conns << "       " << nOWReader << " external server (OWReader[OWInterface]) needs polling action list";
 	nDbConnectors+= nOWReader;
-	output+= createClientConfigString(conns.str()) + "\n";
+	allocateOutput+= createClientConfigString(conns.str()) + "\n";
 	conns.str("");
 	conns << "       1 ppi-server [ProcessChecker] for answering";
 	nDbConnectors+= 1;
-	output+= createClientConfigString(conns.str()) + "\n";
-
+	allocateOutput+= createClientConfigString(conns.str()) + "\n";
 	// only for debugging to know whether the allocated connections to db are ok
 #ifdef ALLOCATEONMETHODSERVER
-	cout << createClientConfigString("#begin") << endl;
-	conns.str("");
-	conns << "   for database server are " << nDbConnectors << " clients configured";
-	cout << createClientConfigString(conns.str()) << endl;
-	cout << output;
 	nDbConnectors+= 2;
-	cout << createClientConfigString("   now also 2 extra for testing") << endl;
-	cout << createClientConfigString("   whether really this count be needed") << endl;
-	cout << createClientConfigString("#end") << endl;
+	allocateOutput+= createClientConfigString("   now also 2 extra for testing") + "\n";
+	allocateOutput+= createClientConfigString("   whether really this count be needed") + "\n";
+#endif // ALLOCATEONMETHODSERVER
+	allocateOutput+= createClientConfigString("#end") + "\n";
+
+	conns.str("");
+	// creating begin of allocation with calculated clients for database
+	conns << "   for database server are " << nDbConnectors << " clients configured";
+	allocateOutput= createClientConfigString("#begin") + "\n" +
+					createClientConfigString(conns.str()) + "\n" + allocateOutput;
+#ifdef ALLOCATEONMETHODSERVER
+	cout << allocateOutput;
 #endif // ALLOCATEONMETHODSERVER
 	//*********************************************************************************
 
@@ -419,6 +421,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	// ------------------------------------------------------------------------------------------------------------
 
 	LOG(LOG_INFO, "Read configuration files from " + configFiles->getConfigPath());
+	LOG(LOG_DEBUG, allocateOutput);
 
 	// ------------------------------------------------------------------------------------------------------------
 
