@@ -28,6 +28,10 @@
 
 #include "OutsideClientTransaction.h"
 #include "ExternClientInputTemplate.h"
+
+// include only need for __DEBUGLASTREADWRITECHECK
+#include "ProcessInterfaceTemplate.h"
+
 #if (__DEBUGLASTREADWRITECHECK)
 #include "../../../util/GlobalStaticMethods.h"
 #endif
@@ -56,6 +60,7 @@ namespace server
 		 * for answering
 		 */
 		string::size_type len= m_sCommand.size();
+
 #if (__DEBUGLASTREADWRITECHECK)
 		/**
 		 * end of last sending
@@ -63,6 +68,7 @@ namespace server
 		 * check whether has an new line
 		 * on end and also after
 		 */
+		 bool addCR(false);
 		string sQuestionBefore, sQuestionBehind;
 		string::size_type isLen, lenRead(40);
 #endif
@@ -71,23 +77,8 @@ namespace server
 		m_vAnswer.clear();
 		if(m_bHold)
 		{
-			if(m_vsAnswerBlock.size())
-			{// client is defined for answering question
-				for(vector<string>::iterator it= m_vsAnswerBlock.begin(); it != m_vsAnswerBlock.end(); ++it)
-				{
-					if(descriptor.eof())
-					{
-						m_pSocketError->setError("OutsideClientTransaction", "descriptor");
-						m_vAnswer.push_back(m_pSocketError->getErrorStr());
-						return false;
-					}
-					descriptor << *it;
-					if((*it).substr((*it).size(), -1) != "\n")
-						descriptor.endl();
-					descriptor.flush();
-				}
-			}else
-			{// client is defined to send questions
+			if(m_sCommand != "")
+			{// client is defined to send single questions
 				string::size_type pos, start;
 
 				// look first whether client get an answer
@@ -116,7 +107,12 @@ namespace server
 				if(len > 0)
 				{
 					if(m_sCommand.substr(len -1) != "\n")
-						m_sCommand+= "\n";
+					{
+#if __DEBUGLASTREADWRITECHECK
+						addCR= true;
+#endif // __DEBUGLASTREADWRITECHECK
+						m_sCommand+= "\n";						
+					}
 				}else
 				{
 					cout << "WARNING: sending string with no content" << endl;
@@ -137,6 +133,32 @@ namespace server
 #endif
 				descriptor << m_sCommand;
 				descriptor.flush();
+
+			}else if(m_vsAnswerBlock.size())
+			{// client is defined for answering question
+				descriptor.flushing(/*automatic*/false);
+				for(vector<string>::iterator it= m_vsAnswerBlock.begin(); it != m_vsAnswerBlock.end(); ++it)
+				{
+					if(descriptor.eof())
+					{
+						m_pSocketError->setError("OutsideClientTransaction", "descriptor");
+						m_vAnswer.push_back(m_pSocketError->getErrorStr());
+						return false;
+					}
+					descriptor << *it;
+#if __DEBUGLASTREADWRITECHECK
+					addCR= false;
+#endif __DEBUGLASTREADWRITECHECK
+					if((*it).substr((*it).size(), -1) != "\n")
+					{
+#ifdef __DEBUGLASTREADWRITECHECK
+						addCR= true;
+#endif // __DEBUGLASTREADWRITECHECK
+						descriptor.endl();
+					}
+				}
+				descriptor.flush();
+				descriptor.flushing(/*automatic*/true);
 			}
 			do{ // while(endString != "")
 
@@ -160,6 +182,7 @@ namespace server
 			}while(endString != "");
 
 			m_sCommand= "";
+			m_vsAnswerBlock.clear();
 			m_bHold= true;
 		}else // if(m_bHold)
 		{
@@ -171,6 +194,13 @@ namespace server
 				descriptor >> answer;
 				m_pSocketError->setErrorStr(answer);
 				m_vAnswer.push_back(answer);
+				/*
+				 * when connection was broken
+				 * ending is also done
+				 * do not write any error
+				 */
+				if(descriptor.eof())
+					descriptor.clearError();
 			}
 			m_bHold= true;//for new beginning
 			return false;

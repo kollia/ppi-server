@@ -68,7 +68,6 @@ namespace server
 			 * set answer block from outside the transaction object
 			 *
 			 * @param answer vector which should send to server
-			 * @param ending on which string the answer should ending
 			 */
 			void setAnswer(const vector<string>& answer);
 			/**
