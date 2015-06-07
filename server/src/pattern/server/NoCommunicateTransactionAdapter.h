@@ -41,7 +41,7 @@ namespace design_pattern_world
 				 * @return null name
 				 */
 				virtual string getTransactionName(const IFileDescriptorPattern& descriptor) const
-				{ return ""; };
+				{ return "NoCommunicateTransferAdapter"; };
 				/**
 				 * dummy method for no search whether client with given defined name
 				 * is the correct one
