@@ -29,6 +29,7 @@
 
 #include "util/GlobalStaticMethods.h"
 
+#include "util/stream/ErrorHandling.h"
 #include "util/stream/ppivalues.h"
 #include "util/stream/IMethodStringStream.h"
 
@@ -76,6 +77,11 @@ bool ProcessChecker::execute()
 		object >> folder;
 		object >> subroutine;
 		object >> oValue.value;
+		if(	folder == "log_weather_starter" &&
+			subroutine == "logging")
+		{
+			cout << flush;
+		}
 		if(method != "changedChip")
 		{
 			object >> oValue.lastChanging;
@@ -95,6 +101,8 @@ bool ProcessChecker::execute()
 			port= pCurMeas->pMeasure->getPortClass(subroutine, bCorrect);
 			if(port)
 			{
+				ErrorHandling errHandle;
+
 #if 0
 #define __DEBUGPROCESSGETCHANGES
 				ostringstream out;
@@ -109,11 +117,15 @@ bool ProcessChecker::execute()
 					out << " with reachable device " << boolalpha << device << endl;
 					cout << out.str();
 #endif // __DEBUGPROCESSGETCHANGES
+
 					port->setDeviceAccess(device);
 					port->setValue(oValue, inform);
 					informerCache= pCurMeas->pMeasure->getInformerCache(from);
 					informerCache->changedValue(folder, inform);
-					m_sAnswer= "done";
+					if(errHandle.fail())
+						m_sAnswer= errHandle.getErrorStr();
+					else
+						m_sAnswer= "done";
 
 				}else if(bCorrect)
 				{
@@ -123,8 +135,21 @@ bool ProcessChecker::execute()
 					out << endl;
 					cout << out.str();
 #endif // __DEBUGPROCESSGETCHANGES
-					port->setValue(oValue, InformObject(place, from));
-					m_sAnswer= "done";
+					try{
+						port->setValue(oValue, InformObject(place, from));
+					}catch(std::logic_error& ex)
+					{
+						if(string(ex.what()).substr(0, 13) == "ownLockFail: ")
+						{
+							errHandle.setError("portBase", "ownLockFail",
+											InformObject(place, from).getDefString());
+						}else
+							throw(ex);
+					}
+					if(errHandle.fail())
+						m_sAnswer= errHandle.getErrorStr();
+					else
+						m_sAnswer= "done";
 
 				}else
 				{
@@ -379,10 +404,13 @@ bool ProcessChecker::execute()
 
 		m_pError->clear();
 		m_pError->setErrorStr(question);
-		if(m_pError->fail())
-			m_pError->addMessage("ProcessChecker", "waitForQuestion");
-		else
+		if(!m_pError->fail())
+		{
+			if(question == "")
+				question= " ";
 			m_pError->setError("ProcessChecker", "getWrongQuestion", question);
+		}else
+			m_pError->addMessage("ProcessChecker", "waitForQuestion");
 		msg= m_pError->getDescription();
 		if(m_pError->hasError())
 		{
