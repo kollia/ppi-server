@@ -126,7 +126,6 @@ int main(int argc, char* argv[])
 				cerr << "   for more description read help manual (ppi-server --help)" << endl << endl;
 				return EXIT_FAILURE;
 			}
-			pthread_mutex_init(&g_READMUTEX, NULL);
 			result= server.execute(&params);
 			cout << "### ppi-server was stopped ";
 			if(!result)

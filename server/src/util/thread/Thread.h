@@ -28,6 +28,7 @@
 #include "StatusLogRoutine.h"
 
 #include "../debug.h"
+#include "../smart_ptr.h"
 
 #include "../../pattern/util/IErrorHandlingPattern.h"
 #include "../../pattern/util/ithreadpattern.h"
@@ -83,15 +84,15 @@ struct mutexnames_t
 /**
  * globaly mutex for variables g_mMutex and g_mCondition
  */
-extern pthread_mutex_t g_READMUTEX;
+//extern pthread_mutex_t g_READMUTEX;
 /**
  * all defined mutex with names and thread ids for debugging
  */
-extern map<pthread_mutex_t*, mutexnames_t> g_mMutex;
+//extern map<pthread_mutex_t*, mutexnames_t> g_mMutex;
 /**
  * all defined conditions with names
  */
-extern map<pthread_cond_t*, string> g_mCondition;
+//extern map<pthread_cond_t*, string> g_mCondition;
 
 /**
  * base class for all threads.<br />
@@ -444,6 +445,18 @@ class Thread :	public virtual IThreadPattern,
 		void setOtherLogger(IClientSendMethods* log)
 		{ m_pExtLogger= log; };
 		/**
+		 * initial globally mutex with map
+		 *
+		 * @return map of existing mutex
+		 */
+		static  SHAREDPTR::shared_ptr<map<pthread_mutex_t*, mutexnames_t> > init_globalMutex();
+		/**
+		 * initial globally condition map
+		 *
+		 * @return map of existing conditions
+		 */
+		static  SHAREDPTR::shared_ptr<map<pthread_cond_t*, string> > init_globalCondition();
+		/**
 		 * creating an new mutex to lock the thread or an hole part
 		 *
 		 * @param name name of mutex for logging information
@@ -769,6 +782,21 @@ class Thread :	public virtual IThreadPattern,
 		 *      (gcc (Debian 4.4.5-8) 4.4.5 made no problem's)
 		 */
 		static bool m_bGlobalObjDefined;
+		/**
+		 * definition of all mutex names
+		 * by hole application
+		 */
+		static SHAREDPTR::shared_ptr<map<pthread_mutex_t*, mutexnames_t> > g_mMutex;
+		/**
+		 * definition of all condition names
+		 * by hole application
+		 */
+		static  SHAREDPTR::shared_ptr<map<pthread_cond_t*, string> > g_mCondition;
+		/**
+		 * definition of globaly mutex
+		 * to lock map for all mutexes and conditions
+		 */
+		static pthread_mutex_t g_READMUTEX;
 		/**
 		 * other logging tool when nessasary
 		 */

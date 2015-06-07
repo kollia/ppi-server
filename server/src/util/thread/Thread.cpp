@@ -49,9 +49,9 @@ using namespace util;
 using namespace util::thread;
 
 
-pthread_mutex_t g_READMUTEX;
-map<pthread_mutex_t*, mutexnames_t> g_mMutex;
-map<pthread_cond_t*, string> g_mCondition;
+pthread_mutex_t Thread::g_READMUTEX;
+SHAREDPTR::shared_ptr<map<pthread_mutex_t*, mutexnames_t> > Thread::g_mMutex= Thread::init_globalMutex();
+SHAREDPTR::shared_ptr<map<pthread_cond_t*, string> > Thread::g_mCondition= Thread::init_globalCondition();
 bool Thread::m_bAppRun= true;
 bool Thread::m_bGlobalObjDefined= false;
 
@@ -78,11 +78,23 @@ Thread::Thread(const string& threadName, bool waitInit/*= true*/, const int poli
 	m_SLEEPMUTEX= getMutex("SLEEPMUTEX", logger);
 	m_SLEEPCOND= getCondition("SLEEPCOND", logger);
 	m_STARTSTOPTHREADCOND= getCondition("STARTSTOPTHREADCOND", logger);
-	if(pthread_mutex_lock(&g_READMUTEX) != 0)
-		LOGEX(LOG_ERROR, "error by global mutex lock inside class Thread constructor", logger);
+}
+
+SHAREDPTR::shared_ptr<map<pthread_mutex_t*, mutexnames_t> > Thread::init_globalMutex()
+{
+	if(m_bGlobalObjDefined)
+		return g_mMutex;
+	pthread_mutex_init(&g_READMUTEX, NULL);
 	m_bGlobalObjDefined= true;
-	if(pthread_mutex_unlock(&g_READMUTEX) != 0)
-		LOGEX(LOG_ERROR, "error by global mutex unlock inside class Thread constructor", logger);
+	g_mMutex= SHAREDPTR::shared_ptr<map<pthread_mutex_t*, mutexnames_t> >(new map<pthread_mutex_t*, mutexnames_t>());
+	g_mCondition= SHAREDPTR::shared_ptr<map<pthread_cond_t*, string> >(new map<pthread_cond_t*, string>());
+	return g_mMutex;
+}
+
+SHAREDPTR::shared_ptr<map<pthread_cond_t*, string> > Thread::init_globalCondition()
+{
+	init_globalMutex();
+	return g_mCondition;
 }
 
 EHObj Thread::start(void *args, bool bHold)
@@ -716,6 +728,13 @@ pthread_mutex_t* Thread::getMutex(const string& name, IClientSendMethods* logger
 	}else
 	{
 		int error= pthread_mutex_lock(&g_READMUTEX);
+		if(	error != 0 ||
+			!m_bGlobalObjDefined	)
+		{
+			init_globalMutex();
+			if(error != 0)
+				error= pthread_mutex_lock(&g_READMUTEX);
+		}
 		if(error != 0)
 		{
 			LOGEX(LOG_ERROR, "error by global mutex lock, locking by "
@@ -737,10 +756,10 @@ pthread_mutex_t* Thread::getMutex(const string& name, IClientSendMethods* logger
 			 // so write mutex for first time in an buffer
 			 // (gcc (Debian 4.4.5-8) 4.4.5 made no problem's)
 				for(map<pthread_mutex_t*, mutexnames_t>::iterator it= mMutexBuffer.begin(); it != mMutexBuffer.end(); ++it)
-					g_mMutex[it->first]= it->second;
+					(*g_mMutex)[it->first]= it->second;
 				mMutexBuffer.clear();
 			}
-			g_mMutex[mutex]= tName;
+			(*g_mMutex)[mutex]= tName;
 
 		}else
 			mMutexBuffer[mutex]= tName;
@@ -792,12 +811,19 @@ pthread_cond_t* Thread::getCondition(const string& name, IClientSendMethods* log
 	}else
 	{
 		int error= pthread_mutex_lock(&g_READMUTEX);
+		if(	error != 0 ||
+			!m_bGlobalObjDefined	)
+		{
+			init_globalCondition();
+			if(error != 0)
+				error= pthread_mutex_lock(&g_READMUTEX);
+		}
 		if(error != 0)
 		{
 			LOGEX(LOG_ERROR, "error by mutex lock " + getConditionName(cond, logger), logger);
 		}
 
-		g_mCondition[cond]= name;
+		(*g_mCondition)[cond]= name;
 
 		error= pthread_mutex_unlock(&g_READMUTEX);
 		if(error != 0)
@@ -816,13 +842,20 @@ string Thread::getMutexName(pthread_mutex_t* mutex, IClientSendMethods* logger)
 	iter i;
 
 	error= pthread_mutex_lock(&g_READMUTEX);
+	if(	error != 0 ||
+		!m_bGlobalObjDefined	)
+	{
+		init_globalMutex();
+		if(error != 0)
+			error= pthread_mutex_lock(&g_READMUTEX);
+	}
 	if(error != 0)
 	{
 		LOGEX(LOG_ERROR, "error by mutex lock READMUTEX by get name", logger);
 		return "unknown";
 	}
-	i= g_mMutex.find(mutex);
-	if(i != g_mMutex.end())
+	i= g_mMutex->find(mutex);
+	if(i != g_mMutex->end())
 	{
 		mutexnames_t mutexnames;
 
@@ -858,13 +891,20 @@ string Thread::getConditionName(pthread_cond_t *cond, IClientSendMethods* logger
 	iter i;
 
 	error= pthread_mutex_lock(&g_READMUTEX);
+	if(	error != 0 ||
+		!m_bGlobalObjDefined	)
+	{
+		init_globalCondition();
+		if(error != 0)
+			error= pthread_mutex_lock(&g_READMUTEX);
+	}
 	if(error != 0)
 	{
 		LOGEX(LOG_ERROR, "error by mutex lock READMUTEX by get condition name", logger);
 		return "unknown";
 	}
-	i= g_mCondition.find(cond);
-	if(i != g_mCondition.end())
+	i= g_mCondition->find(cond);
+	if(i != g_mCondition->end())
 		name= i->second;
 	else
 		name= "ERROR: undefined condition";
@@ -913,8 +953,8 @@ int Thread::mutex_lock(const string& file, int line, pthread_mutex_t *mutex, ICl
 		}
 	}
 	pthread_mutex_lock(&g_READMUTEX);
-	i= g_mMutex.find(mutex);
-	if(i != g_mMutex.end())
+	i= g_mMutex->find(mutex);
+	if(i != g_mMutex->end())
 	{
 		lastlockID= i->second.threadid;
 		if(lastlockID == gettid())
@@ -978,8 +1018,8 @@ int Thread::mutex_lock(const string& file, int line, pthread_mutex_t *mutex, ICl
 		if(mutexname != "POSITIONSTATUS")
 			POSS("###mutex_have", mutexname);
 		pthread_mutex_lock(&g_READMUTEX);
-		i= g_mMutex.find(mutex);
-		if(i != g_mMutex.end())
+		i= g_mMutex->find(mutex);
+		if(i != g_mMutex->end())
 		{
 			i->second.threadid= gettid();
 			i->second.fileLocked= file;
@@ -1062,8 +1102,8 @@ int Thread::mutex_trylock(const string& file, int line, pthread_mutex_t *mutex, 
 	if(error == 0)
 	{
 		pthread_mutex_lock(&g_READMUTEX);
-		i= g_mMutex.find(mutex);
-		if(i != g_mMutex.end())
+		i= g_mMutex->find(mutex);
+		if(i != g_mMutex->end())
 			i->second.threadid= gettid();
 		pthread_mutex_unlock(&g_READMUTEX);
 		if(bSet)
@@ -1127,8 +1167,8 @@ int Thread::mutex_unlock(const string& file, int line, pthread_mutex_t *mutex, I
 			}
 		}
 	pthread_mutex_lock(&g_READMUTEX);
-	i= g_mMutex.find(mutex);
-	if(i != g_mMutex.end())
+	i= g_mMutex->find(mutex);
+	if(i != g_mMutex->end())
 	{
 		if(i->second.threadid != gettid())
 		{
@@ -1235,9 +1275,9 @@ void Thread::destroyMutex(const string& file, int line, pthread_mutex_t* mutex, 
 	}
 	if(m_bAppRun)
 	{
-		i= g_mMutex.find(mutex);
-		if(i != g_mMutex.end()) // erase mutex from map
-			g_mMutex.erase(i);
+		i= g_mMutex->find(mutex);
+		if(i != g_mMutex->end()) // erase mutex from map
+			g_mMutex->erase(i);
 	}
 	error= pthread_mutex_unlock(&g_READMUTEX);
 	if(error != 0)
@@ -1261,9 +1301,9 @@ void Thread::destroyAllMutex()
 	typedef map<pthread_mutex_t*, mutexnames_t>::iterator iter;
 
 	pthread_mutex_lock(&g_READMUTEX);
-	for(iter i= g_mMutex.begin(); i!=g_mMutex.end(); ++i)
+	for(iter i= g_mMutex->begin(); i!=g_mMutex->end(); ++i)
 	{
-		g_mMutex.erase(i->first);
+		g_mMutex->erase(i->first);
 		pthread_mutex_destroy(i->first);
 		delete i->first;
 	}
@@ -1318,9 +1358,9 @@ void Thread::destroyCondition(const string& file, int line, pthread_cond_t *cond
 	}
 	if(m_bAppRun)
 	{
-		i= g_mCondition.find(cond);
-		if(i != g_mCondition.end()) // erase mutex from map
-			g_mCondition.erase(i);
+		i= g_mCondition->find(cond);
+		if(i != g_mCondition->end()) // erase mutex from map
+			g_mCondition->erase(i);
 	}
 	//conderror= pthread_cond_in
 	error= pthread_mutex_unlock(&g_READMUTEX);
@@ -1338,9 +1378,9 @@ void Thread::destroyAllConditions()
 	typedef map<pthread_cond_t*, string>::iterator iter;
 
 	pthread_mutex_lock(&g_READMUTEX);
-	for(iter i= g_mCondition.begin(); i!=g_mCondition.end(); ++i)
+	for(iter i= g_mCondition->begin(); i!=g_mCondition->end(); ++i)
 	{
-		g_mCondition.erase(i->first);
+		g_mCondition->erase(i->first);
 		pthread_cond_destroy(i->first);
 		delete i->first;
 	}
@@ -1414,12 +1454,12 @@ int Thread::conditionWait(const string& file, int line, pthread_cond_t* cond, pt
 		cout << before.str();
 	}
 	pthread_mutex_lock(&g_READMUTEX);
-	i= g_mMutex.find(mutex);
-	if(	i == g_mMutex.end()
+	i= g_mMutex->find(mutex);
+	if(	i == g_mMutex->end()
 		||
 		i->second.threadid == 0	)
 	{
-		if(i == g_mMutex.end())
+		if(i == g_mMutex->end())
 			msg << "ERROR: mutex " << mutexname << " not found" << endl;
 		msg << "ERROR: in thread (" << gettid() << ")";
 		msg << " mutex " << mutexname << " for condition " << condname << endl;
@@ -1501,8 +1541,8 @@ int Thread::conditionWait(const string& file, int line, pthread_cond_t* cond, pt
 	}
 #ifdef CONDITIONSDEBUG
 	pthread_mutex_lock(&g_READMUTEX);
-	i= g_mMutex.find(mutex);
-	if(i != g_mMutex.end())
+	i= g_mMutex->find(mutex);
+	if(i != g_mMutex->end())
 		i->second.threadid= gettid();
 	pthread_mutex_unlock(&g_READMUTEX);
 	if(	bSet
