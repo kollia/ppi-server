@@ -230,6 +230,12 @@ namespace server
 			 * content back
 			 */
 			reader= sread;
+#if(__DEBUGLASTREADWRITECHECK)
+			cout << "[" << Thread::gettid() << "] ";
+			cout << "return reading descriptor by fail '" << reader << "'" << std::endl;
+			cout << "            '" << m_oSocketError.getErrorStr() << "'" << std::endl;
+			cout << "            '" << m_oSocketError.getDescription() << std::endl;
+#endif // __DEBUGLASTREADWRITECHECK
 			return;
 		}
 
@@ -257,7 +263,7 @@ namespace server
 					if(m_pTransfer)
 						decl << "@" << getTransactionName();
 					if(	getLen < 0 ||
-						nErrno != 0	)
+						nErrno != 0		)
 					{
 						if(	nErrno != EAGAIN &&
 							nErrno != EWOULDBLOCK	)
@@ -342,7 +348,20 @@ namespace server
 			 * give also rest of string back
 			 */
 			reader+= m_mLastRead;
+			cout << "[" << Thread::gettid() << "] ";
+			cout << "return descriptor by 2. fail '" << reader << "'" << std::endl;
 			m_mLastRead= "";
+		}
+		if(	!fail() &&
+			(	reader.length() == 0 ||
+				reader.substr(reader.length()-1) != "\n"	)	)
+		{
+			ostringstream out;
+
+			out << "[" << Thread::gettid() << "] ";
+			out << "read string with no carriage return on end" << std::endl;
+			out << "'" << m_sSendTransaction << "'" << std::endl;
+			cout << out.str();
 		}
 	}
 
@@ -358,8 +377,11 @@ namespace server
 
 	inline bool FileDescriptor::eof() const
 	{
-		if(m_oSocketError.hasError("FileDescriptor", "noConnect"))
+		if(	m_oSocketError.hasError("FileDescriptor", "noConnect") ||
+			m_oSocketError.hasError("FileDescriptor", "transNoConnect")	)
+		{
 			return true;
+		}
 		return false;
 	}
 
@@ -373,7 +395,33 @@ namespace server
 		while(!m_sSendTransaction.empty())
 		{
 			len= m_sSendTransaction.length();
+			/*ostringstream send;
+			send << "send: '" << m_sSendTransaction << "'" << std::endl;
+			cout << send.str();*/
 			writeLen= write(m_nFd, m_sSendTransaction.c_str(), len);
+#if(__DEBUGLASTREADWRITECHECK)
+			if(writeLen >= 0)
+			{
+				string::size_type wlen(static_cast<string::size_type>(writeLen));
+
+				if(	len > wlen  ||
+					wlen == 0 ||
+					m_sSendTransaction.substr(wlen-1, 1) != "\n"	)
+				{
+					ostringstream out;
+
+					out << "[" << Thread::gettid() << "] ";
+					if(len > wlen)
+					{
+						out << "write " << (len - wlen) << " chars shorter length than "
+										<< len << std::endl << "'";
+					}else
+						out << "write string with no carriage return on end" << std::endl << "'";
+					out << m_sSendTransaction << "'" << std::endl;
+					cout << out.str();
+				}
+			}
+#endif //__DEBUGLASTREADWRITECHECK
 			if(writeLen < 0)
 			{
 				ostringstream decl;
@@ -818,13 +866,13 @@ namespace server
 					}
 				}while(bErase);
 			}
-			if(eof())
+			if(fail())
 			{
 				ostringstream answ;
 
 				if(syncID > 0)
 					answ << "syncID " << syncID << " ";
-				answ << "ERROR 002";
+				answ << m_oSocketError.getErrorStr();
 				answers.push_back(answ.str());
 				break;
 			}
@@ -1046,8 +1094,15 @@ namespace server
 		if(m_pTransfer)
 		{
 			bRv= m_pTransfer->transfer(*this);
-			if(!bRv)
-				m_oSocketError= m_pTransfer->getErrorObj();
+			/*
+			 * ppi@magnificat.at 23/05/2015:
+			 * do not write getting transfer error
+			 * into descriptor
+			 * because when error comes from client
+			 * should not be one
+			 */
+//			if(!bRv)
+//				m_oSocketError= m_pTransfer->getErrorObj();
 		}
 		LOCK(m_LOCKSM);
 		m_nLockSM= 0;

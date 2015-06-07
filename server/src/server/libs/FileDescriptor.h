@@ -21,15 +21,11 @@
 #include <queue>
 #include <map>
 
+// include only need for __DEBUGLASTREADWRITECHECK
+#include "client/ProcessInterfaceTemplate.h"
+
 #include "../../pattern/util/IErrorHandlingPattern.h"
 #include "../../pattern/server/IFileDescriptorPattern.h"
-
-/**
- * make debug check for
- * last writing and reading
- * when definition is 1
- */
-#define __DEBUGLASTREADWRITECHECK 0
 
 #include "../../util/smart_ptr.h"
 #include "../../util/thread/Thread.h"
@@ -165,6 +161,11 @@ namespace server
 			 */
 			virtual bool hasWarning() const
 			{ return m_oSocketError.hasWarning(); };
+			/**
+			 * reset error when no more needed
+			 */
+			OVERWRITE void clearError()
+			{ m_oSocketError.clear(); };
 			/**
 			 * returning error or warning description
 			 * form current object

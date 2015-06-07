@@ -105,6 +105,10 @@ namespace design_pattern_world
 				 */
 				virtual bool hasWarning() const= 0;
 				/**
+				 * reset error when no more needed
+				 */
+				virtual void clearError()= 0;
+				/**
 				 * return error / warning object
 				 *
 				 * @return error handling object
