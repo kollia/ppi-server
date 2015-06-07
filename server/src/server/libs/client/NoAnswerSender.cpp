@@ -90,6 +90,15 @@ namespace util
 			// fill back into queue all sending methods from error
 			if(m_pError->hasError())
 			{
+#if __DEBUGLASTREADWRITECHECK
+				/*
+				 * for debug output
+				 * do not insert fault sending
+				 * again back into queue
+				 */
+				++msgPos;
+#endif // __DEBUGLASTREADWRITECHECK
+
 				m_sNoWaitError= m_pError->getErrorStr();
 				m_vsSendingQueue.insert(m_vsSendingQueue.begin(), msgPos, messages.end());
 			}else
