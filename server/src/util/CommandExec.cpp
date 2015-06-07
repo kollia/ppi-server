@@ -111,11 +111,6 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 {
 	int nRv(0);
 	bool thwait;
-	/**
-	 * incoming more declare whether thread should set subroutine
-	 * to 0 by not starting any command (when shell command defined as blocking)
-	 */
-	bool bSet0(more);
 	bool bNoWaitResult(false);
 	string folder, subroutine;
 	vector<string>::size_type nLen;
@@ -192,16 +187,6 @@ int CommandExec::command_exec(SHAREDPTR::shared_ptr<CommandExec> thread, string 
 				more= true;
 			return 0;
 		}
-	}else if(bSet0)
-	{ // set subroutine to 0, because command do not start new
-		ostringstream startCommand;
-		ppi_time acttime;
-
-		startCommand << "PPI-SET ";
-		if(acttime.setActTime())
-			startCommand << "-t " << acttime.toString(/*as date*/false) << " ";
-		startCommand << thread->m_sFolder << ":" << thread->m_sSubroutine << " 0";
-		thread->setValue(startCommand.str(), /*write error into output queue*/true);
 	}
 	if(!result.empty())
 	{
@@ -992,7 +977,7 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 		{
 			LOCK(m_RESULTMUTEX);
 			m_qOutput.push_back(command);
-			if(m_qOutput.size() > 1000)
+			while(m_qOutput.size() > 1000)
 				m_qOutput.pop_front();
 			UNLOCK(m_RESULTMUTEX);
 		}

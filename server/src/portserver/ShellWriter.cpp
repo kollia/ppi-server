@@ -247,6 +247,8 @@ namespace ports
 			more= !pSub->haveAction("last");
 		else
 			more= false;
+		if(!debug)
+			debug= pSub->haveAction("debug");
 		if(block == false)
 		{
 			for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)

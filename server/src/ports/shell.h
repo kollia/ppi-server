@@ -133,6 +133,11 @@ protected:
 	 * for shell script will be starting correctly
 	 */
 	bool m_bInfo;
+	/**
+	 * whether shell command should log
+	 * command output all the time
+	 */
+	bool m_bLogOubput;
 
 	/**
 	 * this method is an dummy

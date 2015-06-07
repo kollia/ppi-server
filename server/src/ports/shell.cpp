@@ -49,6 +49,7 @@ bool Shell::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	if(!switchClass::init(properties, pStartFolder))
 		bRv= false;
 	m_bInfo= !properties->haveAction("noinfo");
+	m_bLogOubput= properties->haveAction("debug");
 	m_bLastValue= 0;
 	m_bStarting= false;
 	m_sWhileCom= properties->getValue("command", /*warning*/false);
@@ -643,7 +644,11 @@ int Shell::inlineStarting(const string& action, string command, vector<string>& 
 		}
 		res= thread->startingBy(tm, command, oExternalStarting);
 	}else
+	{
+		if(m_bLogOubput)
+			bDebug= true;
 		res= CommandExec::command_exec(thread, command, result, m_bMore, m_bWait, m_bBlock, bDebug);
+	}
 	do{// remove all not needed threads from vector
 		bchangedVec= false;
 		for(thIt it= m_vCommandThreads.begin(); it != m_vCommandThreads.end(); ++it)
@@ -709,8 +714,16 @@ void Shell::setDebug(bool bDebug)
 	m_oDays.doOutput(bDebug);
 	m_oMonths.doOutput(bDebug);
 	m_oYears.doOutput(bDebug);
-	if(m_bBlock)
+	if(	m_bBlock &&
+		!m_bLogOubput	)
 	{
+		/*
+		 * when subroutine defined for blocking
+		 * CommandExec has also to know whether debug
+		 * is defined for logging output
+		 * but not when output logging is set for all the time
+		 * because CommandExec thinking always debug is set
+		 */
 		if(m_sUserAccount != "")
 		{
 			command= getFolderName() + " " + getSubroutineName() + " info ";
