@@ -159,7 +159,7 @@ bool CalculatorContainer::render()
 			{// calculate boolean for if sentence before question mark ('?')
 				int x;
 
-				m_poIf= newObject();
+				m_poIf= newObject(/*if sentence*/true);
 				m_poIf->m_bBool= true;
 				m_poIf->m_bOutput= m_bOutput;
 				m_poIf->m_bIfAllow= m_bIfAllow;
@@ -465,7 +465,7 @@ bool CalculatorContainer::render()
 
 bool CalculatorContainer::variable(string* var, double &dResult)
 {
-	outputF(true, __FILE__, __LINE__, "object of CalculatorContainer is not defined vor any variables (like '"+*var+"')");
+	outputF(true, __FILE__, __LINE__, "object of CalculatorContainer is not defined for any variables (like '"+*var+"')");
 	dResult= 0;
 	return false;
 }
@@ -610,6 +610,23 @@ bool CalculatorContainer::calculateI(double& dResult)
 {
 	bool correct;
 	double result;
+	/**
+	 * whether an calculation
+	 * (+ - / * %) was made
+	 */
+	bool bCalcMade(false);
+	/**
+	 * whether an normally number
+	 * was used inside calculation
+	 * (no variable)
+	 */
+	bool bNumUsed(false);
+	/**
+	 * whether an variable
+	 * was used inside calculation
+	 * (no normally number)
+	 */
+	bool bVarUsed(false);
 	string comp;
 	vector<double>::iterator itValue;
 	vector<string>::iterator itVariable;
@@ -669,6 +686,7 @@ bool CalculatorContainer::calculateI(double& dResult)
 		{
 		case 1: // double value
 			m_dValue= *itValue;
+			bNumUsed= true;
 			if(m_bOutput)
 			{
 				ostringstream str;
@@ -696,7 +714,8 @@ bool CalculatorContainer::calculateI(double& dResult)
 			{
 				outputF(true, __FILE__, __LINE__, "[cannot found var '"+(*itVariable)+"']");
 				m_dValue= 0;
-			}
+			}else
+				bVarUsed= true;
 			if(m_bOutput)
 			{
 				ostringstream str;
@@ -749,6 +768,7 @@ bool CalculatorContainer::calculateI(double& dResult)
 				if(m_bOutput)
 					outputF(false, __FILE__, __LINE__, *itOperator+" ");
 				add((*itOperator)[0]);
+				bCalcMade= true;
 				++itOperator;
 
 			}else if(	(*itOperator)[0] == '=' ||
@@ -772,6 +792,11 @@ bool CalculatorContainer::calculateI(double& dResult)
 			}else if(	*itOperator == "|" ||
 						*itOperator == "&"		)
 			{
+				if(bCalcMade)
+					calcMade(bNumUsed, bVarUsed);
+				bNumUsed= false;
+				bVarUsed= false;
+				bCalcMade= false;
 				if(comp == "")
 				{
 					dResult= getResult();
@@ -856,6 +881,8 @@ bool CalculatorContainer::calculateI(double& dResult)
 			outputF(false, __FILE__, __LINE__, str.str());
 		}
 	}
+	if(bCalcMade)
+		calcMade(bNumUsed, bVarUsed);
 	return true;
 }
 

@@ -33,16 +33,14 @@ ListCalculator::ListCalculator(const string& folder, const string& subroutine, c
 : CalculatorContainer(need, boolean),
   m_sFolder(folder),
   m_sSubroutine(subroutine),
+  m_bIfSentence(false),
+  m_bUseIfSentenceTime(true),
+  m_bCurrentTimeByNormalNumberCalculation(true),
+  m_bCurrentTimeByOnlyVariableCalculation(true),
   m_sFolderSub(folder+":"+subroutine),
   m_sParameter(param),
   m_oOutput(obj)
 {
-	if(m_sFolder == "Raff1_Zeit_timer")
-	{
-		cout << flush;
-		if(m_sSubroutine == "informe_thread")
-			cout << flush;
-	}
 	m_CALCUALTEMUTEX= Thread::getMutex("CALCUALTEMUTEX");
 	allowComparison(true);
 	allowIfSentence(true);
@@ -130,11 +128,15 @@ bool ListCalculator::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFo
 	return bOk;
 }
 
-CalculatorContainer* ListCalculator::newObject()
+CalculatorContainer* ListCalculator::newObject(bool bIf/*= false*/)
 {
 	ListCalculator* c;
 
 	c= new ListCalculator(m_sFolder, m_sSubroutine, m_sParameter, /*need*/true, false, m_oOutput);
+	if(bIf)
+		c->m_bIfSentence= true;
+	else
+		c->m_bIfSentence= m_bIfSentence;
 	c->m_nObjFolderID= m_nObjFolderID;
 	c->m_pStartFolder= m_pStartFolder;
 	c->m_mFolderAlias= m_mFolderAlias;
@@ -176,9 +178,19 @@ bool ListCalculator::calculate(double& dResult)
 
 	LOCK(m_CALCUALTEMUTEX);
 	clearTime();
+	m_bCalcMade= false;
+	m_bCalcWithNumber= false;
+	m_bCalcWithVariable= false;
 	bRv= CalculatorContainer::calculate(dResult);
 	UNLOCK(m_CALCUALTEMUTEX);
 	return bRv;
+}
+
+void ListCalculator::calcMade(bool num, bool var)
+{
+	m_bCalcMade= true;
+	m_bCalcWithNumber= num;
+	m_bCalcWithVariable= var;
 }
 
 void ListCalculator::output(bool bError, const string& file, const int line, const string& msg)
@@ -397,6 +409,16 @@ ppi_time ListCalculator::getLastChanging()
 	{
 		if(nRv.isSet())
 		{
+			if(m_sLastChangingSub == "##CalcWithNumber")
+			{
+				m_oOutput->out() << "create current time " << nRv.toString(/*as date*/true);
+				m_oOutput->out() << " for last changing because an calculation with numbers was made" << endl;
+
+			}else if(m_sLastChangingSub == "##Calculation")
+			{
+				m_oOutput->out() << "create current time " << nRv.toString(/*as date*/true);
+				m_oOutput->out() << " for last changing because an calculation was made" << endl;
+			}
 			m_oOutput->out() << "take last changing time " << nRv.toString(/*as date*/true);
 			m_oOutput->out() << " from " << m_sLastChangingSub << endl;
 		}else
@@ -412,6 +434,54 @@ ppi_time ListCalculator::getLastChangingI()
 	ListCalculator* container;
 	vector<ICalculatorPattern*> childs;
 
+	if(	m_bIfSentence &&
+		!m_bUseIfSentenceTime	)
+	{
+		return lastChange;
+	}
+	if(	m_bCalcMade &&
+		!m_bIfSentence	)
+	{
+		bool bUse(false);
+
+		/*
+		 * when inside object an calculation was made
+		 * and it is allowed from user
+		 * create current time as last changing
+		 */
+		if(	m_bCurrentTimeByNormalNumberCalculation &&
+			m_bCalcWithNumber				)
+		{
+			bUse= true;
+			if(CalculatorContainer::doOutput())
+			{
+				if(	m_bCurrentTimeByOnlyVariableCalculation &&
+					m_bCalcWithVariable							)
+				{
+					m_sLastChangingSub= "##Calculation";
+				}else
+					m_sLastChangingSub= "##CalcWithNumber";
+			}
+
+		}else if(	m_bCurrentTimeByOnlyVariableCalculation &&
+					m_bCalcWithVariable &&
+					!m_bCalcWithNumber			)
+		{
+			bUse= true;
+			if(CalculatorContainer::doOutput())
+				m_sLastChangingSub= "##Calculation";
+		}
+		if(bUse)
+		{
+			if(!m_nLastChange.setActTime())
+			{
+				m_oOutput->out() << "cannot make current time for " << m_sFolder << ":" << m_sSubroutine;
+				m_oOutput->out() << " by calculation" << endl;
+				m_oOutput->out() << "(" << m_nLastChange.errorStr() << ")" << endl;
+			}
+			return m_nLastChange;
+		}
+	}
 	childs= getChilds();
 	for(vector<ICalculatorPattern*>::iterator it= childs.begin(); it != childs.end(); ++it)
 	{

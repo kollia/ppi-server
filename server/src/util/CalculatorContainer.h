@@ -216,8 +216,10 @@ protected:
 	/**
 	 * creating of new objects of CalculatorContainer
 	 * to overload when an other object needed
+	 *
+	 * @param bIf whether new container will be an if sentence
 	 */
-	virtual CalculatorContainer* newObject()
+	virtual CalculatorContainer* newObject(bool bIf= false)
 		{ return new CalculatorContainer(m_funcMessage); };
 	/**
 	 * remove an created object.<br />
@@ -265,6 +267,17 @@ protected:
 	 * @param whether found correct variable
 	 */
 	virtual bool variable(string* var, double& dResult);
+	/**
+	 * inform own object whether an
+	 * calculation ( + - / * % )
+	 * was made.<br />
+	 * can be used by derived objects
+	 *
+	 * @param whether an normally number was include by calculation
+	 * @param whether an variable was include by calculation
+	 */
+	virtual void calcMade(bool num, bool var)
+	{ /* dummy method */ };
 	/**
 	 * return all defined child containers
 	 *

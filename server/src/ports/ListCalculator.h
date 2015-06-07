@@ -193,6 +193,44 @@ protected:
 	 */
 	string m_sSubroutine;
 	/**
+	 * whether container is an
+	 * if sentence
+	 */
+	bool m_bIfSentence;
+	/**
+	 * whether an calculation ( + - / * % )
+	 */
+	bool m_bCalcMade;
+	/**
+	 * whether an calculation ( + - / * % )
+	 * was made with an normally number (no variable)
+	 */
+	bool m_bCalcWithNumber;
+	/**
+	 * whether an calculation ( + - / * % )
+	 * was made with an variable (no normally number)
+	 */
+	bool m_bCalcWithVariable;
+	/**
+	 * whether should accept by evaluation
+	 * of last changing time also if sentences
+	 */
+	bool m_bUseIfSentenceTime;
+	/**
+	 * whether should create current time
+	 * for last changing when
+	 * an calculation was made
+	 * with an normally number
+	 */
+	bool m_bCurrentTimeByNormalNumberCalculation;
+	/**
+	 * whether should create current time
+	 * for last changing when
+	 * an calculation was made
+	 * with only variables
+	 */
+	bool m_bCurrentTimeByOnlyVariableCalculation;
+	/**
 	 * all new created subroutine object
 	 * for returning value of sub-variable
 	 * needed to hold reference
@@ -252,8 +290,10 @@ protected:
 	/**
 	 * creating of new objects of CalculatorContainer
 	 * to overload when an other object needed
+	 *
+	 * @param bIf whether new container will be an if sentence
 	 */
-	virtual CalculatorContainer* newObject();
+	virtual CalculatorContainer* newObject(bool bIf= false);
 	/**
 	 * static method to give in constructor
 	 * for writing only inside of terminal (cout)
@@ -282,6 +322,42 @@ protected:
 	 * @param whether found correct variable
 	 */
 	virtual bool variable(string* var, double& dResult);
+	/**
+	 * inform own object whether an
+	 * calculation ( + - / * % )
+	 * was made
+	 *
+	 * @param whether an normally number was include by calculation
+	 * @param whether an variable was include by calculation
+	 */
+	virtual void calcMade(bool num, bool var);
+	/**
+	 * whether object should use current time
+	 * when an calculation was made
+	 * where only variables was included.<br />
+	 * Default is true
+	 *
+	 * @param bDo whether should create current time
+	 */
+	virtual void useCurrentTimeByCalcualteOnlyVariables(bool bDo)
+	{ m_bCurrentTimeByOnlyVariableCalculation= bDo; };
+	/**
+	 * whether object should use current time
+	 * when an calculation was made
+	 * where an normally number was include.<br />
+	 * Default is true
+	 *
+	 * @param bDo whether should create current time
+	 */
+	virtual void useCurrentTimeByCalcualtionWithNumber(bool bDo)
+	{ m_bCurrentTimeByNormalNumberCalculation= bDo; };
+	/**
+	 * whether object should use current time
+	 * inside an if sentence.<br />
+	 * Default is true
+	 */
+	virtual void useCurrentTimeInsideIfSentence(bool bDo)
+	{ m_bUseIfSentenceTime= bDo; }
 	/**
 	 * clear time of last changes
 	 */
