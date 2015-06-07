@@ -18,6 +18,19 @@
 #ifndef PROCESSINTERFACETEMPLATE_H_
 #define PROCESSINTERFACETEMPLATE_H_
 
+/**
+ * make debug check for
+ * last writing and reading
+ * when definition is 1
+ * and also do not try to send
+ * message which contain transaction error
+ * again back into queue for sending
+ * inside NoAnswerSender class
+ * (this will be done that not the same
+ *  error comes as loop )
+ */
+#define __DEBUGLASTREADWRITECHECK 0
+
 #include <string>
 
 #include "ExternClientInputTemplate.h"
