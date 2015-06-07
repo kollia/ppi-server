@@ -84,9 +84,11 @@ namespace server
 				{
 					m_pSocketError= m_pDescriptor->getErrorObj();
 					if(m_pSocketError->fail())
+					{
 						m_pSocketError->addMessage("SocketClientConnection",
 										"transfer", m_pDescriptor->getHostAddressName());
-					close();
+						close();
+					}
 				}
 				return m_pSocketError;
 			}
