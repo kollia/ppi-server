@@ -361,6 +361,24 @@ namespace ppi_database
 		}else
 			command << *content.currentTime;
 		command << content.content;
+#if(__DEBUGLASTREADWRITECHECK)
+		IMethodStringStream test(command.str());
+		string output;
+		ppi_value vt;
+		ppi_time tm;
+		bool same(true);
+		test >> output; // folder
+		test >> output; // subroutine
+		test >> vt; // value
+		test >> tm; // time
+		test >> output; // content
+		if(content.content != output)
+		{
+			same= false;
+			if(output.length() > 30)
+				output= output.substr(output.length() - 30);
+		}
+#endif // __DEBUGLASTREADWRITECHECK
 		msg= ExternClientInputTemplate::sendMethod("ppi-db-server", command, answer);
 		err.setErrorStr(msg);
 		if(err.fail())
