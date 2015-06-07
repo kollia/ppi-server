@@ -18,6 +18,8 @@
 #include <iostream>
 #include <set>
 
+#include "../SocketErrorHandling.h"
+
 #include "communicationthreadstarter.h"
 #include "Communication.h"
 
@@ -362,10 +364,16 @@ namespace server
 					m_poNextFree= NULL;
 				}else
 				{
-					(*descriptor) << "ERROR 018\n";
-					descriptor->flush();
+					SocketErrorHandling handle;
+					ostringstream clients;
+
+					clients << m_maxConnThreads;
+					handle.setError("CommunicationThreadStarter", "allClientsFilled", clients.str());
+					(*descriptor) << handle.getErrorStr();
+					descriptor->endl();
 #ifdef SERVERDEBUG
-					cout << "send: ERROR 018" << endl;
+					cout << "send: " << handle.getErrorStr() << endl;
+					cout << "    = " << handle.getDescription() << endl;
 					cout << "      no free communication thread exist" << endl;
 #endif // SERVERDEBUG
 				}
