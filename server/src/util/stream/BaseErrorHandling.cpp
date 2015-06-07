@@ -145,7 +145,7 @@ namespace util
 		m_tError.type= NO;
 		m_tError.errno_nr= 0;
 		m_tError.classname= "";
-		m_tError.methodname= "";
+		m_tError.errorstring= "";
 		m_tError.declarations= "";
 		m_tError.ERRORClass= m_sOwnClassName;
 		m_tGroups.clear();
@@ -176,7 +176,7 @@ namespace util
 			return false;
 		}
 		if(	methodname != "" &&
-			methodname != m_tError.methodname	)
+			methodname != m_tError.errorstring	)
 		{
 			return false;
 		}
@@ -199,7 +199,7 @@ namespace util
 			return false;
 		}
 		if( methodname != "" &&
-			methodname != m_tError.methodname	)
+			methodname != m_tError.errorstring	)
 		{
 			return false;
 		}
@@ -223,7 +223,7 @@ namespace util
 			return false;
 		}
 		if( methodname != "" &&
-			methodname != m_tError.methodname	)
+			methodname != m_tError.errorstring	)
 		{
 			return false;
 		}
@@ -315,7 +315,7 @@ namespace util
 		if(hasError())
 			return false;
 		m_tError.classname= classname;
-		m_tError.methodname= error_string;
+		m_tError.errorstring= error_string;
 		m_tError.type= intern_error;
 		m_tError.errno_nr= 0;
 		m_tError.declarations= decl;
@@ -329,12 +329,31 @@ namespace util
 		if(fail())
 			return false;
 		m_tError.classname= classname;
-		m_tError.methodname= warn_string;
+		m_tError.errorstring= warn_string;
 		m_tError.type= intern_warning;
 		m_tError.errno_nr= 0;
 		m_tError.declarations= decl;
 		m_tError.adderror= "";
 		return true;
+	}
+
+	void BaseErrorHandling::changeToWarning()
+	{
+		switch(m_tError.type)
+		{
+		case errno_error:
+			m_tError.type= errno_warning;
+			break;
+		case intern_error:
+			m_tError.type= intern_warning;
+			break;
+		case specific_error:
+			m_tError.type= specific_warning;
+			break;
+		default:
+			// nothing to do
+			break;
+		}
 	}
 
 	bool BaseErrorHandling::setErrnoError(const string& classname, const string& error_string,
@@ -343,7 +362,7 @@ namespace util
 		if(hasError())
 			return false;
 		m_tError.classname= classname;
-		m_tError.methodname= error_string;
+		m_tError.errorstring= error_string;
 		m_tError.type= errno_error;
 		m_tError.errno_nr= errno_nr;
 		m_tError.declarations= decl;
@@ -357,8 +376,36 @@ namespace util
 		if(fail())
 			return false;
 		m_tError.classname= classname;
-		m_tError.methodname= warn_string;
+		m_tError.errorstring= warn_string;
 		m_tError.type= errno_warning;
+		m_tError.errno_nr= errno_nr;
+		m_tError.declarations= decl;
+		m_tError.adderror= "";
+		return true;
+	}
+
+	bool BaseErrorHandling::setMethodError(const string& classname, const string& methodname,
+					const string& error_string, int errno_nr, const string& decl/*= ""*/)
+	{
+		if(fail())
+			return false;
+		m_tError.classname= classname;
+		m_tError.errorstring= error_string;
+		m_tError.type= specific_error;
+		m_tError.errno_nr= errno_nr;
+		m_tError.declarations= decl;
+		m_tError.adderror= "";
+		return true;
+	}
+
+	bool BaseErrorHandling::setMethodWarning(const string& classname, const string& methodname,
+					const string& warn_string, int errno_nr, const string& decl/*= ""*/)
+	{
+		if(fail())
+			return false;
+		m_tError.classname= classname;
+		m_tError.errorstring= warn_string;
+		m_tError.type= specific_warning;
 		m_tError.errno_nr= errno_nr;
 		m_tError.declarations= decl;
 		m_tError.adderror= "";
@@ -373,7 +420,7 @@ namespace util
 		if(m_tError.type == IEH::NO)
 			return;
 		group.classname= classname;
-		group.methodname= methodname;
+		group.errorstring= methodname;
 		group.declarations= decl;
 		m_tGroups.push_back(group);
 	}
@@ -439,7 +486,7 @@ namespace util
 					break;
 				}
 				oRv << m_tError.classname << ":";
-				oRv << m_tError.methodname << ":";
+				oRv << m_tError.errorstring << ":";
 				oRv << m_tError.errno_nr << ":";
 				if(m_tError.adderror != "")
 					oRv << m_tError.adderror;
@@ -449,7 +496,7 @@ namespace util
 		}else
 		{
 			oRv << group->classname << ":";
-			oRv << group->methodname;
+			oRv << group->errorstring;
 			if(group->declarations != "")
 				oRv << ":" << group->declarations;
 		}
@@ -516,7 +563,7 @@ namespace util
 				istringstream nr;
 
 				setError.classname= espl[2];
-				setError.methodname= espl[3];
+				setError.errorstring= espl[3];
 				nr.str(espl[4]);
 				nr >> setError.errno_nr;
 				if(nr.fail())
@@ -543,7 +590,7 @@ namespace util
 			m_tError.ERRORClass= "";
 			m_tError.type= setError.type;
 			m_tError.classname= setError.classname;
-			m_tError.methodname= setError.methodname;
+			m_tError.errorstring= setError.errorstring;
 			m_tError.errno_nr= setError.errno_nr;
 			m_tError.adderror= setError.adderror;
 			m_tError.declarations= setError.declarations;
@@ -570,7 +617,7 @@ namespace util
 			str.substr(0, 10) == "::unknown:"	)
 		{
 			group.classname= "::unknown";
-			group.methodname= str.substr(10);
+			group.errorstring= str.substr(10);
 			return;
 		}
 		split(spl, str, is_any_of(":"));
@@ -579,11 +626,11 @@ namespace util
 			nsize > 3	)
 		{
 			group.classname= "::unknown";
-			group.methodname= str;
+			group.errorstring= str;
 		}else
 		{
 			group.classname= spl[0];
-			group.methodname= spl[1];
+			group.errorstring= spl[1];
 			if(nsize == 3)
 				group.declarations= spl[2];
 		}
@@ -612,7 +659,7 @@ namespace util
 			if(git->classname != "::unknown")
 			{
 				error.classname= git->classname;
-				error.methodname= git->methodname;
+				error.errorstring= git->errorstring;
 				error.declarations= git->declarations;
 				if(git->ERRORClass != "")
 				{
@@ -656,7 +703,7 @@ namespace util
 				// found unknown error string
 				add= "unknown additional message string found:\n";
 				add+= " inside class " + error.classname;
-				add+= " for definition '" + git->methodname + "'";
+				add+= " for definition '" + git->errorstring + "'";
 			}
 			if(sRv != "")
 				sRv= add + "\n" + sRv;
@@ -673,7 +720,7 @@ namespace util
 		vector<string> declSpl, descSpl;
 
 //		if(m_tError.type != UNKNOWN)
-//			str= getDescriptionString(methodname, num);
+//			str= getDescriptionString(errorstring, num);
 		if(str == "")
 		{
 			if(error.type != UNKNOWN)
@@ -687,7 +734,7 @@ namespace util
 				str+= "unknown ERROR";
 			str+= " by defined string\n'" + getErrorStr(NULL) + "'\n";
 			str+= "inside class " + error.classname;
-			str+= " for definition '" + error.methodname + "'";
+			str+= " for definition '" + error.errorstring + "'";
 			return str;
 		}
 		if(error.declarations != "")
@@ -714,7 +761,7 @@ namespace util
 		{
 			str+= "\n (unknown placeholders ";
 			str+= "inside class " + error.classname;
-			str+= " for definition '" + error.methodname + "')";
+			str+= " for definition '" + error.errorstring + "')";
 		}
 		return str;
 	}
@@ -814,7 +861,7 @@ namespace util
 				classIt= langIt->second.find(error.classname);
 				if(classIt != langIt->second.end())
 				{
-					methodIt= classIt->second.find(error.methodname);
+					methodIt= classIt->second.find(error.errorstring);
 					if(methodIt != classIt->second.end())
 					{
 						//found correct error description

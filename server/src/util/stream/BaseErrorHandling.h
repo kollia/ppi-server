@@ -147,6 +147,10 @@ namespace util
 		OVERWRITE bool setWarning(const string& classname, const string& warn_string,
 						const string& decl= "");
 		/**
+		* change any error, when exist, to warning
+		*/
+		OVERWRITE void changeToWarning();
+		/**
 		 * write errno error into class
 		 *
 		 * @param classname name of class where error occurred
@@ -168,6 +172,40 @@ namespace util
 		 */
 		OVERWRITE bool setErrnoWarning(const string& classname, const string& warn_string,
 						int errno_nr, const string& decl= "");
+		/**
+		 * write error for specific method with ERRNO number
+		 * which has an light difference of real ERRNO number
+		 * and add the error string for classname.<br />
+		 * This method search first for ERRNO the explicit error/warning description
+		 * of &lt;methodname&gt;_&lt;ERRNO_STR&gt; where classname is ##standard_errno##,
+		 * when not found search with defined classname,
+		 * otherwise it will be give back the original error string for ERRNO number.<br />
+		 * ERRNO_STR is the pre-defined string for ERRNO number inside errno.h
+		 *
+		 * @param classname name of class where error occurred
+		 * @param methodname specific method inside which error occures
+		 * @param error_string name of error string defined inside translation reading file
+		 * @param errno_nr errno number needed when occurred
+		 * @param decl declaration of strings inside error description, separated with an '@'
+		 * @return whether error be set.<br />when error before exist no new error will be set
+		 */
+		OVERWRITE bool setMethodError(const string& classname, const string& methodname,
+						const string& error_string, int errno_nr, const string& decl= "");
+		/**
+		 * write warning for specific method with ERRNO number
+		 * which has an light difference of real ERRNO number
+		 * and add the warning string for classname.<br />
+		 * See description of errno string by method <code>setMethodError()</code>
+		 *
+		 * @param classname name of class where error occurred
+		 * @param methodname specific method inside which error occures
+		 * @param warn_string name of error string defined inside translation reading file
+		 * @param errno_nr errno number needed when occurred
+		 * @param decl declaration of strings inside error description, separated with an '@'
+		 * @return whether error be set.<br />when error before exist no new error will be set
+		 */
+		OVERWRITE bool setMethodWarning(const string& classname, const string& methodname,
+						const string& warn_string, int errno_nr, const string& decl= "");
 		/**
 		 * add an message description before current error
 		 *

@@ -47,6 +47,9 @@ void SocketErrorHandling::createMessages()
 	setDescription("en", "SocketClientConnection", "noDescriptor",
 					"no descriptor was created, use first method init()");
 
+	setDescription("en", "CommunicationThreadStarter", "allClientsFilled",
+					"communication starter defined for exact @1 clients, now no more clients exist");
+
 	setDescription("en", "SocketConnection", "reuse",
 					"cannot set socket option to reuse on host '@1' and port @2 to check always to be alive");
 	setDescription("en", "SocketServerConnection", "bind",

@@ -145,6 +145,10 @@ namespace util
 
 		setDescription("en", "databasemain", "run",
 						"by running database process");
+
+		setDescription("en", "portBase", "ownLockFail",
+						"external routine '@1' can not set value into own subroutine\n"
+						"when started from same ('@2:@3')");
 	}
 
 } /* namespace util */

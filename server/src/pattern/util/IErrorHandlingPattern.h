@@ -102,7 +102,7 @@ namespace design_pattern_world
 				 * name of method
 				 * where error occurred
 				 */
-				string methodname;
+				string errorstring;
 				/**
 				 * declaration of strings
 				 * inside error description,
@@ -196,7 +196,7 @@ namespace design_pattern_world
 			 */
 			virtual void addGroupErrorClasses(const string& groupname, const vector<string> classnames)= 0;
 			/**
-			 * write normal error into class
+			 * write error into class, for explicit classname
 			 *
 			 * @param classname name of class where error occurred
 			 * @param error_string name of error string defined inside translation reading file
@@ -206,7 +206,7 @@ namespace design_pattern_world
 			virtual bool setError(const string& classname, const string& error_string,
 							const string& decl= "")= 0;
 			/**
-			 * write normal error into class
+			 * write warning into class for explicit classname
 			 *
 			 * @param classname name of class where error occurred
 			 * @param warn_string name of warning string defined inside translation reading file
@@ -217,6 +217,7 @@ namespace design_pattern_world
 							const string& decl= "")= 0;
 			/**
 			 * write errno error into class
+			 * and add error from translation file
 			 *
 			 * @param classname name of class where error occurred
 			 * @param error_string name of error string defined inside translation reading file
@@ -228,6 +229,7 @@ namespace design_pattern_world
 							int errno_nr, const string& decl= "")= 0;
 			/**
 			 * write errno warning into class
+			 * and add error from translation file
 			 *
 			 * @param classname name of class where error occurred
 			 * @param warn_string name of warning string defined inside translation reading file
@@ -238,14 +240,52 @@ namespace design_pattern_world
 			virtual bool setErrnoWarning(const string& classname, const string& warn_string,
 							int errno_nr, const string& decl= "")= 0;
 			/**
+			 * write error for specific method with ERRNO number
+			 * which has an light difference of real ERRNO number
+			 * and add the error string for classname.<br />
+			 * This method search first for ERRNO the explicit error/warning description
+			 * of &lt;errorstring&gt;_&lt;ERRNO_STR&gt; where classname is ##standard_errno##,
+			 * when not found search with defined classname,
+			 * otherwise it will be give back the original error string for ERRNO number.<br />
+			 * ERRNO_STR is the pre-defined string for ERRNO number inside errno.h
+			 *
+			 * @param classname name of class where error occurred
+			 * @param errorstring specific method inside which error occures
+			 * @param error_string name of error string defined inside translation reading file
+			 * @param errno_nr errno number needed when occurred
+			 * @param decl declaration of strings inside error description, separated with an '@'
+			 * @return whether error be set.<br />when error before exist no new error will be set
+			 */
+			virtual bool setMethodError(const string& classname, const string& methodname,
+							const string& error_string, int errno_nr, const string& decl= "")= 0;
+			/**
+			 * write warning for specific method with ERRNO number
+			 * which has an light difference of real ERRNO number
+			 * and add the warning string for classname.<br />
+			 * See description of errno string by method <code>setMethodError()</code>
+			 *
+			 * @param classname name of class where error occurred
+			 * @param errorstring specific method inside which error occures
+			 * @param warn_string name of error string defined inside translation reading file
+			 * @param errno_nr errno number needed when occurred
+			 * @param decl declaration of strings inside error description, separated with an '@'
+			 * @return whether error be set.<br />when error before exist no new error will be set
+			 */
+			virtual bool setMethodWarning(const string& classname, const string& methodname,
+							const string& warn_string, int errno_nr, const string& decl= "")= 0;
+			/**
 			 * add an message description before current error
 			 *
 			 * @param classname name of class where error occurred
-			 * @param methodname name of method where error occurred
+			 * @param errorstring name of method where error occurred
 			 * @param decl declaration of strings inside error description, separated with an '@'
 			 */
 			virtual void addMessage(const string& classname,
-							const string& methodname, const string& decl= "")= 0;
+							const string& errorstring, const string& decl= "")= 0;
+			/**
+			 * change any error, when exist, to warning
+			 */
+			virtual void changeToWarning()= 0;
 			/**
 			 * asking whether an error exist from all classes defined in the group
 			 *
@@ -271,17 +311,17 @@ namespace design_pattern_world
 			 *
 			 * @param type which type of error number next parameter will be
 			 * @param classname name of class where error occurred
-			 * @param methodname name of method where error occurred
+			 * @param errorstring name of method where error occurred
 			 * @return whether error exist
 			 */
 			virtual bool fail(error_types type, const string& classname= "",
-							const string& methodname= "") const= 0;
+							const string& errorstring= "") const= 0;
 			/**
 			 * whether current object has errno error or warning
 			 *
 			 * @param num error number where error occurred
 			 * @param classname name of class where error occurred
-			 * @param methodname name of method where error occurred
+			 * @param errorstring name of method where error occurred
 			 * @return whether error exist
 			 */
 			virtual bool fail(int num, const string& classname= "",
@@ -292,30 +332,30 @@ namespace design_pattern_world
 			 * @param type which type of error number next parameter will be
 			 * @param num error number where error occurred
 			 * @param classname name of class where error occurred
-			 * @param methodname name of method where error occurred
+			 * @param errorstring name of method where error occurred
 			 * @return whether error exist
 			 */
 			virtual bool fail(error_types type, int num,
-							const string& classname= "", const string& methodname= "") const= 0;
+							const string& classname= "", const string& errorstring= "") const= 0;
 			/**
 			 * whether current object has an error.<br />
 			 * can be differ between class name, method name or error type
 			 *
 			 * @param classname name of class where error occurred
-			 * @param methodname name of method where error occurred
+			 * @param errorstring name of method where error occurred
 			 * @param type which type of error number next parameter will be
 			 * @return whether error exist
 			 */
-			virtual bool hasError(const string& classname= "", const string& methodname= "") const= 0;
+			virtual bool hasError(const string& classname= "", const string& errorstring= "") const= 0;
 			/**
 			 * whether current object has an warning
 			 *
 			 * @param classname name of class where error occurred
-			 * @param methodname name of method where error occurred
+			 * @param errorstring name of method where error occurred
 			 * @param type which type of error number next parameter will be
 			 * @return whether warning exist
 			 */
-			virtual bool hasWarning(const string& classname= "", const string& methodname= "") const= 0;
+			virtual bool hasWarning(const string& classname= "", const string& errorstring= "") const= 0;
 			/**
 			 * define intern-, specific- or errno-ERROR as WARNING
 			 * when exist
