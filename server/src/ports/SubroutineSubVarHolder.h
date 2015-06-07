@@ -47,10 +47,11 @@ namespace ports
 		 *
 		 * @param file in which file this method be called
 		 * @param line on which line in the file this method be called
+		 * @param who describe who want to lock the subroutine
 		 * @return whether object was locked
 		 */
-		OVERWRITE bool lockObject(const string& file, int line)
-		{ return m_oSubroutine->lockObject(file, line); };
+		OVERWRITE bool lockObject(const string& file, int line, const InformObject& who)
+		{ return m_oSubroutine->lockObject(file, line, who); };
 		/**
 		 * unlock object inside working list
 		 *

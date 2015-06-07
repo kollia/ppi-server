@@ -48,9 +48,10 @@ namespace design_pattern_world
 			 *
 			 * @param file in which file this method be called
 			 * @param line on which line in the file this method be called
+			 * @param who describe who want to lock the subroutine
 			 * @return whether object was locked
 			 */
-			virtual bool lockObject(const string& file, int line)= 0;
+			virtual bool lockObject(const string& file, int line, const InformObject& who)= 0;
 			/**
 			 * unlock object inside working list
 			 *
@@ -323,7 +324,7 @@ namespace design_pattern_world
 	}
 }
 
-#define LOCKOBJECT() lockObject(__FILE__, __LINE__)
+#define LOCKOBJECT(from) lockObject(__FILE__, __LINE__, from)
 #define UNLOCKOBJECT(locked) unlockObject(locked, __FILE__, __LINE__)
 
 #endif /*ILISTOBJECTPATTERN_H_*/

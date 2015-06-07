@@ -31,17 +31,20 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include "portbaseclass.h"
+#include "ExternPort.h"
 
 #include "../util/debugsubroutines.h"
 #include "../util/GlobalStaticMethods.h"
 #include "../util/exception.h"
 #include "../util/thread/Thread.h"
 #include "../util/thread/Terminal.h"
+#include "../util/stream/ErrorHandling.h"
 
 #include "../pattern/util/LogHolderPattern.h"
 
 #include "../database/lib/DbInterface.h"
 
+using namespace util;
 using namespace ports;
 using namespace ppi_database;
 using namespace boost;
@@ -488,7 +491,7 @@ void portBase::actualizeChangedSubVars()
 	}
 }
 
-bool portBase::lockObject(const string& file, int line)
+bool portBase::lockObject(const string& file, int line, const InformObject& who)
 {
 	/**
 	 * whether object will be
@@ -609,7 +612,7 @@ void portBase::noChange()
 {
 	bool locked;
 
-	locked= LOCKOBJECT();
+	locked= LOCKOBJECT(InformObject(InformObject::INTERNAL, m_sFolder+":"+m_sSubroutine));
 	if(m_bOutsideChanged)
 	{// value was changed from outside
 	 // and now by this pass nothing changed
@@ -631,7 +634,7 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 	bool debug(isDebug());
 #endif //__moreOutput
 
-	locked= LOCKOBJECT();
+	locked= LOCKOBJECT(from);
 	try{
 		vector<string> from_spl;
 		string fromWhere(from.getWhoDescription());

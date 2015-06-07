@@ -320,9 +320,11 @@ namespace ports
 			 *
 			 * @param file in which file this method be called
 			 * @param line on which line in the file this method be called
+			 * @param who describe who want to lock the subroutine
 			 * @return whether object was locked
 			 */
-			OVERWRITE bool lockObject(const string& file, int line);
+			OVERWRITE bool lockObject(const string& file, int line,
+							const InformObject& who);
 			/**
 			 * unlock object inside working list
 			 *
@@ -563,7 +565,8 @@ namespace ports
 			 *              otherwise method create own time
 			 * @param from which folder:subroutine or account changing the value
 			 */
-			OVERWRITE void setValue(const IValueHolderPattern& value, const InformObject& from);
+			OVERWRITE void setValue(const IValueHolderPattern& value,
+							const InformObject& from);
 			/**
 			 * set double value into measure list
 			 *

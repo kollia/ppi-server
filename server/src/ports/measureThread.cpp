@@ -444,6 +444,14 @@ EHObj MeasureThread::init(void *arg)
 	string sFault, folder(getFolderName());
 	DbInterface *db= DbInterface::instance();
 
+	/*
+	 * Initialization running inside main thread
+	 * of ppi-server, but set this id
+	 * because otherwise by locking
+	 * lockObject throw an logic_error
+	 * of ownLockFail
+	 */
+	m_tRunThread= Thread::gettid();
 #ifdef __followSETbehaviorFromFolder
 	boost::regex folderExp(__followSETbehaviorFromFolder);
 
@@ -1765,20 +1773,25 @@ bool MeasureThread::measure()
 			bool locked;
 			ValueHolder oldResult;
 			ValueHolder result;
+			InformObject infoObj(InformObject::INTERNAL, folder+":"+it->name);
 
-			locked= it->portClass->LOCKOBJECT();
+			locked= it->portClass->LOCKOBJECT(infoObj);
 			//Debug info to stop always by right folder or subroutine
-	/*		string stopfolder("Raff1_port");
-			string stopsub("start_error");
+	/*		string stopfolder("log_weather_starter");
+			string stopsub("logging");
 			if(	getFolderName() == stopfolder &&
 				( 	stopsub == "" ||
 					it->name == stopsub	)	)
 			{
-				cout << stopfolder << ":" << it->name << endl;
-				cout << __FILE__ << __LINE__ << endl;
+				ppi_time cur;
+
+				cur.setActTime();
+				cout << "[" << Thread::gettid() << "] "
+								<< stopfolder << ":" << it->name
+								<< "  " << cur.toString(true) << endl;
+				//cout << __FILE__ << __LINE__ << endl;
 			}*/
-			oldResult= it->portClass->getValue(
-							InformObject(InformObject::INTERNAL, folder));
+			oldResult= it->portClass->getValue(infoObj);
 			if( debug &&
 				it->portClass->isDebug())
 			{
@@ -1846,8 +1859,7 @@ bool MeasureThread::measure()
 				}
 			}
 			if(result.value != oldResult.value)
-				it->portClass->setValue(result,
-								InformObject(InformObject::INTERNAL, folder+":"+it->name));
+				it->portClass->setValue(result, infoObj);
 			else
 				it->portClass->noChange();
 			it->portClass->actualizeChangedSubVars();
