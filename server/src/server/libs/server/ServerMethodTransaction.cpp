@@ -40,6 +40,9 @@
 
 #include "../../../database/logger/lib/logstructures.h"
 
+// include only need for __DEBUGLASTREADWRITECHECK
+#include "../client/ProcessInterfaceTemplate.h"
+
 #include "ServerMethodTransaction.h"
 #include "ServerThread.h"
 #include "communicationthreadstarter.h"
@@ -86,41 +89,71 @@ namespace server
 		IServerPattern* server= NULL;
 
 		descriptor >> input;
-#if 0
+
 	/*
 	 * debug output by over length
 	 * of getting command by fill debug session
 	 */
-		if(	input.substr(0, 41) == "ppi-db-server true false fillDebugSession" &&
-			input.length() > 3041		)
+#if __DEBUGLASTREADWRITECHECK
+		client= descriptor.getString("client");
+		process= descriptor.getString("process");
+		if(	process == "ppi-server" &&
+			client == "DbInterface")
 		{
-			ostringstream out;
-			size_t pos;
+			static bool bLastFillDebug(false);
+			static string sLastInput;
+			string method;
+			istringstream oInput(input);
 
-			//m_sCommand= "ppi-db-server true false fillDebugSession   \"power_switch\"  \"#inform\"  0 1424286923.137149 \"--------------------------------------------------------------\\nINFORM power_switch:port_switch while from INTERNAL 'Raff2_Zeit:closed'\\ncalculate inform parameter (' all_started = 0 & ( Raff_Zeit_alle:do_on_grad_pressed | Raff_Alle:Auf | Raff_Alle:Zu ) ?\\n                                         (  ( Raff1:Auf | Raff1:Zu | Raff1_Zeit:use_Raff = 0 |\\n                                              (Raff1_Zeit:do_on_grad_pressed & \\n                                               Raff1_Zeit:make_grad_can_start = 0 ) |\\n                                              (Raff_Alle:Auf & Raff1_Zeit:schliessen=0) |\\n                                              (Raff_Alle:Zu & Raff1_Zeit:closed)                   ) & \\n                                            ( Raff2:Auf | Raff2:Zu | Raff2_Zeit:use_Raff = 0 |\\n                                              (Raff2_Zeit:do_on_grad_pressed & \\n                                               Raff2_Zeit:make_grad_can_start = 0 ) |\\n                                              (Raff_Alle:Auf & Raff2_Zeit:schliessen=0) |\\n                                              (Raff_Alle:Zu & Raff2_Zeit:closed)                   ) &\\n                                            ( Raff3:Auf | Raff3:Zu | Raff3_Zeit:use_Raff = 0 |\\n                                              (Raff3_Zeit:do_on_grad_pressed & \\n                                               Raff3_Zeit:make_grad_can_start = 0 ) |\\n                                              (Raff_Alle:Auf & Raff3_Zeit:schliessen=0) |\\n                                              (Raff_Alle:Zu & Raff3_Zeit:closed)                   ) &  \\n                                            ( Raff4:Auf | Raff4:Zu | Raff4_Zeit:use_Raff = 0 |\\n                                              (Raff4_Zeit:do_on_grad_pressed & \\n                                               Raff4_Zeit:make_grad_can_start = 0 ) |\\n                                              (Raff_Alle:Auf & Raff4_Zeit:schliessen=0) |\\n                                              (Raff_Alle:Zu & Raff4_Zeit:closed)                   ) &  \\n                                            ( Raff5:Auf | Raff5:Zu | Raff5_Zeit:use_Raff = 0 |\\n                                              (Raff5_Zeit:do_on_grad_pressed & \\n                                               Raff5_Zeit:make_grad_can_start = 0 ) |\\n                                              (Raff_Alle:Auf & Raff5_Zeit:schliessen=0) |\\n                                              (Raff_Alle:Zu & Raff5_Zeit:closed)                   ) &  \\n                                            ( Raff6:Auf | Raff6:Zu | Raff6_Zeit:use_Raff = 0 |\\n                                              (Raff6_Zeit:do_on_grad_pressed & \\n                                               Raff6_Zeit:make_grad_can_start = 0 ) |\\n                                              (Raff_Alle:Auf & Raff6_Zeit:schliessen=0) |\\n                                              (Raff_Alle:Zu & Raff6_Zeit:closed)                   )    ) : true    ')\\n\\nif: [all_started=0] = 0 & ([Raff_Zeit_alle:do_on_grad_pressed=0]  | [Raff_Alle:Auf=0]  | [Raff_Alle:Zu=1]  {result TRUE})  {result TRUE}\\n  then: (([Raff1:Auf=0]  | [Raff1:Zu=0]  | [Raff1_Zeit:use_Raff=1] = 0 | ([Raff1_Zeit:do_on_grad_pressed=0] {break by FALSE})  | ([Raff_Alle:Auf=0] {break by FALSE})  | ([Raff_Alle:Zu=1]  & [Raff1_Zeit:closed=1]  {result TRUE})  {result TRUE})  & ([Raff2:Auf=0]  | [Raff2:Zu=0]  | [Raff2_Zeit:use_Raff=1] = 0 | ([Raff2_Zeit:do_on_grad_pressed=0] {break by FALSE})  | ([Raff_Alle:Auf=0] {break by FALSE})  | ([Raff_Alle:Zu=1]  & [Raff2_Zeit:closed=1]  {result TRUE})  {result TRUE})  & ([Raff3:Auf=0]  | [Raff3:Zu=1] {break by TRUE})  & ([Raff4:Auf=0]  | [Raff4:Zu=1] {break by TRUE})  & ([Raff5:Auf=0]  | [Raff5:Zu=1] {break by TRUE})  & ([Raff6:Auf=0]  | [Raff6:Zu=1] {break by TRUE})  {result TRUE})  {result TRUE}\\n--------------------------------------------------------------\\n\" \n";
-			pos= input.find('\n');
-			out << "[" << Thread::gettid() << "] get debug session with length " << input.length();
-			out << " \\n ";
-			if(pos == string::npos)
-				out << "with no pos" << endl;
+			oInput >> method;// to client
+			oInput >> method;// ? answer
+			oInput >> method;// ? endstring
+			if(method == "true")
+				oInput >> method;// endstring
+			else if(method != "false")
+				method= "";
+			if(method != "")
+			{
+				oInput >> method;// method
+				if(oInput.fail())
+					method= "";
+			}
+		//if(	input.substr(0, 72) == "ProcessChecker true false setValue   \"log_weather_starter\"  \"logging\"  0")
+			if(method == "")
+			{
+				cout << "last '" << sLastInput << "'" << endl;
+				cout << "current '" << input <<  "'" << endl;
+			}
+			if(method == "fillDebugSession")
+				bLastFillDebug= true;
 			else
-				out << "with pos " << pos << endl;
-//			out << ">> '" << m_sCommand << "' <<" << endl;
-			cout << out.str();
+				bLastFillDebug= false;
+			sLastInput= input;
 		}
-#endif // debug
+		if(	process == "ppi-owreader" &&
+			client == "DbInterface"		)
+		{
+			cout << flush;
+		}
+#endif // __DEBUGLASTREADWRITECHECK
 		if(descriptor.fail())
 		{
 			unsigned int ID;
 			int log;
 			string process, client;
 			vector<string> answer;
-			ostringstream decl;
+			ostringstream decl, allocateOutput;
 			IMethodStringStream oInit("init");
 
 			ID= descriptor.getClientID();
 			client= descriptor.getString("client");
 			process= descriptor.getString("process");
+			if(!descriptor.getBoolean("access"))
+				allocateOutput << "non ";
+			allocateOutput << "allocated connection to server " << descriptor.getServerObject()->getName();
+			allocateOutput << " finish broken connection with ID " << descriptor.getClientID();
+			allocateOutput << "  from client " << client;
+			allocateOutput << " in process " << process << endl;
 			//cout << ">>> client " << descriptor.getString("client");
 			//cout << " from process " << descriptor.getString("process");
 			//cout << " loose access to server " << descriptor.getServerObject()->getName() << endl;
@@ -144,12 +177,14 @@ namespace server
 					log= LOG_WARNING;
 				}
 			}
-			LOG(log, m_pSockError->getDescription() + "\n -> so close connection");
+			allocateOutput << m_pSockError->getDescription() << endl;
+			allocateOutput << " -> so close connection";
+			LOG(log, allocateOutput.str());
 #ifdef ALLOCATEONMETHODSERVER
 			if(	string(ALLOCATEONMETHODSERVER) == "" ||
 				descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
 			{
-				cerr << m_pSockError->getDescription() << endl;
+				cerr << allocateOutput.str() << endl;
 			}
 #endif // ALLOCATEONMETHODSERVER
 			m_pSockError->clear();
@@ -288,17 +323,24 @@ namespace server
 #endif // ALLOCATEONMETHODSERVER
 			return true;
 		}
-		if(	client == ""
-			&&
-			input == "ending"			)
+		if(input == "ending")
 		{
+			int log(LOG_DEBUG);
 			ostringstream allocateOutput;
 
-			allocateOutput << "connection to server " << descriptor.getServerObject()->getName() << endl;
-			allocateOutput << "finish connection with ID " << descriptor.getClientID();
+			if(client == "")
+			{
+				log= LOG_WARNING;
+				allocateOutput << "non ";
+			}
+			allocateOutput << "allocated connection to server " << descriptor.getServerObject()->getName();
+			allocateOutput << " finish connection ";
+			if(client != "")
+				allocateOutput << "correctly ";
+			allocateOutput << "with ID " << descriptor.getClientID();
 			allocateOutput << "  from client " << descriptor.getString("client");
 			allocateOutput << " in process " << descriptor.getString("process");
-			LOG(LOG_DEBUG, allocateOutput.str());
+			LOG(log, allocateOutput.str());
 #ifdef ALLOCATEONMETHODSERVER
 			if(	string(ALLOCATEONMETHODSERVER) == "" ||
 				descriptor.getServerObject()->getName() == ALLOCATEONMETHODSERVER)
@@ -339,7 +381,7 @@ namespace server
 			{
 				descriptor << "true\n";
 				used= true;
-			}else if(input == "stopping\n")
+			}else if(input == "stopping")
 			{
 				server= descriptor.getServerObject();
 				if(server->stopping())
