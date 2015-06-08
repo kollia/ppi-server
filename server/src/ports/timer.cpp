@@ -1790,10 +1790,12 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 			{
 				if(m_nAllowStarting == 1)
 				{
-					if(debug)
-						out() << "no next measure time be set, starting currently external subroutine" << endl;
 					m_tmExactStop= m_tmStart;
 					m_tmStop= m_tmExactStop;
+					if(debug)
+						out() << "no next measure time be set, "
+										"starting external subroutine at current time "
+										<< m_tmExactStop.toString(/*as date*/true) << endl;
 					m_bStartExtern= m_pStartObj->startingBy(m_tmExactStop,
 									InformObject(InformObject::INTERNAL,
 									getFolderName()+":"+getSubroutineName()));
@@ -1960,6 +1962,9 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 			}// else if(calc > 0)
 		}else//if(m_nAllowStarting != 1)
 		{
+			if(debug)
+				out() << "starting external subroutine by "
+						<< m_tmExactStop.toString(/*as date*/true) << endl;
 			m_bStartExtern= m_pStartObj->startingBy(m_tmExactStop,
 							InformObject(InformObject::INTERNAL,
 							getFolderName()+":"+getSubroutineName()));
@@ -2085,12 +2090,13 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 			if(m_bExactTime)
 			{
 				if(m_nAllowStarting == 1)
-					out() << "external subroutine should start at ";
+					out() << "external subroutine should start in ";
 				else
 					out() << "          to reach subroutine after ";
 				out() << ppi_time(*nextTime + folderLength).toString(/*as date*/false);
-				out() << " seconds, by ";
-				out() << m_tmExactStop.toString(/*as date*/true);
+				out() << " seconds";
+				if(m_nAllowStarting != 1) // when allow starting is 1 display time shortly before start with method
+					out() << ", by " << m_tmExactStop.toString(/*as date*/true);
 				out() << endl;
 			}
 			if(!m_oFinished.isEmpty())
