@@ -151,7 +151,7 @@ namespace server
 #endif // __DEBUGLASTREADWRITECHECK
 					if((*it).substr((*it).size(), -1) != "\n")
 					{
-#ifdef __DEBUGLASTREADWRITECHECK
+#if __DEBUGLASTREADWRITECHECK
 						addCR= true;
 #endif // __DEBUGLASTREADWRITECHECK
 						descriptor.endl();
