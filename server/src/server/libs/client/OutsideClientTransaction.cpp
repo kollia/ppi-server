@@ -148,7 +148,7 @@ namespace server
 					descriptor << *it;
 #if __DEBUGLASTREADWRITECHECK
 					addCR= false;
-#endif __DEBUGLASTREADWRITECHECK
+#endif // __DEBUGLASTREADWRITECHECK
 					if((*it).substr((*it).size(), -1) != "\n")
 					{
 #ifdef __DEBUGLASTREADWRITECHECK
