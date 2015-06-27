@@ -128,16 +128,16 @@ namespace server
 			if(ai->ai_family == AF_INET)
 			{
 				ipv4addr= (struct sockaddr_in *)aptr->ai_addr;
-				inet_ntop(aptr->ai_family, &ipv4addr->sin_addr, ip_address, INET6_ADDRSTRLEN);
+				inet_ntop(ai->ai_family, &ipv4addr->sin_addr, ip_address, INET6_ADDRSTRLEN);
 			}else
 			{
 				ipv6addr= (struct sockaddr_in6 *)aptr->ai_addr;
-				inet_ntop(aptr->ai_family, &ipv6addr->sin6_addr, ip_address, INET6_ADDRSTRLEN);
+				inet_ntop(ai->ai_family, &ipv6addr->sin6_addr, ip_address, INET6_ADDRSTRLEN);
 			}
 			m_sHostAddress= ip_address;
 
 			m_kSocket.ss_family= aptr->ai_family;
-			m_kSocket.serverSocket = socket(aptr->ai_family, aptr->ai_socktype, aptr->ai_protocol);
+			m_kSocket.serverSocket = socket(ai->ai_family, aptr->ai_socktype, aptr->ai_protocol);
 			if (m_kSocket.serverSocket <= 0)
 			{
 				lasterrno= errno;
