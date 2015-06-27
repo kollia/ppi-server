@@ -191,11 +191,10 @@ int main(int argc, char* argv[])
 																5,
 																new ServerTransaction(defaultuserID)	),
 									new SocketClientConnection(	SOCK_STREAM,
-																host,
+																"localhost",
 																port,
 																5			),
 									/*open connection with*/"GET"									);
-
 	errHandle= internetserver.run();
 	nRv= EXIT_SUCCESS;
 	if(errHandle.fail())

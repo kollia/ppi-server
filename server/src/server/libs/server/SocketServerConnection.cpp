@@ -90,6 +90,8 @@ namespace server
 	{
 		int reuse;
 		ostringstream smsg;
+		struct sockaddr* adr_sock;
+		socklen_t	adr_len;
 
 		reuse = 1;
 		if (setsockopt(m_kSocket.serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
@@ -103,15 +105,35 @@ namespace server
 			return false;
 		}
 
-		memset(&m_kSocket.rec_addres, 0, sizeof(m_kSocket.rec_addres));
-		m_kSocket.rec_addres.sin_family= m_kSocket.ss_family;
-		m_kSocket.rec_addres.sin_port= htons(m_nPort);
-		m_kSocket.rec_addres.sin_addr.s_addr= htonl( INADDR_ANY ); /* wildcard */
-		m_kSocket.adrlaenge= sizeof(m_kSocket.rec_addres);
-		//if (bind(m_kSocket.serverSocket, ai->ai_addr, ai->ai_addrlen) != 0)
+		if(m_sHost == "*")
+		{
+			memset(&m_kSocket.rec_addres, 0, sizeof(m_kSocket.rec_addres));
+			m_kSocket.rec_addres.sin_family= ai->ai_family;
+			m_kSocket.rec_addres.sin_port= htons(m_nPort);
+			m_kSocket.rec_addres.sin_addr.s_addr= htonl( INADDR_ANY ); /* IPv4 wildcard */
+			m_kSocket.adrlaenge= sizeof(m_kSocket.rec_addres);
+			adr_sock= (struct sockaddr*)&m_kSocket.rec_addres;
+			adr_len= m_kSocket.adrlaenge;
+
+		}else if(m_sHost == "::*")
+		{
+			sockaddr_in6  rec_addres;
+
+			memset(&rec_addres, 0, sizeof(rec_addres));
+			rec_addres.sin6_family= ai->ai_family;
+			rec_addres.sin6_port= htons(m_nPort);
+			rec_addres.sin6_addr= in6addr_any; /* IPv6 wildcard */
+			m_kSocket.adrlaenge= sizeof(rec_addres);
+			adr_sock= (struct sockaddr*)&rec_addres;
+			adr_len= m_kSocket.adrlaenge;
+		}else
+		{
+			adr_sock= ai->ai_addr;
+			adr_len= ai->ai_addrlen;
+		}
 		if(	bind(m_kSocket.serverSocket,
-						(struct sockaddr*)&m_kSocket.rec_addres,
-						m_kSocket.adrlaenge						) != 0	)
+						adr_sock,
+						ai->ai_addrlen		) != 0	)
 		{
 			int error(errno);
 			ostringstream decl;

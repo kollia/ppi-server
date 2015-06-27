@@ -61,9 +61,11 @@ namespace server
 	EHObj SocketClientConnection::init()
 	{
 		int lasterrno;
-		addrinfo hints, *ai, *aptr;
+		addrinfo hints;
+		addrinfo *ai= NULL;
+		addrinfo *aptr= NULL;
 		char ip_address[INET6_ADDRSTRLEN];
-		//string msg;
+		string host;
 		sockaddr_in	*ipv4addr;
 		sockaddr_in6 *ipv6addr;
 		ostringstream oPort;
@@ -102,13 +104,20 @@ namespace server
 		m_kSocket.serverSocket= 0;
 		m_bCorrectAddr= false;
 
-		lasterrno= getaddrinfo(m_sHost.c_str(), oPort.str().c_str(), &hints, &ai);
+		if(m_sHost == "")
+			m_sHost= "::*";
+		host= m_sHost;
+		if(m_sHost == "*")
+			host= "localhost";
+		else if(m_sHost == "::*")
+			host= "ip6-localhost";
+		lasterrno= getaddrinfo(host.c_str(), oPort.str().c_str(), &hints, &ai);
 		if(lasterrno != 0)
 		{
 			SocketErrorHandling handle;
 
 			handle.setAddrError("SocketConnection", "getaddrinfo",
-							lasterrno, errno, m_sHost + "@" + oPort.str());
+							lasterrno, errno, host + "@" + oPort.str());
 			(*m_pSocketError)= handle;
 			return m_pSocketError;
 		}
@@ -145,7 +154,6 @@ namespace server
 									errno, m_sHost + "@" + oPort.str());
 				}
 			}
-
 			initType(aptr);
 			break;// socket was set correctly
 		}
@@ -154,7 +162,8 @@ namespace server
 			m_pSocketError->setErrnoError("SocketConnection", "socket",
 							lasterrno, m_sHost + "@" + oPort.str());
 		}
-		freeaddrinfo(ai);
+		if(ai != NULL)
+			freeaddrinfo(ai);
 		return m_pSocketError;
 	}
 
