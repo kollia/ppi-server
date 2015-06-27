@@ -91,10 +91,9 @@ namespace server
 		int reuse;
 		ostringstream smsg;
 		struct sockaddr* adr_sock;
-		socklen_t	adr_len;
 
 		reuse = 1;
-		if (setsockopt(m_kSocket.serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
+		if(setsockopt(m_kSocket.serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
 		{
 			int error(errno);
 			ostringstream decl;
@@ -103,6 +102,36 @@ namespace server
 			m_pSocketError->setErrnoError("SocketConnection", "reuse",
 							error, decl.str());
 			return false;
+		}
+		if(	ai->ai_family == AF_INET6 ||
+			ai->ai_family == PF_INET6	)
+		{
+			socklen_t len;
+
+			if(getsockopt(m_kSocket.serverSocket, IPPROTO_IPV6, IPV6_V6ONLY, &reuse, &len) != 0)
+				reuse= -1;
+			cout << "socket option for IPV6_V6ONLY for default is " << reuse << endl;
+			reuse= 0;
+			if(setsockopt(m_kSocket.serverSocket, IPPROTO_IPV6, IPV6_V6ONLY, &reuse, sizeof(reuse)) != 0)
+			{
+				int error(errno);
+				ostringstream decl;
+
+				decl << m_sHost << "@" << m_nPort;
+				m_pSocketError->setErrnoWarning("SocketConnection","IPV4_IPV6",
+								error, decl.str());
+			}
+		}
+		if(	(	m_sHost == "::*" &&
+				reuse < 1			) ||
+			(	m_sHost == "" &&
+				(	reuse == 1 ||
+					reuse == -1		)	)	)
+		{
+			if(m_sHost == "")
+				reuse= 0;
+			else
+				reuse= 1;
 		}
 
 		if(m_sHost == "*")
@@ -113,9 +142,9 @@ namespace server
 			m_kSocket.rec_addres.sin_addr.s_addr= htonl( INADDR_ANY ); /* IPv4 wildcard */
 			m_kSocket.adrlaenge= sizeof(m_kSocket.rec_addres);
 			adr_sock= (struct sockaddr*)&m_kSocket.rec_addres;
-			adr_len= m_kSocket.adrlaenge;
 
-		}else if(m_sHost == "::*")
+		}else if(	m_sHost == "" ||
+					m_sHost == "::*"	)
 		{
 			sockaddr_in6  rec_addres;
 
@@ -125,11 +154,9 @@ namespace server
 			rec_addres.sin6_addr= in6addr_any; /* IPv6 wildcard */
 			m_kSocket.adrlaenge= sizeof(rec_addres);
 			adr_sock= (struct sockaddr*)&rec_addres;
-			adr_len= m_kSocket.adrlaenge;
 		}else
 		{
 			adr_sock= ai->ai_addr;
-			adr_len= ai->ai_addrlen;
 		}
 		if(	bind(m_kSocket.serverSocket,
 						adr_sock,

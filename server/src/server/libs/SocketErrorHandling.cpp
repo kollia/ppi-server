@@ -37,6 +37,8 @@ void SocketErrorHandling::createMessages()
 					"cannot set socket option for host '@1' and port @2 to check always to be alive");
 	setDescription("en", "SocketConnection", "socket",
 					"cannot create socket to host '@1' with port @2 by follow error:");
+	setDescription("en", "SocketConnection", "IPV4_IPV6",
+					"cannot set socket option on host '@1' and port @2 to listen on IPv4 and IPv6 addresses");
 
 	setDescription("en", "SocketClientConnection", "transfer",
 					"transaction to '@1' ending -> close connection");
