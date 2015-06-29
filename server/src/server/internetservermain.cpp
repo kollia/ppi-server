@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
 																5,
 																new ServerTransaction(defaultuserID)	),
 									new SocketClientConnection(	SOCK_STREAM,
-																"localhost",
+																"127.0.0.1",
 																port,
 																5			),
 									/*open connection with*/"GET"									);

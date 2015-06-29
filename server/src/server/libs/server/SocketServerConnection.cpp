@@ -109,8 +109,11 @@ namespace server
 			socklen_t len;
 
 			if(getsockopt(m_kSocket.serverSocket, IPPROTO_IPV6, IPV6_V6ONLY, &reuse, &len) != 0)
+			{
 				reuse= -1;
-			cout << "socket option for IPV6_V6ONLY for default is " << reuse << endl;
+				cout << "### WARNING: cannot read socket option IPV6_V6ONLY" << endl;
+			}else
+				cout << "socket option for IPV6_V6ONLY for default is " << reuse << endl;
 			reuse= 0;
 			if(setsockopt(m_kSocket.serverSocket, IPPROTO_IPV6, IPV6_V6ONLY, &reuse, sizeof(reuse)) != 0)
 			{
@@ -120,20 +123,9 @@ namespace server
 				decl << m_sHost << "@" << m_nPort;
 				m_pSocketError->setErrnoWarning("SocketConnection","IPV4_IPV6",
 								error, decl.str());
+				cout << glob::addPrefix("### ERROR: ", m_pSocketError->getDescription()) << endl;
 			}
 		}
-		if(	(	m_sHost == "::*" &&
-				reuse < 1			) ||
-			(	m_sHost == "" &&
-				(	reuse == 1 ||
-					reuse == -1		)	)	)
-		{
-			if(m_sHost == "")
-				reuse= 0;
-			else
-				reuse= 1;
-		}
-
 		if(m_sHost == "*")
 		{
 			memset(&m_kSocket.rec_addres, 0, sizeof(m_kSocket.rec_addres));
@@ -181,7 +173,9 @@ namespace server
 			return -1;
 		}
 		smsg << "listen on port " << m_nPort << " by host ";
-		smsg << m_sHost;
+		smsg << m_sHostName;
+		if(m_sHostName != m_sHostAddress)
+			smsg << "(" << m_sHostAddress << ")";
 		cout << smsg.str() << endl;
 		return true;
 	}

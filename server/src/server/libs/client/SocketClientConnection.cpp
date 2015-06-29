@@ -108,9 +108,9 @@ namespace server
 			m_sHost= "::*";
 		host= m_sHost;
 		if(m_sHost == "*")
-			host= "localhost";
+			host= "127.0.0.1";
 		else if(m_sHost == "::*")
-			host= "ip6-localhost";
+			host= "::1";
 		lasterrno= getaddrinfo(host.c_str(), oPort.str().c_str(), &hints, &ai);
 		if(lasterrno != 0)
 		{
@@ -125,7 +125,8 @@ namespace server
 		for(aptr= ai; aptr != NULL; aptr= aptr->ai_next)
 		{
 			m_sHostName= aptr->ai_canonname;
-			if(ai->ai_family == AF_INET)
+			if(	ai->ai_family == AF_INET ||
+				ai->ai_family == PF_INET	)
 			{
 				ipv4addr= (struct sockaddr_in *)aptr->ai_addr;
 				inet_ntop(ai->ai_family, &ipv4addr->sin_addr, ip_address, INET6_ADDRSTRLEN);
