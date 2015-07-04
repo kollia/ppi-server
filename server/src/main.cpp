@@ -15,8 +15,6 @@
  *   along with ppi-server.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// first try of git checkin
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
