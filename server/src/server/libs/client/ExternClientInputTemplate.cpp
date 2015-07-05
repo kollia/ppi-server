@@ -317,6 +317,16 @@ namespace util
 	{
 		LOCK(m_SENDMETHODLOCK);
 		try{
+			if(m_pSendTransaction == NULL)
+			{
+				/*
+				 * no transaction is open
+				 * or be closed before
+				 * so nothing to do
+				 */
+				UNLOCK(m_SENDMETHODLOCK);
+				return m_pSocketError;
+			}
 			closeConnection(m_oSendConnect, m_pSendTransaction, m_sEndingSendCommand);
 		}catch(SignalException& ex)
 		{
@@ -544,6 +554,16 @@ namespace util
 	{
 		LOCK(m_GETQUESTIONLOCK);
 		try{
+			if(m_pGetTransaction == NULL)
+			{
+				/*
+				 * no transaction is open
+				 * or be closed before
+				 * so nothing to do
+				 */
+				UNLOCK(m_GETQUESTIONLOCK);
+				return m_pSocketError;
+			}
 			closeConnection(m_oGetConnect, m_pGetTransaction, m_sEndingGetCommand);
 		}catch(SignalException& ex)
 		{
