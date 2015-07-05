@@ -409,7 +409,10 @@ namespace util
 				answer= m_pGetTransaction->getReturnedString();
 				handling.searchResultError(answer);
 				if(handling.fail())
+				{
+					m_pGetTransaction= NULL;
 					(*m_pSocketError)= handling;
+				}
 			}
 		}
 		UNLOCK(m_GETQUESTIONLOCK);
