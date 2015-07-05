@@ -268,8 +268,15 @@ namespace server
 				return false;
 			}
 			if(!hold)
-				m_pSocketError->setError("SocketClientConnection", "transfer",
-								m_pDescriptor->getHostAddressName());
+			{
+				/*
+				 * when no error from descriptor
+				 * maybe error comes from transaction
+				 */
+				m_pSocketError= m_pTransfer->getErrorObj();
+			//	m_pSocketError->setError("SocketClientConnection", "transfer",
+			//					m_pDescriptor->getHostAddressName());
+			}
 		}
 		return true;
 	}
