@@ -362,6 +362,7 @@ int main(int argc, char* argv[])
 				sErr+= err->getDescription();
 				LOG(nErr, sErr);
 				cout << glob::addPrefix(errType, sErr) << endl;
+				DbInterface::deleteAll();
 				return EXIT_FAILURE;
 			}
 
@@ -374,6 +375,12 @@ int main(int argc, char* argv[])
 			msg+= "  so do not run server from type " + servertype + " any more and STOPPING";
 			cerr << endl << endl << msg << endl << endl;
 			LOG(LOG_ALERT, msg);
+			DbInterface::deleteAll();
+			if(owserver.get() != NULL)
+			{
+				owserver->stop(true);
+				owserver= auto_ptr<OWServer>();
+			}
 			exit(EXIT_FAILURE);
 
 		}catch(std::exception &ex)
@@ -385,6 +392,11 @@ int main(int argc, char* argv[])
 			msg+= "so stopping hole aplication of owreader";
 			cerr << endl << endl << "### ERROR: " << msg << endl << endl;
 			LOG(LOG_ALERT, msg);
+			if(owserver.get() != NULL)
+			{
+				owserver->stop(true);
+				owserver= auto_ptr<OWServer>();
+			}
 			exit(EXIT_FAILURE);
 		}
 
@@ -553,6 +565,11 @@ int main(int argc, char* argv[])
 		errHandle= owserver->stop();
 	}
 	DbInterface::deleteAll();
+	if(owserver.get() != NULL)
+	{
+		owserver->stop(true);
+		owserver= auto_ptr<OWServer>();
+	}
 	if(errHandle.fail())
 	{
 		string msg;
