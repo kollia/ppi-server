@@ -128,11 +128,14 @@ namespace server
 		 * search client with given defined name
 		 * and return this client
 		 *
-		 * @param definition defined name to find client
+		 * @param process name of process in which client running
+		 * @param client defined name to find client
 		 * @param own pointer of own called descriptor witch client is not needed
+		 * @param after should returning client after this address when defined
 		 * @return return client
 		 */
-		virtual IClientPattern* getClient(const string& definition, IFileDescriptorPattern* own) const;
+		virtual IClientPattern* getClient(const string& process, const string& client,
+						IFileDescriptorPattern* own, IClientPattern* after= NULL) const;
 		/**
 		 * send stop to all communication threads beside the own.
 		 * If bWait is true, the method coming back with result false for every stopped client.

@@ -234,7 +234,9 @@ namespace server
 								<<"' to other client ProcessChecker" << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-			descriptor.sendToOtherClient("ProcessChecker", sendMeth, false, "");
+			descriptor.sendToOtherClient(	__WORKINGLIST_PROCESS,
+											__WORKINGLIST_CONTROL_CLIENT,
+											sendMeth, false, "");
 			if(object.getSyncID() > 0)
 				sendMeth.removeSyncID();
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
@@ -263,7 +265,9 @@ namespace server
 								<<"' to other client ProcessChecker" << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-			descriptor.sendToOtherClient("ProcessChecker", sendMeth, false, "");
+			descriptor.sendToOtherClient(	__WORKINGLIST_PROCESS,
+											__WORKINGLIST_CONTROL_CLIENT,
+											sendMeth, false, "");
 			if(object.getSyncID() > 0)
 				sendMeth.removeSyncID();
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
@@ -700,7 +704,9 @@ namespace server
 								<<"' to other client ProcessChecker" << endl;
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-			answer= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+			answer= descriptor.sendToOtherClient(	__WORKINGLIST_PROCESS,
+													__WORKINGLIST_CONTROL_CLIENT,
+													sendMeth, true, "");
 			if(answer.size())
 			{
 				ires= answer.front();
@@ -780,7 +786,9 @@ namespace server
 									<<"' to other client ProcessChecker" << endl;
 				}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-				answer= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+				answer= descriptor.sendToOtherClient(	__WORKINGLIST_PROCESS,
+														__WORKINGLIST_CONTROL_CLIENT,
+														sendMeth, true, "");
 				if(answer.size())
 				{
 					ires= answer.front();
@@ -859,7 +867,9 @@ namespace server
 									<<"' to other client ProcessChecker" << endl;
 				}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-				answer= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+				answer= descriptor.sendToOtherClient(	__WORKINGLIST_PROCESS,
+														__WORKINGLIST_CONTROL_CLIENT,
+														sendMeth, true, "");
 				if(answer.size())
 				{
 					ires= answer.front();
@@ -882,7 +892,7 @@ namespace server
 					if(param != "")
 						(*send) << " \"" << param << "\"";
 					poOWReader= auto_ptr<ostringstream>(new ostringstream);
-					(*poOWReader) << "OwServerQuestion-" << nOWReader;
+					(*poOWReader) << __EXTERNALPORT_CLIENT_BEGINSTR << nOWReader;
 					IMethodStringStream sendMeth(send->str());
 
 					sendMeth.createSyncID(object.getSyncID());
@@ -902,7 +912,8 @@ namespace server
 										<<"' to other client " << poOWReader->str() << endl;
 					}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-					answer= descriptor.sendToOtherClient(poOWReader->str(), sendMeth, true, "");
+					answer= descriptor.sendToOtherClient(	__EXTERNALPORT_PROCESSES,
+															poOWReader->str(), sendMeth, true, "");
 					if(answer.size())
 					{
 						ires= answer.front();
@@ -995,7 +1006,7 @@ namespace server
 
 			sendMeth.createSyncID(object.getSyncID());
 			object >> ow;
-			def << "OwServerQuestion-" << ow;
+			def << __EXTERNALPORT_CLIENT_BEGINSTR << ow;
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 			if(bDebugOutput)
 			{
@@ -1013,7 +1024,8 @@ namespace server
 			}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 			// toDo: check whether answer for more rows is right made
-			answer= descriptor.sendToOtherClient(def.str(), sendMeth, true, "");
+			answer= descriptor.sendToOtherClient(	__EXTERNALPORT_PROCESSES,
+													def.str(), sendMeth, true, "");
 			if(answer.size())
 			{
 				for(vector<string>::iterator it= answer.begin(); it != answer.end(); ++it)
@@ -1081,7 +1093,7 @@ namespace server
 				OMethodStringStream sendMeth("setDebug");
 
 				sendMeth.createSyncID(object.getSyncID());
-				server << "OwServerQuestion-" << serverID;
+				server << __EXTERNALPORT_CLIENT_BEGINSTR << serverID;
 				sendMeth << set;
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 				if(bDebugOutput)
@@ -1102,7 +1114,8 @@ namespace server
 				IMethodStringStream ires;
 				IMethodStringStream method(sendMeth);
 
-				answer= descriptor.sendToOtherClient(server.str(), method, false, "");
+				answer= descriptor.sendToOtherClient(	__EXTERNALPORT_PROCESSES,
+														server.str(), method, false, "");
 				if(answer.size())
 				{
 					ires= answer.front();
@@ -1155,7 +1168,7 @@ namespace server
 					IMethodStringStream sendMeth("setDebug false");
 
 					sendMeth.createSyncID(object.getSyncID());
-					server << "OwServerQuestion-" << it->first;
+					server << __EXTERNALPORT_CLIENT_BEGINSTR << it->first;
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 					bDo= true;
 					if(bDebugOutput)
@@ -1173,7 +1186,8 @@ namespace server
 										<<"' to other client " << server.str() << endl;
 					}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-					descriptor.sendToOtherClient(server.str(), sendMeth, false, "");
+					descriptor.sendToOtherClient(	__EXTERNALPORT_PROCESSES,
+													server.str(), sendMeth, false, "");
 					if(object.getSyncID() == 0)
 						sendMeth.removeSyncID();
 					if(connectionID > 0)
@@ -1236,7 +1250,9 @@ namespace server
 										<<"' to other client ProcessChecker" << endl;
 					}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-					descriptor.sendToOtherClient("ProcessChecker", sendMeth, false, "");
+					descriptor.sendToOtherClient(	__WORKINGLIST_PROCESS,
+													__WORKINGLIST_CONTROL_CLIENT,
+													sendMeth, false, "");
 					if(object.getSyncID() == 0)
 						sendMeth.removeSyncID();
 				}
@@ -1260,7 +1276,7 @@ namespace server
 				IMethodStringStream sendMeth("checkUnused");
 
 				sendMeth.createSyncID(object.getSyncID());
-				server << "OwServerQuestion-" << n;
+				server << __EXTERNALPORT_CLIENT_BEGINSTR << n;
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 					if(bDebugOutput)
 					{
@@ -1277,7 +1293,8 @@ namespace server
 										<<"' to other client " << server.str() << endl;
 					}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-				descriptor.sendToOtherClient(server.str(), sendMeth, true, "");
+				descriptor.sendToOtherClient(	__EXTERNALPORT_PROCESSES,
+												server.str(), sendMeth, true, "");
 				if(object.getSyncID() == 0)
 					sendMeth.removeSyncID();
 			}
@@ -1300,7 +1317,7 @@ namespace server
 			{
 				ostringstream server;
 
-				server << "OwServerQuestion-" << n;
+				server << __EXTERNALPORT_CLIENT_BEGINSTR << n;
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 				if(bDebugOutput)
 				{
@@ -1318,7 +1335,8 @@ namespace server
 				}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 				sendMeth.createSyncID(object.getSyncID());
-				descriptor.sendToOtherClient(server.str(), sendMeth, true, "");
+				descriptor.sendToOtherClient(	__EXTERNALPORT_PROCESSES,
+												server.str(), sendMeth, true, "");
 				if(object.getSyncID() == 0)
 					sendMeth.removeSyncID();
 			}
@@ -1436,7 +1454,7 @@ namespace server
 					IMethodStringStream sendMeth("finishedInitial");
 
 					sendMeth.createSyncID(object.getSyncID());
-					owclient << "OwServerQuestion-";
+					owclient << __EXTERNALPORT_CLIENT_BEGINSTR;
 					owclient << actClient;
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
 					if(bDebugOutput)
@@ -1454,7 +1472,8 @@ namespace server
 										<<"' to other client " << owclient.str() << endl;
 					}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-					answer= descriptor.sendToOtherClient(owclient.str(), sendMeth, true, "");
+					answer= descriptor.sendToOtherClient(	__EXTERNALPORT_PROCESSES,
+															owclient.str(), sendMeth, true, "");
 					if(answer.size())
 					{
 						ires= answer.front();
@@ -1585,7 +1604,7 @@ namespace server
 
 					sendMeth.createSyncID(object.getSyncID());
 					oldclient= client;
-					owclient << "OwServerQuestion-";
+					owclient << __EXTERNALPORT_CLIENT_BEGINSTR;
 					owclient << client;
 					glob::stopMessage("ServerDbTransaction::transfer(): send stop message to owreader process " + owclient.str());
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
@@ -1604,7 +1623,8 @@ namespace server
 										<<"' to other client " << owclient.str() << endl;
 					}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-					descriptor.sendToOtherClient(owclient.str(), sendMeth, false, "");
+					descriptor.sendToOtherClient(	__EXTERNALPORT_PROCESSES,
+													owclient.str(), sendMeth, false, "");
 					if(object.getSyncID() == 0)
 						sendMeth.removeSyncID();
 					usleep(500000);
@@ -1642,7 +1662,9 @@ namespace server
 									<<"' to other client ProcessChecker" << endl;
 				}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-				answer= descriptor.sendToOtherClient("ProcessChecker", sendMeth, true, "");
+				answer= descriptor.sendToOtherClient(	__WORKINGLIST_PROCESS,
+														__WORKINGLIST_CONTROL_CLIENT,
+														sendMeth, true, "");
 				if(answer.size())
 				{
 					ires= answer.front();
@@ -1674,7 +1696,9 @@ namespace server
 										<<"' to other client ProcessChecker" << endl;
 					}
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
-					descriptor.sendToOtherClient("ProcessChecker", sendMeth, false, "");
+					descriptor.sendToOtherClient(	__WORKINGLIST_PROCESS,
+													__WORKINGLIST_CONTROL_CLIENT,
+													sendMeth, false, "");
 					if(object.getSyncID() == 0)
 						sendMeth.removeSyncID();
 					sRv= "stop measure threads";
@@ -1773,7 +1797,7 @@ namespace server
 
 	void ServerDbTransaction::allocateConnection(IFileDescriptorPattern& descriptor)
 	{
-		if(!descriptor.getBoolean("asker") && descriptor.getString("client").substr(0, 17) == "OwServerQuestion-")
+		if(!descriptor.getBoolean("asker") && descriptor.getString("client").substr(0, 17) == __EXTERNALPORT_CLIENT_BEGINSTR)
 		{
 			LOCK(m_ONEWIRECLIENTSMUTEX);
 			++m_nOwClients;
@@ -1783,7 +1807,7 @@ namespace server
 
 	void ServerDbTransaction::dissolveConnection(IFileDescriptorPattern& descriptor)
 	{
-		if(!descriptor.getBoolean("asker") && descriptor.getString("client").substr(0, 17) == "OwServerQuestion-")
+		if(!descriptor.getBoolean("asker") && descriptor.getString("client").substr(0, 17) == __EXTERNALPORT_CLIENT_BEGINSTR)
 		{
 			LOCK(m_ONEWIRECLIENTSMUTEX);
 			--m_nOwClients;

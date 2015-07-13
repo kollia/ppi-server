@@ -46,10 +46,11 @@ namespace design_pattern_world {
 			 * search whether client with given defined name
 			 * is the correct one
 			 *
-			 * @param definition defined name to find client
+			 * @param process name of process in which client running
+			 * @param client defined name to find client
 			 * @return whether client is correct with given definition
 			 */
-			virtual bool isClient(const string& definition) const= 0;
+			virtual bool isClient(const string& process, const string& client) const= 0;
 			/**
 			 * send string to actual <code>ITransferPattern</code>
 			 *

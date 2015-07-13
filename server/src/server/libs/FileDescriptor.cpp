@@ -632,31 +632,33 @@ namespace server
 		return m_nPort;
 	}
 
-	IClientPattern* FileDescriptor::getOtherHearingClient(const string& definition)
+	IClientPattern* FileDescriptor::getOtherHearingClient(const string& process, const string& client,
+												const unsigned int timeout, IClientPattern* after/*= NULL*/)
 	{
 		IServerCommunicationStarterPattern* starter;
 		IClientHolderPattern* holder= m_poServer->getCommunicationFactory();
-		IClientPattern* client;
+		IClientPattern* pClient;
 
 		//std::cout << "sendToOtherClient search other client " << definition << std::endl;
 		starter= dynamic_cast<IServerCommunicationStarterPattern*>(holder);
-		client= starter->getClient(definition, this);
-		if(client == NULL)
+		pClient= starter->getClient(process, client, this, after);
+		if(	pClient == NULL &&
+			timeout > 0			)
 		{
 			time_t t, nt;
 			ostringstream allocateOutput;
 
-			allocateOutput << "no client found for " << definition
+			allocateOutput << "no client found for " << client
 							<< " search again for " << m_nTimeout << " seconds " << std::endl;
 			time(&nt);
 			time(&t);
-			while(	client == NULL
+			while(	pClient == NULL
 					&&
 					!eof()
 					&&
-					(t - nt) < (time_t)m_nTimeout	)
+					(t - nt) < (time_t)timeout	)
 			{
-				allocateOutput << "wait for client " << definition << " since "
+				allocateOutput << "wait for client " << client << " since "
 								<< (t - nt) << " seconds" << std::endl;
 #ifdef ALLOCATEONMETHODSERVER
 				cout << allocateOutput << std::endl;
@@ -664,49 +666,72 @@ namespace server
 				LOG(LOG_DEBUG, allocateOutput.str());
 				allocateOutput.str("");
 				sleep(1);
-				client= starter->getClient(definition, this);
+				pClient= starter->getClient(process, client, this);
 				time(&t);
 			}
-			if(client == NULL)
+			if(pClient == NULL)
 				return NULL;
 		}
-		return client;
+		return pClient;
 	}
 
-	vector<string> FileDescriptor::sendToOtherClient(const string& definition, const IMethodStringStream& str,
+	vector<string> FileDescriptor::sendToOtherClient(const string& process, const string& client,
+												const IMethodStringStream& str,
 												const bool& wait, const string& endString)
 	{
 		vector<string> answer;
+		string method(str.getMethodName());
+		IMethodStringStream oInit("init");
+		IClientPattern* pLast= NULL;
 
+		if(method == UNEXPECTED_CLOSE)
+			oInit.createSyncID(str.getSyncID());
 		LOCK(m_LOCKSM);
 		m_nLockSM= 0;
 		UNLOCK(m_LOCKSM);
 		UNLOCK(m_THREADSAVEMETHODS);
-		m_pHearingClient= getOtherHearingClient(definition);
-		if(m_pHearingClient == NULL)
-		{
-			SocketErrorHandling errHandle;
+		do{
+			if(method == UNEXPECTED_CLOSE)
+				pLast= getOtherHearingClient(process, pLast);
+			else
+				pLast= getOtherHearingClient(process, client, m_nTimeout);
+			if(pLast == NULL)
+			{
+				SocketErrorHandling errHandle;
 
-			errHandle.setError("FileDescriptor", "noHearingClient", definition);
-			LOCK(m_THREADSAVEMETHODS);
-			LOCK(m_LOCKSM);
-			m_nLockSM= Thread::gettid();
-			UNLOCK(m_LOCKSM);
-			answer.push_back(errHandle.getErrorStr());
-			return answer;
-		}
-#ifdef __FOLLOWSERVERCLIENTTRANSACTION
-		if(getBoolean("output") == true)
-		{
-			ostringstream out;
+				errHandle.setError("FileDescriptor", "noHearingClient", client);
+				LOCK(m_THREADSAVEMETHODS);
+				LOCK(m_LOCKSM);
+				m_nLockSM= Thread::gettid();
+				UNLOCK(m_LOCKSM);
+				answer.push_back(errHandle.getErrorStr());
+				m_pHearingClient= NULL;
+				return answer;
+			}
+	#ifdef __FOLLOWSERVERCLIENTTRANSACTION
+			if(getBoolean("output") == true)
+			{
+				ostringstream out;
 
-			out << "sendDescriptor " << getString("process") << "::" << getString("client");
-			out << " send question '" << str.str(true);
-			out << "' to client with found definition " << definition << std::endl;
-			cout << out.str();
-		}
-#endif // __FOLLOWSERVERCLIENTTRANSACTION
-		answer= m_pHearingClient->sendString(str, wait, endString);
+				out << "sendDescriptor " << getString("process") << "::" << getString("client");
+				out << " send question '" << str.str(true);
+				out << "' to client with found definition " << client << std::endl;
+				cout << out.str();
+			}
+	#endif // __FOLLOWSERVERCLIENTTRANSACTION
+			/*
+			 * when server get an unexpected closing
+			 * it should ask for all other clients with same process
+			 * whether connection is holding
+			 * do not send unexpected closing to other clients,
+			 * but ask for initialization
+			 */
+			if(method == UNEXPECTED_CLOSE)
+				answer= pLast->sendString(oInit, wait, endString);
+			else
+				answer= pLast->sendString(str, wait, endString);
+		}while(method == UNEXPECTED_CLOSE);
+		m_pHearingClient= pLast;
 		LOCK(m_THREADSAVEMETHODS);
 		LOCK(m_LOCKSM);
 		m_nLockSM= Thread::gettid();
@@ -1040,7 +1065,7 @@ namespace server
 		UNLOCK(m_CONNECTIONIDACCESS);
 	}
 
-	bool FileDescriptor::isClient(const string& definition) const
+	bool FileDescriptor::isClient(const string& process, const string& client) const
 	{
 		bool bRv;
 
@@ -1048,7 +1073,7 @@ namespace server
 		LOCK(m_LOCKSM);
 		m_nLockSM= Thread::gettid();
 		UNLOCK(m_LOCKSM);
-		bRv= m_pTransfer->isClient(*this, definition);
+		bRv= m_pTransfer->hasNonAskingClient(*this, process, client);
 		LOCK(m_LOCKSM);
 		m_nLockSM= 0;
 		UNLOCK(m_LOCKSM);

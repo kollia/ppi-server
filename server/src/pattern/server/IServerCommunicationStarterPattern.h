@@ -54,11 +54,14 @@ namespace design_pattern_world
 			 * search client with given defined name
 			 * and return this client
 			 *
-			 * @param definition defined name to find client
+			 * @param process name of process in which client running
+			 * @param client defined name to find client
 			 * @param own pointer of own called descriptor witch client is not needed
+			 * @param after should returning client after this address when defined
 			 * @return return client
 			 */
-			virtual IClientPattern* getClient(const string& definition, IFileDescriptorPattern* own) const= 0;
+			virtual IClientPattern* getClient(const string& process, const string& client,
+							IFileDescriptorPattern* own, IClientPattern* after= NULL) const= 0;
 			/**
 			 * virtual destructor of pattern
 			 */

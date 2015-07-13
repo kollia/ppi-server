@@ -25,7 +25,7 @@ namespace design_pattern_world
 	{
 		/**
 		 * Adapter to initial transaction from server to client
-		 * with the dummy method <code>isClient()</code> only needed for transaction between
+		 * with the dummy method <code>isNonAskingClient()</code> only needed for transaction between
 		 * more clients in an server
 		 *
 		 * @author Alexander Kolli
@@ -47,10 +47,13 @@ namespace design_pattern_world
 				 * is the correct one
 				 *
 				 * @param descriptor file handle to get variables
-				 * @param definition defined name to find client
+				 * @param process name of process in which client running
+				 * @param client defined name to find client, when null string ask only for process
 				 * @return always false
 				 */
-				virtual bool isClient(const IFileDescriptorPattern& descriptor, const string& definition) const
+				virtual bool hasNonAskingClient(	const IFileDescriptorPattern& descriptor,
+													const string& process,
+													const string& client= ""	) const
 				{ return false; };
 		};
 	}

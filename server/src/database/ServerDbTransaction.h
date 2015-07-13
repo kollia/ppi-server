@@ -19,12 +19,15 @@
 
 #include <list>
 
+#include "../server/libs/client/ppi_server_clients.h"
+
 #include "../server/libs/server/ServerMethodTransaction.h"
 
 #include "../util/thread/Thread.h"
 
 namespace server
 {
+
 	using namespace util;
 
 	/**

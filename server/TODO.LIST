@@ -2,7 +2,7 @@
 
 toDo:
   ppi-server
-  - by open an second connection to server for hearing
+  - when ppi-client open an second connection to server for hearing
     it have the same behavior like the first connection
     but the server do not check whether both connections
     has the same user.
@@ -12,6 +12,10 @@ toDo:
     when server was stopping before
   - subroutine objects of portBaseClass has two methods (getType() and getSubroutineType())
     which make the same things. remove one of them
+  - when server by starting has no right connection to an ppi-owreader
+    inside working list folder running every short time try to connect
+    but when while server correct running, an ppi-owreader connection has broken
+    working list do not get any info to try for reconnection
   - by calculation of last changing time inside ListCalculator
     normally it calculate current time by any calculation given from script
     but there exist also method for do not calculate current time

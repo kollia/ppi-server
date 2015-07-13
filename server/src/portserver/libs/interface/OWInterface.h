@@ -21,7 +21,9 @@
 #include <vector>
 #include <string>
 
+#include "../../../server/libs/client/ppi_server_clients.h"
 #include "../../../server/libs/client/ProcessInterfaceTemplate.h"
+
 #include "../../../util/smart_ptr.h"
 
 #include "../../../pattern/server/IClientConnectArtPattern.h"
@@ -222,8 +224,8 @@ protected:
 	 * @param connection to which server this interface should connect to send messages
 	 */
 	OWInterface(const string& process, const string& serverID, IClientConnectArtPattern* connection)
-	:	ProcessInterfaceTemplate(process, "OWInterface", "OwServerQuestion-"+serverID, connection, NULL),
-		m_stoClient("OwServerQuestion-"+serverID)
+	:	ProcessInterfaceTemplate(process, "OWInterface", __EXTERNALPORT_CLIENT_BEGINSTR+serverID, connection, NULL),
+		m_stoClient(__EXTERNALPORT_CLIENT_BEGINSTR+serverID)
 	{ };
 
 private:

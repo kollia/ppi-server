@@ -86,19 +86,32 @@ namespace server
 		return m_pError;
 	}
 
-	IClientPattern* CommunicationThreadStarter::getClient(const string& definition, IFileDescriptorPattern* own) const
+	IClientPattern* CommunicationThreadStarter::getClient(const string& process, const string& client,
+										IFileDescriptorPattern* own, IClientPattern* after/*= NULL*/) const
 	{
 		ICommunicationPattern* pCurrentCom;
 
 		LOCK(m_NEXTCOMMUNICATION);
 		pCurrentCom= m_poFirstCommunication;
+		if(after != NULL)
+		{
+			while(pCurrentCom)
+			{
+				if(pCurrentCom == after)
+				{
+					pCurrentCom= pCurrentCom->getNextComm();
+					break;
+				}
+				pCurrentCom= pCurrentCom->getNextComm();
+			}
+		}
 		while(pCurrentCom)
 		{
 			if(	own != pCurrentCom->getDescriptor().get()
 				&&
 				pCurrentCom->hasClient()
 				&&
-				pCurrentCom->isClient(definition)	)
+				pCurrentCom->isClient(process, client)	)
 			{
 				break;
 			}

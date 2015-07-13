@@ -64,14 +64,18 @@ namespace design_pattern_world
 				 */
 				virtual string getTransactionName(const IFileDescriptorPattern& descriptor) const= 0;
 				/**
-				 * search whether client with given defined name
-				 * is the correct one
+				 * search whether thread has given defined client name
+				 * whitch is not defined for asking the server.
+				 * This means the server do not wait for questions from client.
 				 *
 				 * @param descriptor file handle to get variables
-				 * @param definition defined name to find client
+				 * @param process name of process in which client running
+				 * @param client defined name to find client, when null string ask only for process
 				 * @return whether client is correct with given definition
 				 */
-				virtual bool isClient(const IFileDescriptorPattern& descriptor, const string& definition) const= 0;
+				virtual bool hasNonAskingClient(	const IFileDescriptorPattern& descriptor,
+													const string& process,
+													const string& client= ""	) const= 0;
 				/**
 				 * destructor to dereference file
 				 */

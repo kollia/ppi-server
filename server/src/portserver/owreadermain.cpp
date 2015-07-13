@@ -39,6 +39,7 @@
 
 #include "../database/lib/DbInterface.h"
 
+#include "../server/libs/client/ppi_server_clients.h"
 #include "../server/libs/client/SocketClientConnection.h"
 #include "../server/libs/server/TcpServerConnection.h"
 
@@ -76,7 +77,7 @@ int main(int argc, char* argv[])
 	unsigned short commport;
 	int nLogAllSec, nRv(EXIT_SUCCESS);
 	ostringstream usestring;
-	string commhost, servertype, questionservername("OwServerQuestion-");
+	string commhost, servertype, questionservername(__EXTERNALPORT_CLIENT_BEGINSTR);
 	string workdir, defaultuser, shelluser;
 	vector<int> vLength;
 	//vector<string> vParams;

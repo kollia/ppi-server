@@ -305,11 +305,11 @@ namespace server
 		return bClient;
 	}
 
-	bool Communication::isClient(const string& definition) const
+	bool Communication::isClient(const string& process, const string& client) const
 	{
 		if(!hasClient())
 			return false;
-		return m_hFileAccess->isClient(definition);
+		return m_hFileAccess->isClient(process, client);
 	}
 
 	bool Communication::hasClients()

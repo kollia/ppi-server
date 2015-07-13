@@ -68,6 +68,8 @@
 #include "ports/ExternPort.h"
 #include "ports/LircPort.h"
 
+#include "server/libs/client/ppi_server_clients.h"
+
 #include "server/libs/server/Communication.h"
 #include "server/libs/server/communicationthreadstarter.h"
 #include "server/libs/server/TcpServerConnection.h"
@@ -487,7 +489,7 @@ bool Starter::execute(const IOptionStructPattern* commands)
 	 */
 	int nServerID= 1;
 	short nServerStart(0);
-	string owreader("OwServerQuestion-");
+	string owreader(__EXTERNALPORT_CLIENT_BEGINSTR);
 
 	/***************************************************
 	 * starting owreader for shell commands

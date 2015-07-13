@@ -33,6 +33,9 @@
 #include "../../../pattern/server/IClientPattern.h"
 #include "../../../pattern/server/IClientHolderPattern.h"
 #include "../../../pattern/server/IServerPattern.h"
+#include "../../../pattern/server/IFileDescriptorPattern.h"
+
+#include "../../../server/libs/client/ppi_server_clients.h"
 
 #include "../../../util/GlobalStaticMethods.h"
 #include "../../../util/debugtransaction.h"
@@ -143,7 +146,7 @@ namespace server
 			string process, client;
 			vector<string> answer;
 			ostringstream decl, allocateOutput;
-			IMethodStringStream oInit("init");
+			IMethodStringStream oClosing(UNEXPECTED_CLOSE);
 
 			ID= descriptor.getClientID();
 			client= descriptor.getString("client");
@@ -189,9 +192,15 @@ namespace server
 #endif // ALLOCATEONMETHODSERVER
 			m_pSockError->clear();
 			descriptor.setBoolean("access", false);
-			oInit.createSyncID();
-			answer= descriptor.sendToOtherClient(client, oInit, true, "");
-			oInit.removeSyncID();
+			oClosing.createSyncID();
+			/*
+			 * send expected close to all non hearing clients
+			 * have the same process name
+			 * (in this case the name client is undefined
+			 *  because sending to all clients of process)
+			 */
+			answer= descriptor.sendToOtherClient(process, "", oClosing, true, "");
+			oClosing.removeSyncID();
 			connectionEnding(ID, process, client);
 			dissolveConnection(descriptor);
 			return false;
@@ -206,7 +215,13 @@ namespace server
 			bwait= false;
 			if(pos != string::npos)
 			{
+				string owreader_client(__EXTERNALPORT_CLIENT_BEGINSTR);
+
 				client= input.substr(0, pos);
+				if(client.substr(0, owreader_client.length()) == owreader_client)
+					process= __EXTERNALPORT_PROCESSES;
+				else if(client == __WORKINGLIST_CONTROL_CLIENT)
+					process= __WORKINGLIST_PROCESS;
 				input= input.substr(pos + 1);
 				if(input.substr(0, 4) == "true")
 				{
@@ -492,7 +507,7 @@ namespace server
 					string process, client;
 					vector<string> answer;
 					ostringstream decl;
-					IMethodStringStream oInit("init");
+					IMethodStringStream oClosing(UNEXPECTED_CLOSE);
 
 					ID= descriptor.getClientID();
 					process= descriptor.getString("process");
@@ -532,9 +547,15 @@ namespace server
 						decl << " -> so close connection";
 						LOG(log, decl.str());
 						descriptor.setBoolean("access", false);
-						oInit.createSyncID();
-						answer= descriptor.sendToOtherClient(client, oInit, true, "");
-						oInit.removeSyncID();
+						oClosing.createSyncID();
+						/*
+						 * send expected close to all non hearing clients
+						 * have the same process name
+						 * (in this case the name client is undefined
+						 *  because sending to all clients of process)
+						 */
+						answer= descriptor.sendToOtherClient(process, "", oClosing, true, "");
+						oClosing.removeSyncID();
 						connectionEnding(ID, process, client);
 						dissolveConnection(descriptor);
 						return false;
@@ -697,7 +718,7 @@ namespace server
 			descriptor.setBoolean("output", boutput);
 #endif // __FOLLOWSERVERCLIENTTRANSACTION
 
-			answer= descriptor.sendToOtherClient(client, method, bwait, endString);
+			answer= descriptor.sendToOtherClient(process, client, method, bwait, endString);
 			do{ //while(endString != "")
 				if(answer.size())
 				{
@@ -790,17 +811,14 @@ namespace server
 		return descriptor.getString("client");
 	}
 
-	bool ServerMethodTransaction::isClient(const IFileDescriptorPattern& descriptor, const string& definition) const
+	bool ServerMethodTransaction::hasNonAskingClient(	const IFileDescriptorPattern& descriptor,
+														const string& process,
+														const string& client			) const
 	{
-	/*	if(!descriptor.getBoolean("asker"))
-		{// debug messages
-			cout << "is client '" << descriptor.getString("client") << "'" << endl;
-			cout << "the same  '" << definition << "'" << endl;
-		}else
-			cout << "client '" << descriptor.getString("client") << "' is an asker" << endl;*/
-		return (	descriptor.getBoolean("asker") == false
-					&&
-					descriptor.getString("client") == definition	) ? true : false;
+		return (	descriptor.getBoolean("asker") == false &&
+					descriptor.getString("process") == process &&
+					(	client == "" ||
+						descriptor.getString("client") == client	)	) ? true : false;
 	}
 
 	ServerMethodTransaction::~ServerMethodTransaction()

@@ -32,6 +32,8 @@
 
 #include "../pattern/server/IServerCommunicationStarterPattern.h"
 
+#include "../server/libs/client/ppi_server_clients.h"
+
 using namespace std;
 using namespace design_pattern_world;
 using namespace design_pattern_world::server_pattern;

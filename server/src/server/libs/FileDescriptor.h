@@ -371,13 +371,14 @@ namespace server
 			/**
 			 * send string to other client with defined definition name
 			 *
-			 * @param definition defined name from other client
+			 * @param process name of process from other client
+			 * @param client defined name from other client
 			 * @param str string which should be sending
 			 * @param wait whether method should wait for an answer
 			 * @param endString string for ending by read an array
 			 * @return answer from other client
 			 */
-			virtual vector<string> sendToOtherClient(const string& definition, const IMethodStringStream& str, const bool& wait, const string& endString);
+			virtual vector<string> sendToOtherClient(const string& process, const string& client, const IMethodStringStream& str, const bool& wait, const string& endString);
 			/**
 			 * read setting answers from other client, when an end string be defined
 			 *
@@ -411,10 +412,11 @@ namespace server
 			 * is the correct one.<br />
 			 * Method is thread save.
 			 *
-			 * @param definition defined name to find client
+			 * @param process name of process in which client running
+			 * @param client defined name to find client
 			 * @return whether client is correct with given definition
 			 */
-			virtual bool isClient(const string& definition) const;
+			virtual bool isClient(const string& process, const string& client) const;
 			/**
 			 * returning name of transaction.<br />
 			 * Method is thread save.
@@ -644,10 +646,24 @@ namespace server
 			/**
 			 * search other client which hearing to give answer
 			 *
-			 * @param definition defined name from other client
+			 * @param process defined process from other client
+			 * @param client defined name from other client
+			 * @param timeout waiting seconds by no finding client
+			 * @param after should returning client after this address when defined
 			 * @return client
 			 */
-			IClientPattern* getOtherHearingClient(const string& definition);
+			IClientPattern* getOtherHearingClient(const string& process, const string& client,
+										const unsigned int timeout, IClientPattern* after= NULL);
+			/**
+			 * search other client which hearing to give answer
+			 * after client of second parameter when defined
+			 *
+			 * @param process defined process from other client
+			 * @param after should returning client after this address
+			 * @return client
+			 */
+			IClientPattern* getOtherHearingClient(const string& process, IClientPattern* after)
+			{ return getOtherHearingClient(process, "", 0, after); };
 			/**
 			 * send string to actual <code>ITransferPattern</code>
 			 *

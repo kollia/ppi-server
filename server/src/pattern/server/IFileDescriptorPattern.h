@@ -17,6 +17,13 @@
 #ifndef IFILEDESCRIPTORPATTERN_H_
 #define IFILEDESCRIPTORPATTERN_H_
 
+/**
+ * definition of unexpected closing
+ * of any process have conversation
+ * with database server
+ */
+#define UNEXPECTED_CLOSE "unexpectClosing"
+
 #include <string>
 
 #include "IServerPattern.h"
@@ -313,10 +320,11 @@ namespace design_pattern_world
 				 * search whether client with given defined name
 				 * is the correct one
 				 *
-				 * @param definition defined name to find client
+				 * @param process name of process in which client running
+				 * @param client defined name to find client
 				 * @return whether client is correct with given definition
 				 */
-				virtual bool isClient(const string& definition) const= 0;
+				virtual bool isClient(const string& process, const string& client) const= 0;
 				/**
 				 * send string to actual <code>ITransferPattern</code>
 				 *
@@ -345,13 +353,14 @@ namespace design_pattern_world
 				 * send string to other client with defined definition name
 				 * and return answer
 				 *
-				 * @param definition defined name from other client
+				 * @param process name of process from other client
+				 * @param client defined name from other client
 				 * @param str string which should be sending
 				 * @param wait whether method should wait for an answer
 				 * @param endString string for ending by read an array
 				 * @return answer from other client
 				 */
-				virtual vector<string> sendToOtherClient(const string& definition, const IMethodStringStream& str, const bool& wait, const string& endString)= 0;
+				virtual vector<string> sendToOtherClient(const string& process, const string& client, const IMethodStringStream& str, const bool& wait, const string& endString)= 0;
 				/**
 				 * read setting answers from other client, when an end string be defined
 				 *

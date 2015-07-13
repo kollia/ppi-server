@@ -118,8 +118,8 @@ vector<string> DatabaseThread::getDebugInfo(const unsigned short server)
 	vector<string> vRv, vanswer;
 	string answer;
 
-	definition << "OwServerQuestion-" << server;
-	client= m_pStarter->getClient(definition.str(), NULL);
+	definition << __EXTERNALPORT_CLIENT_BEGINSTR << server;
+	client= m_pStarter->getClient(__EXTERNALPORT_PROCESSES, definition.str(), NULL);
 	if(client != NULL)
 	{
 		do{
