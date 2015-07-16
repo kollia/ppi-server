@@ -27,6 +27,7 @@
 #include "../util/structures.h"
 #include "../util/exception.h"
 #include "../util/properties/PPIConfigFileStructure.h"
+#include "../util/stream/ErrorHandling.h"
 #include "../util/thread/Terminal.h"
 
 #include "../database/logger/lib/logstructures.h"
@@ -257,8 +258,8 @@ auto_ptr<IValueHolderPattern> Shell::measure(const ppi_value& actValue)
 
 	oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 	//Debug info to stop by right subroutine
-	/*if(	getFolderName() == "power_switch" &&
-		getSubroutineName() == "port2"	)
+/*	if(	getFolderName() == "log_weather_starter" &&
+		getSubroutineName() == "logging"	)
 	{
 		cout << __FILE__ << __LINE__ << endl;
 		cout << getFolderName() << ":" << getSubroutineName() << endl;
@@ -403,6 +404,7 @@ int Shell::system(const string& action, string command)
 	int res(0);
 	vector<string> result;
 	string msg, nocorrread, folder(getFolderName()), subroutine(getSubroutineName());
+	ErrorHandling errHandle;
 
 	if(	m_bWait == false &&
 		bDebug == true		)
@@ -461,20 +463,34 @@ int Shell::system(const string& action, string command)
 				m_bMore &&
 				result.empty()		)
 			{
-				out() << "~~~~~~~~" << endl;
-				out() << "no output exist by begin of blocking, get by next pass" << endl;
-				out() << "~~~~~~~~" << endl;
+				out() << "~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+				out() << "no output exist by begin of blocking, or since last pass of subroutine." << endl;
+				out() << "maybe get by next pass or one follow" << endl;
 
 			}else
 			{
 				out() << "output of command:" << endl;
-				out() << "~~~~~~~~" << endl;
+				out() << "~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 			}
 		}
 		for(vector<string>::iterator it= result.begin(); it != result.end(); ++it)
 		{
 			if(bDebug)
-				out() << *it << endl;
+			{
+				errHandle.clear();
+				errHandle.setErrorStr(*it);
+				if(errHandle.fail())
+				{
+					string level("### ");
+
+					if(errHandle.hasError())
+						level+= "ERROR: ";
+					else
+						level+= "WARNING: ";
+					out() << glob::addPrefix(level, errHandle.getDescription()) << endl;
+				}else
+					out() << *it << endl;
+			}
 			if(	it->length() > 8 &&
 				it->substr(0, 8) == "-PPI-SET"	)
 			{
@@ -486,7 +502,7 @@ int Shell::system(const string& action, string command)
 			}
 		}
 		if(bDebug)
-			out() << "~~~~~~~~" << endl;
+			out() << "~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 	}
 /*	if(bDebug)
 	{
