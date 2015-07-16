@@ -851,6 +851,14 @@ namespace server
 
 	vector<string> FileDescriptor::getMoreFromOtherClient(const unsigned long long syncID, const string& endString)
 	{
+		vector<string> vRv;
+
+		if(m_pHearingClient == NULL)
+		{
+			if(endString != "")
+				vRv.push_back(endString);
+			return vRv;
+		}
 		return m_pHearingClient->getMoreAnswers(syncID, endString);
 	}
 

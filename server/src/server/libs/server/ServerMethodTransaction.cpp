@@ -774,7 +774,12 @@ namespace server
 					descriptor.flush();
 				}
 				if(endString != "")
-					answer= descriptor.getMoreFromOtherClient(method.getSyncID(), endString);
+				{
+					if(input.substr(0, 6) != "ERROR:")
+						answer= descriptor.getMoreFromOtherClient(method.getSyncID(), endString);
+					else
+						endString= "";
+				}
 
 			}while(endString != "");
 
