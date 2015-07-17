@@ -217,9 +217,6 @@ namespace ppi_database
 			rename((m_sWorkDir + it->second).c_str(), dbfile.c_str());
 		}
 
-	#ifdef DEBUG
-		cout << "read/write file:" << m_sDbFile << " " << flush;
-	#endif // DEBUG
 		if(!bNew)
 		{
 			// read last status of any subroutines in folders

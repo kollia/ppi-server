@@ -612,9 +612,6 @@ namespace ports
 
 				LOG(LOG_ERROR, msg);
 				m_bConnected= false;
-#ifdef DEBUG
-				cerr << msg << endl;
-#endif
 			}
 			return false;
 		}
@@ -851,9 +848,6 @@ namespace ports
 		// set second parameter for TIMELOG to founded directory length
 		// because if reading from directorys changed it should write into log
 		TIMELOG(LOG_INFO, dirStr, msg);
-#ifdef DEBUG
-		cout << msg << endl;
-#endif
 		return true;
 	}
 
@@ -1073,9 +1067,6 @@ namespace ports
 				msg+= BaseErrorHandling::getErrnoString(errno);
 				cerr << msg << endl;
 				LOG(LOG_ERROR, msg);
-#ifdef DEBUG
-				cerr << msg << endl;
-#endif //DEBUG
 				return -1;
 			}
 		}
@@ -1218,9 +1209,6 @@ namespace ports
 			//cerr << msg << endl;
 			incorrectChip(getChipID(id));
 			TIMELOG(LOG_ERROR, "maximread"+path, msg);
-#ifdef DEBUG
-				cerr << msg << endl;
-#endif //DEBUG
 			value= 0;
 			return -1;
 		}

@@ -239,13 +239,6 @@ unsigned long TimeMeasure::getMeasuredTime()
 		if(msleeptime < mikroSleepTime)
 			msleeptime= msleeptime + (unsigned long)m_nMeasuredness;
 	}*/
-#ifdef DEBUG
-	if(isDebug())
-	{
-		m_count++;
-		printf("%lu. meschuring %lu= %lu mikroseconds\n", m_count, mikroSleepTime, msleeptime);
-	}
-#endif // DEBUG
 
 	vCorrection= getNearestMeasure(msleeptime);
 	if(vCorrection.size() == 0)
@@ -257,7 +250,6 @@ unsigned long TimeMeasure::getMeasuredTime()
 	}
 	//correction= vCorrection[0].correction + (vCorrection[1].correction - vCorrection[0].correction) *
 	//			(msleeptime - vCorrection[0].nMikrosec) / (vCorrection[1].nMikrosec - vCorrection[0].nMikrosec);
-#ifdef DEBUG
 	if(isDebug())
 	{
 		out() << "found nearest given mikrosecounds:" << endl;
@@ -265,7 +257,6 @@ unsigned long TimeMeasure::getMeasuredTime()
 		out() << vCorrection[1].correction << " correction is " << vCorrection[1].nMikrosec << " mikroseconds" << endl;
 		printf("is correction:%.60lf\n", vCorrection[0].correction);
 	}
-#endif // DEBUG
 
 	return msleeptime;
 	//return (unsigned long)((double)msleeptime * correction);
@@ -419,56 +410,64 @@ correction_t TimeMeasure::getNewCorrection(correction_t tCorrection, vector<ohm>
 		out() << "." << flush;
 		sleep(nSleep);
 	}
-	out() << endl << "measured time:" << time << endl;
+	if(isDebug())
+		out() << endl << "measured time:" << time << endl;
 
 	vNearest= getNearestOhm(time, vOhm);
-#ifdef DEBUG
-	out() << "found nearest given mikrosecounds:" << endl;
-	out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-	out() << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
-	out() << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
-	out() << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
-	out() << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
-#endif // DEBUG
+	if(isDebug())
+	{
+		out() << "found nearest given mikrosecounds:" << endl;
+		out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+		out() << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+		out() << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
+		out() << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
+		out() << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
+	}
 
 	resistance = vNearest[0].be + (vNearest[1].be - vNearest[0].be) *
 				 (double)(time - vNearest[0].nMikrosec) /
 				 (double)(vNearest[1].nMikrosec - vNearest[0].nMikrosec);
-	out() << "calculated OHM are " << resistance << endl;
-	out() << "but should be " << tCorrection.be << " Ohm" << endl;
+	if(isDebug())
+	{
+		out() << "calculated OHM are " << resistance << endl;
+		out() << "but should be " << tCorrection.be << " Ohm" << endl;
+	}
 
 	vNearest= getNearestOhm((unsigned long)tCorrection.be, vOhm, /*bCheckOhm*/true);
-#ifdef DEBUG
-	out() << "found nearest given OHM:" << endl;
-	out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-	out() << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
-#endif
+	if(isDebug())
+	{
+		out() << "found nearest given OHM:" << endl;
+		out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+		out() << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+	}
 
 	newtime= (unsigned long)(((tCorrection.be - vNearest[0].be) *
 			 (double)(vNearest[1].nMikrosec - vNearest[0].nMikrosec)) /
 			 (vNearest[1].be - vNearest[0].be) + (double)vNearest[0].nMikrosec);
-	out() << "old time was " << time << " should be now " << newtime << endl;
+	if(isDebug())
+		out() << "old time was " << time << " should be now " << newtime << endl;
 	correction= tCorrection.be / resistance;
 	logString2= "fill correction in configfile with ";
 	sprintf(res, "%.60lf", correction);
 	logString2+= res;
-#ifndef DEBUG
-	out() << logString2 << endl;
-#else // DEBUG
+	if(isDebug())
+		out() << logString2 << endl;
 
 	vNearest= getNearestOhm(newtime, vOhm);
 	resistance = vNearest[0].be + (vNearest[1].be - vNearest[0].be) *
 					 (double)(newtime - vNearest[0].nMikrosec) /
 					 (double)(vNearest[1].nMikrosec - vNearest[0].nMikrosec);
-	out() << "found nearest given mikrosecounds:" << endl;
-	out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
-	out() << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
-	out() << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
-	out() << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
-	out() << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
-	out() << "new time with correction is " << (unsigned long)newtime << endl;
-	out() << "calculated OHM are " << resistance << endl;
-#endif // DEBUG
+	if(isDebug())
+	{
+		out() << "found nearest given mikrosecounds:" << endl;
+		out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
+		out() << vNearest[1].be << " ohm is " << vNearest[1].nMikrosec << " mikroseconds" << endl;
+		out() << vNearest[0].be << " + (" << (vNearest[1].be - vNearest[0].be);
+		out() << ") * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
+		out() << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
+		out() << "new time with correction is " << (unsigned long)newtime << endl;
+		out() << "calculated OHM are " << resistance << endl;
+	}
 
 	logString+= "\n";
 	logString+= logString2;
@@ -557,10 +556,11 @@ short TimeMeasure::setNewMeasuredness(unsigned short measureCount, unsigned shor
 		sleep(sleeptime);
 	}
 	LOGEX(LOG_INFO, endlog, getRunningThread()->getExternSendDevice());
-#ifdef DEBUG
-	out() << endlog << endl << endl;
-#endif // DEBUG
-	out() << endl;
+	if(isDebug())
+	{
+		out() << endlog << endl;
+		out() << endl;
+	}
 	maxtime= 0;
 	mintime= ULONG_MAX;
 

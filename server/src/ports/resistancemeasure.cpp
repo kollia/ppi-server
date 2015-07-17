@@ -173,18 +173,10 @@ namespace ports
 		vNearest= db->getNearest(getFolderName()+":"+getSubroutineName(), "ohm", time);
 		if(!vNearest.size())
 		{
-#ifdef DEBUG
-			if(isDebug())
-			{
-				out() << "measured time is " << time << endl;
-				out() << "found no nearest given mikrosecounds," << endl;
-			}
-#endif // DEBUG
 			return time;
 		}
 		if(vNearest.size() == 1)
 		{
-#ifdef DEBUG
 			if(isDebug())
 			{
 				out() << "measured time is " << time << endl;
@@ -192,11 +184,9 @@ namespace ports
 				out() << vNearest[0].be << " ohm is " << vNearest[0].nMikrosec << " mikroseconds" << endl;
 				out() << vNearest[0].be << " / " << vNearest[0].nMikrosec << " * " << time << endl;
 			}
-#endif // DEBUG
 			return vNearest[0].be / vNearest[0].nMikrosec * time;
 		}
 
-	#ifdef DEBUG
 		if(isDebug())
 		{
 			out() << "measured time is " << time << endl;
@@ -207,7 +197,6 @@ namespace ports
 			out() << ")) * (" << time << " - " << vNearest[0].nMikrosec << ") / (";
 			out() << vNearest[1].nMikrosec << " - " << vNearest[0].nMikrosec << ")" << endl;
 		}
-	#endif // DEBUG
 		resistance= vNearest[0].be + (vNearest[1].be - vNearest[0].be) * (time - vNearest[0].nMikrosec) / (vNearest[1].nMikrosec - vNearest[0].nMikrosec);
 
 		return resistance;

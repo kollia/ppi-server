@@ -60,9 +60,6 @@ portBase::portBase(const string& type, const string& folderName,
   m_dLastSetValue(0),
   m_nLinkObserver(0)
 {
-#ifdef DEBUG
-	m_count= 0;
-#endif //DEBUG
 	m_nCount= 0;
 	m_bDefined= false;
 	m_bFloat= true;

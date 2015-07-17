@@ -807,7 +807,7 @@ namespace ports
 		int nPin;
 
 		nPin= inb(tSet.nPort + tSet.nAdd);
-	#ifdef DEBUG
+#if(DEBUG_OUTPUT_ON_COMMANDLINE)
 		if(isDebug())
 		{
 			cout << "getPin " << getPinName(ePin.ePin) << endl;
@@ -816,7 +816,7 @@ namespace ports
 			cout << "have ";
 			printBin(&nPin, tSet.nPort);
 		}
-	#endif // DEBUG
+#endif // if(DEBUG_OUTPUT_ON_COMMANDLINE)
 		if(nPin < 0)
 			return -1;
 		if(nPin & tSet.nPin)
@@ -914,14 +914,16 @@ namespace ports
 		setPin(tSet, false);
 
 		unsigned res;
-		int nPrintPin;
 
 		time.it_interval.tv_sec= ITIMERSTARTSEC;
 		time.it_interval.tv_usec= 0;
 		time.it_value.tv_sec= ITIMERSTARTSEC;
 		time.it_value.tv_usec= 0;
+#if(DEBUG_OUTPUT_ON_COMMANDLINE)
 		if(isDebug())
 		{
+			int nPrintPin;
+
 			cout << "maximal calculating for " << m_maxMeasuredTime << " mikroseconds" << endl;
 			cout << "beginning status: ";
 			res= inb(nGetPort);
@@ -931,6 +933,7 @@ namespace ports
 			nPrintPin= (int)nGetPin;
 			printBin(&nPrintPin, nGetPort);
 		}
+#endif // if(DEBUG_OUTPUT_ON_COMMANDLINE)
 		if(m_bFreeze)
 			lockProcess(true);
 		if(setitimer(ITIMERTYPE, &time, NULL)==-1)
@@ -958,12 +961,14 @@ namespace ports
 		}
 		if(m_bFreeze)
 			lockProcess(false);
+#if(DEBUG_OUTPUT_ON_COMMANDLINE)
 		if(isDebug())
 		{
 			cout << "result:           ";
 			nPrintPin= (int)res;
 			printBin(&nPrintPin, nGetPort);
 		}
+#endif // if(DEBUG_OUTPUT_ON_COMMANDLINE)
 		if(mikroSleepTime >= m_maxMeasuredTime)
 		{
 			ostringstream msg;
@@ -997,12 +1002,15 @@ namespace ports
 
 	void ExternPorts::printBin(const int* value, const unsigned long nPort) const
 	{
+#if(DEBUG_OUTPUT_ON_COMMANDLINE)
+		char output[100];
 		string byte;
 
 		byte= getBinString((long)*value, 8);
-		printf("%s(bin) 0x%03X(hex) %3d(dez)  on port:0x%3X\n", byte.c_str(), *(unsigned*)value, *value, (unsigned int)nPort);
-		//cout << byte << endl;
-		//cout << *value << endl;
+		sprintf(output, "%s(bin) 0x%03X(hex) %3d(dez)  on port:0x%3X\n", byte.c_str(), *(unsigned*)value, *value, (unsigned int)nPort);
+		cout << output << byte << endl;
+		cout << *value << endl;
+#endif // if(DEBUG_OUTPUT_ON_COMMANDLINE)
 	}
 
 	void ExternPorts::lockProcess(const bool bSet)

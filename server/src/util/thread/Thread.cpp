@@ -214,10 +214,6 @@ EHObj Thread::start(void *args, bool bHold)
 				}
 				mutex_unlock(__FILE__, __LINE__, m_STARTSTOPTHREAD, m_pExtLogger);
 			}
-		//detach();
-#ifdef DEBUG
-			cout << endl;
-#endif
 		}
 		return m_pError;
 #endif // else SUNGLETHREADING
@@ -1704,10 +1700,7 @@ EHObj Thread::detach()
 		LOGEX(LOG_ERROR, m_pError->getDescription(), m_pExtLogger);
 
 #ifdef DEBUG
-		string msg;
-
-		msg= glob::addPrefix("### ERROR: ", m_pError->getDescription());
-		cerr << msg << endl;
+		cerr << glob::addPrefix("### ERROR: ", m_pError->getDescription()) << endl;
 #endif
 	}
 	return m_pError;

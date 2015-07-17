@@ -47,9 +47,6 @@ namespace ports
 					 virtual public IOutMeasureSet
 	{
 		public:
-	#ifdef DEBUG
-			unsigned long m_count;
-	#endif //DEBUG
 			/**
 			 * exist pins for serial or parallel
 			 * external port interface

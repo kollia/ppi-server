@@ -88,11 +88,6 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 	string run;
 	SHAREDPTR::shared_ptr<measurefolder_t> pCurrent;
 
-#ifdef DEBUG
-	cout << "constructor of measurethread for folder " << getFolderName() << endl;
-#endif // DEBUG
-
-
 	m_bNeedFolderRunning= false;
 	m_bFolderRunning= false;
 	m_nServerSearchSeconds= nServerSearch;
@@ -3117,10 +3112,6 @@ SHAREDPTR::shared_ptr<IListObjectPattern> MeasureThread::getPortClass(const stri
 
 MeasureThread::~MeasureThread()
 {
-#ifdef DEBUG
-	cout << "destructure of measureThread for folder "<< getFolderName() << endl;
-#endif // DEBUG
-
 	m_oDbFiller->remove();
 	DESTROYMUTEX(m_DEBUGLOCK);
 	DESTROYMUTEX(m_WANTINFORM);

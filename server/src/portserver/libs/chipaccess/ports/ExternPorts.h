@@ -17,6 +17,8 @@
 #ifndef EXTERNPORTS_H_
 #define EXTERNPORTS_H_
 
+#define DEBUG_OUTPUT_ON_COMMANDLINE 0
+
 #include <utility>
 #include <string>
 #include <map>
