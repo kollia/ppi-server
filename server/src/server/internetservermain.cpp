@@ -74,12 +74,13 @@ int main(int argc, char* argv[])
 	thread::ThreadErrorHandling thErrHandle;
 	SocketErrorHandling sockErrHandle;
 
+	glob::processName("ppi-internet-server");
+	glob::setSignals("ppi-internet-server");
+
 	errHandle.read();
 	thErrHandle.read();
 	sockErrHandle.read();
 
-	glob::processName("ppi-internet-server");
-	glob::setSignals("ppi-internet-server");
 	// create working directory
 	directorys= split(directorys, argv[0], is_any_of("/"));
 	dirlen= directorys.size();

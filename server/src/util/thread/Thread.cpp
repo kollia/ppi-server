@@ -48,6 +48,16 @@ using namespace std;
 using namespace util;
 using namespace util::thread;
 
+#ifdef MUTEXLOCKDEBUG
+		bool Thread::m_bAllMutex= false;
+		vector<string> Thread::m_vMutexProcesses;
+		vector<string> Thread::m_vMutexes;
+#endif // MUTEXLOCKDEBUG
+#ifdef CONDITIONSDEBUG
+		bool Thread::m_bAllCondition= false;
+		vector<string> Thread::m_vConditionProcesses;
+		vector<string> Thread::m_vConditions;
+#endif // CONDITIONSDEBUG
 
 pthread_mutex_t Thread::g_READMUTEX;
 SHAREDPTR::shared_ptr<map<pthread_mutex_t*, mutexnames_t> > Thread::g_mMutex= Thread::init_globalMutex();
@@ -912,81 +922,198 @@ string Thread::getConditionName(pthread_cond_t *cond, IClientSendMethods* logger
 	return name;
 }
 
+string Thread::doOutput(pthread_mutex_t *mutex, const string& cond, bool& bProcess, bool& bSet)
+{
+	vector<string> split;
+	vector<string>::iterator found;
+	string mutexname, ownprocess(glob::getProcessName());
+
+	bSet= false;
+	bProcess= false;
+	if(cond == "")
+	{
+#ifdef MUTEXLOCKDEBUG
+		if(m_bAllMutex)
+		{
+			if(m_vMutexProcesses.size() > 0)
+			{
+				found= find(m_vMutexProcesses.begin(), m_vMutexProcesses.end(), ownprocess);
+				if(found != m_vMutexProcesses.end())
+					bProcess= true;
+			}else
+				bProcess= true;
+			if(!bProcess)
+				return "";
+			mutexname= getMutexName(mutex);
+			if(	m_vMutexes.size() == 0 ||
+				mutexname == "ERROR: undefined mutex")
+			{
+				/*
+				 * all mutex definition
+				 * are defined for output
+				 */
+				bSet= true;
+				return mutexname;
+			}
+			found= find(m_vMutexes.begin(), m_vMutexes.end(), mutexname);
+			if(found != m_vMutexes.end())
+				bSet= true;
+			return mutexname;
+		}
+		m_bAllMutex= true;
+		split= ConfigPropertyCasher::split(MUTEXLOCKDEBUG, " ");
+#endif // MUTEXLOCKDEBUG
+	}else
+	{
+#ifdef CONDITIONSDEBUG
+		if(m_bAllCondition)
+		{
+			if(m_vConditionProcesses.size() > 0)
+			{
+				found= find(m_vConditionProcesses.begin(), m_vConditionProcesses.end(), ownprocess);
+				if(found != m_vConditionProcesses.end())
+					bProcess= true;
+			}else
+				bProcess= true;
+			if(!bProcess)
+				return "";
+			if(mutex != NULL)
+				mutexname= getMutexName(mutex);
+			if(	m_vConditions.size() == 0 ||
+				cond == "ERROR: undefined condition"	)
+			{
+				/*
+				 * all condition definition
+				 * are defined for output
+				 */
+				bSet= true;
+				return mutexname;
+			}
+			found= find(m_vConditions.begin(), m_vConditions.end(), cond);
+			if(found != m_vConditions.end())
+				bSet= true;
+			return mutexname;
+		}
+		m_bAllCondition= true;
+		split= ConfigPropertyCasher::split(CONDITIONSDEBUG, " ");
+#endif // CONDITIONSDEBUG
+	}
+	if(split.size() == 0)
+	{
+		bProcess= true;
+		bSet= true;
+		if(mutex != NULL)
+			mutexname= getMutexName(mutex);
+	}else
+	{
+		string smutex;
+		vector<string> vAllProcesses;
+		vector<string> vAllLocks;
+
+		for (vector<string>::iterator it= split.begin(); it != split.end(); ++it)
+		{
+			if(*it == "ppi-server")
+				vAllProcesses.push_back(*it);
+			else if(*it == "ppi-db-server")
+				vAllProcesses.push_back(*it);
+			else if(*it == "ppi-owreader")
+				vAllProcesses.push_back(*it);
+			else if(*it == "ppi-internet-server")
+				vAllProcesses.push_back(*it);
+			else if(*it == "ppi-client")
+				vAllProcesses.push_back(*it);
+			else if(*it == "ppi-mconfig")
+				vAllProcesses.push_back(*it);
+			else
+				vAllLocks.push_back(*it);
+			if(*it == ownprocess)
+				bProcess= true;
+		}
+		if(cond == "")
+		{
+#ifdef MUTEXLOCKDEBUG
+			m_vMutexProcesses= vAllProcesses;
+			m_vMutexes= vAllLocks;
+#endif // MUTEXLOCKDEBUG
+		}else
+		{
+#ifdef CONDITIONSDEBUG
+			m_vConditionProcesses= vAllProcesses;
+			m_vConditions= vAllLocks;
+#endif // CONDITIONSDEBUG
+		}
+		if(!bProcess)
+			return "";
+		mutexname= getMutexName(mutex);
+		if(cond == "")
+			smutex= mutexname;
+		else
+			smutex= cond;
+		found= find(vAllLocks.begin(), vAllLocks.end(), smutex);
+		if(	found != vAllLocks.end() ||
+			smutex.substr(0, 17) == "ERROR: undefined "	)
+		{
+			bSet= true;
+		}
+	}
+	return mutexname;
+}
+
 int Thread::mutex_lock(const string& file, int line, pthread_mutex_t *mutex, IClientSendMethods* logger)
 {
 	int error;
 
 #ifdef MUTEXLOCKDEBUG
-	bool bSet= false;
-	string mutexname(getMutexName(mutex));
+	bool bSet(false), bProcessSet(false);
 	ostringstream before, behind;
-	vector<string> split;
 	pid_t lastlockID;
 	typedef map<pthread_mutex_t*, mutexnames_t>::iterator iter;
+	string mutexname, ownprocess(glob::getProcessName());
 	iter i;
 
-	split= ConfigPropertyCasher::split(MUTEXLOCKDEBUG, " ");
-	if(	split.size() == 0
-		||
-		mutexname == "ERROR: undefined mutex"	)
+	mutexname= doOutput(mutex, "", bProcessSet, bSet);
+	if(bProcessSet)
 	{
-		bSet= true;
-	}else
-	{
-		for (vector<string>::iterator it= split.begin(); it != split.end(); ++it)
+		pthread_mutex_lock(&g_READMUTEX);
+		i= g_mMutex->find(mutex);
+		if(i != g_mMutex->end())
 		{
-			if(*it == mutexname)
+			lastlockID= i->second.threadid;
+			if(lastlockID == gettid())
 			{
-				bSet= true;
-				break;
-			}else if(	*it == "undefined"
-						&&
-						mutexname == "ERROR: undefined mutex"	)
-			{
-				bSet= true;
-				break;
-			}
-		}
-	}
-	pthread_mutex_lock(&g_READMUTEX);
-	i= g_mMutex->find(mutex);
-	if(i != g_mMutex->end())
-	{
-		lastlockID= i->second.threadid;
-		if(lastlockID == gettid())
-		{
-			ostringstream msg;
+				ostringstream msg;
 
-			msg << "[";
-			msg.fill(' ');
-			msg.width(5);
-			msg << dec << gettid() << "] ";
-			msg << "WARNING: thread lock's mutex " << mutexname << " again, on file:" << file << " line:" << line << endl;
-			msg << "           locking before on file:" << i->second.fileLocked << " line:" << i->second.lineLocked << endl;
-			cout << msg.str();
-		}
-	}else
-		lastlockID= 0;
-	pthread_mutex_unlock(&g_READMUTEX);
-	if(bSet)
-	{
-		before << "[";
-		before.fill(' ');
-		before.width(5);
-		before << dec << gettid() << "] ";
-		before << "want to lock mutex " << mutexname << " on file:" << file << " line:" << line << endl;
-		if(lastlockID != 0)
+				msg << "[";
+				msg.fill(' ');
+				msg.width(5);
+				msg << dec << gettid() << "] ";
+				msg << "WARNING: " << ownprocess << " thread lock's mutex " << mutexname << " again, on file:" << file << " line:" << line << endl;
+				msg << "           locking before on file:" << i->second.fileLocked << " line:" << i->second.lineLocked << endl;
+				cout << msg.str();
+			}
+		}else
+			lastlockID= 0;
+		pthread_mutex_unlock(&g_READMUTEX);
+		if(bSet)
 		{
+			before << "[";
 			before.fill(' ');
-			before.width(8);
-			before << " ";
-			before << "but mutex was locked from thread " << lastlockID << endl;
+			before.width(5);
+			before << dec << gettid() << "] ";
+			before << ownprocess << " want to lock mutex " << mutexname << " on file:" << file << " line:" << line << endl;
+			if(lastlockID != 0)
+			{
+				before.fill(' ');
+				before.width(8);
+				before << " ";
+				before << ownprocess << " but mutex was locked from thread " << lastlockID << endl;
+			}
+			cout << before.str();
 		}
-		cout << before.str();
-	}
+	}// if(bProcessSet)
 	if(mutexname != "POSITIONSTATUS")
 		POSS("###mutex_wait", mutexname);
-#endif
+#endif // MUTEXLOCKDEBUG
 
 	error= pthread_mutex_lock(mutex);
 	if(error != 0)
@@ -1013,26 +1140,29 @@ int Thread::mutex_lock(const string& file, int line, pthread_mutex_t *mutex, ICl
 	{
 		if(mutexname != "POSITIONSTATUS")
 			POSS("###mutex_have", mutexname);
-		pthread_mutex_lock(&g_READMUTEX);
-		i= g_mMutex->find(mutex);
-		if(i != g_mMutex->end())
+		if(bProcessSet)
 		{
-			i->second.threadid= gettid();
-			i->second.fileLocked= file;
-			i->second.lineLocked= line;
-		}
-		pthread_mutex_unlock(&g_READMUTEX);
-		if(bSet)
-		{
-			behind << "[";
-			behind.fill(' ');
-			behind.width(5);
-			behind << dec << gettid() << "] ";
-			behind << "mutex " << mutexname << "  be locked on file:" << file << " line:" << line  << endl;
-			cout << behind.str();
+			pthread_mutex_lock(&g_READMUTEX);
+			i= g_mMutex->find(mutex);
+			if(i != g_mMutex->end())
+			{
+				i->second.threadid= gettid();
+				i->second.fileLocked= file;
+				i->second.lineLocked= line;
+			}
+			pthread_mutex_unlock(&g_READMUTEX);
+			if(bSet)
+			{
+				behind << "[";
+				behind.fill(' ');
+				behind.width(5);
+				behind << dec << gettid() << "] ";
+				behind << ownprocess << " mutex " << mutexname << "  be locked on file:" << file << " line:" << line  << endl;
+				cout << behind.str();
+			}
 		}
 	}else if(bSet)
-		cout << "mutex " << mutexname << " cannot lock by thread(" << dec << gettid() << ") an ERROR occured" << endl;
+		cout << ownprocess << " mutex " << mutexname << " cannot lock by thread(" << dec << gettid() << ") an ERROR occured" << endl;
 #endif // MUTEXLOCKDEBUG
 	return error;
 }
@@ -1042,43 +1172,20 @@ int Thread::mutex_trylock(const string& file, int line, pthread_mutex_t *mutex, 
 	int error;
 
 #ifdef MUTEXLOCKDEBUG
-	bool bSet= false;
-	string mutexname(getMutexName(mutex));
+	bool bSet, bProcessSet;
 	ostringstream before, behind;
-	vector<string> split;
 	typedef map<pthread_mutex_t*, mutexnames_t>::iterator iter;
+	string mutexname, ownprocess(glob::getProcessName());
 	iter i;
 
-	split= ConfigPropertyCasher::split(MUTEXLOCKDEBUG, " ");
-	if(	split.size() == 0
-		||
-		mutexname == "ERROR: undefined mutex"	)
-	{
-		bSet= true;
-	}else
-	{
-		for (vector<string>::iterator it= split.begin(); it != split.end(); ++it)
-		{
-			if(*it == mutexname)
-			{
-				bSet= true;
-				break;
-			}else if(	*it == "undefined"
-						&&
-						mutexname == "ERROR: undefined mutex"	)
-			{
-				bSet= true;
-				break;
-			}
-		}
-	}
+	mutexname= doOutput(mutex, "", bProcessSet, bSet);
 	if(bSet)
 	{
 		before << "[";
 		before.fill(' ');
 		before.width(5);
 		before << dec << gettid() << "] ";
-		before << "try to lock mutex " << mutexname << " on file:" << file << " line:" << line << endl;
+		before << ownprocess << " try to lock mutex " << mutexname << " on file:" << file << " line:" << line << endl;
 		cout << before.str();
 	}
 	if(mutexname != "POSITIONSTATUS")
@@ -1095,32 +1202,35 @@ int Thread::mutex_trylock(const string& file, int line, pthread_mutex_t *mutex, 
 						+ getMutexName(mutex), "", logger);
 	}
 #ifdef MUTEXLOCKDEBUG
-	if(error == 0)
+	if(bProcessSet)
 	{
-		pthread_mutex_lock(&g_READMUTEX);
-		i= g_mMutex->find(mutex);
-		if(i != g_mMutex->end())
-			i->second.threadid= gettid();
-		pthread_mutex_unlock(&g_READMUTEX);
-		if(bSet)
+		if(error == 0)
+		{
+			pthread_mutex_lock(&g_READMUTEX);
+			i= g_mMutex->find(mutex);
+			if(i != g_mMutex->end())
+				i->second.threadid= gettid();
+			pthread_mutex_unlock(&g_READMUTEX);
+			if(bSet)
+			{
+				behind << "[";
+				behind.fill(' ');
+				behind.width(5);
+				behind << dec << gettid() << "] ";
+				behind << ownprocess << " mutex " << mutexname << "  be locked on file:" << file << " line:" << line  << endl;
+				cout << behind.str();
+			}
+		}else if(	bSet
+					&&
+					error == EBUSY)
 		{
 			behind << "[";
 			behind.fill(' ');
 			behind.width(5);
 			behind << dec << gettid() << "] ";
-			behind << "mutex " << mutexname << "  be locked on file:" << file << " line:" << line  << endl;
+			behind << ownprocess << " mutex " << mutexname << "  is busy do not lock on file:" << file << " line:" << line  << endl;
 			cout << behind.str();
 		}
-	}else if(	bSet
-				&&
-				error == EBUSY)
-	{
-		behind << "[";
-		behind.fill(' ');
-		behind.width(5);
-		behind << dec << gettid() << "] ";
-		behind << "mutex " << mutexname << "  is busy do not lock on file:" << file << " line:" << line  << endl;
-		cout << behind.str();
 	}
 #endif // MUTEXLOCKDEBUG
 	return error;
@@ -1129,89 +1239,78 @@ int Thread::mutex_trylock(const string& file, int line, pthread_mutex_t *mutex, 
 int Thread::mutex_unlock(const string& file, int line, pthread_mutex_t *mutex, IClientSendMethods* logger)
 {
 	int error;
+	string mutexname;
 
 #ifdef MUTEXLOCKDEBUG
-	bool bSet= false;
-	string mutexname(getMutexName(mutex));
+	bool bSet, bProcessSet;
 	ostringstream before;
 	vector<string> split;
 	typedef map<pthread_mutex_t*, mutexnames_t>::iterator iter;
+	string ownprocess(glob::getProcessName());
 	iter i;
 	pid_t tid= gettid();
 
-	split= ConfigPropertyCasher::split(MUTEXLOCKDEBUG, " ");
-	if(	split.size() == 0
-		||
-		mutexname == "ERROR: undefined mutex"	)
-		{
-			bSet= true;
-		}else
-		{
-			for (vector<string>::iterator it= split.begin(); it != split.end(); ++it)
-			{
-				if(*it == mutexname)
-				{
-					bSet= true;
-					break;
-				}else if(	*it == "undefined"
-							&&
-							mutexname == "ERROR: undefined mutex"	)
-				{
-					bSet= true;
-					break;
-				}
-			}
-		}
-	pthread_mutex_lock(&g_READMUTEX);
-	i= g_mMutex->find(mutex);
-	if(i != g_mMutex->end())
+	mutexname= doOutput(mutex, "", bProcessSet, bSet);
+	if(bProcessSet)
 	{
-		if(i->second.threadid != gettid())
+		pthread_mutex_lock(&g_READMUTEX);
+		i= g_mMutex->find(mutex);
+		if(i != g_mMutex->end())
+		{
+			if(i->second.threadid != gettid())
+			{
+				if(mutexname == "")
+					mutexname= getMutexName(mutex);
+				before << "[";
+				before.fill(' ');
+				before.width(5);
+				before << dec << tid << "] ";
+				before << "WARNING: " << ownprocess << " thread " << tid << " want to unlock mutex " << mutexname;
+				if(i->second.threadid == 0)
+					before << " witch isn't locked from any thread" << endl;
+				else
+					before << " witch is locked from other thread " << i->second.threadid << endl;
+				before <<"        on file:" << file << " line:" << line << endl;
+				cout << before.str();
+			}
+			i->second.threadid= 0;
+			i->second.fileLocked= "";
+			i->second.lineLocked= 0;
+		}
+		pthread_mutex_unlock(&g_READMUTEX);
+		if(bSet)
 		{
 			before << "[";
 			before.fill(' ');
 			before.width(5);
-			before << dec << tid << "] ";
-			before << "WARNING: thread " << tid << " want to unlock mutex " << mutexname;
-			if(i->second.threadid == 0)
-				before << " witch isn't locked from any thread" << endl;
-			else
-				before << " witch is locked from other thread " << i->second.threadid << endl;
-			before <<"        on file:" << file << " line:" << line << endl;
+			before << dec << gettid() << "] ";
+			before << ownprocess << " unlock mutex " << mutexname << " on file:" << file << " line:" << line << endl;
 			cout << before.str();
 		}
-		i->second.threadid= 0;
-		i->second.fileLocked= "";
-		i->second.lineLocked= 0;
-	}
-	pthread_mutex_unlock(&g_READMUTEX);
-	if(bSet)
-	{
-		before << "[";
-		before.fill(' ');
-		before.width(5);
-		before << dec << gettid() << "] ";
-		before << "unlock mutex " << mutexname << " on file:" << file << " line:" << line << endl;
-		cout << before.str();
 	}
 #endif
 
 	error= pthread_mutex_unlock(mutex);
 	if(error != 0)
 	{
-		string msg("error by unlock mutex ");
+		string msg(glob::getProcessName() + " error by unlock mutex ");
 
-		msg+= getMutexName(mutex);
+		if(mutexname == "")
+			mutexname= getMutexName(mutex);
+		msg+= mutexname;
 		LogHolderPattern::instance()->log(file, line, LOG_ERROR, msg, "", logger);
 #ifdef MUTEXLOCKDEBUG
 		ostringstream thid;
 
-		thid << "[";
-		thid.fill(' ');
-		thid.width(5);
-		thid << dec << gettid() << "] ";
-		thid << msg << endl;
-		cerr << thid.str();
+		if(bProcessSet)
+		{
+			thid << "[";
+			thid.fill(' ');
+			thid.width(5);
+			thid << dec << gettid() << "] ";
+			thid << msg << endl;
+			cerr << thid.str();
+		}
 		if(mutexname != "POSITIONSTATUS")
 			POSS("###mutex_free_error", mutexname);
 #endif // MUTEXLOCKDEBUG
@@ -1409,37 +1508,17 @@ int Thread::conditionWait(const string& file, int line, pthread_cond_t* cond, pt
 	}
 	condname= getConditionName(cond, logger);
 #ifdef CONDITIONSDEBUG
-	bool bSet= false;
+	bool bSet, bProcessSet;
 	ostringstream msg;
-	string mutexname(getMutexName(mutex));
+	string mutexname;
 	ostringstream before, behind;
 	vector<string> split;
 	typedef map<pthread_mutex_t*, mutexnames_t>::iterator iter;
 	iter i;
 
-	split= ConfigPropertyCasher::split(CONDITIONSDEBUG, " ");
-	if(	split.size() == 0
-		||
-		condname == "ERROR: undefined condition"	)
-	{
-		bSet= true;
-	}else
-	{
-		for (vector<string>::iterator it= split.begin(); it != split.end(); ++it)
-		{
-			if(*it == condname)
-			{
-				bSet= true;
-				break;
-			}else if(	*it == "undefined"
-						&&
-						condname == "ERROR: undefined condition"	)
-			{
-				bSet= true;
-				break;
-			}
-		}
-	}
+	doOutput(NULL, condname, bProcessSet, bSet);
+	if(bProcessSet)
+		mutexname= getMutexName(mutex);
 	if(bSet)
 	{
 		before << "[";
@@ -1449,22 +1528,25 @@ int Thread::conditionWait(const string& file, int line, pthread_cond_t* cond, pt
 		before << "wait for condition " << condname << " on file:" << file << " line:" << line << endl;
 		cout << before.str();
 	}
-	pthread_mutex_lock(&g_READMUTEX);
-	i= g_mMutex->find(mutex);
-	if(	i == g_mMutex->end()
-		||
-		i->second.threadid == 0	)
+	if(bProcessSet)
 	{
-		if(i == g_mMutex->end())
-			msg << "ERROR: mutex " << mutexname << " not found" << endl;
-		msg << "ERROR: in thread (" << gettid() << ")";
-		msg << " mutex " << mutexname << " for condition " << condname << endl;
-		msg << "   on LINE: " << dec << line << " from FILE:" << file << endl;
-		msg << "   is not locked" << endl;
-		cerr << msg.str();
-		LOGEX(LOG_ERROR, msg.str(), logger);
+		pthread_mutex_lock(&g_READMUTEX);
+		i= g_mMutex->find(mutex);
+		if(	i == g_mMutex->end()
+			||
+			i->second.threadid == 0	)
+		{
+			if(i == g_mMutex->end())
+				msg << "ERROR: mutex " << mutexname << " not found" << endl;
+			msg << "ERROR: in thread (" << gettid() << ")";
+			msg << " mutex " << mutexname << " for condition " << condname << endl;
+			msg << "   on LINE: " << dec << line << " from FILE:" << file << endl;
+			msg << "   is not locked" << endl;
+			cerr << msg.str();
+			LOGEX(LOG_ERROR, msg.str(), logger);
+		}
+		pthread_mutex_unlock(&g_READMUTEX);
 	}
-	pthread_mutex_unlock(&g_READMUTEX);
 #endif // CONDITIONSDEBUG
 
 	POSS("###condition_wait", condname);
@@ -1536,41 +1618,44 @@ int Thread::conditionWait(const string& file, int line, pthread_cond_t* cond, pt
 #endif //CONDITIONSDEBUG
 	}
 #ifdef CONDITIONSDEBUG
-	pthread_mutex_lock(&g_READMUTEX);
-	i= g_mMutex->find(mutex);
-	if(i != g_mMutex->end())
-		i->second.threadid= gettid();
-	pthread_mutex_unlock(&g_READMUTEX);
-	if(	bSet
-		&&
-		retcode == 0	)
+	if(bProcessSet)
 	{
-		behind << "[";
-		behind.fill(' ');
-		behind.width(5);
-		behind << dec << gettid() << "] ";
-		behind << "condition " << condname << " is aroused on line:" << dec << line << endl;
-		cout << behind.str();
-
-	}else if(	bSet
-				&&
-				retcode != ETIMEDOUT	)
-	{
-		behind << "[";
-		behind.fill(' ');
-		behind.width(5);
-		behind << dec << gettid() << "] ";
-		if(time->tv_sec != 0)
+		pthread_mutex_lock(&g_READMUTEX);
+		i= g_mMutex->find(mutex);
+		if(i != g_mMutex->end())
+			i->second.threadid= gettid();
+		pthread_mutex_unlock(&g_READMUTEX);
+		if(	bSet
+			&&
+			retcode == 0	)
 		{
-			behind << dec << time->tv_sec << " second ";
-			if(time->tv_nsec != 0)
-				behind << " and ";
-		}
-		if(time->tv_nsec != 0)
-			behind << dec << time->tv_nsec << " nanoseconds ";
-		behind << " for condition " << condname << " be passed on line:" << dec << line << endl;
-		cout << behind.str();
+			behind << "[";
+			behind.fill(' ');
+			behind.width(5);
+			behind << dec << gettid() << "] ";
+			behind << "condition " << condname << " is aroused on line:" << dec << line << endl;
+			cout << behind.str();
 
+		}else if(	bSet
+					&&
+					retcode != ETIMEDOUT	)
+		{
+			behind << "[";
+			behind.fill(' ');
+			behind.width(5);
+			behind << dec << gettid() << "] ";
+			if(time->tv_sec != 0)
+			{
+				behind << dec << time->tv_sec << " second ";
+				if(time->tv_nsec != 0)
+					behind << " and ";
+			}
+			if(time->tv_nsec != 0)
+				behind << dec << time->tv_nsec << " nanoseconds ";
+			behind << " for condition " << condname << " be passed on line:" << dec << line << endl;
+			cout << behind.str();
+
+		}
 	}
 #endif //CONDITIONSDEBUG
 	return retcode;
@@ -1580,34 +1665,12 @@ int Thread::arouseCondition(const string& file, int line, pthread_cond_t *cond, 
 {
 	int error;
 #ifdef CONDITIONSDEBUG
-	bool bSet= false;
+	bool bSet, bProcessSet;
 	string condname(getConditionName(cond));
 	ostringstream before;
 	vector<string> split;
 
-	split= ConfigPropertyCasher::split(CONDITIONSDEBUG, " ");
-	if(	split.size() == 0
-		||
-		condname == "ERROR: undefined condition"	)
-	{
-		bSet= true;
-	}else
-	{
-		for (vector<string>::iterator it= split.begin(); it != split.end(); ++it)
-		{
-			if(*it == condname)
-			{
-				bSet= true;
-				break;
-			}else if(	*it == "undefined"
-						&&
-						condname == "ERROR: undefined condition"	)
-			{
-				bSet= true;
-				break;
-			}
-		}
-	}
+	doOutput(NULL, condname, bProcessSet, bSet);
 	if(bSet)
 	{
 		before << "[";

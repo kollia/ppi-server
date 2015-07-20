@@ -151,12 +151,13 @@ int main(int argc, char* argv[])
 	thread::ThreadErrorHandling thErrHandle;
 	SocketErrorHandling sockErrHandle;
 
+	glob::processName("ppi-db-server");
+	glob::setSignals("ppi-db-server");
+
 	errHandle.read();
 	thErrHandle.read();
 	sockErrHandle.read();
 
-	glob::processName("ppi-db-server");
-	glob::setSignals("ppi-db-server");
 	if(argc >= 2)
 	{ // read how much clients db-server for communication thre
 		istringstream oConnT(argv[1]);

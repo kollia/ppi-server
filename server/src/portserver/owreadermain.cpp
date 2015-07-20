@@ -95,12 +95,13 @@ int main(int argc, char* argv[])
 	thread::ThreadErrorHandling thErrHandle;
 	SocketErrorHandling sockErrHandle;
 
+	glob::processName("ppi-owreader");
+	glob::setSignals("ppi-owreader");
+
 	errHandle.read();
 	thErrHandle.read();
 	sockErrHandle.read();
 
-	glob::processName("ppi-owreader");
-	glob::setSignals("ppi-owreader");
 	// create working directory
 	directorys= split(directorys, argv[0], is_any_of("/"));
 	dirlen= directorys.size();

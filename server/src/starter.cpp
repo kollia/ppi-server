@@ -163,8 +163,6 @@ bool Starter::execute(const IOptionStructPattern* commands)
 
 	gettimeofday(&startingtime, NULL);
 	Starter::isNoPathDefinedStop();
-	glob::processName("ppi-server");
-	glob::setSignals("ppi-server");
 
 
 	if(commands->hasOption("configure"))

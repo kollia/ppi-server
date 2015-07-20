@@ -56,11 +56,12 @@ int main(int argc, char* argv[])
 	thread::ThreadErrorHandling thErrHandle;
 	SocketErrorHandling sockErrHandle;
 
+	glob::processName("ppi-mconfig");
+	glob::setSignals("ppi-mconfig");
+
 	errHandle.read();
 	thErrHandle.read();
 	sockErrHandle.read();
-
-	glob::processName("ppi-mconfig");
 
 	params.setDescription("create measure file or examples for 'measure.conf' and also some layout files\n"
 							"specific for defined command.");

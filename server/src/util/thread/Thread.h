@@ -488,7 +488,7 @@ class Thread :	public virtual IThreadPattern,
    		 *
    		 * @param file in which file this method be called
    		 * @param line on which line in the file this method be called
-   		 * @param mutex mutex variable which should be unlocked
+   		 * @param mutex variable of mutex which should be unlocked
 		 * @param logger other extern logger than LogHolderPattern
    		 * @return 0 if successful, all other is an ERROR or EBUSY
    		 */
@@ -641,6 +641,17 @@ class Thread :	public virtual IThreadPattern,
 		virtual ~Thread();
 
 	protected:
+   		/**
+   		 * method only for defined derictive MUTEXLOCKDEBUG and CONDITIONSDEBUG
+   		 * check only whether mutex or condition should output strings on command line
+   		 *
+   		 * @param mutex variable of mutex which should be locked or unlocked
+   		 * @param cond name of condition when output for condition, otherwise for mutex cond should be an null string
+   		 * @param bProcess whether should do output for this process
+   		 * @param bSet whether mutex or condition will be defined for output
+   		 * @return name of mutex when method called for mutex lock and output (last parameter) will be set to true
+   		 */
+   		static string doOutput(pthread_mutex_t *mutex, const string& cond, bool& bProcess, bool& bSet);
 		/**
 		 * abstract method to initial the thread
 		 * in the extended class.<br />
@@ -678,6 +689,42 @@ class Thread :	public virtual IThreadPattern,
 
 
 	private:
+#ifdef MUTEXLOCKDEBUG
+		/**
+		 * whether for all mutexes
+		 * and processes
+		 * output located
+		 */
+		static bool m_bAllMutex;
+		/**
+		 * map of processes for which
+		 * output be defined
+		 */
+		static vector<string> m_vMutexProcesses;
+		/**
+		 * map of all mutexes for which
+		 * output be defined
+		 */
+		static vector<string> m_vMutexes;
+#endif // MUTEXLOCKDEBUG
+#ifdef CONDITIONSDEBUG
+		/**
+		 * whether for all conditions
+		 * and processes
+		 * output be located
+		 */
+		static bool m_bAllCondition;
+		/**
+		 * map of processes for which
+		 * output be defined
+		 */
+		static vector<string> m_vConditionProcesses;
+		/**
+		 * map of all conditions for which
+		 * output be defined
+		 */
+		static vector<string> m_vConditions;
+#endif // CONDITIONSDEBUG
 		/**
 		 * thrad id from system (OS/Linux)
 		 */

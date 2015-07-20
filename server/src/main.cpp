@@ -23,8 +23,9 @@
 #include <vector>
 #include <map>
 
-#include "util/MainParams.h"
 #include "util/debug.h"
+#include "util/GlobalStaticMethods.h"
+#include "util/MainParams.h"
 
 #include "util/stream/ErrorHandling.h"
 #include "util/thread/ThreadErrorHandling.h"
@@ -51,6 +52,9 @@ int main(int argc, char* argv[])
 	ErrorHandling errHandle;
 	thread::ThreadErrorHandling thErrHandle;
 	SocketErrorHandling sockErrHandle;
+
+	glob::processName("ppi-server");
+	glob::setSignals("ppi-server");
 
 	errHandle.read();
 	thErrHandle.read();

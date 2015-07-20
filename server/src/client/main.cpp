@@ -55,6 +55,8 @@ int main(int argc, char* argv[])
 	SocketErrorHandling sockErrHandle;
 
 	glob::processName("ppi-client");
+	glob::setSignals("ppi-client");
+
 	errHandle.read();
 	thErrHandle.read();
 	sockErrHandle.read();
