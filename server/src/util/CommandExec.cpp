@@ -576,7 +576,9 @@ bool CommandExec::execute()
 			if(stopping())
 				break;
 			sline+= line;
-			//cout << "script>> " << sline << flush;
+#ifdef DEBUG
+			cout << "script>> " << sline << endl;
+#endif // DEBUG
 			nLen= sline.length();
 			if(	nLen > 0 &&
 				sline.substr(nLen-1) == "\n")
@@ -784,7 +786,7 @@ void CommandExec::readLine(const bool& bWait, const bool& bDebug, string sline)
 	{
 		LOCK(m_RESULTMUTEX);				// add an '-' as workaround before all strings getting from shell command
 		m_qOutput.push_back("-" + sline);	// because this time an null string makes communication problems
-		if(m_qOutput.size() > 1000)			// and also when shell gives in the string only 'done' communication
+		while(m_qOutput.size() > 1000)		// and also when shell gives in the string only 'done' communication
 			m_qOutput.pop_front();			// stops to early
 		UNLOCK(m_RESULTMUTEX);
 	}
