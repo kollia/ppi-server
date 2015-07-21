@@ -387,6 +387,9 @@ namespace server
 
 	void FileDescriptor::flush()
 	{
+#ifdef DEBUG
+		bool bSendLower(false);
+#endif // DEBUG
 		ssize_t writeLen;
 		string::size_type len;
 
@@ -460,9 +463,47 @@ namespace server
 					setWriting(m_sSendTransaction.substr(0, writeLen));
 #endif //__DEBUGLASTREADWRITECHECK
 				if(static_cast<size_t>(writeLen) < len)
+				{
+#ifdef DEBUG
+					ostringstream out;
+
+					out << "want to send string of " << len << " characters:" << std::endl;
+					if(len > 100)
+						out << m_sSendTransaction.substr(0, 50) << " ... " << m_sSendTransaction.substr(len - 50);
+					else
+						out << m_sSendTransaction;
+					if(m_sSendTransaction.substr(len -1) != "\n")
+						out << std::endl;
+					out << "but sending only " << writeLen << " characters:" << std::endl;
+					if(writeLen > 100)
+						out << m_sSendTransaction.substr(0, 50) << " ... " << m_sSendTransaction.substr(writeLen - 50, 50);
+					else
+						out << m_sSendTransaction.substr(0, writeLen);
+					out << std::endl;
+					cout << glob::addPrefix("### WARNING: ", out.str()) << std::endl << std::endl;
+					bSendLower= true;
+#endif // DEBUG
 					m_sSendTransaction= m_sSendTransaction.substr(writeLen);
-				else
+				}else
+				{
+#ifdef DEBUG
+					if(bSendLower)
+					{
+						ostringstream out;
+
+						out << "sending end of string with " << len << " characters";
+						if(m_sSendTransaction.substr(len -1) != "\n")
+							out << " but without carriage return";
+						out << ":" << std::endl;
+						if(len > 100)
+							out << m_sSendTransaction.substr(0, 50) << " ... " << m_sSendTransaction.substr(len - 50);
+						else
+							out << m_sSendTransaction;
+						cout << glob::addPrefix("###: ", out.str()) << std::endl << std::endl;
+					}
+#endif // DEBUG
 					m_sSendTransaction= "";
+				}
 			}
 		}
 	}
