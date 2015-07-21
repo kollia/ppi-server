@@ -457,8 +457,18 @@ namespace server
 			 * @return whether lock was set from own thread
 			 */
 			bool unlockTHREADSAVEMETHODS(const string& file, int line);
+			/**
+			 * sending intern request to client or server.<br />
+			 * method isn't thread save
+			 */
+			virtual void Iflush();
 
 		private:
+			/**
+			 * mutex lock handle for read or write
+			 * over connection
+			 */
+			pthread_mutex_t* m_READWRITEMUTEX;
 			/**
 			 * mutex lock handle for changing or reading connection ID
 			 */

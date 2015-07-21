@@ -63,6 +63,7 @@ namespace server
 		m_nPort= port;
 		m_nFd= file;
 		m_nLockSM= 0;
+		m_READWRITEMUTEX= Thread::getMutex("READWRITEMUTEX");
 		m_CONNECTIONIDACCESS= Thread::getMutex("CONNECTIONIDACCESS");
 		m_SENDSTRING= Thread::getMutex("SENDSTRING");
 		m_THREADSAVEMETHODS= Thread::getMutex("THREADSAVEMETHODS");
@@ -212,6 +213,7 @@ namespace server
 		string::size_type bufLen(sizeof(buf)-2);
 		string sread;
 
+		LOCK(m_READWRITEMUTEX);
 		if(bufLen > SSIZE_MAX)
 			bufLen= SSIZE_MAX;
 //		process= getString("process") + ":";
@@ -236,6 +238,7 @@ namespace server
 			cout << "            '" << m_oSocketError.getErrorStr() << "'" << std::endl;
 			cout << "            '" << m_oSocketError.getDescription() << std::endl;
 #endif // __DEBUGLASTREADWRITECHECK
+			UNLOCK(m_READWRITEMUTEX);
 			return;
 		}
 
@@ -363,16 +366,19 @@ namespace server
 			out << "'" << m_sSendTransaction << "'" << std::endl;
 			cout << out.str();
 		}
+		UNLOCK(m_READWRITEMUTEX);
 	}
 
 	void FileDescriptor::operator << (const string& writer)
 	{
+		LOCK(m_READWRITEMUTEX);
 		m_sSendTransaction+= writer;
 		if(	m_bAutoSending &&
 			writer.find('\n') != string::npos	)
 		{
-			flush();
+			Iflush();
 		}
+		UNLOCK(m_READWRITEMUTEX);
 	}
 
 	inline bool FileDescriptor::eof() const
@@ -386,6 +392,13 @@ namespace server
 	}
 
 	void FileDescriptor::flush()
+	{
+		LOCK(m_READWRITEMUTEX);
+		Iflush();
+		UNLOCK(m_READWRITEMUTEX);
+	}
+
+	void FileDescriptor::Iflush()
 	{
 #ifdef DEBUG
 		bool bSendLower(false);
@@ -1213,6 +1226,7 @@ namespace server
 	FileDescriptor::~FileDescriptor()
 	{
 		closeConnection();
+		DESTROYMUTEX(m_READWRITEMUTEX);
 		DESTROYMUTEX(m_SENDSTRING);
 		DESTROYMUTEX(m_CONNECTIONIDACCESS);
 		DESTROYMUTEX(m_THREADSAVEMETHODS);
