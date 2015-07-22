@@ -375,8 +375,28 @@ namespace util
 			unsigned int nsub/*= 2*/, unsigned int nbuild/*= 5*/, unsigned int nrevision/*= 5*/)
 	{
 		int count;
-		string subnulls, buildnulls, revisionnulls;
-		ostringstream version, substream, buildstream, revisionstream;
+		string revisionstring;
+		ostringstream revisionstream;
+
+		if(revision != 0)
+		{
+			revisionstream << revision;
+			count= revisionstream.str().length();
+			count= nrevision -revisionstream.str().length();
+			if(count>0)
+				revisionstring.append(count, '0');
+			revisionstring+= revisionstream.str();
+		}
+		version(soption, def, major, minor, sub, patch, build, revisionstring, distribution, nsub, nbuild, nrevision);
+	}
+
+	void MainParams::version(const string& soption, const string& def, unsigned int major, unsigned int minor, unsigned int sub,
+			unsigned int patch, unsigned int build, const string& revision, const string& distribution/*= ""*/,
+			unsigned int nsub/*= 2*/, unsigned int nbuild/*= 5*/, unsigned int nrevision/*= 5*/)
+	{
+		int count;
+		string subnulls, buildnulls, revisionstring;
+		ostringstream version, substream, buildstream;
 
 		version << m_sAppName << " ";
 		version << major << ".";
@@ -399,14 +419,21 @@ namespace util
 				buildnulls.append(count, '0');
 			version << "." << buildnulls << build;
 		}
-		if(revision != 0)
+		if(revision != "")
 		{
-			revisionstream << revision;
-			count= revisionstream.str().length();
-			count= nrevision -revisionstream.str().length();
-			if(count>0)
-				revisionnulls.append(count, '0');
-			version << "." << revisionnulls << revision;
+			count= revision.length();
+			count= nrevision - count;
+			if(count > 0)
+			{
+				revisionstring.append(count, '_');
+				revisionstring+= revision;
+
+			}else if(revision.length() > nrevision)
+			{
+				revisionstring= revision.substr(0, nrevision);
+				revisionstring+= "...";
+			}
+			version << "." << revisionstring;
 		}
 		if(distribution != "")
 			version << "_" << distribution;
@@ -421,8 +448,8 @@ namespace util
 			version << "patch " << patch << " ";
 		if(build > 0)
 			version << "build " << buildnulls << build << " ";
-		if(revision > 0)
-			version << " revision " << revisionnulls << revision << " ";
+		if(revision != "")
+			version << " revision " << revision << " ";
 		if(distribution != "")
 			version << " for distribution " << distribution;
 		version << endl << endl;

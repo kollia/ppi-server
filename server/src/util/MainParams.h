@@ -65,6 +65,25 @@ namespace util
 				unsigned int patch, unsigned int build, unsigned int revision, const string& distribution= "",
 				unsigned int nsub= 2, unsigned int nbuild= 5, unsigned int nrevision= 5);
 		/**
+		 * set version option to output on command line when needed
+		 *
+		 * @param option name of full option to get version output
+		 * @param def short option definition
+		 * @param major major release version
+		 * @param minor release version
+		 * @param sub additional version when needed (don't display if sub parameter is 0)
+		 * @param patch patch number for release
+		 * @param build build number of release  (don't display if build parameter is 0)
+		 * @param revision revision string number of release (don't display if revision parameter is an null string)
+		 * @param distribution added string for distribution who compiling release
+		 * @param nsub prefix for sub revision number to filled with null's ('0') before.<br /> (default:2)<br /> if nsub and sub parameter is 0, no sub version will be displayed
+		 * @param nbuild prefix for sub revision number to filled with null's ('0') before (default:5)
+		 * @param nrevision prefix for sub revision number to filled with null's ('0') before (default:5)
+		 */
+		void version(const string& option, const string& def, unsigned int major, unsigned int minor, unsigned int sub,
+				unsigned int patch, unsigned int build, const string& revision, const string& distribution= "",
+				unsigned int nsub= 2, unsigned int nbuild= 5, unsigned int nrevision= 5);
+		/**
 		 * set version option to output on command line when needed.<br />
 		 * Version option is for standard '--version' with short definition '-v'
 		 *
@@ -81,6 +100,25 @@ namespace util
 		 */
 		void version(unsigned int major, unsigned int minor, unsigned int sub,
 				unsigned int patch, unsigned int build, unsigned int revision, const string& distribution= "",
+				unsigned int nsub= 2, unsigned int nbuild= 5, unsigned int nrevision= 5)
+		{ version("version", "v", major, minor, sub, patch, build, revision, distribution, nsub, nbuild, nrevision); };
+		/**
+		 * set version option to output on command line when needed.<br />
+		 * Version option is for standard '--version' with short definition '-v'
+		 *
+		 * @param major major release version
+		 * @param minor release version
+		 * @param sub additional version when needed (don't display if sub parameter is 0)
+		 * @param patch patch number for release
+		 * @param build build number of release  (don't display if build parameter is 0)
+		 * @param revision revision number of release (don't display if revision parameter is 0)
+		 * @param distribution added string for distribution who compiling release
+		 * @param nsub prefix for sub revision number to filled with null's ('0') before.<br /> (default:2)<br /> if nsub and sub parameter is 0, no sub version will be displayed
+		 * @param nbuild prefix for sub revision number to filled with null's ('0') before (default:5)
+		 * @param nrevision prefix for sub revision number to filled with null's ('0') before (default:5)
+		 */
+		void version(unsigned int major, unsigned int minor, unsigned int sub,
+				unsigned int patch, unsigned int build, const string& revision, const string& distribution= "",
 				unsigned int nsub= 2, unsigned int nbuild= 5, unsigned int nrevision= 5)
 		{ version("version", "v", major, minor, sub, patch, build, revision, distribution, nsub, nbuild, nrevision); };
 		/**

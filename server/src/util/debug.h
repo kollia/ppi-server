@@ -24,10 +24,10 @@
 #define PPI_MINOR_RELEASE 2
 #define PPI_SUBVERSION 0
 #define PPI_PATCH_LEVEL   0
-#define PPI_REVISION_NUMBER 421
+#define PPI_REVISION_NUMBER "ebab47172d4ce19e6d49335b99c1d679a46b60e2"
 
 #ifndef DISTRIBUTION_RELEASE
-#define DISTRIBUTION_RELEASE ""
+#define DISTRIBUTION_RELEASE "developer_release"
 #endif
 #define PPI_SERVER_PROTOCOL 1.0
 
@@ -35,7 +35,7 @@
 #define PPI_JAVA_MINOR_RELEASE 2
 #define PPI_JAVA_SUBVERSION 0
 #define PPI_JAVA_PATCH_LEVEL   0
-#define PPI_JAVA_REVISION_NUMBER 336
+#define PPI_JAVA_REVISION_NUMBER "78f7d106ec0e7c4aecb828e41b48e9447b654138"
 
 /*******************************************************************************************************************
  * cmake define follow symbols for preprocessor from gcc
@@ -120,7 +120,7 @@
 // When inside the string is defined any process name, the result
 // for output only for this process ( ppi-server, ppi-db-server, ppi-owreader, ppi-internet-server,
 // 	ppi-client, ppi-mconfig ) elsewhere for all processes
-//#define MUTEXLOCKDEBUG "ppi-owreader WAITMUTEX RESULTMUTEX SENDMETHODLOCK"
+//#define MUTEXLOCKDEBUG "ppi-owreader WAITMUTEX RESULTMUTEX SENDMETHODLOCK READWRITEMUTEX"
 #endif //MUTEXLOCKDEBUG
 
 #ifndef MUTEXCREATEDEBUG
