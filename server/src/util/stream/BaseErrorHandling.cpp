@@ -855,12 +855,21 @@ namespace util
 		lang= m_sTransLang;
 		while(lang != "")
 		{
+/*			cout << "exist:" << endl;
+			for(errlang_t::const_iterator c= m_mmmsDescriptions.begin(); c != m_mmmsDescriptions.end(); ++c)
+				cout << "    " << c->first << endl;*/
 			langIt= m_mmmsDescriptions.find(lang);
 			if(langIt != m_mmmsDescriptions.end())
 			{
+/*				cout << "exist:" << endl;
+				for(errclass_t::const_iterator c= langIt->second.begin(); c != langIt->second.end(); ++c)
+					cout << "    " << c->first << endl;*/
 				classIt= langIt->second.find(error.classname);
 				if(classIt != langIt->second.end())
 				{
+/*					cout << "exist:" << endl;
+					for(errmethod_t::const_iterator c= classIt->second.begin(); c != classIt->second.end(); ++c)
+						cout << "    " << c->first << endl;*/
 					methodIt= classIt->second.find(error.errorstring);
 					if(methodIt != classIt->second.end())
 					{

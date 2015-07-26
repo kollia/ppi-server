@@ -63,13 +63,13 @@ void SocketErrorHandling::createMessages()
 	setDescription("en", "SocketServerConnection", "fdopen",
 					"cannot open descriptor to write/read on host '@1' with port @2 by follow error:");
 
-	setDescription("en", "FileDescription", "write",
+	setDescription("en", "FileDescriptor", "write",
 					"by writing over host '@1:@2'");
-	setDescription("en", "FileDescription", "transWrite",
+	setDescription("en", "FileDescriptor", "transWrite",
 					"by writing to host '@1:@2' over transaction '@3'");
-	setDescription("en", "FileDescription", "read",
+	setDescription("en", "FileDescriptor", "read",
 					"by reading from host '@1:@2'");
-	setDescription("en", "FileDescription", "transRead",
+	setDescription("en", "FileDescriptor", "transRead",
 					"by reading from host '@1:@2' over transaction '@3'");
 	setDescription("en", "FileDescriptor", "noConnect",
 					"connection from host @1:@2 was closed or is refused");
@@ -189,7 +189,8 @@ string SocketErrorHandling::getErrorDescriptionString(errorVals_t error) const
 	string::size_type nMethodLen;
 	string sRv;
 
-	if(error.type == specific_error)
+	if(	error.type == specific_error ||
+		error.type == specific_warning	)
 	{
 		sRv= "getaddrinfo";
 		nMethodLen= sRv.length();
