@@ -878,7 +878,10 @@ namespace util
 						if(	error.type == errno_error ||
 							error.type == errno_warning	)
 						{
-							sRv+= "\n" + getErrnoString(error.errno_nr);
+							ostringstream serrno;
+
+							serrno << "ERRNO(" << error.errno_nr << "): ";
+							sRv+= "\n" + serrno.str() + getErrnoString(error.errno_nr);
 						}
 						return sRv;
 					}
