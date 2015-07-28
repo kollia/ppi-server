@@ -184,7 +184,7 @@ namespace util
 	}
 
 	bool BaseErrorHandling::hasError(const string& classname/*= ""*/,
-					const string& methodname/*= ""*/) const
+					const string& methodname/*= ""*/, const int errno_nr/*= 0*/) const
 	{
 		if(	m_tError.type == NO ||
 			m_tError.type == errno_warning ||
@@ -203,11 +203,16 @@ namespace util
 		{
 			return false;
 		}
+		if(	errno_nr != 0 &&
+			m_tError.errno_nr != errno_nr	)
+		{
+			return false;
+		}
 		return true;
 	}
 
 	bool BaseErrorHandling::hasWarning(const string& classname/*= ""*/,
-					const string& methodname/*= ""*/) const
+					const string& methodname/*= ""*/, const int errno_nr/*= 0*/) const
 	{
 		if(	m_tError.type == NO ||
 			m_tError.type == UNKNOWN ||
@@ -224,6 +229,11 @@ namespace util
 		}
 		if( methodname != "" &&
 			methodname != m_tError.errorstring	)
+		{
+			return false;
+		}
+		if(	errno_nr != 0 &&
+			m_tError.errno_nr != errno_nr	)
 		{
 			return false;
 		}

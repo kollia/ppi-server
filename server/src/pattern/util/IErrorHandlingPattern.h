@@ -342,20 +342,38 @@ namespace design_pattern_world
 			 * can be differ between class name, method name or error type
 			 *
 			 * @param classname name of class where error occurred
-			 * @param errorstring name of method where error occurred
-			 * @param type which type of error number next parameter will be
+			 * @param errno_nr errno number on which error occurred
 			 * @return whether error exist
 			 */
-			virtual bool hasError(const string& classname= "", const string& errorstring= "") const= 0;
+			virtual bool hasError(const string& classname, const int errno_nr) const= 0;
+			/**
+			 * whether current object has an error.<br />
+			 * can be differ between class name, method name or error type
+			 *
+			 * @param classname name of class where error occurred
+			 * @param methodname name of method where error occurred
+			 * @param errno_nr errno number on which error occurred
+			 * @return whether error exist
+			 */
+			virtual bool hasError(const string& classname= "", const string& methodname= "",
+							const int errno_nr= 0) const= 0;
 			/**
 			 * whether current object has an warning
 			 *
-			 * @param classname name of class where error occurred
-			 * @param errorstring name of method where error occurred
-			 * @param type which type of error number next parameter will be
+			 * @param classname name of class where warning occurred
+			 * @param errno_nr errno number on which warning occurred
 			 * @return whether warning exist
 			 */
-			virtual bool hasWarning(const string& classname= "", const string& errorstring= "") const= 0;
+			virtual bool hasWarning(const string& classname, const int errno_nr) const= 0;
+			/**
+			 * whether current object has an warning
+			 *
+			 * @param classname name of class where warning occurred
+			 * @param errno_nr errno number on which warning occurred
+			 * @return whether warning exist
+			 */
+			virtual bool hasWarning(const string& classname= "", const string& methodname= "",
+							const int errno_nr= 0) const= 0;
 			/**
 			 * define intern-, specific- or errno-ERROR as WARNING
 			 * when exist
