@@ -353,7 +353,18 @@ namespace util
 				transaction->closeConnection(command);
 			m_pSocketError= connection->init();
 			if(m_pSocketError->fail())
-				bRv= false;
+			{
+				//cout << "has Error string '" << m_pSocketError->getErrorStr() << "'" << std::endl;
+				if(m_pSocketError->hasError("FileDescriptor", 111))
+				{
+					/*
+					 * when by ending only Connection refused
+					 * it should be no error/warning
+					 */
+					m_pSocketError->clear();
+				}else
+					bRv= false;
+			}
 			if(	bRv &&
 				!transaction	)
 			{
