@@ -887,7 +887,6 @@ namespace server
 			UNLOCK(m_SENDSTRING);
 			answer= getMoreAnswers(str.getSyncID(), endString);
 			LOCK(m_SENDSTRING);
-			m_sSendString= "";
 			AROUSE(m_SENDSTRINGCONDITION);
 		}else
 		{// write questions with need no answer only into a queue
@@ -980,6 +979,25 @@ namespace server
 		string waitStr;
 
 		LOCK(m_SENDSTRING);
+#if __DEBUGLASTREADWRITECHECK
+		string process(getString("process"));
+		string client(getString("client"));
+		/*
+		 * define needed process and client
+		 * for which debug checking should
+		 * holding with flush
+		 * inside this method
+		 * on 3 positions
+		 */
+		string needprocess(""); //ppi-server");
+		string needclient(""); //ProcessChecker");
+
+		if(	process == needprocess &&
+			client == needclient	)
+		{
+			cout << std::flush;
+		}
+#endif // __DEBUGLASTREADWRITECHECK
 		if(m_sSendString == "")
 		{
 #ifdef __FOLLOWSERVERCLIENTTRANSACTION
@@ -1028,6 +1046,13 @@ namespace server
 				UNLOCK(m_LOCKSM);
 				UNLOCK(m_THREADSAVEMETHODS);
 				CONDITION(m_GETSTRINGCONDITION, m_SENDSTRING);
+#if __DEBUGLASTREADWRITECHECK
+				if(	process == needprocess &&
+					client == needclient	)
+				{
+					cout << std::flush;
+				}
+#endif // __DEBUGLASTREADWRITECHECK
 				LOCK(m_THREADSAVEMETHODS);
 				LOCK(m_LOCKSM);
 				m_nLockSM= Thread::gettid();
@@ -1045,6 +1070,13 @@ namespace server
 		{							// send some times also strings from there
 			waitStr= m_sSendString;
 			waitEnding= m_sEndingString;
+#if __DEBUGLASTREADWRITECHECK
+			if(	process == needprocess &&
+				client == needclient	)
+			{
+				cout << std::flush;
+			}
+#endif // __DEBUGLASTREADWRITECHECK
 			if(m_qsSendStrings.size())
 			{
 				m_sSendString= m_qsSendStrings.front();
