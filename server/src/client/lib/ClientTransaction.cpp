@@ -2199,7 +2199,9 @@ namespace server
 					resetTc();
 					if(command.size() == 2)
 						user= command[1];
+					runUserTransaction(false);
 					compareUserPassword(descriptor, user, pwd);
+					runUserTransaction(true);
 					if(!m_bScriptState)
 					{
 						termios_flag= m_tTermiosBackup;
