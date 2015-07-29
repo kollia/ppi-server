@@ -1229,8 +1229,17 @@ namespace server
 							foundFolder= m_vsHoldFolders.find(folder);
 							if(foundFolder != m_vsHoldFolders.end())
 							{
+								bool read(false);
+
 								foundSubroutine= foundFolder->second.find(subroutine);
-								if(	foundSubroutine != foundFolder->second.end() ||
+								if(foundSubroutine == foundFolder->second.end())
+								{
+									foundSubroutine= foundFolder->second.find("*");
+									if(foundSubroutine != foundFolder->second.end())
+										read= true;
+								}else
+									read= true;
+								if(	read ||
 									subroutine.substr(0, 1) == "#"					)
 								{// folder is set for holding
 									SHAREDPTR::shared_ptr<
@@ -2959,7 +2968,10 @@ namespace server
 							 * when write DEBUG command was correct
 							 */
 							split(spl, command[nFolderSubRead], is_any_of(":"));
-							setHoldingFolder(spl[0], spl[1]);
+							if(spl.size() > 1)
+								setHoldingFolder(spl[0], spl[1]);
+							else
+								setHoldingFolder(spl[0], "*");
 
 						}else
 						{
