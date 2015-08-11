@@ -29,12 +29,11 @@
 #include "OutsideClientTransaction.h"
 #include "ExternClientInputTemplate.h"
 
+#include "../../../util/GlobalStaticMethods.h"
+
 // include only need for __DEBUGLASTREADWRITECHECK
 #include "ProcessInterfaceTemplate.h"
 
-#if (__DEBUGLASTREADWRITECHECK)
-#include "../../../util/GlobalStaticMethods.h"
-#endif
 
 
 using namespace std;
@@ -59,8 +58,14 @@ namespace server
 		 * when object not be setting
 		 * for answering
 		 */
-		string::size_type len= m_sCommand.size();
+		string::size_type len;
 
+#if __WRONGSTRINGSEND_WORKAROUND
+		/**
+		 * whether last string sending was wrong
+		 */
+		bool bWrongLastString(false);
+#endif // __WRONGSTRINGSEND_WORKAROUND
 #if (__DEBUGLASTREADWRITECHECK)
 		/**
 		 * end of last sending
@@ -77,6 +82,32 @@ namespace server
 		m_vAnswer.clear();
 		if(m_bHold)
 		{
+#if __WRONGSTRINGSEND_WORKAROUND
+			do{ // again when bWronglastString will be set
+#if __DEBUGWRONGSTRING
+				if(bWrongLastString)
+				{
+					ostringstream out;
+
+					out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+					out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+					out << glob::getProcessName() << " [" << Thread::gettid() << "] ";
+					out << "descriptor send again same string from before" << std::endl;
+					out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+					out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+					out << "'" << m_sCommand << "'" << std::endl << std::endl;
+					cout << out.str();
+				}
+#endif // __DEBUGWRONGSTRING
+				if(bWrongLastString)
+				{
+					string snew;
+					string::size_type pos(string::npos);
+
+					bWrongLastString= false;
+					m_vAnswer.clear();
+				}
+#endif // __WRONGSTRINGSEND_WORKAROUND
 			if(m_sCommand != "")
 			{// client is defined to send single questions
 				string::size_type pos, start;
@@ -104,6 +135,7 @@ namespace server
 				else
 					sQuestionBefore= m_sCommand;
 #endif
+				len= m_sCommand.size();
 				if(len > 0)
 				{
 					if(m_sCommand.substr(len -1) != "\n")
@@ -170,6 +202,13 @@ namespace server
 				}
 				descriptor >> answer;
 				boost::trim(answer);
+#if __WRONGSTRINGSEND_WORKAROUND
+				if(answer == "ERROR:INTERN:getWrongString")
+				{
+					bWrongLastString= true;
+					break;
+				}
+#endif // __WRONGSTRINGSEND_WORKAROUND
 				m_pSocketError->setErrorStr(answer);
 				m_vAnswer.push_back(answer);
 				if(m_pSocketError->hasError())
@@ -180,6 +219,9 @@ namespace server
 					endString= "";
 				}
 			}while(endString != "");
+#if __WRONGSTRINGSEND_WORKAROUND
+			}while(bWrongLastString);
+#endif // __WRONGSTRINGSEND_WORKAROUND
 
 			m_sCommand= "";
 			m_vsAnswerBlock.clear();

@@ -30,6 +30,23 @@
  *  error comes as loop )
  */
 #define __DEBUGLASTREADWRITECHECK 0
+/**
+ * workaround by sending string over TCP connection
+ * where inside the string 0 terminated characters be set
+ * in this case client will be infor server
+ * to send string again
+ */
+#define __WRONGSTRINGSEND_WORKAROUND 0
+#if __WRONGSTRINGSEND_WORKAROUND
+/**
+ * when follow directive be defined
+ * inside workaround will be displayed
+ * wrong send string also on command line
+ */
+#define __DEBUGWRONGSTRING 1
+#else // __WRONGSTRINGSEND_WORKAROUND
+#define __DEBUGWRONGSTRING 0
+#endif // __WRONGSTRINGSEND_WORKAROUND
 
 #include <string>
 

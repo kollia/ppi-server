@@ -15,7 +15,7 @@ toDo:
   - when server by starting has no right connection to an ppi-owreader
     inside working list folder running every short time try to connect
     but when while server correct running, an ppi-owreader connection has broken
-    working list do not get any info to try for reconnection
+    working list do not get any info to try for reconnection 
   - by calculation of last changing time inside ListCalculator
     normally it calculate current time by any calculation given from script
     but there exist also method for do not calculate current time
@@ -70,6 +70,17 @@ known bugs:
   - by reading properties from measure.conf
     server do not recognize when an parameter has an content over more rows
     with beginning quotes, but the ending are forgotten
+  - TCP string sending with an NULL character ('\0') inside the string makes problems
+    do as workaround to filter string before sending to find NULL characters and delete them
+    this problem was found by sending much debug session messages
+    will be result mostly by sending an 'inform' property of folder to start
+    See problems by set inside FileDescriptor class inside method initial
+    variable 'm_bNullCharSending' to true
+    and to display stopping of ppi-server on command line where server running
+    define macro __WRONGSTRINGSEND_WORKAROUND to one ('1')
+    inside ProcessInterfaceTemplate header file
+    possible implementation of NULL characters can be cause by IMethodStringStream or OMethodStringStream
+    (should be tested)
     
 
 

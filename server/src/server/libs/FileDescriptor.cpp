@@ -35,6 +35,7 @@
 #include "../../util/GlobalStaticMethods.h"
 
 #include "../../util/stream/OMethodStringStream.h"
+#include "../../util/stream/ErrorHandling.h"
 
 #include "SocketErrorHandling.h"
 #include "FileDescriptor.h"
@@ -54,6 +55,8 @@ namespace server
 	void FileDescriptor::initial(IServerPattern* server, ITransferPattern* transfer, int file, string address,
 			const unsigned short port)
 	{
+		m_bNullCharSending= false;
+		m_bAutoSending= true;
 		m_pTransfer= transfer;
 		m_poServer= server;
 		m_pHearingClient= NULL;
@@ -205,21 +208,39 @@ namespace server
 
 	void FileDescriptor::operator >> (string &reader)
 	{
+#if __WRONGSTRINGSEND_WORKAROUND
+		bool bNoEnd(false);
+		bool bErrorSet(false);
+#endif // __WRONGSTRINGSEND_WORKAROUND
+#if __DEBUGWRONGSTRING
+#if(__WRONGSTRINGSEND_WORKAROUND == 0)
+		bool bNoEnd(false);
+		bool bErrorSet(false);
+#endif // __WRONGSTRINGSEND_WORKAROUND
+		static short nOut(-2);
+
+		if(nOut == -2)
+		{
+			nOut= -1;
+			if(glob::getProcessName() == "ppi-db-server")
+			{
+				nOut= 1;
+			}else
+				nOut= 0;
+		}
+#endif // __DEBUGNOEND
+
 		bool locked;
+		int nErrno(0);
 		ssize_t getLen(0);
-		char buf[1026];
+		char buf[3074];
 		//char buf[4];
 		string::size_type endPos;
 		string::size_type bufLen(sizeof(buf)-2);
 		string sread;
 
 		LOCK(m_READWRITEMUTEX);
-		if(bufLen > SSIZE_MAX)
-			bufLen= SSIZE_MAX;
-//		process= getString("process") + ":";
-//		process+= getString("client");
-		sread= m_mLastRead;//[process];
-		//m_mLastRead[process]= "";
+		sread= m_mLastRead;
 		m_mLastRead= "";
 		if(sread != "")
 			getLen= sread.length();
@@ -247,9 +268,10 @@ namespace server
 			if(getLen <= 0)
 			{// otherwise an string was reading before
 				getLen= read(m_nFd, buf, bufLen);
+				nErrno= errno;
 				if(getLen > 0)
 				{
-					buf[getLen]= '\0';
+						buf[getLen]= '\0';
 					sread= buf;
 #if (__DEBUGLASTREADWRITECHECK)
 					setReading(sread);
@@ -257,7 +279,6 @@ namespace server
 
 				}else
 				{
-					int nErrno(errno);
 					string errStr;
 					ostringstream decl;
 
@@ -302,12 +323,9 @@ namespace server
 							UNLOCK(m_LOCKSM);
 							locked= false;
 						}
-						//if(m_mLastRead[process] != "")
 						if(m_mLastRead != "")
 						{
-							//reader+= m_mLastRead[process];
 							reader+= m_mLastRead;
-							//m_mLastRead[process]= "";
 							m_mLastRead= "";
 						}
 						break;
@@ -332,6 +350,125 @@ namespace server
 			{
 				reader+= sread;
 			}
+#if __WRONGSTRINGSEND_WORKAROUND
+			if(!fail())
+			{
+				if(	(	endPos == string::npos &&
+						sread.length() < (size_t)getLen	) ||
+					(	!bNoEnd &&
+						nErrno		)						)
+				{
+#if __DEBUGWRONGSTRING
+					bool bCR(false);
+					ostringstream out;
+					string::size_type len(sread.length());
+
+					if(nOut)
+					{
+						out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+						out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+						out << glob::getProcessName() << " [" << Thread::gettid() << "] ERRNO(" << nErrno << ") ";
+						out << "descriptor getting " << getLen << "(" << len << ")";
+						if(endPos == string::npos)
+							out << " character string with no carriage return on end";
+						out << std::endl;
+						if(nErrno)
+							out << ErrorHandling::getErrnoString(nErrno) << std::endl;
+						out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+						out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+						out << "'" << sread << "'" << std::endl;
+						if(sread.length() < (size_t)getLen)
+						{
+							unsigned short nCount(0);
+							unsigned int digit;
+
+							out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+							out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+							out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+							out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+							out << "read after string: >>'";
+							if(len > 10)
+								out << " ... " << sread.substr(len - 10);
+							else
+								out << sread;
+							out << "'<<" << std::endl;
+							out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+							out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+							for(size_t i= len-5; i < (size_t)getLen; ++i)
+							{
+								unsigned int z((unsigned int) buf[i]);
+
+								if(	z > 31 &&
+									z < 127		)
+								{
+									if(nCount)
+									{
+										if(!bCR)
+											out << std::endl;
+										out << nCount << " x ASCII(" << digit << ")" << std::endl;
+										nCount= 0;
+									}
+									out << buf[i];
+									bCR= false;
+
+								}else
+								{
+									if(	nCount &&
+										digit != z	)
+									{
+										if(!bCR)
+											out << std::endl;
+										out << nCount << " x ASCII(" << digit << ")" << std::endl;
+										nCount= 0;
+										bCR= true;
+									}
+									digit= z;
+									++nCount;
+								}
+							}
+							if(!bCR)
+								out << std::endl;
+							out << std::endl;
+						}
+						cout << out.str();
+						bNoEnd= true;
+					}
+#endif // __DEBUGWRONGSTRING
+					if(	!bErrorSet &&
+						endPos == string::npos &&
+						sread.length() < (size_t)getLen	)
+					{
+						reader= "";
+						sread= "";
+						m_sSendTransaction= "ERROR:INTERN:getWrongString\n";
+						Iflush();
+						bErrorSet= true;
+#if __DEBUGWRONGSTRING
+						out.str("");
+						out << "sending fault: 'ERROR:INTERN:getWrongString'";
+						out << std::endl << std::endl;
+						cout << out.str();
+#endif // __DEBUGWRONGSTRING
+					}
+
+				}
+#if __DEBUGWRONGSTRING
+				else if(nOut && bNoEnd)
+				{
+					ostringstream out;
+
+					out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+					out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+					out << glob::getProcessName() << " [" << Thread::gettid() << "] ERRNO(" << nErrno << ") reading ";
+					out << getLen << "(" << sread.substr(0, endPos).length() << ") character string end with" << std::endl;
+					out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+					out << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+					out << "'" << sread.substr(0, endPos) << "'" << std::endl << std::endl;
+					cout << out.str();
+				}
+#endif // __DEBUGWRONGSTRING
+			}
+#endif // __WRONGSTRINGSEND_WORKAROUND
 			sread= "";
 			getLen= 0;
 
@@ -408,12 +545,26 @@ namespace server
 
 		if(eof())
 			return;
+		if(!m_bNullCharSending)
+		{
+			string newSendTransaction;
+			string::size_type pos;
+
+			pos= m_sSendTransaction.find('\0');
+			if(pos != string::npos)
+			{
+				len= m_sSendTransaction.length();
+				for(string::size_type i= 0; i < len; ++i)
+				{
+					if(m_sSendTransaction.at(i) != '\0')
+						newSendTransaction+= m_sSendTransaction.at(i);
+				}
+				m_sSendTransaction= newSendTransaction;
+			}
+		}
 		while(!m_sSendTransaction.empty())
 		{
 			len= m_sSendTransaction.length();
-			/*ostringstream send;
-			send << "send: '" << m_sSendTransaction << "'" << std::endl;
-			cout << send.str();*/
 			writeLen= write(m_nFd, m_sSendTransaction.c_str(), len);
 #if(__DEBUGLASTREADWRITECHECK)
 			if(writeLen >= 0)

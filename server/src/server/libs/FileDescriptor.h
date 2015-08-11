@@ -67,8 +67,7 @@ namespace server
 			 * stadard constructor to forwarding
 			 */
 			FileDescriptor()
-			:	m_nTimeout(0),
-			 	m_bAutoSending(true)
+			:	m_nTimeout(0)
 			{ initial(NULL, NULL, 0, "", 0); };
 			/**
 			 * constructor to initial FILE and current host address
@@ -81,8 +80,7 @@ namespace server
 			 */
 			FileDescriptor(IServerPattern* server, ITransferPattern* transfer, int file, string address,
 					const unsigned short port, const unsigned int timeout)
-			:	m_nTimeout(timeout),
-			 	m_bAutoSending(true)
+			:	m_nTimeout(timeout)
 			{ initial(server, transfer, file, address, port); };
 #if (__DEBUGLASTREADWRITECHECK)
 			/**
@@ -621,9 +619,16 @@ namespace server
 			const unsigned int m_nTimeout;
 			/**
 			 * whether descriptor is defined for automatic
-			 * sending by every carriage return
+			 * sending by every carriage return.<br />
+			 * default is true
 			 */
 			bool m_bAutoSending;
+			/**
+			 * whether descriptor is defined to sending
+			 * also characters from ascii code 0.<br />
+			 * default is false
+			 */
+			bool m_bNullCharSending;
 			/**
 			 * transaction cash to sending over connection
 			 */
