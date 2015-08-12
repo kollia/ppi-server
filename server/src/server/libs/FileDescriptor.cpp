@@ -233,8 +233,7 @@ namespace server
 		bool locked;
 		int nErrno(0);
 		ssize_t getLen(0);
-		char buf[3074];
-		//char buf[4];
+		char buf[1026];
 		string::size_type endPos;
 		string::size_type bufLen(sizeof(buf)-2);
 		string sread;

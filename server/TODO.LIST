@@ -79,7 +79,9 @@ known bugs:
     and to display stopping of ppi-server on command line where server running
     define macro __WRONGSTRINGSEND_WORKAROUND to one ('1')
     inside ProcessInterfaceTemplate header file
-    possible implementation of NULL characters can be cause by IMethodStringStream or OMethodStringStream
+    and define block reading inside operator method '>>' from FilderDescriptor class
+    variable char buf[] higher (maybe to 3074), to getting error faster
+    possible implementation of NULL characters can be cause by IMethodStringStream or OMethodStringStream 
     (should be tested)
     
 
