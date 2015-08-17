@@ -47,6 +47,10 @@ known bugs:
   - when server was started where first login of root user is not allowed,
     while running in access.conf will be changed this behavior
     server cannot stopped with command ppi-server stop
+  - when ppi-client inside method ask() wait for input from user
+    and user terminate application with [strg] - [c]
+    try catch block inside method do not catch exception of SIGINT
+    so outside of application user input in command shell do not appear on screen
   - reading of objectID from OWFS (external port) can be refused
   - by reading of subroutine READ when action set to hold connection
     make some problem by reconnect or thinking connection is open

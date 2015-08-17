@@ -1521,6 +1521,7 @@ namespace server
 		short nTabCount(0);
 		bool bSpecial(false);
 		string sSpecial;
+		struct termios termios_flag;
 
 		if(yesno)
 			promptStr+= " (Y/N) ";
@@ -1561,219 +1562,245 @@ namespace server
 			runUserTransaction(true);
 			return result;
 		}
-		result= "";
-		while(	(charNr= getch()) > 0 &&
-				(	(	!yesno &&
-						charNr != 13 &&
-						charNr != 10	) ||
+		try{
+			if(!m_bScriptState)
+			{
+				termios_flag= m_tTermiosBackup;
+				termios_flag.c_lflag &= ~ICANON;
+				termios_flag.c_lflag &= ~ECHO;
+				//termios_flag.c_cc[VMIN] = 1;
+				//termios_flag.c_cc[VTIME] = 0;
+				tcsetattr(TCSANOW, &termios_flag);
+			}
+			result= "";
+			while(	(charNr= getch()) > 0 &&
+					(	(	!yesno &&
+							charNr != 13 &&
+							charNr != 10	) ||
+						/*
+						 * when yesno true
+						 * get an ending of loop
+						 * directly from loop
+						 */
+						yesno					)	)
+			{
+				//std::cout << "- typed (" << charNr << ") " << (char)charNr << endl;
+				if(	!bSpecial &&
+					charNr == 9	)
+				{
+					//std::cout << "pecial character TAB" << endl;
+					createTabResult(result, nPos, nTabCount);
+					continue;
+
+				}else
+					nTabCount= 0;
+				if(charNr == 27)
+				{
 					/*
-					 * when yesno true
-					 * get an ending of loop
-					 * directly from loop
+					 * pre-definition for
+					 * all special characters
+					 * only tabulator, BACK deletion
+					 * will be an single character (127)
 					 */
-					yesno					)	)
-		{
-			//std::cout << "- typed (" << charNr << ") " << (char)charNr << endl;
-			if(	!bSpecial &&
-				charNr == 9	)
-			{
-				//std::cout << "pecial character TAB" << endl;
-				createTabResult(result, nPos, nTabCount);
-				continue;
+					bSpecial= true;
+					sSpecial= "";
 
-			}else
-				nTabCount= 0;
-			if(charNr == 27)
-			{
-				/*
-				 * pre-definition for
-				 * all special characters
-				 * only tabulator, BACK deletion
-				 * will be an single character (127)
-				 */
-				bSpecial= true;
-				sSpecial= "";
-
-			}else if(	!bSpecial &&
-						charNr == 127	)
-			{
-				//std::cout << "special character BACK deletion" << endl;
-				if(nPos > 0)
+				}else if(	!bSpecial &&
+							charNr == 127	)
 				{
-					string out;
+					//std::cout << "special character BACK deletion" << endl;
+					if(nPos > 0)
+					{
+						string out;
 
-					--nPos;
-					out= result.substr(0, nPos);
-					if(result.length() > nPos + 1)
-						out+= result.substr(nPos + 1);
-					result= out;
-					bSpecial= false;
-				}
+						--nPos;
+						out= result.substr(0, nPos);
+						if(result.length() > nPos + 1)
+							out+= result.substr(nPos + 1);
+						result= out;
+						bSpecial= false;
+					}
 
-			}else if(bSpecial)
-			{
-				sSpecial+= (char)charNr;
-				if(sSpecial.length() >= 2)
+				}else if(bSpecial)
 				{
-					if(sSpecial == "[A")
+					sSpecial+= (char)charNr;
+					if(sSpecial.length() >= 2)
 					{
-						//std::cout << "special character UP" << endl;
-						if(!yesno)
+						if(sSpecial == "[A")
 						{
-							if(nHistoryPos == 0)
-							{
-								lastCommand= result;
-							}else
-							{
-								if(result != "")
-									setHistory(result, nHistoryPos);
-							}
-							result= getHistory(nHistoryPos, Older);
-							nPos= result.length();
-						}
-						bSpecial= false;
-
-					}else if(sSpecial == "[B")
-					{
-						//std::cout << "special character DOWN" << endl;
-						if(!yesno)
-						{
-							if(nHistoryPos == 0)
-								lastCommand= result;
-							else
-							{
-								if(result != "")
-									setHistory(result, nHistoryPos);
-							}
-							result= getHistory(nHistoryPos, Newer);
-							if(result == "")
-							{
-								result= lastCommand;
-								nHistoryPos= 0;
-							}
-							nPos= result.length();
-						}
-						bSpecial= false;
-
-					}else if(sSpecial == "[C")
-					{
-						//std::cout << "special character RIGHT" << endl;
-						if(nPos < result.length())
-							++nPos;
-						bSpecial= false;
-
-					}else if(sSpecial == "[D")
-					{
-						//std::cout << "special character LEFT" << endl;
-						if(!yesno)
-						{
-							if(nPos > 0)
-								--nPos;
-						}
-						bSpecial= false;
-
-					}else if(sSpecial == "[H")
-					{
-						//std::cout << "special character Pos1" << endl;
-						nPos= 0;
-						bSpecial= false;
-
-					}else if(sSpecial == "[F")
-					{
-						//std::cout << "special character End" << endl;
-						nPos= result.length();
-						bSpecial= false;
-
-					}else if(sSpecial.length() >= 3)
-					{
-						if(sSpecial == "[2~")
-						{
-							//std::cout << "special character Insert" << endl;
-							bSpecial= false;
-
-						}else if(sSpecial == "[3~")
-						{
-							//std::cout << "special character Del" << endl;
+							//std::cout << "special character UP" << endl;
 							if(!yesno)
 							{
-								if(nPos < result.length())
+								if(nHistoryPos == 0)
 								{
-									string out;
-
-									out= result.substr(0, nPos);
-									if(result.length() > nPos + 1)
-										out+= result.substr(nPos + 1);
-									result= out;
+									lastCommand= result;
+								}else
+								{
+									if(result != "")
+										setHistory(result, nHistoryPos);
 								}
+								result= getHistory(nHistoryPos, Older);
+								nPos= result.length();
 							}
 							bSpecial= false;
 
-						}else if(sSpecial == "[5~")
+						}else if(sSpecial == "[B")
 						{
-							//std::cout << "special character screen UP" << endl;
+							//std::cout << "special character DOWN" << endl;
+							if(!yesno)
+							{
+								if(nHistoryPos == 0)
+									lastCommand= result;
+								else
+								{
+									if(result != "")
+										setHistory(result, nHistoryPos);
+								}
+								result= getHistory(nHistoryPos, Newer);
+								if(result == "")
+								{
+									result= lastCommand;
+									nHistoryPos= 0;
+								}
+								nPos= result.length();
+							}
 							bSpecial= false;
 
-						}else if(sSpecial == "[6~")
+						}else if(sSpecial == "[C")
 						{
-							//std::cout << "special character screen DOWN" << endl;
+							//std::cout << "special character RIGHT" << endl;
+							if(nPos < result.length())
+								++nPos;
 							bSpecial= false;
 
+						}else if(sSpecial == "[D")
+						{
+							//std::cout << "special character LEFT" << endl;
+							if(!yesno)
+							{
+								if(nPos > 0)
+									--nPos;
+							}
+							bSpecial= false;
+
+						}else if(sSpecial == "[H")
+						{
+							//std::cout << "special character Pos1" << endl;
+							nPos= 0;
+							bSpecial= false;
+
+						}else if(sSpecial == "[F")
+						{
+							//std::cout << "special character End" << endl;
+							nPos= result.length();
+							bSpecial= false;
+
+						}else if(sSpecial.length() >= 3)
+						{
+							if(sSpecial == "[2~")
+							{
+								//std::cout << "special character Insert" << endl;
+								bSpecial= false;
+
+							}else if(sSpecial == "[3~")
+							{
+								//std::cout << "special character Del" << endl;
+								if(!yesno)
+								{
+									if(nPos < result.length())
+									{
+										string out;
+
+										out= result.substr(0, nPos);
+										if(result.length() > nPos + 1)
+											out+= result.substr(nPos + 1);
+										result= out;
+									}
+								}
+								bSpecial= false;
+
+							}else if(sSpecial == "[5~")
+							{
+								//std::cout << "special character screen UP" << endl;
+								bSpecial= false;
+
+							}else if(sSpecial == "[6~")
+							{
+								//std::cout << "special character screen DOWN" << endl;
+								bSpecial= false;
+
+							}else
+							{
+								result+= sSpecial;
+								bSpecial= false;
+							}
+						}// if(sSpecial.length() >= 3)
+					}else if(sSpecial != "[")
+					{ // sSpecial length should be always 1
+						if(!yesno)
+						{
+							result+= (char)charNr;
+							++nPos;
+						}
+						bSpecial= false;
+					}
+				}else // end of special characters
+				{
+					if(yesno)
+					{
+						result= (char)charNr;
+						if(	(char)charNr == 'Y' ||
+							(char)charNr == 'y' ||
+							(char)charNr == 'N' ||
+							(char)charNr == 'n'		)
+						{
+							nPos= 1;
+							if(result == "n")
+								result= "N";
+							else if(result == "y")
+								result= "Y";
+							break;
 						}else
 						{
-							result+= sSpecial;
-							bSpecial= false;
+							writeLastPromptLine(/*lock*/true, nPos,
+											result + "  (please type only Y or N)", /*end*/true);
+							writeLastPromptLine(/*lock*/true, 0, "");
+							nPos= 0;
+							result= "";
 						}
-					}// if(sSpecial.length() >= 3)
-				}else if(sSpecial != "[")
-				{ // sSpecial length should be always 1
-					if(!yesno)
+					}else
 					{
-						result+= (char)charNr;
+						if(nPos < result.length())
+							result= result.substr(0, nPos) + (char)charNr + result.substr(nPos);
+						else
+							result+= (char)charNr;
 						++nPos;
+
 					}
 					bSpecial= false;
 				}
-			}else // end of special characters
-			{
-				if(yesno)
-				{
-					result= (char)charNr;
-					if(	(char)charNr == 'Y' ||
-						(char)charNr == 'y' ||
-						(char)charNr == 'N' ||
-						(char)charNr == 'n'		)
-					{
-						nPos= 1;
-						if(result == "n")
-							result= "N";
-						else if(result == "y")
-							result= "Y";
-						break;
-					}else
-					{
-						writeLastPromptLine(/*lock*/true, nPos,
-										result + "  (please type only Y or N)", /*end*/true);
-						writeLastPromptLine(/*lock*/true, 0, "");
-						nPos= 0;
-						result= "";
-					}
-				}else
-				{
-					if(nPos < result.length())
-						result= result.substr(0, nPos) + (char)charNr + result.substr(nPos);
-					else
-						result+= (char)charNr;
-					++nPos;
 
-				}
-				bSpecial= false;
-			}
+				if(!bSpecial)
+					writeLastPromptLine(/*lock*/true, nPos, result);
+			}// end of getch()
+			writeLastPromptLine(/*lock*/true, nPos, result, /*end*/true);
+			//std::cout << "end of ask '" << result << "'" << endl;
+		}catch(SignalException& ex)
+		{
+			resetTc();
+			throw ex;
 
-			if(!bSpecial)
-				writeLastPromptLine(/*lock*/true, nPos, result);
-		}// end of getch()
-		writeLastPromptLine(/*lock*/true, nPos, result, /*end*/true);
-		//std::cout << "end of ask '" << result << "'" << endl;
+		}catch(std::exception& ex)
+		{
+			resetTc();
+			throw ex;
+
+		}catch(...)
+		{
+			resetTc();
+			throw "unexpected exception";
+		}
+		resetTc();
 		runUserTransaction(true);
 		return result;
 	}
@@ -2119,17 +2146,7 @@ namespace server
 		layerVecDef vLayers;
 		layerVecDef::size_type nCurLayer(0);
 		ppi_time currentTime;
-		struct termios termios_flag;
 
-		if(!m_bScriptState)
-		{
-			termios_flag= m_tTermiosBackup;
-			termios_flag.c_lflag &= ~ICANON;
-			termios_flag.c_lflag &= ~ECHO;
-			//termios_flag.c_cc[VMIN] = 1;
-			//termios_flag.c_cc[VTIME] = 0;
-			tcsetattr(TCSANOW, &termios_flag);
-		}
 		correctTC(m_bCorrectTC);
 		if(	m_bWait &&
 			!m_bScriptState	)
@@ -2230,7 +2247,6 @@ namespace server
 					struct termios term;
 					string user, pwd;
 
-					resetTc();
 					readTcBackup();
 					bSendCommand= false;
 					term= m_tTermiosBackup;
@@ -2239,15 +2255,6 @@ namespace server
 					runUserTransaction(false);
 					compareUserPassword(descriptor, user, pwd);
 					runUserTransaction(true);
-					if(!m_bScriptState)
-					{
-						termios_flag= m_tTermiosBackup;
-						termios_flag.c_lflag &= ~ICANON;
-						termios_flag.c_lflag &= ~ECHO;
-						//termios_flag.c_cc[VMIN] = 1;
-						//termios_flag.c_cc[VTIME] = 0;
-						tcsetattr(TCSANOW, &termios_flag);
-					}
 				}
 			}else if(command[0] == "run")
 			{
