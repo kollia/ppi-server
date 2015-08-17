@@ -302,7 +302,7 @@ namespace server
 		if(	m_bWait ||
 			bLogin		)
 		{
-			if(	m_bWait &&
+			if(	//m_bWait &&
 				!m_bHearing	)
 			{
 				readTcBackup();
@@ -5426,6 +5426,11 @@ namespace server
 		if(m_o2Client.get())
 		{
 			m_o2Client->transObj()->cout(str);
+			return;
+		}
+		if(!m_bWait)
+		{
+			std::cout << str;
 			return;
 		}
 		LOCK(m_PROMPTMUTEX);
