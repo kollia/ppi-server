@@ -167,9 +167,9 @@ namespace server
 			if(sendmsg != "done")
 			{
 #ifdef SERVERDEBUG
-				if( sendmsg == "stopclient"
+				if( sendmsg == "#stopclient"
 					||
-					sendmsg == "serverisstopping"	)
+					sendmsg == "#serverisstopping"	)
 				{
 					msg= "server stop HEARing connection to client ";
 					msg+=  descriptor.getHostAddressName();
@@ -216,15 +216,34 @@ namespace server
 					descriptor.flush();
 					return true;
 
-				}else if(sendmsg == "serverisstopping")
+				}else if(	sendmsg.length() > 12 &&
+							sendmsg.substr(0, 12) == "#changeuser "	)
+				{
+					string name(sendmsg.substr(12));
+					UserManagement* user= UserManagement::instance();
+
+					descriptor << "#password#";
+					descriptor.endl();
+					descriptor >> sendmsg;
+					trim(sendmsg);
+					if(!user->hasAccess(name, sendmsg, descriptor.getClientID(), UserManagement::PWDCHECK))
+					{
+						descriptor << ERROR(descriptor, 11, "new password",
+										"main client change user to '" + name +
+										"' but given password from hearing client is not correct");
+						return false;
+					}
+					return true;
+
+				}else if(sendmsg == "#serverisstopping")
 					sendmsg= "ERROR 019";
 				sendmsg+= "\n";
 				descriptor << sendmsg;
 				descriptor.flush();
 				//if(descriptor.eof())	// for asking eof() after connection is broken
 										// and server only sending messages kernel throw an exception
-				if( sendmsg == "stopclient\n" ||
-					sendmsg == "serverisstopping"	)
+				if( sendmsg == "#stopclient\n" ||
+					sendmsg == "#serverisstopping"	)
 				{
 
 					return false;
@@ -252,6 +271,7 @@ namespace server
 		if(descriptor.eof())
 		{
 			DbInterface* db= DbInterface::instance();
+			UserManagement* user= UserManagement::instance();
 
 			m_fProtocol= 0;
 			db->clearOWDebug(descriptor.getClientID());
@@ -263,7 +283,8 @@ namespace server
 				db->clearFolderDebug();
 			}
 #endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
-			db->needSubroutines(descriptor.getClientID(), "stopclient");
+			db->needSubroutines(descriptor.getClientID(), "#stopclient");
+			user->clearAccessID(descriptor.getClientID());
 			msg= "connection to client:";
 			msg+=  descriptor.getHostAddressName();
 			msg+= " is brocken";
@@ -441,6 +462,7 @@ namespace server
 		}else if(input == "ending")
 		{
 			DbInterface* db= DbInterface::instance();
+			UserManagement* user= UserManagement::instance();
 
 			m_fProtocol= 0;
 			db->clearOWDebug(descriptor.getClientID());
@@ -452,7 +474,8 @@ namespace server
 				db->clearFolderDebug();
 			}
 #endif //__DEBUGSESSIONOutput == debugsession_CLIENT || debugsession_BOTH
-			db->needSubroutines(descriptor.getClientID(), "stopclient");
+			db->needSubroutines(descriptor.getClientID(), "#stopclient");
+			user->clearAccessID(descriptor.getClientID());
 			omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
 			if(username != "")
 				omsg << "with user '" << username << "' ";
@@ -596,17 +619,18 @@ namespace server
 								&&
 								spinput == "CHANGE"				)	)	)
 			{
-				bool login= true;
+				UserManagement::login_t login(UserManagement::LOGIN);
 				short first= 1;
 
 				vector<string> split;
 				UserManagement* user= UserManagement::instance();
+				DbInterface* db= DbInterface::instance();
 
 				if(spinput == "CHANGE"	)
 				{
 					oinput >> spinput;
 					first= 0;
-					login= false;
+					login= UserManagement::CHANGE;
 				}
 				split= ConfigPropertyCasher::split(spinput, ":");
 				if(	(	first == 0
@@ -617,7 +641,8 @@ namespace server
 						&&
 						split.size() == 3	)	)
 				{
-					if(!user->hasAccess(split[first], split[first+1], login))
+					if(!user->hasAccess(split[first], split[first+1],
+									descriptor.getClientID(), login)	)
 					{
 						int error;
 						string msg("for user ");
@@ -644,7 +669,9 @@ namespace server
 						}
 						sendmsg= ERROR(descriptor, error, input, msg);
 						return false;
-					}
+
+					}else if(login == UserManagement::CHANGE)
+						db->needSubroutines(descriptor.getClientID(), "#changeuser " + split[first]);
 					omsg << "client on host '" << descriptor.getHostAddressName() << "' ";
 					if(username != "")
 						omsg << "with user '" << username << "' ";
@@ -714,7 +741,7 @@ namespace server
 				UNLOCK(m_SERVERISSTOPPINGMUTEX);
 				glob::stopMessage("send stop command to CLASS NeedDbChanges");
 				dbchanges->stop(false);
-				db->needSubroutines(0, "serverisstopping");
+				db->needSubroutines(0, "#serverisstopping");
 				glob::stopMessage("send first stopping message to all existing clients of server");
 				starter->stopCommunicationThreads(descriptor.getClientID(), /*wait*/false);
 				glob::stopMessage("send stop command to process ppi-db-server");
@@ -911,7 +938,7 @@ namespace server
 							}
 						}else
 						{
-							db->needSubroutines(descriptor.getClientID(), "stopclient");
+							db->needSubroutines(descriptor.getClientID(), "#stopclient");
 							sendmsg= "done\n";
 							descriptor << sendmsg;
 						}
@@ -1087,7 +1114,18 @@ namespace server
 					cerr << "sending content of " << nContent << "rows is finished" << endl;
 #endif
 				}else
-					descriptor << INFOERROR(descriptor, 9, input, "");
+				{
+					descriptor.flushing(/*automatic*/false);
+					descriptor << "<layout>\n";
+					descriptor << "  <body>\n";
+					descriptor << "    server has no permission to read client file";
+					descriptor << fileName + "<br />";
+					descriptor << "    " + INFOERROR(descriptor, 9, input, "");
+					descriptor << "  </body>\n";
+					descriptor << "</layout>\n";
+					descriptor.flush();
+					descriptor.flushing(/*automatic*/true);
+				}
 
 
 			}else if(	input.substr(0, 4) == "SET "

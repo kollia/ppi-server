@@ -47,6 +47,7 @@ namespace user
 	UserManagement::UserManagement()
 	: m_pInitial(NULL)
 	{
+		m_ACCESSIDCHECK= Thread::getMutex("ACCESSIDCHECK");
 	}
 
 	bool UserManagement::initial(const string& accessfile, const string& measurefile)
@@ -586,12 +587,14 @@ namespace user
 		return false;
 	}
 
-	bool UserManagement::hasAccess(const string& user, const string& password, const bool login) const
+	bool UserManagement::hasAccess(const string& user, const string& password,
+					const unsigned int ID, const login_t login)
 	{
 		map<string, string>::const_iterator fu;
 		set<string>::iterator found;
+		map<unsigned int, string>::iterator foundID;
 
-		if(login == true)
+		if(login == LOGIN)
 		{
 			found= m_sNoFirstLogin.find(user);
 			if(found != m_sNoFirstLogin.end())
@@ -601,9 +604,33 @@ namespace user
 		if(fu != m_mUser.end())
 		{
 			if(fu->second == password)
-				return true;
+			{
+				bool bOK(false);
+
+				LOCK(m_ACCESSIDCHECK);
+				foundID= m_nsAccessIDs.find(ID);
+				if(	foundID == m_nsAccessIDs.end() ||
+					login == CHANGE						)
+				{
+					m_nsAccessIDs[ID]= user;
+					bOK= true;
+				}else
+				{
+					if(foundID->second == user)
+						bOK= true;
+				}
+				UNLOCK(m_ACCESSIDCHECK);
+				return bOK;
+			}
 		}
 		return false;
+	}
+
+	void UserManagement::clearAccessID(const unsigned int ID)
+	{
+		LOCK(m_ACCESSIDCHECK);
+		m_nsAccessIDs.erase(ID);
+		UNLOCK(m_ACCESSIDCHECK);
 	}
 
 	string UserManagement::getAccessGroups(const string& folder, const string& subroutine)
@@ -701,6 +728,7 @@ namespace user
 	UserManagement::~UserManagement()
 	{
 		_instance= NULL;
+		DESTROYMUTEX(m_ACCESSIDCHECK);
 	}
 
 }

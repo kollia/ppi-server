@@ -19,6 +19,9 @@
 #ifndef ICLIENTTRANSACTIONPATTERN_H_
 #define ICLIENTTRANSACTIONPATTERN_H_
 
+#include <termios.h>
+#include <unistd.h>
+
 #include "../../pattern/util/IPPIValuesPattern.h"
 
 #include "../../pattern/server/NoCommunicateTransactionAdapter.h"
@@ -94,6 +97,17 @@ namespace design_pattern_world
 			virtual void writeLastPromptLine(bool lock,
 							string::size_type cursor= string::npos, const string& str= "", bool end= false)= 0;
 			/**
+			 * read password and user when not inserted than from
+			 * from command line and compare with server
+			 *
+			 * @param descriptor file handle to compare with server
+			 * @param user name of user or null string
+			 * @param pwd password or null string
+			 * @param bHear wether calling will be from an Hearing Client, or when not defined first calling was done
+			 * @return whether entries was correct
+			 */
+			virtual bool compareUserPassword(IFileDescriptorPattern& descriptor, string& user, string& pwd, bool* bHear= NULL)= 0;
+			/**
 			 * set handle for termios reading
 			 * whether was written ok.<br />
 			 * this only be useful when second connection
@@ -102,6 +116,12 @@ namespace design_pattern_world
 			 * @param read whether was written ok
 			 */
 			virtual void correctTC(bool read)= 0;
+			/**
+			 * set TC backup also for hearing client
+			 *
+			 * @param current TC
+			 */
+			virtual void setTcBackup(const struct termios& backup)= 0;
 			/**
 			 * print string by next call of method <code>prompt()</code> or <code>ask()</code>
 			 *

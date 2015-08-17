@@ -865,11 +865,11 @@ namespace ppi_database
 				vsRv.push_back("debugsession");
 			}else
 			{
-				if(	i->folder == ""
-					&&
-					(	i->subroutine == "stopclient"
-						||
-						i->subroutine == "serverisstopping"	)	)
+				if(	i->folder == "" &&
+					(	i->subroutine == "#stopclient" ||
+						i->subroutine == "#serverisstopping" ||
+						(	i->subroutine.length() > 12 &&
+							i->subroutine.substr(0, 12) == "#changeuser "	)	)	)
 				{
 					vsRv.push_back(i->subroutine);
 					m_mvoChanges.erase(connection);
@@ -1077,7 +1077,7 @@ namespace ppi_database
 		map<unsigned long, vector<db_t> >::iterator changeIt;
 		vector<string> split;
 
-		if(	name == "stopclient" ||
+		if(	name == "#stopclient" ||
 			name == "#stopdebugsession"	)
 		{
 			bool bStopped(false);
@@ -1093,7 +1093,9 @@ namespace ppi_database
 				return bStopped;
 		}
 		if(	name == "newentrys" ||
-			name == "stopclient"	)
+			name == "#stopclient" ||
+			(	name.length() > 12 &&
+				name.substr(0, 12) == "#changeuser "	)	)
 		{
 			LOCK(m_CHANGINGPOOL);
 			changeIt= m_mvoChanges.find(connection);
@@ -1102,11 +1104,14 @@ namespace ppi_database
 				UNLOCK(m_CHANGINGPOOL);
 				return true;
 			}
-			changeIt->second.clear();
-			if(name == "stopclient")
+			if(name == "#stopclient")
+				changeIt->second.clear();
+			if(	name == "#stopclient" ||
+				(	name.length() > 12 &&
+					name.substr(0, 12) == "#changeuser "	)	)
 			{
 				newentry.folder= "";
-				newentry.subroutine= "stopclient";
+				newentry.subroutine= name;
 				changeIt->second.push_back(newentry);
 			}
 			AROUSEALL(m_CHANGINGPOOLCOND);
@@ -1114,14 +1119,14 @@ namespace ppi_database
 			UNLOCK(m_CHANGINGPOOL);
 			return true;
 
-		}else if(name == "serverisstopping")
+		}else if(name == "#serverisstopping")
 		{
 			LOCK(m_CHANGINGPOOL);
 			for(map<unsigned long, vector<db_t> >::iterator it= m_mvoChanges.begin(); it != m_mvoChanges.end(); ++it)
 			{
 				it->second.clear();
 				newentry.folder= "";
-				newentry.subroutine= "serverisstopping";
+				newentry.subroutine= name;
 				it->second.push_back(newentry);
 			}
 			AROUSEALL(m_CHANGINGPOOLCOND);

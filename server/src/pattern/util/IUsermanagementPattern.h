@@ -30,6 +30,17 @@ namespace design_pattern_world
 	{
 	public:
 		/**
+		 * enumerate for method hasAccess
+		 * to know whether user login by first time,
+		 * change user, or change password as hearing client
+		 */
+		enum login_t
+		{
+			LOGIN= 1,
+			CHANGE,
+			PWDCHECK
+		};
+		/**
 		 * method to load the access properties from harddisk
 		 *
 		 * @param access file witch have configuration of access
@@ -84,10 +95,21 @@ namespace design_pattern_world
 		 *
 		 * @param name of user
 		 * @param password given password
-		 * @param login whether access request is first login or change user
+		 * @param ID server access ID for client
+		 * @param login whether access request is first login (LOGIN),
+		 *              man client change user (CHANGE),
+		 *              or hearing client check password to have same user as main client (PWDCHECK)
 		 * @return whether user have permission
 		 */
-		virtual bool hasAccess(const string& user, const string& password, const bool login) const= 0;
+		virtual bool hasAccess(const string& user, const string& password,
+						const unsigned int ID, const login_t login)= 0;
+		/**
+		 * clear server access ID for client
+		 * when transaction will be closed
+		 *
+		 * @param ID access ID to remove
+		 */
+		virtual void clearAccessID(const unsigned int ID)= 0;
 		/**
 		 * return all set groups for subroutine in measure.conf
 		 *

@@ -2,12 +2,6 @@
 
 toDo:
   ppi-server
-  - when ppi-client open an second connection to server for hearing
-    it have the same behavior like the first connection
-    but the server do not check whether both connections
-    has the same user.
-    And also when the first connection changing to an other user
-    the second have not to change, it makes automatic
   - make possible for client editor to reconnect
     when server was stopping before
   - subroutine objects of portBaseClass has two methods (getType() and getSubroutineType())

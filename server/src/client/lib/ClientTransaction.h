@@ -605,6 +605,14 @@ namespace server
 			 */
 			ppi_time m_tLastLoad;
 			/**
+			 * current set password
+			 */
+			string m_sPassword;
+			/**
+			 * mutex by change user/password or first login
+			 */
+			pthread_mutex_t* m_PASSWORDCHECK;
+			/**
 			 * mutex to write clear hold variables
 			 */
 			pthread_mutex_t* m_DEBUGSESSIONCHANGES;
@@ -656,6 +664,12 @@ namespace server
 			 * @param read whether was written ok
 			 */
 			OVERWRITE void correctTC(bool read);
+			/**
+			 * set TC backup also for hearing client
+			 *
+			 * @param current TC
+			 */
+			OVERWRITE void setTcBackup(const struct termios& backup);
 			/**
 			 * read command line terminal interface
 			 * to make possible to reset
@@ -785,7 +799,13 @@ namespace server
 			 * @param pwd password or null string
 			 * @return whether entries was correct
 			 */
-			bool compareUserPassword(IFileDescriptorPattern& descriptor, string& user, string& pwd);
+			OVERWRITE bool compareUserPassword(IFileDescriptorPattern& descriptor, string& user, string& pwd, bool* bHear= NULL);
+			/**
+			 * get current setting password
+			 *
+			 * @return password string
+			 */
+			string getCurrentPassword();
 			/**
 			 * print all ERROR results as translated strings on command line
 			 *

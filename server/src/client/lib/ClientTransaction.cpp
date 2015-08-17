@@ -79,6 +79,7 @@ namespace server
 		m_bHoldAll= false;
 		m_bServerLoad= false;
 		m_sServerLoadStep= 1;
+		m_PASSWORDCHECK= Thread::getMutex("PASSWORDCHECK");
 		m_DEBUGSESSIONCHANGES= Thread::getMutex("DEBUGSESSIONCHANGES");
 		m_PROMPTMUTEX= Thread::getMutex("PROMPTMUTEX");
 		m_LOADMUTEX= Thread::getMutex("LOADMUTEX");
@@ -1185,6 +1186,12 @@ namespace server
 			trim(result);
 			if(result == "done")
 				continue;
+			if(result == "#password#")
+			{
+				descriptor << getCurrentPassword();
+				descriptor.endl();
+				continue;
+			}
 			load(/*get from server*/true);
 			if(result == "ppi-server debugsession")
 			{
@@ -1193,8 +1200,13 @@ namespace server
 				do{
 					descriptor >> result;
 					trim(result);
-					if(	result != "done" &&
-						result != "stopclient"	)
+					if(result == "#password#")
+					{
+						descriptor << getCurrentPassword();
+						descriptor.endl();
+
+					}else if(	result != "done" &&
+								result != "#stopclient"	)
 					{
 						bool bWrite(true);
 						IParameterStringStream input(result);
@@ -1294,7 +1306,7 @@ namespace server
 						UNLOCK(m_DEBUGSESSIONCHANGES);
 					}
 				}while(	result != "done" &&
-						result != "stopclient"	);
+						result != "#stopclient"	);
 				if(result == "done")
 				{
 					if(!bFirstOutput)
@@ -1305,7 +1317,7 @@ namespace server
 					continue;
 				}
 			}
-			if(	result == "stopclient" ||
+			if(	result == "#stopclient" ||
 				(	result.length() > 5 &&
 					result.substr(0, 5) == "ERROR"	) ||
 				(	result.length() > 7 &&
@@ -1320,7 +1332,7 @@ namespace server
 				}
 				runHearingTransaction(true);
 				std::cout << endl;
-				if(result != "stopclient")
+				if(result != "#stopclient")
 				{
 					if(result != "ERROR 019")
 						std::cout << "Uncaught ";
@@ -1332,7 +1344,7 @@ namespace server
 					printError(descriptor, result);
 				}else
 					std::cout << " server stopping regular hearing thread" << endl;
-				if(	result != "stopclient"	&&
+				if(	result != "#stopclient"	&&
 					result != "ERROR 019"		)
 				{
 					runHearingTransaction(false);
@@ -1485,7 +1497,7 @@ namespace server
 				std::cout << "### server has stop hearing thread" << endl;
 #endif // SERVERDEBUG
 		}while(	!descriptor.eof() &&
-				result != "stopclient" &&
+				result != "#stopclient" &&
 				result != "ERROR 019"		);
 		if(descriptor.eof())
 		{
@@ -1805,6 +1817,17 @@ namespace server
 			m_o2Client->transObj()->correctTC(read);
 	}
 
+	void ClientTransaction::setTcBackup(const struct termios& backup)
+	{
+		if(m_o2Client.get())
+			m_o2Client->transObj()->setTcBackup(backup);
+		else
+		{
+			m_bCorrectTC= true;
+			m_tTermiosBackup= backup;
+		}
+	}
+
 	void ClientTransaction::readTcBackup()
 	{
 		int nErrno(0);
@@ -1822,7 +1845,11 @@ namespace server
 			}else
 				m_bScriptState= true;
 		}else
+		{
 			correctTC(true);
+			if(m_o2Client.get())
+				m_o2Client->transObj()->setTcBackup(m_tTermiosBackup);
+		}
 	}
 
 	void ClientTransaction::setHistory(const string& command, vector<string>::size_type pos/*= 0*/)
@@ -2203,9 +2230,10 @@ namespace server
 					struct termios term;
 					string user, pwd;
 
+					resetTc();
+					readTcBackup();
 					bSendCommand= false;
 					term= m_tTermiosBackup;
-					resetTc();
 					if(command.size() == 2)
 						user= command[1];
 					runUserTransaction(false);
@@ -5161,12 +5189,21 @@ namespace server
 		UNLOCK(m_PROMPTMUTEX);
 	}
 
-	bool ClientTransaction::compareUserPassword(IFileDescriptorPattern& descriptor, string& user, string& pwd/*= ""*/)
+	bool ClientTransaction::compareUserPassword(IFileDescriptorPattern& descriptor, string& user, string& pwd/*= ""*/, bool* pbHear/*= NULL*/)
 	{
+		bool bHear;
 		int c;
 		struct termios term;
 		string sSendbuf, result;
 
+		if(pbHear == NULL)
+		{
+			bHear= m_bHearing;
+			pbHear= &bHear;
+		}else
+			bHear= *pbHear;
+		if(m_o2Client.get())
+			return m_o2Client->transObj()->compareUserPassword(descriptor, user, pwd, pbHear);
 		term= m_tTermiosBackup;
 		if(user == "")
 		{
@@ -5197,13 +5234,14 @@ namespace server
 			}while(c != '\n');
 		}
 		trim(pwd);
-		if(	!m_bScriptState &&
-			!m_bHearing			)
+		if(!m_bScriptState &&
+			!bHear			)
 		{
 			std::cout << endl;
 			resetTc();
 		}
 
+		LOCK(m_PASSWORDCHECK);
 		if(!m_bConnected)
 			sSendbuf= "U:";
 		else
@@ -5245,11 +5283,24 @@ namespace server
 			{
 				if(!m_pError->hasError())
 					m_pError->setError("ClientTransaction", "user_password_error");
+				UNLOCK(m_PASSWORDCHECK);
 				return false;
 			}
 		}
 		m_bConnected= true;
+		m_sPassword= pwd;
+		UNLOCK(m_PASSWORDCHECK);
 		return true;
+	}
+
+	string ClientTransaction::getCurrentPassword()
+	{
+		string pwd;
+
+		LOCK(m_PASSWORDCHECK);
+		pwd= m_sPassword;
+		UNLOCK(m_PASSWORDCHECK);
+		return pwd;
 	}
 
 	void ClientTransaction::load(bool get)
@@ -5518,6 +5569,7 @@ namespace server
 		{
 			m_o2Client->stop();
 		}
+		DESTROYMUTEX(m_PASSWORDCHECK);
 		DESTROYMUTEX(m_DEBUGSESSIONCHANGES);
 		DESTROYMUTEX(m_PROMPTMUTEX);
 		DESTROYMUTEX(m_LOADMUTEX);

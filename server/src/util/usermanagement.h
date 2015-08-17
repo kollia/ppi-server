@@ -108,10 +108,21 @@ namespace user
 			 *
 			 * @param name of user
 			 * @param password given password
-			 * @param login whether access request is first login or change user
+			 * @param ID server access ID for client
+			 * @param login whether access request is first login (LOGIN),
+			 *              man client change user (CHANGE),
+			 *              or hearing client check password to have same user as main client (PWDCHECK)
 			 * @return whether user have permission
 			 */
-			OVERWRITE bool hasAccess(const string& user, const string& password, const bool login) const;
+			OVERWRITE bool hasAccess(const string& user, const string& password,
+							const unsigned int ID, const login_t login);
+			/**
+			 * clear server access ID for client
+			 * when transaction will be closed
+			 *
+			 * @param ID access ID to remove
+			 */
+			OVERWRITE void clearAccessID(const unsigned int ID);
 			/**
 			 * return all set groups for subroutine in measure.conf
 			 *
@@ -184,6 +195,17 @@ namespace user
 			 * permission groups for folder and subroutines
 			 */
 			map<string, map<string, string> > m_mmGroups;
+			/**
+			 * group of all existing access ID's
+			 * with given user
+			 */
+			map<unsigned int, string> m_nsAccessIDs;
+			/**
+			 * mutex lock for checking
+			 * whether access ID from client
+			 * is correct to user and password
+			 */
+			pthread_mutex_t* m_ACCESSIDCHECK;
 
 			/**
 			 * constructor of creating an user-management
