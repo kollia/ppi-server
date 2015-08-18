@@ -3108,7 +3108,15 @@ namespace server
 			{
 				bWaitEnd= false;
 				if(result != "done")
-					cout(string("   ") + result + "\n");
+				{
+					if(	m_bWait &&
+						!m_bScriptState	)
+					{
+						result= "   " + result;
+					}
+					result+= "\n";
+					cout(result);
+				}
 			}
 		}while(	bWaitEnd ||
 				xmlReader.get()	);
