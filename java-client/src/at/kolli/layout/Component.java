@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.browser.LocationEvent;
 import org.eclipse.swt.browser.LocationListener;
 import org.eclipse.swt.browser.ProgressEvent;
@@ -1713,70 +1714,124 @@ public class Component  extends HtmTags implements IComponentListener
 	 */
 	private void doSoftButton()
 	{
+		Browser browser;
+		
 		if(m_sSoftButtonName.equals("browser_home"))
 		{
 			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
-			
-			if(HtmTags.debug)
-				System.out.println("set browser to HOME URL " + tdTag.href);
-			tdTag.getBrowser().setUrl(tdTag.href);
+		
+			browser= tdTag.getBrowser();
+			if(browser != null)
+			{
+				if(HtmTags.debug)
+					System.out.println("set browser to HOME URL " + tdTag.href);
+				browser.setUrl(tdTag.href);
+			}else
+				if(HtmTags.debug)
+					System.out.println("want to set browser to HOME URL " + tdTag.href + " but no browser exist");
 			
 		}else if(m_sSoftButtonName.equals("browser_refresh"))
 		{
 			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
 
-			if(HtmTags.debug)
-				System.out.println("refresh browser with aktual URL " + tdTag.getBrowser().getUrl());
-			tdTag.getBrowser().refresh();
+			browser= tdTag.getBrowser();
+			if(browser != null)
+			{
+				if(HtmTags.debug)
+					System.out.println("refresh browser with aktual URL " + browser.getUrl());
+				browser.refresh();
+			}else
+				if(HtmTags.debug)
+					System.out.println("want to refresh browser with by aktual URL but no browser exist");
 			
 		}else if(m_sSoftButtonName.equals("browser_stop"))
 		{
 			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
 
-			if(HtmTags.debug)
-				System.out.println("stop browser loading by URL " + tdTag.getBrowser().getUrl());
-			tdTag.getBrowser().stop();
+			browser= tdTag.getBrowser();
+			if(browser != null)
+			{
+				if(HtmTags.debug)
+					System.out.println("stop browser loading by URL " + browser.getUrl());
+				browser.stop();
+			}else
+				if(HtmTags.debug)
+					System.out.println("want to stop browser loading URL but no browser exist");
 			
 		}else if(m_sSoftButtonName.equals("browser_forward"))
 		{
 			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
 
-			m_bActiveButton= true;
-			if(HtmTags.debug)
-				System.out.println("forward browser from URL " + tdTag.getBrowser().getUrl());
-			tdTag.getBrowser().forward();
-			if(HtmTags.debug)
-				System.out.println("                  to URL " + tdTag.getBrowser().getUrl());
+			browser= tdTag.getBrowser();
+			if(browser != null)
+			{
+				m_bActiveButton= true;
+				if(HtmTags.debug)
+					System.out.println("forward browser from URL " + browser.getUrl());
+				browser.forward();
+				if(HtmTags.debug)
+					System.out.println("                  to URL " + browser.getUrl());
+			}else
+				if(HtmTags.debug)
+					System.out.println("want to forward browser to an URL but no browser exist");
 			
 		}else if(m_sSoftButtonName.equals("browser_back"))
 		{
 			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
 
-			m_bActiveButton= true;
-			tdTag.getBrowser().back();
+			browser= tdTag.getBrowser();
+			if(browser != null)
+			{
+				m_bActiveButton= true;
+				browser.back();
+			}else
+				if(HtmTags.debug)
+					System.out.println("want to set back browser URL but no browser exist");
 			
 		}else if(m_sSoftButtonName.equals("browser_url"))
 		{
 			ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
 			
-			if(m_sSoftButtonUrl.equals(""))
+			browser= tdTag.getBrowser();
+			if(browser != null)
 			{
-				value= m_oText.getText();
-				if(value.equals(""))
+				if(m_sSoftButtonUrl.equals(""))
 				{
-					if(tdTag.m_sActRef.equals(""))
-						value= tdTag.href;
-					else
-						value= tdTag.m_sActRef;		
+					value= m_oText.getText();
+					if(value.equals(""))
+					{
+						if(tdTag.m_sActRef.equals(""))
+							value= tdTag.href;
+						else
+							value= tdTag.m_sActRef;		
+					}
+					if(HtmTags.debug)
+						System.out.println("set browser to URL " + value);
+					browser.setUrl(value);
+				}else
+				{
+					if(HtmTags.debug)
+						System.out.println("set browser to URL " + m_sSoftButtonUrl);
+					browser.setUrl(m_sSoftButtonUrl);
 				}
-				if(HtmTags.debug)
-					System.out.println("set browser to URL " + value);
-				tdTag.getBrowser().setUrl(value);
 			}else
 			{
 				if(HtmTags.debug)
-					System.out.println("set browser to URL " + m_sSoftButtonUrl);
-				tdTag.getBrowser().setUrl(m_sSoftButtonUrl);
+				{
+					value= m_sSoftButtonUrl;
+					if(value.equals(""))
+					{
+						value= m_oText.getText();
+						if(value.equals(""))
+						{
+							if(tdTag.m_sActRef.equals(""))
+								value= tdTag.href;
+							else
+								value= tdTag.m_sActRef;		
+						}
+					}
+					System.out.println("want to set browser to URL " + value + " but no browser exist");
+				}
 			}
 			
 		}
@@ -1907,28 +1962,30 @@ public class Component  extends HtmTags implements IComponentListener
 		{
 			if(m_nSoftButton)
 			{
-				ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+				Browser browser= ((ContentFields)m_oSoftButtonTag).getBrowser();
 
-				haveListener= true;
-				tdTag.getBrowser().addProgressListener(m_eProgressListener= new ProgressListener()
+				if(browser != null)
 				{
-					@Override
-					public void changed(ProgressEvent arg0)
+					haveListener= true;
+					browser.addProgressListener(m_eProgressListener= new ProgressListener()
 					{
-						//System.out.println("load total:" + arg0.total + " current:" + arg0.current);
-						if (arg0.total == arg0.current) return;
-						((Button)m_oComponent).setSelection(true);
-					}
-					
-					@Override
-					public void completed(ProgressEvent arg0)
-					{
-						//System.out.println("loading was completed");
-						((Button)m_oComponent).setSelection(false);
-					}
-					
-				});
-				
+						@Override
+						public void changed(ProgressEvent arg0)
+						{
+							//System.out.println("load total:" + arg0.total + " current:" + arg0.current);
+							if (arg0.total == arg0.current) return;
+							((Button)m_oComponent).setSelection(true);
+						}
+						
+						@Override
+						public void completed(ProgressEvent arg0)
+						{
+							//System.out.println("loading was completed");
+							((Button)m_oComponent).setSelection(false);
+						}
+						
+					});
+				}
 			}
 			if(!result.equals(""))
 			{
@@ -2026,86 +2083,89 @@ public class Component  extends HtmTags implements IComponentListener
 					m_sSoftButtonName.equals("browser_back")		)	)
 			{
 				final ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+				final Browser browser= tdTag.getBrowser();
 				
-				//doSoftButton();
-				tdTag.getBrowser().addLocationListener(m_eLocationListener= new LocationListener() {
-					
-					@Override
-					public void changing(LocationEvent arg0) {					
-						// nothing to do
-					}
-					
-					@Override
-					public void changed(LocationEvent arg0) 
-					{
-						String url;
-
-						url= tdTag.getBrowser().getUrl();
-						if(HtmTags.debug)
-							System.out.println("change browser to '" + url + "' actualice " + result);
-						if(m_sSoftButtonName.equals("browser_forward"))
-						{
-							if(m_bActiveButton)
-							{
-								if(HtmTags.debug)
-									System.out.println("browser will be set to new url '" + url +"'");
-								if(	tdTag.getBrowser().isForwardEnabled() &&
-									(	url.equals("") ||
-										url.equals("about:blank") ||
-										(	m_bWasBlank &&
-											url.equals(tdTag.m_sActRef)	)	)	)
-								{
-									if(	url.equals("") ||
-										url.equals("about:blank")	)
-									{
-										m_bWasBlank= true;
-									}else
-										m_bWasBlank= false;
-									tdTag.getBrowser().forward();
-								}else
-								{
-									tdTag.m_sActRef= url;
-									m_bWasBlank= false;
-									m_bActiveButton= false;
-								}
-							}
-							if(tdTag.getBrowser().isForwardEnabled())
-								m_oButton.setEnabled(true);
-							else
-								m_oButton.setEnabled(false);
-						}else
-						{
-							if(m_bActiveButton)
-							{
-								if(HtmTags.debug)
-									System.out.println("browser will be set to new url '" + url +"'");
-								if(	tdTag.getBrowser().isBackEnabled() &&
-									(	url.equals("") ||
-										url.equals("about:blank") ||
-										(	m_bWasBlank &&
-											url.equals(tdTag.m_sActRef)	)	)	)
-								{
-									if(	url.equals("") ||
-										url.equals("about:blank")	)
-									{
-										m_bWasBlank= true;
-									}else
-										m_bWasBlank= false;
-									tdTag.getBrowser().back();
-								}else
-								{
-									tdTag.m_sActRef= url;
-									m_bWasBlank= false;
-									m_bActiveButton= false;
-								}
-							}
-							if(tdTag.getBrowser().isBackEnabled())
-								m_oButton.setEnabled(true);
-							else
-								m_oButton.setEnabled(false);
+				if(browser != null)
+				{
+					browser.addLocationListener(m_eLocationListener= new LocationListener() {
+						
+						@Override
+						public void changing(LocationEvent arg0) {					
+							// nothing to do
 						}
-					}
-				});
+						
+						@Override
+						public void changed(LocationEvent arg0) 
+						{
+							String url;
+	
+							url= browser.getUrl();
+							if(HtmTags.debug)
+								System.out.println("change browser to '" + url + "' actualice " + result);
+							if(m_sSoftButtonName.equals("browser_forward"))
+							{
+								if(m_bActiveButton)
+								{
+									if(HtmTags.debug)
+										System.out.println("browser will be set to new url '" + url +"'");
+									if(	browser.isForwardEnabled() &&
+										(	url.equals("") ||
+											url.equals("about:blank") ||
+											(	m_bWasBlank &&
+												url.equals(tdTag.m_sActRef)	)	)	)
+									{
+										if(	url.equals("") ||
+											url.equals("about:blank")	)
+										{
+											m_bWasBlank= true;
+										}else
+											m_bWasBlank= false;
+										browser.forward();
+									}else
+									{
+										tdTag.m_sActRef= url;
+										m_bWasBlank= false;
+										m_bActiveButton= false;
+									}
+								}
+								if(browser.isForwardEnabled())
+									m_oButton.setEnabled(true);
+								else
+									m_oButton.setEnabled(false);
+							}else
+							{
+								if(m_bActiveButton)
+								{
+									if(HtmTags.debug)
+										System.out.println("browser will be set to new url '" + url +"'");
+									if(	browser.isBackEnabled() &&
+										(	url.equals("") ||
+											url.equals("about:blank") ||
+											(	m_bWasBlank &&
+												url.equals(tdTag.m_sActRef)	)	)	)
+									{
+										if(	url.equals("") ||
+											url.equals("about:blank")	)
+										{
+											m_bWasBlank= true;
+										}else
+											m_bWasBlank= false;
+										browser.back();
+									}else
+									{
+										tdTag.m_sActRef= url;
+										m_bWasBlank= false;
+										m_bActiveButton= false;
+									}
+								}
+								if(browser.isBackEnabled())
+									m_oButton.setEnabled(true);
+								else
+									m_oButton.setEnabled(false);
+							}
+						}
+					});
+				}
 			}
 			
 		}else if(this.type.equals("text"))
@@ -2115,16 +2175,19 @@ public class Component  extends HtmTags implements IComponentListener
 			{
 				if(m_sSoftButtonName.equals("browser_info"))
 				{
-					ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+					Browser browser= ((ContentFields)m_oSoftButtonTag).getBrowser();
 					
-					tdTag.getBrowser().addStatusTextListener(m_eStatusListener= new StatusTextListener() {
-						
-						@Override
-						public void changed(StatusTextEvent arg0) 
-						{
-							((Text)m_oComponent).setText(arg0.text);
-						}
-					});
+					if(browser != null)
+					{
+						browser.addStatusTextListener(m_eStatusListener= new StatusTextListener() {
+							
+							@Override
+							public void changed(StatusTextEvent arg0) 
+							{
+								((Text)m_oComponent).setText(arg0.text);
+							}
+						});
+					}
 					
 				}else
 				{
@@ -2246,23 +2309,24 @@ public class Component  extends HtmTags implements IComponentListener
 			});
 			if(m_nSoftButton)
 			{
-				final ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+				final Browser browser= ((ContentFields)m_oSoftButtonTag).getBrowser();
 				
 				doSoftButton();
-				tdTag.getBrowser().addLocationListener(m_eLocationListener= new LocationListener() {
-					
-					@Override
-					public void changing(LocationEvent arg0)
-					{
-						// nothing to do					
-					}
-					
-					@Override
-					public void changed(LocationEvent arg0) 
-					{
-						m_oText.setText(tdTag.getBrowser().getUrl());	
-					}
-				});
+				if(browser != null)
+					browser.addLocationListener(m_eLocationListener= new LocationListener() {
+						
+						@Override
+						public void changing(LocationEvent arg0)
+						{
+							// nothing to do					
+						}
+						
+						@Override
+						public void changed(LocationEvent arg0) 
+						{
+							m_oText.setText(browser.getUrl());	
+						}
+					});
 			}
 			
 		}else if(this.type.equals("slider"))
@@ -2526,9 +2590,10 @@ public class Component  extends HtmTags implements IComponentListener
 		{
 			if(m_nSoftButton)
 			{
-				ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+				Browser browser= ((ContentFields)m_oSoftButtonTag).getBrowser();
 				
-				tdTag.getBrowser().removeProgressListener(m_eProgressListener);
+				if(browser != null)
+					browser.removeProgressListener(m_eProgressListener);
 				
 			}else
 			{
@@ -2556,13 +2621,16 @@ public class Component  extends HtmTags implements IComponentListener
 			((Text)m_oComponent).removeSelectionListener(m_eSelectionListener);
 			if(m_nSoftButton)
 			{
-				ContentFields tdTag= (ContentFields)m_oSoftButtonTag;
+				Browser browser= ((ContentFields)m_oSoftButtonTag).getBrowser();
 				
 				if(m_eStatusListener != null)
-					tdTag.getBrowser().removeStatusTextListener(m_eStatusListener);
-				else
 				{
-					tdTag.getBrowser().removeLocationListener(m_eLocationListener);
+					if(browser != null )
+						browser.removeStatusTextListener(m_eStatusListener);
+				}else
+				{
+					if(browser != null)
+						browser.removeLocationListener(m_eLocationListener);
 					m_oComponent.removeFocusListener(m_eFocusListener);
 					m_oComponent.removeMouseListener(m_eMouseListener);
 				}
