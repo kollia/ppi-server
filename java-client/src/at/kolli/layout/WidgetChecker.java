@@ -139,13 +139,20 @@ public class WidgetChecker extends Thread
 						&&
 						!cont.read("%f:%s %c", res))
 					{// result can be an other command
-						if(res == null)
+						if(	res == null ||
+							res.equals("#stopclient") ||
+							res.equals("#stopserver")	)
 						{ 
 							//final DialogThread.states retState= DialogThread.states.OK;
 							DialogThread.states retState;
 							DialogThread dialog= DialogThread.instance();//m_oTopLevelShell);
 							MsgTranslator trans= MsgTranslator.instance();
 							
+							if(!m_bRun)
+							{
+								client.secondConnection();
+								break;
+							}
 							client.closeConnection();
 							loader.setState(LayoutLoader.BROKEN);
 							dialog.needProgressBar();
@@ -159,13 +166,10 @@ public class WidgetChecker extends Thread
 								loader.setState(LayoutLoader.WAIT);
 							client.secondConnection();
 							continue;
-						}
-						if(res.equals("stopclient"))
+						}else
 						{
-							m_bRun= false;
-							break;
+							System.out.println("### Hearing Thread get unknown command'" + res + "'");
 						}
-						//sleep(10);
 					}
 				}
 				Thread t= null;
