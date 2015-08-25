@@ -171,6 +171,29 @@ public class WidgetChecker extends Thread
 							System.out.println("### Hearing Thread get unknown command'" + res + "'");
 						}
 					}
+					if(	!HtmTags.debugFolder.isEmpty() &&
+						cont.getFolderName().equals(HtmTags.debugFolder))
+					{
+						StringBuffer msg= new StringBuffer();
+						
+						msg.append("### server has changed ");
+						if(cont.hasStringValue())
+							msg.append("string ");
+						msg.append("value from ");
+						msg.append(cont.getFolderName());
+						msg.append(":");
+						msg.append(cont.getSubroutineName());
+						msg.append(" to ");
+						if(cont.hasStringValue())
+						{
+							msg.append("'");
+							msg.append(cont.getSValue());
+							msg.append("'");
+							
+						}else
+							msg.append(cont.getDValue());
+						System.out.println(msg);
+					}
 				}
 				Thread t= null;
 

@@ -466,6 +466,19 @@ public class MsgClientConnector extends ClientConnector
 		boolean bRv= false;
 		String res;
 
+		if(	!HtmTags.debugFolder.isEmpty() &&
+			folder.equals(HtmTags.debugFolder)	)
+		{
+			StringBuffer msg= new StringBuffer();
+			
+			msg.append("### client write value ");
+			msg.append(value);
+			msg.append(" into ");
+			msg.append(folder);
+			msg.append(":");
+			msg.append(subroutine);
+			System.out.println(msg);
+		}
 		try{
 			res= super.setValue(folder, subroutine, value);
 			if(generateServerError(res, folder, subroutine) == null)
@@ -607,6 +620,19 @@ public class MsgClientConnector extends ClientConnector
 			if(bthrow)
 				throw ex;
 			value= null;
+		}
+		if(	!HtmTags.debugFolder.isEmpty() &&
+			folder.equals(HtmTags.debugFolder)	)
+		{
+			StringBuffer msg= new StringBuffer();
+			
+			msg.append("### client read value ");
+			msg.append(value);
+			msg.append(" from ");
+			msg.append(folder);
+			msg.append(":");
+			msg.append(subroutine);
+			System.out.println(msg);
 		}
 		return value;
 	}
