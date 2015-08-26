@@ -1115,16 +1115,9 @@ namespace server
 #endif
 				}else
 				{
-					descriptor.flushing(/*automatic*/false);
-					descriptor << "<layout>\n";
-					descriptor << "  <body>\n";
-					descriptor << "    server has no permission to read client file";
-					descriptor << fileName + "<br />";
-					descriptor << "    " + INFOERROR(descriptor, 9, input, "");
-					descriptor << "  </body>\n";
-					descriptor << "</layout>\n";
+					descriptor << INFOERROR(descriptor, 9, input, "");
+					descriptor.endl();
 					descriptor.flush();
-					descriptor.flushing(/*automatic*/true);
 				}
 
 
