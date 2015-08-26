@@ -674,6 +674,7 @@ public class ClientConnector
 	{
 		ArrayList<String> xmlFile= new ArrayList<String>();
 		RE endParser= new RE("<[ \t]*/[ \t]*layout[ \t]*>");
+		RE simpleError= new RE("^[ \t]*ERROR");
 		RE error= new RE("<[ \t]*error[ \t]*.*[ \t]*number[ \t]*=[ \t]*('|\")([ 0-9]+)('|\")[ \t]*/[ \t]*>");
 		String getString= null;
 
@@ -689,7 +690,8 @@ public class ClientConnector
 					{
 						throw new IOException("ABORTEDCONNECTION");
 					}
-					if(error.match(getString))
+					if(	simpleError.match(getString) ||
+						error.match(getString)			)
 					{
 						xmlFile.add(getString);
 						break;

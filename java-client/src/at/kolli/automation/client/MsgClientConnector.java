@@ -360,7 +360,8 @@ public class MsgClientConnector extends ClientConnector
 			return null;
 		if(!error.match(res))
 		{
-			if(res.substring(0, 14).equals("PORTSERVERBUSY"))
+			if(	res.length() >= 14 &&
+				res.substring(0, 14).equals("PORTSERVERBUSY"))
 			{
 				Integer nPercent;
 				String sProcess;
@@ -647,13 +648,18 @@ public class MsgClientConnector extends ClientConnector
 	 */
 	public ArrayList<String> getContent(String file, boolean bthrow) throws IOException
 	{
+		RE simpleError= new RE("^[ \t]*ERROR");
 		RE error= new RE("<[ \t]*error[ \t]*.*[ \t]*number[ \t]*=[ \t]*('|\")([ 0-9]+)('|\")[ \t]*/[ \t]*>");
 		ArrayList<String> xmlFile= null;
 		String res;
-		
+
 		try{
 			xmlFile= getContent(file);
-			if(error.match(xmlFile.get(xmlFile.size()-1)))
+			if(simpleError.match(xmlFile.get(xmlFile.size()-1)))
+			{
+				generateServerError(xmlFile.get(xmlFile.size()-1));
+				
+			}else if(error.match(xmlFile.get(xmlFile.size()-1)))
 			{
 				// toDo: test error handling from server
 				res= "ERROR " + error.getParen(2);
