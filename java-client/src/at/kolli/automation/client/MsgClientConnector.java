@@ -537,11 +537,15 @@ public class MsgClientConnector extends ClientConnector
 		String res;
 		
 		try{
-			res= super.changeUser(user, password);
-			if(generateServerError(res) == null)
+			synchronized (m_sCurPassword)
 			{
-				bRv= true;
-				m_sCurUser= user;
+				res= super.changeUser(user, password);
+				if(generateServerError(res) == null)
+				{
+					bRv= true;
+					m_sCurUser= user;
+					m_sCurPassword= password;
+				}
 			}
 			
 		}catch(IOException ex)
@@ -704,23 +708,34 @@ public class MsgClientConnector extends ClientConnector
 	public String hearing(boolean bthrow) throws IOException
 	{
 		RE error= new RE("^ERROR ([0-9]+)( [0-9]+)?$");
-		String res;
+		String res, sendBack;
 
-		try{
-			res= hearing();
-			if(error.match(res))
+		sendBack= "";
+		do{
+			try{
+				res= hearing(sendBack);
+				if(error.match(res))
+				{
+					generateServerError(res);
+					return null;
+				}
+				sendBack= "";
+				if(res.equals("#password#"))
+				{
+					synchronized (m_sCurPassword)
+					{
+						sendBack= m_sCurPassword;
+					}
+				}
+				
+			}catch(IOException ex)
 			{
-				generateServerError(res);
+				generateServerError(ex.getMessage());
+				if(bthrow)
+					throw ex;
 				return null;
 			}
-			
-		}catch(IOException ex)
-		{
-			generateServerError(ex.getMessage());
-			if(bthrow)
-				throw ex;
-			return null;
-		}
+		}while(!sendBack.equals(""));
 		return res;
 	}
 

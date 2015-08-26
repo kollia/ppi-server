@@ -147,17 +147,21 @@ public class ClientConnector
 	 */
 	private static ClientConnector _instance;
 	/**
-	 * writer on socket
+	 * writer on main socket
 	 */
 	protected PrintWriter m_oPut;
 	/**
-	 * reader from socket
+	 * reader from main socket
 	 */
 	protected BufferedReader m_oGet;
 	/**
-	 * second reader from socket
+	 * reader from second socket
 	 */
 	protected BufferedReader m_oSecGet= null;
+	/**
+	 * writer from second socket
+	 */
+	protected PrintWriter m_oSecPut;
 
 	/**
 	 * constructor
@@ -388,7 +392,6 @@ public class ClientConnector
 	public synchronized String secondConnection(String user, String password) throws IOException
 	{
 		String res, put;
-		PrintWriter oPut;
 
 		if(m_bSecond)
 			return "OK";
@@ -403,7 +406,7 @@ public class ClientConnector
 		}
 		
 		try{
-			oPut= new PrintWriter(m_oSecSock.getOutputStream());
+			m_oSecPut= new PrintWriter(m_oSecSock.getOutputStream());
 		}catch(IOException ex)
 		{
 			try{
@@ -421,7 +424,7 @@ public class ClientConnector
 		{
 			try{
 				m_oSecSock.close();
-				oPut.close();
+				m_oSecPut.close();
 			}catch(IOException iex)
 			{
 				// ???
@@ -431,8 +434,8 @@ public class ClientConnector
 		
 		put= "GET v" + Float.toString(Definitions.SERVER_PROTOCOL);
 		put+= " ID:" + Long.toString(m_nConnectionID);		
-		oPut.println(put);
-		oPut.flush();
+		m_oSecPut.println(put);
+		m_oSecPut.flush();
 		try{
 			String id;
 			String buf;
@@ -455,7 +458,7 @@ public class ClientConnector
 				{
 					// ???
 				}
-				oPut.close();
+				m_oSecPut.close();
 				throw new IOException("UNDEFINEDSERVER");
 			}
 			id= answer.getParen(1);
@@ -468,11 +471,11 @@ public class ClientConnector
 				{
 					// ???
 				}
-				oPut.close();
+				m_oSecPut.close();
 				throw new IOException("FAILDSECONDCONNECTIONID");
 			}
-			oPut.println("U:" + user + ":" + password);
-			oPut.flush();
+			m_oSecPut.println("U:" + user + ":" + password);
+			m_oSecPut.flush();
 			res= m_oSecGet.readLine();
 			if(!res.equals("OK"))
 			{
@@ -483,7 +486,7 @@ public class ClientConnector
 				{
 					// ???
 				}
-				oPut.close();
+				m_oSecPut.close();
 				return res;
 			}
 		}catch(IOException ex)
@@ -495,7 +498,7 @@ public class ClientConnector
 			{
 				// ???
 			}
-			oPut.close();
+			m_oSecPut.close();
 			throw new IOException("READERIOEXCEPTION");
 		}
 		m_bSecond= true;
@@ -781,16 +784,22 @@ public class ClientConnector
 	/**
 	 * hear on server for changing subroutines
 	 * 
+	 * @param send string to send back to server before hearing
 	 * @return folder and subroutine with changed value, or the error from server
 	 * @throws IOException
 	 */
-	public String hearing() throws IOException
+	public String hearing(String send) throws IOException
 	{
 		String res= null;
 		RE error= new RE("^ERROR ([0-9]+)( [0-9]+)?$");
 		
 		synchronized (m_oSecSock)
 		{
+			if(!send.equals(""))
+			{
+				m_oSecPut.println(send);
+				m_oSecPut.flush();
+			}
 			try{
 				res= m_oSecGet.readLine();
 				if(res == null)

@@ -98,7 +98,7 @@ public abstract class HtmTags
 	 * of color and font objects
 	 * should be shown on shell output
 	 */
-	public static boolean showFontCreation= false;
+	public static boolean showFontCreation= true;
 	/**
 	 * boolean value to see dispatch 
 	 * synchronization of shell.<br />

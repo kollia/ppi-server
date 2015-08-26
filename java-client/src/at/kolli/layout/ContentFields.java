@@ -25,6 +25,8 @@ import java.util.Map;
 import javax.swing.text.AbstractDocument.BranchElement;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTError;
+import org.eclipse.swt.SWTException;
 import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.layout.FillLayout;
@@ -33,6 +35,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 import org.omg.CORBA.BooleanHolder;
+import org.xml.sax.SAXException;
 
 import at.kolli.automation.client.MsgClientConnector;
 import at.kolli.automation.client.NodeContainer;
@@ -234,9 +237,9 @@ public class ContentFields extends HtmTags implements IComponentListener
 			return;
 		
 		if(	this instanceof FieldSet ||
-			(	m_nBorder == 1 && 
-				(	m_lContent.size() > 0 ||
-					href != ""				)	)	)
+			(	m_nBorder == 1  ) ) //&& 
+//				(	m_lContent.size() > 0 ||
+//					href != ""				)	)	)
 		{
 			mainCp= new Group(composite, SWT.SHADOW_ETCHED_IN);
 			
@@ -267,11 +270,29 @@ public class ContentFields extends HtmTags implements IComponentListener
 		{	
 			if(!href.equals(""))
 			{
-				composite.setLayout(new FillLayout());
-				m_oBrowser= new Browser(mainCp, HtmTags.m_nUseBrowser);
-				mainCp.setLayout(new FillLayout());
-				this.composite= mainCp;
-				return;
+				String sErrorMsg;
+				
+				sErrorMsg= "";
+				try{
+					m_oBrowser= new Browser(mainCp, HtmTags.m_nUseBrowser);
+				}catch(SWTException ex)
+				{
+					sErrorMsg= ex.getMessage();
+				}catch(SWTError ex)
+				{
+					sErrorMsg= ex.getMessage();	
+				}
+				if(sErrorMsg.equals(""))
+				{
+					composite.setLayout(new FillLayout());
+					mainCp.setLayout(new FillLayout());
+					this.composite= mainCp;
+					return;
+				}
+				align= GridData.BEGINNING;
+				valign= GridData.BEGINNING;
+				lenList= browserError(sErrorMsg);
+				href= "";
 			}
 			newFont.setDevice(composite);
 		}
@@ -404,81 +425,237 @@ public class ContentFields extends HtmTags implements IComponentListener
 		mainCp.setLayoutData(mainData);
 		rowCp.setLayoutData(rowData);
 		fieldCp.setLayoutData(fieldData);
+
 		
 		if(!href.equals(""))
 		{
 			final int minus= 10;
-			Composite gridCompo= new Group(fieldCp, SWT.SHADOW_ETCHED_IN);//new Composite(fieldCp, SWT.NONE);
+			String sErrorMsg;
+			Composite gridCompo= new Group(fieldCp, SWT.SHADOW_ETCHED_IN);//new Composite(fieldCp, SWT.NONE);//
 			GridLayout gridLayout= new GridLayout();
 			//Composite browseCompo= new Composite(gridCompo, SWT.NONE); 
 			GridData data= null;
 
-			newFont.setDevice(gridCompo);
-			m_oBrowser= new Browser(gridCompo, HtmTags.m_nUseBrowser);
-			if(	width != -1 &&
-				width > minus	)
+			sErrorMsg= "";
+			try{
+				m_oBrowser= new Browser(gridCompo, HtmTags.m_nUseBrowser);
+			}catch(SWTException ex)
 			{
-				data= new GridData();
-				data.widthHint= width - minus;
+				sErrorMsg= ex.getMessage();
+			}catch(SWTError ex)
+			{
+				sErrorMsg= ex.getMessage();	
 			}
-			if(	height != -1 &&
-				height > minus	)
+			if(sErrorMsg.equals(""))
 			{
-				if(data == null)
+				//gridCompo= new Composite(fieldCp, SWT.NONE);
+				newFont.setDevice(gridCompo);
+				if(	width != -1 &&
+					width > minus	)
+				{
 					data= new GridData();
-				data.heightHint= height - minus;
-			}
-			if(data != null)
-				gridCompo.setLayoutData(data);
-			gridLayout.marginWidth= 1;
-			gridLayout.marginHeight= 0;
-			gridCompo.setLayout(new FillLayout());
-			this.composite= gridCompo;
-			if(bHolder.value)
-				newFont.dispose();
-			return;
-		}else
-		{	
-			for(HtmTags tag : m_lContent)
-			{
-				if(tag instanceof Break)
-				{
-					fieldCp= new Composite(rowCp, SWT.NONE);
-					fieldLayout= new GridLayout();
-					fieldData= new GridData();
-					
-					newFont.setDevice(fieldCp);
-					//fieldFont.setDevice(fieldCp);
-					fieldData.horizontalAlignment= align;
-					fieldData.grabExcessHorizontalSpace= true;
-					fieldLayout.marginHeight= 0;
-					fieldLayout.marginWidth= 0;
-					fieldLayout.marginLeft= 1;
-					fieldLayout.marginRight= 1;
-					fieldLayout.marginTop= 1;
-					fieldLayout.marginBottom= 1;
-					fieldLayout.horizontalSpacing= 0;
-					fieldLayout.verticalSpacing= 0;
-					fieldLayout.numColumns= lenList.getFirst();
-					lenList.removeFirst(); //<- for next list index
-					fieldCp.setLayout(fieldLayout);
-					fieldCp.setLayoutData(fieldData);
-				}else
-				{
-					if(tag instanceof Style)
-					{
-						((Style)tag).align= align;
-						((Style)tag).valign= valign;
-						fieldCp= ((Style)tag).execute(rowCp, fieldCp, newFont, classes, lenList);
-					}else
-						tag.execute(fieldCp, newFont, classes);
+					data.widthHint= width - minus;
 				}
+				if(	height != -1 &&
+					height > minus	)
+				{
+					if(data == null)
+						data= new GridData();
+					data.heightHint= height - minus;
+				}
+				if(data != null)
+					gridCompo.setLayoutData(data);
+				gridLayout.marginWidth= 1;
+				gridLayout.marginHeight= 0;
+				gridCompo.setLayout(new FillLayout());
+				this.composite= gridCompo;
+				if(bHolder.value)
+					newFont.dispose();
+				return;
+			}
+			//gridCompo.setLayout(new FillLayout());
+			//fieldCp= gridCompo;
+			gridCompo.dispose();
+			rowData.verticalAlignment= GridData.BEGINNING;
+			lenList= browserError(sErrorMsg);
+		}
+		for(HtmTags tag : m_lContent)
+		{
+			if(tag instanceof Break)
+			{
+				fieldCp= new Composite(rowCp, SWT.NONE);
+				fieldLayout= new GridLayout();
+				fieldData= new GridData();
+				
+				newFont.setDevice(fieldCp);
+				//fieldFont.setDevice(fieldCp);
+				fieldData.horizontalAlignment= align;
+				fieldData.grabExcessHorizontalSpace= true;
+				fieldLayout.marginHeight= 0;
+				fieldLayout.marginWidth= 0;
+				fieldLayout.marginLeft= 1;
+				fieldLayout.marginRight= 1;
+				fieldLayout.marginTop= 1;
+				fieldLayout.marginBottom= 1;
+				fieldLayout.horizontalSpacing= 0;
+				fieldLayout.verticalSpacing= 0;
+				fieldLayout.numColumns= lenList.getFirst();
+				lenList.removeFirst(); //<- for next list index
+				fieldCp.setLayout(fieldLayout);
+				fieldCp.setLayoutData(fieldData);
+			}else
+			{
+				if(tag instanceof Style)
+				{
+					((Style)tag).align= align;
+					((Style)tag).valign= valign;
+					fieldCp= ((Style)tag).execute(rowCp, fieldCp, newFont, classes, lenList);
+				}else
+					tag.execute(fieldCp, newFont, classes);
 			}
 		}
 		if(bHolder.value)
 			newFont.dispose();			
 	}
 
+	/**
+	 * create error content when no browser object can be created
+	 * 
+	 * @param errmsg error message from exception
+	 * @author Alexander Kolli
+	 * @version 1.00.00, 09.12.2007
+	 * @since JDK 1.6
+	 */
+	private LinkedList<Integer> browserError(String errmsg)
+	{
+		LinkedList<Integer> lenList= new LinkedList<Integer>();
+		
+		System.out.println("### ERROR: Cannot create browser object to display URL");
+		System.out.println("           " + errmsg);
+		m_lContent.clear();
+		try{
+			Table table= new Table();
+				//table.setBorder(1);
+				table.nextLine();
+				//---------------------------------------------------------------------------------------------
+				ContentFields row1field1= new ContentFields();
+					row1field1.height= 50;
+				table.insert(row1field1);
+				table.nextLine();
+				//---------------------------------------------------------------------------------------------
+				ContentFields row2field1= new ContentFields();
+					row2field1.width= 30;
+				table.insert(row2field1);
+				ContentFields row2field2= new ContentFields();
+					row2field2.colspan= 2;
+					Style bold= new Style();
+						bold.bold= true;
+						Label tex1= new Label();
+							tex1.m_sText= "Cannot create browser object to display URL";
+							//lenList.add(1);// <- first Row of text
+						bold.insert(tex1);
+					row2field2.insert(bold);
+					row2field2.insert(new Break());
+					Label tex2= new Label();
+						tex2.m_sText= errmsg;
+						//lenList.add(1);// <- second Row of text
+					row2field2.insert(tex2);
+					//row2.insert(row2field2);
+				table.insert(row2field2);
+				table.nextLine();
+				//---------------------------------------------------------------------------------------------
+				ContentFields row3field1= new ContentFields();
+					row1field1.height= 10;
+				table.insert(row3field1);
+				table.nextLine();
+				//---------------------------------------------------------------------------------------------
+				ContentFields row4field1= new ContentFields();
+					row4field1.width= 30;
+				table.insert(row4field1);
+				ContentFields row4field2= new ContentFields();
+					row4field2.width= 30;
+				table.insert(row4field2);
+				ContentFields row4field3= new ContentFields();
+					Style bold2= new Style();
+						bold2.bold= true;
+						Label tex3= new Label();
+							tex3.m_sText= "posible reasons:";
+						bold2.insert(tex3);
+					row4field3.insert(bold2);
+				table.insert(row4field3);
+				table.nextLine();
+				//---------------------------------------------------------------------------------------------
+				ContentFields row5field1= new ContentFields();
+					row5field1.width= 30;
+				table.insert(row5field1);
+				ContentFields row5field2= new ContentFields();
+					row5field2.width= 30;
+				table.insert(row5field2);
+				ContentFields row5field3= new ContentFields();
+					Table tablereason= new Table();
+						tablereason.nextLine();
+						//---------------------------------------------------------------------------------------------
+						ContentFields reasrow1field1= new ContentFields();
+							reasrow1field1.width= 30;
+						tablereason.insert(reasrow1field1);
+						ContentFields reasrow1field2= new ContentFields();
+							reasrow1field2.valign= GridData.BEGINNING;
+							Style reasbold= new Style();
+								reasbold.bold= true;
+								Label reastex= new Label();								
+									reastex.m_sText= "-";
+								reasbold.insert(reastex);
+							reasrow1field2.insert(reasbold);
+						tablereason.insert(reasrow1field2);
+						ContentFields reasrow1field3= new ContentFields();
+							Label reastex1= new Label();
+								reastex1.m_sText= "no internet browser be installed";
+							reasrow1field3.insert(reastex1);
+						tablereason.insert(reasrow1field3);
+						tablereason.nextLine();
+						//---------------------------------------------------------------------------------------------
+						ContentFields reasrow2field1= new ContentFields();
+							reasrow2field1.width= 30;
+						tablereason.insert(reasrow2field1);
+						ContentFields reasrow2field2= new ContentFields();
+							reasrow2field2.valign= GridData.BEGINNING;
+							reasrow2field2.insert(reasbold);
+						tablereason.insert(reasrow2field2);
+						ContentFields reasrow2field3= new ContentFields();
+							Label reastex2= new Label();
+								reastex2.m_sText= "no right standard browser for platform be installed";
+							reasrow2field3.insert(reastex2);
+							reasrow2field3.insert(new Break());
+							Label reastex22= new Label();
+							reastex22.m_sText= "(inside configuration file 'client.ini' you can differ between MOZILLA or WEBKIT browser)";
+						reasrow2field3.insert(reastex22);
+						tablereason.insert(reasrow2field3);
+						tablereason.nextLine();
+						//---------------------------------------------------------------------------------------------
+						ContentFields reasrow3field1= new ContentFields();
+							reasrow3field1.width= 30;
+						tablereason.insert(reasrow3field1);
+						ContentFields reasrow3field2= new ContentFields();
+							reasrow3field2.valign= GridData.BEGINNING;
+							reasrow3field2.insert(reasbold);
+						tablereason.insert(reasrow3field2);
+						ContentFields reasrow3field3= new ContentFields();
+							Label reastex3= new Label();
+								reastex3.m_sText= "native SWT libraris has no compatibility with xulrunner or webkit browser-engine";
+							reasrow3field3.insert(reastex3);
+							reasrow3field3.insert(new Break());
+							Label reastex32= new Label();
+								reastex32.m_sText= "(read eclipse faq http://www.eclipse.org/swt/faq.php#browserlinux)";
+						reasrow3field3.insert(reastex32);
+						tablereason.insert(reasrow3field3);
+					row5field3.insert(tablereason);
+				table.insert(row5field3);
+						
+			m_lContent.add(table);
+		}catch(SAXException ex)
+		{}
+		return lenList; // return list with no content for 1 object (1 table)
+	}
 
 	/**
 	 * method listen on server whether value of component is changed
@@ -515,7 +692,8 @@ public class ContentFields extends HtmTags implements IComponentListener
 	 */
 	public void addListeners() throws IOException
 	{
-		if(!href.equals(""))
+		if(	!href.equals("") &&
+			m_oBrowser != null	)
 		{
 			Browser browser= getBrowser();
 			String resource= browser.getUrl();
@@ -552,7 +730,8 @@ public class ContentFields extends HtmTags implements IComponentListener
 	 */
 	public void removeListeners()
 	{
-		if(!href.equals(""))
+		if(	!href.equals("") &&
+			m_oBrowser != null	)
 		{
 			String value;
 			

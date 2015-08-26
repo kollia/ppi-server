@@ -1107,10 +1107,12 @@ public class LayoutLoader extends Thread
 				}
 			});
 		}
-		client.secondConnection();
-		checker= WidgetChecker.instance(m_aTreeNodes.get(0));
-		if(!checker.isAlive())
-			checker.start();
+		if(client.secondConnection())
+		{
+			checker= WidgetChecker.instance(m_aTreeNodes.get(0));
+			if(!checker.isAlive())
+				checker.start();
+		}
 		
 		String firstActiveSide= "";
 		String actFolderBefore;

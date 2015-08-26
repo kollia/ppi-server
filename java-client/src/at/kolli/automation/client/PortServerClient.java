@@ -676,13 +676,14 @@ public class PortServerClient
 
 		
 		client= MsgClientConnector.instance();
-		client.closeConnection();
 		checker= WidgetChecker.instance();
 		try{
 			//dialog.stopping();
 			checker.stopping();
+			client.closeConnection();
 			checker.join();
 			loader.stopThread();
+			
 		}catch(InterruptedException ex)
 		{
 			System.out.println("Interrupted exception by ending with join");
