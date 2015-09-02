@@ -34,6 +34,7 @@ import java.util.StringTokenizer;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.regexp.RE;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
@@ -548,7 +549,8 @@ public class TreeNodes
 		m_bVisible= false;
 		try{
 			client.clearHearing(/*bthrow*/false);
-			if(m_mMetaBlock != null)
+			if(	m_mMetaBlock != null &&
+				HtmTags.informServerLeafPage	)
 			{
 				String result;
 				
@@ -724,9 +726,9 @@ public class TreeNodes
 				if(m_mMetaBlock != null)
 					display= m_mMetaBlock.get("display");
 				if(	!bNoSides &&
-					display == null ||
-					!display.equals("notree") ||
-					HtmTags.showFalse				)
+					(	display == null ||
+						!display.equals("notree")	)	||
+					HtmTags.showFalse						)
 				{
 					if(HtmTags.notree)
 					{
@@ -929,6 +931,7 @@ public class TreeNodes
 	private boolean createPage() throws IOException
 	{
 		boolean exists= false;
+		boolean writeFile= true;
 		String permGroup;
 		InputStream emptyStream= null;
 		Layout layout= null;
@@ -946,6 +949,7 @@ public class TreeNodes
 		Date serverDate;
 		Date fileDate;
 		DialogThread dialog;
+		RE simpleError= new RE("^[ \t]*ERROR");
 		
 		if(m_sName.equals(""))
 		{// when TreeNodes started with no content of files (m_sName is "")
@@ -1015,7 +1019,8 @@ public class TreeNodes
 				if(HtmTags.debug)
 					System.out.println("take file from server");
 				xmlFile= client.getContent(fileName + "." + m_sLayoutStyle, /*bthrow*/true);
-				if(xmlFile == null)
+				if(	xmlFile == null ||
+					xmlFile.size() == 0	)
 				{
 					if(HtmTags.debug)
 					{
@@ -1023,23 +1028,44 @@ public class TreeNodes
 						System.out.println(client.getErrorMessage());
 					}
 					return false;
+					
+				}else if(	xmlFile.size() == 1 &&
+							simpleError.match(xmlFile.get(0))	)
+				{
+					StringBuffer side= new StringBuffer();
+					
+					writeFile= false;
+					side.append("<layout>");
+					side.append("  <body>");
+					side.append(client.getErrorMessage());
+					side.append("<br />'");
+					side.append(fileName);
+					side.append(".");
+					side.append(m_sLayoutStyle);
+					side.append("'");
+					side.append("  </body>");
+					side.append("</layout>");	
+					emptyStream= new ByteArrayInputStream(side.toString().getBytes());
 				}
 				
-				if(!path.isDirectory())
+				if(writeFile)
 				{
-					path.mkdirs();
-				}
-				try{
-					output= new FileOutputStream(file);
-					for(String row : xmlFile)
+					if(!path.isDirectory())
 					{
-						row+= "\n";
-						output.write(row.getBytes());
+						path.mkdirs();
 					}
-					output.close();
-				}catch(IOException ex)
-				{
-					System.out.println(ex);
+					try{
+						output= new FileOutputStream(file);
+						for(String row : xmlFile)
+						{
+							row+= "\n";
+							output.write(row.getBytes());
+						}
+						output.close();
+					}catch(IOException ex)
+					{
+						System.out.println(ex);
+					}
 				}
 			}
 		}

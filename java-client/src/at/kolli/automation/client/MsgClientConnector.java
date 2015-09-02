@@ -360,7 +360,8 @@ public class MsgClientConnector extends ClientConnector
 			return null;
 		if(!error.match(res))
 		{
-			if(res.substring(0, 14).equals("PORTSERVERBUSY"))
+			if(	res.length() >= 14 &&
+				res.substring(0, 14).equals("PORTSERVERBUSY"))
 			{
 				Integer nPercent;
 				String sProcess;
@@ -466,6 +467,19 @@ public class MsgClientConnector extends ClientConnector
 		boolean bRv= false;
 		String res;
 
+		if(	!HtmTags.debugFolder.isEmpty() &&
+			folder.equals(HtmTags.debugFolder)	)
+		{
+			StringBuffer msg= new StringBuffer();
+			
+			msg.append("### client write value ");
+			msg.append(value);
+			msg.append(" into ");
+			msg.append(folder);
+			msg.append(":");
+			msg.append(subroutine);
+			System.out.println(msg);
+		}
 		try{
 			res= super.setValue(folder, subroutine, value);
 			if(generateServerError(res, folder, subroutine) == null)
@@ -608,6 +622,19 @@ public class MsgClientConnector extends ClientConnector
 				throw ex;
 			value= null;
 		}
+		if(	!HtmTags.debugFolder.isEmpty() &&
+			folder.equals(HtmTags.debugFolder)	)
+		{
+			StringBuffer msg= new StringBuffer();
+			
+			msg.append("### client read value ");
+			msg.append(value);
+			msg.append(" from ");
+			msg.append(folder);
+			msg.append(":");
+			msg.append(subroutine);
+			System.out.println(msg);
+		}
 		return value;
 	}
 	/**
@@ -621,13 +648,18 @@ public class MsgClientConnector extends ClientConnector
 	 */
 	public ArrayList<String> getContent(String file, boolean bthrow) throws IOException
 	{
+		RE simpleError= new RE("^[ \t]*ERROR");
 		RE error= new RE("<[ \t]*error[ \t]*.*[ \t]*number[ \t]*=[ \t]*('|\")([ 0-9]+)('|\")[ \t]*/[ \t]*>");
 		ArrayList<String> xmlFile= null;
 		String res;
-		
+
 		try{
 			xmlFile= getContent(file);
-			if(error.match(xmlFile.get(xmlFile.size()-1)))
+			if(simpleError.match(xmlFile.get(xmlFile.size()-1)))
+			{
+				generateServerError(xmlFile.get(xmlFile.size()-1));
+				
+			}else if(error.match(xmlFile.get(xmlFile.size()-1)))
 			{
 				// toDo: test error handling from server
 				res= "ERROR " + error.getParen(2);
@@ -659,6 +691,8 @@ public class MsgClientConnector extends ClientConnector
 			res= clearHearing();
 			if(res.equals("false"))
 				return false;
+			if(!HtmTags.debugFolder.isEmpty())
+				System.out.println("### NEWENTRYS: client remove all folders:subroutines defined for hearing");
 			if(generateServerError(res) != null)
 				return false;
 			
@@ -686,6 +720,17 @@ public class MsgClientConnector extends ClientConnector
 		String res;
 
 		try{
+			if(	!HtmTags.debugFolder.isEmpty() &&
+				folder.equals(HtmTags.debugFolder)	)
+				{
+					StringBuffer msg= new StringBuffer();
+					
+					msg.append("### client want to hear on ");
+					msg.append(folder);
+					msg.append(":");
+					msg.append(subroutine);
+					System.out.println(msg);
+				}
 			res= hear(folder, subroutine);
 			if(generateServerError(res) != null)
 				return false;

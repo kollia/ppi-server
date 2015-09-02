@@ -107,6 +107,10 @@ PORTSERVERERROR006:
 Falscher Eintrag für subroutine @
 unknow value to set in subroutine @
 
+PORTSERVERERROR009:
+Server hat keine Berechtigung für die Ausführungs-Datei
+Server has no permission to read layout file
+
 PORTSERVERERROR011:
 Benutzername oder Passwort ist falsch
 wrong user name or password

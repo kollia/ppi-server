@@ -80,6 +80,24 @@ public abstract class HtmTags
 	 */
 	public static boolean debug= false;
 	/**
+	 * string of folder which contain all pages.<br />
+	 * when this variable defined with an folder name,
+	 * all subroutines inside this folder will be displayed
+	 * on command line where java-client will be started
+	 * when changed from this client, or this client fetch an
+	 * value from subroutine, or server sending over hearing
+	 * connection some changes of the subroutine.<br />
+	 * This behavior have to be implemented here by sourcecode
+	 * and the variable should be as default an null string ("")
+	 */
+	public static String debugFolder= "page";
+	/**
+	 * when an layout page has the meta tag 'pageset'
+	 * this variable allow to send value 0 to server
+	 * when client leaf the page 
+	 */
+	public static boolean informServerLeafPage= true;
+	/**
 	 * boolean value to show behavior of locking 
 	 * by setting new sides.<br />
 	 * this flag can be set by starting
@@ -98,7 +116,7 @@ public abstract class HtmTags
 	 * of color and font objects
 	 * should be shown on shell output
 	 */
-	public static boolean showFontCreation= true;
+	public static boolean showFontCreation= false;
 	/**
 	 * boolean value to see dispatch 
 	 * synchronization of shell.<br />

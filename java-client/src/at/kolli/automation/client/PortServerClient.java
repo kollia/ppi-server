@@ -85,6 +85,7 @@ public class PortServerClient
 		LinkedList<String> param= new LinkedList<String>();
 		String host;
 		String inifile= "client.ini";
+		String informServerLeafPage;
 		int port= 20004, nPadding, nPopup;
 		String lang, maincolor, mainpadding, popuppadding, mousepos, mouseDelay;
 		
@@ -250,22 +251,64 @@ public class PortServerClient
 				System.out.println("WARNING: cannot find file '" + inifile + "' for initialization");
 				System.out.println("         read standard property file 'client.ini'");
 				file= new FileInputStream("client.ini");
+				inifile= "client.ini";
 			}
 			if(HtmTags.debug)
 				System.out.println("--------------------------------------------------------------------------");
 			prop.load(file);
 			lang= prop.getProperty("defaultLang");
+			if(lang != null)
+				lang= lang.trim();
+			informServerLeafPage= prop.getProperty("informServerLeafPage");
+			if(informServerLeafPage == null)
+			{
+				System.out.println("WARNING: property of informServerLeafPage not set inside '"+inifile+"'");
+				System.out.println("         so define with default of false");
+				HtmTags.informServerLeafPage= false;
+				
+			}else
+			{
+				informServerLeafPage= informServerLeafPage.trim();
+				informServerLeafPage= informServerLeafPage.toLowerCase();
+				if(	informServerLeafPage.equals("true") ||
+					informServerLeafPage.equals("1")		)
+				{
+					HtmTags.informServerLeafPage= true;
+					
+				}else if(	informServerLeafPage.equals("false") ||
+							informServerLeafPage.equals("0")		)
+				{
+					HtmTags.informServerLeafPage= false;
+					
+				}else
+				{
+					System.out.println("WARNING: property of informServerLeafPage not set correctly inside '"+inifile+"'");
+					System.out.println("         so define with default of false");
+					HtmTags.informServerLeafPage= false;
+				}
+			}
 			maincolor= prop.getProperty("maincolor");
+			if(maincolor != null)
+				maincolor= maincolor.trim();
 			host= prop.getProperty("host");
+			if(host != null)
+				host= host.trim();
 			sPort= prop.getProperty("port");
+			if(sPort != null)
+				sPort= sPort.trim();
 			sBrowser= prop.getProperty("browser");
 			if(sBrowser != null)
 			{
+				sBrowser= sBrowser.trim();
 				if(sBrowser.equals("MOZILLA"))
 					HtmTags.m_nUseBrowser= SWT.MOZILLA;
 				else if(sBrowser.equals("WEBKIT"))
 					HtmTags.m_nUseBrowser= SWT.WEBKIT;
-				else
+				else if(sBrowser.equals(""))
+				{
+					System.out.println("WARNING: browser inside '"+inifile+"' defined with null string");
+					System.out.println("         so take standard browser for operation system");
+				}else
 				{
 					System.out.println("WARNING: cannot define spezific browser '" + sBrowser + "'");
 					System.out.println("         so take standard browser for operation system");
@@ -277,6 +320,7 @@ public class PortServerClient
 			{
 				boolean bfault= false;
 				
+				mainpadding= mainpadding.trim();
 				nPadding= 10;
 				try{
 					nPadding= Integer.parseInt(mainpadding);
@@ -297,6 +341,7 @@ public class PortServerClient
 			{
 				boolean bfault= false;
 				
+				popuppadding= popuppadding.trim();
 				nPopup= 3;
 				try{
 					nPopup= Integer.parseInt(popuppadding);
@@ -357,12 +402,12 @@ public class PortServerClient
 			
 			if(host == null)
 			{
-				System.out.println("ERROR: no host defined in client.ini");
+				System.out.println("ERROR: no host defined in "+inifile+"");
 				bStop= true;
 			}
 			if(sPort == null)
 			{
-				System.out.println("ERROR: no port defined in client.ini");
+				System.out.println("ERROR: no port defined in "+inifile+"");
 				bStop= true;
 			}else
 			{
@@ -370,14 +415,14 @@ public class PortServerClient
 					port= Integer.parseInt(sPort);
 				}catch(NumberFormatException ex)
 				{
-					System.out.println("ERROR: no right port defined in client.ini");
+					System.out.println("ERROR: no right port defined in "+inifile+"");
 					bStop= true;
 				}
 			}
 			
 			if(lang == null)
 			{
-				System.out.println("WARNING: no language defined in client.ini");
+				System.out.println("WARNING: no language defined in "+inifile+"");
 				if(!bStop)
 					System.out.println("         use default englisch language");
 				lang= "en";
