@@ -691,6 +691,8 @@ public class MsgClientConnector extends ClientConnector
 			res= clearHearing();
 			if(res.equals("false"))
 				return false;
+			if(!HtmTags.debugFolder.isEmpty())
+				System.out.println("### NEWENTRYS: client remove all folders:subroutines defined for hearing");
 			if(generateServerError(res) != null)
 				return false;
 			
@@ -718,6 +720,17 @@ public class MsgClientConnector extends ClientConnector
 		String res;
 
 		try{
+			if(	!HtmTags.debugFolder.isEmpty() &&
+				folder.equals(HtmTags.debugFolder)	)
+				{
+					StringBuffer msg= new StringBuffer();
+					
+					msg.append("### client want to hear on ");
+					msg.append(folder);
+					msg.append(":");
+					msg.append(subroutine);
+					System.out.println(msg);
+				}
 			res= hear(folder, subroutine);
 			if(generateServerError(res) != null)
 				return false;

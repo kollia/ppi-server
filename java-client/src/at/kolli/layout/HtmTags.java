@@ -92,6 +92,12 @@ public abstract class HtmTags
 	 */
 	public static String debugFolder= "page";
 	/**
+	 * when an layout page has the meta tag 'pageset'
+	 * this variable allow to send value 0 to server
+	 * when client leaf the page 
+	 */
+	public static boolean informServerLeafPage= true;
+	/**
 	 * boolean value to show behavior of locking 
 	 * by setting new sides.<br />
 	 * this flag can be set by starting

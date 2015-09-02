@@ -549,7 +549,8 @@ public class TreeNodes
 		m_bVisible= false;
 		try{
 			client.clearHearing(/*bthrow*/false);
-			if(m_mMetaBlock != null)
+			if(	m_mMetaBlock != null &&
+				HtmTags.informServerLeafPage	)
 			{
 				String result;
 				
