@@ -302,6 +302,12 @@ void help(char* cpSelf)
 	std::cout << "                         -     if the client has set an second connection with option --hear," << endl;
 	std::cout << "                               client can order with this command to hear on the given folder:subroutine's" << endl;
 	std::cout << "                               for changes" << endl;
+	std::cout << "                FIXHEARING <folder>:<subroutine>" << endl;
+	std::cout << "                         -     hold an defined folder:subroutine inside hearing pool" << endl;
+	std::cout << "                               when as next will be send command NEWENTRYS" << endl;
+	std::cout << "                               only folder:subroutine which are not defined as FIXHEARING" << endl;
+	std::cout << "                               will be removed." << endl;
+	std::cout << "                               (this command has to define again after every NEWENTRYS when need again)" << endl;
 	std::cout << "                NEWENTRYS" << endl;
 	std::cout << "                         -     clearing all entry's which are set with the command HEAR" << endl;
 	std::cout << "                               this command is only when ppi-server is started with option --hear" << endl;

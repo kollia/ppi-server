@@ -412,9 +412,15 @@ namespace ppi_database
 		string m_sMeasureName;
 		/**
 		 * this variable fill and delete an client over the server
-		 * which need all actual values from port-list
+		 * which need all actual values from working-list
 		 */
 		map<unsigned long, vector<db_t> > m_mvoChanges;
+		/**
+		 * this container is for all folder:subroutines
+		 * which should be heard also after make an global
+		 * remove with NEWENTRYS
+		 */
+		map<unsigned long, vector<db_t> > m_mvoFixChanges;
 		/**
 		 * whether any value is changed in database
 		 */

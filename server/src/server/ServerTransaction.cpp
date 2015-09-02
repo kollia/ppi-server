@@ -1310,13 +1310,42 @@ namespace server
 
 				DbInterface* db= DbInterface::instance();
 
-				db->needSubroutines(descriptor.getClientID(), "newentrys");
+				db->needSubroutines(descriptor.getClientID(), "#newentrys");
 				sendmsg= "done\n";
 				descriptor << sendmsg;
 	#ifdef SERVERDEBUG
 				cout << "send: done" << endl;
 	#endif
 
+			}else if(	input.length() > 11 &&
+						input.substr(0, 11) == "FIXHEARING ")
+			{
+				istringstream inputstream(input);
+				DbInterface* db= DbInterface::instance();
+
+				boost::trim(input);
+				if(db->needSubroutines(descriptor.getClientID(), "#" + input))
+				{
+					sendmsg= "done\n";
+#ifdef SERVERDEBUG
+					cout << "send: done" << endl;
+#endif
+					descriptor << sendmsg;
+				}else
+				{
+					string msg;
+
+					msg+= "client ask for '";
+					msg+= input + "'\n";
+					msg+= "second parameter is incorrect";
+					msg+= "\nsend ERROR 003 1";
+					LOG(LOG_SERVERDEBUG, msg);
+					sendmsg= "ERROR 003 1\n";
+					descriptor << sendmsg;
+#ifdef SERVERDEBUG
+					cout << "send: ERROR 003 1" << endl;
+#endif
+				}
 			}else if(input.substr(0, 5) == "HEAR ")
 			{
 				string entry;
@@ -1334,7 +1363,7 @@ namespace server
 
 					msg+= "client ask for '";
 					msg+= input + "'\n";
-					msg+= "second parmeter ";
+					msg+= "second parameter ";
 					msg+= entry;
 					msg+= " is incorrect";
 					msg+= "\nsend ERROR 003 1";

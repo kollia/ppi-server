@@ -387,7 +387,8 @@ namespace server
 			command("GET #folderSub");
 			command("SET #folderSub #string");
 			command("HEAR #folderSub");
-			command("NEWENTRY");
+			command("NEWENTRYS");
+			command("FIXHEARING #folderSub");
 			command("DIR #string");
 			command("CONTENT #string");
 			command("GETERRORSTRING #string");

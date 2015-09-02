@@ -1092,8 +1092,7 @@ namespace ppi_database
 			if(name == "#stopdebugsession")
 				return bStopped;
 		}
-		if(	name == "newentrys" ||
-			name == "#stopclient" ||
+		if(	name == "#stopclient" ||
 			(	name.length() > 12 &&
 				name.substr(0, 12) == "#changeuser "	)	)
 		{
@@ -1116,6 +1115,69 @@ namespace ppi_database
 			}
 			AROUSEALL(m_CHANGINGPOOLCOND);
 			m_bAnyChanged= true;
+			UNLOCK(m_CHANGINGPOOL);
+			return true;
+
+		}else if(name == "#newentrys")
+		{
+			map<unsigned long, vector<db_t> >::iterator fixChangeIt;
+			vector<db_t> voChanges;
+
+			LOCK(m_CHANGINGPOOL);
+			changeIt= m_mvoChanges.find(connection);
+			if(changeIt == m_mvoChanges.end())
+			{
+				UNLOCK(m_CHANGINGPOOL);
+				return true;
+			}
+			fixChangeIt= m_mvoFixChanges.find(connection);
+			if(fixChangeIt != m_mvoFixChanges.end())
+			{
+				for(vector<db_t>::iterator it= fixChangeIt->second.begin(); it != fixChangeIt->second.end(); ++it)
+				{
+					iNeed= find(changeIt->second.begin(), changeIt->second.end(), &(*it));
+					if(iNeed != changeIt->second.end())
+						voChanges.push_back(*iNeed);
+				}
+				m_mvoChanges[connection]= voChanges;
+				m_mvoFixChanges.erase(fixChangeIt);
+			}else
+				changeIt->second.clear();
+			UNLOCK(m_CHANGINGPOOL);
+			return true;
+
+		}else if(	name.length() > 12 &&
+					name.substr(0, 12) == "#FIXHEARING "	)
+		{
+			name= name.substr(12);
+			boost::trim(name);
+			boost::split(split, name, is_any_of(":"));
+			if(split.size() != 2)
+				return false;
+			newentry.folder= split[0];
+			newentry.subroutine= split[1];
+			newentry.identif= "value";
+			newentry.device= true;
+
+			LOCK(m_CHANGINGPOOL);
+			changeIt= m_mvoChanges.find(connection);
+			if(changeIt == m_mvoChanges.end())
+			{
+				UNLOCK(m_CHANGINGPOOL);
+				return false;
+			}
+			iNeed= find(changeIt->second.begin(), changeIt->second.end(), &newentry);
+			if(iNeed == changeIt->second.end())
+			{
+				UNLOCK(m_CHANGINGPOOL);
+				return false;
+			}
+			changeIt= m_mvoFixChanges.find(connection);
+			if(changeIt == m_mvoFixChanges.end())
+				m_mvoFixChanges[connection].push_back(newentry);
+			iNeed= find(changeIt->second.begin(), changeIt->second.end(), &newentry);
+			if(iNeed == changeIt->second.end())
+				changeIt->second.push_back(newentry);
 			UNLOCK(m_CHANGINGPOOL);
 			return true;
 
