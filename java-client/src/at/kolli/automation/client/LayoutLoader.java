@@ -570,15 +570,14 @@ public class LayoutLoader extends Thread
 			
 			if(newNode != null)
 			{
-				if(m_oAktTreeNode != null)
-					m_oAktTreeNode.setInvisible();
-				m_oAktTreeNode= newNode;
-				if(	m_aoComponents != null
-					&&
+				if(	m_aoComponents != null &&
 					m_aoComponents.size() > 0	)
 				{
-					//final ArrayList<IComponentListener> oldComponents= m_aoComponents;
-					
+					for(TreeNodes page : m_aTreeNodes)
+						page.hearOnSides(/*firstDef*/false);
+					if(m_oAktTreeNode != null)
+						m_oAktTreeNode.setInvisible();
+					m_oAktTreeNode= newNode;
 					if(HtmTags.debug)
 						System.out.println("remove listeners from side " + node.getName());
 					DisplayAdapter.syncExec(new Runnable() {
@@ -592,10 +591,16 @@ public class LayoutLoader extends Thread
 						}
 						
 					}, "LayoutLoader::setActiveSideVisible() removeListeners()");	
+					
+				}else
+				{
+					if(m_oAktTreeNode != null)
+						m_oAktTreeNode.setInvisible();
+					m_oAktTreeNode= newNode;
+					for(TreeNodes page : m_aTreeNodes)
+						page.hearOnSides(/*firstDef*/true);
 				}
 				m_aoComponents= m_oAktTreeNode.getComponents();
-				for(TreeNodes page : m_aTreeNodes)
-					page.hearOnSides();
 				if(	m_aoComponents != null
 					&&
 					m_aoComponents.size() > 0	)
@@ -1125,20 +1130,25 @@ public class LayoutLoader extends Thread
 			if(!firstActiveSide.equals(""))
 				break;
 		}
-		// sending first to server that all pages not visible,
-		// because it can be the case, when the client will be killed
-		// or crashes an it was not on the first page
-		// the server sinking he is always on this page
-		// and by new starting the client want to display the first page
-		// after them, two pages are set and the client get signal
-		// that the first and the other is active
-		// and maybe he switching always from the first to the second
-		for (TreeNodes node : m_aTreeNodes)
-			node.sendNotVisible();
+		if(HtmTags.informServerLeafPage)
+		{
+			// sending first to server that all pages not visible,
+			// because it can be the case, when the client will be killed
+			// or crashes and it was not on the first page
+			// the server sinking he is always on this page
+			// and by new starting the client want to display the first page
+			// after them, two pages are set and the client get signal
+			// that the first and the other is active
+			// and maybe he switching always from the first to the second
+			for (TreeNodes node : m_aTreeNodes)
+				node.sendNotVisible();
+		}
 
 		if(!firstActiveSide.equals(""))
 		{// if first active side on server found,
 		 // set this one visible
+			if(m_oAktTreeNode != null)
+				m_oAktTreeNode.setInvisible();
 			m_oAktTreeNode= null;
 			actFolderBefore= m_sAktFolder;
 			m_sAktFolder= firstActiveSide;

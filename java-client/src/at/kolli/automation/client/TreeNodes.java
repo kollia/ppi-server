@@ -1397,8 +1397,12 @@ public class TreeNodes
 	/**
 	 * insert into server connection all sides having an defined address
 	 * in meta-tags for pageset
+	 * 
+	 * @param firstDef whether definition of sides are the first one.<br />
+	 *                 to sending command of <code>hear()</code>
+	 *                 and not as otherwise <code>holdHearing()</code>
 	 */
-	public void hearOnSides()
+	public void hearOnSides(boolean firstDef)
 	{
 
 		MsgClientConnector client;
@@ -1413,7 +1417,11 @@ public class TreeNodes
 			{
 				client= MsgClientConnector.instance();
 				try{
-					client.hear(result, /*throw*/false);
+					if(firstDef)
+						client.hear(result, /*throw*/false);
+					else
+						client.holdHearing(result, /*throw*/false);
+					
 				}catch(IOException ex)
 				{
 					// this will not been thrown
@@ -1421,6 +1429,6 @@ public class TreeNodes
 			}
 		}
 		for(TreeNodes node : m_aSubnodes)
-			node.hearOnSides();
+			node.hearOnSides(firstDef);
 	}
 }

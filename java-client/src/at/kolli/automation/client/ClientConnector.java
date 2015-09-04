@@ -842,6 +842,47 @@ public class ClientConnector
 	}
 	
 	/**
+	 * hold folder:subroutine by server inside hearing pool
+	 * when as next command calling clearHearing()
+	 * 
+	 * @param path string of folder:subroutine
+	 * @return OK when hearing was cleared, otherwise the string of false when no second connection exits, 
+	 *            or the error code from server
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 03.09.2015
+	 * @since JDK 1.6
+	 */
+	public String holdHearing(String path) throws IOException
+	{
+		String res;
+		
+		if(!haveSecondConnection())
+			return "false";
+		res= command("FIXHEARING " + path);
+		if(res == null)
+			throw new IOException("ABORTEDCONNECTION");
+		if(!res.equals("done"))
+			return res;
+		return "OK";
+	}
+
+	/**
+	 * hold folder:subroutine by server inside hearing pool
+	 * when as next command calling clearHearing()
+	 * 
+	 * @param folder name of folder which should be hold
+	 * @param subroutine name of subroutine which should be hold
+	 * @return OK when hearing was cleared, otherwise the string of false when no second connection exits, or the error code from server
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 03.09.2015
+	 * @since JDK 1.6
+	 */
+	public String holdHearing(String folder, String subroutine) throws IOException
+	{
+		return holdHearing(folder + ":" + subroutine);
+	}
+	
+	/**
 	 * sending any command to server and waiting for answer
 	 * 
 	 * @param command full command which should sending to server
