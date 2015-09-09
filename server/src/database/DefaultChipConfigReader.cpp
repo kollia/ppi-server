@@ -1474,6 +1474,8 @@ namespace ports
 			break;
 
 		}while(floatIt != lowRange->second.end());
+		if(floatIt == lowRange->second.end())
+			return nullDef;// find no default
 		return floatIt->second;
 	}
 
