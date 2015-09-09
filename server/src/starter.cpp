@@ -1501,7 +1501,12 @@ void Starter::configurePortObjects(bool bShowConf, bool bSubs)
 		for(vector<sub>::iterator it= aktualFolder->subroutines.begin();
 						it != aktualFolder->subroutines.end(); ++it)
 		{
-			it->portClass->setRunningThread(aktualFolder->runThread.get());
+			if(	it->bCorrect &&
+				it->portClass	)
+			{
+				it->portClass->setRunningThread(aktualFolder->runThread.get());
+			}else
+				it->bCorrect= false;
 		}
 		aktualFolder= aktualFolder->next;
 	}
