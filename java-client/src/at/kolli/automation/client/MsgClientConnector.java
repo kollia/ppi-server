@@ -674,6 +674,7 @@ public class MsgClientConnector extends ClientConnector
 		}
 		return xmlFile;
 	}
+	
 	/**
 	 * clear hearing on server for the request was sending before
 	 * 
@@ -706,6 +707,56 @@ public class MsgClientConnector extends ClientConnector
 		return true;
 	}
 
+	/**
+	 * hold folder:subroutine by server inside hearing pool
+	 * when as next command calling clearHearing()
+	 * 
+	 * @param path string of folder:subroutine
+	 * @return OK when hearing was cleared, otherwise the string of false when no second connection exits, 
+	 *            or the error code from server
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 03.09.2015
+	 * @since JDK 1.6
+	 */
+	public boolean holdHearing(String path, boolean bthrow) throws IOException
+	{
+		String res;
+		
+		try{
+			res= holdHearing(path);
+			if(res.equals("false"))
+				return false;
+			if(!HtmTags.debugFolder.isEmpty())
+				System.out.println("### FIXHEARING: client want hold '" + path + "' inside hearing pool");
+			if(generateServerError(res) != null)
+				return false;
+			
+		}catch(IOException ex)
+		{
+			generateServerError(ex.getMessage());
+			if(bthrow)
+				throw ex;
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * hold folder:subroutine by server inside hearing pool
+	 * when as next command calling clearHearing()
+	 * 
+	 * @param folder name of folder which should be hold
+	 * @param subroutine name of subroutine which should be hold
+	 * @return OK when hearing was cleared, otherwise the string of false when no second connection exits, or the error code from server
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 03.09.2015
+	 * @since JDK 1.6
+	 */
+	public boolean holdHearing(String folder, String subroutine, boolean bthrow) throws IOException
+	{
+		return holdHearing(folder + ":" + subroutine, bthrow);
+	}
+	
 	/**
 	 * sending request for subroutines in folder to hearing for changes.<br />
 	 * this command should only send if open an second connection
