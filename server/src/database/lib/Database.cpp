@@ -1174,7 +1174,15 @@ namespace ppi_database
 			}
 			changeIt= m_mvoFixChanges.find(connection);
 			if(changeIt == m_mvoFixChanges.end())
-				m_mvoFixChanges[connection].push_back(newentry);
+			{
+				vector<db_t> vec;
+
+				vec.push_back(newentry);
+				m_mvoFixChanges[connection]= vec;
+				//m_mvoFixChanges[connection].push_back(newentry);
+				UNLOCK(m_CHANGINGPOOL);
+				return true;
+			}
 			iNeed= find(changeIt->second.begin(), changeIt->second.end(), &newentry);
 			if(iNeed == changeIt->second.end())
 				changeIt->second.push_back(newentry);
