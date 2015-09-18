@@ -207,7 +207,7 @@ namespace design_pattern_world
 				 * @param folder name of folder for which cache used
 				 * @return observer cache
 				 */
-				virtual IInformerCachePattern* getInformerCache(const string& folder)= 0;
+				virtual SHAREDPTR::shared_ptr<IInformerCachePattern> getInformerCache(const string& folder)= 0;
 				/**
 				 * return as parameter mutex and conditions
 				 * to awake folder thread for running
@@ -219,7 +219,7 @@ namespace design_pattern_world
 				 * @param folder name of folder for which cache used
 				 * @return observer cache when exist, otherwise NULL
 				 */
-				virtual IInformerCachePattern* getUsedInformerCache(const string& folder)= 0;
+				virtual SHAREDPTR::shared_ptr<IInformerCachePattern> getUsedInformerCache(const string& folder)= 0;
 				/**
 				 * remove observer cache when no more needed
 				 *
@@ -250,7 +250,7 @@ namespace design_pattern_world
 				 * @param debug whether subroutine which inform folders, running in debug session
 				 * @param lock locking mutex for observers
 				 */
-				virtual void informFolders(const vector<pair<IInformerCachePattern*, vector<string> > >& folders,
+				virtual void informFolders(const IInformerCachePattern::memObserverVector& folders,
 								const InformObject& from,
 								const string& as, const bool debug, pthread_mutex_t *lock)= 0;
 				/**

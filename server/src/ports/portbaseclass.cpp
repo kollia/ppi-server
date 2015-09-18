@@ -291,13 +291,10 @@ void portBase::setObserver(IMeasurePattern* observer)
 
 void portBase::informObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
 {
-	typedef vector<pair<IInformerCachePattern*, vector<string> > > observerVector;
-	typedef pair<IInformerCachePattern*, vector<string> > observerPair;
-
 	string inform(folder+":"+subroutine+" "+parameter);
 	vector<string>::iterator found;
-	observerVector::iterator fObs;
-	IInformerCachePattern* pInformCache;
+	IInformerCachePattern::memObserverVector::iterator fObs;
+	SHAREDPTR::shared_ptr<IInformerCachePattern> pInformCache;
 
 	try{
 		if(	folder == getFolderName() &&
@@ -320,10 +317,10 @@ void portBase::informObserver(IMeasurePattern* observer, const string& folder, c
 	LOCK(m_OBSERVERLOCK);
 	pInformCache= observer->getInformerCache(m_sFolder);
 	fObs= m_mvObservers.end();
-	for(observerVector::iterator it= m_mvObservers.begin();
+	for(IInformerCachePattern::memObserverVector::iterator it= m_mvObservers.begin();
 					it != m_mvObservers.end(); ++it		)
 	{
-		if(it->first == pInformCache)
+		if(it->first.get() == pInformCache.get())
 		{
 			fObs= it;
 			break;
@@ -340,16 +337,15 @@ void portBase::informObserver(IMeasurePattern* observer, const string& folder, c
 
 		vec.push_back(inform);
 		if(folder == getFolderName())
-			m_mvObservers.insert(m_mvObservers.begin(), observerPair(pInformCache, vec));
+			m_mvObservers.insert(m_mvObservers.begin(), IInformerCachePattern::memObserverPair(pInformCache, vec));
 		else
-			m_mvObservers.push_back(observerPair(pInformCache, vec));
+			m_mvObservers.push_back(IInformerCachePattern::memObserverPair(pInformCache, vec));
 	}
 	UNLOCK(m_OBSERVERLOCK);
 }
 
 string portBase::getObserversString() const
 {
-	typedef vector<pair<IInformerCachePattern*, vector<string> > > observerVector;
 	ostringstream oRv;
 
 	LOCK(m_OBSERVERLOCK);
@@ -359,7 +355,7 @@ string portBase::getObserversString() const
 		return "";
 	}
 	oRv << "for folder " << m_sFolder << " in subroutine " << m_sSubroutine << endl;
-	for(observerVector::const_iterator it= m_mvObservers.begin();
+	for(IInformerCachePattern::memObserverVector::const_iterator it= m_mvObservers.begin();
 								it != m_mvObservers.end(); ++it		)
 	{
 		oRv << "     define observer " << it->first->getFolderName() << endl;
@@ -376,22 +372,23 @@ string portBase::getObserversString() const
 
 void portBase::removeObserver(IMeasurePattern* observer, const string& folder, const string& subroutine, const string& parameter)
 {
-	typedef vector<pair<IInformerCachePattern*, vector<string> > > observerVector;
-
+	bool bEraseVector(false);
 	string remove(folder+":"+subroutine+" "+parameter);
-	observerVector::iterator foundT;
+	IInformerCachePattern::memObserverVector::iterator foundT;
 	vector<string>::iterator foundS;
-	IInformerCachePattern* pInformCache;
+	SHAREDPTR::shared_ptr<IInformerCachePattern> pInformCache;
 
+	if(observer == NULL)
+		return;
 	pInformCache= observer->getUsedInformerCache(m_sFolder);
 	if(pInformCache == NULL)
 		return;
 	LOCK(m_OBSERVERLOCK);
 	foundT= m_mvObservers.end();
-	for(observerVector::iterator it= m_mvObservers.begin();
+	for(IInformerCachePattern::memObserverVector::iterator it= m_mvObservers.begin();
 					it != m_mvObservers.end(); ++it		)
 	{
-		if(it->first == pInformCache)
+		if(it->first.get() == pInformCache.get())
 		{
 			foundT= it;
 			break;
@@ -407,11 +404,15 @@ void portBase::removeObserver(IMeasurePattern* observer, const string& folder, c
 			if(foundT->second.size() == 0)
 			{
 				m_mvObservers.erase(foundT);
-				observer->removeObserverCache(m_sFolder);
+				bEraseVector= true;
 			}
+			observer->removeObserverCache(m_sFolder);
 		}
-		if(foundT->second.empty())
+		if(	bEraseVector == false &&
+			foundT->second.empty()	)
+		{
 			m_mvObservers.erase(foundT);
+		}
 	}
 	UNLOCK(m_OBSERVERLOCK);
 }
@@ -791,11 +792,13 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 			UNLOCK(m_VALUELOCK);
 			bValLocked= false;
 
+			LOCK(m_OBSERVERLOCK);
 			if(	m_mvObservers.size() ||
 				place != InformObject::INTERNAL ||
 				from_spl[0] != m_sFolder ||
 				m_nCount < m_poMeasurePattern->getActCount(from_spl[1])	)
 			{
+				UNLOCK(m_OBSERVERLOCK);
 #ifdef __followSETbehaviorToFolder
 				if(	m_bFollow &&
 					__followSETbehaviorFrom <= 3 &&
@@ -807,7 +810,8 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 #endif // __followSETbehaviorToFolder
 				getRunningThread()->informFolders(m_mvObservers, from,
 								m_sSubroutine, debug, m_OBSERVERLOCK);
-			}
+			}else
+				UNLOCK(m_OBSERVERLOCK);
 			if(	dbvalue != oldMember &&
 				(	m_bWriteDb ||
 					m_sPermission != ""	)	)
@@ -1194,7 +1198,7 @@ bool portBase::getLinkedValue(const string& type, auto_ptr<IValueHolderPattern>&
 					if(port != NULL)
 					{
 						InformObject from(InformObject::INTERNAL, foldersub);
-						IInformerCachePattern* cache;
+						SHAREDPTR::shared_ptr<IInformerCachePattern> cache;
 
 						if(isdebug)
 						{

@@ -801,9 +801,9 @@ folderSpecNeed_t MeasureThread::isFolderRunning(const vector<string>& specs)
 	return tRv;
 }
 
-IInformerCachePattern* MeasureThread::getInformerCache(const string& folder)
+SHAREDPTR::shared_ptr<IInformerCachePattern> MeasureThread::getInformerCache(const string& folder)
 {
-	IInformerCachePattern* pRv;
+	SHAREDPTR::shared_ptr<IInformerCachePattern> pRv;
 
 	pRv= getUsedInformerCache(folder);
 	if(pRv == NULL)
@@ -814,7 +814,7 @@ IInformerCachePattern* MeasureThread::getInformerCache(const string& folder)
 										new MeasureInformerCache(folder, this, m_oInformOutput)	)	);
 		if(getInformeThreadStatement() != "")
 			m_oInformOutput->writeDebugStream();
-		pRv= static_cast<IInformerCachePattern*>(m_voInformerCaches.back().get());
+		pRv= SHAREDPTR::shared_ptr<IInformerCachePattern>(m_voInformerCaches.back());
 		UNLOCK(m_INFORMERCACHECREATION);
 	}
 	return pRv;
@@ -830,9 +830,9 @@ IMeasurePattern::awakecond_t MeasureThread::getAwakeConditions()
 	return awake;
 }
 
-IInformerCachePattern* MeasureThread::getUsedInformerCache(const string& folder)
+SHAREDPTR::shared_ptr<IInformerCachePattern> MeasureThread::getUsedInformerCache(const string& folder)
 {
-	IInformerCachePattern* pRv= NULL;
+	SHAREDPTR::shared_ptr<IInformerCachePattern> pRv;
 
 	LOCK(m_INFORMERCACHECREATION);
 	for(vector<SHAREDPTR::shared_ptr<MeasureInformerCache> >::iterator it= m_voInformerCaches.begin();
@@ -840,7 +840,7 @@ IInformerCachePattern* MeasureThread::getUsedInformerCache(const string& folder)
 	{
 		if((*it)->getFolderName() == folder)
 		{
-			pRv= static_cast<IInformerCachePattern*>(it->get());
+			pRv= *it;
 			break;
 		}
 	}
@@ -863,7 +863,7 @@ void MeasureThread::removeObserverCache(const string& folder)
 	UNLOCK(m_INFORMERCACHECREATION);
 }
 
-void MeasureThread::informFolders(const folders_t& folders, const InformObject& from,
+void MeasureThread::informFolders(const IInformerCachePattern::memObserverVector& folders, const InformObject& from,
 										const string& as, const bool debug, pthread_mutex_t *lock)
 {
 	m_oInformer->informFolders(folders, from, as, debug, lock);

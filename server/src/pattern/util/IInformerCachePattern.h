@@ -28,6 +28,13 @@ namespace design_pattern_world
 		class IInformerCachePattern
 		{
 		public:
+			typedef pair<	SHAREDPTR::shared_ptr<IInformerCachePattern>,
+							vector<string> 									> memObserverPair;
+			/**
+			 * typedef for all observers with IInformerCachePattern
+			 */
+			typedef vector<	memObserverPair > memObserverVector;
+
 			/**
 			 * returning name of folder for which cache be used
 			 *

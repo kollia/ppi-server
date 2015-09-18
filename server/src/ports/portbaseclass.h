@@ -220,7 +220,7 @@ namespace ports
 			/**
 			 * all other folder threads which should be informed when value was changed
 			 */
-			vector<pair<IInformerCachePattern*, vector<string> > > m_mvObservers;
+			IInformerCachePattern::memObserverVector m_mvObservers;
 			/**
 			 * header text for display error message on screen or log-file
 			 */

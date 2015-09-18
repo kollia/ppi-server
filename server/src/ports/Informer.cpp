@@ -41,12 +41,12 @@ using namespace design_pattern_world::util_pattern;
 
 namespace util
 {
-	void Informer::informFolders(const folders_t& folders, const InformObject& from,
+	void Informer::informFolders(const IInformerCachePattern::memObserverVector& folders, const InformObject& from,
 					const string& as, const bool debug, pthread_mutex_t *lock)
 	{
 		pid_t threadID(0);
 		inform_t inform;
-		SHAREDPTR::shared_ptr<folders_t> pfolders;
+		SHAREDPTR::shared_ptr<IInformerCachePattern::memObserverVector> pfolders;
 
 		if(m_bisRunn == false)
 		{
@@ -55,11 +55,12 @@ namespace util
 			informing(folders, from, as, threadID, lock);
 			return;
 		}
-		pfolders= SHAREDPTR::shared_ptr<folders_t>(new folders_t);
+		pfolders= SHAREDPTR::shared_ptr<IInformerCachePattern::memObserverVector>
+										(new IInformerCachePattern::memObserverVector);
 		*pfolders= folders;
 		inform.ownSubroutine= as;
 		inform.from= from;
-		inform.folders= pfolders;
+		inform.pfolders= pfolders;
 		inform.debug= debug;
 		if(debug)
 			inform.threadID= Thread::gettid();
@@ -79,7 +80,7 @@ namespace util
 		UNLOCK(m_INFORMQUEUELOCK);
 	}
 
-	void Informer::informing(const folders_t& folders, const InformObject& from,
+	void Informer::informing(const IInformerCachePattern::memObserverVector& folders, const InformObject& from,
 					const string& as, const pid_t& threadId, pthread_mutex_t *lock)
 	{
 		vector<string> spl;
@@ -111,7 +112,7 @@ namespace util
 				output << from.toString() << ":" << endl;
 			}
 		}
-		for(folders_t::const_iterator it= folders.begin(); it != folders.end(); ++it)
+		for(IInformerCachePattern::memObserverVector::const_iterator it= folders.begin(); it != folders.end(); ++it)
 		{
 			for(vector<string>::const_iterator fit= it->second.begin(); fit != it->second.end(); ++fit)
 			{
@@ -211,7 +212,7 @@ namespace util
 			threadId= 0;
 			if(it->debug)
 				threadId= it->threadID;
-			informing(*it->folders, it->from, it->ownSubroutine, threadId, it->OBSERVERLOCK);
+			informing(*it->pfolders, it->from, it->ownSubroutine, threadId, it->OBSERVERLOCK);
 		}
 		return true;
 	}

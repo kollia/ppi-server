@@ -33,8 +33,6 @@ namespace util
 {
 	using namespace std;
 
-	typedef vector<pair<IInformerCachePattern*, vector<string> > > folders_t;
-
 	/**
 	 * inform own or other folders over an external pool thread
 	 */
@@ -55,7 +53,7 @@ namespace util
 			/**
 			 * map of folders which should be informed
 			 */
-			SHAREDPTR::shared_ptr<folders_t> folders;
+			SHAREDPTR::shared_ptr<IInformerCachePattern::memObserverVector> pfolders;
 			/**
 			 * whether subroutine <code>ownSubroutine</code> running
 			 * in debug session
@@ -96,7 +94,7 @@ namespace util
 		 * @param debug whether subroutine which inform folders, running in debug session
 		 * @param lock locking mutex for observers
 		 */
-		void informFolders(const folders_t& folders, const InformObject& from,
+		void informFolders(const IInformerCachePattern::memObserverVector& folders, const InformObject& from,
 						const string& as, const bool debug, pthread_mutex_t *lock);
 		/**
 		 * arouse informer pool when running
@@ -154,7 +152,7 @@ namespace util
 		 * @param threadId when subroutine which inform folders, running in debug session
 		 * @param lock locking mutex for observers
 		 */
-		void informing(const folders_t& folders, const InformObject& from,
+		void informing(const IInformerCachePattern::memObserverVector& folders, const InformObject& from,
 						const string& as, const pid_t& threadId, pthread_mutex_t *lock);
 		/**
 		 * dummy method to ending the thread
@@ -180,7 +178,7 @@ namespace util
 		/**
 		 * informer cache for own folder thread
 		 */
-		IInformerCachePattern* m_pOwnInformerCache;
+		SHAREDPTR::shared_ptr<IInformerCachePattern> m_pOwnInformerCache;
 		/**
 		 * queue of all values for database
 		 */

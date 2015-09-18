@@ -110,7 +110,7 @@ bool ProcessChecker::execute()
 #endif
 				if(method == "changedChip")
 				{
-					IInformerCachePattern* informerCache;
+					SHAREDPTR::shared_ptr<IInformerCachePattern> informerCache;
 					InformObject inform(InformObject::READER, from);
 
 #ifdef __DEBUGPROCESSGETCHANGES

@@ -134,7 +134,7 @@ class MeasureThread : 	public Thread,
 		 * @param folder name of folder for which cache used
 		 * @return observer cache
 		 */
-		OVERWRITE IInformerCachePattern* getInformerCache(const string& folder);
+		OVERWRITE SHAREDPTR::shared_ptr<IInformerCachePattern> getInformerCache(const string& folder);
 		/**
 		 * return as parameter mutex and conditions
 		 * to awake folder thread for running
@@ -146,7 +146,7 @@ class MeasureThread : 	public Thread,
 		 * @param folder name of folder for which cache used
 		 * @return observer cache when exist, otherwise NULL
 		 */
-		OVERWRITE IInformerCachePattern* getUsedInformerCache(const string& folder);
+		OVERWRITE SHAREDPTR::shared_ptr<IInformerCachePattern> getUsedInformerCache(const string& folder);
 		/**
 		 * get setting scheduling parameters
 		 * of policy and priority
@@ -172,7 +172,7 @@ class MeasureThread : 	public Thread,
 		 * @param debug whether subroutine which inform folders, running in debug session
 		 * @param lock locking mutex for observers
 		 */
-		OVERWRITE void informFolders(const folders_t& folders, const InformObject& from,
+		OVERWRITE void informFolders(const IInformerCachePattern::memObserverVector& folders, const InformObject& from,
 											const string& as, const bool debug, pthread_mutex_t *lock);
 		/**
 		 * returning output object to write output inside folder thread
