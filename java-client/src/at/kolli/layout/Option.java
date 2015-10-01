@@ -19,6 +19,7 @@ package at.kolli.layout;
 import java.util.HashMap;
 
 import org.eclipse.swt.widgets.Composite;
+import org.xml.sax.SAXException;
 
 /**
  * representing an option tag inside of an component tag
@@ -71,12 +72,15 @@ public class Option extends HtmTags
 	 * @override
 	 * @author Alexander Kolli
 	 * @version 1.00.00, 06.12.2007
+	 * @throws SAXException 
 	 * @since JDK 1.6
 	 */
-	public void insert(HtmTags newTag)
+	public void insert(HtmTags newTag) throws SAXException
 	{
 		if(newTag instanceof Label)
 			m_lContent.add(newTag);
+		else
+			throw new SAXException("tag of <option> can only inherit an text string");
 	}
 
 	/**
