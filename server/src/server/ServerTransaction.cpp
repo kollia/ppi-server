@@ -268,7 +268,7 @@ namespace server
 			cout << "Server waiting for new command ..." << endl;
 #endif // SERVERDEBUG
 		descriptor >> input;
-		if(descriptor.eof())
+		if(descriptor.fail())
 		{
 			DbInterface* db= DbInterface::instance();
 			UserManagement* user= UserManagement::instance();
