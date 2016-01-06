@@ -321,7 +321,7 @@ public class LayoutLoader extends Thread
 		while(!stopping())
 		{
 			try{
-				while(getType() == 0)
+				while(getType() == WAIT)
 				{
 					stateLock.lock();	
 					try{
@@ -347,7 +347,7 @@ public class LayoutLoader extends Thread
 				}
 				while(	!dialog.isOpen()
 						&&
-						getType() != 0	)
+						getType() != WAIT	)
 				{
 					try{
 						sleep(100);
@@ -360,7 +360,7 @@ public class LayoutLoader extends Thread
 				}
 				MsgTranslator.instance().clearErrorPool();
 				type= getType();
-				if(type == 0)
+				if(type == WAIT)
 					continue;
 				bConnected= false;
 				olduser= user= TreeNodes.m_sUser;
@@ -494,6 +494,7 @@ public class LayoutLoader extends Thread
 					if(HtmTags.debug)
 						System.out.println("reading of sides on background was finished");
 				}
+				setState(WAIT);
 				
 			}catch(IOException ex)
 			{

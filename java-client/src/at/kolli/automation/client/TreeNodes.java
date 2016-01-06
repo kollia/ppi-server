@@ -83,6 +83,10 @@ public class TreeNodes
 	 */
 	private short m_nPosition;
 	/**
+	 * synchronizing object for boolean of m_bSideCreatged
+	 */
+	private Object m_CREATEDOBJ= new Object();
+	/**
 	 * whether side components was created
 	 */
 	private Boolean m_bSideCreated= false;
@@ -504,7 +508,7 @@ public class TreeNodes
 		{
 			return null;
 		}
-		synchronized (m_bSideCreated) {
+		synchronized (m_CREATEDOBJ) {
 			bSideCreated= m_bSideCreated;
 		}
 		if(!bSideCreated)
@@ -943,7 +947,7 @@ public class TreeNodes
 				msg= "### loading dialog closed";
 			throw new IllegalAccessException(msg);
 		}
-		synchronized (m_bSideCreated) 
+		synchronized (m_CREATEDOBJ) 
 	    {
 		    if(!m_bSideCreated)
 		    {
@@ -1143,7 +1147,7 @@ public class TreeNodes
 				fileDate= new Date(file.lastModified());
 				if(fileDate.after(serverDate))
 				{
-					synchronized (m_bSideCreated)
+					synchronized (m_CREATEDOBJ)
 					{
 						if(m_bSideCreated)
 							return true;
@@ -1218,7 +1222,7 @@ public class TreeNodes
 				}
 			}
 		}
-		synchronized (m_bSideCreated) {
+		synchronized (m_CREATEDOBJ) {
 			if(m_bSideCreated)
 			{
 				dispose(/*subnodes*/false);
@@ -1404,7 +1408,7 @@ public class TreeNodes
 	{	
 		DialogThread dialog;
 
-	    synchronized (m_bSideCreated) {
+	    synchronized (m_CREATEDOBJ) {
 		    if(m_bSideCreated)
 		    	return true;
 		}
@@ -1470,7 +1474,7 @@ public class TreeNodes
 			}
 			dialog.setSelection(dialog.getMaximum());
 	    }
-	    synchronized (m_bSideCreated) {
+	    synchronized (m_CREATEDOBJ) {
 		    m_bSideCreated= true;			
 		}
 	    return true;

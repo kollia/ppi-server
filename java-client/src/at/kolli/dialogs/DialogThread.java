@@ -66,6 +66,10 @@ public class DialogThread // extends Thread
 	 */
 	private volatile boolean m_bRunning= true;
 	/**
+	 * lock handle for open
+	 */
+	private final Lock openLock= new ReentrantLock();
+	/**
 	 * boolean value whether the dialog is displayed on screen or not
 	 */
 	private volatile Boolean m_bOpen= new Boolean(false);
@@ -241,76 +245,70 @@ public class DialogThread // extends Thread
 	 * @return integer result of user action
 	 */
 	public states produceDialog(short layoutType)
-	{
-		boolean bOpen;
-		
-		synchronized (m_bOpen)
+	{	
+		openLock.lock();
+		if(!m_bOpen)
 		{
-			bOpen= m_bOpen;
-		}
-			if(!bOpen)
-			{
-				final short ltype= layoutType;
+			final short ltype= layoutType;
 
-				m_bOpen= true;
-				synchronized (m_eState)
-				{
-					m_eState= states.RUN;
-				}
-				m_oDialog= new ConnectionDialog(m_oShell);
-				if(m_bProgress)
-					m_oDialog.needProgressBar();
-				if(m_bVerification)
-					m_oDialog.needUserVerificationFields();	
-				DisplayAdapter.syncExec(new Runnable() {
-				
-					public void run() {
-
-						int result;
-						
-						m_oDialog.create(ltype);
-						m_oDialog.setTitle(m_sTitle);
-						m_oDialog.setMessage(m_sMessage);
-						result= m_oDialog.open();
-						Thread t= Thread.currentThread();
-						System.out.println("dialog box ending");
-						System.out.println(t.getName()+" want to lock state variable");
-						synchronized (m_eState) 
-						{						
-							System.out.println(t.getName()+" lock state variable");
-							if(result == Dialog.OK)
-								m_eState= states.OK;
-							else if(result == Dialog.CANCEL)
-								m_eState= states.CANCEL;
-							else
-								m_eState= states.ERROR;	
-							System.out.println(t.getName()+" give state lock free");
-						}
-						m_oDialog.close();			
-					}
-				}, "DialogThread::produceDialog() create dialog");
-			
-				m_oDialog= null;
-				m_bOpen= false;
-				m_bProgress= false;
-				m_bVerification= false;
-				lock.lock();
-				closeDialog.signalAll();
-				lock.unlock();
-				
-			}else
+			m_bOpen= true;
+			synchronized (m_eState)
 			{
-				lock.lock();
-				try{
-				// wait until dialog was closed by other thread
-					closeDialog.await();
-				}catch(InterruptedException ex)
-				{}
-				finally
-				{
-					lock.unlock();
-				}					
+				m_eState= states.RUN;
 			}
+			m_oDialog= new ConnectionDialog(m_oShell);
+			if(m_bProgress)
+				m_oDialog.needProgressBar();
+			if(m_bVerification)
+				m_oDialog.needUserVerificationFields();	
+			DisplayAdapter.syncExec(new Runnable() {
+			
+				public void run() {
+
+					int result;
+					
+					m_oDialog.create(ltype);
+					m_oDialog.setTitle(m_sTitle);
+					m_oDialog.setMessage(m_sMessage);
+					openLock.unlock();
+					result= m_oDialog.open();
+					openLock.lock();
+					synchronized (m_eState) 
+					{		
+						if(result == Dialog.OK)
+							m_eState= states.OK;
+						else if(result == Dialog.CANCEL)
+							m_eState= states.CANCEL;
+						else
+							m_eState= states.ERROR;	
+					}
+					m_oDialog.close();
+					m_bOpen= false;
+				}
+			}, "DialogThread::produceDialog() create dialog");
+		
+			m_oDialog= null;
+			m_bProgress= false;
+			m_bVerification= false;
+			openLock.unlock();
+			lock.lock();
+			closeDialog.signalAll();
+			lock.unlock();
+			
+		}else
+		{
+			openLock.unlock();
+			lock.lock();
+			try{
+			// wait until dialog was closed by other thread
+				closeDialog.await();
+			}catch(InterruptedException ex)
+			{}
+			finally
+			{
+				lock.unlock();
+			}					
+		}
 		return m_eState;
 	}
 	
@@ -322,14 +320,13 @@ public class DialogThread // extends Thread
 	 * @version 1.00.00, 23.12.2007
 	 * @since JDK 1.6
 	 */
-	synchronized public boolean isOpen()
+	public boolean isOpen()
 	{
 		boolean bRv;
 		
-		synchronized (m_bOpen) 
-		{
-			bRv= m_bOpen;
-		}
+		openLock.lock();
+		bRv= m_bOpen;
+		openLock.unlock();
 		return bRv;
 	}
 	/**
@@ -340,12 +337,11 @@ public class DialogThread // extends Thread
 	 * @version 0.02.00, 16.07.2011
 	 * @since JDK 1.6
 	 */
-	synchronized protected void setOpen(boolean open)
+	protected void setOpen(boolean open)
 	{
-		synchronized (m_bOpen)
-		{
-			m_bOpen= open;
-		}
+		openLock.lock();
+		m_bOpen= open;
+		openLock.unlock();
 	}
 	
 	/**
@@ -429,28 +425,27 @@ public class DialogThread // extends Thread
 		if(!title.equals(""))
 			m_sTitle= title;
 		m_sMessage= message;
-		synchronized (m_bOpen)
+		openLock.lock();
+		if(!m_bRunning)
 		{
-			if(!m_bRunning)
+			bRv= true;
+		}else
+		{
+			if(m_bOpen)
 			{
-				bRv= true;
-			}else
-			{
-				if(m_bOpen)
-				{
-					Display.getDefault().asyncExec(new Runnable()
-					{				
-						//@Override
-						public void run() 
-						{
-							m_oDialog.setTitle(m_sTitle);
-							m_oDialog.setMessage(m_sMessage);
-						}
-					});
-				}
-				bRv= false;
+				Display.getDefault().asyncExec(new Runnable()
+				{				
+					//@Override
+					public void run() 
+					{
+						m_oDialog.setTitle(m_sTitle);
+						m_oDialog.setMessage(m_sMessage);
+					}
+				});
 			}
+			bRv= false;
 		}
+		openLock.unlock();
 		return bRv;
 	}
 	/**
@@ -484,28 +479,30 @@ public class DialogThread // extends Thread
 			if(m_nSelected.intValue() != (int)value)
 			{
 				final int nSet= (int)value;
-	
-				synchronized (m_bOpen)
+
+				openLock.lock();
+				if(!m_bOpen)
 				{
-					if(!m_bOpen)
-						return;
-					DisplayAdapter.syncExec(new Runnable()
-					{				
-						//@Override
-						public void run()
-						{
-							synchronized (m_eState)
-							{
-								if(m_eState.equals(states.RUN))
-								{
-									if(HtmTags.debug)
-										System.out.println("dialog progress bar be set to " + nSet + "%");
-									m_oDialog.setSelection(nSet);
-								}
-							}
-						}				
-					});
+					openLock.unlock();
+					return;
 				}
+				openLock.unlock();
+				DisplayAdapter.syncExec(new Runnable()
+				{				
+					//@Override
+					public void run()
+					{
+						synchronized (m_eState)
+						{
+							if(m_eState.equals(states.RUN))
+							{
+								if(HtmTags.debug)
+									System.out.println("dialog progress bar be set to " + nSet + "%");
+								m_oDialog.setSelection(nSet);
+							}
+						}
+					}				
+				});
 			}
 			m_nSelected= value;
 		}
@@ -542,21 +539,20 @@ public class DialogThread // extends Thread
 	{
 		synchronized(m_nMaximum)
 		{
-			synchronized (m_bOpen)
+			openLock.lock();
+			if(m_bOpen)
 			{
-				if(m_bOpen)
-				{
-					DisplayAdapter.syncExec(new Runnable()
-					{				
-						//@Override
-						public void run()
-						{
-							m_nMaximum= m_oDialog.getMaximum();
-						}				
-					});
-				}
-				return m_nMaximum;
+				DisplayAdapter.syncExec(new Runnable()
+				{				
+					//@Override
+					public void run()
+					{
+						m_nMaximum= m_oDialog.getMaximum();
+					}				
+				});
 			}
+			openLock.unlock();
+			return m_nMaximum;
 		}
 	}
 	
@@ -572,21 +568,20 @@ public class DialogThread // extends Thread
 	{
 		synchronized(m_nMaximum)
 		{
-			synchronized (m_bOpen)
+			openLock.lock();
+			if(m_bOpen)
 			{
-				if(m_bOpen)
-				{
-					DisplayAdapter.syncExec(new Runnable()
-					{				
-						//@Override
-						public void run()
-						{
-							m_nMinimum= m_oDialog.getMinimum();
-						}				
-					});
-				}
-				return m_nMinimum;
+				DisplayAdapter.syncExec(new Runnable()
+				{				
+					//@Override
+					public void run()
+					{
+						m_nMinimum= m_oDialog.getMinimum();
+					}				
+				});
 			}
+			openLock.unlock();
+			return m_nMinimum;
 		}
 	}
 	
@@ -599,23 +594,22 @@ public class DialogThread // extends Thread
 	 */
 	public void close()
 	{
-		synchronized (m_bOpen)
-		{
-			Display.getDefault().syncExec(new Runnable()
+		openLock.lock();
+		Display.getDefault().syncExec(new Runnable()
+		{				
+			//@Override
+			public void run() 
 			{				
-				//@Override
-				public void run() 
-				{				
-					if(m_bOpen)
-					{
-						m_oDialog.close();
-						m_bOpen= false;
+				if(m_bOpen)
+				{
+					m_oDialog.close();
+					m_bOpen= false;
+					if(HtmTags.debug)
 						System.out.println("define dialog open as false");
-					}
 				}
-			});
-		}
-		System.out.println("dialog close outside sync");
+			}
+		});
+		openLock.unlock();
 		if(HtmTags.debug)
 			System.out.println("Closing dialog box");
 	}
