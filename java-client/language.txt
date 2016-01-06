@@ -52,8 +52,12 @@ Die Verbindung zum port-server kann nicht geschlossen werden
 cannot close read - write connection to server
 
 dialogLoadContent:
-lade inhalt aller Seiten
+lade Inhalt aller Seiten
 load content of sides
+
+dialogCreateSide:
+erzeuge Inhalt von '@' @
+create side of '@' @
 
 PORTSERVERBUSY_starting:
 Server wird gestartet

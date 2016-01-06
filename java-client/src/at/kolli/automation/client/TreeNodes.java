@@ -50,7 +50,6 @@ import at.kolli.dialogs.DialogThread;
 import at.kolli.dialogs.DisplayAdapter;
 import at.kolli.layout.Body;
 import at.kolli.layout.Break;
-import at.kolli.layout.Component;
 import at.kolli.layout.FontObject;
 import at.kolli.layout.Head;
 import at.kolli.layout.HtmTags;
@@ -79,6 +78,14 @@ public class TreeNodes
 	 * whether node is selected and visible on the display
 	 */
 	private boolean m_bVisible= false;
+	/**
+	 * position inside node tree
+	 */
+	private short m_nPosition;
+	/**
+	 * whether side components was created
+	 */
+	private Boolean m_bSideCreated= false;
 	/**
 	 * name of parent node
 	 */
@@ -140,6 +147,10 @@ public class TreeNodes
 	 */
 	private HashMap<String, String> m_mMetaBlock= null;
 	/**
+	 * definition of classes inside XML layout file
+	 */
+	private HashMap<String, HtmTags> m_mClassDefinitions= null;
+	/**
 	 * boolean whether can save layout files localy
 	 */
 	public static boolean m_bSaveLoacal= true;
@@ -172,6 +183,10 @@ public class TreeNodes
 	 * HashMap form String/Date values of directory from layout-files by server
 	 */
 	public static HashMap<String, Date> m_hmDirectory= null;
+	/**
+	 * count of sides which has read
+	 */
+	public static int m_nReadCount= 0;
 	
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a Tree, TreeItem, or a TreeNodes) 
@@ -355,7 +370,7 @@ public class TreeNodes
 	 */
 	public String getName()
 	{
-		return m_sTitleName;
+		return m_sName;
 	}
 	/**
 	 * method return all child nodes from this node
@@ -448,6 +463,7 @@ public class TreeNodes
 	 */
 	public TreeNodes setVisible(final StackLayout layout, String folder, boolean inform)
 	{
+		boolean bSideCreated;
 		String name;
 		StringTokenizer token= new StringTokenizer(folder, ":");
 		TreeNodes oRv= null;
@@ -487,6 +503,29 @@ public class TreeNodes
 			!token.hasMoreElements()	)
 		{
 			return null;
+		}
+		synchronized (m_bSideCreated) {
+			bSideCreated= m_bSideCreated;
+		}
+		if(!bSideCreated)
+		{
+			String sThreadName;
+			Thread runThread;
+			
+			runThread= Thread.currentThread();
+			sThreadName= runThread.getName();
+			if(sThreadName.equals("LayoutLoader"))
+			{
+				try{
+					if(!createPage())
+						return null;
+				}catch(IOException ex)
+				{
+					System.out.println("IOException");
+					ex.printStackTrace();
+					return null;
+				}
+			}
 		}
 		if(!token.hasMoreElements())
 		{
@@ -589,8 +628,10 @@ public class TreeNodes
 	/**
 	 * Disposes of the operating system resources associated with the receiver and all its descendants.<br />
 	 * This method dispose also recursively all sides of subtrees
+	 * 
+	 * @param subnodes whether should also dispose sub-nodes
 	 */
-	public void dispose()
+	public void dispose(boolean subnodes)
 	{
 		DisplayAdapter.syncExec(new Runnable() {
 		
@@ -601,9 +642,12 @@ public class TreeNodes
 		
 		});
 
-		for (TreeNodes node : m_aSubnodes) {
-			
-			node.dispose();
+		if(subnodes)
+		{
+			for (TreeNodes node : m_aSubnodes) {
+				
+				node.dispose(/*subnodes*/true);
+			}
 		}
 	}
 	/**
@@ -651,17 +695,49 @@ public class TreeNodes
 		return m_oParentNode.isCorrectTitleSequence(sides);
 	}
 	/**
+	 * get position inside tree node
+	 * 
+	 * @return position
+	 */
+	public short getPosition()
+	{
+		return m_nPosition;
+	}
+	/**
 	 * initial the node from the constructor and creates all child nodes
 	 * 
 	 * @param pos position of tree entry
 	 * @param subComposite main-composite of node in StackLayout
 	 * @param folder array of exist node-names (folder:subroutine:...)
 	 * @param parentFolder name of parent folder
+	 * 
+	 * @throws IOException when connection to server is broken or closed
 	 * @throws IllegalAccessException if side have no access for user
 	 */
 	private void init(final short pos, final Composite subComposite, ArrayList<String> folder, String parentFolder) 
 	throws IllegalAccessException, IOException
 	{ 
+		m_mMetaBlock= null;
+		m_sParentFolder= parentFolder;
+		m_oSubComposite= subComposite;
+		m_aSubnodes= new ArrayList<TreeNodes>();
+		createSide(pos, folder);
+	}
+	/**
+	 * iterate over all sides from folder and create content when not exist or new
+	 * and create also child nodes
+	 * 
+	 * @param pos position of tree entry
+	 * @param subComposite main-composite of node in StackLayout
+	 * @param folder array of exist node-names (folder:subroutine:...)
+	 * @param parentFolder name of parent folder
+	 * 
+	 * @throws IOException when connection to server is broken or closed
+	 * @throws IllegalAccessException if side have no access for user
+	 */
+	public void createSide(final short pos, ArrayList<String> folder) 
+			throws IllegalAccessException, IOException
+	{
 		boolean bNoSides= false;
 		short ipos= 0;
 		String name, display= null;
@@ -669,11 +745,10 @@ public class TreeNodes
 		ArrayList<String> aktFolderList= new ArrayList<String>();
 		DialogThread dialog= DialogThread.instance(null);
 		TreeNodes node= null;
-		
-		m_mMetaBlock= null;
-		m_sParentFolder= parentFolder;
-		m_oSubComposite= subComposite;
-		m_aSubnodes= new ArrayList<TreeNodes>();
+		ArrayList<TreeNodes> nodes= new ArrayList<TreeNodes>();
+
+		m_nPosition= pos;
+		m_sName= "";
 		if(folder.isEmpty())
 		{// when TreeNodes started with no content of files in folder
 		 // client get no sides from server, so create null page
@@ -691,119 +766,13 @@ public class TreeNodes
 				if(!bNoSides)
 				{
 					m_sName= name;
-					m_sTitleName= name.trim();
+					if(m_sTitleName.isEmpty())
+						m_sTitleName= name.trim();
 				}
 				if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 					throw new IllegalAccessException("### loading dialog closed");
-				DisplayAdapter.syncExec(new Runnable() {
 				
-					public void run() {
-						
-						m_oScrolledComposite= new ScrolledComposite(subComposite, SWT.H_SCROLL | SWT.V_SCROLL);
-						m_oComposite= new Composite(m_oScrolledComposite, SWT.SHADOW_NONE);
-						m_oComposite.setBackground(HtmTags.systemColor);
-						m_oScrolledComposite.setBackground(HtmTags.systemColor);
-						m_oScrolledComposite.setContent(m_oComposite);
-						m_oScrolledComposite.setExpandHorizontal(true);
-						m_oScrolledComposite.setExpandVertical(true);
-					}
-				
-				});
-				
-				
-				if(!createPage())
-				{
-					String msg;
-					
-					if(dialog.isOpen())
-					{
-						dispose();
-						msg= "no side access";
-					}else
-						msg= "### loading dialog closed";
-					throw new IllegalAccessException(msg);
-				}
-				if(m_mMetaBlock != null)
-					display= m_mMetaBlock.get("display");
-				if(	!bNoSides &&
-					(	display == null ||
-						!display.equals("notree")	)	||
-					HtmTags.showFalse						)
-				{
-					if(HtmTags.notree)
-					{
-						if(m_oPopupComposite != null)
-						{
-							final TreeNodes tnode= this;
-							if(dialog.dialogState().equals(DialogThread.states.CANCEL))
-								throw new IllegalAccessException("### loading dialog closed");
-							DisplayAdapter.syncExec(new Runnable() {
-							
-								public void run() 
-								{
-									PopupMenu.init(m_oPopupComposite, tnode);
-								}
-							
-							});
-						}
-					}else
-					{
-						if(dialog.dialogState().equals(DialogThread.states.CANCEL))
-							throw new IllegalAccessException("### loading dialog closed");
-						DisplayAdapter.syncExec(new Runnable() {
-						
-							public void run() {
-	
-								boolean inner= false;
-								TreeItem[] items;
-								
-								if(m_oParent != null)
-									items= m_oParent.getItems();
-								else
-									items= m_oParentNode.getTreeItem().getItems();
-	
-								for(short c= pos; c < items.length; c++)
-								{
-									if(items[c].getText().equals(m_sTitleName))
-									{
-										inner= true;
-										m_oItem= items[c];
-										break;
-									}else
-										items[c].dispose();
-								}
-								if(!inner)
-								{
-									if(m_oParent != null)
-										m_oItem= new TreeItem(m_oParent, SWT.NULL);
-									else
-										m_oItem= new TreeItem(m_oParentNode.getTreeItem(), SWT.NULL);
-									m_oItem.setText(m_sTitleName);
-								} 
-						
-							}
-						
-						});
-					}
-				}else if(	display != null &&
-							display.equals("notree")	)
-				{
-					String pageset= null;
-					
-					if(m_mMetaBlock != null)
-						pageset= m_mMetaBlock.get("pageset");
-					if(pageset == null)
-					{
-						System.out.println("WARNING: page " + m_sName + " is not shown inside navigation tree and has not pageset from server,");
-						System.out.println("         so page can not be reached in any case");
-					}
-				}
-
-				if(dialog.dialogState().equals(DialogThread.states.CANCEL))
-					throw new IllegalAccessException("### loading dialog closed");
-				dialog.setSelection(dialog.getSelection() + DialogThread.m_nProgressSteps);
-				//oScComp.setContent(m_oContent);
-				//m_oContent.setSize(m_oContent.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+				createContent();
 			}else
 			{
 				if(!m_sName.equals(name))
@@ -820,25 +789,40 @@ public class TreeNodes
 					if(!aktFolderList.isEmpty())
 					{
 						boolean access= true;
-						String p= parentFolder;
+						boolean bNewNode= true;
+						String p= m_sParentFolder;
 
 						if(!p.isEmpty())
 							p+= "/";
 						p+= m_sName;
+						for (TreeNodes treeNode : m_aSubnodes)
+						{
+							if(treeNode.getName().equals(aktName))
+							{
+								bNewNode= false;
+								node= treeNode;
+								break;
+							}
+						}
 						if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 							return;
 						try{
-							node= new TreeNodes(ipos, subComposite, this, aktFolderList, p);
+							if(bNewNode)
+								node= new TreeNodes(ipos, m_oSubComposite, this, aktFolderList, p);
+							else
+								node.createSide(ipos, aktFolderList);
+							
 						}catch(IllegalAccessException ex)
 						{
 							if(ex.getMessage().equals("no side access"))
 							{
 								access= false;
+								m_nReadCount+= (aktFolderList.size() - 1);
 							}
 						}
 						if(access)
 						{
-							m_aSubnodes.add(node);
+							nodes.add(node);
 							++ipos;
 						}
 					}
@@ -852,25 +836,56 @@ public class TreeNodes
 		if(!aktFolderList.isEmpty())
 		{
 			boolean access= true;
+			boolean bNewNode= true;
+			String parentFolder= m_sParentFolder;
 			
 			parentFolder= parentFolder + "/" + m_sName;
 			if(parentFolder.startsWith("/"))
 				parentFolder= parentFolder.substring(1);
+			for (TreeNodes treeNode : m_aSubnodes)
+			{
+				if(treeNode.getName().equals(aktName))
+				{
+					bNewNode= false;
+					node= treeNode;
+					break;
+				}
+			}
 			if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 				return;
 			try{
-				node= new TreeNodes(ipos, subComposite, this, aktFolderList, parentFolder);
+				if(bNewNode)
+					node= new TreeNodes(ipos, m_oSubComposite, this, aktFolderList, parentFolder);
+				else
+					node.createSide(ipos, aktFolderList);
 				
 			}catch(IllegalAccessException ex)
 			{
 				if(ex.getMessage().equals("no side access"))
 				{
 					access= false;
+					m_nReadCount+= (aktFolderList.size() - 1);
 				}
 			}
 			if(access)
-				m_aSubnodes.add(node);
+				nodes.add(node);
 		}
+		for (TreeNodes onode : m_aSubnodes) 
+		{
+			boolean found= false;
+			
+			for (TreeNodes nnode : nodes)
+			{
+				if(onode == nnode)
+				{
+					found= true;
+					break;
+				}
+			}
+			if(!found)
+				onode.dispose(/*subnodes*/true);
+		}
+		m_aSubnodes= nodes;
 		
 		if(!hasContent())
 		{
@@ -887,48 +902,178 @@ public class TreeNodes
 				throw new IllegalAccessException("no side access");
 			}
 		}
-		
-		if(m_oScrolledComposite != null)
-		{
-			if(dialog.dialogState().equals(DialogThread.states.CANCEL))
-				throw new IllegalAccessException("### loading dialog closed");
-			DisplayAdapter.syncExec(new Runnable() {
-				
-				@Override
-				public void run() {
-					// define minimal shown size
-					Point size;
-					
-					if(HtmTags.debug)
-					{
-						Control[] childs;
-						org.eclipse.swt.widgets.Layout parentLayout, layout, childLayout;
-						
-						layout= m_oComposite.getLayout();
-						System.out.println("define minimal scroll size for "+layout);
-						layout= m_oComposite.getParent().getLayout();
-						System.out.println("        with parent "+layout);
-						childs= m_oComposite.getChildren();
-						for (Control child : childs) {
-							layout= ((Composite)child).getLayout();
-							System.out.println("              child "+layout);
-						}
-					}
-					size= m_oComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT, true);
-					m_oScrolledComposite.setMinSize(size);
-					//System.out.println(m_sName + ": " + m_oComposite.getSize());
-				}
-			});
-		}
+		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+			throw new IllegalAccessException("### loading dialog closed");
 	}
-	
 	/**
-	 * create XML side witch get from server and execute all components
-	 * which should be displayed
+	 * read xml layout from file
+	 * 
+	 * @throws IOException when connection to server is broken or closed
+	 * @throws IllegalAccessException if side have no access for user
+	 */
+	public void createContent()
+			throws IOException, IllegalAccessException
+	{
+		boolean bNoSides= false;
+		String sName= "", sTitle;
+		String sSideCount= "", display= null;
+		DialogThread dialog= DialogThread.instance(null);
+		MsgTranslator trans= null;
+		final GridLayout grid= new GridLayout();
+		
+		if(HtmTags.useBackgroundLoadingPriority == 0)
+		{
+			++m_nReadCount;
+			sSideCount= "" + m_nReadCount + "/" + m_hmDirectory.size();
+			//if(HtmTags.debug)
+				System.out.println("create side of '"+getName()+"'");
+			trans= MsgTranslator.instance();
+			sName= getTitle();
+			dialog.show(trans.translate("dialogCreateSide", sName, sSideCount));
+			dialog.setSelection((short)0);
+		}
+		if(!readFile())
+		{
+			String msg;
+			
+			if(dialog.isOpen())
+			{
+				msg= "no side access";
+			}else
+				msg= "### loading dialog closed";
+			throw new IllegalAccessException(msg);
+		}
+		synchronized (m_bSideCreated) 
+	    {
+		    if(!m_bSideCreated)
+		    {
+				DisplayAdapter.syncExec(new Runnable() {
+					
+					public void run() {
+						
+						m_oScrolledComposite= new ScrolledComposite(m_oSubComposite, SWT.H_SCROLL | SWT.V_SCROLL);
+						m_oComposite= new Composite(m_oScrolledComposite, SWT.SHADOW_NONE);
+						m_oComposite.setBackground(HtmTags.systemColor);
+						m_oScrolledComposite.setBackground(HtmTags.systemColor);
+						m_oScrolledComposite.setContent(m_oComposite);
+						m_oScrolledComposite.setExpandHorizontal(true);
+						m_oScrolledComposite.setExpandVertical(true);
+						m_oComposite.setLayout(grid);
+					}
+				
+				});
+		    }
+	    }
+		if(HtmTags.useBackgroundLoadingPriority == 0)
+		{
+			sTitle= getTitle();
+			if(!sTitle.equals(sName))
+				dialog.show(trans.translate("dialogCreateSide", sTitle, sSideCount));
+			dialog.setSelection((short)0);
+			dialog.setSteps(m_aoButtons.size() + 1);
+			dialog.nextStep();
+			if(!createPage()	)
+			{
+				String msg;
+				
+				if(dialog.isOpen())
+				{
+					dispose(/*subnodes*/false);
+					msg= "no side access";
+				}else
+					msg= "### loading dialog closed";
+				throw new IllegalAccessException(msg);
+			}
+			dialog.setSelection((short)100);
+		}
+		if(m_mMetaBlock != null)
+			display= m_mMetaBlock.get("display");
+		if(	!bNoSides &&
+			(	display == null ||
+				!display.equals("notree")	)	||
+			HtmTags.showFalse						)
+		{
+			if(HtmTags.notree)
+			{
+				if(m_oPopupComposite != null)
+				{
+					final TreeNodes tnode= this;
+					if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+						throw new IllegalAccessException("### loading dialog closed");
+					DisplayAdapter.syncExec(new Runnable() {
+					
+						public void run() 
+						{
+							PopupMenu.init(m_oPopupComposite, tnode);
+						}
+					
+					});
+				}
+			}else
+			{
+				if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+					throw new IllegalAccessException("### loading dialog closed");
+				DisplayAdapter.syncExec(new Runnable() {
+				
+					public void run() {
+
+						boolean inner= false;
+						TreeItem[] items;
+						
+						if(m_oParent != null)
+							items= m_oParent.getItems();
+						else
+							items= m_oParentNode.getTreeItem().getItems();
+
+						for(short c= m_nPosition; c < items.length; c++)
+						{
+							if(items[c].getText().equals(m_sTitleName))
+							{
+								inner= true;
+								m_oItem= items[c];
+								break;
+							}else
+								items[c].dispose();
+						}
+						if(!inner)
+						{
+							if(m_oParent != null)
+								m_oItem= new TreeItem(m_oParent, SWT.NULL);
+							else
+								m_oItem= new TreeItem(m_oParentNode.getTreeItem(), SWT.NULL);
+							m_oItem.setText(m_sTitleName);
+						} 
+				
+					}
+				
+				});
+			}
+		}else if(	display != null &&
+					display.equals("notree")	)
+		{
+			String pageset= null;
+			
+			if(m_mMetaBlock != null)
+				pageset= m_mMetaBlock.get("pageset");
+			if(pageset == null)
+			{
+				System.out.println("WARNING: page " + m_sName + " is not shown inside navigation tree and has not pageset from server,");
+				System.out.println("         so page can not be reached in any case");
+			}
+		}
+
+		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+			throw new IllegalAccessException("### loading dialog closed");
+		dialog.nextStep();
+		//oScComp.setContent(m_oContent);
+		//m_oContent.setSize(m_oContent.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+	}
+	/**
+	 * read XML side witch get from server 
 	 * 
 	 * @return whether the side can displayed
 	 */
-	private boolean createPage() throws IOException
+	private boolean readFile() throws IOException
 	{
 		boolean exists= false;
 		boolean writeFile= true;
@@ -943,14 +1088,13 @@ public class TreeNodes
 		File file= null;
 		SAXParserFactory factory= null;
 		XMLSaxParser handler= null;
-		final GridLayout grid= new GridLayout();
 		MsgClientConnector client= MsgClientConnector.instance();
 		ArrayList<Body> bodyList= null;
 		Date serverDate;
 		Date fileDate;
 		DialogThread dialog;
 		RE simpleError= new RE("^[ \t]*ERROR");
-		
+
 		if(m_sName.equals(""))
 		{// when TreeNodes started with no content of files (m_sName is "")
 		 // client get no sides from server, so create null page
@@ -999,6 +1143,11 @@ public class TreeNodes
 				fileDate= new Date(file.lastModified());
 				if(fileDate.after(serverDate))
 				{
+					synchronized (m_bSideCreated)
+					{
+						if(m_bSideCreated)
+							return true;
+					}
 					exists= true;
 					if(!file.canRead())
 					{
@@ -1069,17 +1218,16 @@ public class TreeNodes
 				}
 			}
 		}
+		synchronized (m_bSideCreated) {
+			if(m_bSideCreated)
+			{
+				dispose(/*subnodes*/false);
+				m_bSideCreated= false;
+			}
+		}
 		dialog= DialogThread.instance();
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 			return false;
-		DisplayAdapter.syncExec(new Runnable() {
-		
-			public void run() {
-
-				m_oComposite.setLayout(grid);
-			}
-		
-		});
 		
 	    try {
 	        // Use an instance of ourselves as the SAX event handler
@@ -1093,7 +1241,7 @@ public class TreeNodes
 	        else
 	        	saxParser.parse(emptyStream, handler);
 	        m_mMetaBlock= handler.getMetaBlock();
-	        dialog.setSelection(dialog.getSelection() + DialogThread.m_nProgressSteps);
+	        dialog.nextStep();
 	        if(	m_mMetaBlock != null &&
 	        	!HtmTags.showFalse		)
 	        {
@@ -1113,7 +1261,7 @@ public class TreeNodes
 		    bodyList= layout.getBody();
 	      } catch( Throwable t ) 
 	      {
-	    	  dialog.setSelection(dialog.getSelection() + DialogThread.m_nProgressSteps);
+	    	  dialog.nextStep();
 	    	  m_mMetaBlock= handler.getMetaBlock();
 				if(	m_mMetaBlock != null &&
 				    	!HtmTags.showFalse		)
@@ -1241,41 +1389,91 @@ public class TreeNodes
 		    {
 			    m_oBodyTag= bodyList.get(0);
 			    if(m_oBodyTag != null)
-			    {
-					final HashMap<String, HtmTags> oClasses;
-					
-			    	m_runnable_ex= null;
-	    		    oClasses= handler.getClassDefinitions();
-	    			if(dialog.dialogState().equals(DialogThread.states.CANCEL))
-	    				return false;
-			    	DisplayAdapter.syncExec(new Runnable() {
-					
-						public void run() {
-							
-							try{
-								GridLayout layout= new GridLayout();
-
-								layout.marginLeft= 0;
-								layout.marginRight= 0;
-								layout.marginTop= 0;
-								layout.marginBottom= 0;
-								layout.horizontalSpacing= 0;
-								layout.verticalSpacing= 0;
-								m_oComposite.setLayout(layout);
-								m_oBodyTag.execute(m_oComposite, new FontObject(), oClasses);
-							}catch(IOException ex)
-							{
-								m_runnable_ex= ex;
-							}
-						}
-					
-					});
-			    	if(m_runnable_ex != null)
-			    		throw m_runnable_ex;
-			    	
-			    }
+			    	m_mClassDefinitions= handler.getClassDefinitions();
 		    }
 	      return true;
+	}
+
+	/**
+	 * create XML side witch get from server and execute all components
+	 * which should be displayed
+	 * 
+	 * @return whether the side can displayed
+	 */
+	synchronized public boolean createPage() throws IOException
+	{	
+		DialogThread dialog;
+
+	    synchronized (m_bSideCreated) {
+		    if(m_bSideCreated)
+		    	return true;
+		}
+	    if(m_oBodyTag != null)
+	    {	
+	    	m_runnable_ex= null;
+			dialog= DialogThread.instance();
+			if(dialog.dialogState().equals(DialogThread.states.CANCEL))
+				return false;
+	    	DisplayAdapter.syncExec(new Runnable() {
+			
+				public void run() {
+					
+					try{
+						GridLayout layout= new GridLayout();
+
+						layout.marginLeft= 0;
+						layout.marginRight= 0;
+						layout.marginTop= 0;
+						layout.marginBottom= 0;
+						layout.horizontalSpacing= 0;
+						layout.verticalSpacing= 0;
+						m_oComposite.setLayout(layout);
+						m_oBodyTag.execute(m_oComposite, new FontObject(), m_mClassDefinitions);
+					}catch(IOException ex)
+					{
+						m_runnable_ex= ex;
+					}
+				}
+			
+			});
+	    	if(m_runnable_ex != null)
+	    		throw m_runnable_ex;
+			if(m_oScrolledComposite != null)
+			{
+				DisplayAdapter.syncExec(new Runnable() {
+					
+					@Override
+					public void run() {
+						// define minimal shown size
+						Point size;
+						
+						if(HtmTags.debug)
+						{
+							Control[] childs;
+							org.eclipse.swt.widgets.Layout layout;
+							
+							layout= m_oComposite.getLayout();
+							System.out.println("define minimal scroll size for "+layout);
+							layout= m_oComposite.getParent().getLayout();
+							System.out.println("        with parent "+layout);
+							childs= m_oComposite.getChildren();
+							for (Control child : childs) {
+								layout= ((Composite)child).getLayout();
+								System.out.println("              child "+layout);
+							}
+						}
+						size= m_oComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT, true);
+						m_oScrolledComposite.setMinSize(size);
+						//System.out.println(m_sName + ": " + m_oComposite.getSize());
+					}
+				});
+			}
+			dialog.setSelection(dialog.getMaximum());
+	    }
+	    synchronized (m_bSideCreated) {
+		    m_bSideCreated= true;			
+		}
+	    return true;
 	}
 	
 	/**

@@ -36,6 +36,8 @@ public class DisplayAdapter {
 	}
 	public static void syncExec(Runnable runnable, String def)
 	{
+		final Runnable oRunnable= runnable;
+		final int priority= Thread.currentThread().getPriority();
 		Thread t= null;
 		
 		if(	HtmTags.debug &&
@@ -46,7 +48,19 @@ public class DisplayAdapter {
 			if(!def.equals(""))
 				System.out.println("   by defined position of " + def);
 		}
-		Display.getDefault().syncExec(runnable);
+		Display.getDefault().syncExec( new Runnable() {
+			
+			@Override
+			public void run() {
+				int normal= Thread.currentThread().getPriority();
+				
+				if(normal != priority)
+					Thread.currentThread().setPriority(priority);
+				oRunnable.run();
+				if(normal != priority)
+					Thread.currentThread().setPriority(normal);
+			}
+		});
 		if(	HtmTags.debug &&
 			HtmTags.syncSWTExec	)
 		{
@@ -61,6 +75,8 @@ public class DisplayAdapter {
 	}
 	public static void asyncExec(Runnable runnable, String def)
 	{
+		final Runnable oRunnable= runnable;
+		final int priority= Thread.currentThread().getPriority();
 		Thread t= null;
 		
 		if(	HtmTags.syncSWTExec	)
@@ -70,7 +86,19 @@ public class DisplayAdapter {
 			if(!def.equals(""))
 				System.out.println("   by defined position of " + def);
 		}
-		Display.getDefault().asyncExec(runnable);
+		Display.getDefault().syncExec( new Runnable() {
+			
+			@Override
+			public void run() {
+				int normal= Thread.currentThread().getPriority();
+				
+				if(normal != priority)
+					Thread.currentThread().setPriority(priority);
+				oRunnable.run();
+				if(normal != priority)
+					Thread.currentThread().setPriority(normal);
+			}
+		});
 		if(	HtmTags.syncSWTExec	)
 		{
 			System.out.println(t.getName()+" has synchronized by " + runnable);

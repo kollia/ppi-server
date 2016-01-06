@@ -52,7 +52,7 @@ public class DialogThread // extends Thread
 	/**
 	 * steps of progress bar per side
 	 */
-	public static int m_nProgressSteps;
+	private Float m_nProgressSteps= new Float(0);
 	/**
 	 * instance of own thread-object
 	 */
@@ -68,7 +68,7 @@ public class DialogThread // extends Thread
 	/**
 	 * boolean value whether the dialog is displayed on screen or not
 	 */
-	private volatile boolean m_bOpen= false;//new Boolean(false);
+	private volatile Boolean m_bOpen= new Boolean(false);
 	/**
 	 * lock object to create conditions
 	 */
@@ -85,10 +85,6 @@ public class DialogThread // extends Thread
 	 * whether ConnectionDialog needs an user verification
 	 */
 	private Boolean m_bVerification= false;
-	/**
-	 * dialog thread should ending
-	 */
-	private volatile boolean m_bStop= false;
 	/**
 	 * instance of Dialog
 	 */
@@ -108,7 +104,7 @@ public class DialogThread // extends Thread
 	/**
 	 * selected with in progress bar
 	 */
-	private Integer m_nSelected= 0;
+	private Float m_nSelected= new Float(0);
 	/**
 	 * minimum of progress bar
 	 */
@@ -116,7 +112,7 @@ public class DialogThread // extends Thread
 	/**
 	 * maximum of progress bar
 	 */
-	private Integer m_nMaximum= 0;
+	private Integer m_nMaximum= 100;
 	
 	/**
 	 * constructor to create instance of DialogThread object
@@ -246,7 +242,13 @@ public class DialogThread // extends Thread
 	 */
 	public states produceDialog(short layoutType)
 	{
-			if(!m_bOpen)
+		boolean bOpen;
+		
+		synchronized (m_bOpen)
+		{
+			bOpen= m_bOpen;
+		}
+			if(!bOpen)
 			{
 				final short ltype= layoutType;
 
@@ -322,7 +324,13 @@ public class DialogThread // extends Thread
 	 */
 	synchronized public boolean isOpen()
 	{
-		return m_bOpen;
+		boolean bRv;
+		
+		synchronized (m_bOpen) 
+		{
+			bRv= m_bOpen;
+		}
+		return bRv;
 	}
 	/**
 	 * set state of open
@@ -334,7 +342,26 @@ public class DialogThread // extends Thread
 	 */
 	synchronized protected void setOpen(boolean open)
 	{
-		m_bOpen= open;
+		synchronized (m_bOpen)
+		{
+			m_bOpen= open;
+		}
+	}
+	
+	/**
+	 * set running step for progress bar
+	 * 
+	 * @param steps how many steps should exist
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 25.12.2015
+	 * @since JDK 1.6
+	 */
+	public void setSteps(int steps)
+	{
+		synchronized (m_nProgressSteps) {
+			
+			m_nProgressSteps= (float) ((float)getMaximum() / (float)steps);
+		}
 	}
 	
 	/**
@@ -402,26 +429,44 @@ public class DialogThread // extends Thread
 		if(!title.equals(""))
 			m_sTitle= title;
 		m_sMessage= message;
-		if(!m_bRunning)
+		synchronized (m_bOpen)
 		{
-			bRv= true;
-		}else
-		{
-			if(m_bOpen)
+			if(!m_bRunning)
 			{
-				Display.getDefault().asyncExec(new Runnable()
-				{				
-					//@Override
-					public void run() 
-					{
-						m_oDialog.setTitle(m_sTitle);
-						m_oDialog.setMessage(m_sMessage);
-					}
-				});
+				bRv= true;
+			}else
+			{
+				if(m_bOpen)
+				{
+					Display.getDefault().asyncExec(new Runnable()
+					{				
+						//@Override
+						public void run() 
+						{
+							m_oDialog.setTitle(m_sTitle);
+							m_oDialog.setMessage(m_sMessage);
+						}
+					});
+				}
+				bRv= false;
 			}
-			bRv= false;
 		}
 		return bRv;
+	}
+	/**
+	 * show next step inside progress bar
+	 * 
+	 * @param steps how many steps should exist
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 25.12.2015
+	 * @since JDK 1.6
+	 */
+	public void nextStep()
+	{
+		synchronized (m_nProgressSteps) {
+		
+			setSelection(getSelection() + m_nProgressSteps);
+		}
 	}
 	
 	/**
@@ -432,30 +477,37 @@ public class DialogThread // extends Thread
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public void setSelection(int value)
+	public void setSelection(float value)
 	{
 		synchronized(m_nSelected)
 		{
-			m_nSelected= value;
-
-			if(!m_bOpen)
-				return;
-			DisplayAdapter.asyncExec(new Runnable()
-			{				
-				//@Override
-				public void run()
+			if(m_nSelected.intValue() != (int)value)
+			{
+				final int nSet= (int)value;
+	
+				synchronized (m_bOpen)
 				{
-					synchronized (m_eState)
-					{
-						if(m_eState.equals(states.RUN))
+					if(!m_bOpen)
+						return;
+					DisplayAdapter.syncExec(new Runnable()
+					{				
+						//@Override
+						public void run()
 						{
-							if(HtmTags.debug)
-								System.out.println("dialog progress bar be set to " + m_nSelected + "%");
-							m_oDialog.setSelection(m_nSelected);
-						}
-					}
-				}				
-			});
+							synchronized (m_eState)
+							{
+								if(m_eState.equals(states.RUN))
+								{
+									if(HtmTags.debug)
+										System.out.println("dialog progress bar be set to " + nSet + "%");
+									m_oDialog.setSelection(nSet);
+								}
+							}
+						}				
+					});
+				}
+			}
+			m_nSelected= value;
 		}
 	}
 	
@@ -467,37 +519,15 @@ public class DialogThread // extends Thread
 	 * @version 1.00.00, 04.12.2007
 	 * @since JDK 1.6
 	 */
-	public int getSelection()
+	public float getSelection()
 	{
-		int nRv;
+		float nRv;
 		
 		synchronized(m_nSelected)
 		{
 			nRv= m_nSelected;
 		}
-/*			Thread t= Thread.currentThread();
-			
-			if(dialogState().equals(DialogThread.states.CANCEL))
-				return 0;
-			System.out.println(t.getName()+" want to lock state variable to get progressBar.selection");
-			synchronized (m_eState)
-			{					
-				System.out.println(t.getName()+" lock state variable");
-				if(m_eState != states.RUN)
-					return 0;
-				m_nSelected= 0;
-				DisplayAdapter.syncExec(new Runnable()
-				{				
-					//@Override
-					public void run()
-					{
-						m_nSelected= m_oDialog.getSelection();
-					}				
-				});
-				System.out.println(t.getName()+" give state lock free");
-			}*/
-		return nRv; //m_nSelected;
-	//	}
+		return nRv;
 	}
 	
 	/**
@@ -512,17 +542,21 @@ public class DialogThread // extends Thread
 	{
 		synchronized(m_nMaximum)
 		{
-			if(!m_bOpen)
-				return 0;
-			DisplayAdapter.syncExec(new Runnable()
-			{				
-				//@Override
-				public void run()
+			synchronized (m_bOpen)
+			{
+				if(m_bOpen)
 				{
-					m_nMaximum= m_oDialog.getMaximum();
-				}				
-			});
-			return m_nMaximum;
+					DisplayAdapter.syncExec(new Runnable()
+					{				
+						//@Override
+						public void run()
+						{
+							m_nMaximum= m_oDialog.getMaximum();
+						}				
+					});
+				}
+				return m_nMaximum;
+			}
 		}
 	}
 	
@@ -538,17 +572,21 @@ public class DialogThread // extends Thread
 	{
 		synchronized(m_nMaximum)
 		{
-			if(!m_bOpen)
-				return 0;
-			DisplayAdapter.syncExec(new Runnable()
-			{				
-				//@Override
-				public void run()
+			synchronized (m_bOpen)
+			{
+				if(m_bOpen)
 				{
-					m_nMinimum= m_oDialog.getMinimum();
-				}				
-			});
-			return m_nMinimum;
+					DisplayAdapter.syncExec(new Runnable()
+					{				
+						//@Override
+						public void run()
+						{
+							m_nMinimum= m_oDialog.getMinimum();
+						}				
+					});
+				}
+				return m_nMinimum;
+			}
 		}
 	}
 	
@@ -561,19 +599,23 @@ public class DialogThread // extends Thread
 	 */
 	public void close()
 	{
-		m_bStop= true;
-		//synchronized (TreeNodes.m_DISPLAYLOCK)
+		synchronized (m_bOpen)
 		{
-			Display.getDefault().asyncExec(new Runnable()
+			Display.getDefault().syncExec(new Runnable()
 			{				
 				//@Override
 				public void run() 
 				{				
 					if(m_bOpen)
+					{
 						m_oDialog.close();
+						m_bOpen= false;
+						System.out.println("define dialog open as false");
+					}
 				}
 			});
 		}
+		System.out.println("dialog close outside sync");
 		if(HtmTags.debug)
 			System.out.println("Closing dialog box");
 	}

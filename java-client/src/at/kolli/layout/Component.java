@@ -62,6 +62,7 @@ import org.apache.regexp.RE;
 import at.kolli.automation.client.MsgClientConnector;
 import at.kolli.automation.client.MsgTranslator;
 import at.kolli.automation.client.NodeContainer;
+import at.kolli.dialogs.DialogThread;
 import at.kolli.dialogs.DisplayAdapter;
 import at.kolli.layout.IComponentListener;
 
@@ -446,6 +447,7 @@ public class Component  extends HtmTags implements IComponentListener
 		//Composite widgetCompo= new Composite(composite, SWT.NONE);
 		//GridLayout gridLayout= new GridLayout();
 		GridData gridData= new GridData();
+		DialogThread dialog= DialogThread.instance();
 
 		gridData.horizontalAlignment= align;
 		gridData.verticalAlignment= valign;
@@ -482,6 +484,7 @@ public class Component  extends HtmTags implements IComponentListener
 		{
 			if(!this.result.equals(""))
 				m_bCorrectName= true;
+			dialog.nextStep();
 			return; // nothing to implement
 		}
 		
@@ -560,6 +563,7 @@ public class Component  extends HtmTags implements IComponentListener
 				System.out.println("no defined input widget for type "+this.type);
 				Composite cp= new Composite(composite, SWT.NONE);
 				font.setDevice(cp);
+				dialog.nextStep();
 				return;
 			}
 			if(	(	type == SWT.PUSH ||
@@ -790,6 +794,7 @@ public class Component  extends HtmTags implements IComponentListener
 								v.length() > 0	)
 							{
 								formatObj.numBehind= Integer.parseInt(v);
+								this.digits= formatObj.numBehind;
 								sPattern+= sBehindStr;
 								
 							}else if(	b != null &&
@@ -1346,6 +1351,7 @@ public class Component  extends HtmTags implements IComponentListener
 			if(HtmTags.debug)
 				System.out.println("Component type '"+this.type+"' is no correct entry");
 		}
+		dialog.nextStep();
 	}
 	
 	/**

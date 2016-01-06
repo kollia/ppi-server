@@ -74,6 +74,18 @@ public abstract class HtmTags
 	 */
 	public static int moveMouseDelay= -1;
 	/**
+	 * whether should load only content of current side with progress bar
+	 * and all other sides in background with lower priority.<br />
+	 * this can be defined inside client.ini
+	 * with UseBackgroundLoadingPriority as lower or higher<br />
+	 * default do not load sides as background (option not be set),
+	 * because option is experimental
+	 * try also by definition of this option
+	 * to change -XX Command-line Options by starting client
+	 * differ by -XX:(+|-)UseThreadPriorities
+	 */
+	public static int useBackgroundLoadingPriority= 0;
+	/**
 	 * boolean value for setting an debug session.<br />
 	 * this flag can be set by starting
 	 * with option -d

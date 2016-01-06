@@ -184,7 +184,7 @@ public class MsgClientConnector extends ClientConnector
 		}
 		dialog= DialogThread.instance();		
 		nMax= dialog.getMaximum();
-		dialog.setSelection(0);
+		dialog.setSelection((short)0);
 		nSelected= 0;
 		do{
 			try{
@@ -195,7 +195,7 @@ public class MsgClientConnector extends ClientConnector
 				if(	sOldErrorCode.length() >= 14 &&
 					sOldErrorCode.substring(0, 14).equals("PORTSERVERBUSY")	)
 				{
-					dialog.setSelection(100);
+					dialog.setSelection((short)100);
 				}
 				if(sRv == null)
 				{
@@ -223,7 +223,7 @@ public class MsgClientConnector extends ClientConnector
 							++nSelected;
 						else
 							nSelected= 0;
-						dialog.setSelection(nSelected);
+						dialog.setSelection((short)nSelected);
 						if(HtmTags.debug)
 							System.out.println("Wait for connection per " + nSelected + " %");
 						try{
@@ -262,7 +262,7 @@ public class MsgClientConnector extends ClientConnector
 							++nSelected;
 						else
 							nSelected= 0;
-						dialog.setSelection(nSelected);
+						dialog.setSelection((short)nSelected);
 					}else
 					{
 						bReadPercent= true;
@@ -270,7 +270,7 @@ public class MsgClientConnector extends ClientConnector
 							nPercent= 0;
 						else if(nPercent > 100)
 							nPercent= 100;
-						dialog.setSelection(nPercent);
+						dialog.setSelection(nPercent.shortValue());
 					}
 					try{
 						Thread.sleep(250);

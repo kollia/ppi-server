@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.StringTokenizer;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -449,10 +450,12 @@ public class LayoutLoader extends Thread
 					folder= client.getDirectory("." + TreeNodes.m_sLayoutStyle, /*bthrow*/true);
 					if(!client.hasError())
 					{
-						if(HtmTags.debug)
+						//if(HtmTags.debug)
 						{
-							Set<String> folderKeys= folder.keySet();
+							ArrayList<String> folderKeys= new ArrayList<String>(folder.keySet());
 							
+							Collections.sort(folderKeys);
+							System.out.println("found follow Files on server:");
 							for(String str : folderKeys)
 								System.out.println(str);
 						}
@@ -474,9 +477,23 @@ public class LayoutLoader extends Thread
 					}else
 						// change user back;
 						client.changeUser(olduser, oldpwd, /*bthrow*/true);
-				}	
-				setState(WAIT);
-				type= WAIT;
+				}
+				/**
+				 * create all not currently visible sides
+				 * in background with lower or higher priority
+				 */
+				if(HtmTags.useBackgroundLoadingPriority > 0)
+				{
+					Thread.currentThread().setPriority(HtmTags.useBackgroundLoadingPriority);
+					if(createSidesOnBackground())
+					{
+						setState(WAIT);
+						type= WAIT;
+					}
+					Thread.currentThread().setPriority(Thread.NORM_PRIORITY);
+					if(HtmTags.debug)
+						System.out.println("reading of sides on background was finished");
+				}
 				
 			}catch(IOException ex)
 			{
@@ -494,6 +511,48 @@ public class LayoutLoader extends Thread
 		}
 		if(HtmTags.debug)
 			System.out.println("Ending of thread '" + getName() + "'");
+	}
+	
+	/**
+	 * create all other sides on background
+	 * 
+	 * @return whether all sides was created
+	 */
+	private boolean createSidesOnBackground() throws IOException
+	{
+		
+		for (TreeNodes node : m_aTreeNodes)
+		{
+			//if(HtmTags.debug)
+				System.out.println("create side '" + node.getName() + "' on background");
+			if(!node.createPage())
+				return false;
+			if(!createSubSidesOnBackground(node))
+				return false;
+		}
+		return true;
+	}
+
+	/**
+	 * create all other sub-sides from TreeNode on background
+	 * 
+	 * @return whether all sides was created
+	 */
+	private boolean createSubSidesOnBackground(TreeNodes mainNode) throws IOException
+	{
+		ArrayList<TreeNodes> oNodes;
+		
+		oNodes= mainNode.getChilds();
+		for (TreeNodes node : oNodes)
+		{
+			//if(HtmTags.debug)
+				System.out.println("create sub side '" + node.getName() + "' on background");
+			if(!node.createPage())
+				return false;
+			if(!createSubSidesOnBackground(node))
+				return false;
+		}
+		return true;
 	}
 
 	/**
@@ -1001,15 +1060,26 @@ public class LayoutLoader extends Thread
 		nodes= creatingWidgets(m_oTree, m_oMainComposite, folderSet);
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 			return;
-		if(HtmTags.debug)
-			System.out.println("all new nodes created inside class LayoutLoader");
 		if(m_aTreeNodes != null)
-		{// dispose all old sides
-			for (TreeNodes node : m_aTreeNodes) {
+		{
+			for (TreeNodes node : m_aTreeNodes) 
+			{
+				boolean found= false;
 				
-				node.dispose();
+				for (TreeNodes inode : nodes)
+				{
+					if(node == inode)
+					{
+						found= true;
+						break;
+					}
+				}
+				if(!found)
+					node.dispose(/*subnodes*/true);
 			}
 		}
+		if(HtmTags.debug)
+			System.out.println("all new nodes created inside class LayoutLoader");
 		m_aTreeNodes= nodes;
 		if(HtmTags.debug)
 			System.out.println("all new nodes changed with old nodes");
@@ -1122,7 +1192,7 @@ public class LayoutLoader extends Thread
 		String firstActiveSide= "";
 		String actFolderBefore;
 		
-		// search first wich first side 
+		// search first which first side 
 		// on server list is set active
 		for(TreeNodes current : m_aTreeNodes)
 		{
@@ -1219,7 +1289,7 @@ public class LayoutLoader extends Thread
 	 */
 	private ArrayList<TreeNodes> creatingWidgets(final Tree tree, Composite subComposite, Set<String> folderSet) throws IOException
 	{
-		boolean access;
+		boolean access, bNewNode;
 		short pos= 0;
 		TreeNodes node= null;
 		DialogThread dialog= DialogThread.instance(m_oTopLevelShell);
@@ -1228,17 +1298,17 @@ public class LayoutLoader extends Thread
 		ArrayList<String> aktFolderList= new ArrayList<String>();
 		ArrayList<TreeNodes> oRetTrees= new ArrayList<TreeNodes>();
 		RE nameParser= new RE("^(.*)\\." + TreeNodes.m_sLayoutStyle);
-		int nMax= dialog.getMaximum();
 		String display;
 		HashMap<String, String> mMetaBlock;
-		
+
+		TreeNodes.m_nReadCount= 0;
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 			return oRetTrees;
 		if(folderSet.size() > 0)
-			DialogThread.m_nProgressSteps= nMax / folderSet.size() / 2;
+			dialog.setSteps(folderSet.size() * 2);
 		else
-			DialogThread.m_nProgressSteps= nMax;
-		dialog.setSelection(0);
+			dialog.setSteps(1);
+		dialog.setSelection((short)0);
 		for(String setStr : folderSet)
 		{
 			if(nameParser.match(setStr))
@@ -1259,16 +1329,34 @@ public class LayoutLoader extends Thread
 				if(!folderName.equals(aktName))
 				{	
 					access= true;
+					bNewNode= true;
+					if(m_aTreeNodes != null)
+					{
+						for (TreeNodes treeNode : m_aTreeNodes)
+						{
+							if(	treeNode.getName().equals(aktName)	)
+							{
+								bNewNode= false;
+								node= treeNode;
+								break;
+							}
+						}
+					}
 					try{
-						if(HtmTags.notree)
-							node= new TreeNodes(pos, m_oPopupComposite, subComposite, tree, aktFolderList);
-						else
-							node= new TreeNodes(pos, subComposite, tree, aktFolderList);
+						if(bNewNode)
+						{
+							if(HtmTags.notree)
+								node= new TreeNodes(pos, m_oPopupComposite, subComposite, tree, aktFolderList);
+							else
+								node= new TreeNodes(pos, subComposite, tree, aktFolderList);
+						}else
+							node.createSide(pos, aktFolderList);
 						
 					}catch(IllegalAccessException ex)
 					{
 						if(ex.getMessage().equals("no side access"))
 						{
+							TreeNodes.m_nReadCount+= (aktFolderList.size() - 1);
 							if(HtmTags.debug)
 								System.out.println("user has no access to side!");
 						}
@@ -1311,6 +1399,7 @@ public class LayoutLoader extends Thread
 		{
 			if(ex.getMessage().equals("no side access"))
 			{
+				TreeNodes.m_nReadCount+= (aktFolderList.size() - 1);
 				access= false;
 			}
 		}
@@ -1318,7 +1407,7 @@ public class LayoutLoader extends Thread
 			oRetTrees.add(node);
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 			return oRetTrees;
-		dialog.setSelection(nMax);
+		dialog.setSelection((short)100);
 		
 		return oRetTrees;			
 	}

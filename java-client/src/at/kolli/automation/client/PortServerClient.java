@@ -88,6 +88,7 @@ public class PortServerClient
 		String informServerLeafPage;
 		int port= 20004, nPadding, nPopup;
 		String lang, maincolor, mainpadding, popuppadding, mousepos, mouseDelay;
+		String backgroundLoading;
 		
 		HtmTags.debug= false;
 		TreeNodes.m_sLayoutStyle= "desktop";
@@ -356,6 +357,18 @@ public class PortServerClient
 				else
 					HtmTags.popupPadding= nPopup;
 				
+			}
+			backgroundLoading= prop.getProperty("UseBackgroundLoading");
+			if(backgroundLoading != null)
+			{
+				backgroundLoading= backgroundLoading.trim();
+				backgroundLoading= backgroundLoading.toLowerCase();
+				if(backgroundLoading.equals("lower"))
+					HtmTags.useBackgroundLoadingPriority= Thread.MIN_PRIORITY;
+				else if(backgroundLoading.equals("higher"))
+					HtmTags.useBackgroundLoadingPriority= Thread.MAX_PRIORITY;
+				else
+					System.out.println("### WARNING: undefined UseBackgroundLoadingPriority '" + backgroundLoading + "'");
 			}
 			mousepos= prop.getProperty("mousemovePos");
 			mouseDelay= prop.getProperty("mousemoveDelay");
