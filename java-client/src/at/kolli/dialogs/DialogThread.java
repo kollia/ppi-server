@@ -261,6 +261,7 @@ public class DialogThread // extends Thread
 				m_oDialog.needProgressBar();
 			if(m_bVerification)
 				m_oDialog.needUserVerificationFields();	
+			openLock.unlock();
 			DisplayAdapter.syncExec(new Runnable() {
 			
 				public void run() {
@@ -270,9 +271,7 @@ public class DialogThread // extends Thread
 					m_oDialog.create(ltype);
 					m_oDialog.setTitle(m_sTitle);
 					m_oDialog.setMessage(m_sMessage);
-					openLock.unlock();
 					result= m_oDialog.open();
-					openLock.lock();
 					synchronized (m_eState) 
 					{		
 						if(result == Dialog.OK)
@@ -283,10 +282,11 @@ public class DialogThread // extends Thread
 							m_eState= states.ERROR;	
 					}
 					m_oDialog.close();
-					m_bOpen= false;
 				}
 			}, "DialogThread::produceDialog() create dialog");
-		
+
+			openLock.lock();
+			m_bOpen= false;
 			m_oDialog= null;
 			m_bProgress= false;
 			m_bVerification= false;
