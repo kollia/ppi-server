@@ -114,6 +114,7 @@ public class PopupMenu
 		Label text= new Label(popup, SWT.SHADOW_IN);
 		HashMap<String, String> metablock= node.getMetaData();
 		final String entry;
+		String sLabel;
 		String spacing= metablock.get("popupspace");
 		int space;
 		FontObject font= new FontObject();
@@ -130,6 +131,7 @@ public class PopupMenu
 		}
 
 		entry= node.getName();
+		sLabel= node.getTitle();
 		ssize= metablock.get("popupfontsize");
 		if(ssize != null)
 			popupsize= Integer.parseInt(ssize);
@@ -151,7 +153,7 @@ public class PopupMenu
 		font.defineColor(popup, metablock.get("popupcolor"), colors.BACKGROUND, entry + " popup");
 		font.defineColor(popup, metablock.get("popupfontcolor"), colors.TEXT, entry + " popup");
 		font.defineFont(popup, metablock.get("popupfont"), popupsize, bold, italic, /*underline*/false);
-		text.setText(entry);
+		text.setText(sLabel);
 		if(spacing != null)
 			space= Integer.parseInt(spacing);
 		else
@@ -374,7 +376,7 @@ public class PopupMenu
 				String looks, ssize;
 				MouseListener listener1, listener2;
 				
-				entry= m_sMenu + ":" + subnode.getName();
+				entry= m_sMenu + "/" + subnode.getName();
 				ssize= metablock.get("popupfontsize");
 				if(ssize != null)
 					popupsize= Integer.parseInt(ssize);
@@ -396,7 +398,7 @@ public class PopupMenu
 				font.defineColor(popup, metablock.get("popupcolor"), colors.WIDGET, entry + " popup");
 				font.defineColor(popup, metablock.get("popupfontcolor"), colors.TEXT, entry + " popup");
 				font.defineFont(popup, metablock.get("popupfont"), popupsize, bold, italic, /*underline*/false);
-				text.setText(subnode.getName().trim());
+				text.setText(subnode.getTitle().trim());
 				if(popupspace != null)
 					space= Integer.parseInt(popupspace);
 				layout.type= SWT.VERTICAL;

@@ -469,7 +469,7 @@ public class TreeNodes
 	{
 		boolean bSideCreated;
 		String name;
-		StringTokenizer token= new StringTokenizer(folder, ":");
+		StringTokenizer token= new StringTokenizer(folder, "/");
 		TreeNodes oRv= null;
 
 		if(!token.hasMoreElements())
@@ -480,7 +480,7 @@ public class TreeNodes
 				return null;
 		}else
 			name= token.nextToken();
-		if(!m_sTitleName.equals(name))
+		if(!m_sName.equals(name))
 			return null;
 		if(	m_mMetaBlock != null &&
 			(	inform == true ||
@@ -664,24 +664,24 @@ public class TreeNodes
 		return m_mMetaBlock;
 	}
 	/**
-	 * check whether given side sequence is actual side
+	 * check whether given side path is from current side
 	 * 
-	 * @param sides sequence of sides
+	 * @param sides path of side
 	 * @return whether given sequence is same
 	 */
-	public boolean isCorrectTitleSequence(String sides)
+	public boolean isCurrentSidePath(String sides)
 	{
-		String[] aSides= sides.split(":");
+		String[] aSides= sides.split("/");
 		
-		return isCorrectTitleSequence(aSides);
+		return isCurrentSidePath(aSides);
 	}
 	/**
-	 * check whether given side sequence is actual side
+	 * check whether given side path is from current side
 	 * 
-	 * @param sides sequence of sides
+	 * @param sides path of side
 	 * @return whether given sequence is same
 	 */
-	public boolean isCorrectTitleSequence(String[] sides)
+	public boolean isCurrentSidePath(String[] sides)
 	{
 		int nLastPos= sides.length-1;
 		
@@ -689,14 +689,14 @@ public class TreeNodes
 			--nLastPos;
 		if(nLastPos < 0)
 			return true;
-		if(!getTitle().equals(sides[nLastPos]))
+		if(!getName().equals(sides[nLastPos]))
 			return false;
 		if(nLastPos == 0)
 			return true;
 		if(m_oParentNode == null)
 			return false;
 		sides[nLastPos]= "";
-		return m_oParentNode.isCorrectTitleSequence(sides);
+		return m_oParentNode.isCurrentSidePath(sides);
 	}
 	/**
 	 * get position inside tree node
@@ -908,6 +908,31 @@ public class TreeNodes
 		}
 		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
 			throw new IllegalAccessException("### loading dialog closed");
+	}
+	/**
+	 * check or remove check inside tree
+	 * 
+	 * @param checked whether tree item should be checked
+	 */
+	public void check(final boolean checked)
+	{
+		if(	!HtmTags.notree &&
+			m_oItem != null		)
+		{
+			DisplayAdapter.syncExec(new Runnable() {
+			
+				public void run() 
+				{	
+					org.eclipse.swt.graphics.Color curColor;
+					
+					if(checked)
+						curColor= m_oItem.getDisplay().getSystemColor(SWT.COLOR_BLUE);
+					else
+						curColor= m_oItem.getDisplay().getSystemColor(SWT.COLOR_WHITE);
+					m_oItem.setBackground(curColor);
+				}			
+			});
+		}
 	}
 	/**
 	 * read xml layout from file
@@ -1558,7 +1583,7 @@ public class TreeNodes
 			if(	result != null &&
 				result.equals(sub)	)
 			{
-				return m_sTitleName;
+				return m_sName;
 			}
 		}
 		sRv= "";
@@ -1569,7 +1594,7 @@ public class TreeNodes
 				sRv= node.getPageFrom(sub);
 				if(!sRv.equals(""))
 				{
-					sRv= m_sTitleName + ":" + sRv;
+					sRv= m_sName + "/" + sRv;
 					break;
 				}
 			}
@@ -1590,7 +1615,7 @@ public class TreeNodes
 		if(m_mMetaBlock != null)
 			display= m_mMetaBlock.get("display");
 		if(	display == null ||
-			!display.equals("notree")	)
+			!display.toLowerCase().equals("notree")	)
 		{
 			return true;
 		}

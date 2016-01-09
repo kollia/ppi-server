@@ -450,7 +450,7 @@ public class LayoutLoader extends Thread
 					folder= client.getDirectory("." + TreeNodes.m_sLayoutStyle, /*bthrow*/true);
 					if(!client.hasError())
 					{
-						//if(HtmTags.debug)
+						if(HtmTags.debug)
 						{
 							ArrayList<String> folderKeys= new ArrayList<String>(folder.keySet());
 							
@@ -609,7 +609,7 @@ public class LayoutLoader extends Thread
 		}
 		oldNode= m_oAktTreeNode;
 		if(	m_oAktTreeNode != null &&
-			m_oAktTreeNode.isCorrectTitleSequence(m_sAktFolder)	)
+			m_oAktTreeNode.isCurrentSidePath(m_sAktFolder)	)
 		{
 			if(HtmTags.lockDebug	)
 			{
@@ -936,21 +936,52 @@ public class LayoutLoader extends Thread
 				{
 					synchronized (TreeNodes.m_DISPLAYLOCK)
 					{
+						ArrayList<TreeNodes> searchNodes;
+						ArrayList<TreeItem> itemTree= new ArrayList<TreeItem>();
+						TreeItem existItems[]= m_oTree.getItems();
 						TreeItem items[]= m_oTree.getSelection();
-						TreeItem akt= null;
+						TreeItem curItem= null;
+						int pos, count;
 						String name= "";
 		
 						if(items.length > 0)
+							curItem= items[0];
+						else
+							return;
+						while(curItem != null)
 						{
-							akt= items[0];
-							//m_sAktFolder= akt.getText();
-						}//else
-						//	m_sAktFolder= "";
-						while(akt != null)
-						{
-							name= ":" + akt.getText() + name;
-							akt= akt.getParentItem();
+							itemTree.add(0, curItem);
+							curItem= curItem.getParentItem();
+							
 						}
+						searchNodes= m_aTreeNodes;						
+						do{
+							curItem= itemTree.get(0);
+							itemTree.remove(0);
+							pos= 0;
+							for (TreeItem s : existItems)
+							{
+								if(s == curItem)
+								{
+									existItems= s.getItems();
+									break;
+								}
+								++pos;
+							}
+							count= -1;
+							for (TreeNodes node : searchNodes)
+							{
+								if(node.treeDisplay())
+									++count;
+								if(count == pos)
+								{
+									name+= "/" + node.getName();
+									searchNodes= node.getChilds();
+									break;
+								}
+							}
+						}while(	itemTree.size() > 0 &&
+								searchNodes != null		);
 						if(name.length() > 1)
 							name= name.substring(1);
 						if(HtmTags.debug)
