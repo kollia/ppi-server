@@ -102,6 +102,10 @@ public class LayoutLoader extends Thread
 	 */
 	public static final short BROKEN= 4;
 	/**
+	 * constant variable for ending client
+	 */
+	public static final short DISPOSE= 5;
+	/**
 	 * type of layout creation<br />
 	 * CREATE for first beginning<br />
 	 * UPDATE for refresh content with allocate new user<br />
@@ -360,6 +364,29 @@ public class LayoutLoader extends Thread
 				}
 				MsgTranslator.instance().clearErrorPool();
 				type= getType();
+				if(type == DISPOSE)
+				{
+					dialog.setSelection(0);
+					dialog.setSteps(1);
+					if(HtmTags.showDisposeClient)
+					{
+						if(	m_aTreeNodes != null &&
+							!m_aTreeNodes.isEmpty()	)
+						{
+							TreeNodes.m_nNodeCount= 0;
+							for(TreeNodes node : m_aTreeNodes)
+								TreeNodes.m_nNodeCount+= node.count(); 
+							dialog.setSteps(TreeNodes.m_nNodeCount + 1);
+							for(TreeNodes node : m_aTreeNodes)
+								node.dispose(/*subnodes*/true);
+						}
+					}
+					dialog.show(trans.translate("closeConnections"));
+					//client.closeConnection();
+					dialog.nextStep();
+					dialog.close();
+					return;
+				}
 				if(type == WAIT)
 					continue;
 				bConnected= false;
@@ -818,6 +845,8 @@ public class LayoutLoader extends Thread
 				@Override
 				public void widgetSelected(SelectionEvent e) {
 					
+					LayoutLoader loader= LayoutLoader.instance();
+					
 					super.widgetSelected(e);
 					m_oTopLevelShell.close();
 				}
@@ -1009,6 +1038,49 @@ public class LayoutLoader extends Thread
 				});
 			}
 		}
+	}
+	/**
+	 * dispose all components created by starting
+	 */
+	public void disposeClientEnding()
+	{
+		DialogThread dialog= DialogThread.instance(m_oTopLevelShell);
+		MsgTranslator trans= MsgTranslator.instance();
+
+			new Thread(new Runnable() {
+				
+				@Override
+				public void run() {
+
+					WidgetChecker checker;
+					MsgClientConnector client;
+
+					checker= WidgetChecker.instance();
+					checker.stopping();
+					client= MsgClientConnector.instance();
+					client.closeConnection();
+					try{
+						if(checker.isAlive())
+							checker.join();
+					}catch(InterruptedException ex)
+					{
+						System.out.println("Interrupted exception by ending checker thread with join");
+						ex.printStackTrace();
+					}
+				}
+			}).start();
+			//dialog.stopping();
+			dialog.needProgressBar();
+			dialog.show(trans.translate("dialogDispose"), "");
+			setState(LayoutLoader.DISPOSE);
+			dialog.produceDialog(DISPOSE);
+			stopThread();
+			
+/*		setState(LayoutLoader.DISPOSE);
+		dialog.needProgressBar();
+		dialog.show(trans.translate("dialogDispose"), "");
+		dialog.produceDialog(DISPOSE);
+		setState(LayoutLoader.WAIT);*/
 	}
 	/**
 	 * method starting and manage the begin of the widget on display

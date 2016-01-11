@@ -1000,9 +1000,9 @@ public class ClientConnector
 		{	
 			try{
 				m_oGet.close();
+				m_oPut.close();
 				if(m_oSecGet != null)
 					m_oSecGet.close();
-				m_oPut.close();
 				m_oSock.close();
 				if(m_oSecSock != null)
 					m_oSecSock.close();

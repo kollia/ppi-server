@@ -697,6 +697,7 @@ public class PortServerClient
 				TreeNodes.saveSettings();
 				if(bCreated)
 					HtmTags.systemColor.dispose();
+				loader.disposeClientEnding();
 		
 			}
 		
@@ -739,7 +740,8 @@ public class PortServerClient
 			//dialog.stopping();
 			checker.stopping();
 			client.closeConnection();
-			checker.join();
+			if(checker.isAlive())
+				checker.join();
 			loader.stopThread();
 			
 		}catch(InterruptedException ex)
@@ -755,7 +757,6 @@ public class PortServerClient
 				sysImg.dispose();
 			}
 		}*/
-		if(HtmTags.debug)
-			System.out.println("Ending of thread 'main'");
+		System.out.println("ppi-client was ending");
 	}
 }

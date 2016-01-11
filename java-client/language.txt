@@ -207,6 +207,16 @@ FAULT_double_value:
 FEHLER: Die Zeichenfolge der Membervariable value beim @ kann nicht gelesen werden. ('@')
 ERROR: The character string of the member variable value from @ can not be read correctly. ('@')
 
+dialogDispose:
+Beende ppi-client
+Ending of ppi-client
 
+dialogDisposeSide:
+beende Seite '@' @
+remove side '@' @
+
+closeConnections:
+schließe Verbindung zum Server
+close connection to server
 
 

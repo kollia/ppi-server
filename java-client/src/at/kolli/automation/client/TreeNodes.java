@@ -83,6 +83,15 @@ public class TreeNodes
 	 */
 	private short m_nPosition;
 	/**
+	 * count of exist tree nodes
+	 * set by ending
+	 */
+	public static int m_nNodeCount= 0;
+	/**
+	 * current disposed tree nodes
+	 */
+	private static int m_nDisposedNodes= 0;
+	/**
 	 * synchronizing object for boolean of m_bSideCreatged
 	 */
 	private Object m_CREATEDOBJ= new Object();
@@ -630,6 +639,22 @@ public class TreeNodes
 	}
 	
 	/**
+	 * count tree node with sub-nodes
+	 * 
+	 * @return count of tree nodes
+	 */
+	public int count()
+	{
+		int nRv= 1;
+
+		for (TreeNodes node : m_aSubnodes) {
+			
+			nRv+= node.count();
+		}
+		return nRv;
+	}
+	
+	/**
 	 * Disposes of the operating system resources associated with the receiver and all its descendants.<br />
 	 * This method dispose also recursively all sides of subtrees
 	 * 
@@ -637,6 +662,19 @@ public class TreeNodes
 	 */
 	public void dispose(boolean subnodes)
 	{
+		DialogThread dialog= null;
+		
+		if(LayoutLoader.instance().getType() == LayoutLoader.DISPOSE)
+		{
+			String sSideCount;
+			dialog= DialogThread.instance();
+			MsgTranslator trans= MsgTranslator.instance();
+			
+			++m_nDisposedNodes;
+			sSideCount= "" + m_nDisposedNodes + "/" + m_nNodeCount;
+			dialog.show(trans.translate("dialogDisposeSide", getTitle(), sSideCount));
+			
+		}
 		DisplayAdapter.syncExec(new Runnable() {
 		
 			public void run() {
@@ -645,6 +683,8 @@ public class TreeNodes
 			}
 		
 		});
+		if(LayoutLoader.instance().getType() == LayoutLoader.DISPOSE)
+			dialog.nextStep();
 
 		if(subnodes)
 		{

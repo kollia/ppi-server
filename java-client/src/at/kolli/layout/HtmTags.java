@@ -130,6 +130,13 @@ public abstract class HtmTags
 	 */
 	public static boolean showFontCreation= false;
 	/**
+	 * whether should show disposition of client
+	 * inside progress bar by ending.
+	 * Otherwise closing doing in background
+	 * which can during some minutes
+	 */
+	public static boolean showDisposeClient= false;
+	/**
 	 * boolean value to see dispatch 
 	 * synchronization of shell.<br />
 	 * this flag can be set by starting

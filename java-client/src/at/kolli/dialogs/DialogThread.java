@@ -47,6 +47,7 @@ public class DialogThread // extends Thread
 			RUN,
 			OK,
 			CANCEL,
+			DISPOSE,
 			ERROR
 	}
 	/**
@@ -377,6 +378,23 @@ public class DialogThread // extends Thread
 			eRv= m_eState;
 		}
 		return eRv;
+	}
+	
+
+	/**
+	 * set new state of current dialog
+	 * 
+	 * @param state new defined state
+	 * @author Alexander Kolli
+	 * @version 0.02.00, 04.12.2007
+	 * @since JDK 1.6
+	 */
+	public void dialogState(states state)
+	{ 
+		synchronized (m_eState)
+		{
+			m_eState= state;
+		}
 	}
 	
 	/**
