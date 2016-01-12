@@ -734,15 +734,29 @@ public class ClientConnector
 		return res;
 	}
 	
+
 	/**
-	 * sending request for permission groups
+	 * sending request for permission for given folder:subroutine
 	 * 
-	 * @param groups groups of permission, separately with colons
-	 * @return strings of write, reade, none or error code of server 
-	 */
-	public String permission(String groups) throws IOException
+	 * @param folder name of folder
+	 * @param subroutine name of subroutine
+	 * @return strings of write, read, none, noFolder, noSubroutine or error code of server 
+	 */	
+	public String permission(String folder, String subroutine) throws IOException
 	{
-		return command("PERMISSION " + groups);
+		return permission("PERMISSION " + folder + ":" + subroutine);
+	}
+	
+	/**
+	 * sending request for permission for given folder:subroutine
+	 * 
+	 * @param path  of subroutine<br />
+	 * 				The path is made up of &lt;folder&gt;:&lt;subroutine&gt;
+	 * @return strings of write, read, none, noFolder, noSubroutine or error code of server 
+	 */
+	public String permission(String path) throws IOException
+	{
+		return command("PERMISSION " + path);
 	}
 	
 	/**

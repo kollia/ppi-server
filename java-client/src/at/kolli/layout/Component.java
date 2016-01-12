@@ -16,9 +16,6 @@
  */
 package at.kolli.layout;
 
-import java.awt.AWTException;
-import java.awt.GraphicsEnvironment;
-import java.awt.Robot;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -2866,8 +2863,6 @@ public class Component  extends HtmTags implements IComponentListener
 				//@Override
 				public void run() 
 				{
-					MsgClientConnector client= MsgClientConnector.instance();
-				
 					if(	m_nAktValue != 0 &&
 						m_nSoftButton 		)
 					{

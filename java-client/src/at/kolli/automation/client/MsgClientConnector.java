@@ -430,7 +430,7 @@ public class MsgClientConnector extends ClientConnector
 	 * if the connection breaks, function waiting until found an new connection
 	 * 
 	 * @param path  of subroutine<br />
-	 * 				The path is made up of &lt;folder&gt;:&lt;subroutine&gt;:[subroutine:...]
+	 * 				The path is made up of &lt;folder&gt;:&lt;subroutine&gt;
 	 * @param value	witch should be set<br />
 	 * 				If the value should be an boolean for an SWITCH-subroutine, set 1 for true and 0 for false
 	 * @param bthrow whether method should throw an exception
@@ -495,11 +495,11 @@ public class MsgClientConnector extends ClientConnector
 	}
 
 	/**
-	 * sending request for permission groups
+	 * sending request for permission for given folder:subroutine
 	 * 
-	 * @param groups groups of permission, separately with colons
-	 * @param bthrow whether method should throw an exception
-	 * @return writable, readable or None permission.<br />if an error occurred the permission is null and the error can reading in <code>getErrorCode()</code> 
+	 * @param path  of subroutine<br />
+	 * 				The path is made up of &lt;folder&gt;:&lt;subroutine&gt;
+	 * @return strings of write, read, none, noFolder, noSubroutine or error code of server 
 	 */
 	public permission permission(String groups, boolean bthrow) throws IOException
 	{
