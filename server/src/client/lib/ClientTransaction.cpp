@@ -1057,6 +1057,11 @@ namespace server
 		static map<string, ppi_time> mLastImplement;
 		map<string, ppi_time>::iterator itLastImplement;
 
+		if(m_mSortedSessions.empty())
+		{
+			mLastImplement.clear();
+			mFolderRun.clear();
+		}
 #if 0
 		/*
 		 * debug
