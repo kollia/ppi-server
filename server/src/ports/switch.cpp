@@ -172,7 +172,8 @@ auto_ptr<IValueHolderPattern> switchClass::measure(const ppi_value& actValue, se
 				out() << "SWITCH value was disabled from remote access" << endl;
 			bOutside= true;
 		}
-	}
+	}else
+		m_bLastValue= bSwitched;
 
 
 	if(!bOutside)
