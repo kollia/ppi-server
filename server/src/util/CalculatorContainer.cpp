@@ -45,7 +45,17 @@ bool CalculatorContainer::add(char cOperator)
 		m_cOperator= cOperator;
 		if(m_cOperatorBefore != '\0')
 		{
-			m_dResultValue= calc(m_dResultValue, m_cOperatorBefore, m_dValueHolder);
+			/**
+			 * 2016/05/01 alex: resolve bug
+			 * Set old value (m_dValueHolder) to first parameter
+			 * because when after an multiplication old value be as second
+			 * and before was an operator of subtraction the result before
+			 * will be subtract from multiplication result
+			 * e.g. 8 - 3 * 2
+			 *      6 should be subtract from 8 = 2
+			 *      otherwise result will be wrong -2
+			 */
+			m_dResultValue= calc(m_dValueHolder, m_cOperatorBefore, m_dResultValue);
 			m_cOperatorBefore= '\0';
 		}
 		return true;
