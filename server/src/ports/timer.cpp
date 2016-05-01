@@ -1794,7 +1794,10 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 					m_tmStop= m_tmExactStop;
 					if(debug)
 						out() << "no next measure time be set, "
-										"starting external subroutine at current time "
+										"starting external subroutine '"
+										<< m_pStartObj->getFolderName() << ":"
+										<< m_pStartObj->getSubroutineName()
+										<< "' at current time "
 										<< m_tmExactStop.toString(/*as date*/true) << endl;
 					m_bStartExtern= m_pStartObj->startingBy(m_tmExactStop,
 									InformObject(InformObject::INTERNAL,
@@ -1802,8 +1805,10 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 					if(	!m_bStartExtern &&
 						debug										)
 					{
-						out() << "WARNING: cannot start external subroutine\n"
-										"         maybe starting will be running" << endl;
+						out() << "WARNING: cannot start external subroutine '"
+										<< m_pStartObj->getFolderName() << ":"
+										<< m_pStartObj->getSubroutineName() <<
+										"'\n         maybe starting will be running" << endl;
 					}
 				}else if(debug)
 					out() << "no next measure time be set, make no count down" << endl;
@@ -1963,7 +1968,10 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 		}else//if(m_nAllowStarting != 1)
 		{
 			if(debug)
-				out() << "starting external subroutine by "
+				out() << "starting external subroutine '"
+						<< m_pStartObj->getFolderName() << ":"
+						<< m_pStartObj->getSubroutineName()
+						<< "' by "
 						<< m_tmExactStop.toString(/*as date*/true) << endl;
 			m_bStartExtern= m_pStartObj->startingBy(m_tmExactStop,
 							InformObject(InformObject::INTERNAL,
@@ -1971,8 +1979,10 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 			if(	!m_bStartExtern &&
 				debug										)
 			{
-				out() << "WARNING: cannot start external subroutine\n"
-								"         maybe starting will be running" << endl;
+				out() << "WARNING: cannot start external subroutine '"
+										<< m_pStartObj->getFolderName() << ":"
+										<< m_pStartObj->getSubroutineName() <<
+								"'\n         maybe starting will be running" << endl;
 			}
 		}
 	}
@@ -2090,7 +2100,10 @@ double timer::substractExactFinishTime(ppi_time* nextTime, const bool& debug)
 			if(m_bExactTime)
 			{
 				if(m_nAllowStarting == 1)
-					out() << "external subroutine should start in ";
+					out() << "external subroutine '"
+							<< m_pStartObj->getFolderName() << ":"
+							<< m_pStartObj->getSubroutineName()
+							<< "' should start in ";
 				else
 					out() << "          to reach subroutine after ";
 				out() << ppi_time(*nextTime + folderLength).toString(/*as date*/false);
