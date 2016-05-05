@@ -77,11 +77,6 @@ bool ProcessChecker::execute()
 		object >> folder;
 		object >> subroutine;
 		object >> oValue.value;
-		if(	folder == "log_weather_starter" &&
-			subroutine == "logging")
-		{
-			cout << flush;
-		}
 		if(method != "changedChip")
 		{
 			object >> oValue.lastChanging;
@@ -412,6 +407,7 @@ bool ProcessChecker::execute()
 		}else
 			m_pError->addMessage("ProcessChecker", "waitForQuestion");
 		msg= m_pError->getDescription();
+		m_sAnswer= m_pError->getErrorStr();
 		if(m_pError->hasError())
 		{
 			log= LOG_ERROR;
