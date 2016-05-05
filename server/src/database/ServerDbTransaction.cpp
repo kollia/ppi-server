@@ -1213,7 +1213,6 @@ namespace server
 			double value;
 			string onServer, chip;
 			map<string, set<string> >* mvFSubs;
-			OMethodStringStream command("changedChip");
 
 			db= DatabaseThread::instance()->getDatabaseObj();
 			object >> onServer;
@@ -1227,8 +1226,9 @@ namespace server
 				{
 					//cout << "  on server '" << onServer << "'  " << fit->first << ":" << *sit <<
 					//				" has new value " << value << " access " << boolalpha << device << endl;
-					OMethodStringStream sendMeth(fit->first);
+					OMethodStringStream sendMeth("changedChip");
 
+					sendMeth << fit->first;
 					sendMeth << *sit;
 					sendMeth << value;
 					sendMeth << device;
