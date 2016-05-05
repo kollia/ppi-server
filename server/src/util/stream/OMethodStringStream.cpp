@@ -97,22 +97,24 @@ string OMethodStringStream::str(bool withSync/*= false*/, bool withMethod/*= tru
 	ostringstream oID;
 
 	if(withMethod)
-	{
 		sRv= m_sMethod;
-		if(sRv != "")
-			sRv+= " ";
-	}
 	if(	withSync &&
 		m_nSyncID != 0)
 	{
+		if(sRv != "")
+			sRv+= " ";
 		oID << "syncID " << m_nSyncID;
 		sRv+= oID.str();
 	}
 	stream= OParameterStringStream::str();
 	if(stream != "")
 	{
-		if(sRv != "")
+		if(	sRv != "" &&
+			stream.substr(0, 1) != " " &&
+			stream.substr(0, 1) != "\t"		)
+		{
 			sRv+= " ";
+		}
 		sRv+= stream;
 	}
 	return sRv;

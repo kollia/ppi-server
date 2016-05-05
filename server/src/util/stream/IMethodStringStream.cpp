@@ -120,18 +120,10 @@ namespace util {
 	}
 
 	IMethodStringStream::IMethodStringStream(IMethodStringStreamPattern& obj)
-	: IParameterStringStream(obj.str())
+	: IParameterStringStream(obj.str(/*withSync*/false, /*withMethod*/false))
 	{
-		string method;
-
 		m_nSyncID= obj.getSyncID();
 		m_sMethod= obj.getMethodName();
-		m_sStream.str("");
-		if(m_sMethod != method)
-		{
-			m_sStream.seekg(0, ios::beg);
-			m_sStream.clear();
-		}
 	}
 
 	IMethodStringStream& IMethodStringStream::operator = (const IMethodStringStream& obj)
@@ -244,16 +236,14 @@ namespace util {
 		string sRv, stream;
 
 		if(withMethod)
-		{
 			sRv= m_sMethod;
-			if(sRv != "")
-				sRv+= " ";
-		}
 		if(	withSync &&
 			m_nSyncID > 0)
 		{
 			ostringstream ID;
 
+			if(sRv != "")
+				sRv+= " ";
 			sRv+= "syncID ";
 			ID << m_nSyncID;
 			sRv+= ID.str();
@@ -261,8 +251,12 @@ namespace util {
 		stream= m_sStream.str();
 		if(stream != "")
 		{
-			if(sRv != "")
+			if(	sRv != "" &&
+				stream.substr(0, 1) != " " &&
+				stream.substr(0, 1) != "\t"		)
+			{
 				sRv+= " ";
+			}
 			sRv+= stream;
 		}
 		return sRv;
