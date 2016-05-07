@@ -228,14 +228,13 @@ namespace ports
 		bool access, debug, bsetNewValue(false);
 		double value(0);
 		string addinfo;
-		ValueHolder oMeasureValue;
-		auto_ptr<IValueHolderPattern> oRv;
+		auto_ptr<IValueHolderPattern> oMeasureValue;
 
-		oRv= auto_ptr<IValueHolderPattern>(new ValueHolder());
+		oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 		debug= isDebug();
 		//Debug info to stop by right subroutine
 		/*if(	getFolderName() == "readVellemann0" &&
-			getSubroutineName() == "counter1"	)
+			getSubroutineName() == "digitalI5"	)
 		{
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
@@ -255,10 +254,12 @@ namespace ports
 			}
 			if(!m_pOWServer)
 			{
-				oMeasureValue.value= 0;
-				oMeasureValue.lastChanging.clear();
-				(*oRv)= oMeasureValue;
-				return oRv;
+				ppi_time nullTime;
+
+				nullTime.clear();
+				oMeasureValue->setValue(0);
+				oMeasureValue->setTime(nullTime);
+				return oMeasureValue;
 			}
 			registerSubroutine();
 		}
@@ -343,9 +344,8 @@ namespace ports
 			}
 		}
 
-		oMeasureValue.value= value;
-		(*oRv)= oMeasureValue;
-		return oRv;
+		oMeasureValue->setValue(value);
+		return oMeasureValue;
 	}
 
 	auto_ptr<IValueHolderPattern> ExternPort::getValue(const InformObject& who)
