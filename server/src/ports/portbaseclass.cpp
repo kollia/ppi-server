@@ -65,7 +65,7 @@ portBase::portBase(const string& type, const string& folderName,
 	m_bFloat= true;
 	m_dMin= 1;
 	m_dMax= 0;
-	m_bSwitch= false;
+	m_bBinary= false;
 	m_bConfigure= true;
 	m_bDebug= false;
 	m_sType= type;
@@ -117,7 +117,7 @@ bool portBase::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_
 	m_bTime= !properties->haveAction("notime");
 	m_sPermission= properties->getValue("perm", /*warning*/false);
 	m_bWriteDb= properties->haveAction("db");
-	m_bSwitch= properties->haveAction("binary");
+	m_bBinary= properties->haveAction("binary");
 	m_nCount= getRunningThread()->getActCount();
 	dDef= properties->getDouble(prop, /*warning*/false);
 	if(prop != "#ERROR")
@@ -200,7 +200,7 @@ void portBase::defineRange()
 	if(m_bDefined)
 	{
 		m_bFloat= bFloat;
-		if(	m_bSwitch &&
+		if(	m_bBinary &&
 			!bFloat &&
 			pmin &&
 			*pmin == 0 &&
@@ -219,7 +219,7 @@ void portBase::defineRange()
 				m_dMax= *pmax;
 			else
 				m_dMax= m_dMin >= 0 ? -1 : m_dMin -1;
-			if(	m_bSwitch &&
+			if(	m_bBinary &&
 				(	m_bFloat ||
 					m_dMin != 0 ||
 					m_dMax != 1		)	)
@@ -236,7 +236,7 @@ void portBase::defineRange()
 					msg+= " and maximal not 1";
 				LOG(LOG_WARNING, msg);
 				cerr << msg << endl;
-				m_bSwitch= false;
+				m_bBinary= false;
 			}
 		}
 	}
@@ -683,26 +683,26 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 			{
 				out() << "-------------------------------------------------------------------" << endl;
 				out() << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
-				if(m_bSwitch)
+				if(m_bBinary)
 					out() << " defined for binary switch";
 				out() << endl;
 				out() << "        set new value from " << from.toString() << endl;
 				out() << "            Incoming value:" << dec << value.getValue();
-				if(m_bSwitch)
+				if(m_bBinary)
 					out() << " binary " << switchBinStr(value.getValue());
 				out() << endl;
 				out() << "value before in subroutine:" << dec << m_dValue.value;
-				if(m_bSwitch)
+				if(m_bBinary)
 					out() << " binary " << switchBinStr(m_dValue.value);
 				out() << endl;
-				if(!m_bSwitch)
+				if(!m_bBinary)
 				{
 					out() << "                 min range:" << dec << m_dMin << endl;
 					out() << "                 max range:" << dec << m_dMax << endl;
 				}
 			}
 #endif // __moreOutput
-			if(m_bSwitch)
+			if(m_bBinary)
 			{
 				short svalue(static_cast<short>(dValue));
 
@@ -711,12 +711,16 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 				if(svalue & 0b01)
 					svalue= 0b11;
 				else if(svalue == 0b10) // only when svalue is 2 and not 6, 14, ...
-					svalue= 0b10;
-				else
-					svalue= static_cast<short>(m_dValue.value) & 0b10;
+				{
+					if(static_cast<short>(m_dValue.value) & 0b01)
+						svalue= 0b00;
+					else
+						svalue= 0b10;
+				}else
+					svalue= 0b00;
 				dValue= static_cast<double>(svalue);
 				dbvalue= svalue & 0b01 ? 1 : 0;
-				oldMember= ((int)m_dValue.value & 0b01) ? 1 : 0;
+				oldMember= (static_cast<short>(m_dValue.value) & 0b01) ? 1 : 0;
 
 			}else
 			{
@@ -736,11 +740,11 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 			if(debug)
 			{
 				out() << "          old member value:" << dec << oldMember;
-				if(m_bSwitch)
+				if(m_bBinary)
 					out() << " binary " << switchBinStr(oldMember);
 				out() << endl;
 				out() << "         new defined value:" << dec << dValue;
-				if(m_bSwitch)
+				if(m_bBinary)
 					out() << " binary " << switchBinStr(dValue);
 				out() << endl;
 				out() << "       new defined dbvalue:" << dec << dbvalue << endl;
@@ -779,11 +783,6 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 			m_bChanged= true;
 			if(m_bTime)
 				m_dValue.lastChanging= changedTime;
-			if(m_bSwitch)
-			{
-				for(map<InformObject, short>::iterator it= m_mdValue.begin(); it != m_mdValue.end(); ++it)
-					it->second= static_cast<short>(dValue);
-			}
 
 			// unlock VALUELOCK before informFolder()
 			// because when folder has an inform parameter (inside measure.conf)
@@ -848,7 +847,7 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 		if(debug)
 		{
 			out() << "       last state of value:" << dec << dValue;
-			if(m_bSwitch)
+			if(m_bBinary)
 				out() << " binary " << switchBinStr(dValue);
 			out() << endl;
 			out() << "-------------------------------------------------------------------" << endl;
@@ -937,8 +936,8 @@ bool portBase::setValue(const string& folder, const string& subroutine,
 auto_ptr<IValueHolderPattern> portBase::getValue(const InformObject& who)
 {
 //#undef __moreOutput
-	short nValue;
-	map<InformObject, short>::iterator found;
+	short nValue, sValue;
+	map<InformObject, pair<short, ppi_time> >::iterator found;
 	auto_ptr<IValueHolderPattern> oRv;
 
 	oRv= auto_ptr<IValueHolderPattern>(new ValueHolder());
@@ -958,40 +957,57 @@ auto_ptr<IValueHolderPattern> portBase::getValue(const InformObject& who)
 	{
 		out() << "-------------------------------------------------------------------" << endl;
 		out() << "subroutine '" << m_sFolder << ":" << m_sSubroutine << "'";
-		if(m_bSwitch)
+		if(m_bBinary)
 			out() << " defined for binary switch";
 		out() << endl;
 		out() << "        will be ask from '" << who << "'" << endl;
 	}
 #endif // __moreOutput
 
-	if(	m_bSwitch &&
+	oRv->setTimeValue(m_dValue);
+	if(	m_bBinary &&
 		who.getDirection() != InformObject::INTERNAL	)
 	{
+		ppi_time curT;
+
+		curT.setActTime();
 		nValue= static_cast<short>(m_dValue.value);
-		found= m_mdValue.find(who);
-		if(found == m_mdValue.end())
+		found= m_mdtLastValue.find(who);
+		if(found == m_mdtLastValue.end())
 		{
-			m_mdValue[who]= nValue;
-			oRv->setTimeValue(m_dValue);
+			if(nValue & 0b01)
+			{
+				m_mdtLastValue[who]= pair<short, ppi_time>(0b01, curT);
+				oRv->setValue(0b01);
+			}else
+				m_mdtLastValue[who]= pair<short, ppi_time>(0b00, curT);
 
 		}else
 		{
 			if(nValue & 0b01)
-				oRv->setTimeValue(m_dValue);
-			else
 			{
-				oRv->setValue(static_cast<ppi_value>(found->second));
-				found->second&= 0b01;
+				if(found->second.first & 0b01)
+					sValue= 0b11;
+				else
+					sValue= 0b01;
+			}else
+			{
+				if(	(found->second.first | 0b00) == 0b00 &&
+					found->second.second < m_dValue.lastChanging	)
+				{
+					sValue= 0b10;
+				}else
+					sValue= 0b00;
 			}
+			oRv->setValue(static_cast<ppi_value>(sValue));
+			found->second= pair<short, ppi_time>(sValue, curT);
 		}
-	}else
-		oRv->setTimeValue(m_dValue);
+	}
 #ifdef __moreOutput
 	if(debug)
 	{
 		out() << " return value " << m_oGetValue.value;
-		if(m_bSwitch)
+		if(m_bBinary)
 			cout << " binary " << switchBinStr(m_oGetValue.value);
 		out() << endl;
 		out() << "-------------------------------------------------------------------" << endl;
@@ -1425,7 +1441,7 @@ void portBase::lockApplication(bool bSet)
 
 bool portBase::onlySwitch()
 {
-	return m_bSwitch;
+	return m_bBinary;
 }
 
 ostringstream& portBase::out()

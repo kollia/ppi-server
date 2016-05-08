@@ -109,14 +109,6 @@ namespace ports
 		virtual void read(double* value)
 		{};
 		/**
-		 * overwrite portBase class to define access from outside,
-		 * if value defined for switching between 0 and 1
-		 *
-		 * @param who describe who need the value information
-		 * @return current value with last changing time
-		 */
-		OVERWRITE auto_ptr<IValueHolderPattern> getValue(const InformObject& who);
-		/**
 		 * check whether subroutine need an external owreader server
 		 *
 		 * @return whether need an server

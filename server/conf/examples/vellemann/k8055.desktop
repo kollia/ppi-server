@@ -127,12 +127,12 @@
 	<td>
 	</td>
 	<td>
-	  <component type="toggle" value="reset" align="center" result="writeVellemann0:reset1" />
+	  <component type="button" value="reset" align="center" result="writeVellemann0:reset1" />
 	</td>
 	<td>
 	</td>
 	<td>
-	  <component type="toggle" value="reset" result="writeVellemann0:reset2" />
+	  <component type="button" value="reset" result="writeVellemann0:reset2" />
 	</td>
       </tr>
       <tr>

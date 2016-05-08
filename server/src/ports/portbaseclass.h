@@ -113,9 +113,9 @@ namespace ports
 		private:
 			/**
 			 * whether subroutine is only for switching
-			 * between 0 and 1
+			 * between 0 and 1 for binary mode 0b00 - 0b01 - 0b11 - 0b10
 			 */
-			bool m_bSwitch;
+			bool m_bBinary;
 			/**
 			 * count number of subroutine
 			 * inside folder
@@ -196,10 +196,11 @@ namespace ports
 			 */
 			bool m_bOutsideChanged;
 			/**
-			 * all clients with values to know whether
+			 * all clients with values
+			 * and last request to know whether
 			 * switch subroutine was active between the last request
 			 */
-			map<InformObject, short> m_mdValue;
+			map<InformObject, pair<short, ppi_time> > m_mdtLastValue;
 			/**
 			 * type of this measure object
 			 */
@@ -351,7 +352,7 @@ namespace ports
 			 * @return whether subroutine is binary defined
 			 */
 			bool binary()
-			{ return m_bSwitch; };
+			{ return m_bBinary; };
 			/**
 			 * check whether subroutine need an external owreader server
 			 *

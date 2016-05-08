@@ -348,31 +348,6 @@ namespace ports
 		return oMeasureValue;
 	}
 
-	auto_ptr<IValueHolderPattern> ExternPort::getValue(const InformObject& who)
-	{
-		int nvalue;
-		double value;
-		auto_ptr<IValueHolderPattern> oGetValue;
-
-		if(!onlySwitch())
-			return portBase::getValue(who);
-		oGetValue= portBase::getValue(who);
-		if(who.getDirection() == InformObject::INTERNAL)
-		{
-			if(oGetValue->getValue())
-				oGetValue->setValue(1);
-			else
-				oGetValue->setValue(0);
-			return oGetValue;
-		}
-		value= (int)oGetValue->getValue();
-		nvalue= (int)value;
-		nvalue&= 0x01;
-		oGetValue->setValue(static_cast<ppi_value>(nvalue));
-		portBase::setValue(*oGetValue.get(), who);
-		return oGetValue;
-	}
-
 	ExternPort::~ExternPort()
 	{
 	}
