@@ -53,6 +53,10 @@ namespace ports
 		m_nAnalogOutputC1= 0;
 		m_nAnalogOutputC2= 0;
 		m_nDigitalOutput= 0x00;
+		m_bReadDigitalBefore[0]= false;
+		m_bReadDigitalBefore[1]= false;
+		m_dInputRecognition[0]= 0;
+		m_dInputRecognition[1]= 0;
 		m_nAnalogInputC1= 0;
 		m_nAnalogInputC2= 0;
 	}
@@ -333,6 +337,8 @@ namespace ports
 			long n= atoi(pin.substr(5, 1).c_str());
 
 			res= ResetCounter(n);
+			if(res >= 0)
+				m_dInputRecognition[n-1]= 0;
 
 		}else if(pin.substr(0, 8) == "debounce")
 		{
@@ -420,16 +426,23 @@ namespace ports
 
 		}else if(spin.substr(0, 1) == "I")
 		{
-			long count= 0;
-			long oldcount= 0;
+			bool recognize= false;
+			long dInputRecognition;
 			int pin= atoi(&spin[1]);
 			int res;
-			int nvalue= (int)value;
 
 			if(pin > 0 && pin <= 5)
 			{
+				if(pin > 0 && pin <= 2)
+				{
+					dInputRecognition= ReadCounter(pin);
+					if(m_dInputRecognition[pin-1] != dInputRecognition)
+					{
+						recognize= true;
+						m_dInputRecognition[pin-1]= dInputRecognition;
+					}
+				}
 				res= ReadDigitalChannel(pin);
-				//cout << "read pin " << id << " is single result " << res << endl;
 				if(res < 0)
 				{
 					//disconnect();
@@ -444,46 +457,45 @@ namespace ports
 					if(res < 0)
 					{
 						nRv= -1;
-						value= 0;
+						value= 0b00;
 					}
 				}
 				if(nRv >= 0)
 				{
+					value= 0b00;
 					if(pin > 0 && pin <= 2)
 					{
-						map<int, long>::iterator found;
+						if(	recognize ||
+							m_bReadDigitalBefore[pin-1]	)
+						{
+							if(res)
+							{
+								value= 0b11;
+								m_bReadDigitalBefore[pin-1]= true;
 
-						count= ReadCounter(pin);
-						found= m_mnCount.find(pin);
-						if(found != m_mnCount.end())
-						{
-							oldcount= found->second;
-							found->second= count;
-						}else
-						{
-							m_mnCount[pin]= count;
-							oldcount= count;
+							}else
+							{
+								if(recognize)
+									value= 0b10;
+								m_bReadDigitalBefore[pin-1]= false;
+							}
 						}
 					}else
 					{
-						count= 0;
-						oldcount= 0;
+						if(res)
+							value= 0b11;
 					}
-					if(	res || count != oldcount)
-						nvalue= res ? 0x03 : 0x02;
-					else
-						nvalue&= 0x02;
-					value= (double)nvalue;
-					//cout << " is result " << glob::getBinString(static_cast<long>(nvalue), 2) << endl;
-					if(value < 0)
-					{
-						value= 0;
-						nRv= -1;
-					}
+				}
+				if(pin == 1)
+				{
+					cout << "read pin " << id << " is single result '" << res << "'";
+					if(recognize)
+						cout << " recognize new count of " << dInputRecognition;
+					cout << " set value to " << value << endl;
 				}
 			}else
 			{
-				value= 0;
+				value= 0b00;
 				nRv= -1;
 			}
 

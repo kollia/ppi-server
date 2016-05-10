@@ -300,6 +300,16 @@ namespace ports
 			 */
 			int m_nDigitalInput;
 			/**
+			 * old reading of digital input
+			 * from pin 1 and 2
+			 */
+			bool m_bReadDigitalBefore[2];
+			/**
+			 * current count of digital input recognition
+			 * from pin 1 and 2
+			 */
+			long m_dInputRecognition[2];
+			/**
 			 * analog input from chanel A1
 			 */
 			long m_nAnalogInputC1;
@@ -307,10 +317,6 @@ namespace ports
 			 * analog input from chanel A2
 			 */
 			long m_nAnalogInputC2;
-			/**
-			 * map of counter for digital input
-			 */
-			map<int, long> m_mnCount;
 
 	}; // class VellemannK8055
 
