@@ -486,13 +486,13 @@ namespace ports
 							value= 0b11;
 					}
 				}
-				if(pin == 1)
+			/*	if(pin == 1)
 				{
 					cout << "read pin " << id << " is single result '" << res << "'";
 					if(recognize)
 						cout << " recognize new count of " << dInputRecognition;
 					cout << " set value to " << value << endl;
-				}
+				}*/
 			}else
 			{
 				value= 0b00;
