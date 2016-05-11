@@ -1736,13 +1736,7 @@ namespace ppi_database
 		debugSessionSubroutineMap::iterator foundTimer;
 		map<unsigned long, vector<db_t> >::iterator foundCon;
 		vector<db_t>::iterator foundEntry;
-		static bool first(true);
 
-		if(first)
-		{
-			cout << "[" << Thread::gettid() << "] Database::fillDebugSession" << endl;
-			first= false;
-		}
 		LOCK(m_DEBUGSESSIONQUEMUTEX);
 		nConnection= m_nCurDbgSessConnection;
 		if(nConnection > 0)

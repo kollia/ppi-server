@@ -68,7 +68,6 @@ namespace util
 					SHAREDPTR::shared_ptr<vector<sendingInfo_t> >& msgQueue,
 					SHAREDPTR::shared_ptr<debugSessionFolderMap>& debugQueue)
 	{
-		static bool first(true);
 		typedef map<string, db_t>::iterator subIt;
 		typedef debugSessionFolderMap::iterator debugIt;
 		typedef debugSessionSubroutineMap::iterator debugInnerIt;
@@ -103,11 +102,6 @@ namespace util
 		vector<string> answer;
 		ErrorHandling err;
 
-		if(first)
-		{
-			cout << "[" << Thread::gettid() << "] running DBFiller::sendDirect" << endl;
-			first= false;
-		}
 		/*
 		 * secure option when to much entries
 		 * inside debugQueue
