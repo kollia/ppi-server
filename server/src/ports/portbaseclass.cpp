@@ -712,10 +712,8 @@ void portBase::setValue(const IValueHolderPattern& value, const InformObject& fr
 					svalue= 0b11;
 				else if(svalue == 0b10) // only when svalue is 2 and not 6, 14, ...
 				{
-					if(static_cast<short>(m_dValue.value) & 0b01)
-						svalue= 0b00;
-					else
-						svalue= 0b10;
+					m_dValue.lastChanging.setActTime();
+					svalue= 0b10;
 				}else
 					svalue= 0b00;
 				dValue= static_cast<double>(svalue);
