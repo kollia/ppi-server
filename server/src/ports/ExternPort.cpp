@@ -223,18 +223,19 @@ namespace ports
 		return true;
 	}
 
-	auto_ptr<IValueHolderPattern> ExternPort::measure(const ppi_value& actValue)
+	auto_ptr<IValueHolderPattern> ExternPort::measure(const ppi_value& curValue)
 	{
 		bool access, debug, bsetNewValue(false);
 		double value(0);
+		double dSwitch(0);
 		string addinfo;
 		auto_ptr<IValueHolderPattern> oMeasureValue;
 
 		oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
 		debug= isDebug();
 		//Debug info to stop by right subroutine
-		/*if(	getFolderName() == "readVellemann0" &&
-			getSubroutineName() == "digitalI5"	)
+	/*	if(	getFolderName() == "writeVellemann" &&
+			getSubroutineName() == "analogPWM1set"	)
 		{
 			cout << __FILE__ << __LINE__ << endl;
 			cout << getFolderName() << ":" << getSubroutineName() << endl;
@@ -272,7 +273,7 @@ namespace ports
 				m_pOWServer->read(m_sChipID, &value);
 				m_bFirstRead= false;
 			}else
-				value= actValue;
+				value= curValue;
 			read(&value);
 			if(debug)
 			{
@@ -307,21 +308,20 @@ namespace ports
 				out() << endl;
 			}
 
-			if(!m_bDoSwitch)
-				m_dLastWValue= actValue;
-			m_dLastWValue= switchClass::measure(m_dLastWValue)->getValue();
+			if(m_bDoSwitch)
+				dSwitch= switchClass::measure(dSwitch)->getValue();
 			if(	!m_bDoSwitch ||
-				m_dLastWValue != 0	)
+				dSwitch != 0	)
 			{
 				if(!m_oValue.isEmpty())
 					m_oValue.calculate(value);
 				else
-					value= m_dLastWValue ? 1 : 0;
+					value= curValue;
 				access= write(m_sChipID, value, addinfo);
 				setDeviceAccess(access);
 				bsetNewValue= true;
 			}else
-				value= actValue;
+				value= curValue;
 
 			if(debug)
 			{
@@ -330,7 +330,7 @@ namespace ports
 				if(access)
 				{
 					if(	!m_bDoSwitch ||
-						m_dLastWValue != 0	)
+						dSwitch != 0	)
 					{
 						out() << "write on unique id '" << m_sChipID;
 						out() << "' to output " << value;

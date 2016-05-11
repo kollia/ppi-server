@@ -55,7 +55,6 @@ namespace ports
 		switchClass(type, folder, subroutine, objectID),
 		m_bFirstAllocate(true),
 		m_oValue(folder, subroutine, "value", true, false, this),
-		m_dLastWValue(0),
 		m_bDoSwitch(false),
 		m_bFirstRead(true)
 		{ };
@@ -163,10 +162,6 @@ namespace ports
 		 * calculation of value
 		 */
 		ListCalculator m_oValue;
-		/**
-		 * value by last pass of writing measure method
-		 */
-		double m_dLastWValue;
 		/**
 		 * whether is set an begin, while or end property
 		 */

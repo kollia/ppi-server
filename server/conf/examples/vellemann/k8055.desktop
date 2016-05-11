@@ -12,23 +12,23 @@
       </tr>
       <tr>
 	<td>
-	  <component type="checkbox" result="readVellemann0:digitalI1" />
+	  <input type="checkbox" result="readVellemann:digitalI1" />
 	  I1
 	</td>
 	<td>
-	  <component type="checkbox" result="readVellemann0:digitalI2" />
+	  <input type="checkbox" result="readVellemann:digitalI2" />
 	  I2
 	</td>
 	<td>
-	  <component type="checkbox" result="readVellemann0:digitalI3" />
+	  <input type="checkbox" result="readVellemann:digitalI3" />
 	  I3
 	</td>
 	<td>
-	  <component type="checkbox" result="readVellemann0:digitalI4" />
+	  <input type="checkbox" result="readVellemann:digitalI4" />
 	  I4
 	</td>
 	<td>
-	  <component type="checkbox" result="readVellemann0:digitalI5" />
+	  <input type="checkbox" result="readVellemann:digitalI5" />
 	  I5
 	</td>
       </tr>
@@ -43,35 +43,35 @@
       </tr>
       <tr>
 	<td>
-	  <component type="checkbox" result="writeVellemann0:digital01" />
+	  <input type="checkbox" result="writeVellemann:digital01" />
 	  01
 	</td>
 	<td>
-	  <component type="checkbox" result="writeVellemann0:digital02" />
+	  <input type="checkbox" result="writeVellemann:digital02" />
 	  02
 	</td>
 	<td>
-	  <component type="checkbox" result="writeVellemann0:digital03" />
+	  <input type="checkbox" result="writeVellemann:digital03" />
 	  03
 	</td>
 	<td>
-	  <component type="checkbox" result="writeVellemann0:digital04" />
+	  <input type="checkbox" result="writeVellemann:digital04" />
 	  04
 	</td>
 	<td>
-	  <component type="checkbox" result="writeVellemann0:digital05" />
+	  <input type="checkbox" result="writeVellemann:digital05" />
 	  05
 	</td>
 	<td>
-	  <component type="checkbox" result="writeVellemann0:digital06" />
+	  <input type="checkbox" result="writeVellemann:digital06" />
 	  06
 	</td>
 	<td>
-	  <component type="checkbox" result="writeVellemann0:digital07" />
+	  <input type="checkbox" result="writeVellemann:digital07" />
 	  07
 	</td>
 	<td>
-	  <component type="checkbox" result="writeVellemann0:digital08" />
+	  <input type="checkbox" result="writeVellemann:digital08" />
 	  08
 	</td>
       </tr>
@@ -88,23 +88,23 @@
       <tr>
 	<td>
 	  PWM1
-	  <component type="scale" height="200" result="writeVellemann0:analogPWM1" min="0" max="255" />
+	  <input type="range" height="200" result="writeVellemann:analogPWM1" min="0" max="255" />
 	</td>
 	<td>
 	  PWM2
-	  <component type="scale" height="200" result="writeVellemann0:analogPWM2" min="0" max="255" />
+	  <input type="range" height="200" result="writeVellemann:analogPWM2" min="0" max="255" />
 	</td>
 	<td width="150">
 	</td>
 	<td>
-	  <component type="scale" height="200" result="readVellemann0:analogA1" min="0" max="255" />
+	  <input type="range" height="200" result="readVellemann:analogA1" min="0" max="255" />
 	  A1<br />
-	  <component type="input" value="" width="30" result="readVellemann0:analogA1" />
+	  <input type="input" value="" width="30" result="readVellemann:analogA1" />
 	</td>
 	<td>
-	  <component type="scale" height="200" result="readVellemann0:analogA2" min="0" max="255" />
+	  <input type="range" height="200" result="readVellemann:analogA2" min="0" max="255" />
 	  A2<br />
-	  <component type="input" value="" width="30" result="readVellemann0:analogA2" />
+	  <input type="input" value="" width="30" result="readVellemann:analogA2" />
 	</td>
       </tr>
     </table><br />
@@ -114,25 +114,25 @@
 	  counter 1:
 	</td>
 	<td>
-	  <component type="input" format="#1" value="" readonly="readonly" result="readVellemann0:counter1" />
+	  <input type="input" format="#1" value="" readonly="readonly" result="readVellemann:counter1" />
 	</td>
 	<td>
 	  counter 2:
 	</td>
 	<td>
-	  <component type="input" value="" readonly="readonly" result="readVellemann0:counter2" />
+	  <input type="input" value="" readonly="readonly" result="readVellemann:counter2" />
 	</td>
       </tr>
       <tr>
 	<td>
 	</td>
 	<td>
-	  <component type="button" value="reset" align="center" result="writeVellemann0:reset1" />
+	  <input type="button" value="reset" align="center" result="writeVellemann:reset1" />
 	</td>
 	<td>
 	</td>
 	<td>
-	  <component type="button" value="reset" result="writeVellemann0:reset2" />
+	  <input type="button" value="reset" result="writeVellemann:reset2" />
 	</td>
       </tr>
       <tr>
@@ -140,26 +140,26 @@
 	</td>
 	<td>
 	  debounce time<br />
-	  <component type="radio" name="myradio1" value="0" result="writeVellemann0:debounce1" />
+	  <input type="radio" name="myradio1" value="0" result="writeVellemann:debounce1" />
 	  0 ms<br />
-	  <component type="radio" name="myradio1" value="1" result="writeVellemann0:debounce1" />
+	  <input type="radio" name="myradio1" value="1" result="writeVellemann:debounce1" />
 	  2 ms<br />
-	  <component type="radio" name="myradio1" value="2" result="writeVellemann0:debounce1" />
+	  <input type="radio" name="myradio1" value="2" result="writeVellemann:debounce1" />
 	  10 ms<br />
-	  <component type="radio" name="myradio1" value="3" result="writeVellemann0:debounce1" />
+	  <input type="radio" name="myradio1" value="3" result="writeVellemann:debounce1" />
 	  1000 ms<br />
 	</td>
 	<td>
 	</td>
 	<td>
 	  debounce time<br />
-	  <component type="radio" name="myradio2" value="0" result="writeVellemann0:debounce2" />
+	  <input type="radio" name="myradio2" value="0" result="writeVellemann:debounce2" />
 	  0 ms<br />
-	  <component type="radio" name="myradio2" value="2" result="writeVellemann0:debounce2" />
+	  <input type="radio" name="myradio2" value="2" result="writeVellemann:debounce2" />
 	  2 ms<br />
-	  <component type="radio" name="myradio2" value="10" result="writeVellemann0:debounce2" />
+	  <input type="radio" name="myradio2" value="10" result="writeVellemann:debounce2" />
 	  10 ms<br />
-	  <component type="radio" name="myradio2" value="1000" result="writeVellemann0:debounce2" />
+	  <input type="radio" name="myradio2" value="1000" result="writeVellemann:debounce2" />
 	  1000 ms<br />
 	</td>
       </tr>
