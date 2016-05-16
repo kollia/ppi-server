@@ -1209,7 +1209,8 @@ namespace server
 								command= "read";
 							else
 								command= "write";
-							if(user->hasPermission(account, values[0], values[1], command))
+							if(	descriptor.getString("username") == user->getRootUser() ||
+								user->hasPermission(account, values[0], values[1], command)	)
 							{
 								if(bGet)
 								{
