@@ -285,14 +285,12 @@ void help(char* cpSelf)
 	std::cout << "                         -     changing user, user name and password" << endl;
 	std::cout << "                               this command is only when ppi-server is started with option --wait or --hear" << endl;
 	std::cout << "                               (better description will be inside the editor started with describt options)" << endl;
-	std::cout << "                PERMISSION <groupnames>" << endl;
-	std::cout << "                         -     ask permission for group." << endl;
-	std::cout << "                               also more than one groups can be ask, separated with an colon" << endl;
+	std::cout << "                PERMISSION < groupname | folder:subroutine >" << endl;
+	std::cout << "                         -     when no colon inside parameter, ask whether user has permission to group," << endl;
+	std::cout << "                               otherwise permission to subroutine inside folder" << endl;
 	std::cout << "                               RESULT:  write - user has permission to read and write" << endl;
 	std::cout << "                                        read  - user has only permission to read" << endl;
-	std::cout << "                                        noSubroutine  - given subroutine do not exist inside folder" << endl;
-	std::cout << "                                        noFolder      - given Folder do not exist" << endl;
-	std::cout << "                                        ERROR 003     - fault insert of folder:subroutine" << endl;
+	std::cout << "                                        none  - user has no permission" << endl;
 	std::cout << "                GET <folder>:<subroutine>" << endl;
 	std::cout << "                         -     get the current value from the subroutines in the folder" << endl;
 	std::cout << "                               folder and subroutine are separated with an colon" << endl;

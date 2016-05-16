@@ -784,39 +784,39 @@ namespace server
 						&&
 						input.substr(0, 10) == "PERMISSION"	)
 			{
+				string sGroupSub;
 				string username(descriptor.getString("username"));
 				UserManagement* user= UserManagement::instance();
 
-				input= input.substr(10);
-				input= ConfigPropertyCasher::trim(input);
-				// set third parameter to 'read'
-				// because method ask only to have any permission
-				if(user->hasPermission(username, input, "write"))
-					sendmsg= "write";
-				else if(user->hasPermission(username, input, "read"))
-					sendmsg= "read";
-				else
-				{
-					unsigned short nExist;
+				sGroupSub= input.substr(10);
+				trim(sGroupSub);
+				if(sGroupSub.find(':') == string::npos)
+				{// ask whether user has access to group
+					if(user->hasPermission(username, sGroupSub, "write"))
+						sendmsg= "write";
+					else if(user->hasPermission(username, sGroupSub, "read"))
+						sendmsg= "read";
+					else
+						sendmsg= "none";
+				}else
+				{// ask whether user has access to subroutine
 					string folder, subroutine;
 					vector<string> spl;
-					DbInterface* db= DbInterface::instance();
 
-					split(spl, input, is_any_of(":"));
-					if(spl.size() <= 2)
+					split(spl, sGroupSub, is_any_of(":"));
+					if(spl.size() == 2)
 					{
-						folder= spl[0];
-						if(spl.size() == 2)
-							subroutine= spl[1];
-						nExist= db->existEntry(folder, subroutine, "value", 0);
-						if(nExist == 0)
-							sendmsg= "noFolder";
-						else if(nExist == 1)
-							sendmsg= "noSubroutine";
-						else
+						if(!user->hasPermission(username, spl[0], spl[1], "read"))
 							sendmsg= "none";
+						else if(!user->hasPermission(username, spl[0], spl[1], "write"))
+							sendmsg= "read";
+						else
+							sendmsg= "write";
 					}else
-						sendmsg= "ERROR 003";
+					{
+						descriptor << DEBUGERROR(descriptor, 12, sGroupSub, "");
+						return descriptor.getBoolean("wait");
+					}
 				}
 	#ifdef SERVERDEBUG
 				cout << "send: " << sendmsg << endl;
@@ -1209,7 +1209,7 @@ namespace server
 								command= "read";
 							else
 								command= "write";
-							if(	descriptor.getString("username") == user->getRootUser() ||
+							if(	account == user->getRootUser() ||
 								user->hasPermission(account, values[0], values[1], command)	)
 							{
 								if(bGet)
@@ -1553,7 +1553,7 @@ namespace server
 			str= "wrong user or password";
 			break;
 		case 12:
-			str= "do not use error number 12 now";
+			str= "wrong folder:subroutine definition is given";
 			break;
 		case 13:
 			str= "user has no permission";
