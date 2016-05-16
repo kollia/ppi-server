@@ -38,7 +38,16 @@ enum which_time
 	/**
 	 * set seconds since 1.1.1970 into subroutine value
 	 */
-	pass,
+	unixtime,
+	/**
+	 * describe day of week
+	 * beginning with sunday (0), monday (1), ...
+	 */
+	weekday,
+	/**
+	 * describe daylight saving time (summer time)
+	 */
+	DST,
 	/**
 	 * set actual second (0-59) into subroutine value
 	 */
@@ -206,7 +215,7 @@ protected:
 	 *              count the setting time down to 0 inside the case of begin, while, end.
 	 *              previously when a situation arise that parameter while ending or end is achieved (only when set),
      *              the count down to 0 is also reached.
-     *              The next pass of this subroutine when 0 was reached before, the value is -1
+     *              The next unixtime of this subroutine when 0 was reached before, the value is -1
      *              value -1 is also the case when no count down running.
      *              When the count down finished with 0, but inside while/end the routine found no ending
      *              and action poll be set, the subroutine begins again to run with full time.
@@ -251,7 +260,10 @@ protected:
 	 */
 	bool m_bSwitchbyTime;
 	/**
-	 * whether should shown time since 1.1.1970 inside result
+	 * whether should shown time since 1.1.1970 ,
+	 * day of week (beginning with Sunday (=0), Monday (=1), ...),
+	 * or daylight saved time (summertime) inside result
+	 * by current passing of subroutines
 	 */
 	bool m_bPassSecs;
 	/**
@@ -396,7 +408,7 @@ private:
 	 */
 	bool m_bPoll;
 	/**
-	 * Time measured by last pass
+	 * Time measured by last unixtime
 	 */
 	double m_dTimeBefore;
 	/**

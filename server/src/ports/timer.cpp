@@ -38,7 +38,7 @@ using namespace ppi_database;
 bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFolder)
 {
 	DbInterface *db= DbInterface::instance();
-	bool bBegin, bWhile, bEnd, bOk= true, bAlwaysBegin= false, bTimeMeasure= false;
+	bool bBegin, bWhile, bEnd, bOk= true, bAlwaysBegin= false;
 	double dDefault, dTimerStat;
 	string prop, smtime, sSetNull;
 	string folder(getFolderName()), subroutine(getSubroutineName());
@@ -63,10 +63,20 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 	// case 1: folder should polling all seconds, minutes, hours, ...
 	if(properties->haveAction("unixtime"))
 	{
-		m_eWhich= pass;
+		m_eWhich= unixtime;
 		m_bPassSecs= true;
-	}
-	if(properties->haveAction("seconds"))
+
+	}else if(properties->haveAction("weekday"))
+	{
+		m_eWhich= weekday;
+		m_bPassSecs= true;
+
+	}else if(properties->haveAction("DST"))
+	{
+		m_eWhich= DST;
+		m_bPassSecs= true;
+
+	}else if(properties->haveAction("seconds"))
 		m_eWhich= seconds;
 	else if(properties->haveAction("minutes"))
 		m_eWhich= minutes;
@@ -78,16 +88,14 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		m_eWhich= months;
 	else if(properties->haveAction("years"))
 		m_eWhich= years;
-
 	if(m_eWhich != notype)
-		m_nCaseNr= 1;
-
-	if(	m_nCaseNr == 0 &&
-		properties->haveAction("activate")	)
 	{
 		// -----------------------------------------------------------------------
-		// case 2: time count down to setting date time
-		m_nCaseNr= 2;
+		// case 1: folder should show seconds, minutes, hours, ...
+		m_nCaseNr= 1;
+	}
+	if(m_eWhich != unixtime)
+	{
 		m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
 		if(!m_oYears.isEmpty())
 			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
@@ -107,9 +115,26 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 		if(!m_oSeconds.isEmpty())
 			m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
 	}
+
+	if( m_nCaseNr == 1 &&
+		m_tmSec == 0		)
+	{
+		m_bPoll= properties->haveAction("poll");
+	}
+	if(	m_nCaseNr == 0 &&
+		m_tmSec == 1 &&
+		properties->haveAction("activate") )
+	{
+		// -----------------------------------------------------------------------
+		// case 2: time count down to setting date time
+		m_nCaseNr= 2;
+	}
+
 	if(m_nCaseNr == 0)
 	{
-		bTimeMeasure= true;// will be the case of 5
+		// -----------------------------------------------------------------------
+		// case 3 or 4: count the time down to 0, or up to full time
+		// case 5: measure time inside case of begin/while/end
 		m_bSeconds= true;//default
 		if(!properties->haveAction("sec"))
 			if(properties->haveAction("micro"))
@@ -117,69 +142,31 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 
 		// -----------------------------------------------------------------------
 		// case 3 or 4: count the time down to 0, or up to full time
-		// case 5: measure time inside case of begin/while/end
-		smtime= properties->getValue("mtime", /*warning*/false);
-		m_omtime.init(pStartFolder, smtime);
-		if(m_omtime.isEmpty())
+		if(!m_bSeconds)
 		{
-			if(m_bSeconds)
-			{
-				m_oYears.init(pStartFolder, properties->getValue("year", /*warning*/false));
-				if(!m_oYears.isEmpty())
-				{
-					m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-					bTimeMeasure= false;
-				}
-				m_oMonths.init(pStartFolder, properties->getValue("month", /*warning*/false));
-				if(!m_oMonths.isEmpty())
-				{
-					m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-					bTimeMeasure= false;
-				}
-			}
-			m_oDays.init(pStartFolder, properties->getValue("day", /*warning*/false));
-			if(!m_oDays.isEmpty())
-			{
+			m_oMilliseconds.init(pStartFolder, properties->getValue("millisec", /*warning*/false));
+			if(!m_oMilliseconds.isEmpty())
 				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-				bTimeMeasure= false;
-			}
-			m_oHours.init(pStartFolder, properties->getValue("hour", /*warning*/false));
-			if(!m_oHours.isEmpty())
-			{
+			m_oMicroseconds.init(pStartFolder, properties->getValue("microsec", /*warning*/false));
+			if(!m_oMicroseconds.isEmpty())
 				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-				bTimeMeasure= false;
-			}
-			m_oMinutes.init(pStartFolder, properties->getValue("min", /*warning*/false));
-			if(!m_oMinutes.isEmpty())
-			{
-				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-				bTimeMeasure= false;
-			}
-			m_oSeconds.init(pStartFolder, properties->getValue("sec", /*warning*/false));
-			if(!m_oSeconds.isEmpty())
-			{
-				m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-				bTimeMeasure= false;
-			}
-			if(!m_bSeconds)
-			{
-				m_oMilliseconds.init(pStartFolder, properties->getValue("millisec", /*warning*/false));
-				if(!m_oMilliseconds.isEmpty())
-				{
-					m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-					bTimeMeasure= false;
-				}
-				m_oMicroseconds.init(pStartFolder, properties->getValue("microsec", /*warning*/false));
-				if(!m_oMicroseconds.isEmpty())
-				{
-					m_tmSec= 1;// calculate time from parameter millisec, sec, min and so on
-					bTimeMeasure= false;
-				}
-			}
-		}else
-			bTimeMeasure= false;
+		}
+		if(m_tmSec != 1)
+		{
+			smtime= properties->getValue("mtime", /*warning*/false);
+			m_omtime.init(pStartFolder, smtime);
+		}
 
-		if(!bTimeMeasure)
+		// -----------------------------------------------------------------------
+		// case 5: measure time inside case of begin/while/end
+		if(	m_tmSec != 1 &&
+			m_omtime.isEmpty()	)
+		{
+			m_nCaseNr= 5;
+			sSetNull= properties->getValue("setnull", /*warning*/false);
+			m_oSetNull.init(pStartFolder, sSetNull);
+
+		}else
 		{
 			// -----------------------------------------------------------------------
 			// case 3 or 4: count the time down to 0, or up to full time
@@ -201,13 +188,6 @@ bool timer::init(IActionPropertyPattern* properties, const SHAREDPTR::shared_ptr
 				m_nCaseNr= 4;
 				m_nDirection= -1;
 			}
-		}else
-		{
-			// -----------------------------------------------------------------------
-			// case 5: measure time inside case of begin/while/end
-			m_nCaseNr= 5;
-			sSetNull= properties->getValue("setnull", /*warning*/false);
-			m_oSetNull.init(pStartFolder, sSetNull);
 		}
 	}
 
@@ -759,7 +739,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 		switch(m_nCaseNr)
 		{
 		case 1:
-			if(m_eWhich != pass)
+			if(m_eWhich > DST)
 			{
 				sout << "folder polling all ";
 				switch(m_eWhich)
@@ -788,9 +768,26 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 				}
 				if(m_bPassSecs)
 					sout << " and ";
-			} // end of if(m_eWhich != pass)
+			} // end of if(m_eWhich != unixtime)
 			if(m_bPassSecs)
-				sout << "writing by every pass current seconds since 1970.01.01";
+			{
+				sout << "writing by every pass current ";
+				switch(m_eWhich)
+				{
+				case unixtime:
+					sout << "seconds since 1970.01.01";
+					break;
+				case weekday:
+					sout << "day of week";
+					break;
+				case DST:
+					sout << "daylight saving time (summertime)";
+					break;
+				default:
+					sout << "unknown time";
+					break;
+				}
+			}
 			break;
 		case 2:
 			char timeString[21];
@@ -1524,7 +1521,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool debug)
 {
 	double need= -1;
-	time_t actTime, thisTime;
+	time_t curTime, thisTime;
 	tm local;
 	ostringstream endstream;
 
@@ -1538,17 +1535,29 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 		if(	!m_bSwitchbyTime ||
 			bswitch				)
 		{
-			if(m_eWhich != pass)
-				out() << "subroutine is defined to measure time of date" << endl;
-			else
+			switch(m_eWhich)
+			{
+			case unixtime:
 				out() << "subroutine is only defined to write seconds every passing" << endl;
+				break;
+			case weekday:
+				out() << "subroutine is only defined to describe day of week" << endl;
+				break;
+			case DST:
+				out() << "subroutine is only defined to describe whether daylight saving time is given" << endl;
+				break;
+			default:
+				out() << "subroutine is defined to measure time of date" << endl;
+				break;
+			}
 		}else
-			out() << "subroutine is this time inside begin/while/end not defined for measure" << endl;
+			out() << "subroutine is this time inside begin/while/end not defined to measure" << endl;
 	}
-	if(	m_bSwitchbyTime &&
+	if(	m_nCaseNr == 2 &&
+		m_bSwitchbyTime &&
 		!bswitch			)
 	{
-		if(m_tmStop.tv_sec <= actTime)
+		if(m_tmStop.tv_sec <= curTime)
 		{
 			LOCK(m_SUBVARLOCK);
 			m_bRunTime= false;
@@ -1558,9 +1567,35 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 			return -1;
 		}
 	}
-	actTime= tv.tv_sec;
-	if(m_eWhich > pass)
-		if(localtime_r(&actTime, &local) == NULL)
+	thisTime= 0;
+	curTime= tv.tv_sec;
+	if(m_eWhich != unixtime)
+	{
+		double res;
+
+		if(!m_oSeconds.isEmpty())
+		{
+			m_oSeconds.calculate(res);
+			thisTime+= static_cast<time_t>(res);
+		}
+		if(!m_oMinutes.isEmpty())
+		{
+			m_oMinutes.calculate(res);
+			thisTime+= static_cast<time_t>(res) * 60;
+		}
+		if(!m_oHours.isEmpty())
+		{
+			m_oHours.calculate(res);
+			thisTime+= static_cast<time_t>(res) * 60 * 60;
+		}
+		if(!m_oYears.isEmpty())
+		{
+			m_oYears.calculate(res);
+			thisTime+= static_cast<time_t>(res) * 24 * 60 * 60;
+		}
+		if(thisTime > 0)
+			curTime= thisTime;
+		if(localtime_r(&curTime, &local) == NULL)
 		{
 			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
 			LOCK(m_SUBVARLOCK);
@@ -1570,10 +1605,13 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 				out() << "result of time by ERROR is -1 second (NO RUN)" << endl;
 			return -1;
 		}
+	}
 	if(debug)
 		out() << "measuring is defined for ";
-	if(	m_tmStop.tv_sec > actTime ||
-		m_eWhich == pass			)
+	if(	( m_nCaseNr == 2 &&
+		  m_tmStop.tv_sec > curTime	) ||
+		( m_nCaseNr == 1 &&
+		  thisTime > 0		)			)
 	{
 		switch(m_eWhich)
 		{
@@ -1581,73 +1619,71 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 			if(debug)
 				out() << "seconds" << endl;
 			break;
-		case pass:
+		case unixtime:
 			if(debug)
-				out() << " write seconds since 1970.01.01" << endl;
+				out() << "write seconds since 1970.01.01" << endl;
+			break;
+		case weekday:
+			if(debug)
+				out() << "write day of week" << endl;
+			curTime= local.tm_wday;
+			break;
+		case DST:
+			if(debug)
+				out() << "write daylight saved time or normal time (summertime/wintertime)" << endl;
+			curTime= local.tm_isdst;
 			break;
 		case seconds:
 			if(debug)
 				out() << "seconds" << endl;
 			if(!m_bPassSecs)
-				actTime= local.tm_sec;
+				curTime= local.tm_sec;
 			break;
 		case minutes:
 			if(debug)
 				out() << "minutes" << endl;
 			if(!m_bPassSecs)
-				actTime= local.tm_min;
+				curTime= local.tm_min;
 			break;
 		case hours:
 			if(debug)
 				out() << "hours" << endl;
 			if(!m_bPassSecs)
-				actTime= local.tm_hour;
+				curTime= local.tm_hour;
 			break;
 		case days:
 			if(debug)
 				out() << "days" << endl;
 			if(!m_bPassSecs)
-				actTime= local.tm_mday;
+				curTime= local.tm_mday;
 			break;
 		case months:
 			if(debug)
 				out() << "months" << endl;
 			if(!m_bPassSecs)
-				actTime= local.tm_mon + 1;
+				curTime= local.tm_mon + 1;
 			break;
 		case years:
 			if(debug)
 				out() << "years" << endl;
 			if(!m_bPassSecs)
-				actTime= local.tm_year + 1900;
+				curTime= local.tm_year + 1900;
 			break;
 		}
 		if(debug)
 		{
-			tm l;
-
-			if(localtime_r(&tv.tv_sec, &l) == NULL)
+			out() << "     current calculated date is " << asctime(&local);
+			if(static_cast<double>(curTime) < 0)
 			{
-				TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
-			}
-			out() << "              actual time is " << asctime(&l);
-			if(m_eWhich != pass)
-			{
-				if(localtime_r(&m_tmStop.tv_sec, &l) == NULL)
-				{
-					TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct localtime");
-				}
-				out() << "folder was set to refresh at " << asctime(&l);
-			}
-			out() << "result of subroutine is " << actTime << endl;
+				out() << "result of time by ERROR is "
+					<< static_cast<double>(curTime) << " second (RUN)" << endl;
+			}else
+				out() << "result of subroutine is " << curTime << " (RUN)" << endl;
 		}
 		LOCK(m_SUBVARLOCK);
 		m_bRunTime= true;
 		UNLOCK(m_SUBVARLOCK);
-		if(debug)
-			out() << "result of time by ERROR is "
-				<< static_cast<double>(actTime) << " second (RUN)" << endl;
-		return static_cast<double>(actTime);
+		return static_cast<double>(curTime);
 	}
 	if(m_tmSec > 0)
 	{
@@ -1669,13 +1705,14 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 			m_oHours.calculate(res);
 			m_tmSec+= static_cast<time_t>(res) * 60 * 60;
 		}
-		if(!m_oDays.isEmpty())
+		if(!m_oYears.isEmpty())
 		{
-			m_oDays.calculate(res);
+			m_oYears.calculate(res);
 			m_tmSec+= static_cast<time_t>(res) * 24 * 60 * 60;
 		}
 	}
-	m_tmStop.tv_sec= actTime + m_tmSec;
+	thisTime= 0;
+	m_tmStop.tv_sec= curTime + m_tmSec;
 	switch(m_eWhich)
 	{
 	case notype:
@@ -1684,53 +1721,75 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 		if(m_tmSec == 0)
 			m_tmStop.tv_sec+= 1;
 		break;
-	case pass:
+	case unixtime:
+		if(debug)
+			out() << "seconds" << endl;
+		if(m_tmSec == 0)
+			m_tmStop.tv_sec+= 1;
+		curTime= tv.tv_sec;
+		break;
+	case weekday:
+		if(debug)
+			out() << "days" << endl;
+		thisTime= local.tm_wday;
+		if(m_tmSec == 0)
+			m_tmStop.tv_sec= Calendar::nextDay(curTime, &local);
+		curTime= thisTime;
+		break;
+	case DST:
+		if(debug)
+			out() << "hours" << endl;
+		thisTime= local.tm_isdst;
+		if(m_tmSec == 0) // check all hours whether is summertime
+			m_tmStop.tv_sec= Calendar::nextHour(curTime, &local);
+		curTime= thisTime;
+		break;
 	case seconds:
 		if(debug)
 			out() << "seconds" << endl;
 		if(m_tmSec == 0)
 			m_tmStop.tv_sec+= 1;
-		actTime= local.tm_sec;
+		curTime= local.tm_sec;
 		break;
 	case minutes:
 		if(debug)
 			out() << "minutes" << endl;
 		thisTime= local.tm_min;
 		if(m_tmSec == 0)
-			m_tmStop.tv_sec= Calendar::nextMinute(actTime, &local);
-		actTime= thisTime;
+			m_tmStop.tv_sec= Calendar::nextMinute(curTime, &local);
+		curTime= thisTime;
 		break;
 	case hours:
 		if(debug)
 			out() << "hours" << endl;
 		thisTime= local.tm_hour;
 		if(m_tmSec == 0)
-			m_tmStop.tv_sec= Calendar::nextHour(actTime, &local);
-		actTime= thisTime;
+			m_tmStop.tv_sec= Calendar::nextHour(curTime, &local);
+		curTime= thisTime;
 		break;
 	case days:
 		if(debug)
 			out() << "days" << endl;
 		thisTime= local.tm_mday;
 		if(m_tmSec == 0)
-			m_tmStop.tv_sec= Calendar::nextDay(actTime, &local);
-		actTime= thisTime;
+			m_tmStop.tv_sec= Calendar::nextDay(curTime, &local);
+		curTime= thisTime;
 		break;
 	case months:
 		if(debug)
 			out() << "months" << endl;
 		thisTime= local.tm_mon + 1;
 		if(m_tmSec == 0)
-			m_tmStop.tv_sec= Calendar::nextMonth(actTime, &local);
-		actTime= thisTime;
+			m_tmStop.tv_sec= Calendar::nextMonth(curTime, &local);
+		curTime= thisTime;
 		break;
 	case years:
 		if(debug)
 			out() << "years" << endl;
 		thisTime= local.tm_year + 1900;
 		if(m_tmSec == 0)
-			m_tmStop.tv_sec= Calendar::nextYear(actTime, &local);
-		actTime= thisTime;
+			m_tmStop.tv_sec= Calendar::nextYear(curTime, &local);
+		curTime= thisTime;
 		break;
 	}
 	if(debug)
@@ -1747,14 +1806,15 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct local time");
 		}
 		out() << "folder should be refreshed at " << asctime(&l);
-		out() << "result of subroutine is " << actTime << " (RUN)" << endl;
+		out() << "result of subroutine is " << curTime << " (RUN)" << endl;
 	}
 	LOCK(m_SUBVARLOCK);
 	m_bRunTime= true;
 	UNLOCK(m_SUBVARLOCK);
 	// toDo: measure to correct time
-	getRunningThread()->nextActivateTime(getFolderName(), m_tmStop);
-	return static_cast<double>(actTime);
+	if(m_bPoll)
+		getRunningThread()->nextActivateTime(getFolderName(), m_tmStop);
+	return static_cast<double>(curTime);
 }
 
 double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* next)
