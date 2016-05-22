@@ -33,6 +33,7 @@ class ppi_valTime
 {
 
 };
+
 /**
  * type of handled time inside ppi-server
  * source:LogHolderPattern.cpp
@@ -114,6 +115,21 @@ public:
 	 * @param value ppi_value into which should writing
 	 */
 	virtual void operator >> (ppi_value& value) const;
+	/**
+	 * allocation time from object
+	 * to an double value
+	 *
+	 * @return result of current inherit time
+	 */
+	virtual operator ppi_value() const
+	{
+		double val;
+
+		val= tv_usec;
+		val/= 1000000;
+		val+= tv_sec;
+		return val;
+	}
 	/**
 	 * set actually time into own object
 	 *

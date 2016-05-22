@@ -435,6 +435,7 @@ bool portBase::hasDeviceAccess() const
 bool portBase::hasSubVar(const string& subvar) const
 {
 	if(	subvar == "changed" ||
+		subvar == "time" ||
 		subvar == "lastvalue" ||
 		subvar == "value"		)
 	{
@@ -539,6 +540,8 @@ ppi_value portBase::getSubVar(const InformObject& who, const string& subvar) con
 		used= 2;
 	else if(subvar == "value")
 		used= 3;
+	else if(subvar == "time")
+		used= 4;
 	if(used)
 	{
 		LOCK(m_VALUELOCK);
@@ -581,6 +584,9 @@ ppi_value portBase::getSubVar(const InformObject& who, const string& subvar) con
 			break;
 		case 3:
 			dRv= m_dValue.value;
+			break;
+		case 4:
+			dRv= m_dValue.lastChanging;
 			break;
 		default:
 			dRv= 0;
