@@ -281,8 +281,15 @@ int main(int argc, char* argv[])
 		LOG(LOG_WARNING, msg);
 	}
 
+	string kernel_platform( readShell("uname -m 2>&1") );
+	string hardware_platform( readShell("uname -i 2>&1") );
+	string processor_platform( readShell("uname -p 2>&1") );
 	ostringstream platform;
 
+	if(processor_platform == "unknown")
+		processor_platform= hardware_platform;
+	if(processor_platform == "unknown")
+		processor_platform= kernel_platform;
 	platform << "          v" << PPI_MAJOR_RELEASE << "."
 					    << PPI_MINOR_RELEASE << "."
 					    << PPI_SUBVERSION << "."
@@ -291,12 +298,12 @@ int main(int argc, char* argv[])
 	if(string(DISTRIBUTION_RELEASE) != "")
 	platform << "          " << DISTRIBUTION_RELEASE << endl;
 	platform << "   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
-	platform << "operating-system:  " + readShell("uname -o 2>&1");
+	platform << "operating-system:   " + readShell("uname -o 2>&1");
 	platform << "  " + readShell("lsb_release -ds 2>&1") << endl;
-	platform << "kernel-release:    " + readShell("uname -r 2>&1") << endl;
-	platform << "hardware-platform: " + readShell("uname -i 2>&1") << endl;
-//	platform << "machine-hardware:  " + readShell("uname -m 2>&1") << endl;
-	platform << "processor:         " + getProcessors() + readShell("uname -p 2>&1") << endl;
+	platform << "   kernel-release:  " + readShell("uname -r 2>&1") << endl;
+	platform << "   kernel-platform: " +  kernel_platform << endl;
+	platform << " hardware-platform: " +  hardware_platform << endl;
+	platform << "         processor: " + getProcessors() + processor_platform << endl;
 	platform << endl;
 	platform << "network-hostname:  " + readShell("uname -n 2>&1") << endl;
 /*	platform << endl;
