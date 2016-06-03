@@ -569,8 +569,8 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 	auto_ptr<IValueHolderPattern> oMeasureValue;
 
 	//Debug info to stop by right subroutine
-	/*if(	folder == "power_switch" &&
-		subroutine == "port2_start"					)
+/*	if(	folder == "kalibrierung1" &&
+		subroutine == "calctime_close"					)
 	{
 		cout << folder << ":" << subroutine << endl;
 		cout << __FILE__ << __LINE__ << endl;
@@ -946,7 +946,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 				if(debug)
 				{
 					out() << "start at time " << MeasureThread::getTimevalString(next, /*as date*/true, debug) << endl;
-					out() << "  actual time " << MeasureThread::getTimevalString(m_oActTime, /*as date*/true, debug) << endl;
+					out() << " current time " << MeasureThread::getTimevalString(m_oActTime, /*as date*/true, debug) << endl;
 				}
 				m_tmStart= next;
 				LOCK(m_SUBVARLOCK);
@@ -1347,7 +1347,7 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 					{
 						out() << "WHILE: measuring of time to specific end time is running" << endl;
 						out() << "routine should stop at " << MeasureThread::getTimevalString(m_tmExactStop, /*as date*/true, debug) << endl;
-						out() << "      actually we have " << MeasureThread::getTimevalString(m_oActTime, /*as date*/true, debug) << endl;
+						out() << "     currently we have " << MeasureThread::getTimevalString(m_oActTime, /*as date*/true, debug) << endl;
 						out() << "folder should start again in " << nRv << " seconds" << endl;
 						out() << "    by time (" << MeasureThread::getTimevalString(m_tmStop, /*as date*/true, debug) << ")" << endl;
 					}else
@@ -1368,14 +1368,17 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 		{ // m_nCaseNr is 5: measure time inside case of begin/while/end
 			if(m_bMeasure == false)
 			{ // begin measuring
-				m_tmStart= m_oActTime;
+				m_tmStart= tmLastSwitchChanged;
 				if(debug)
 				{
-					out() << "actual time : " << MeasureThread::getTimevalString(m_oActTime, /*as date*/true, debug) << endl;
-					out() << "starting at : " << MeasureThread::getTimevalString(m_tmStart, /*as date*/true, debug) << endl;
+					out() << " starting at : " << m_tmStart.toString(/*as date*/true) << endl;
+					out() << "current time : " << m_oActTime.toString(/*as date*/true) << endl;
 				}
 				nRv= 0;
 				m_bMeasure= true;
+				LOCK(m_SUBVARLOCK);
+				m_bRunTime= true;
+				UNLOCK(m_SUBVARLOCK);
 				if(debug)
 				{
 					out() << "subroutine begin to measure time in ";
@@ -1390,21 +1393,32 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 				ppi_time needTime;
 				ValueHolder oval;
 
-				needTime-= m_tmStart;
-				nRv= MeasureThread::calcResult(needTime, m_bSeconds);
-				oval= switchClass::measure(m_dSwitch, set, &nRv, /*can be outside changed*/false);
-				m_dSwitch= oval.value;
-				if(oval.lastChanging.isSet())
-					tmLastSwitchChanged= oval.lastChanging;
-				else
-					tmLastSwitchChanged= m_oActTime;
-				if(m_dSwitch > 0)
-				{ // while measure
-					if(debug)
-						out() << "actually measured time is ";
+				if(m_dSwitch == 0)
+				{
+					needTime= tmLastSwitchChanged - m_tmStart;
+					m_bMeasure= false;
+					LOCK(m_SUBVARLOCK);
+					m_bRunTime= false;
+					UNLOCK(m_SUBVARLOCK);
 				}else
-				{ // end measure
-
+					needTime= m_oActTime - m_tmStart;
+				nRv= MeasureThread::calcResult(needTime, m_bSeconds);
+/**
+ * canceled 2016/06/03: by Alexander Kolli
+ *    do not remember why subroutine check
+ *    whether should run measuring along after stopping
+ *
+				oval= switchClass::measure(m_dSwitch, set, &nRv, *can be outside changed*false);
+				m_dSwitch= oval.value;
+				if(m_dSwitch == 0)
+				{// end measure
+					if(oval.lastChanging.isSet())
+					{
+						tmLastSwitchChanged= oval.lastChanging;
+						needTime= tmLastSwitchChanged - m_tmStart;
+						nRv= MeasureThread::calcResult(needTime, m_bSeconds);
+					}else
+						tmLastSwitchChanged= m_oActTime;
 					m_bMeasure= false;
 					if(m_nAllowStarting < 1)
 					{
@@ -1412,12 +1426,20 @@ auto_ptr<IValueHolderPattern> timer::measure(const ppi_value& actValue)
 						m_bRunTime= false;
 						UNLOCK(m_SUBVARLOCK);
 					}
-					if(debug)
-						out() << "ending time measure by ";
 				}
+ */
 				if(debug)
 				{
-					out()  << dec << nRv << " ";
+					out() << " starting at : " << m_tmStart.toString(/*as date*/true) << endl;
+					if(m_dSwitch > 0)
+					{
+						out() << "current time : " << m_oActTime.toString(/*as date*/true) << endl;
+						out() << "currently measured time is "<< dec << nRv << " ";
+					}else
+					{
+						out() << " stopping by : " << tmLastSwitchChanged.toString(/*as date*/true) << endl;
+						out() << "ending time measure by "<< dec << nRv << " ";
+					}
 					if(!m_bSeconds)
 						out() << "micro";
 					out() << "seconds" << endl;
@@ -1800,7 +1822,7 @@ double timer::polling_or_countDown(const bool bswitch, ppi_time tv, const bool d
 		{
 			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct local time");
 		}
-		out() << "               actual time is " << asctime(&l);
+		out() << "              current time is " << asctime(&l);
 		if(localtime_r(&m_tmStop.tv_sec, &l) == NULL)
 		{
 			TIMELOG(LOG_ERROR, "localtime_r", "cannot create correct local time");
@@ -1832,7 +1854,7 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 			out() << "count down ";
 		out() << "should running" << endl;
 	}
-	//var next is for starting defined as actual value
+	//var next is for starting defined as current value
 	if(m_nCaseNr != 2)
 	{ // when subroutine do not count down time to setting date time
 		next->tv_sec= static_cast<time_t>(actValue);
@@ -1967,7 +1989,7 @@ double timer::calcStartTime(const bool& debug, const double actValue, ppi_time* 
 	m_bMeasure= false;
 	if(bneed)
 	{
-		//var next is for starting defined as actual value
+		//var next is for starting defined as current value
 		need= calcNextTime(/*start*/true, debug, next);
 		if(m_bExactTime)
 		{// only by case of 3 (count the time down to 0)
@@ -2307,7 +2329,7 @@ double timer::calcNextTime(const bool& start, const bool& debug, ppi_time* actTi
 		if(debug)
 		{
 			out() << "end time should be in " << MeasureThread::calcResult(*actTime, m_bSeconds) << " seconds"<< endl;
-			out() << "measured actual time is " << newTime << " seconds" << endl;
+			out() << "measured current time is " << newTime << " seconds" << endl;
 		}
 		return newTime;
 	}
@@ -2323,7 +2345,7 @@ double timer::calcNextTime(const bool& start, const bool& debug, ppi_time* actTi
 	}
 	newTime= MeasureThread::calcResult(endTime, m_bSeconds);
 	if(debug)
-		out() << "measured actual time is " << newTime << endl;
+		out() << "measured current time is " << newTime << endl;
 	if(	m_nDirection == 1)
 	{
 		LOCK(m_SUBVARLOCK);
