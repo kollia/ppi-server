@@ -35,6 +35,36 @@ class ppi_valTime
 };
 
 /**
+ * nearly equal for double comparison.<br />
+ * Compare only first 15 digits of expression
+ *
+ * @param a first value to compare
+ * @param b with second value
+ * @return whether expressions are equal
+ */
+bool nearly_equal(const ppi_value& a, const ppi_value& b);
+
+/**
+ * double comparison whether first value will be nearly lower than second.<br />
+ * Compare only first 15 digits of expression
+ *
+ * @param lower first value which should be lower or nearly equal
+ * @param higher second value which should be higher or nearly equal
+ * @return whether expressions are lower
+ */
+bool nearly_lower(const ppi_value& lower, const ppi_value& higher);
+
+/**
+ * double comparison whether first value will be nearly higher than second.<br />
+ * Compare only first 15 digits of expression
+ *
+ * @param higher first value which should be higher or nearly equal
+ * @param lower second value which should be lower or nearly equal
+ * @return whether expressions are higher
+ */
+bool nearly_higher(const ppi_value& higher, const ppi_value& lower);
+
+/**
  * type of handled time inside ppi-server
  * source:LogHolderPattern.cpp
  */

@@ -19,7 +19,9 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 
+#include <algorithm>
 #include <sstream>
 
 #include <boost/algorithm/string/trim.hpp>
@@ -28,6 +30,33 @@
 #include "ppivalues.h"
 #include "BaseErrorHandling.h"
 
+
+bool nearly_equal(const ppi_value& a, const ppi_value& b)
+{// exp. from https://www.c-plusplus.net/forum/204392-full
+ // search result from google: "c double vergleich falsch obwohl zahlen gleich" */
+	long la;
+	long lb;
+
+	la= (long)a;
+	lb= (long)b;
+	if(la != lb)
+		return false;
+	return fabs(a - b) <= max(fabs(a), fabs(b)) * numeric_limits<double>::epsilon() * 3;
+}
+
+bool nearly_lower(const ppi_value& lower, const ppi_value& higher)
+{
+	if(lower < higher)
+		return true;
+	return nearly_equal(lower, higher);
+}
+
+bool nearly_higher(const ppi_value& higher, const ppi_value& lower)
+{
+	if(higher > lower)
+		return true;
+	return nearly_equal(higher, lower);
+}
 
 IPPITimePattern& ppi_time::operator = (const IPPITimePattern& time)
 {

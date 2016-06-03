@@ -22,6 +22,8 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#include "stream/ppivalues.h"
+
 #include "CalculatorContainer.h"
 
 using namespace boost;
@@ -915,36 +917,22 @@ double CalculatorContainer::compare(const double value1, const string& op, const
 
 	if(op == "=")
 	{
-		// do not compare double and double with is equal sign ('==')
-		if(value1 < value2 || value1 > value2)
-			result= 0;
-		else
+		if(nearly_equal(value1, value2))
 			result= 1;
 
 	}else if(op == "!=")
 	{
-		// do not compare double and double with not equal sign ('!=')
-		if(value1 < value2 || value1 > value2)
+		if(!nearly_equal(value1, value2))
 			result= 1;
 
 	}else if(op == ">=")
 	{
-		// do not compare double and double with is equal sign ('==')
-		if(value1 > value2)
-			result= 1;
-		else if(value1 < value2)
-			result= 0;
-		else
+		if(nearly_higher(value1, value2))
 			result= 1;
 
 	}else if(op == "<=")
 	{
-		// do not compare double and double with is equal sign ('==')
-		if(value1 < value2)
-			result= 1;
-		else if(value1 > value2)
-			result= 0;
-		else
+		if(nearly_lower(value1, value2))
 			result= 1;
 
 	}else if(op == ">")
