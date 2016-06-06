@@ -76,7 +76,6 @@ namespace server
 		m_bHearing= false;
 		m_bOwDebug= false;
 		m_fProtocol= 0;
-		m_bHoldAll= false;
 		m_bServerLoad= false;
 		m_sServerLoadStep= 1;
 		m_PASSWORDCHECK= Thread::getMutex("PASSWORDCHECK");
@@ -356,9 +355,6 @@ namespace server
 			command("remove #subroutine");
 			command("save #file");
 			command("load #file");
-
-			command("hold #folderSub");
-			command("hold -i #folderSub");
 
 			command("current");
 			command("current #folder");
@@ -1214,10 +1210,9 @@ namespace server
 					}else if(	result != "done" &&
 								result != "#stopclient"	)
 					{
-						bool bWrite(true);
 						IParameterStringStream input(result);
-						map<string, map<string, unsigned long> >::iterator foundFolder;
-						map<string, unsigned long>::iterator foundSubroutine;
+						//map<string, map<string, unsigned long> >::iterator foundFolder;
+						//map<string, unsigned long>::iterator foundSubroutine;
 
 						load(/*get from server*/true);
 						/*
@@ -1242,63 +1237,23 @@ namespace server
 						{
 							m_mFolderSubs[folder].insert(subroutine);
 						}
-						if(!m_bHoldAll)
-						{
-							foundFolder= m_vsHoldFolders.find(folder);
-							if(foundFolder != m_vsHoldFolders.end())
-							{
-								bool read(false);
+						if(subroutine != "#setDebug")
+						{// folder is set for holding
+							SHAREDPTR::shared_ptr<
+								IDbFillerPattern::dbgSubroutineContent_t> subCont;
 
-								foundSubroutine= foundFolder->second.find(subroutine);
-								if(foundSubroutine == foundFolder->second.end())
-								{
-									foundSubroutine= foundFolder->second.find("*");
-									if(foundSubroutine != foundFolder->second.end())
-										read= true;
-								}else
-									read= true;
-								if(	read ||
-									subroutine.substr(0, 1) == "#"					)
-								{// folder is set for holding
-									SHAREDPTR::shared_ptr<
-										IDbFillerPattern::dbgSubroutineContent_t> subCont;
-
-									subCont= SHAREDPTR::shared_ptr<
-													IDbFillerPattern::dbgSubroutineContent_t>
-															(new IDbFillerPattern::dbgSubroutineContent_t);
-									subCont->folder= folder;
-									subCont->subroutine= subroutine;
-									subCont->value= value;
-									subCont->content= content;
-									subCont->currentTime=
-										SHAREDPTR::shared_ptr<IPPITimePattern>
-															(new ppi_time(time));
-									implementFolderSorting(subCont);
-									bWrite= false;
-								}
-							}
+							subCont= SHAREDPTR::shared_ptr<
+											IDbFillerPattern::dbgSubroutineContent_t>
+													(new IDbFillerPattern::dbgSubroutineContent_t);
+							subCont->folder= folder;
+							subCont->subroutine= subroutine;
+							subCont->value= value;
+							subCont->content= content;
+							subCont->currentTime=
+								SHAREDPTR::shared_ptr<IPPITimePattern>
+													(new ppi_time(time));
+							implementFolderSorting(subCont);
 						}else
-						{
-							if(subroutine != "#setDebug")
-							{
-								SHAREDPTR::shared_ptr<
-									IDbFillerPattern::dbgSubroutineContent_t> subCont;
-
-								subCont= SHAREDPTR::shared_ptr<
-												IDbFillerPattern::dbgSubroutineContent_t>
-														(new IDbFillerPattern::dbgSubroutineContent_t);
-								subCont->folder= folder;
-								subCont->subroutine= subroutine;
-								subCont->value= value;
-								subCont->content= content;
-								subCont->currentTime=
-									SHAREDPTR::shared_ptr<IPPITimePattern>
-														(new ppi_time(time));
-								implementFolderSorting(subCont);
-								bWrite= false;
-							}
-						}
-						if(bWrite)
 						{// folder isn't set for holding
 							id= getFolderID(folder);
 							if(bFirstOutput)
@@ -2326,7 +2281,6 @@ namespace server
 						{
 							bDebSessionContentLoaded= false;
 							clearDebugSessionContent();
-							clearHoldingFolder("", "");
 						}
 					}
 					if(sdo == "Y")
@@ -2740,9 +2694,7 @@ namespace server
 								if(spl.size() > 1)
 									subroutine= spl[1];
 								nExist= exist(folder, subroutine);
-								if(	nExist == -1 ||
-									(	nExist == 0 &&
-										m_bHoldAll		)	)
+								if(nExist != 1)
 								{
 									/*
 									 * check now whether
@@ -2920,7 +2872,7 @@ namespace server
 							!bReadDbgSessionContent	)
 						{
 							cout("   WARNING: no debug session content is define to get from server\n"
-									"            please define with hold or DEBUG\n");
+									"            please define with DEBUG\n");
 						}
 					}
 				}
@@ -2948,7 +2900,6 @@ namespace server
 							if(!bErrorWritten)
 							{
 								clearDebugSessionContent();
-								clearHoldingFolder("", "");
 								vLayers.clear();
 							}else
 								cout("   cannot stop debug session on server\n");
@@ -2974,7 +2925,6 @@ namespace server
 				{
 					bDebSessionContentLoaded= false;
 					clearDebugSessionContent();
-					clearHoldingFolder("", "");
 				}
 			}
 			if(	!bErrorWritten &&
@@ -2989,62 +2939,10 @@ namespace server
 					if(command[0] == "DEBUG")
 					{
 						bReadDbgSessionContent= true;
-					}else if(command[0] == "hold")
+					}else if(command[0] == "STOPDEBUG")
 					{
-						vector<string>::size_type nFolderSubRead(1);
-						vector<string> spl;
-
-						bReadDbgSessionContent= true;
-						if(	command.size() > 1 &&
-							command[1] == "-i"		)
-						{
-							nFolderSubRead= 2;
-						}
-						if(command.size() > nFolderSubRead)
-						{
-							/*
-							 * second or third word after hold
-							 * should be always correct <folder>:<subroutine>
-							 * because server do not return error
-							 * when write DEBUG command was correct
-							 */
-							split(spl, command[nFolderSubRead], is_any_of(":"));
-							if(spl.size() > 1)
-								setHoldingFolder(spl[0], spl[1]);
-							else
-								setHoldingFolder(spl[0], "*");
-
-						}else
-						{
-							m_bHoldAll= true;
-							allFolderHolding();
-						}
-					}else// if(command[0] == "hold")
-					if(command[0] == "STOPDEBUG")
-					{
-						if(command.size() > 1)
-						{
-							vector<string> spl;
-
-							/*
-							 * second word after STOPDEBUG
-							 * should be always correct <folder>:<subroutine>
-							 * because server do not return error
-							 * when was done
-							 */
-							split(spl, command[1], is_any_of(":"));
-							if(clearHoldingFolder(spl[0], spl[1]))
-							{
-								bReadDbgSessionContent= false;
-								closeFile();
-							}
-
-						}else
-						{
-							bReadDbgSessionContent= false;
-							clearHoldingFolder("", "");
-							closeFile();
-						}
+						bReadDbgSessionContent= false;
+						closeFile();
 					}// if(command[0] == "STOPDEBUG")
 				}// if(!bErrorWritten)
 			}// if(bSendCommand)
@@ -3479,8 +3377,6 @@ namespace server
 		short nExist(0);
 		debugSessionTimeMap::iterator timeIt;
 		sharedDebugSessionVec::iterator folderIt;
-		map<string, map<string, unsigned long> >::iterator foundFolder;
-		map<string, unsigned long>::iterator foundSubroutine;
 
 		if(m_o2Client.get())
 			return m_o2Client->transObj()->exist(folder, subroutine);
@@ -3502,39 +3398,8 @@ namespace server
 			if(nExist == 1)
 				break;
 		}
-		if(	nExist == 0 &&
-			!m_bHoldAll		)
-		{
-			nExist= -1;
-			foundFolder= m_vsHoldFolders.find(folder);
-			if(foundFolder != m_vsHoldFolders.end())
-			{
-				foundSubroutine= foundFolder->second.find(subroutine);
-				if(foundSubroutine != foundFolder->second.end())
-				{
-					/*
-					 * folder is set for holding
-					 * but not inside debug session queue
-					 * from server
-					 */
-					nExist= 0;
-				}
-			}
-		}
 		UNLOCK(m_DEBUGSESSIONCHANGES);
 		return nExist;
-	}
-
-	void ClientTransaction::allFolderHolding()
-	{
-		if(m_o2Client.get())
-		{
-			m_o2Client->transObj()->allFolderHolding();
-			return;
-		}
-		LOCK(m_DEBUGSESSIONCHANGES);
-		m_bHoldAll= true;
-		UNLOCK(m_DEBUGSESSIONCHANGES);
 	}
 
 	void ClientTransaction::writeHelpUsage(const string& sfor, bool editor)
@@ -3582,23 +3447,21 @@ namespace server
 			{
 				std::cout << endl;
 				std::cout << "    DEBUG [-i|-ow] <folder[:subroutine]/owreaderID>" << endl;
-				std::cout << "                -   show by running server debugging messages for given folder and subroutine" << endl;
+				std::cout << "                -   load by running server debugging messages for given folder and subroutine" << endl;
+				std::cout << "                    into an queue to scroll with some commands (current, next ...) throu it." << endl;
 				std::cout << "                    when no subroutine given, the hole folder is set for debugging" << endl;
 				std::cout << "                    by add option -i, when for folder defined an inform parameter" << endl;
 				std::cout << "                    show this calculation also by debug output." << endl;
+				std::cout << "                    (command only be allowed when ppi-client started with hearing thread option --hear)" << endl;
 				std::cout << "                    if option -ow be set client get DEBUG info for benchmark of external ports" << endl;
-				std::cout << "                    and folder have to be the OWServer ID (owreaderID)." << endl;
+				std::cout << "                    and show the output on an live stream on screen" << endl;
+				std::cout << "                    folder parameter have to be the OWServer ID (owreaderID)." << endl;
 				std::cout << "                    (the OWServer ID you can see by starting ppi-server on command line after '### starting OWServer)" << endl;
 				std::cout << "                    both option -i and -ow cannot be used in same time" << endl;
-				std::cout << "    hold [-i] <folder[:subroutine]>" << endl;
-				std::cout << "                -   same as command DEBUG (without possibility of option -ow)" << endl;
-				std::cout << "                    but debug session output will be saved in the background" << endl;
-				std::cout << "                    and will be shown only with follow commands" << endl;
-				std::cout << "                    (command only be allowed when ppi-client started with hearing thread option --hear)" << endl;
 				std::cout << "    run         -   show all getting debug session folders with count" << endl;
 				std::cout << "    show [folder[:subroutine]]" << endl;
 				std::cout << "                -   show debug session output of working list" << endl;
-				std::cout << "                    which was set before with HOLDDEBUG into holding state" << endl;
+				std::cout << "                    which was set before with DEBUG into holding state" << endl;
 				std::cout << "                    to save in background" << endl;
 				std::cout << "                    when before no 'current' defined, or removed," << endl;
 				std::cout << "                    and an folder and or subroutine given by command" << endl;
@@ -3725,59 +3588,6 @@ namespace server
 		return bRv;
 	}
 
-	void ClientTransaction::setHoldingFolder(const string& folder, const string& subroutine)
-	{
-		pair<string, string> folderSub(folder, subroutine);
-
-		if(m_o2Client.get())
-		{
-			m_o2Client->transObj()->setHoldingFolder(folder, subroutine);
-			return;
-		}
-		LOCK(m_DEBUGSESSIONCHANGES);
-		m_vsHoldFolders[folder][subroutine]= 0;
-		UNLOCK(m_DEBUGSESSIONCHANGES);
-	}
-
-	bool ClientTransaction::clearHoldingFolder(const string& folder, const string& subroutine)
-	{
-		bool bRv(false);
-		map<string, map<string, unsigned long> >::iterator foundFolder;
-		map<string, unsigned long>::iterator foundSubroutine;
-
-		if(m_o2Client.get())
-			return m_o2Client->transObj()->clearHoldingFolder(folder, subroutine);
-		LOCK(m_DEBUGSESSIONCHANGES);
-		if(folder != "")
-		{
-			foundFolder= m_vsHoldFolders.find(folder);
-			if(foundFolder != m_vsHoldFolders.end())
-			{
-				if(subroutine != "")
-				{
-					foundSubroutine= foundFolder->second.find(subroutine);
-					if(foundSubroutine != foundFolder->second.end())
-						foundFolder->second.erase(foundSubroutine);
-					if(foundFolder->second.empty())
-						m_vsHoldFolders.erase(foundFolder);
-				}else
-					m_vsHoldFolders.erase(foundFolder);
-			}
-			if(m_vsHoldFolders.empty())
-			{
-				m_bHoldAll= false;
-				bRv= true;
-			}
-		}else
-		{
-			m_vsHoldFolders.clear();
-			m_bHoldAll= false;
-			bRv= true;
-		}
-		UNLOCK(m_DEBUGSESSIONCHANGES);
-		return bRv;
-	}
-
 	void ClientTransaction::clearDebugSessionContent()
 	{
 		if(m_o2Client.get())
@@ -3789,19 +3599,6 @@ namespace server
 		m_mmDebugSession.clear();
 		m_mSortedSessions.clear();
 		UNLOCK(m_DEBUGSESSIONCHANGES);
-	}
-
-	bool ClientTransaction::emptyDbgQueue() const
-	{
-		bool bRv(false);
-
-		if(m_o2Client.get())
-			return m_o2Client->transObj()->emptyDbgQueue();
-		LOCK(m_DEBUGSESSIONCHANGES);
-		if(m_vsHoldFolders.empty())
-			bRv= true;
-		UNLOCK(m_DEBUGSESSIONCHANGES);
-		return bRv;
 	}
 
 	map<string, unsigned long> ClientTransaction::getRunningFolderList(bool locked, bool outside/*= false*/)

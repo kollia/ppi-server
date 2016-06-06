@@ -182,27 +182,6 @@ namespace server
 			 */
 			OVERWRITE short exist(const string& folder, const string& subroutine);
 			/**
-			 * set which folder subroutine should be hold
-			 *
-			 * @param folder name of folder
-			 * @param subroutine name of subroutine
-			 */
-			OVERWRITE void setHoldingFolder(const string& folder, const string& subroutine);
-			/**
-			 * set all incoming folder:subroutines from server
-			 * to hold inside queue
-			 */
-			OVERWRITE void allFolderHolding();
-			/**
-			 * clear all folder subroutines which before defined to holding.
-			 * when now folder or subroutine given, clear all
-			 *
-			 * @param folder name of folder
-			 * @param subroutine name of subroutine
-			 * @return whether after clearing all holding of debug session queue is empty
-			 */
-			OVERWRITE bool clearHoldingFolder(const string& folder, const string& subroutine);
-			/**
 			 * clear all content of debug session
 			 */
 			OVERWRITE void clearDebugSessionContent();
@@ -262,13 +241,6 @@ namespace server
 			OVERWRITE IPPITimePattern* writeDebugSession(const string& folder, vector<string>& subroutines,
 													const direction_t show, IPPITimePattern* curTime,
 													const unsigned long nr= 0);
-			/**
-			 * check whether getting debug session queue from server
-			 * is empty
-			 *
-			 * @return whether queue is empty
-			 */
-			OVERWRITE bool emptyDbgQueue() const;
 			/**
 			 * save current or follow debug session queue with ending <code>.dbgsession</code>
 			 * into file on current file system where client started
@@ -549,18 +521,6 @@ namespace server
 			 * all folder IDs
 			 */
 			map<string, string> m_mFolderId;
-			/**
-			 * whether should holding all folders
-			 * inside queue
-			 */
-			bool m_bHoldAll;
-			/**
-			 * all folder subroutines
-			 * for debug session
-			 * which should holding before showing
-			 * with current output position
-			 */
-			map<string, map<string, unsigned long> > m_vsHoldFolders;
 			/**
 			 * all hold debug session content
 			 */

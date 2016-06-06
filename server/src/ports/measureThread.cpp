@@ -273,10 +273,15 @@ bool MeasureThread::setDebug(bool bDebug, bool bInform, const string& subroutine
 				subroutine == "#AllFolder" ||
 				it->name == subroutine			)
 			{
-				bFound= true;
-				if(it->portClass->isDebug() != bDebug)
+				bool bWasDebug;
+
+				bWasDebug= it->portClass->isDebug();
+				if(bWasDebug != bDebug)
+				{
+					bFound= true;
 					out << "       in subroutine " << it->name << endl;
-				it->portClass->setDebug(bDebug);
+					it->portClass->setDebug(bDebug);
+				}
 				if(bDebug)
 					isDebug= true;
 			}

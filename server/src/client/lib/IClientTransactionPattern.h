@@ -157,18 +157,6 @@ namespace design_pattern_world
 			 */
 			virtual void runUserTransaction(bool run)= 0;
 			/**
-			 * set which folder subroutine should be hold
-			 *
-			 * @param folder name of folder
-			 * @param subroutine name of subroutine
-			 */
-			virtual void setHoldingFolder(const string& folder, const string& subroutine)= 0;
-			/**
-			 * set all incoming folder:subroutines from server
-			 * to hold inside queue
-			 */
-			virtual void allFolderHolding()= 0;
-			/**
 			 * check whether folder:subroutine
 			 * existing currently inside debugging queue
 			 * getting from server
@@ -179,15 +167,6 @@ namespace design_pattern_world
 			 *         or -1 when not exist and not in queue of wan to hold
 			 */
 			virtual short exist(const string& folder, const string& subroutine)= 0;
-			/**
-			 * clear all folder subroutines which before defined to holding.
-			 * when now folder or subroutine given, clear all
-			 *
-			 * @param folder name of folder
-			 * @param subroutine name of subroutine
-			 * @return whether after clearing all holding of debug session queue is empty
-			 */
-			virtual bool clearHoldingFolder(const string& folder, const string& subroutine)= 0;
 			/**
 			 * clear all content of debug session
 			 */
@@ -257,13 +236,6 @@ namespace design_pattern_world
 			 * @return released word, or by yes/no question only 'Y' or 'N' in big letters
 			 */
 			virtual string ask(bool yesno, string promptStr)= 0;
-			/**
-			 * check whether getting debug session queue from server
-			 * is empty
-			 *
-			 * @return whether queue is empty
-			 */
-			virtual bool emptyDbgQueue() const= 0;
 			/**
 			 * save current or follow debug session queue with ending <code>.dbgsession</code>
 			 * into file on current file system where client started

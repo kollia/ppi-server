@@ -280,11 +280,38 @@ bool ProcessChecker::execute()
 
 	}else if(method == "clearFolderDebug")
 	{
+		ostringstream msg;
 		SHAREDPTR::shared_ptr<meash_t> pCurMeas= meash_t::firstInstance;
 
+		msg << "remove all folder with all subroutines from debug session";
+#if ( __DEBUGSESSIONOutput == debugsession_CLIENT || __DEBUGSESSIONOutput == debugsession_BOTH)
+		IDbFillerPattern::dbgSubroutineContent_t content;
+
+		/**
+		 * place of new definition of content are:
+		 * ProcessChecker::execute by method == "debugSubroutine"
+		 * Informer::informing
+		 * MeasureThread::setDebug on method end
+		 * MeasureThread::execute by 2 times
+		 * MeasureThread::doDebugStartingOutput
+		 * MeasureThread::checkToStart
+		 * portBase::writeDebugStream
+		 * ServerDbTransaction::transfer by method == "fillDebugSession"
+		 */
+		content.folder= "all";
+		content.subroutine= "#setDebug";
+		content.value= 0;
+		content.currentTime= SHAREDPTR::shared_ptr<IPPITimePattern>(new ppi_time);
+		content.content= msg.str();
+		pCurMeas->pMeasure->fillDebugSession(content);
+#endif
+#if ( __DEBUGSESSIONOutput == debugsession_SERVER || __DEBUGSESSIONOutput == debugsession_BOTH)
+		tout << msg.str() << endl;
+		TERMINALEND;
+#endif
 		while(pCurMeas)
 		{
-			pCurMeas->pMeasure->setDebug(false, 0);
+			pCurMeas->pMeasure->setDebug(/*debug*/false, /*inform*/false, /*subroutines*/"#AllFolder");
 			pCurMeas= pCurMeas->next;
 		}
 

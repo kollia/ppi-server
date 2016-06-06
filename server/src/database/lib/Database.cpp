@@ -1729,6 +1729,7 @@ namespace ppi_database
 
 	void Database::fillDebugSession(const IDbgSessionPattern::dbgSubroutineContent_t& content)
 	{
+		static bool bfirstStartServerFill(true);
 		unsigned long nConnection;
 		db_t tChangPool;
 		pair<ppi_time, string> timeSub(*content.currentTime, content.subroutine);
@@ -1739,8 +1740,24 @@ namespace ppi_database
 
 		LOCK(m_DEBUGSESSIONQUEMUTEX);
 		nConnection= m_nCurDbgSessConnection;
-		if(nConnection > 0)
+		if(	nConnection > 0 ||
+			bfirstStartServerFill	)
 		{
+			if(	bfirstStartServerFill &&
+				nConnection > 0			)
+			{
+				/**
+				 * when incoming some debug massages
+				 * but no connection set for reading
+				 * it should be the case that ppi-server
+				 * was started with option --folderdebug
+				 * when than an connection from any client
+				 * be set, the client should read all debug massages
+				 * until from start and this case cannot be
+				 * given any more in next time
+				 */
+				bfirstStartServerFill= false;
+			}
 #if( __showSendingCount == 1 || __showSendingCount == 3 )
 			if(content.subroutine == "#setDebug")
 			{
