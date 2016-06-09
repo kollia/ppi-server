@@ -1053,11 +1053,12 @@ bool Starter::execute(const IOptionStructPattern* commands)
 					trim(folderSubroutine[1]);
 					folderDebug[folderSubroutine[0]].push_back(folderSubroutine[1]);
 				}else
-					folderDebug[folderSubroutine[0]]= vector<string>();
+					folderDebug[folderSubroutine[0]].push_back("#AllFolder");
 				vFolderFound[folderSubroutine[0]]= false;
 
 			}
 		}
+		cout << endl;
 		for(map<string, vector<string> >::iterator it= folderDebug.begin(); it != folderDebug.end(); ++it)
 		{
 			if(it->second.empty())

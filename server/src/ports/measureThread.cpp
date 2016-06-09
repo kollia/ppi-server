@@ -488,6 +488,14 @@ EHObj MeasureThread::init(void *arg)
 	}
 	for(vector<string>::iterator it= m_vStartDebugSubs.begin(); it != m_vStartDebugSubs.end(); ++it)
 	{
+		ostringstream msg;
+
+		msg << "    write debug by starting on ";
+		if(*it == "#AllFolder")
+			msg << "folder '"<< folder << "'" << endl;
+		else
+			msg << "subroutine '" << folder << ":" << *it << "'" << endl;
+		cout << msg.str();
 		if(!setDebug(true, false, *it))
 			sFault+= "                             " + *it + "\n";
 	}
