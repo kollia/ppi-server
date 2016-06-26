@@ -886,8 +886,12 @@ class Thread :	public virtual IThreadPattern,
 
 #define LOCK(mutex) Thread::mutex_lock(__FILE__, __LINE__, mutex)
 #define LOCKEX(mutex, logger) Thread::mutex_lock(__FILE__, __LINE__, mutex, logger)
+#define RLOCK(mutex) Thread::mutex_lock(__FILE__, __LINE__, mutex)
+#define RLOCKEX(mutex, logger) Thread::mutex_lock(__FILE__, __LINE__, mutex, logger)
 #define TRYLOCK(mutex) Thread::mutex_trylock(__FILE__, __LINE__, mutex)
 #define TRYLOCKEX(mutex, logger) Thread::mutex_trylock(__FILE__, __LINE__, mutex, logger)
+#define TRYRLOCK(mutex) Thread::mutex_trylock(__FILE__, __LINE__, mutex)
+#define TRYRLOCKEX(mutex, logger) Thread::mutex_trylock(__FILE__, __LINE__, mutex, logger)
 #define UNLOCK(mutex) Thread::mutex_unlock(__FILE__, __LINE__, mutex)
 #define UNLOCKEX(mutex, logger) Thread::mutex_unlock(__FILE__, __LINE__, mutex, logger)
 #define CONDITION(cond, mutex) Thread::conditionWait(__FILE__, __LINE__, cond, mutex)
