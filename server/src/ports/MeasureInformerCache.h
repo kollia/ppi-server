@@ -72,18 +72,27 @@ namespace util
 		 */
 		OVERWRITE void changedValue(const string& folder, const InformObject& from);
 		/**
-		 * whether folder list thread should starting
+		 * whether folder list thread is defined for starting
+		 *
+		 * @param vStartTimes vector of starting ID`s and time when starting
+		 * @return whether this list folder should starting
+		 */
+		OVERWRITE bool waitStarting(const vector<ppi_time>& vStartTimes) const;
+		/**
+		 * whether folder list thread should starting.<br />
+		 * And remove also all old definitions.
 		 *
 		 * @param vStartTimes vector of starting ID`s and time when starting
 		 * @param mInformed map of informing folders on which starting ID will be started.<br />
 		 *                  will be filled from method
 		 * @param bLocked whether content vector of cache be locked from other folder thread
-		 * @param debug whther current session running in debugging mode.<br />
+		 * @param debug whether current session running in debugging mode.<br />
 		 *              in this case, mInformed will be not filled
 		 * @return whether own folder should starting
 		 */
 		OVERWRITE bool shouldStarting(const vector<ppi_time>& vStartTimes,
-						map<short, vector<InformObject> >& mInformed, bool* bLocked, bool debug);
+						map<short, vector<InformObject> >& mInformed,
+						bool* bLocked, bool debug);
 		/**
 		 * destructor to destroy object
 		 */
@@ -99,6 +108,7 @@ namespace util
 		 * folder name for which cache
 		 */
 		const string m_sFolderName;
+		long m_lCount;
 		/**
 		 * object for informing output
 		 */
@@ -116,6 +126,11 @@ namespace util
 		 */
 		pthread_mutex_t* m_CACHEVALUEMUTEX;
 		/**
+		 * mutex to check only whether
+		 * folder list should starting
+		 */
+		pthread_mutex_t* m_CHECKCACHE;
+		/**
 		 * mutex want to inform folder to running
 		 */
 		pthread_mutex_t *m_WANTINFORM;
@@ -127,6 +142,21 @@ namespace util
 		 * condition for wait for new changing of any subroutine
 		 */
 		pthread_cond_t *m_VALUECONDITION;
+
+		/**
+		 * whether folder list thread has definitions to start
+		 *
+		 * @param vStartTimes vector of starting ID`s and time when starting
+		 * @param mInformed map of informing folders on which starting ID will be started.<br />
+		 *                  will be filled from method
+		 * @param cache cache of all starting informations
+		 * @param debug whether current session running in debugging mode.<br />
+		 *              in this case, mInformed will be not filled
+		 * @return whether own folder should starting
+		 */
+		bool hasToStart(const vector<ppi_time>& vStartTimes,
+						map<short, vector<InformObject> >& mInformed,
+						const sharedinformvec_type cache, bool debug) const;
 	};
 
 } /* namespace util */

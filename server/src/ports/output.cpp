@@ -190,7 +190,7 @@ namespace ports
 					if( !(*itVal)->isEmpty() &&
 						(*itVal)->calculate(val)	)
 					{
-						outStr << val << " ";
+						outStr << fixed << val << " ";
 					}else
 						outStr << "(## wrong value ##) ";
 					++itVal;
@@ -201,7 +201,7 @@ namespace ports
 				if( !(*itVal)->isEmpty() &&
 					(*itVal)->calculate(val)	)
 				{
-					outStr << val << " ";
+					outStr << fixed << val << " ";
 				}else
 					outStr << "(## wrong value ##) ";
 			}

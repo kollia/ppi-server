@@ -36,7 +36,8 @@ namespace util
 	  m_oInformOutput(informOutput),
 	  m_oInformeThread(folderObj->getFolderName(), "#informe_thread", "inform",
 					  false, true, informOutput.get()),
-	  m_CACHEVALUEMUTEX(Thread::getMutex("CACHEVALUEMUTEX"))
+	  m_CACHEVALUEMUTEX(Thread::getMutex("CACHEVALUEMUTEX")),
+	  m_CHECKCACHE(Thread::getMutex("CHECKCACHE"))
 	{
 		IMeasurePattern::awakecond_t awake;
 		string statement(folderObj->getInformeThreadStatement());
@@ -139,12 +140,33 @@ namespace util
 		}
 	}
 
-	bool MeasureInformerCache::shouldStarting(const vector<ppi_time>& vStartTimes,
-							map<short, vector<InformObject> >& mInformed, bool* bLocked, bool debug)
+	bool MeasureInformerCache::waitStarting(const vector<ppi_time>& vStartTimes) const
 	{
-		bool bRv, bFullTimes;
+		map<short, vector<InformObject> > mInformed;
+		sharedinformvec_type newFolderCache;
+
+		LOCK(m_CHECKCACHE);
+		if(TRYRLOCK(m_CACHEVALUEMUTEX) != 0)
+		{
+			/*
+			 * when CACHEVALUEMUTEX be locked to change
+			 * other folder thread for which this informer cache be
+			 * will be inform own folder thread to start
+			 */
+			return true;
+		}
+		newFolderCache= sharedinformvec_type(new informvec_type(*m_vFolderCache));
+		UNLOCK(m_CACHEVALUEMUTEX);
+		UNLOCK(m_CHECKCACHE);
+		return hasToStart(vStartTimes, mInformed, newFolderCache, /*debug*/false);
+	}
+
+	bool MeasureInformerCache::shouldStarting(const vector<ppi_time>& vStartTimes,
+							map<short, vector<InformObject> >& mInformed,
+							bool* bLocked, bool debug)
+	{
+		bool bFullTimes;
 		sharedinformvec_type newFolderCache, currentCache;
-		ppi_time lastrun;
 
 		bFullTimes= vStartTimes.size() == (SHRT_MAX-1) ? true : false;
 		newFolderCache= sharedinformvec_type(new informvec_type());
@@ -164,15 +186,42 @@ namespace util
 			 * other folder thread for which this informer cache be
 			 * will be inform own folder thread to start
 			 */
-			if(bLocked)
-				*bLocked= true;
-			return true;
+			if(TRYLOCK(m_CHECKCACHE) != 0)
+			{
+				/**
+				 * when an other folder thread
+				 * check whether this folder should starting,
+				 * it's unknown whether any new starting times
+				 * be defined. So wait for can locking CACHEVALUEMUTEX
+				 */
+				++m_lCount;
+				ostringstream out;
+				out << "folder cache " << m_sFolderName << " locked at " << m_lCount << " times" << endl;
+				cout << out;
+				LOCK(m_CACHEVALUEMUTEX);
+			}else
+			{
+				UNLOCK(m_CHECKCACHE);
+				if(bLocked)
+					*bLocked= true;
+				return true;
+			}
 		}
 		currentCache= m_vFolderCache;
 		m_vFolderCache= newFolderCache;
 		UNLOCK(m_CACHEVALUEMUTEX);
 		if(bLocked)
 			*bLocked= false;
+		return hasToStart(vStartTimes, mInformed, currentCache, debug);
+	}
+
+	bool MeasureInformerCache::hasToStart(const vector<ppi_time>& vStartTimes,
+							map<short, vector<InformObject> >& mInformed,
+							const sharedinformvec_type cache, bool debug) const
+	{
+		bool bRv;
+		ppi_time lastrun;
+
 		if(!vStartTimes.empty())
 			lastrun= vStartTimes.back();
 		if(	vStartTimes.empty() ||
@@ -180,14 +229,14 @@ namespace util
 		{
 			if(debug)
 			{
-				for(informvec_type::iterator it= currentCache->begin(); it != currentCache->end(); ++it)
+				for(informvec_type::const_iterator it= cache->begin(); it != cache->end(); ++it)
 					mInformed[SHRT_MAX].push_back(it->first);
 			}
-			return !currentCache->empty();
+			return !cache->empty();
 
 		}
 		bRv= false;
-		for(informvec_type::iterator it= currentCache->begin(); it != currentCache->end(); ++it)
+		for(informvec_type::iterator it= cache->begin(); it != cache->end(); ++it)
 		{
 			if(it->second > lastrun)
 			{
@@ -214,7 +263,7 @@ namespace util
 					}
 				}
 			}
-		}// foreach(currentCache)
+		}// foreach(cache)
 		return bRv;
 	}
 

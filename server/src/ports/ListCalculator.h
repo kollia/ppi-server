@@ -95,6 +95,24 @@ public:
 	string getParameterName() const
 	{ return m_sParameter; };
 	/**
+	 * search original folder name
+	 * when given was an alias
+	 *
+	 * @param folder name of folder
+	 * @return correct name of folder
+	 */
+	string getOriginalFolderName(const string& folder);
+	/**
+	 * search object of folder from given name
+	 * and also change folder name to original when
+	 * it was an alias
+	 *
+	 * @param sFolder name of folder, can give back original name when given was an alias
+	 * @param nObjFolder count of folder when defined inside an object, otherwise 0
+	 * @return object of folder
+	 */
+	SHAREDPTR::shared_ptr<measurefolder_t> getFolder(const string& sFolder, unsigned short nObjFolder);
+	/**
 	 * search pointer to subroutine from given folder:subroutine
 	 *
 	 * @param var variable of subroutine with folder, can give back other correct variable name

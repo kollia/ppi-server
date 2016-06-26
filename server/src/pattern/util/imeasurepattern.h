@@ -344,6 +344,21 @@ namespace design_pattern_world
 				 */
 				virtual vector<string> wasInformed()= 0;
 				/**
+				 * whether list object (folder) has the incoming sub-variable
+				 *
+				 * @param subvar name of sub-variable
+				 * @return whether folder has this variable
+				 */
+				virtual bool hasSubVar(const string& subvar) const= 0;
+				/**
+				 * return content of sub-variable from current list object (folder)
+				 *
+				 * @param who declare who need the value information
+				 * @param subvar name of sub-variable
+				 * @return value of sub-var
+				 */
+				virtual ppi_value getSubVar(const InformObject& who, const string& subvar) const= 0;
+				/**
 				 * on which time the measure routine should start without any actions on extern ports
 				 *
 				 * @param folder name of folder

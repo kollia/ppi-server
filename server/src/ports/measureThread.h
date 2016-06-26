@@ -129,6 +129,21 @@ class MeasureThread : 	public Thread,
 		 */
 		OVERWRITE folderSpecNeed_t isFolderRunning(const vector<string>& specs);
 		/**
+		 * whether list object (folder) has the incoming sub-variable
+		 *
+		 * @param subvar name of sub-variable
+		 * @return whether folder has this variable
+		 */
+		OVERWRITE bool hasSubVar(const string& subvar) const;
+		/**
+		 * return content of sub-variable from current list object (folder)
+		 *
+		 * @param who declare who need the value information
+		 * @param subvar name of sub-variable
+		 * @return value of sub-var
+		 */
+		OVERWRITE ppi_value getSubVar(const InformObject& who, const string& subvar) const;
+		/**
 		 * return cache to observer changing values
 		 *
 		 * @param folder name of folder for which cache used
@@ -561,7 +576,7 @@ class MeasureThread : 	public Thread,
 		 * this variable will be defined by initialization and need no mutex lock
 		 * to be atomic
 		 */
-		bool m_bNeedFolderRunning;
+		//bool m_bNeedFolderRunning;
 		/**
 		 * whether this folder running
 		 */
@@ -690,11 +705,18 @@ class MeasureThread : 	public Thread,
 		MeasureThread& operator=(const MeasureThread&);
 		/**
 		 * check whether inside folder is an new time to restart
+		 *
+		 * @return whether folder should start
+		 */
+		bool waitForStart() const;
+		/**
+		 * check whether inside folder is an new time to restart
 		 * only when lock is given,
 		 * and write info by debug session
 		 *
 		 * @param vInformed vector of which folder or external clients are informed to start
 		 * @param debug session of debug output
+		 * @param bRemove whether should cache remove old informations
 		 * @return whether folder should start
 		 */
 		bool checkToStart(vector<InformObject>& vInformed, const bool debug);

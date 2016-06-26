@@ -20,8 +20,15 @@
 
 namespace ports
 {
-	SubroutineSubVarHolder::SubroutineSubVarHolder(IListObjectPattern* oSubroutine, const string& sSubVar)
-	: m_oSubroutine(oSubroutine),
+	SubroutineSubVarHolder::SubroutineSubVarHolder(SHAREDPTR::shared_ptr<IMeasurePattern> oFolder, const string& sSubVar)
+	: m_oFolder(oFolder),
+	  m_oSubroutine(SHAREDPTR::shared_ptr<IListObjectPattern>()),
+	  m_sSubVar(sSubVar)
+	{}
+
+	SubroutineSubVarHolder::SubroutineSubVarHolder(SHAREDPTR::shared_ptr<IListObjectPattern> oSubroutine, const string& sSubVar)
+	: m_oFolder(SHAREDPTR::shared_ptr<IMeasurePattern>()),
+	  m_oSubroutine(oSubroutine),
 	  m_sSubVar(sSubVar)
 	{}
 
@@ -30,8 +37,27 @@ namespace ports
 		auto_ptr<IValueHolderPattern> oMeasureValue;
 
 		oMeasureValue= auto_ptr<IValueHolderPattern>(new ValueHolder());
-		oMeasureValue->setValue(m_oSubroutine->getSubVar(who, m_sSubVar));
+		if(m_oFolder)
+			oMeasureValue->setValue(m_oFolder->getSubVar(who, m_sSubVar));
+		else
+			oMeasureValue->setValue(m_oSubroutine->getSubVar(who, m_sSubVar));
 		return oMeasureValue;
+	}
+
+	string SubroutineSubVarHolder::checkStartPossibility()
+	{
+		if(m_oSubroutine)
+			return m_oSubroutine->checkStartPossibility();
+		/**
+		 * an folder be defined
+		 * for SubroutineSubVarHolder,
+		 * Thus cannot start by time
+		 */
+		ostringstream sRv;
+
+		sRv << "folder " << m_oFolder->getFolderName() << endl;
+		sRv << "is not designed to start any action per time";
+		return sRv.str();
 	}
 }
 

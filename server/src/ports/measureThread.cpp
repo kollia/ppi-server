@@ -88,7 +88,7 @@ MeasureThread::MeasureThread(const string& threadname, const MeasureArgArray& tA
 	string run;
 	SHAREDPTR::shared_ptr<measurefolder_t> pCurrent;
 
-	m_bNeedFolderRunning= false;
+	//m_bNeedFolderRunning= false;
 	m_bFolderRunning= false;
 	m_nServerSearchSeconds= nServerSearch;
 	m_bDebug= false;
@@ -805,13 +805,38 @@ folderSpecNeed_t MeasureThread::isFolderRunning(const vector<string>& specs)
 			tRv.isRun= false;
 		return tRv;
 	}
-	if(!m_bNeedFolderRunning)// first initialization of any TIMER subroutine and stay always on same value
-		m_bNeedFolderRunning= true; // so variable need no mutex lock to be atomic
 	tRv.fromCalc= false;
-	LOCK(m_FOLDERRUNMUTEX);
+	RLOCK(m_FOLDERRUNMUTEX);
 	tRv.isRun= m_bFolderRunning;
 	UNLOCK(m_FOLDERRUNMUTEX);
 	return tRv;
+}
+
+bool MeasureThread::hasSubVar(const string& subvar) const
+{
+	if(subvar == "run")
+		return true;
+	return false;
+}
+
+ppi_value MeasureThread::getSubVar(const InformObject& who, const string& subvar) const
+{
+	ppi_value nRv(0);
+	vector<InformObject> vInform;
+
+	if(subvar == "run")
+	{
+		RLOCK(m_ACTIVATETIME);
+		RLOCK(m_FOLDERRUNMUTEX);
+		if(m_bFolderRunning)
+			nRv= 1;
+		UNLOCK(m_FOLDERRUNMUTEX);
+		if(nRv == 0)
+			if(waitForStart())
+				nRv= 1;
+		UNLOCK(m_ACTIVATETIME);
+	}
+	return nRv;
 }
 
 SHAREDPTR::shared_ptr<IInformerCachePattern> MeasureThread::getInformerCache(const string& folder)
@@ -1200,12 +1225,9 @@ bool MeasureThread::execute()
 			bRun= checkToStart(m_vInformed, debug);
 			while(bRun == false)
 			{
-				if(m_bNeedFolderRunning)
-				{
-					LOCK(m_FOLDERRUNMUTEX);
-					m_bFolderRunning= false;
-					UNLOCK(m_FOLDERRUNMUTEX);
-				}
+				LOCK(m_FOLDERRUNMUTEX);
+				m_bFolderRunning= false;
+				UNLOCK(m_FOLDERRUNMUTEX);
 				bHasCondition= true;
 				condRv= TIMECONDITION(m_VALUECONDITION, m_ACTIVATETIME, &waittm);
 				// Debug info after time condition to stop by right folder
@@ -1263,12 +1285,9 @@ bool MeasureThread::execute()
 						TERMINALEND;
 					return false;
 				}
-				if(m_bNeedFolderRunning)
-				{
-					LOCK(m_FOLDERRUNMUTEX);
-					m_bFolderRunning= true;
-					UNLOCK(m_FOLDERRUNMUTEX);
-				}
+				LOCK(m_FOLDERRUNMUTEX);
+				m_bFolderRunning= true;
+				UNLOCK(m_FOLDERRUNMUTEX);
 			}//while(bRun == false)
 			UNLOCK(m_ACTIVATETIME);
 			if(	!bSearchServer &&
@@ -1289,12 +1308,9 @@ bool MeasureThread::execute()
 		bRun= checkToStart(m_vInformed, debug);
 		while(bRun == false)
 		{
-			if(m_bNeedFolderRunning)
-			{
-				LOCK(m_FOLDERRUNMUTEX);
-				m_bFolderRunning= false;
-				UNLOCK(m_FOLDERRUNMUTEX);
-			}
+			LOCK(m_FOLDERRUNMUTEX);
+			m_bFolderRunning= false;
+			UNLOCK(m_FOLDERRUNMUTEX);
 			bHasCondition= true;
 			CONDITION(m_VALUECONDITION, m_ACTIVATETIME);
 			if(!m_tvStartTime.setActTime())
@@ -1332,12 +1348,9 @@ bool MeasureThread::execute()
 					TERMINALEND;
 				return false;
 			}
-			if(m_bNeedFolderRunning)
-			{
-				LOCK(m_FOLDERRUNMUTEX);
-				m_bFolderRunning= true;
-				UNLOCK(m_FOLDERRUNMUTEX);
-			}
+			LOCK(m_FOLDERRUNMUTEX);
+			m_bFolderRunning= true;
+			UNLOCK(m_FOLDERRUNMUTEX);
 			debug= isDebug();
 			bRun= checkToStart(m_vInformed, debug);
 		}//while(bRun == false)
@@ -1545,10 +1558,28 @@ void MeasureThread::doDebugStartingOutput(const ppi_time& time)
 #endif
 }
 
+bool MeasureThread::waitForStart() const
+{
+	typedef vector<SHAREDPTR::shared_ptr<MeasureInformerCache> >::const_iterator iterator;
+
+	LOCK(m_INFORMERCACHECREATION);
+	for(iterator it= m_voInformerCaches.begin();
+					it != m_voInformerCaches.end(); ++it	)
+	{
+		if((*it)->waitStarting(m_vStartTimes))
+		{
+			UNLOCK(m_INFORMERCACHECREATION);
+			return true;
+		}
+	}
+	UNLOCK(m_INFORMERCACHECREATION);
+	return false;
+}
+
 bool MeasureThread::checkToStart(vector<InformObject>& vInformed, const bool debug)
 {
 	typedef map<short, vector<InformObject> > inform_map;
-	bool bLocked, bDoStart(false);
+	bool bLocked(false), bIsLock(false), bDoStart(false);
 	/**
 	 * bDebugShow can be true when
 	 * incoming debug is true
@@ -1575,15 +1606,25 @@ bool MeasureThread::checkToStart(vector<InformObject>& vInformed, const bool deb
 	for(vector<SHAREDPTR::shared_ptr<MeasureInformerCache> >::iterator it= m_voInformerCaches.begin();
 					it != m_voInformerCaches.end(); ++it	)
 	{
-		bDoStart= (*it)->shouldStarting(m_vStartTimes, mInformed, &bLocked, bDebugShow);
+		bool bStart;
+
+		bStart= (*it)->shouldStarting(m_vStartTimes, mInformed, &bIsLock, bDebugShow);
+		if(bStart)
+			bDoStart= true;
+		if(bIsLock)
+			bLocked= true;
 		if(	*it == lastCache &&
 			!bLocked				)
 		{
 			m_vStartTimes.clear();
 			break;
-		}
-		if(bDoStart)
+
+		}else
+		if(	!bDebugShow &&
+			bDoStart		)
+		{
 			break;
+		}
 	}
 	UNLOCK(m_INFORMERCACHECREATION);
 	/*
