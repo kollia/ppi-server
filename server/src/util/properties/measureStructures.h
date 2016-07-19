@@ -85,9 +85,9 @@ struct measurefolder_t
 	bool bDefined;
 	bool bCorrect;
 	unsigned short nFolderID;
-	unsigned short nObjectID;
-	string sObject;
-	vector<string> vsObjFolders;
+	unsigned short nFolderArrayID;
+	string sFolderArray;
+	vector<string> vsArrayFolders;
 	//set<portBase::Pins> afterContactPins;
 	//set<portBase::Pins> needInPorts;
 	vector<sub> subroutines;

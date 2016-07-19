@@ -73,7 +73,7 @@ bool ListCalculator::init(const SHAREDPTR::shared_ptr<measurefolder_t>& pStartFo
 	}
 	if(pfolder == NULL)
 		return false;
-	m_nObjFolderID= pfolder->nObjectID;
+	m_nArrayFolderID= pfolder->nFolderArrayID;
 	nAliasCount= pfolder->folderProperties->getPropertyCount("foldervar");
 	for(vector<string>::size_type n= 0; n < nAliasCount; ++n)
 	{
@@ -137,7 +137,7 @@ CalculatorContainer* ListCalculator::newObject(bool bIf/*= false*/)
 		c->m_bIfSentence= true;
 	else
 		c->m_bIfSentence= m_bIfSentence;
-	c->m_nObjFolderID= m_nObjFolderID;
+	c->m_nArrayFolderID= m_nArrayFolderID;
 	c->m_pStartFolder= m_pStartFolder;
 	c->m_mFolderAlias= m_mFolderAlias;
 	c->m_mSubroutineAlias= m_mSubroutineAlias;
@@ -234,30 +234,30 @@ string ListCalculator::getOriginalFolderName(const string& folder)
 		sRv= folder;
 	return sRv;
 }
-SHAREDPTR::shared_ptr<measurefolder_t> ListCalculator::getFolder(const string& sFolder, unsigned short nObjFolder)
+SHAREDPTR::shared_ptr<measurefolder_t> ListCalculator::getFolder(const string& sFolder, unsigned short nArrayFolder)
 {
 	SHAREDPTR::shared_ptr<measurefolder_t> pFolder= m_pStartFolder;
 
 	while(	pFolder &&
-			pFolder->sObject != sFolder &&
+			pFolder->sFolderArray != sFolder &&
 			pFolder->name != sFolder		)
 	{// search right folder
 		pFolder= pFolder->next;
 	}
 	if(	pFolder &&
-		nObjFolder > 0 &&
-		pFolder->sObject == sFolder	)
+		nArrayFolder > 0 &&
+		pFolder->sFolderArray == sFolder	)
 	{// folder is object name, search right count
 		while(	pFolder &&
-				pFolder->sObject == sFolder &&
-				pFolder->nObjectID != nObjFolder	)
+				pFolder->sFolderArray == sFolder &&
+				pFolder->nFolderArrayID != nArrayFolder	)
 		{// search right count
 			pFolder= pFolder->next;
 		}
 		if(pFolder != NULL)
 		{
-			if(	pFolder->sObject != sFolder ||
-				pFolder->nObjectID != nObjFolder	)
+			if(	pFolder->sFolderArray != sFolder ||
+				pFolder->nFolderArrayID != nArrayFolder	)
 			{
 				pFolder= SHAREDPTR::shared_ptr<measurefolder_t>();
 			}
@@ -566,7 +566,7 @@ bool ListCalculator::variable(string* var, double& dResult)
 	found= m_msoVars.find(*var);
 	if(found == m_msoVars.end())
 	{
-		oSub= getSubroutine(var, m_nObjFolderID, /*own folder*/true);
+		oSub= getSubroutine(var, m_nArrayFolderID, /*own folder*/true);
 		if(oSub != NULL)
 		{
 			m_msoVars[*var]= oSub;
@@ -619,7 +619,7 @@ void ListCalculator::activateObserver(IMeasurePattern* observer)
 	{
 		string var(*it);
 
-		found= getSubroutine(&var, m_nObjFolderID, /*own folder*/false);
+		found= getSubroutine(&var, m_nArrayFolderID, /*own folder*/false);
 		if(!found)
 		{	// when own subroutine (has lower count)
 			// defined before the other (higher count) in same folder
@@ -628,11 +628,11 @@ void ListCalculator::activateObserver(IMeasurePattern* observer)
 			// do not know from any changes from the other, or to late
 			if(var == "run_automatic_actions.run")
 				cout << flush;
-			found= getSubroutine(&var, m_nObjFolderID, /*own folder*/true);
+			found= getSubroutine(&var, m_nArrayFolderID, /*own folder*/true);
 			if(found)
 			{
 				var= m_sFolder+":"+m_sSubroutine;
-				own= getSubroutine(&var, m_nObjFolderID, /*own folder*/true);
+				own= getSubroutine(&var, m_nArrayFolderID, /*own folder*/true);
 				if(own->getActCount() > found->getActCount())
 					found= SHAREDPTR::shared_ptr<IListObjectPattern>();
 			}
@@ -679,7 +679,7 @@ void ListCalculator::removeObserver(IMeasurePattern* observer)
 	for(vector<string>::const_iterator it= inform.begin(); it != inform.end(); ++it)
 	{
 		var= *it;
-		found= getSubroutine(&var, m_nObjFolderID, /*own folder*/false);
+		found= getSubroutine(&var, m_nArrayFolderID, /*own folder*/false);
 		if(found != NULL)
 			found->removeObserver(observer, m_sFolder, m_sSubroutine, m_sParameter);
 	}

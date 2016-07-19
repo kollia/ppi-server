@@ -1342,7 +1342,7 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 
 				obj= SHAREDPTR::shared_ptr<switchClass>(new switchClass(aktualFolder->name,
 																		aktualFolder->subroutines[n].name,
-																		aktualFolder->nObjectID			));
+																		aktualFolder->nFolderArrayID			));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "DEBUG")
@@ -1351,7 +1351,7 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 
 				obj= SHAREDPTR::shared_ptr<Output>(new Output(	aktualFolder->name,
 																aktualFolder->subroutines[n].name,
-																aktualFolder->nObjectID			));
+																aktualFolder->nFolderArrayID			));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "TIMER")
@@ -1359,7 +1359,7 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 				auto_ptr<timer> obj= auto_ptr<timer>(new timer(	aktualFolder->name,
 																aktualFolder->subroutines[n].name,
 																bTimerLog, bNoDbRead, finishedCPUtime,
-																aktualFolder->nObjectID				));
+																aktualFolder->nFolderArrayID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "SHELL")
@@ -1367,7 +1367,7 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 				string user;
 				auto_ptr<Shell> obj= auto_ptr<Shell>(new Shell(	aktualFolder->name,
 																aktualFolder->subroutines[n].name,
-																aktualFolder->nObjectID				));
+																aktualFolder->nFolderArrayID				));
 				aktualFolder->subroutines[n].portClass= obj;
 				user= aktualFolder->subroutines[n].property->getValue("runuser", /*warning*/false);
 				if(user != "")
@@ -1377,28 +1377,28 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 			{
 				auto_ptr<Read> obj= auto_ptr<Read>(new Read(	aktualFolder->name,
 																aktualFolder->subroutines[n].name,
-																aktualFolder->nObjectID				));
+																aktualFolder->nFolderArrayID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "TIMEMEASURE")
 			{
 				auto_ptr<TimeMeasure> obj= auto_ptr<TimeMeasure>(new TimeMeasure(	aktualFolder->name,
 																					aktualFolder->subroutines[n].name,
-																					aktualFolder->nObjectID				));
+																					aktualFolder->nFolderArrayID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "RESISTANCE")
 			{
 				auto_ptr<ResistanceMeasure> obj= auto_ptr<ResistanceMeasure>(new ResistanceMeasure(	aktualFolder->name,
 																									aktualFolder->subroutines[n].name,
-																									aktualFolder->nObjectID				));
+																									aktualFolder->nFolderArrayID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "TEMP")
 			{
 				auto_ptr<TempMeasure> obj= auto_ptr<TempMeasure>(new TempMeasure(	aktualFolder->name,
 																					aktualFolder->subroutines[n].name,
-																					aktualFolder->nObjectID				));
+																					aktualFolder->nFolderArrayID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "VALUE")
@@ -1406,35 +1406,35 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 				auto_ptr<ValueHolderSubroutine> obj=
 								auto_ptr<ValueHolderSubroutine>(new ValueHolderSubroutine(	aktualFolder->name,
 																							aktualFolder->subroutines[n].name,
-																							aktualFolder->nObjectID				));
+																							aktualFolder->nFolderArrayID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "SET")
 			{
 				auto_ptr<Set> obj= auto_ptr<Set>(new Set(	aktualFolder->name,
 															aktualFolder->subroutines[n].name,
-															aktualFolder->nObjectID				));
+															aktualFolder->nFolderArrayID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "SAVE")
 			{
 				auto_ptr<SaveSubValue> obj= auto_ptr<SaveSubValue>(new SaveSubValue(aktualFolder->name,
 																					aktualFolder->subroutines[n].name,
-																					aktualFolder->nObjectID			));
+																					aktualFolder->nFolderArrayID			));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "COUNTER")
 			{
 				auto_ptr<Counter> obj= auto_ptr<Counter>(new Counter(	aktualFolder->name,
 																		aktualFolder->subroutines[n].name,
-																		aktualFolder->nObjectID				));
+																		aktualFolder->nFolderArrayID				));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(aktualFolder->subroutines[n].type == "MEASUREDNESS")
 			{
 				auto_ptr<Measuredness> obj= auto_ptr<Measuredness>(new Measuredness(aktualFolder->name,
 																					aktualFolder->subroutines[n].name,
-																					aktualFolder->nObjectID			));
+																					aktualFolder->nFolderArrayID			));
 				aktualFolder->subroutines[n].portClass= obj;
 
 			}else if(::find(m_vOWReaderTypes.begin(), m_vOWReaderTypes.end(), aktualFolder->subroutines[n].type) != m_vOWReaderTypes.end())
@@ -1447,13 +1447,13 @@ void Starter::createFolderLists(set<string>& shellstarter, bool bTimerLog, bool 
 					obj= auto_ptr<ExternPort>(new LircPort(	aktualFolder->subroutines[n].type,
 															aktualFolder->name,
 															aktualFolder->subroutines[n].name,
-															aktualFolder->nObjectID				));
+															aktualFolder->nFolderArrayID				));
 				}else
 				{
 					obj= auto_ptr<ExternPort>(new ExternPort(	aktualFolder->subroutines[n].type,
 																aktualFolder->name,
 																aktualFolder->subroutines[n].name,
-																aktualFolder->nObjectID				));
+																aktualFolder->nFolderArrayID				));
 				}
 				aktualFolder->subroutines[n].portClass= obj;
 				m_vOWReaderNeed.insert(aktualFolder->subroutines[n].type);

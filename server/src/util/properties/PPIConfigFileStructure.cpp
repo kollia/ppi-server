@@ -529,30 +529,30 @@ namespace util
 //#define __reading_pos
 		typedef vector<IInterlacedPropertyPattern*>::iterator secIt;
 
-		bool bInObj(false);
-		unsigned short nFolderID(0), nObjFolderID(0);
+		bool bInArray(false);
+		unsigned short nFolderID(0), nArrayFolderID(0);
 		string configFile;
-		string firstObjFolder;
+		string firstArrayFolder;
 		string modifier, value;
-		string curObj("NULL");
-		vector<string> objFolders;
+		string curArray("NULL");
+		vector<string> vArrayFolders;
 		auto_ptr<sub> subdir;
 		ActionProperties *pProperty;
 		InterlacedActionProperties mainprop(/*check after*/true);
-		vector<IInterlacedPropertyPattern*> objSections;
+		vector<IInterlacedPropertyPattern*> arraySections;
 		vector<IInterlacedPropertyPattern*> folderSections;
 		vector<IInterlacedPropertyPattern*> *pFolderSections;
 		vector<IInterlacedPropertyPattern*> subSections;
 		SHAREDPTR::shared_ptr<measurefolder_t> currentFolder= m_tFolderStart;
-		SHAREDPTR::shared_ptr<measurefolder_t> pFirstObjFolder;
-		SHAREDPTR::shared_ptr<IActionPropertyPattern> pHold1OBJfolderprops;
+		SHAREDPTR::shared_ptr<measurefolder_t> pFirstArrayFolder;
+		SHAREDPTR::shared_ptr<IActionPropertyPattern> pHold1ARRAYfolderprops;
 		secIt oit, fit, defObj;
 
 		configFile= URL::addPath(m_sConfigPath, m_sMeasureConf, /*always*/false);
 		mainprop.allowLaterModifier(true);
 		mainprop.action("action");
-		// object name shouldn't be shown by error, so do not define
-		mainprop.modifier("object");// an setMsgParameter for modifier
+		// folder array name shouldn't be shown by error, so do not define
+		mainprop.modifier("array");// an setMsgParameter for modifier
 		mainprop.modifier("folder");
 		mainprop.setMsgParameter("folder");
 		mainprop.modifier("name");
@@ -560,55 +560,55 @@ namespace util
 		mainprop.valueLocalization("\"", "\"", /*remove*/true);
 		if(!mainprop.readFile(configFile))
 			return false;
-		objSections= mainprop.getSections();
+		arraySections= mainprop.getSections();
 		// first can be the folder section
-		// also be an object section
-		pFolderSections= &objSections;
-		oit= objSections.begin();
+		// also be an folder array section
+		pFolderSections= &arraySections;
+		oit= arraySections.begin();
 		fit= oit;
 		do{
 #ifdef __reading_pos
 			cout << endl;
-			cout << "reading object " << (*oit)->getSectionValue() << endl;
+			cout << "reading folder array " << (*oit)->getSectionValue() << endl;
 #endif //__reading_pos
 			if(fit == pFolderSections->end())
 			{
-				if(!bInObj)
+				if(!bInArray)
 					break;
-				if(curObj == "NULL")
+				if(curArray == "NULL")
 				{
 					++oit;
-					if(oit == objSections.end())
+					if(oit == arraySections.end())
 						break;
 					fit= oit;
 
 				}else
 				{
-					// fill all folders from object
+					// fill all folders from folder array
 					currentFolder= m_tFolderStart;
 					while(currentFolder->next != NULL)
 					{
-						if(currentFolder->name == firstObjFolder)
+						if(currentFolder->name == firstArrayFolder)
 							break;
 						currentFolder= currentFolder->next;
 					}
-					//cout << "copy all folders from first object folder " << aktualFolder->name << endl;
-					pFirstObjFolder= currentFolder;
-					pFirstObjFolder->vsObjFolders= objFolders;
+					//cout << "copy all folders from first folder array " << aktualFolder->name << endl;
+					pFirstArrayFolder= currentFolder;
+					pFirstArrayFolder->vsArrayFolders= vArrayFolders;
 					currentFolder= currentFolder->next;
 					while(currentFolder != NULL)
 					{
 						if(currentFolder->bDefined == false)
 						{
-							//cout << "fill object folder " << aktualFolder->name << endl;
+							//cout << "fill folder array " << aktualFolder->name << endl;
 							currentFolder->bCorrect= false;
 							pProperty= new ActionProperties;
-							*pProperty= *dynamic_cast<ActionProperties*>(pFirstObjFolder->folderProperties.get());
+							*pProperty= *dynamic_cast<ActionProperties*>(pFirstArrayFolder->folderProperties.get());
 							pProperty->add(*dynamic_cast<ActionProperties*>(currentFolder->folderProperties.get()));
 							currentFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
-							currentFolder->subroutines= pFirstObjFolder->subroutines;
+							currentFolder->subroutines= pFirstArrayFolder->subroutines;
 							/*
-							 * make now for all folder inside object
+							 * make now for all folder inside folder array
 							 * new explicit subroutine properties
 							 * to set correct folder name
 							 * for all new subroutines
@@ -621,31 +621,31 @@ namespace util
 								it->property= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
 								it->property->setDefault("folder", currentFolder->name, /*overwrite*/true);
 							}
-							pFirstObjFolder->vsObjFolders= objFolders;
+							pFirstArrayFolder->vsArrayFolders= vArrayFolders;
 							currentFolder->bDefined= true;
 						}
 						currentFolder= currentFolder->next;
 					}
-					if(pHold1OBJfolderprops != NULL)
+					if(pHold1ARRAYfolderprops != NULL)
 					{
 						// fill now properties from 1 folder
 						// defined by reading real 1 folder
-						// into current 1 folder object
-						pProperty= dynamic_cast<ActionProperties*>(pFirstObjFolder->folderProperties.get());
-						pProperty->add(*dynamic_cast<ActionProperties*>(pHold1OBJfolderprops.get()));
-						pHold1OBJfolderprops= SHAREDPTR::shared_ptr<IActionPropertyPattern>();
+						// into current 1 folder array
+						pProperty= dynamic_cast<ActionProperties*>(pFirstArrayFolder->folderProperties.get());
+						pProperty->add(*dynamic_cast<ActionProperties*>(pHold1ARRAYfolderprops.get()));
+						pHold1ARRAYfolderprops= SHAREDPTR::shared_ptr<IActionPropertyPattern>();
 					}
 
-					// goto new object
+					// goto new folder array
 					++oit;
-					if(oit == objSections.end())
+					if(oit == arraySections.end())
 						break;
 					fit= oit;
-					bInObj= false;
-					curObj= "NULL";
+					bInArray= false;
+					curArray= "NULL";
 					modifier= (*fit)->getSectionModifier();
-					while(	modifier == "object" &&
-							oit != objSections.end() &&
+					while(	modifier == "array" &&
+							oit != arraySections.end() &&
 							(*fit)->getSectionValue() == "NULL"	)
 					{
 						folderSections= (*fit)->getSections();
@@ -653,34 +653,34 @@ namespace util
 						{
 							pFolderSections= &folderSections;
 							fit= folderSections.begin();
-							bInObj= true;
+							bInArray= true;
 						}else
 						{
 							++oit;
-							if(oit == objSections.end())
+							if(oit == arraySections.end())
 								break;
 							fit= oit;
 						}
 						modifier= (*fit)->getSectionModifier();
 					}
-					if(oit == objSections.end())
+					if(oit == arraySections.end())
 						break;
 				}
 			}
 			modifier= (*fit)->getSectionModifier();
 			//cout << "create " << modifier << " with " << (*fit)->getSectionValue() << endl;
-			if(modifier == "object")
+			if(modifier == "array")
 			{
-				bInObj= true;
-				curObj= (*fit)->getSectionValue();
-				glob::replaceName(curObj, "object name");
-				objFolders.clear();
+				bInArray= true;
+				curArray= (*fit)->getSectionValue();
+				glob::replaceName(curArray, "folder array name");
+				vArrayFolders.clear();
 				folderSections= (*oit)->getSections();
 				pFolderSections= &folderSections;
 				fit= pFolderSections->begin();
 				modifier= (*fit)->getSectionModifier();
-				firstObjFolder= (*fit)->getSectionValue();
-				nObjFolderID= 0;
+				firstArrayFolder= (*fit)->getSectionValue();
+				nArrayFolderID= 0;
 			}
 			if(modifier != "folder")
 			{
@@ -697,18 +697,18 @@ namespace util
 			{
 				// create new folder
 				++nFolderID;
-				++nObjFolderID;
+				++nArrayFolderID;
 				value= (*fit)->getSectionValue();
 				glob::replaceName(value, "folder name");
 #ifdef __reading_pos
 				cout << "            folder " << value << endl;
 #endif //__reading_pos
-				if(	curObj != "NULL" &&
-					value == curObj		)
+				if(	curArray != "NULL" &&
+					value == curArray		)
 				{
-					value= firstObjFolder;
+					value= firstArrayFolder;
 				}else
-					objFolders.push_back(value);
+					vArrayFolders.push_back(value);
 				if(m_tFolderStart == NULL)
 				{
 					currentFolder= SHAREDPTR::shared_ptr<measurefolder_t>(new measurefolder_t);
@@ -717,12 +717,12 @@ namespace util
 					currentFolder->bCorrect= false;
 					currentFolder->bDefined= false;
 					currentFolder->nFolderID= nFolderID;
-					if(curObj != "NULL")
+					if(curArray != "NULL")
 					{
-						currentFolder->nObjectID= nObjFolderID;
-						currentFolder->sObject= curObj;
+						currentFolder->nFolderArrayID= nArrayFolderID;
+						currentFolder->sFolderArray= curArray;
 					}else
-						currentFolder->nObjectID= 0;
+						currentFolder->nFolderArrayID= 0;
 				}else
 				{
 					currentFolder= m_tFolderStart;
@@ -752,22 +752,22 @@ namespace util
 						currentFolder->bCorrect= false;
 						currentFolder->bDefined= false;
 						currentFolder->nFolderID= nFolderID;
-						if(curObj != "NULL")
+						if(curArray != "NULL")
 						{
-							currentFolder->nObjectID= nObjFolderID;
-							currentFolder->sObject= curObj;
+							currentFolder->nFolderArrayID= nArrayFolderID;
+							currentFolder->sFolderArray= curArray;
 						}else
-							currentFolder->nObjectID= 0;
+							currentFolder->nFolderArrayID= 0;
 					}
 				}
 				pProperty= new ActionProperties;
 				*pProperty= *dynamic_cast<ActionProperties*>(*fit);
 				if(	!currentFolder->bDefined &&
-					curObj != "NULL" &&
+					curArray != "NULL" &&
 					currentFolder->folderProperties != NULL	)
 				{// folder is first folder of an object,
 				 // so hold folder properties from actual folder to fill in by filling objects
-					pHold1OBJfolderprops= currentFolder->folderProperties;
+					pHold1ARRAYfolderprops= currentFolder->folderProperties;
 				}
 				currentFolder->folderProperties= SHAREDPTR::shared_ptr<IActionPropertyPattern>(pProperty);
 				subSections= (*fit)->getSections();
@@ -878,9 +878,9 @@ namespace util
 				}
 			}// modifier is folder
 			++fit;
-			if(!bInObj)
+			if(!bInArray)
 				++oit;
-		}while(oit != objSections.end());
+		}while(oit != arraySections.end());
 		return true;
 
 

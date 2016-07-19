@@ -266,7 +266,7 @@ protected:
 	 * number of folder when inside an object defined
 	 * otherwise 0
 	 */
-	unsigned short m_nObjFolderID;
+	unsigned short m_nArrayFolderID;
 	/**
 	 * parameter type in the subroutine where the string
 	 */

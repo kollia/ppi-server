@@ -96,8 +96,8 @@ namespace user
 		map<string, string>::iterator usIt;
 
 		mproperties.allowLaterModifier(true);
-		mproperties.modifier("object");
-		mproperties.setMsgParameter("object");
+		mproperties.modifier("array");
+		mproperties.setMsgParameter("folder array");
 		mproperties.modifier("folder");
 		mproperties.setMsgParameter("folder");
 		mproperties.modifier("name");
@@ -401,44 +401,44 @@ namespace user
 			typedef vector<IInterlacedPropertyPattern*>::iterator sit;
 			typedef vector<IInterlacedPropertyPattern*>::size_type ssize;
 
-			string secName, object, folder, subroutine, groups;
+			string secName, array, folder, subroutine, groups;
 			vector<IInterlacedPropertyPattern*> osection, fsection, ssection;
 			vector<IInterlacedPropertyPattern*>* pfsection;
-			map<string, string> preObject;
-			vector<string> objFolders;
+			map<string, string> preArray;
+			vector<string> arrayFolders;
 			sit ofirst;
 
 			osection= mproperties.getSections();
 			for(sit voit= osection.begin(); voit != osection.end(); ++voit)
 			{
 				secName= (*voit)->getSectionModifier();
-				if(secName == "object")
+				if(secName == "array")
 				{
 					//------------------------------------------------------------------------------
-					// fill object folders with content of subroutines
-					for(vector<string>::iterator f= objFolders.begin(); f != objFolders.end(); ++f)
+					// fill array folders with content of subroutines
+					for(vector<string>::iterator f= arrayFolders.begin(); f != arrayFolders.end(); ++f)
 					{
-				//		for(map<string, string>::iterator i= preObject.begin(); i != preObject.end(); ++i)
+				//		for(map<string, string>::iterator i= preArray.begin(); i != preArray.end(); ++i)
 				//			cout << "UM allow group '" << i->second << "' for subroutine " << *f << ":" << i->first << endl;
-						m_mmGroups[*f]= preObject;
+						m_mmGroups[*f]= preArray;
 					}
 					//------------------------------------------------------------------------------
-					object= (*voit)->getSectionValue();
-					objFolders.clear();
-					preObject.clear();
+					array= (*voit)->getSectionValue();
+					arrayFolders.clear();
+					preArray.clear();
 					fsection= (*voit)->getSections();
 					pfsection= &fsection;
 					ofirst= fsection.begin();
 
 				}else
 				{
-					object= "";
+					array= "";
 					pfsection= &osection;
 					ofirst= voit;
 				}
 				// when not run inside obect section
 				// this for loop running only one time
-				// for ofirst (same iterator as current object section osection)
+				// for ofirst (same iterator as current array section osection)
 				for(sit vfit= ofirst; vfit != pfsection->end(); ++vfit)
 				{
 					folder= (*vfit)->getSectionValue();
@@ -451,27 +451,27 @@ namespace user
 							groups= (*vsit)->getValue("perm", /*warning*/false);
 							if(groups != "")
 							{
-								if(object != folder)
+								if(array != folder)
 								{
 									m_mmGroups[folder][subroutine]= groups;
 									//cout << "UM allow group '" << groups << "' for subroutine " << folder << ":" << subroutine << endl;
 								}else
-									preObject[subroutine]= groups;
+									preArray[subroutine]= groups;
 							}
 						}
 					}else
-						objFolders.push_back(folder);
-					if(object == "")
+						arrayFolders.push_back(folder);
+					if(array == "")
 						break;
 				}
 			}
 			//------------------------------------------------------------------------------
-			// fill object folders with content of subroutines
-			for(vector<string>::iterator f= objFolders.begin(); f != objFolders.end(); ++f)
+			// fill array folders with content of subroutines
+			for(vector<string>::iterator f= arrayFolders.begin(); f != arrayFolders.end(); ++f)
 			{
-		//		for(map<string, string>::iterator i= preObject.begin(); i != preObject.end(); ++i)
+		//		for(map<string, string>::iterator i= preArray.begin(); i != preArray.end(); ++i)
 		//			cout << "UM allow group '" << i->second << "' for subroutine " << *f << ":" << i->first << endl;
-				m_mmGroups[*f]= preObject;
+				m_mmGroups[*f]= preArray;
 			}
 			//------------------------------------------------------------------------------
 		}
