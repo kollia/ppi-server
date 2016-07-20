@@ -998,7 +998,7 @@ public class TreeNodes
 				System.out.println("create side of '"+getName()+"'");
 			trans= MsgTranslator.instance();
 			sName= getTitle();
-			dialog.show(trans.translate("dialogCreateSide", sName, sSideCount));
+			dialog.show(trans.translate("dialogCreateSide", sSideCount, sName));
 			dialog.setSelection((short)0);
 		}
 		if(!readFile())
@@ -1037,7 +1037,7 @@ public class TreeNodes
 		{
 			sTitle= getTitle();
 			if(!sTitle.equals(sName))
-				dialog.show(trans.translate("dialogCreateSide", sTitle, sSideCount));
+				dialog.show(trans.translate("dialogCreateSide", sSideCount, sTitle));
 			dialog.setSelection((short)0);
 			dialog.setSteps(m_aoButtons.size() + 1);
 			dialog.nextStep();

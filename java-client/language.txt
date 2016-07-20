@@ -56,8 +56,8 @@ lade Inhalt aller Seiten
 load content of sides
 
 dialogCreateSide:
-erzeuge Inhalt von '@' @
-create side of '@' @
+erzeuge Inhalt @ von '@'
+create side @ of '@'
 
 PORTSERVERBUSY_starting:
 Server wird gestartet
