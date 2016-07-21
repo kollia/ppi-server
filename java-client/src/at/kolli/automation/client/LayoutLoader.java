@@ -1109,34 +1109,7 @@ public class LayoutLoader extends Thread
 			});
 			m_bInitialized= true;
 			
-		}else
-		{
-			if(HtmTags.notree)
-			{// remove old, and create new pop-up bar
-				if(dialog.dialogState().equals(DialogThread.states.CANCEL))
-					return;
-				DisplayAdapter.syncExec(new Runnable() {
-					
-					public void run() {
-
-						RowLayout popupLayout= new RowLayout();
-						
-						PopupMenu.clearAll();
-						m_oPopupComposite.dispose();
-						m_oPopupComposite= new Composite(m_oPopupIn, SWT.NONE);
-						m_oPopupComposite.setLayout(new RowLayout());
-						m_oPopupComposite.setBackground(HtmTags.systemColor);
-						popupLayout.marginHeight= HtmTags.popupPadding;
-						popupLayout.marginWidth= HtmTags.popupPadding;
-						popupLayout.marginBottom= 0;
-						popupLayout.marginTop= 0;
-						popupLayout.marginLeft= 0;
-						popupLayout.marginRight= 0;
-						m_oPopupComposite.setLayout(popupLayout);
-					}
-					
-				});
-			}
+		}
 			// remove all Listeners from actually side
 			if(	m_aoComponents == null &&
 				m_oAktTreeNode != null		)

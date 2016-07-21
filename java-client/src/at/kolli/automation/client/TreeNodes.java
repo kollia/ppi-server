@@ -675,6 +675,7 @@ public class TreeNodes
 			dialog.show(trans.translate("dialogDisposeSide", getTitle(), sSideCount));
 			
 		}
+		PopupMenu.destroy(this);
 		DisplayAdapter.syncExec(new Runnable() {
 		
 			public void run() {
@@ -984,6 +985,7 @@ public class TreeNodes
 			throws IOException, IllegalAccessException
 	{
 		boolean bNoSides= false;
+		boolean bWasSideCreated;
 		String sName= "", sTitle;
 		String sSideCount= "", display= null;
 		DialogThread dialog= DialogThread.instance(null);
@@ -1014,8 +1016,9 @@ public class TreeNodes
 		}
 		synchronized (m_CREATEDOBJ) 
 	    {
+			bWasSideCreated= m_bSideCreated;
 		    if(!m_bSideCreated)
-		    {
+		    {		    	
 				DisplayAdapter.syncExec(new Runnable() {
 					
 					public void run() {
@@ -1064,7 +1067,8 @@ public class TreeNodes
 		{
 			if(HtmTags.notree)
 			{
-				if(m_oPopupComposite != null)
+				if(	m_oPopupComposite != null &&
+					!bWasSideCreated				)
 				{
 					final TreeNodes tnode= this;
 					if(dialog.dialogState().equals(DialogThread.states.CANCEL))

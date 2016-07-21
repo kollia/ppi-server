@@ -1895,7 +1895,7 @@ public class Component  extends HtmTags implements IComponentListener
 	
 					popup= PopupMenu.instance();
 					if(popup != null)
-						popup.destroy();
+						popup.destroyPopupShell();
 					if(HtmTags.moveMouseX >= 0)
 						x= HtmTags.moveMouseX;
 					else

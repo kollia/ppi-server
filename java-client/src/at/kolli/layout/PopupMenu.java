@@ -293,7 +293,7 @@ public class PopupMenu
 	{
 		if(_instance != null)
 		{
-			_instance.destroy();
+			_instance.destroyPopupShell();
 			_instance.m_mRootEntrys.clear();
 			_instance.m_mRootNodes.clear();
 		}
@@ -430,7 +430,7 @@ public class PopupMenu
 							loader.setActSideVisible(/*inform server by no body*/true);
 						}
 						m_nPopup= m_popupShell.getBounds();
-						destroy();
+						destroyPopupShell();
 						m_sMenu= "";
 					}
 				});
@@ -454,7 +454,7 @@ public class PopupMenu
 							loader.setActSideVisible(/*inform server by no body*/true);
 						}
 						m_nPopup= m_popupShell.getBounds();
-						destroy();
+						destroyPopupShell();
 						m_sMenu= "";
 					}
 				});
@@ -481,8 +481,9 @@ public class PopupMenu
 	}
 	/**
 	 * destroy exist menu pop-up
+	 * shell when open
 	 */
-	public void destroy()
+	public void destroyPopupShell()
 	{
 		if(m_popupShell == null)
 			return;
