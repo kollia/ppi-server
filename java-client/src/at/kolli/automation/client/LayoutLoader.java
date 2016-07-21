@@ -1109,7 +1109,8 @@ public class LayoutLoader extends Thread
 			});
 			m_bInitialized= true;
 			
-		}
+		}else
+		{
 			// remove all Listeners from actually side
 			if(	m_aoComponents == null &&
 				m_oAktTreeNode != null		)
