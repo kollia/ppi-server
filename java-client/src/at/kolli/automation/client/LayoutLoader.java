@@ -1493,24 +1493,53 @@ public class LayoutLoader extends Thread
 			}
 		}
 		access= true;
+		bNewNode= true;
+		if(m_aTreeNodes != null)
+		{
+			for (TreeNodes treeNode : m_aTreeNodes)
+			{
+				if(	treeNode.getName().equals(aktName)	)
+				{
+					bNewNode= false;
+					node= treeNode;
+					break;
+				}
+			}
+		}
 		try{
-			if(HtmTags.notree)
-				node= new TreeNodes(pos, m_oPopupComposite, subComposite, tree, aktFolderList);
-			else
-				node= new TreeNodes(pos, subComposite, tree, aktFolderList);
+			if(bNewNode)
+			{
+				if(HtmTags.notree)
+					node= new TreeNodes(pos, m_oPopupComposite, subComposite, tree, aktFolderList);
+				else
+					node= new TreeNodes(pos, subComposite, tree, aktFolderList);
+			}else
+				node.createSide(pos, aktFolderList);
 			
 		}catch(IllegalAccessException ex)
 		{
 			if(ex.getMessage().equals("no side access"))
 			{
 				TreeNodes.m_nReadCount+= (aktFolderList.size() - 1);
-				access= false;
+				if(HtmTags.debug)
+					System.out.println("user has no access to side!");
 			}
+			access= false;
 		}
 		if(access)
+		{
 			oRetTrees.add(node);
-		if(dialog.dialogState().equals(DialogThread.states.CANCEL))
-			return oRetTrees;
+			display= null;
+			mMetaBlock= node.getMetaData();
+			if(mMetaBlock != null)
+				display= mMetaBlock.get("display");
+			if(	HtmTags.showFalse ||
+				display == null ||
+				!display.equals("notree")	)
+			{// do not increment position index for navigation tree
+				++pos; // when the side should'nt display in tree
+			}
+		}
 		dialog.setSelection((short)100);
 		
 		return oRetTrees;			
