@@ -21,4 +21,4 @@ package at.kolli.layout;
  */
 public enum permission {	None,
 							readable,
-							writeable	}
+							writable	}

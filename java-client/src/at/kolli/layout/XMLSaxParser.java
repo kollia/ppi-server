@@ -422,7 +422,7 @@ public class XMLSaxParser extends DefaultHandler
 		    }
 		    
 			if(m_aoPermission.size() == 0)
-				m_oAktTag.setPermission(permission.writeable);
+				m_oAktTag.setPermission(permission.writable);
 			else
 				m_oAktTag.setPermission(m_aoPermission.get(0));
 			

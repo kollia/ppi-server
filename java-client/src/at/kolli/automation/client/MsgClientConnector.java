@@ -499,7 +499,7 @@ public class MsgClientConnector extends ClientConnector
 	 * 
 	 * @param path  of subroutine<br />
 	 * 				The path is made up of &lt;folder&gt;:&lt;subroutine&gt;
-	 * @return strings of write, read, none, noFolder, noSubroutine or error code of server 
+	 * @return permission of None, readable, writable or NULL by ERROR 
 	 */
 	public permission permission(String groups, boolean bthrow) throws IOException
 	{
@@ -510,7 +510,7 @@ public class MsgClientConnector extends ClientConnector
 			res= super.permission(groups);
 			if(res.equals("write"))
 			{
-				Rv= permission.writeable;
+				Rv= permission.writable;
 				res= "OK";
 				
 			}else if(res.equals("read"))
@@ -772,7 +772,8 @@ public class MsgClientConnector extends ClientConnector
 
 		try{
 			if(	!HtmTags.debugFolder.isEmpty() &&
-				folder.equals(HtmTags.debugFolder)	)
+				(	folder.equals(HtmTags.debugFolder) ||
+					HtmTags.debugFolder.equals("*")			)	)
 				{
 					StringBuffer msg= new StringBuffer();
 					

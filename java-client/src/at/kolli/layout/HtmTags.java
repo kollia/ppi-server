@@ -99,10 +99,11 @@ public abstract class HtmTags
 	 * when changed from this client, or this client fetch an
 	 * value from subroutine, or server sending over hearing
 	 * connection some changes of the subroutine.<br />
-	 * This behavior have to be implemented here by sourcecode
+	 * This behavior have to be implemented here by source code
 	 * and the variable should be as default an null string ("")
+	 * for no debugging or an star ("*") for all
 	 */
-	public static String debugFolder= "page";
+	public static String debugFolder= "";
 	/**
 	 * when an layout page has the meta tag 'pageset'
 	 * this variable allow to send value 0 to server
@@ -251,7 +252,7 @@ public abstract class HtmTags
 	/**
 	 * actual permission of component
 	 */
-	private permission actPermission= permission.writeable;
+	private permission actPermission= permission.writable;
 	
 	/**
 	 * getter routine to get actual permission from outside

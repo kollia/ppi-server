@@ -694,9 +694,9 @@ public class Component  extends HtmTags implements IComponentListener
 					else
 					{
 						if(	highPerm == permission.readable &&
-							perm == permission.writeable		)
+							perm == permission.writable		)
 						{
-							highPerm= permission.writeable;
+							highPerm= permission.writable;
 						}
 					}
 				}
@@ -1424,7 +1424,7 @@ public class Component  extends HtmTags implements IComponentListener
 			formatObj.actPermission= perm;
 		switch (perm)
 		{
-		case writeable:			
+		case writable:			
 			if(	normal == layout.readonly ||
 				normal == layout.disabled	)
 			{
@@ -1511,29 +1511,11 @@ public class Component  extends HtmTags implements IComponentListener
 		else
 			result= this.result;
 		client= MsgClientConnector.instance();
-		res= client.getValue(result, /*bthrow*/true);
-		if(!client.hasError())
-		{
-			if(	normal == layout.readonly ||
-				!client.setValue(result, res, /*bthrow*/true)	)
-			{
-				eRv= permission.readable;
-				setPermission(eRv, formatObj);
-				
-			}else
-			{
-				eRv= permission.writeable;
-				setPermission(eRv, formatObj);
-			}
-			if(formatObj != null)
-				formatObj.permissionSet= true;
-			else
-				permissionSet= true;
-				
-		}else
+		eRv= client.permission(result, /*bthrow*/true);
+		setPermission(eRv, formatObj);
+		if(client.hasError())
 		{	
 			eRv= permission.None;
-			setPermission(eRv, formatObj);
 			System.out.println(client.getErrorMessage());
 			if(client.getErrorCode().equals("PORTSERVERERROR016"))
 			{
@@ -1548,7 +1530,17 @@ public class Component  extends HtmTags implements IComponentListener
 				else
 					permissionSet= true;
 			}
+		}else
+		{
+			if(normal == layout.readonly)
+				eRv= permission.readable;
+			if(formatObj != null)
+				formatObj.permissionSet= true;
+			else
+				permissionSet= true;
+				
 		}
+		setPermission(eRv, formatObj);
 		return eRv;
 	}
 	
@@ -1683,7 +1675,7 @@ public class Component  extends HtmTags implements IComponentListener
 						m_sSoftButtonName.equals("browser_load")	)
 						setPermission(permission.readable);
 					else
-						setPermission(permission.writeable);
+						setPermission(permission.writable);
 					m_nSoftButton= true;
 					
 				}else
@@ -1953,7 +1945,7 @@ public class Component  extends HtmTags implements IComponentListener
 		}
 		
 		if(	!m_bCorrectName ||
-			(	!getPermission().equals(permission.writeable) &&
+			(	!getPermission().equals(permission.writable) &&
 				!bAlsoOK										)	)
 		{
 			return;
@@ -2017,6 +2009,7 @@ public class Component  extends HtmTags implements IComponentListener
 								nValue= 0;
 						}
 						try{
+				    		System.out.println("set " + gType + " to " + nValue);
 							client.setValue(result, nValue, /*bthrow*/false);
 						}catch(IOException ex)
 						{}
