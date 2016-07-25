@@ -193,7 +193,7 @@ public class PopupMenu
 					{
 						System.out.println(t.getName()+" setActiveSideVisible of " + entry);
 					}
-					loader.setActSideVisible(/*inform server by no body*/true);
+					loader.setCurrentSideVisible(/*inform server by no body*/true);
 					if(	HtmTags.lockDebug	)
 					{
 						System.out.println(t.getName()+" hase setActiveSideVisible of " + entry);
@@ -222,7 +222,7 @@ public class PopupMenu
 					loader.m_sAktFolder= entry;
 					if(HtmTags.lockDebug)
 						System.out.println(t.getName()+" setActiveSideVisible of " + entry);
-					loader.setActSideVisible(/*inform server by no body*/true);
+					loader.setCurrentSideVisible(/*inform server by no body*/true);
 					if(HtmTags.lockDebug)
 						System.out.println(t.getName()+" hase setActiveSideVisible of " + entry);
 				}
@@ -427,7 +427,7 @@ public class PopupMenu
 						loader.m_sAktFolder= entry;
 						synchronized (TreeNodes.m_DISPLAYLOCK)
 						{
-							loader.setActSideVisible(/*inform server by no body*/true);
+							loader.setCurrentSideVisible(/*inform server by no body*/true);
 						}
 						m_nPopup= m_popupShell.getBounds();
 						destroyPopupShell();
@@ -451,7 +451,7 @@ public class PopupMenu
 						loader.m_sAktFolder= entry;
 						synchronized (TreeNodes.m_DISPLAYLOCK)
 						{
-							loader.setActSideVisible(/*inform server by no body*/true);
+							loader.setCurrentSideVisible(/*inform server by no body*/true);
 						}
 						m_nPopup= m_popupShell.getBounds();
 						destroyPopupShell();

@@ -440,7 +440,7 @@ public class TreeNodes
 					res > 0)
 				{
 					if(!folder.equals(""))
-						folder+= ":";
+						folder+= "/";
 					sRv= folder + getName();
 				}
 			}catch(IOException ex)
@@ -451,7 +451,7 @@ public class TreeNodes
 		if(sRv.equals(""))
 		{
 			if(!folder.equals(""))
-				folder+= ":";
+				folder+= "/";
 			for(TreeNodes node : m_aSubnodes)
 			{
 				sRv= node.getFirstActiveSidePath(folder + getName());

@@ -614,13 +614,26 @@ public class LayoutLoader extends Thread
 	/**
 	 * set defined side in <code>m_sAktFolder</code> to new active side
 	 * 
+	 * @param parent parent side
 	 * @param whether should inform server want to set page active also when node has no body
 	 * @return whether can set new page or was also before active
 	 */
-	public boolean setActSideVisible(boolean inform)
+	public boolean setCurrentSideVisible(boolean inform)
+	{
+		return setCurrentNodeSideVisible(m_aTreeNodes, "", inform);
+	}
+	/**
+	 * set defined side in <code>m_sAktFolder</code> to new active side
+	 * 
+	 * @param parent parent side
+	 * @param whether should inform server want to set page active also when node has no body
+	 * @return whether can set new page or was also before active
+	 */
+	public boolean setCurrentNodeSideVisible(ArrayList<TreeNodes> nodes, String parent, boolean inform)
 	{
 		TreeNodes newNode;
 		TreeNodes oldNode;
+		ArrayList<TreeNodes> subNodes;
 		WidgetChecker checker= WidgetChecker.instance();
 		Thread t= null;
 		
@@ -646,9 +659,9 @@ public class LayoutLoader extends Thread
 			return true;
 		}
 		newNode= null;
-		for(TreeNodes node : m_aTreeNodes)
+		for(TreeNodes node : nodes)
 		{
-			if(	m_sAktFolder.equals(node.getName()) ||
+			if(	m_sAktFolder.equals(parent + node.getName()) ||
 				m_oAktTreeNode != null ||		// ask only whether not should shown inside tree
 				node.treeDisplay()			) 	// by first starting of client when no actual tree node defined
 			{
@@ -660,7 +673,7 @@ public class LayoutLoader extends Thread
 				if(	m_aoComponents != null &&
 					m_aoComponents.size() > 0	)
 				{
-					for(TreeNodes page : m_aTreeNodes)
+					for(TreeNodes page : nodes)
 						page.hearOnSides(/*firstDef*/false);
 					if(m_oAktTreeNode != null)
 						m_oAktTreeNode.setInvisible();
@@ -684,7 +697,7 @@ public class LayoutLoader extends Thread
 					if(m_oAktTreeNode != null)
 						m_oAktTreeNode.setInvisible();
 					m_oAktTreeNode= newNode;
-					for(TreeNodes page : m_aTreeNodes)
+					for(TreeNodes page : nodes)
 						page.hearOnSides(/*firstDef*/true);
 				}
 				m_aoComponents= m_oAktTreeNode.getComponents();
@@ -722,6 +735,13 @@ public class LayoutLoader extends Thread
 					System.out.println(t.getName()+" unlock sideLock for setActiveSideVisible");
 				}
 				sideLock.unlock();
+				return true;
+			}
+			subNodes= node.getChilds();
+			if(	subNodes != null &&
+				!subNodes.isEmpty() &&
+				setCurrentNodeSideVisible(subNodes, parent + node.getName() + "/", inform)	)
+			{
 				return true;
 			}
 		}
@@ -1016,7 +1036,7 @@ public class LayoutLoader extends Thread
 						if(HtmTags.debug)
 							System.out.println("Treenode "+ name + " is selected");
 						m_sAktFolder= name;
-						setActSideVisible(/*inform server by no body*/true);
+						setCurrentSideVisible(/*inform server by no body*/true);
 					}
 				}
 			});
@@ -1300,7 +1320,7 @@ public class LayoutLoader extends Thread
 			m_oAktTreeNode= null;
 			actFolderBefore= m_sAktFolder;
 			m_sAktFolder= firstActiveSide;
-			if(setActSideVisible(/*inform server by no body*/false))
+			if(setCurrentSideVisible(/*inform server by no body*/false))
 				return;
 			m_sAktFolder= actFolderBefore;
 		}
@@ -1309,7 +1329,7 @@ public class LayoutLoader extends Thread
 		 // but client was running before
 		 // set the same side (actually inside m_sAktFolder) visible
 			m_oAktTreeNode= null;
-			if(setActSideVisible(/*inform server*/true))
+			if(setCurrentSideVisible(/*inform server*/true))
 				return;
 		}
 		
@@ -1332,13 +1352,13 @@ public class LayoutLoader extends Thread
 			if(current.treeDisplay())
 			{
 				m_sAktFolder= path + current.getName();
-				if(setActSideVisible(/*inform server by no body*/false))
+				if(setCurrentSideVisible(/*inform server by no body*/false))
 					return true;
 			}
 		}
 		for(TreeNodes current : nodes)
 		{
-			if(setFirstSide(current.getChilds(), path + current.getName() + ":"))
+			if(setFirstSide(current.getChilds(), path + current.getName() + "/"))
 				return true;
 		}
 		return false;

@@ -218,7 +218,7 @@ public class WidgetChecker extends Thread
 						{
 							System.out.println(t.getName()+" should set new side "+node+" active");
 						}
-						loader.setActSideVisible(/*inform server by no body*/false);
+						loader.setCurrentSideVisible(/*inform server by no body*/false);
 					}else
 					{// fill values into actual side
 						if(	HtmTags.lockDebug	)

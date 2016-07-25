@@ -2009,7 +2009,6 @@ public class Component  extends HtmTags implements IComponentListener
 								nValue= 0;
 						}
 						try{
-				    		System.out.println("set " + gType + " to " + nValue);
 							client.setValue(result, nValue, /*bthrow*/false);
 						}catch(IOException ex)
 						{}
