@@ -238,6 +238,12 @@ public class Component  extends HtmTags implements IComponentListener
 	 */
 	public String result= "";
 	/**
+	 * current last sending value to server.<br />
+	 * Only to know which last sending was done,
+	 * to sending again not the same value.
+	 */
+	private Double m_dLastSendingValue= null;
+	/**
 	 * structure of result string
 	 * 
 	 * @author Alexander Kolli
@@ -2208,21 +2214,6 @@ public class Component  extends HtmTags implements IComponentListener
 							// nothing to do					
 						}
 					});
-					((Text)m_oComponent).addFocusListener(m_eFocusListener= new FocusListener() {
-						
-						@Override
-						public void focusLost(FocusEvent arg0) 
-						{
-							m_bTextFocus= false;
-						}
-						
-						@Override
-						public void focusGained(FocusEvent arg0)
-						{
-							// nothing to do
-							
-						}
-					});
 				}
 			}
 			((Text)m_oComponent).addSelectionListener(m_eSelectionListener= new SelectionAdapter()
@@ -2231,76 +2222,30 @@ public class Component  extends HtmTags implements IComponentListener
 				public void widgetDefaultSelected(SelectionEvent ev)
 				{
 					String string= ((Text)m_oComponent).getText();
-					String strRes= string;
-					double value;
 					
 					if(!m_nSoftButton)
 					{
-						for (textFormat formatObj : m_aResult)
-						{
-							strRes= string;
-							if(formatObj.changePattern.match(string))
-							{
-								if(HtmTags.debug)
-									System.out.println("user change text field " + name + " to " + string);
-								strRes= formatObj.changePattern.getParen(2);
-								string= string.substring(formatObj.changePattern.getParenEnd(2));
-								if(!strRes.equals(""))
-								{
-									if(HtmTags.debug)
-										System.out.println(" generate to number '" + strRes + "'");
-									try{
-										value= Double.parseDouble(strRes);
-										strRes= formatObj.changePattern.getParen(1);
-										if(	strRes.length() > 0 &&
-											strRes.substring(strRes.length()-1).equals("-")	)
-										{
-											value*= -1;
-										}
-										
-									}catch(NumberFormatException ex)
-									{
-										if(HtmTags.debug)
-										{
-											System.out.println("NumberFormatException for textfield " + name);
-											System.out.println(" cannot convert value " + strRes);
-											System.out.println();
-										}
-										value= 0;
-									}
-								}else
-								{
-									if(HtmTags.debug)
-									{
-										System.out.println("found no correct value for new string '" + strRes + "'");
-										System.out.println("set value to 0");
-									}
-									value= 0;
-								}
-							}else
-							{
-								if(HtmTags.debug)
-								{
-									System.out.println("found no correct value for new string '" + strRes + "'");
-									System.out.println("set value to 0");
-								}
-								value= 0;
-							}
-							try{
-								client.setValue(formatObj.resultStr, value, /*bthrow*/false);
-							}catch(IOException ex)
-							{}
-					    	if(	HtmTags.debug &&
-					    		client.hasError()	)
-					    	{
-					    		System.out.println("ERROR: by setValue() inside SelectionListener");
-					    		System.out.println("       " + client.getErrorMessage());
-					    	}
-						}
+						sendFormatedDoubleValueToServer(string);
 					}else
 						doSoftButton();
 				}
 			
+			});
+			((Text)m_oComponent).addFocusListener(m_eFocusListener= new FocusListener() {
+				
+				@Override
+				public void focusLost(FocusEvent arg0) 
+				{
+					m_bTextFocus= false;
+					sendFormatedDoubleValueToServer(((Text)m_oComponent).getText());
+				}
+				
+				@Override
+				public void focusGained(FocusEvent arg0)
+				{
+					// nothing to do
+					
+				}
 			});
 			if(m_nSoftButton)
 			{
@@ -2479,6 +2424,84 @@ public class Component  extends HtmTags implements IComponentListener
 	}
 	
 	/**
+	 * calculate from string of text field an double number
+	 * and send to server
+	 */
+	void sendFormatedDoubleValueToServer(String string)
+	{
+		MsgClientConnector client= MsgClientConnector.instance();
+		String strRes= string;
+		double value;
+
+		for (textFormat formatObj : m_aResult)
+		{
+			strRes= string;
+			if(formatObj.changePattern.match(string))
+			{
+				if(HtmTags.debug)
+					System.out.println("user change text field " + name + " to " + string);
+				strRes= formatObj.changePattern.getParen(2);
+				string= string.substring(formatObj.changePattern.getParenEnd(2));
+				if(!strRes.equals(""))
+				{
+					if(HtmTags.debug)
+						System.out.println(" generate to number '" + strRes + "'");
+					try{
+						value= Double.parseDouble(strRes);
+						strRes= formatObj.changePattern.getParen(1);
+						if(	strRes.length() > 0 &&
+							strRes.substring(strRes.length()-1).equals("-")	)
+						{
+							value*= -1;
+						}
+						
+					}catch(NumberFormatException ex)
+					{
+						if(HtmTags.debug)
+						{
+							System.out.println("NumberFormatException for textfield " + name);
+							System.out.println(" cannot convert value " + strRes);
+							System.out.println();
+						}
+						value= 0;
+					}
+				}else
+				{
+					if(HtmTags.debug)
+					{
+						System.out.println("found no correct value for new string '" + strRes + "'");
+						System.out.println("set value to 0");
+					}
+					value= 0;
+				}
+			}else
+			{
+				if(HtmTags.debug)
+				{
+					System.out.println("found no correct value for new string '" + strRes + "'");
+					System.out.println("set value to 0");
+				}
+				value= 0;
+			}
+			try{
+				if(	m_dLastSendingValue == null ||
+					value != m_dLastSendingValue	)
+				{
+					client.setValue(formatObj.resultStr, value, /*bthrow*/false);
+					m_dLastSendingValue= value;
+				}
+			}catch(IOException ex)
+			{}
+	    	if(	HtmTags.debug &&
+	    		client.hasError()	)
+	    	{
+	    		System.out.println("ERROR: by setValue() inside SelectionListener");
+	    		System.out.println("       " + client.getErrorMessage());
+	    	}
+		}
+	}
+	
+	/**
 	 * calculate the string value for an component with type text
 	 * 
 	 * @return value as string with observance the format attribute and add the suffix (attribute value)
@@ -2626,10 +2649,10 @@ public class Component  extends HtmTags implements IComponentListener
 				{
 					if(browser != null)
 						browser.removeLocationListener(m_eLocationListener);
-					m_oComponent.removeFocusListener(m_eFocusListener);
 					m_oComponent.removeMouseListener(m_eMouseListener);
 				}
 			}
+			m_oComponent.removeFocusListener(m_eFocusListener);
 			
 		}else if(this.type.equals("slider"))
 		{
