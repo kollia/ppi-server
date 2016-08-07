@@ -524,14 +524,14 @@ public class MsgClientConnector extends ClientConnector
 				res= "OK";
 			}
 			if(generateServerError(res) != null)
-				return null;
+				Rv= permission.None;
 			
 		}catch(IOException ex)
 		{
 			generateServerError(ex.getMessage());
 			if(bthrow)
 				throw ex;
-			return null;
+			Rv= permission.None;
 		}
 		return Rv;
 		
