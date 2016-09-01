@@ -162,6 +162,8 @@ namespace ports
 	{
 		bool bHoldConnection;
 		int connResult(0);
+		int nShouldHasContentLength(0);
+		int nCurrentContentLength(0);
 		EHObj errHandle;
 		string result;
 		ostringstream oSendRequest;
@@ -525,22 +527,37 @@ namespace ports
 				{
 					berror= true;
 				}
-				if(	berror ||
-					descriptor->hasError())
+				if(	(	berror ||
+						descriptor->hasError()	) &&
+					nCurrentContentLength < nShouldHasContentLength	)
 				{
-					string errStr;
+					string errStr, descriptorErr;
+					ostringstream oLength;
 
 					m_oSocket->close();
 					currentTime.clear();
 					oValue->setTime(currentTime);
 					oValue->setValue(400);
-					errStr= "ERROR by reading answer, get fault content -> so close connection to ";
+					errStr= "ERROR by reading answer, ";
+					descriptorErr= descriptor->getErrorDescription();
+					trim(descriptorErr);
+					if(	descriptor->hasError() &&
+						descriptorErr != ""	)
+					{
+						debugOutStr+= "'" + descriptorErr + "' ";
+					}else
+						errStr+= "get fault content ";
+					errStr+= "-> so close connection to ";
 					errStr+= m_sAddress.getHost() + "\n";
+					oLength << nCurrentContentLength;
+					errStr+= "length of Content has only " + oLength.str();
+					errStr+= " characters and should has ";
+					oLength.str("");
+					oLength << nShouldHasContentLength;
+					errStr+= oLength.str() + "\n";
 					if(debug)
 					{
 						debugOutStr+= "\n";
-						if(descriptor->hasError())
-							debugOutStr+= descriptor->getErrorDescription() + "\n";
 						debugOutStr+= errStr + "\n";
 						fillDebug(debugOutStr);
 					}
@@ -555,72 +572,78 @@ namespace ports
 				}
 				if(!bHeadEnd)
 				{
+					string res;
+					istringstream output;
+
 					if(debug)
 						debugOutStr+= result;
 					trim(result);// need trim also to define end of HEADER
-					if(bHoldConnection)
+					if(result != "")
 					{
-						string res;
-						istringstream output;
-
 						output.str(result);
 						output >> res;
-						if(res == "Connection:")
+						if(res == "Content-Length:")
 						{
-							output >> res;
-							if(res == "close")
-							{
-								bHoldConnection= false;
-								if(debug)
-									debugOutStr+= " >> SERVER close connection\n";
-							}
-						}else if(res == "Keep-Alive:")
-						{// server set timeout for holding connection
-							istringstream oNum;
-							unsigned short nNum;
-							bool bTimeout(false), bMax(false);
+							output >> nShouldHasContentLength;
 
-							while(	!output.eof()	&&
-									!output.fail()		)
+						}else if(bHoldConnection)
+						{
+							if(res == "Connection:")
 							{
 								output >> res;
-								if(res.substr(0, 8) == "timeout=")
+								if(res == "close")
 								{
-									oNum.str(res.substr(8));
-									oNum >> nNum;
-									if(!oNum.fail())
-									{
-										m_nTimeoutMax.first= nNum;
-										bTimeout= true;
-									}
-
-								}else if(res.substr(0, 4) == "max=")
-								{
-									oNum.str(res.substr(4));
-									oNum >> nNum;
-									if(!oNum.fail())
-									{
-										m_nTimeoutMax.second= nNum;
-										bMax= true;
-									}
+									bHoldConnection= false;
+									if(debug)
+										debugOutStr+= " >> SERVER close connection\n";
 								}
-							}// while(!output.eof())
-							if(!bTimeout)
-							{
-								string err("by getting Keep-Alive answer from " + m_sAddress.getHost() + "\n");
+							}else if(res == "Keep-Alive:")
+							{// server set timeout for holding connection
+								istringstream oNum;
+								unsigned short nNum;
+								bool bTimeout(false), bMax(false);
 
+								while(	!output.eof()	&&
+										!output.fail()		)
+								{
+									output >> res;
+									if(res.substr(0, 8) == "timeout=")
+									{
+										oNum.str(res.substr(8));
+										oNum >> nNum;
+										if(!oNum.fail())
+										{
+											m_nTimeoutMax.first= nNum;
+											bTimeout= true;
+										}
+
+									}else if(res.substr(0, 4) == "max=")
+									{
+										oNum.str(res.substr(4));
+										oNum >> nNum;
+										if(!oNum.fail())
+										{
+											m_nTimeoutMax.second= nNum;
+											bMax= true;
+										}
+									}
+								}// while(!output.eof())
 								if(!bTimeout)
-									err+= "cannot read correctly timeout result\n";
-								if(!bMax)
-									err+= "cannot read correctly max using connection\n";
-								err+= "by anser string '" + result + "'";
-								if(debug)
-									debugOutStr+= err + "\n";
-								TIMELOG(LOG_ERROR, "Keep-Alive", err);
-							}
-						}// if(res == "Keep-Alive:")
-					}
-					if(result == "")
+								{
+									string err("by getting Keep-Alive answer from " + m_sAddress.getHost() + "\n");
+
+									if(!bTimeout)
+										err+= "cannot read correctly timeout result\n";
+									if(!bMax)
+										err+= "cannot read correctly max using connection\n";
+									err+= "by anser string '" + result + "'";
+									if(debug)
+										debugOutStr+= err + "\n";
+									TIMELOG(LOG_ERROR, "Keep-Alive", err);
+								}
+							}// if(res == "Keep-Alive:")
+						}
+					}else //if(result != "")
 					{
 						bHeadEnd= true;
 						if(m_nTimeoutMax.second > 0)
@@ -646,6 +669,7 @@ namespace ports
 					}
 				}else
 				{
+					nCurrentContentLength+= result.length();
 					if(debug)
 					{
 						if(nDebugCount == 0)
