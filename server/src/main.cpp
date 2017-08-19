@@ -39,8 +39,6 @@
 using namespace std;
 using namespace util;
 
-// test checkin for using git in eclipse
-
 // only used method for some debugging tests
 void tests(const string& workdir, int argc, char* argv[]);
 
