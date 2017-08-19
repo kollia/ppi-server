@@ -30,6 +30,7 @@
 #include <cstdio>
 
 #include <string>
+#include <iostream>
 #include <vector>
 #include <exception>
 
@@ -53,7 +54,7 @@ template <class SignalExceptionClass> class SignalTranslator
 
 			sigemptyset(&signal_set);
 			if(sigaddset(&signal_set, SignalExceptionClass::GetSignalNumber()) != 0)
-				cout << "cannot add signal -" << SignalExceptionClass::GetSignalNumber() << endl;
+				std::cout << "cannot add signal -" << SignalExceptionClass::GetSignalNumber() << std::endl;
 			if(sigprocmask(SIG_UNBLOCK, &signal_set, NULL) != 0)
 				cout << "cannot unblock signal -" << SignalExceptionClass::GetSignalNumber() << endl;
              throw SignalExceptionClass();
