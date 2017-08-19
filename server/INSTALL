@@ -25,9 +25,12 @@ QUICK INSTALL:
     bash
     make
     cmake
+    cmake-curses-gui
     gcc
     g++
-    boost 
+    libboost-all-dev
+    liblircclient-dev
+    
    (If they are to other hardware access them,
     read also point 1 and 3 from Full Installation below)
 
@@ -52,6 +55,7 @@ QUICK INSTALL:
 
 More complete instructions:
 ---------------------------------------------------------------------
+
 Full Installation
 ==================
 

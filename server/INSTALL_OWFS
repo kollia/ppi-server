@@ -14,7 +14,7 @@ QUICK INSTALL:
       gcc
       g++
       libtool
-      libusb
+      libusb-dev
    follow packages only for an full configuration
       fuse-utils
       libfuse-dev
