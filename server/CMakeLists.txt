@@ -36,14 +36,13 @@ if(	CMAKE_BUILD_TYPE STREQUAL "Debug"	OR
 		
         add_definitions("-Wall -Wclobbered -Wempty-body -Wignored-qualifiers 
                          -Wmissing-field-initializers -Wsign-compare -Wtype-limits 
-                         -Winit-self -Wnon-virtual-dtor -Wsign-promo -Wno-long-long -fPIC
+                         -Winit-self -Wnon-virtual-dtor -Wsign-promo -Wno-long-long -fPIC ")
                       # debug options make memory checks
                       # make binary slower, do not implement all the time
                        #  -fsanitize=address
                        #  -fsanitize=thread 
                        #  -fsanitize=leak
-                       #  -fsanitize=undefined  
-                                                         ")
+                       #  -fsanitize=undefined  ")
 
 	# for warning optins see http://gcc.gnu.org/onlinedocs/gcc-4.5.0/gcc/Warning-Options.html#Warning-Options
 	#add_definitions("-pedantic-errors -Wall -Wextra -ansi -Winit-self -Woverloaded-virtual -Wnon-virtual-dtor -Wsign-promo -Wno-long-long")
@@ -71,7 +70,9 @@ endif(	CMAKE_BUILD_TYPE STREQUAL "Debug"	OR
 	
 	
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
+message(STATUS "set EXECUTABLE path '${CMAKE_SOURCE_DIR}/bin'")
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
+message(STATUS "set LIBRARY path '${CMAKE_SOURCE_DIR}/lib'")
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
